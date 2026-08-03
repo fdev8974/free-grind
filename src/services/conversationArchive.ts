@@ -21,6 +21,7 @@
  */
 
 import * as chatDb from "./chatDb";
+import { clearUnreadCountForProfile } from "./chatContactIndex";
 import type { ArchivedReason, BlockState } from "../types/chat-db";
 import type { Message } from "../types/messages";
 import { appLog } from "../utils/logger";
@@ -48,12 +49,28 @@ function dispatchArchiveStateChange(detail: ChatArchiveStateChangeDetail) {
 export async function archiveConversation(
 	conversationId: string,
 	reason: ArchivedReason,
+	otherProfileId?: string | null,
 ): Promise<void> {
 	try {
 		await chatDb.setConversationArchived(conversationId, true, reason);
 		dispatchArchiveStateChange({ conversationId, archived: true, reason });
 	} catch (error) {
 		appLog.error(`[conversation-archive] failed to archive ${conversationId}`, error);
+	}
+
+	// Archiving here always means the server will never surface this
+	// conversation as current again (blocked, or the profile is gone) — but
+	// the grid/profile tile's unread badge lives in a separate index keyed
+	// by profile id (chat_contact_index, see chatContactIndex.ts), which
+	// this function otherwise never touches. Without this, a profile whose
+	// only conversation just got archived here would keep showing a stale
+	// "1 unread" on the grid/profile page forever, since nothing else clears
+	// that index once a chat thread is gone rather than actually read.
+	const profileId =
+		otherProfileId ??
+		(await chatDb.getConversation(conversationId).catch(() => null))?.otherProfileId;
+	if (profileId) {
+		await clearUnreadCountForProfile(profileId).catch(() => {});
 	}
 }
 
@@ -258,7 +275,7 @@ export async function toggleArchiveOnConversationDelete(
 			// goes out (see useProfileQueries.ts).
 			if (consumeSelfBlockAction(conversationId, "block")) {
 				if (await claimBlockStateTransition(conversationId, "blocked_by_me")) {
-					await archiveConversation(conversationId, "ws_delete");
+					await archiveConversation(conversationId, "ws_delete", otherProfileId);
 					archived.push(conversationId);
 					await insertBlockMessage(conversationId, "SystemBlockedBySelf");
 				}
@@ -306,7 +323,7 @@ export async function toggleArchiveOnConversationDelete(
 				(await isBlockedByMe(otherProfileId).catch(() => false))
 			) {
 				if (await claimBlockStateTransition(conversationId, "blocked_by_me")) {
-					await archiveConversation(conversationId, "ws_delete");
+					await archiveConversation(conversationId, "ws_delete", otherProfileId);
 					archived.push(conversationId);
 					await insertBlockMessage(conversationId, "SystemBlockedBySelf");
 				}
@@ -380,7 +397,7 @@ export async function toggleArchiveOnConversationDelete(
 				}
 				if (status === "blocked") {
 					if (await claimBlockStateTransition(conversationId, "blocked_by_other")) {
-						await archiveConversation(conversationId, "ws_delete");
+						await archiveConversation(conversationId, "ws_delete", otherProfileId);
 						archived.push(conversationId);
 						await insertBlockMessage(conversationId, "SystemBlocked");
 					}
@@ -396,7 +413,7 @@ export async function toggleArchiveOnConversationDelete(
 					`[conversation-archive] ${conversationId} not found — treating as gone, not a block`,
 				);
 				if (existing?.archivedReason !== "not_found") {
-					await archiveConversation(conversationId, "not_found");
+					await archiveConversation(conversationId, "not_found", otherProfileId);
 					archived.push(conversationId);
 				}
 				return;
@@ -407,7 +424,7 @@ export async function toggleArchiveOnConversationDelete(
 			// profile lookup coming up empty), so treat it as a genuine block
 			// by the other party.
 			if (await claimBlockStateTransition(conversationId, "blocked_by_other")) {
-				await archiveConversation(conversationId, "ws_delete");
+				await archiveConversation(conversationId, "ws_delete", otherProfileId);
 				archived.push(conversationId);
 				await insertBlockMessage(conversationId, "SystemBlocked");
 			}
@@ -495,12 +512,7 @@ export async function applySelfBlockAction(
 	}
 
 	if (action === "block") {
-		await archiveConversation(conversationId, "ws_delete");
-		// This conversation is done for good — no live path will ever mark it
-		// read again (see ChatPage's clearUnreadForArchivedEntry, which only
-		// helps while a chat page happens to be mounted), so a stale unread
-		// count would otherwise stick around forever after blocking from
-		// somewhere that isn't chat (grid, profile page, blocked-list settings).
+		await archiveConversation(conversationId, "ws_delete", profileId);
 		await chatDb.setConversationUnreadCount(conversationId, 0).catch(() => {});
 	} else {
 		await unarchiveConversation(conversationId);
@@ -632,7 +644,11 @@ export async function reconcileBlockStateWithBlockedList(
 			}
 			try {
 				if (shouldBeBlockedByMe) {
-					await archiveConversation(conversation.conversationId, "ws_delete");
+					await archiveConversation(
+						conversation.conversationId,
+						"ws_delete",
+						conversation.otherProfileId,
+					);
 					const message = await chatDb.insertSystemMessage(
 						conversation.conversationId,
 						"SystemBlockedBySelf",
