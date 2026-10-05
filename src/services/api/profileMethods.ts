@@ -501,13 +501,12 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 		},
 
 		/**
-		 * Signed POST /v5/media/upload — device-key signing is handled
-		 * Rust-side by grindr.rs, so this goes through a dedicated command
-		 * rather than the generic REST passthrough `uploadProfileImage` above
-		 * uses. `thumbCoords` is the same `"bottom,left,right,top"` string the
-		 * caller already builds for that path.
+		 * Profile photo upload through a dedicated command that picks the
+		 * endpoint: in-app captures go to the device-key-signed /v5 upload
+		 * (signed Rust-side by grindr.rs), gallery photos to the unsigned /v4
+		 * one. `thumbCoords` is the `"bottom,left,right,top"` crop string.
 		 */
-		async uploadProfileImageSigned(params: {
+		async uploadProfilePhoto(params: {
 			body: Uint8Array;
 			contentType: string;
 			thumbCoords?: string;

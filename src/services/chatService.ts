@@ -587,30 +587,37 @@ export function createChatService(fetchRest: RestFetcher, t: (key: string) => st
 		async uploadChatMedia(
 			params: UploadChatMediaParams,
 		): Promise<UploadChatMediaResponse> {
-			// Signed POST /v6/chat/media/upload — device-key signing is handled
-			// Rust-side by grindr.rs, so this goes through a dedicated command
-			// rather than the generic REST passthrough.
+			// A dedicated command picks the endpoint: in-app captures go to the
+			// device-key-signed /v6 upload (signed Rust-side by grindr.rs), gallery
+			// media to the unsigned /v5 one.
+			let response: unknown;
 			try {
-				const response = await invoke<{ mediaId: number; url: string; mediaHash: string }>(
-					"upload_chat_media",
-					{
-						body: Array.from(params.multipart.body),
-						contentType: params.multipart.contentType,
-						takenOnGrindr: params.options.takenOnGrindr,
-						length: params.options.durationSeconds ?? null,
-						looping: params.options.looping,
-					},
-				);
-
-				return {
-					mediaId: response.mediaId,
-					mediaHash: response.mediaHash,
-					url: response.url,
-					expiresAt: null,
-				};
+				response = await invoke("upload_chat_media", {
+					body: Array.from(params.multipart.body),
+					contentType: params.multipart.contentType,
+					takenOnGrindr: params.options.takenOnGrindr,
+					length: params.options.durationSeconds ?? null,
+					looping: params.options.looping,
+				});
 			} catch (error) {
 				throw commandErrorToApiFunctionError(error, t("chat.errors.upload_media_failed"));
 			}
+
+			const parsed = z
+				.object({
+					mediaId: z.coerce.number().int(),
+					mediaHash: z.string().nullable().optional().default(null),
+					url: z.string().nullable().optional().default(null),
+					expiresAt: z.coerce.number().nullable().optional().default(null),
+				})
+				.parse(response);
+
+			return {
+				mediaId: parsed.mediaId,
+				mediaHash: parsed.mediaHash,
+				url: parsed.url,
+				expiresAt: parsed.expiresAt,
+			};
 		},
 
 		async uploadAlbumContent(

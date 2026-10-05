@@ -45,8 +45,8 @@ tauri-plugin-os = "2"
 tauri-plugin-notification = { path = "notification-patched" }
 tauri-plugin-http = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
-wreq = { version = "5.3", features = ["gzip", "json"] }
-grindr = "0.8.0"
+wreq = { version = "0.15", features = ["gzip", "json"] }
+grindr = "0.27.0"
 tauri-plugin-hotswap = { path = "hotswap-patched" }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 rusqlite = { version = "0.32", features = ["bundled"] }

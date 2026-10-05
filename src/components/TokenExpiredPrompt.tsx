@@ -43,14 +43,12 @@ export function TokenExpiredPromptView({ onSignOut }: { onSignOut: () => void })
 }
 
 /**
- * Gates the routed app behind a full-page "your login token expired" prompt —
+ * Gates the routed app behind a full-page "your session expired" prompt —
  * same slot in the tree as OutdatedVersionGate/TestReminderGate in App.tsx,
- * not a floating overlay. Only ever triggered for third-party (JWT) logins:
- * those have no real refresh mechanism, so once the token itself expires the
- * backend surfaces AppError::TokenExpired instead of the usual generic auth
- * error (see useApi.ts's asAppError + AuthContext's fg:token-expired
- * listener). Email/password sessions always have a working refresh token and
- * never hit this path.
+ * not a floating overlay. Shown once the session can no longer be refreshed:
+ * a JWT login whose token ran out (AppError::TokenExpired, see useApi.ts's
+ * asAppError + AuthContext's fg:token-expired listener), or any session the
+ * server rejected on refresh (the backend's auth:session-error event).
  */
 export function TokenExpiredGate({ children }: { children: ReactNode }) {
 	const { tokenExpired, logout } = useAuth();

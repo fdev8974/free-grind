@@ -26,9 +26,8 @@ export interface AuthState {
 	 */
 	settingsReady: boolean;
 	/**
-	 * Set when an authenticated API call fails because a third-party (JWT)
-	 * login's token has expired — that login method has no real refresh
-	 * mechanism, unlike email/password sessions. Drives a full-screen
+	 * Set once the session can no longer be refreshed — a JWT login's token
+	 * ran out, or the server rejected a refresh (401). Drives a full-screen
 	 * re-login prompt; see TokenExpiredGate.
 	 */
 	tokenExpired: boolean;

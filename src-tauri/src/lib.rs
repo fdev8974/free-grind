@@ -14,6 +14,7 @@ use crate::state::AppState;
 /// logged — before the webview starts loading. The session-persistence and
 /// websocket-bridge tasks it spawns run in the background from here on.
 fn init_client(app: &tauri::AppHandle) {
+    api::auth::SigningKeyStorage::forget_unscoped();
     let device = api::auth::DeviceStorage::load().ok().flatten();
     let session = api::auth::AuthStorage::get_session().ok().flatten();
     if let Err(e) = api::auth::adopt_client(app, device, session) {

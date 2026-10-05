@@ -10,7 +10,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useApi } from "../hooks/useApi";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import type { AppError, Restriction } from "../types/api";
-import { banInfoSchema } from "../types/api";
+import { banInfoSchema, restrictionSchema } from "../types/api";
 import toast from "react-hot-toast";
 import {
 	AuthContext,
@@ -422,21 +422,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		};
 	}, []);
 
-	// A ban can also be detected mid-session, not just on login — the Rust
-	// side's background token-refresh loop pushes this event the moment
-	// grindr.rs's own auth-event stream reports it (see api/websocket.rs).
+	// Account-status changes the Rust side detects on its own, outside any
+	// call made from here (see api/websocket.rs and api/auth.rs):
+	// - auth:banned — a background token refresh found the account banned.
+	// - auth:restriction — a restriction arrived with a later session token
+	//   (a resumed session only gets its token on the first refresh, so
+	//   checkAuth's account_restriction check can come back empty).
+	// - auth:session-error with unauthorized — a refresh was answered 401 and
+	//   the session is gone; same "sign in again" prompt as an expired JWT.
 	useEffect(() => {
-		const unlisten = listen<unknown>("auth:banned", (event) => {
-			const parsed = banInfoSchema.safeParse(event.payload);
-			if (!parsed.success) {
-				appLog.warn("[Auth] auth:banned event with unexpected payload", event.payload);
-				return;
-			}
-			dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: parsed.data } });
-		});
+		const unlisteners = [
+			listen<unknown>("auth:banned", (event) => {
+				const parsed = banInfoSchema.safeParse(event.payload);
+				if (!parsed.success) {
+					appLog.warn("[Auth] auth:banned event with unexpected payload", event.payload);
+					return;
+				}
+				dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: parsed.data } });
+			}),
+			listen<unknown>("auth:restriction", (event) => {
+				const parsed = restrictionSchema.safeParse(event.payload);
+				if (!parsed.success) {
+					appLog.warn("[Auth] auth:restriction event with unexpected payload", event.payload);
+					return;
+				}
+				dispatch({
+					type: "SET_ACCOUNT_STATUS",
+					payload: { kind: "restriction", restriction: parsed.data },
+				});
+			}),
+			listen<{ unauthorized?: boolean }>("auth:session-error", (event) => {
+				if (event.payload?.unauthorized) {
+					dispatch({ type: "SET_TOKEN_EXPIRED", payload: true });
+				}
+			}),
+		];
 
 		return () => {
-			void unlisten.then((fn) => fn());
+			for (const unlisten of unlisteners) {
+				void unlisten.then((fn) => fn());
+			}
 		};
 	}, []);
 

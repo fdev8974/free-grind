@@ -103,12 +103,16 @@ export type MethodName = keyof typeof methodSchemas;
 
 export type AppErrorKind =
 	| "Http"
+	| "Connect"
 	| "Auth"
+	| "NotSignedIn"
+	| "SessionStale"
 	| "Api"
 	| "Unauthorized"
 	| "Banned"
 	| "RateLimited"
 	| "RequestBlocked"
+	| "NetworkBlocked"
 	| "SessionCleared"
 	| "NotInitialized"
 	| "TokenExpired";

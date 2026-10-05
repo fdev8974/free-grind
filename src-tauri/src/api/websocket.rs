@@ -21,7 +21,10 @@ const WS_EVENT: &str = "grindr-ws://event";
 #[serde(rename_all = "camelCase")]
 struct SessionErrorPayload {
     message: String,
+    /// The session is gone (401 on refresh); signing in again is the only fix.
     unauthorized: bool,
+    /// A retry of the same refresh could still succeed.
+    transient: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -120,23 +123,28 @@ pub fn spawn_bridge(app: &AppHandle, client: grindr::GrindrClient) {
                     Err(RecvError::Closed) => break,
                 };
                 match event {
-                    grindr::AuthEvent::LoggedOut => {
+                    grindr::AuthEvent::SignedOut => {
                         let _ = app.emit(
                             "auth:session-error",
                             SessionErrorPayload {
                                 message: "Session expired".to_owned(),
                                 unauthorized: true,
+                                transient: false,
                             },
                         );
                     }
-                    grindr::AuthEvent::RefreshFailed { message } => {
+                    grindr::AuthEvent::RefreshFailed { message, kind, .. } => {
                         let _ = app.emit(
                             "auth:session-error",
                             SessionErrorPayload {
                                 message,
                                 unauthorized: false,
+                                transient: kind.is_transient(),
                             },
                         );
+                    }
+                    grindr::AuthEvent::RefreshRecovered => {
+                        let _ = app.emit("auth:session-ok", ());
                     }
                     grindr::AuthEvent::Banned(info) => {
                         let _ = app.emit("auth:banned", BanInfo::from(info));

@@ -707,12 +707,12 @@ export function ProfileEditorPage() {
 			const thumbCoords = thumbCoordsOverride ?? (await buildSquareThumbCoords(file));
 			const contentType = file.type || "application/octet-stream";
 
-			// Primary: signed POST /v5/media/upload (grindr.rs handles the
-			// device-key signature). Fallback: the older, unsigned
+			// Primary: the media upload (signed /v5 for in-app captures, unsigned
+			// /v4 otherwise — picked Rust-side). Fallback: the older, unsigned
 			// /v3/me/profile/images path, unchanged.
 			const uploadAttempts = [
 				() =>
-					apiFunctions.uploadProfileImageSigned({
+					apiFunctions.uploadProfilePhoto({
 						body,
 						contentType,
 						thumbCoords,

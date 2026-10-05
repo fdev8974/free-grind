@@ -59,12 +59,16 @@ export function useApi() {
 			.object({
 				kind: z.enum([
 					"Http",
+					"Connect",
 					"Auth",
+					"NotSignedIn",
+					"SessionStale",
 					"Api",
 					"Unauthorized",
 					"Banned",
 					"RateLimited",
 					"RequestBlocked",
+					"NetworkBlocked",
 					"SessionCleared",
 					"NotInitialized",
 					"TokenExpired",
@@ -96,8 +100,12 @@ export function useApi() {
 				prettyMessage = "Your login token has expired. Please sign in again.";
 			} else if (data.kind === "RateLimited") {
 				prettyMessage = "Too many requests — please wait a moment and try again.";
-			} else if (data.kind === "RequestBlocked") {
+			} else if (data.kind === "RequestBlocked" || data.kind === "NetworkBlocked") {
 				prettyMessage = "The request was blocked. Please try again later.";
+			} else if (data.kind === "NotSignedIn") {
+				prettyMessage = "You're not signed in.";
+			} else if (data.kind === "SessionStale") {
+				prettyMessage = "Couldn't refresh your session. Check your connection and try again.";
 			} else if (data.kind === "SessionCleared") {
 				prettyMessage = "Signed out while the request was in flight.";
 			} else {
