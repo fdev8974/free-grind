@@ -1868,6 +1868,23 @@
         "description": "التوكن بتاع تسجيل الدخول خلص. سجّل دخول تاني عشان تكمل.",
         "sign_out": "سجّل دخول تاني"
     },
+    "account_status": {
+        "sign_out": "",
+        "banned": {
+            "title": "",
+            "description": "",
+            "copy_details": "",
+            "copy_details_success": ""
+        },
+        "age_verification": {
+            "title": "",
+            "description": ""
+        },
+        "restricted": {
+            "title": "",
+            "description": ""
+        }
+    },
     "sexualHealth": {
         "title": "تم",
         "subtitle": "تم",

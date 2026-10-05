@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { decode } from "@msgpack/msgpack";
 import z from "zod";
 import { useCallback } from "react";
-import { methodSchemas, type MethodName, type AppError } from "../types/api";
+import { methodSchemas, banInfoSchema, type MethodName, type AppError, type BanInfo } from "../types/api";
 import {
 	addApiTraceEntry,
 	toTracePreview,
@@ -57,7 +57,18 @@ export function useApi() {
 	const asAppError = useCallback((error: unknown): AppError | null => {
 		const { data, success } = z
 			.object({
-				kind: z.enum(["Http", "Auth", "Api", "NotInitialized", "TokenExpired"]),
+				kind: z.enum([
+					"Http",
+					"Auth",
+					"Api",
+					"Unauthorized",
+					"Banned",
+					"RateLimited",
+					"RequestBlocked",
+					"SessionCleared",
+					"NotInitialized",
+					"TokenExpired",
+				]),
 				message: z
 					.string()
 					.or(
@@ -66,6 +77,7 @@ export function useApi() {
 							message: z.string(),
 						}),
 					)
+					.or(banInfoSchema)
 					.optional(),
 			})
 			.safeParse(error);
@@ -74,12 +86,20 @@ export function useApi() {
 			let prettyMessage: string;
 			if (typeof data.message === "string") {
 				prettyMessage = data.message;
+			} else if (data.message && "kind" in data.message) {
+				prettyMessage = `Banned (${data.message.kind}): ${data.message.message}`;
 			} else if (data.message) {
 				prettyMessage = `Error ${data.message.code}: ${data.message.message}`;
 			} else if (data.kind === "NotInitialized") {
 				prettyMessage = "The app failed to start correctly. Please restart the app and try again.";
 			} else if (data.kind === "TokenExpired") {
 				prettyMessage = "Your login token has expired. Please sign in again.";
+			} else if (data.kind === "RateLimited") {
+				prettyMessage = "Too many requests — please wait a moment and try again.";
+			} else if (data.kind === "RequestBlocked") {
+				prettyMessage = "The request was blocked. Please try again later.";
+			} else if (data.kind === "SessionCleared") {
+				prettyMessage = "Signed out while the request was in flight.";
 			} else {
 				prettyMessage = "An unknown error occurred";
 			}
@@ -97,6 +117,17 @@ export function useApi() {
 			return { ...data, prettyMessage };
 		}
 		return null;
+	}, []);
+
+	// Login/refresh failures for a banned account come back as a distinct
+	// AppError kind (rather than a generic Auth error) so the login screen
+	// can show ban details instead of a plain "invalid credentials" toast —
+	// see AccountStatusPrompt.tsx.
+	const asBanned = useCallback((error: unknown): BanInfo | null => {
+		const parsed = z
+			.object({ kind: z.literal("Banned"), message: banInfoSchema })
+			.safeParse(error);
+		return parsed.success ? parsed.data.message : null;
 	}, []);
 
 	const fetchRest = useCallback(
@@ -198,5 +229,5 @@ export function useApi() {
 		[asAppError],
 	);
 
-	return { callMethod, asAppError, fetchRest };
+	return { callMethod, asAppError, asBanned, fetchRest };
 }

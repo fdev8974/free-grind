@@ -1,4 +1,17 @@
 import { createContext } from "react";
+import type { BanInfo, Restriction } from "../types/api";
+
+/**
+ * Blocks the account from being used right now. `banned` is a hard
+ * login/refresh rejection (asBanned/auth:banned); `restriction` is a session
+ * that's still valid but the account needs the user to resolve something
+ * (age verification, a timed ban, ...) — see AccountStatusPrompt.tsx, gated
+ * the same way as TokenExpiredGate.
+ */
+export type AccountStatus =
+	| { kind: "banned"; info: BanInfo }
+	| { kind: "restriction"; restriction: Restriction }
+	| null;
 
 export interface AuthState {
 	userId: number | null;
@@ -19,6 +32,8 @@ export interface AuthState {
 	 * re-login prompt; see TokenExpiredGate.
 	 */
 	tokenExpired: boolean;
+	/** See AccountStatus. Drives AccountStatusPrompt, checked before TokenExpiredGate. */
+	accountStatus: AccountStatus;
 }
 
 export interface SavedAccountMeta {

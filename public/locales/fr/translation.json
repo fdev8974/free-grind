@@ -1826,6 +1826,23 @@
         "description": "",
         "sign_out": ""
     },
+    "account_status": {
+        "sign_out": "",
+        "banned": {
+            "title": "",
+            "description": "",
+            "copy_details": "",
+            "copy_details_success": ""
+        },
+        "age_verification": {
+            "title": "",
+            "description": ""
+        },
+        "restricted": {
+            "title": "",
+            "description": ""
+        }
+    },
     "profile_photo_drawer": {
         "title": "Vos photos",
         "description": "Sélectionnez des photos à ajouter à votre profil ou importez-en de nouvelles.",

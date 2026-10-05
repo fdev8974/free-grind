@@ -3,113 +3,112 @@ use keyring_core::Entry;
 use serde::{Deserialize, Serialize};
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 use std::path::PathBuf;
-use wreq::Method;
 
 use crate::error::AppError;
 use crate::state::AppState;
 
-use super::client::GrindrClient;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Session {
-    pub email: String,
-    pub expires_at: u64,
-    pub profile_id: String,
-    pub session_id: String,
-    pub auth_token: String,
-    pub device_id: String,
-    pub advertising_id: String,
-}
-
+// ---------------------------------------------------------------------------
+// Legacy (pre-grindr.rs) session shape, kept only so existing installs can be
+// migrated instead of forcibly logged out. `grindr::Session` has no
+// device_id/advertising_id fields (those now live in a separate
+// `grindr::DeviceInfo`), so a legacy blob that fails to decode as the new
+// shape is retried against this one and, on success, split into a
+// `grindr::Session` + `grindr::DeviceInfo` pair and re-saved in the new
+// format. Never written going forward.
+// ---------------------------------------------------------------------------
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SessionResponse {
-    pub profile_id: String,
-    pub session_id: String,
-    pub auth_token: String,
+struct LegacySession {
+    email: String,
+    expires_at: u64,
+    profile_id: String,
+    session_id: String,
+    auth_token: String,
+    device_id: String,
+    advertising_id: String,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
-    pub token: Option<String>,
-    pub geohash: Option<String>,
-}
+fn migrate_legacy_session(bytes: &[u8]) -> Option<(grindr::Session, grindr::DeviceInfo)> {
+    let legacy: LegacySession = rmp_serde::decode::from_slice(bytes).ok()?;
 
-trait AuthRequest: Serialize {
-    fn email(&self) -> &str;
-}
+    let session: grindr::Session = serde_json::from_value(serde_json::json!({
+        "email": legacy.email,
+        "expires_at": legacy.expires_at,
+        "profile_id": legacy.profile_id,
+        "session_id": legacy.session_id,
+        "auth_token": legacy.auth_token,
+    }))
+    .ok()?;
 
-impl AuthRequest for LoginRequest {
-    fn email(&self) -> &str {
-        &self.email
-    }
-}
+    let mut device = grindr::DeviceInfo::generate();
+    device.device_id = legacy.device_id;
+    device.advertising_id = legacy.advertising_id;
 
-impl AuthRequest for RefreshRequest {
-    fn email(&self) -> &str {
-        &self.email
-    }
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RefreshRequest {
-    pub email: String,
-    pub auth_token: String,
-    pub token: Option<String>,
-    pub geohash: Option<String>,
+    Some((session, device))
 }
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginResult {
     pub profile_id: String,
+    pub restriction: Option<Restriction>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct PushTokenRequest {
-    vendor_provided_identifier: String,
-    token: String,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct JwtClaims {
-    exp: u64,
-    profile_id: String,
-}
-
-impl LoginRequest {
-    pub fn new(email: String, password: String) -> Self {
+impl From<grindr::LoginResult> for LoginResult {
+    fn from(r: grindr::LoginResult) -> Self {
         Self {
-            email,
-            password,
-            token: None,
-            geohash: None,
+            profile_id: r.profile_id,
+            restriction: r.restriction.map(Restriction::from),
         }
     }
 }
 
-impl RefreshRequest {
-    pub fn new(email: String, auth_token: String) -> Self {
-        Self {
-            email,
-            auth_token,
-            token: None,
-            geohash: None,
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Restriction {
+    pub kind: String,
+    pub region: Option<String>,
+    pub reason: Option<String>,
+}
+
+impl From<grindr::Restriction> for Restriction {
+    fn from(r: grindr::Restriction) -> Self {
+        match r {
+            grindr::Restriction::AgeVerification { region, reason } => Self {
+                kind: "ageVerification".to_owned(),
+                region: Some(region_str(region).to_owned()),
+                reason: Some(reason),
+            },
+            grindr::Restriction::TimedBan(details) => Self {
+                kind: "timedBan".to_owned(),
+                region: None,
+                reason: details.reason,
+            },
+            grindr::Restriction::TrustVendorRejected => Self {
+                kind: "trustVendorRejected".to_owned(),
+                region: None,
+                reason: None,
+            },
+            grindr::Restriction::Other(raw) => Self {
+                kind: "other".to_owned(),
+                region: None,
+                reason: Some(raw),
+            },
+            _ => Self {
+                kind: "other".to_owned(),
+                region: None,
+                reason: None,
+            },
         }
     }
 }
 
-fn decode_session_jwt(token: &str) -> Result<JwtClaims, AppError> {
-    let data = jsonwebtoken::dangerous::insecure_decode::<JwtClaims>(token)
-        .map_err(|e| AppError::Auth(format!("JWT decode failed: {e}")))?;
-
-    Ok(data.claims)
+fn region_str(region: grindr::VerificationRegion) -> &'static str {
+    match region {
+        grindr::VerificationRegion::Uk => "uk",
+        grindr::VerificationRegion::Br => "br",
+        grindr::VerificationRegion::Au => "au",
+        _ => "other",
+    }
 }
 
 pub struct AuthStorage;
@@ -121,7 +120,7 @@ impl AuthStorage {
     }
 
     #[cfg(target_os = "windows")]
-    pub fn get_session() -> Result<Option<Session>, AppError> {
+    pub fn get_session() -> Result<Option<grindr::Session>, AppError> {
         let path = Self::windows_session_file_path()?;
 
         let session_bytes = match std::fs::read(&path) {
@@ -136,13 +135,21 @@ impl AuthStorage {
             }
         };
 
-        rmp_serde::decode::from_slice(&session_bytes)
-            .map_err(|e| AppError::Auth(e.to_string()))
-            .map(Some)
+        match rmp_serde::decode::from_slice::<grindr::Session>(&session_bytes) {
+            Ok(session) => Ok(Some(session)),
+            Err(_decode_error) => match migrate_legacy_session(&session_bytes) {
+                Some((session, device)) => {
+                    let _ = Self::set_session(&session);
+                    let _ = DeviceStorage::save(&device);
+                    Ok(Some(session))
+                }
+                None => Err(AppError::Auth(_decode_error.to_string())),
+            },
+        }
     }
 
     #[cfg(target_os = "windows")]
-    pub fn set_session(session: &Session) -> Result<(), AppError> {
+    pub fn set_session(session: &grindr::Session) -> Result<(), AppError> {
         let path = Self::windows_session_file_path()?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| {
@@ -192,7 +199,7 @@ impl AuthStorage {
     }
 
     #[cfg(all(target_os = "macos", debug_assertions))]
-    pub fn get_session() -> Result<Option<Session>, AppError> {
+    pub fn get_session() -> Result<Option<grindr::Session>, AppError> {
         let path = Self::dev_session_file_path()?;
 
         let session_bytes = match std::fs::read(&path) {
@@ -207,13 +214,21 @@ impl AuthStorage {
             }
         };
 
-        rmp_serde::decode::from_slice(&session_bytes)
-            .map_err(|e| AppError::Auth(e.to_string()))
-            .map(Some)
+        match rmp_serde::decode::from_slice::<grindr::Session>(&session_bytes) {
+            Ok(session) => Ok(Some(session)),
+            Err(_decode_error) => match migrate_legacy_session(&session_bytes) {
+                Some((session, device)) => {
+                    let _ = Self::set_session(&session);
+                    let _ = DeviceStorage::save(&device);
+                    Ok(Some(session))
+                }
+                None => Err(AppError::Auth(_decode_error.to_string())),
+            },
+        }
     }
 
     #[cfg(all(target_os = "macos", debug_assertions))]
-    pub fn set_session(session: &Session) -> Result<(), AppError> {
+    pub fn set_session(session: &grindr::Session) -> Result<(), AppError> {
         let path = Self::dev_session_file_path()?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| {
@@ -268,7 +283,7 @@ impl AuthStorage {
     }
 
     #[cfg(all(target_os = "macos", not(debug_assertions)))]
-    fn read_macos_fallback_session() -> Result<Option<Session>, AppError> {
+    fn read_macos_fallback_session() -> Result<Option<grindr::Session>, AppError> {
         let path = Self::macos_fallback_session_file_path()?;
         let session_bytes = match std::fs::read(&path) {
             Ok(bytes) => bytes,
@@ -282,13 +297,21 @@ impl AuthStorage {
             }
         };
 
-        rmp_serde::decode::from_slice(&session_bytes)
-            .map_err(|e| AppError::Auth(e.to_string()))
-            .map(Some)
+        match rmp_serde::decode::from_slice::<grindr::Session>(&session_bytes) {
+            Ok(session) => Ok(Some(session)),
+            Err(_decode_error) => match migrate_legacy_session(&session_bytes) {
+                Some((session, device)) => {
+                    let _ = Self::write_macos_fallback_session(&session);
+                    let _ = DeviceStorage::save(&device);
+                    Ok(Some(session))
+                }
+                None => Err(AppError::Auth(_decode_error.to_string())),
+            },
+        }
     }
 
     #[cfg(all(target_os = "macos", not(debug_assertions)))]
-    fn write_macos_fallback_session(session: &Session) -> Result<(), AppError> {
+    fn write_macos_fallback_session(session: &grindr::Session) -> Result<(), AppError> {
         let path = Self::macos_fallback_session_file_path()?;
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|error| {
@@ -333,7 +356,7 @@ impl AuthStorage {
     }
 
     #[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
-    pub fn get_session() -> Result<Option<Session>, AppError> {
+    pub fn get_session() -> Result<Option<grindr::Session>, AppError> {
         let entry = match Self::get_session_entry() {
             Ok(entry) => entry,
             Err(_error) => {
@@ -383,13 +406,24 @@ impl AuthStorage {
                 }
             }
         };
-        rmp_serde::decode::from_slice(&session_bytes)
-            .map_err(|e| AppError::Auth(e.to_string()))
-            .map(Some)
+        match rmp_serde::decode::from_slice::<grindr::Session>(&session_bytes) {
+            Ok(session) => Ok(Some(session)),
+            Err(_decode_error) => match migrate_legacy_session(&session_bytes) {
+                Some((session, device)) => {
+                    let _ = Self::set_session(&session);
+                    let _ = DeviceStorage::save(&device);
+                    Ok(Some(session))
+                }
+                #[cfg(target_os = "macos")]
+                None => Self::read_macos_fallback_session(),
+                #[cfg(not(target_os = "macos"))]
+                None => Err(AppError::Auth(_decode_error.to_string())),
+            },
+        }
     }
 
     #[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
-    pub fn set_session(session: &Session) -> Result<(), AppError> {
+    pub fn set_session(session: &grindr::Session) -> Result<(), AppError> {
         let session_bytes = rmp_serde::encode::to_vec(session).unwrap();
         let entry = match Self::get_session_entry() {
             Ok(entry) => entry,
@@ -489,15 +523,216 @@ impl AuthStorage {
 }
 
 // ---------------------------------------------------------------------------
+// Generic slot storage — used for DeviceInfo, the signing key, and every
+// multi-account slot (session + device per saved account, plus the account
+// index). Deliberately simpler than AuthStorage's single "active" slot above
+// (no macOS-release file fallback): if keyring access fails here, that one
+// slot fails to read/write (logged, non-fatal — the active session is
+// completely unaffected), rather than silently falling back to a less secure
+// file for every account.
+// ---------------------------------------------------------------------------
+
+#[cfg(target_os = "windows")]
+fn slot_file_path(slot: &str) -> PathBuf {
+    crate::windows_instance::WindowsInstance::current()
+        .data_root()
+        .join(format!("{slot}.msgpack"))
+}
+
+#[cfg(target_os = "windows")]
+fn get_slot_bytes(slot: &str) -> Result<Option<Vec<u8>>, AppError> {
+    let path = slot_file_path(slot);
+    match std::fs::read(&path) {
+        Ok(bytes) => Ok(Some(bytes)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(AppError::Auth(format!(
+            "Failed to read {} from {}: {}",
+            slot,
+            path.display(),
+            error
+        ))),
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn set_slot_bytes(slot: &str, bytes: &[u8]) -> Result<(), AppError> {
+    let path = slot_file_path(slot);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            AppError::Auth(format!(
+                "Failed to create directory {}: {}",
+                parent.display(),
+                error
+            ))
+        })?;
+    }
+    std::fs::write(&path, bytes).map_err(|error| {
+        AppError::Auth(format!(
+            "Failed to write {} to {}: {}",
+            slot,
+            path.display(),
+            error
+        ))
+    })
+}
+
+#[cfg(target_os = "windows")]
+fn clear_slot(slot: &str) -> Result<(), AppError> {
+    let path = slot_file_path(slot);
+    match std::fs::remove_file(&path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(AppError::Auth(format!(
+            "Failed to clear {} at {}: {}",
+            slot,
+            path.display(),
+            error
+        ))),
+    }
+}
+
+#[cfg(all(target_os = "macos", debug_assertions))]
+fn slot_file_path(slot: &str) -> Result<PathBuf, AppError> {
+    let home = std::env::var("HOME")
+        .map_err(|_| AppError::Auth("HOME is not set; cannot resolve slot path".to_owned()))?;
+
+    Ok(PathBuf::from(home)
+        .join("Library")
+        .join("Application Support")
+        .join("free-grind")
+        .join(format!("{slot}.msgpack")))
+}
+
+#[cfg(all(target_os = "macos", debug_assertions))]
+fn get_slot_bytes(slot: &str) -> Result<Option<Vec<u8>>, AppError> {
+    let path = slot_file_path(slot)?;
+    match std::fs::read(&path) {
+        Ok(bytes) => Ok(Some(bytes)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(AppError::Auth(format!(
+            "Failed to read {} from {}: {}",
+            slot,
+            path.display(),
+            error
+        ))),
+    }
+}
+
+#[cfg(all(target_os = "macos", debug_assertions))]
+fn set_slot_bytes(slot: &str, bytes: &[u8]) -> Result<(), AppError> {
+    let path = slot_file_path(slot)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            AppError::Auth(format!(
+                "Failed to create directory {}: {}",
+                parent.display(),
+                error
+            ))
+        })?;
+    }
+    std::fs::write(&path, bytes).map_err(|error| {
+        AppError::Auth(format!(
+            "Failed to write {} to {}: {}",
+            slot,
+            path.display(),
+            error
+        ))
+    })
+}
+
+#[cfg(all(target_os = "macos", debug_assertions))]
+fn clear_slot(slot: &str) -> Result<(), AppError> {
+    let path = slot_file_path(slot)?;
+    match std::fs::remove_file(&path) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(AppError::Auth(format!(
+            "Failed to clear {} at {}: {}",
+            slot,
+            path.display(),
+            error
+        ))),
+    }
+}
+
+#[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
+fn get_slot_bytes(slot: &str) -> Result<Option<Vec<u8>>, AppError> {
+    let entry = Entry::new("free-grind", slot).map_err(|e| AppError::Auth(e.to_string()))?;
+    match entry.get_secret() {
+        Ok(bytes) => Ok(Some(bytes)),
+        Err(keyring_core::Error::NoEntry) => Ok(None),
+        Err(e) => Err(AppError::Auth(e.to_string())),
+    }
+}
+
+#[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
+fn set_slot_bytes(slot: &str, bytes: &[u8]) -> Result<(), AppError> {
+    let entry = Entry::new("free-grind", slot).map_err(|e| AppError::Auth(e.to_string()))?;
+    entry
+        .set_secret(bytes)
+        .map_err(|e| AppError::Auth(e.to_string()))
+}
+
+#[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
+fn clear_slot(slot: &str) -> Result<(), AppError> {
+    let entry = Entry::new("free-grind", slot).map_err(|e| AppError::Auth(e.to_string()))?;
+    match entry.delete_credential() {
+        Ok(()) | Err(keyring_core::Error::NoEntry) => Ok(()),
+        Err(e) => Err(AppError::Auth(e.to_string())),
+    }
+}
+
+pub struct DeviceStorage;
+
+const ACTIVE_DEVICE_SLOT: &str = "device-info";
+
+impl DeviceStorage {
+    pub fn load() -> Result<Option<grindr::DeviceInfo>, AppError> {
+        match get_slot_bytes(ACTIVE_DEVICE_SLOT)? {
+            Some(bytes) => rmp_serde::decode::from_slice(&bytes)
+                .map(Some)
+                .map_err(|e| AppError::Auth(format!("device decode failed: {e}"))),
+            None => Ok(None),
+        }
+    }
+
+    pub fn save(device: &grindr::DeviceInfo) -> Result<(), AppError> {
+        let bytes = rmp_serde::encode::to_vec(device)
+            .map_err(|e| AppError::Auth(format!("device encode failed: {e}")))?;
+        set_slot_bytes(ACTIVE_DEVICE_SLOT, &bytes)
+    }
+}
+
+pub struct SigningKeyStorage;
+
+const SIGNING_KEY_SLOT: &str = "device-signing-key";
+
+impl SigningKeyStorage {
+    pub fn load() -> Result<Option<grindr::DeviceSigningKey>, AppError> {
+        match get_slot_bytes(SIGNING_KEY_SLOT)? {
+            Some(bytes) => Ok(rmp_serde::decode::from_slice(&bytes).ok()),
+            None => Ok(None),
+        }
+    }
+
+    pub fn save(key: &grindr::DeviceSigningKey) -> Result<(), AppError> {
+        let bytes = rmp_serde::encode::to_vec(key)
+            .map_err(|e| AppError::Auth(format!("signing key encode failed: {e}")))?;
+        set_slot_bytes(SIGNING_KEY_SLOT, &bytes)
+    }
+
+    pub fn delete() {
+        let _ = clear_slot(SIGNING_KEY_SLOT);
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Multi-account support — saved accounts you can switch between without
-// re-entering a password. Built on a generic, slot-keyed version of the
-// exact same storage primitive used above for the single active session
-// (OS keyring where available, file-based fallback on Windows / macOS
-// debug builds), so each account's full Session (including the live
-// session_id/auth_token, not just a short-lived JWT) can be restored
-// directly. Deliberately does not touch get_session/set_session/
-// clear_session above — the existing single "active" slot keeps working
-// exactly as before, completely unaffected by any of this.
+// re-entering a password. Each slot now holds both the account's Session
+// *and* its own DeviceInfo (unlike the single-device model the transport
+// crate itself uses), so switching accounts also switches device identity —
+// keeping accounts un-correlatable from each other, matching the behavior
+// this app already had before the transport swap.
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -508,172 +743,21 @@ pub struct SavedAccountMeta {
     pub last_used_at: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SavedAccount {
+    session: grindr::Session,
+    device: grindr::DeviceInfo,
+}
+
 const ACCOUNT_INDEX_SLOT: &str = "account-index";
 
-fn account_session_slot(profile_id: &str) -> String {
+fn account_slot(profile_id: &str) -> String {
     format!("session-{profile_id}")
 }
 
 impl AuthStorage {
-    #[cfg(target_os = "windows")]
-    fn slot_file_path(slot: &str) -> PathBuf {
-        crate::windows_instance::WindowsInstance::current()
-            .data_root()
-            .join(format!("{slot}.msgpack"))
-    }
-
-    #[cfg(target_os = "windows")]
-    fn get_slot_bytes(slot: &str) -> Result<Option<Vec<u8>>, AppError> {
-        let path = Self::slot_file_path(slot);
-        match std::fs::read(&path) {
-            Ok(bytes) => Ok(Some(bytes)),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(AppError::Auth(format!(
-                "Failed to read {} from {}: {}",
-                slot,
-                path.display(),
-                error
-            ))),
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn set_slot_bytes(slot: &str, bytes: &[u8]) -> Result<(), AppError> {
-        let path = Self::slot_file_path(slot);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).map_err(|error| {
-                AppError::Auth(format!(
-                    "Failed to create directory {}: {}",
-                    parent.display(),
-                    error
-                ))
-            })?;
-        }
-        std::fs::write(&path, bytes).map_err(|error| {
-            AppError::Auth(format!(
-                "Failed to write {} to {}: {}",
-                slot,
-                path.display(),
-                error
-            ))
-        })
-    }
-
-    #[cfg(target_os = "windows")]
-    fn clear_slot(slot: &str) -> Result<(), AppError> {
-        let path = Self::slot_file_path(slot);
-        match std::fs::remove_file(&path) {
-            Ok(()) => Ok(()),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(error) => Err(AppError::Auth(format!(
-                "Failed to clear {} at {}: {}",
-                slot,
-                path.display(),
-                error
-            ))),
-        }
-    }
-
-    #[cfg(all(target_os = "macos", debug_assertions))]
-    fn slot_file_path(slot: &str) -> Result<PathBuf, AppError> {
-        let home = std::env::var("HOME").map_err(|_| {
-            AppError::Auth("HOME is not set; cannot resolve slot path".to_owned())
-        })?;
-
-        Ok(PathBuf::from(home)
-            .join("Library")
-            .join("Application Support")
-            .join("free-grind")
-            .join(format!("{slot}.msgpack")))
-    }
-
-    #[cfg(all(target_os = "macos", debug_assertions))]
-    fn get_slot_bytes(slot: &str) -> Result<Option<Vec<u8>>, AppError> {
-        let path = Self::slot_file_path(slot)?;
-        match std::fs::read(&path) {
-            Ok(bytes) => Ok(Some(bytes)),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(error) => Err(AppError::Auth(format!(
-                "Failed to read {} from {}: {}",
-                slot,
-                path.display(),
-                error
-            ))),
-        }
-    }
-
-    #[cfg(all(target_os = "macos", debug_assertions))]
-    fn set_slot_bytes(slot: &str, bytes: &[u8]) -> Result<(), AppError> {
-        let path = Self::slot_file_path(slot)?;
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).map_err(|error| {
-                AppError::Auth(format!(
-                    "Failed to create directory {}: {}",
-                    parent.display(),
-                    error
-                ))
-            })?;
-        }
-        std::fs::write(&path, bytes).map_err(|error| {
-            AppError::Auth(format!(
-                "Failed to write {} to {}: {}",
-                slot,
-                path.display(),
-                error
-            ))
-        })
-    }
-
-    #[cfg(all(target_os = "macos", debug_assertions))]
-    fn clear_slot(slot: &str) -> Result<(), AppError> {
-        let path = Self::slot_file_path(slot)?;
-        match std::fs::remove_file(&path) {
-            Ok(()) => Ok(()),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(error) => Err(AppError::Auth(format!(
-                "Failed to clear {} at {}: {}",
-                slot,
-                path.display(),
-                error
-            ))),
-        }
-    }
-
-    // Covers macOS release, Linux, and Android — all keyring-backed. Unlike
-    // get_session/set_session above, this intentionally skips the
-    // macOS-release fallback-to-file path for simplicity: if keyring access
-    // fails here, saving/reading a saved account fails (logged, non-fatal —
-    // the single active session above is completely unaffected), rather
-    // than silently falling back to a less secure file.
-    #[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
-    fn get_slot_bytes(slot: &str) -> Result<Option<Vec<u8>>, AppError> {
-        let entry = Entry::new("free-grind", slot).map_err(|e| AppError::Auth(e.to_string()))?;
-        match entry.get_secret() {
-            Ok(bytes) => Ok(Some(bytes)),
-            Err(keyring_core::Error::NoEntry) => Ok(None),
-            Err(e) => Err(AppError::Auth(e.to_string())),
-        }
-    }
-
-    #[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
-    fn set_slot_bytes(slot: &str, bytes: &[u8]) -> Result<(), AppError> {
-        let entry = Entry::new("free-grind", slot).map_err(|e| AppError::Auth(e.to_string()))?;
-        entry
-            .set_secret(bytes)
-            .map_err(|e| AppError::Auth(e.to_string()))
-    }
-
-    #[cfg(not(any(target_os = "windows", all(target_os = "macos", debug_assertions))))]
-    fn clear_slot(slot: &str) -> Result<(), AppError> {
-        let entry = Entry::new("free-grind", slot).map_err(|e| AppError::Auth(e.to_string()))?;
-        match entry.delete_credential() {
-            Ok(()) | Err(keyring_core::Error::NoEntry) => Ok(()),
-            Err(e) => Err(AppError::Auth(e.to_string())),
-        }
-    }
-
     fn read_account_index() -> Result<Vec<SavedAccountMeta>, AppError> {
-        match Self::get_slot_bytes(ACCOUNT_INDEX_SLOT)? {
+        match get_slot_bytes(ACCOUNT_INDEX_SLOT)? {
             Some(bytes) => {
                 rmp_serde::decode::from_slice(&bytes).map_err(|e| AppError::Auth(e.to_string()))
             }
@@ -683,17 +767,21 @@ impl AuthStorage {
 
     fn write_account_index(index: &[SavedAccountMeta]) -> Result<(), AppError> {
         let bytes = rmp_serde::encode::to_vec(index).map_err(|e| AppError::Auth(e.to_string()))?;
-        Self::set_slot_bytes(ACCOUNT_INDEX_SLOT, &bytes)
+        set_slot_bytes(ACCOUNT_INDEX_SLOT, &bytes)
     }
 
-    /// Upserts this session into the saved-accounts store, keyed by
-    /// profile id — called on every successful login/refresh so accounts
-    /// automatically show up in the switcher with no separate "save" step.
-    pub fn save_account(session: &Session) -> Result<(), AppError> {
-        let slot = account_session_slot(&session.profile_id);
-        let bytes =
-            rmp_serde::encode::to_vec(session).map_err(|e| AppError::Auth(e.to_string()))?;
-        Self::set_slot_bytes(&slot, &bytes)?;
+    /// Upserts this session (and its device identity) into the saved-accounts
+    /// store, keyed by profile id — called on every successful login/refresh
+    /// so accounts automatically show up in the switcher with no separate
+    /// "save" step.
+    pub fn save_account(session: &grindr::Session, device: &grindr::DeviceInfo) -> Result<(), AppError> {
+        let slot = account_slot(&session.profile_id);
+        let saved = SavedAccount {
+            session: session.clone(),
+            device: device.clone(),
+        };
+        let bytes = rmp_serde::encode::to_vec(&saved).map_err(|e| AppError::Auth(e.to_string()))?;
+        set_slot_bytes(&slot, &bytes)?;
 
         let mut index = Self::read_account_index()?;
         let now = chrono::Utc::now().timestamp() as u64;
@@ -713,12 +801,16 @@ impl AuthStorage {
         Self::write_account_index(&index)
     }
 
-    pub fn get_account_session(profile_id: &str) -> Result<Option<Session>, AppError> {
-        let slot = account_session_slot(profile_id);
-        match Self::get_slot_bytes(&slot)? {
-            Some(bytes) => rmp_serde::decode::from_slice::<Session>(&bytes)
-                .map(Some)
-                .map_err(|e| AppError::Auth(e.to_string())),
+    pub fn get_account(profile_id: &str) -> Result<Option<(grindr::Session, grindr::DeviceInfo)>, AppError> {
+        let slot = account_slot(profile_id);
+        match get_slot_bytes(&slot)? {
+            Some(bytes) => match rmp_serde::decode::from_slice::<SavedAccount>(&bytes) {
+                Ok(saved) => Ok(Some((saved.session, saved.device))),
+                // Pre-migration slots stored a flat legacy Session directly
+                // (no separate device wrapper) — same shape AuthStorage's
+                // single active slot used to store.
+                Err(_decode_error) => Ok(migrate_legacy_session(&bytes)),
+            },
             None => Ok(None),
         }
     }
@@ -730,352 +822,111 @@ impl AuthStorage {
     }
 
     pub fn remove_saved_account(profile_id: &str) -> Result<(), AppError> {
-        let slot = account_session_slot(profile_id);
-        Self::clear_slot(&slot)?;
+        let slot = account_slot(profile_id);
+        clear_slot(&slot)?;
         let mut index = Self::read_account_index()?;
         index.retain(|account| account.profile_id != profile_id);
         Self::write_account_index(&index)
     }
 }
 
-impl GrindrClient {
-    async fn create_session(
-        &self,
-        body: &impl AuthRequest,
-        device_id: String,
-        advertising_id: String,
-    ) -> Result<Session, AppError> {
-        #[cfg(debug_assertions)]
-        eprintln!("[HTTP-AUTH] POST /v8/sessions for email={}", body.email());
-        let session_resp: SessionResponse = self
-            .request_json(Method::POST, "/v8/sessions", Some(body))
-            .await
-            .map_err(|e| {
-                #[cfg(debug_assertions)]
-                eprintln!("[HTTP-AUTH] /v8/sessions request failed: {e}");
-                e
-            })?;
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "[HTTP-AUTH] /v8/sessions success; profile_id={}",
-            session_resp.profile_id
-        );
-        let claims = decode_session_jwt(&session_resp.session_id).map_err(|e| {
-            #[cfg(debug_assertions)]
-            eprintln!("[HTTP-AUTH] JWT decode for session_id failed: {e}");
-            e
-        })?;
+// ---------------------------------------------------------------------------
+// Tauri commands
+// ---------------------------------------------------------------------------
 
-        let session = Session {
-            email: body.email().to_owned(),
-            profile_id: session_resp.profile_id.clone(),
-            session_id: session_resp.session_id,
-            auth_token: session_resp.auth_token,
-            expires_at: claims.exp,
-            device_id,
-            advertising_id,
-        };
+/// (Re)spawns the background tasks bound to `client`: persisting session and
+/// signing-key changes to storage, and saving newly-authenticated accounts
+/// into the switcher. Called at startup and after every client swap
+/// (`switch_account`, `login_with_jwt`'s exchange).
+fn spawn_persistence_tasks(app: &tauri::AppHandle, client: grindr::GrindrClient) {
+    use tauri::Manager;
+    let state = app.state::<AppState>();
 
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "[HTTP-AUTH] Saving session to storage; profile_id={}, expires_at={}",
-            session.profile_id, session.expires_at
-        );
-        if let Err(_error) = AuthStorage::set_session(&session) {
-            #[cfg(debug_assertions)]
-            eprintln!(
-                "[HTTP-AUTH] Failed to persist session (continuing in-memory only): {}",
-                _error
-            );
-        }
-        if let Err(_error) = AuthStorage::save_account(&session) {
-            #[cfg(debug_assertions)]
-            eprintln!(
-                "[HTTP-AUTH] Failed to register account in switcher (login still succeeded): {}",
-                _error
-            );
-        }
-
-        Ok(session)
-    }
-
-    pub async fn login(&self, email: &str, password: &str) -> Result<LoginResult, AppError> {
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "[HTTP-AUTH] login attempt for email={}***",
-            email.chars().next().unwrap_or('?')
-        );
-
-        // Generate NEW device IDs for a new login
-        let new_device_id = format!("{:016x}", rand::random::<u64>());
-        let new_advertising_id = uuid::Uuid::new_v4().to_string();
-
-        {
-            let mut device = self.device.write().await;
-            device.device_id = new_device_id.clone();
-            device.advertising_id = new_advertising_id.clone();
-        }
-
-        let body = LoginRequest::new(email.to_owned(), password.to_owned());
-        let session = Box::pin(self.create_session(&body, new_device_id, new_advertising_id))
-            .await
-            .map_err(|e| {
-                #[cfg(debug_assertions)]
-                eprintln!("[HTTP-AUTH] login failed: {e}");
-                e
-            })?;
-        let profile_id = session.profile_id.clone();
-        #[cfg(debug_assertions)]
-        eprintln!("[HTTP-AUTH] login succeeded; profile_id={profile_id}");
-
-        *self.session.write().await = Some(session);
-
-        Ok(LoginResult { profile_id })
-    }
-
-    pub async fn login_with_jwt(&self, token: &str) -> Result<LoginResult, AppError> {
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "[HTTP-AUTH] login_with_jwt attempt; token_len={}",
-            token.len()
-        );
-        let claims = decode_session_jwt(token).map_err(|e| {
-            #[cfg(debug_assertions)]
-            eprintln!("[HTTP-AUTH] JWT decode failed: {e}");
-            e
-        })?;
-
-        let new_device_id = format!("{:016x}", rand::random::<u64>());
-        let new_advertising_id = uuid::Uuid::new_v4().to_string();
-
-        {
-            let mut device = self.device.write().await;
-            device.device_id = new_device_id.clone();
-            device.advertising_id = new_advertising_id.clone();
-        }
-
-        // Set the JWT as the current session so the Authorization header is available
-        // when we immediately attempt to exchange it for a full session with an authToken.
-        *self.session.write().await = Some(Session {
-            email: String::new(),
-            profile_id: claims.profile_id.clone(),
-            session_id: token.to_owned(),
-            auth_token: String::new(),
-            expires_at: claims.exp,
-            device_id: new_device_id.clone(),
-            advertising_id: new_advertising_id.clone(),
+    {
+        let client = client.clone();
+        let mut session_rx = client.session_receiver();
+        let handle = tauri::async_runtime::spawn(async move {
+            while session_rx.changed().await.is_ok() {
+                // Cloned into an owned value *before* the match so the
+                // `watch::Ref` guard (not `Send`) is dropped at the end of
+                // this `let`, not held across the `.await` calls below —
+                // `match session_rx.borrow().clone() { .. }` would otherwise
+                // keep the guard alive for the whole match (matches' scrutinee
+                // temporaries live until the match ends).
+                let current = session_rx.borrow().clone();
+                match current {
+                    Some(session) => {
+                        let device = client.current_device().await;
+                        if let Err(e) = AuthStorage::set_session(&session) {
+                            eprintln!("[auth] failed to persist session: {e}");
+                        }
+                        if let Err(e) = DeviceStorage::save(&device) {
+                            eprintln!("[auth] failed to persist device: {e}");
+                        }
+                        if let Err(e) = AuthStorage::save_account(&session, &device) {
+                            eprintln!("[auth] failed to register account in switcher: {e}");
+                        }
+                    }
+                    None => {
+                        let _ = AuthStorage::clear_session();
+                    }
+                }
+            }
         });
+        state.add_task(handle);
+    }
 
-        // Try to exchange the JWT for a full session (sessionId + authToken) so that
-        // subsequent refreshes work the same way as email/password login.
-        // We send the JWT as the authToken field; Grindr validates the request via the
-        // Authorization header (Grindr3 <JWT>) and the body authToken together.
-        let body = RefreshRequest::new(String::new(), token.to_owned());
-        match Box::pin(self.create_session(
-            &body,
-            new_device_id.clone(),
-            new_advertising_id.clone(),
-        ))
-        .await
-        {
-            Ok(session) => {
-                #[cfg(debug_assertions)]
-                eprintln!(
-                    "[HTTP-AUTH] login_with_jwt exchange succeeded; profile_id={}, has_auth_token={}",
-                    session.profile_id,
-                    !session.auth_token.is_empty()
-                );
-                let profile_id = session.profile_id.clone();
-                if let Err(_error) = AuthStorage::set_session(&session) {
-                    #[cfg(debug_assertions)]
-                    eprintln!(
-                        "[HTTP-AUTH] Failed to persist exchanged session (continuing in-memory only): {}",
-                        _error
-                    );
-                }
-                if let Err(_error) = AuthStorage::save_account(&session) {
-                    #[cfg(debug_assertions)]
-                    eprintln!(
-                        "[HTTP-AUTH] Failed to register account in switcher (login still succeeded): {}",
-                        _error
-                    );
-                }
-                *self.session.write().await = Some(session);
-                Ok(LoginResult { profile_id })
+    {
+        // Restore a previously-registered signing key for this device before
+        // entering the watch loop, so uploads reuse it instead of
+        // re-registering a new one every launch.
+        let client_for_signing = client.clone();
+        let mut key_rx = client.signing_key_receiver();
+        let handle = tauri::async_runtime::spawn(async move {
+            if let Ok(Some(key)) = SigningKeyStorage::load() {
+                client_for_signing.restore_signing_key(key).await;
             }
-            Err(_exchange_error) => {
-                // Exchange failed — fall back to storing the JWT directly.
-                // The session will work until the JWT expires (~15-30 min).
-                // Deliberately not registered via save_account: it has no
-                // email to identify it by and would expire almost
-                // immediately, making it a dead/confusing entry in the
-                // switcher rather than a useful saved account.
-                #[cfg(debug_assertions)]
-                eprintln!(
-                    "[HTTP-AUTH] login_with_jwt exchange failed (falling back to JWT-only session): {_exchange_error}"
-                );
-                let session = Session {
-                    email: String::new(),
-                    profile_id: claims.profile_id.clone(),
-                    session_id: token.to_owned(),
-                    auth_token: String::new(),
-                    expires_at: claims.exp,
-                    device_id: new_device_id,
-                    advertising_id: new_advertising_id,
-                };
-                if let Err(_error) = AuthStorage::set_session(&session) {
-                    #[cfg(debug_assertions)]
-                    eprintln!(
-                        "[HTTP-AUTH] Failed to persist JWT session (continuing in-memory only): {}",
-                        _error
-                    );
+            while key_rx.changed().await.is_ok() {
+                match key_rx.borrow().clone() {
+                    Some(key) => {
+                        if let Err(e) = SigningKeyStorage::save(&key) {
+                            eprintln!("[signing] failed to persist signing key: {e}");
+                        }
+                    }
+                    None => SigningKeyStorage::delete(),
                 }
-                *self.session.write().await = Some(session);
-                #[cfg(debug_assertions)]
-                eprintln!(
-                    "[HTTP-AUTH] login_with_jwt (JWT-only) succeeded; profile_id={}",
-                    claims.profile_id
-                );
-                Ok(LoginResult {
-                    profile_id: claims.profile_id,
-                })
             }
-        }
+        });
+        state.add_task(handle);
+    }
+}
+
+/// Swaps in a freshly-built client (new device+session) and respawns the
+/// persistence and websocket-bridge tasks against it. Closes out whatever
+/// client was previously active first — `logout()` only clears local state
+/// (no server call), but it does close a live websocket, so the outgoing
+/// client doesn't keep an orphaned socket open after being swapped out. That
+/// close happens in a spawned task rather than being awaited here, so this
+/// function itself stays synchronous and callable from Tauri's `.setup()`.
+pub fn adopt_client(
+    app: &tauri::AppHandle,
+    device: Option<grindr::DeviceInfo>,
+    session: Option<grindr::Session>,
+) -> Result<grindr::GrindrClient, AppError> {
+    use tauri::Manager;
+
+    let client = super::client::build_client(device, session)?;
+    let state = app.state::<AppState>();
+    if let Some(old_client) = state.set_client(client.clone()) {
+        tauri::async_runtime::spawn(async move {
+            old_client.logout().await;
+        });
     }
 
-    pub async fn refresh_token(&self) -> Result<LoginResult, AppError> {
-        let current = self.session.read().await;
-        let session = current
-            .as_ref()
-            .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))?;
+    spawn_persistence_tasks(app, client.clone());
+    super::websocket::spawn_bridge(app, client.clone());
 
-        // JWT-only fallback sessions (see login_with_jwt) have no real authToken to
-        // refresh with — they just resend their own session_id (the original
-        // third-party JWT) as the authToken. Once that JWT's own expiry has passed
-        // there is nothing left to try, so short-circuit with a distinguishable
-        // error instead of round-tripping a request that Grindr will reject anyway.
-        if session.auth_token.is_empty()
-            && session.expires_at <= chrono::Utc::now().timestamp() as u64
-        {
-            return Err(AppError::TokenExpired);
-        }
-
-        // For JWT-only sessions (no authToken), use the current session_id as the authToken.
-        // Grindr validates via the Authorization header; this mirrors how the initial
-        // JWT exchange is attempted in login_with_jwt.
-        let auth_token = if session.auth_token.is_empty() {
-            session.session_id.clone()
-        } else {
-            session.auth_token.clone()
-        };
-
-        let body = RefreshRequest::new(session.email.clone(), auth_token);
-        let device_id = session.device_id.clone();
-        let advertising_id = session.advertising_id.clone();
-
-        drop(current);
-
-        let session = Box::pin(self.create_session(&body, device_id, advertising_id)).await?;
-        let profile_id = session.profile_id.clone();
-        *self.session.write().await = Some(session);
-
-        Ok(LoginResult { profile_id })
-    }
-
-    /// Makes a previously saved account the active session, without
-    /// re-entering a password — restores its stored Session (live
-    /// session_id/auth_token, not a re-derived JWT) directly into both the
-    /// single "active" slot (so normal boot/restore picks it up next
-    /// launch too) and this client's in-memory state.
-    pub async fn switch_account(&self, profile_id: &str) -> Result<LoginResult, AppError> {
-        let session = AuthStorage::get_account_session(profile_id)?.ok_or_else(|| {
-            AppError::Auth("No saved session for this account".to_owned())
-        })?;
-
-        {
-            let mut device = self.device.write().await;
-            device.device_id = session.device_id.clone();
-            device.advertising_id = session.advertising_id.clone();
-        }
-
-        if let Err(_error) = AuthStorage::set_session(&session) {
-            #[cfg(debug_assertions)]
-            eprintln!(
-                "[HTTP-AUTH] Failed to persist switched-to session (continuing in-memory only): {}",
-                _error
-            );
-        }
-
-        let result = LoginResult {
-            profile_id: session.profile_id.clone(),
-        };
-        *self.session.write().await = Some(session);
-
-        Ok(result)
-    }
-
-    pub async fn authorization_header(&self) -> Option<String> {
-        let session = self.session.read().await;
-        session
-            .as_ref()
-            .map(|s| format!("Grindr3 {}", s.session_id))
-    }
-
-    pub async fn sync_push_token(&self, token: &str) -> Result<(), AppError> {
-        let trimmed = token.trim();
-        if trimmed.is_empty() {
-            #[cfg(debug_assertions)]
-            eprintln!("[HTTP-PUSH] sync_push_token called with empty token");
-            return Err(AppError::Api {
-                code: 400,
-                message: "Push token is empty".to_owned(),
-            });
-        }
-
-        let identifier = trimmed.split(':').next().unwrap_or(trimmed).to_owned();
-        #[cfg(debug_assertions)]
-        eprintln!(
-            "[HTTP-PUSH] Syncing push token: token_len={}, identifier={}",
-            trimmed.len(),
-            identifier
-        );
-        let payload = PushTokenRequest {
-            vendor_provided_identifier: identifier,
-            token: trimmed.to_owned(),
-        };
-        let body = serde_json::to_vec(&payload)
-            .map_err(|e| AppError::Http(format!("Failed to serialize push token payload: {e}")))?;
-
-        let response = self
-            .request_raw(
-                Method::POST,
-                "/v3/gcm-push-tokens",
-                Some(body),
-                Some("application/json"),
-            )
-            .await?;
-
-        if (200..300).contains(&response.status) {
-            #[cfg(debug_assertions)]
-            eprintln!(
-                "[HTTP-PUSH] /v3/gcm-push-tokens sync success: status={}",
-                response.status
-            );
-            Ok(())
-        } else {
-            let message = String::from_utf8(response.body)
-                .unwrap_or_else(|_| "Failed to sync push token".to_owned());
-            #[cfg(debug_assertions)]
-            eprintln!(
-                "[HTTP-PUSH] /v3/gcm-push-tokens sync failed: status={}, body={}",
-                response.status, message
-            );
-            Err(AppError::Api {
-                code: response.status as i32,
-                message,
-            })
-        }
-    }
+    Ok(client)
 }
 
 #[tauri::command]
@@ -1084,42 +935,126 @@ pub async fn login(
     email: String,
     password: String,
 ) -> Result<LoginResult, AppError> {
-    state.client()?.login(&email, &password).await
+    let client = state.client()?;
+
+    // A fresh device identity per login attempt (including re-logins to the
+    // same account) so logins can't be correlated with each other.
+    let device = grindr::DeviceInfo::generate();
+    client.rotate_device(device).await.map_err(AppError::from)?;
+
+    let result = client
+        .login(&email, &password)
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+    Ok(LoginResult::from(result))
 }
 
 #[tauri::command]
-pub async fn login_with_jwt(
-    state: tauri::State<'_, AppState>,
-    token: String,
-) -> Result<LoginResult, AppError> {
-    state.client()?.login_with_jwt(&token).await
+pub async fn login_with_jwt(app: tauri::AppHandle, token: String) -> Result<LoginResult, AppError> {
+    let claims = jsonwebtoken::dangerous::insecure_decode::<serde_json::Value>(&token)
+        .map_err(|e| AppError::Auth(format!("JWT decode failed: {e}")))?
+        .claims;
+    let exp = claims
+        .get("exp")
+        .and_then(|v| v.as_u64())
+        .ok_or_else(|| AppError::Auth("JWT missing exp claim".to_owned()))?;
+    let profile_id = claims
+        .get("profile_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::Auth("JWT missing profile_id claim".to_owned()))?
+        .to_owned();
+
+    let session: grindr::Session = serde_json::from_value(serde_json::json!({
+        "email": "",
+        "expires_at": exp,
+        "profile_id": profile_id,
+        "session_id": token,
+        "auth_token": "",
+    }))?;
+    let device = grindr::DeviceInfo::generate();
+
+    // Persist immediately (not just on the exchange's success below) so a
+    // JWT-only session survives a restart within its own ~15-30 min expiry,
+    // same as before the transport swap.
+    AuthStorage::set_session(&session)?;
+    DeviceStorage::save(&device)?;
+
+    let client = adopt_client(&app, Some(device), Some(session))?;
+
+    // Try to exchange the JWT for a full session (sessionId + authToken) so
+    // subsequent refreshes work the same way as email/password login. If the
+    // exchange fails, the JWT-only session set above stays active and works
+    // until the JWT itself expires.
+    let result = match client.refresh_token().await {
+        Ok(result) => LoginResult::from(result),
+        Err(_exchange_error) => LoginResult {
+            profile_id,
+            restriction: None,
+        },
+    };
+
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn refresh_token(state: tauri::State<'_, AppState>) -> Result<LoginResult, AppError> {
-    state.client()?.refresh_token().await
+    let client = state.client()?;
+    let session_before = client.session_receiver().borrow().clone();
+    match client.refresh_token().await {
+        Ok(result) => Ok(LoginResult::from(result)),
+        Err(grindr::GrindrError::Unauthorized { .. })
+            if session_before.as_ref().is_some_and(|s| s.auth_token.is_empty()) =>
+        {
+            // JWT-only fallback session (see login_with_jwt) whose own JWT has
+            // now expired — there is nothing left to refresh with.
+            Err(AppError::TokenExpired)
+        }
+        Err(e) => Err(AppError::from_client_error(e, &client)),
+    }
 }
 
 #[tauri::command]
-pub async fn logout(state: tauri::State<'_, AppState>) -> Result<(), AppError> {
+pub async fn logout(app: tauri::AppHandle) -> Result<(), AppError> {
     AuthStorage::clear_session()?;
 
-    state
-        .client()?
-        .session
-        .write()
-        .await
-        .take()
-        .ok_or_else(|| AppError::Auth("Not logged in".to_owned()))
-        .map(|_| ())
+    // Rotate the device identity so the next login on this "active" slot
+    // can't be correlated with the one that just signed out. adopt_client
+    // closes out the outgoing client (clears its session/signing key,
+    // closes its websocket) before swapping.
+    let new_device = grindr::DeviceInfo::generate();
+    let _ = DeviceStorage::save(&new_device);
+    adopt_client(&app, Some(new_device), None)?;
+
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn auth_state(state: tauri::State<'_, AppState>) -> Result<Option<u64>, AppError> {
-    let session = state.client()?.session.read().await;
-    Ok(session
+    let Ok(client) = state.client() else {
+        return Ok(None);
+    };
+    Ok(client
+        .session_receiver()
+        .borrow()
         .as_ref()
         .and_then(|s| s.profile_id.parse::<u64>().ok()))
+}
+
+/// The active session's restriction (age verification, timed ban, ...), if
+/// any — the session itself is still valid, this is informational for the
+/// frontend to gate on. Distinct from `AppError::Banned`, which is a hard
+/// login/refresh rejection.
+#[tauri::command]
+pub async fn account_restriction(state: tauri::State<'_, AppState>) -> Result<Option<Restriction>, AppError> {
+    let Ok(client) = state.client() else {
+        return Ok(None);
+    };
+    Ok(client
+        .session_receiver()
+        .borrow()
+        .as_ref()
+        .and_then(|s| s.restriction.clone())
+        .map(Restriction::from))
 }
 
 #[tauri::command]
@@ -1128,11 +1063,21 @@ pub async fn list_saved_accounts() -> Result<Vec<SavedAccountMeta>, AppError> {
 }
 
 #[tauri::command]
-pub async fn switch_account(
-    state: tauri::State<'_, AppState>,
-    profile_id: String,
-) -> Result<LoginResult, AppError> {
-    state.client()?.switch_account(&profile_id).await
+pub async fn switch_account(app: tauri::AppHandle, profile_id: String) -> Result<LoginResult, AppError> {
+    let (session, device) = AuthStorage::get_account(&profile_id)?
+        .ok_or_else(|| AppError::Auth("No saved session for this account".to_owned()))?;
+
+    let profile_id = session.profile_id.clone();
+    let restriction = session.restriction.clone();
+
+    AuthStorage::set_session(&session)?;
+    let _ = DeviceStorage::save(&device);
+    adopt_client(&app, Some(device), Some(session))?;
+
+    Ok(LoginResult {
+        profile_id,
+        restriction: restriction.map(Restriction::from),
+    })
 }
 
 #[tauri::command]
@@ -1141,34 +1086,58 @@ pub async fn remove_saved_account(profile_id: String) -> Result<(), AppError> {
 }
 
 #[tauri::command]
-pub async fn websocket_token(
-    state: tauri::State<'_, AppState>,
-) -> Result<Option<String>, AppError> {
+pub async fn websocket_token(state: tauri::State<'_, AppState>) -> Result<Option<String>, AppError> {
     let client = state.client()?;
 
-    // Check if refresh is needed
     let needs_refresh = {
-        let session = client.session.read().await;
+        let session = client.session_receiver().borrow().clone();
         let expires_at = session.as_ref().map(|s| s.expires_at).unwrap_or(0);
         expires_at > 0 && expires_at < (chrono::Utc::now().timestamp() as u64 + 60)
     };
 
     if needs_refresh {
-        if let Err(e @ AppError::TokenExpired) = client.refresh_token().await {
-            return Err(e);
+        if let Err(grindr::GrindrError::Unauthorized { .. }) = client.refresh_token().await {
+            return Err(AppError::TokenExpired);
         }
     }
 
-    let session = client.session.read().await;
-    Ok(session.as_ref().map(|s| s.session_id.clone()))
+    Ok(client
+        .session_receiver()
+        .borrow()
+        .as_ref()
+        .map(|s| s.session_id.clone()))
 }
 
 #[tauri::command]
-pub async fn sync_push_token(
-    state: tauri::State<'_, AppState>,
-    token: String,
-) -> Result<(), AppError> {
-    #[cfg(debug_assertions)]
-    eprintln!("[HTTP-PUSH] Tauri command sync_push_token invoked");
-    state.client()?.sync_push_token(&token).await
+pub async fn sync_push_token(state: tauri::State<'_, AppState>, token: String) -> Result<(), AppError> {
+    let trimmed = token.trim();
+    if trimmed.is_empty() {
+        return Err(AppError::Api {
+            code: 400,
+            message: "Push token is empty".to_owned(),
+        });
+    }
+
+    let identifier = trimmed.split(':').next().unwrap_or(trimmed).to_owned();
+    let payload = serde_json::json!({
+        "vendorProvidedIdentifier": identifier,
+        "token": trimmed,
+    });
+    let body = serde_json::to_vec(&payload)
+        .map_err(|e| AppError::Http(format!("Failed to serialize push token payload: {e}")))?;
+
+    let client = state.client()?;
+    let response = client
+        .request_authenticated_bytes(grindr::Method::POST, "/v3/gcm-push-tokens", "application/json", body)
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+
+    if (200..300).contains(&response.status) {
+        Ok(())
+    } else {
+        Err(AppError::from(grindr::GrindrError::from_response(
+            response.status,
+            &response.body,
+        )))
+    }
 }

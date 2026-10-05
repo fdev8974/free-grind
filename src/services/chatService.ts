@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import z from "zod";
 import {
 	chatMessageMutationSchema,
@@ -38,7 +39,7 @@ import type {
 
 import { runAutomationRulesForSender } from "../utils/automationRules";
 import { getIncognitoMode, isReadReceiptsHidden } from "../utils/privacy";
-import { ApiFunctionError, assertSuccess, parseJsonSafe } from "./apiHelpers";
+import { ApiFunctionError, assertSuccess, commandErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
 
 export { ApiFunctionError as ChatApiError };
@@ -586,40 +587,30 @@ export function createChatService(fetchRest: RestFetcher, t: (key: string) => st
 		async uploadChatMedia(
 			params: UploadChatMediaParams,
 		): Promise<UploadChatMediaResponse> {
-			const query = new URLSearchParams({
-				looping: String(params.options.looping),
-				takenOnGrindr: String(params.options.takenOnGrindr),
-			});
-			if (params.options.durationSeconds != null) {
-				query.set("length", String(params.options.durationSeconds));
+			// Signed POST /v6/chat/media/upload — device-key signing is handled
+			// Rust-side by grindr.rs, so this goes through a dedicated command
+			// rather than the generic REST passthrough.
+			try {
+				const response = await invoke<{ mediaId: number; url: string; mediaHash: string }>(
+					"upload_chat_media",
+					{
+						body: Array.from(params.multipart.body),
+						contentType: params.multipart.contentType,
+						takenOnGrindr: params.options.takenOnGrindr,
+						length: params.options.durationSeconds ?? null,
+						looping: params.options.looping,
+					},
+				);
+
+				return {
+					mediaId: response.mediaId,
+					mediaHash: response.mediaHash,
+					url: response.url,
+					expiresAt: null,
+				};
+			} catch (error) {
+				throw commandErrorToApiFunctionError(error, t("chat.errors.upload_media_failed"));
 			}
-
-			const response = await fetchRest(
-				`/v5/chat/media/upload?${query.toString()}`,
-				{
-					method: "POST",
-					rawBody: params.multipart.body,
-					contentType: params.multipart.contentType,
-				},
-			);
-
-			await assertSuccess(response, t("chat.errors.upload_media_failed"));
-
-			const parsed = z
-				.object({
-					mediaId: z.coerce.number().int(),
-					mediaHash: z.string().nullable().optional().default(null),
-					url: z.string().nullable().optional().default(null),
-					expiresAt: z.coerce.number().nullable().optional().default(null),
-				})
-				.parse(await parseJsonSafe(response));
-
-			return {
-				mediaId: parsed.mediaId,
-				mediaHash: parsed.mediaHash,
-				url: parsed.url,
-				expiresAt: parsed.expiresAt,
-			};
 		},
 
 		async uploadAlbumContent(

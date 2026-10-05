@@ -16,7 +16,8 @@ import type { VisitingMode } from "../../types/visiting";
 import { isVisitingMode } from "../../types/visiting";
 import { travelPlansResponseSchema, type TravelPlan, type TravelPlanPayload } from "../../types/travel";
 import { homeLocationSchema, type HomeLocation } from "../../types/home-location";
-import { ApiFunctionError, assertSuccess, parseJsonSafe } from "../apiHelpers";
+import { invoke } from "@tauri-apps/api/core";
+import { ApiFunctionError, assertSuccess, commandErrorToApiFunctionError, parseJsonSafe } from "../apiHelpers";
 import { getIncognitoMode, isRecordProfileViewsEnabled } from "../../utils/privacy";
 import { appLog } from "../../utils/logger";
 
@@ -497,6 +498,31 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 				);
 			}
 			return payload as ProfileImageUploadResult;
+		},
+
+		/**
+		 * Signed POST /v5/media/upload — device-key signing is handled
+		 * Rust-side by grindr.rs, so this goes through a dedicated command
+		 * rather than the generic REST passthrough `uploadProfileImage` above
+		 * uses. `thumbCoords` is the same `"bottom,left,right,top"` string the
+		 * caller already builds for that path.
+		 */
+		async uploadProfileImageSigned(params: {
+			body: Uint8Array;
+			contentType: string;
+			thumbCoords?: string;
+			takenOnGrindr: boolean;
+		}): Promise<ProfileImageUploadResult> {
+			try {
+				return await invoke<ProfileImageUploadResult>("upload_profile_image", {
+					body: Array.from(params.body),
+					contentType: params.contentType,
+					thumbCoords: params.thumbCoords ?? null,
+					takenOnGrindr: params.takenOnGrindr,
+				});
+			} catch (error) {
+				throw commandErrorToApiFunctionError(error, t("api.errors.upload_image"));
+			}
 		},
 	};
 }

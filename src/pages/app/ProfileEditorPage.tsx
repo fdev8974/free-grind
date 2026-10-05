@@ -705,22 +705,33 @@ export function ProfileEditorPage() {
 		try {
 			const body = new Uint8Array(await file.arrayBuffer());
 			const thumbCoords = thumbCoordsOverride ?? (await buildSquareThumbCoords(file));
+			const contentType = file.type || "application/octet-stream";
 
-			const uploadPaths = [
-				`/v4/media/upload?thumbCoords=${encodeURIComponent(thumbCoords)}&takenOnGrindr=${pendingPhotoTakenOnGrindr}`,
-				"/v3/me/profile/images",
+			// Primary: signed POST /v5/media/upload (grindr.rs handles the
+			// device-key signature). Fallback: the older, unsigned
+			// /v3/me/profile/images path, unchanged.
+			const uploadAttempts = [
+				() =>
+					apiFunctions.uploadProfileImageSigned({
+						body,
+						contentType,
+						thumbCoords,
+						takenOnGrindr: pendingPhotoTakenOnGrindr,
+					}),
+				() =>
+					apiFunctions.uploadProfileImage({
+						path: "/v3/me/profile/images",
+						body,
+						contentType,
+					}),
 			];
 
 			let uploadedHash: string | null = null;
 			const failedMessages: string[] = [];
 
-			for (const path of uploadPaths) {
+			for (const attempt of uploadAttempts) {
 				try {
-					const uploaded = await apiFunctions.uploadProfileImage({
-						path,
-						body,
-						contentType: file.type || "application/octet-stream",
-					});
+					const uploaded = await attempt();
 					uploadedHash =
 						uploaded.hash ??
 						uploaded.mediaHash ??

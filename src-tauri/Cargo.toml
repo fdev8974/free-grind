@@ -44,15 +44,10 @@ tauri-plugin-geolocation = "2"
 tauri-plugin-os = "2"
 tauri-plugin-notification = { path = "notification-patched" }
 tauri-plugin-http = "2"
-futures-util = "0.3"
-http = "1"
-url = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 wreq = { version = "5.3", features = ["gzip", "json"] }
-# Blocking HTTP client for version fetching (non-critical, doesn't affect auth fingerprint)
-reqwest = { version = "0.12", features = ["json", "blocking"], default-features = false }
+grindr = "0.8.0"
 tauri-plugin-hotswap = { path = "hotswap-patched" }
-rustls = { version = "0.23", features = ["ring"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 base64 = "0.22"
@@ -60,15 +55,10 @@ base64 = "0.22"
 # Platform-specific dependencies
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-native-keyring-store = "0.5.1"
-# Use rustls for WebSocket on Windows to avoid SChannel JA3 fingerprint detection by Cloudflare
-tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 # Same webview2-com/windows versions wry (our Tauri version's webview backend) already
 # pulls in, so the ICoreWebView2 types in lib.rs line up with what's actually loaded.
 webview2-com = "0.38"
 windows = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading"] }
-
-[target.'cfg(not(target_os = "windows"))'.dependencies]
-tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android-native-keyring-store = "0.5.0"

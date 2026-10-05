@@ -1,5 +1,26 @@
 import z from "zod";
 
+export const banInfoSchema = z.object({
+	kind: z.string(),
+	code: z.number(),
+	message: z.string(),
+	reason: z.string().nullish(),
+	subReason: z.string().nullish(),
+	automated: z.boolean().nullish(),
+});
+export type BanInfo = z.infer<typeof banInfoSchema>;
+
+// Mirrors error.rs's Restriction — the session itself is still valid, this
+// just says the account can't be used until the user resolves it (age
+// verification, a timed ban, ...). Distinct from a Banned AppError, which is
+// a hard login/refresh rejection.
+export const restrictionSchema = z.object({
+	kind: z.enum(["ageVerification", "timedBan", "trustVendorRejected", "other"]),
+	region: z.string().nullish(),
+	reason: z.string().nullish(),
+});
+export type Restriction = z.infer<typeof restrictionSchema>;
+
 export const methodSchemas = {
 	login: {
 		request: z.object({
@@ -8,6 +29,7 @@ export const methodSchemas = {
 		}),
 		response: z.object({
 			profileId: z.coerce.number().int().nonnegative(),
+			restriction: restrictionSchema.nullish(),
 		}),
 	},
 	login_with_jwt: {
@@ -16,11 +38,16 @@ export const methodSchemas = {
 		}),
 		response: z.object({
 			profileId: z.coerce.number().int().nonnegative(),
+			restriction: restrictionSchema.nullish(),
 		}),
 	},
 	auth_state: {
 		request: z.undefined(),
 		response: z.number().int().nonnegative().nullable(),
+	},
+	account_restriction: {
+		request: z.undefined(),
+		response: restrictionSchema.nullish(),
 	},
 	websocket_token: {
 		request: z.undefined(),
@@ -58,6 +85,7 @@ export const methodSchemas = {
 		}),
 		response: z.object({
 			profileId: z.coerce.number().int().nonnegative(),
+			restriction: restrictionSchema.nullish(),
 		}),
 	},
 	remove_saved_account: {
@@ -73,8 +101,20 @@ export const methodSchemas = {
 
 export type MethodName = keyof typeof methodSchemas;
 
+export type AppErrorKind =
+	| "Http"
+	| "Auth"
+	| "Api"
+	| "Unauthorized"
+	| "Banned"
+	| "RateLimited"
+	| "RequestBlocked"
+	| "SessionCleared"
+	| "NotInitialized"
+	| "TokenExpired";
+
 export interface AppError {
-	kind: "Http" | "Auth" | "Api" | "NotInitialized" | "TokenExpired";
-	message?: string | { code: number; message: string };
+	kind: AppErrorKind;
+	message?: string | { code: number; message: string } | BanInfo;
 	prettyMessage: string;
 }

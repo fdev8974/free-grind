@@ -6,18 +6,23 @@ mod state;
 mod storage;
 mod windows_instance;
 
-use std::sync::Arc;
-
 use crate::state::AppState;
-use api::client::GrindrClient;
-use api::websocket::WsState;
+
+/// Loads a persisted device identity + active session (if any) and builds the
+/// initial `grindr::GrindrClient` synchronously (`GrindrClient::new` needs no
+/// runtime), so it's guaranteed to exist — or a clear startup error is
+/// logged — before the webview starts loading. The session-persistence and
+/// websocket-bridge tasks it spawns run in the background from here on.
+fn init_client(app: &tauri::AppHandle) {
+    let device = api::auth::DeviceStorage::load().ok().flatten();
+    let session = api::auth::AuthStorage::get_session().ok().flatten();
+    if let Err(e) = api::auth::adopt_client(app, device, session) {
+        eprintln!("Warning: failed to initialize GrindrClient: {e}");
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Install the ring crypto provider for rustls (required for
-    // tokio-tungstenite when using rustls TLS backend).
-    let _ = rustls::crypto::ring::default_provider().install_default();
-
     #[cfg(target_os = "windows")]
     {
         windows_instance::WindowsInstance::init();
@@ -31,8 +36,6 @@ pub fn run() {
             e
         );
     }
-
-    let client = GrindrClient::new().ok();
 
     // Platform-specific setup for plugins
     #[cfg(not(mobile))]
@@ -77,9 +80,11 @@ pub fn run() {
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_sql::Builder::default().build())
             .plugin(tauri_plugin_opener::init())
-            .manage(AppState { client })
-            .manage(Arc::new(WsState::new()))
+            .manage(AppState::default())
             .setup(|app| {
+                let app_handle = app.handle().clone();
+                init_client(&app_handle);
+
                 #[cfg(target_os = "linux")]
                 {
                     use tauri::Manager;
@@ -164,6 +169,7 @@ pub fn run() {
                 api::auth::refresh_token,
                 api::auth::logout,
                 api::auth::auth_state,
+                api::auth::account_restriction,
                 api::auth::websocket_token,
                 api::auth::sync_push_token,
                 api::auth::list_saved_accounts,
@@ -179,6 +185,8 @@ pub fn run() {
                 commands::backup::export_backup_to_file,
                 commands::backup::import_backup_from_file,
                 commands::backup::inspect_backup_file,
+                commands::media_upload::upload_profile_image,
+                commands::media_upload::upload_chat_media,
             ])
             .build(context)
             .expect("error while running tauri application");
@@ -234,8 +242,13 @@ pub fn run() {
         let builder = builder.plugin(tauri_plugin_android_fs::init());
 
         builder
-            .manage(AppState { client })
-            .manage(Arc::new(WsState::new()))
+            .manage(AppState::default())
+            .setup(|app| {
+                use tauri::Manager;
+                let app_handle = app.handle().clone();
+                init_client(&app_handle);
+                Ok(())
+            })
             .invoke_handler(tauri::generate_handler![
                 api::runtime::runtime_context,
                 api::runtime::create_child_instance,
@@ -248,6 +261,7 @@ pub fn run() {
                 api::auth::refresh_token,
                 api::auth::logout,
                 api::auth::auth_state,
+                api::auth::account_restriction,
                 api::auth::websocket_token,
                 api::auth::sync_push_token,
                 api::auth::list_saved_accounts,
@@ -263,6 +277,8 @@ pub fn run() {
                 commands::backup::export_backup_to_file,
                 commands::backup::import_backup_from_file,
                 commands::backup::inspect_backup_file,
+                commands::media_upload::upload_profile_image,
+                commands::media_upload::upload_chat_media,
             ])
             .run(context)
             .expect("error while running tauri application");

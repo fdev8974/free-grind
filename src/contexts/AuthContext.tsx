@@ -6,12 +6,15 @@ import {
 	ReactNode,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { listen } from "@tauri-apps/api/event";
 import { useApi } from "../hooks/useApi";
 import { useApiFunctions } from "../hooks/useApiFunctions";
-import type { AppError } from "../types/api";
+import type { AppError, Restriction } from "../types/api";
+import { banInfoSchema } from "../types/api";
 import toast from "react-hot-toast";
 import {
 	AuthContext,
+	type AccountStatus,
 	type AuthContextType,
 	type AuthState,
 	type SavedAccountMeta,
@@ -58,14 +61,15 @@ type AuthAction =
 	| { type: "SET_LOADING"; payload: boolean }
 	| { type: "SET_ERROR"; payload: string | null }
 	| { type: "SET_SETTINGS_READY"; payload: boolean }
-	| { type: "SET_TOKEN_EXPIRED"; payload: boolean };
+	| { type: "SET_TOKEN_EXPIRED"; payload: boolean }
+	| { type: "SET_ACCOUNT_STATUS"; payload: AccountStatus };
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
 	switch (action.type) {
 		case "SET_USER":
-			return { ...state, userId: action.payload, error: null, tokenExpired: false };
+			return { ...state, userId: action.payload, error: null, tokenExpired: false, accountStatus: null };
 		case "CLEAR_USER":
-			return { ...state, userId: null, tokenExpired: false };
+			return { ...state, userId: null, tokenExpired: false, accountStatus: null };
 		case "SET_LOADING":
 			return { ...state, isLoading: action.payload };
 		case "SET_ERROR":
@@ -74,6 +78,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 			return { ...state, settingsReady: action.payload };
 		case "SET_TOKEN_EXPIRED":
 			return { ...state, tokenExpired: action.payload };
+		case "SET_ACCOUNT_STATUS":
+			return { ...state, accountStatus: action.payload };
 		default:
 			return state;
 	}
@@ -86,9 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		error: null,
 		settingsReady: false,
 		tokenExpired: false,
+		accountStatus: null,
 	});
 
-	const { callMethod, asAppError } = useApi();
+	const { callMethod, asAppError, asBanned } = useApi();
 	const apiFunctions = useApiFunctions();
 	const queryClient = useQueryClient();
 	const [savedAccounts, setSavedAccounts] = useState<SavedAccountMeta[]>([]);
@@ -113,6 +120,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
+	// Session still valid, but the account needs the user to resolve
+	// something (age verification, a timed ban, ...) before it can be used —
+	// gates the app behind AccountStatusPrompt the same way tokenExpired
+	// gates it behind TokenExpiredGate. Returns whether one was shown, so
+	// callers can skip their normal "login succeeded" follow-up.
+	const showRestriction = (restriction: Restriction | null | undefined): boolean => {
+		if (!restriction) return false;
+		dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "restriction", restriction } });
+		return true;
+	};
+
+	// A hard login/refresh rejection — the account is banned outright (no
+	// session was established) or Grindr is rate-limiting attempts. Returns
+	// whether the error was one of these, so callers can skip their normal
+	// generic-error toast.
+	const handleAccountBlock = (error: unknown): boolean => {
+		const ban = asBanned(error);
+		if (ban) {
+			dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: ban } });
+			return true;
+		}
+		if (asAppError(error)?.kind === "RateLimited") {
+			toast.error("Too many attempts. Please try again later.");
+			return true;
+		}
+		return false;
+	};
+
 	const checkAuth = async () => {
 		try {
 			appLog.debug("[Auth] checkAuth: starting");
@@ -122,6 +157,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				appLog.info("[Auth] checkAuth: active session found");
 				dispatch({ type: "SET_USER", payload: result });
 				void refreshSavedAccounts();
+				// Resumed from a persisted session (not a fresh login result), so
+				// the restriction has to be fetched separately.
+				void callMethod("account_restriction")
+					.then((restriction) => {
+						showRestriction(restriction);
+					})
+					.catch((error) => {
+						appLog.warn("[Auth] account_restriction check failed", asAppError(error) ?? error);
+					});
 			} else {
 				appLog.info("[Auth] checkAuth: no active session");
 				dispatch({ type: "CLEAR_USER" });
@@ -153,8 +197,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			appLog.info("[Auth] login: succeeded");
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
-			toast.success("Login successful");
+			if (!showRestriction(result.restriction)) {
+				toast.success("Login successful");
+			}
 		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
 			const appError = asAppError(error);
 			const message = describeLoginError(
 				appError,
@@ -180,8 +229,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			appLog.info("[Auth] loginWithJwt: succeeded");
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
-			toast.success("Token login successful");
+			if (!showRestriction(result.restriction)) {
+				toast.success("Token login successful");
+			}
 		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
 			const appError = asAppError(error);
 			const message = describeLoginError(
 				appError,
@@ -226,8 +280,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			appLog.info("[Auth] switchAccount: succeeded");
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
-			toast.success("Switched account");
+			if (!showRestriction(result.restriction)) {
+				toast.success("Switched account");
+			}
 		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
 			const appError = asAppError(error);
 			const message = appError?.prettyMessage || "Failed to switch account";
 			appLog.error("[Auth] switchAccount failed", { kind: appError?.kind, message });
@@ -360,6 +419,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		window.addEventListener("fg:token-expired", onTokenExpired);
 		return () => {
 			window.removeEventListener("fg:token-expired", onTokenExpired);
+		};
+	}, []);
+
+	// A ban can also be detected mid-session, not just on login — the Rust
+	// side's background token-refresh loop pushes this event the moment
+	// grindr.rs's own auth-event stream reports it (see api/websocket.rs).
+	useEffect(() => {
+		const unlisten = listen<unknown>("auth:banned", (event) => {
+			const parsed = banInfoSchema.safeParse(event.payload);
+			if (!parsed.success) {
+				appLog.warn("[Auth] auth:banned event with unexpected payload", event.payload);
+				return;
+			}
+			dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: parsed.data } });
+		});
+
+		return () => {
+			void unlisten.then((fn) => fn());
 		};
 	}, []);
 
