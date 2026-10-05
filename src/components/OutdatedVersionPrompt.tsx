@@ -2,7 +2,7 @@ import { ChevronRight, Download } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
 
-const DEFAULT_RELEASES_URL = "https://github.com/imaoreo/free-grind/releases";
+const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
 const DEFAULT_LATEST_VERSION = "0.5.4";
 const TARGET_OUTDATED_VERSIONS = new Set(["0.5.0", "0.5.1", "0.5.2", "0.5.3", "5.0.0", "5.1.0", "5.2.0", "5.3.0"]);
 const OUTDATED_VERSION_REOPEN_COUNT = 5;
@@ -49,7 +49,7 @@ function buildDismissStorageKey(appVersion: string): string {
 
 async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
     const response = await fetch(
-        "https://api.github.com/repos/imaoreo/free-grind/releases/latest",
+        "https://api.github.com/repos/fdev8974/free-grind/releases/latest",
         {
             headers: {
                 Accept: "application/vnd.github+json",

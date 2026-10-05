@@ -9,8 +9,6 @@ import {
 } from "../utils";
 import { cn } from "../../../../utils/cn";
 import { ProfileImage } from "../../../../components/ui/profile-image";
-import { FreeGrindBadge } from "../../../../components/FreeGrindBadge";
-import { usePresenceCheck } from "../../../../hooks/usePresenceCheck";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { useRevealOnScroll } from "../../../../hooks/useRevealOnScroll";
@@ -38,7 +36,6 @@ export function BrowseCardTile({
 	const name = localNickname?.trim() || getDisplayName(card);
 	const onlineStatus = getOnlineStatusMeta(card.lastOnline, card.onlineUntil);
 	const age = typeof card.age === "number" && card.age > 0 ? card.age : null;
-	const usesFreegrind = usePresenceCheck(card.profileId);
 	const isDemoCard = card.profileId.toString().startsWith("demo-");
 	const isVisiting = card.isVisiting === true;
 	const isRoaming = card.roaming === true;
@@ -170,10 +167,6 @@ export function BrowseCardTile({
 							<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-yellow-500 shadow-lg backdrop-blur-sm">
 								<Star className="h-3.5 w-3.5 fill-current" />
 							</div>
-						)}
-
-						{usesFreegrind && !isFavorite && (
-							<FreeGrindBadge size="md" variant="onDark" title={t("profile_details.uses_free_grind")} />
 						)}
 
 						{unreadCount > 0 ? (

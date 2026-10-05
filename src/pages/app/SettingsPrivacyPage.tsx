@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	AlertTriangle,
-	BarChart3,
 	Calculator,
 	CheckCheck,
 	CloudSun,
@@ -33,11 +32,6 @@ import {
 	setRecordProfileViewsEnabled,
 	setShowReadReceiptToggle as persistShowReadReceiptToggle,
 } from "../../utils/privacy";
-import {
-	readAnalyticsConsentChoice,
-	writeAnalyticsConsentChoice,
-	type AnalyticsConsentChoice,
-} from "../../utils/analyticsConsent";
 
 const DISGUISE_OPTIONS: { id: AppDisguiseId; icon: typeof Ghost; labelKey: string }[] = [
 	{ id: "default", icon: Ghost, labelKey: "privacy.app_disguise_off" },
@@ -54,7 +48,6 @@ export function SettingsPrivacyPage() {
 	const [readReceiptsEnabled, setReadReceiptsEnabled] = useState(() => !getHideReadReceiptsGlobal());
 	const [showReadReceiptToggle, setShowReadReceiptToggle] = useState(() => getShowReadReceiptToggle());
 	const [recordProfileViews, setRecordProfileViews] = useState(() => isRecordProfileViewsEnabled());
-	const [analyticsConsent, setAnalyticsConsent] = useState<AnalyticsConsentChoice | null>(() => readAnalyticsConsentChoice());
 	const [incognitoMode, setIncognitoModeState] = useState(() => getIncognitoMode());
 	const [disguiseSupported] = useState(() => isAppDisguiseSupported());
 	const [disguise, setDisguiseState] = useState<AppDisguiseId>(() => getCurrentAppDisguise());
@@ -234,35 +227,6 @@ export function SettingsPrivacyPage() {
 						</div>
 					</div>
 				)}
-
-				{/* Analytics & Discovery */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-						{t("customizability.analytics.title")}
-					</p>
-					<div className="surface-card overflow-hidden">
-						<ToggleRow
-							id="privacy-analytics"
-							highlighted={highlightId === "privacy-analytics"}
-							icon={<BarChart3 className="h-5 w-5" />}
-							iconClass="bg-violet-500/15 text-violet-400"
-							label={t("customizability.analytics.title")}
-							description={t("customizability.analytics.description")}
-							checked={analyticsConsent === "granted"}
-							onChange={(checked) => {
-								const choice: AnalyticsConsentChoice = checked ? "granted" : "denied";
-								writeAnalyticsConsentChoice(choice);
-								setAnalyticsConsent(choice);
-							}}
-						/>
-						<div className="border-t border-[var(--border)] px-4 py-3">
-							<p className="text-xs text-[var(--text-muted)] leading-relaxed">
-								{t("customizability.analytics.note")}
-							</p>
-						</div>
-					</div>
-				</div>
-
 			</div>
 		</section>
 	);

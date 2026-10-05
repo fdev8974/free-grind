@@ -10,7 +10,6 @@ import { ProfileImage } from "../../../components/ui/profile-image";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import type { ConversationEntry } from "../../../types/messages";
 import type { ChatContactIndexRecord } from "../../../types/chat-contact-index";
-import { FreeGrindBadge } from "../../../components/FreeGrindBadge";
 import { PullToRefreshContainer } from "../components/PullToRefreshContainer";
 import {
 	formatConversationTime,
@@ -95,7 +94,6 @@ type ChatInboxPanelProps = ChatInboxHeaderProps & {
 	localNicknamesByProfileId: Record<string, string>;
 	chatContactIndexByProfileId: Record<string, ChatContactIndexRecord>;
 	nowTimestamp: number;
-	presenceResults: Record<string, boolean>;
 	inboxListRef: RefObject<HTMLDivElement | null>;
 	showHeader: boolean;
 	onRefreshInbox: () => Promise<void>;
@@ -118,7 +116,6 @@ type ChatConversationRowProps = {
 	localNicknamesByProfileId: Record<string, string>;
 	chatContactIndexByProfileId: Record<string, ChatContactIndexRecord>;
 	nowTimestamp: number;
-	presenceResults: Record<string, boolean>;
 	isSelected: boolean;
 	isTyping: boolean;
 	isArchived: boolean;
@@ -241,7 +238,6 @@ function ChatConversationRow({
 	localNicknamesByProfileId,
 	chatContactIndexByProfileId,
 	nowTimestamp,
-	presenceResults,
 	isSelected,
 	isTyping,
 	isArchived,
@@ -504,9 +500,6 @@ function ChatConversationRow({
 										<EyeOff className="h-3.5 w-3.5 shrink-0 text-purple-400" />
 									</span>
 								)}
-								{otherParticipant?.profileId && presenceResults[otherParticipant.profileId] ? (
-									<FreeGrindBadge size="sm" variant="bare" title={t("profile_details.uses_free_grind")} />
-								) : null}
 							</div>
 							<span className="shrink-0 text-xs text-[var(--text-muted)]">
 								{formatConversationTime(conversation.data.lastActivityTimestamp)}
@@ -558,7 +551,6 @@ export function ChatInboxPanel({
 	localNicknamesByProfileId,
 	chatContactIndexByProfileId,
 	nowTimestamp,
-	presenceResults,
 	inboxListRef,
 	showHeader,
 	isSearchOpen,
@@ -805,7 +797,6 @@ export function ChatInboxPanel({
 														localNicknamesByProfileId={localNicknamesByProfileId}
 														chatContactIndexByProfileId={chatContactIndexByProfileId}
 														nowTimestamp={nowTimestamp}
-														presenceResults={presenceResults}
 														isSelected={conversation.data.conversationId === selectedConversationId}
 														isTyping={typingConversationIds?.has(conversation.data.conversationId) ?? false}
 														isArchived={archivedConversationIds.has(conversation.data.conversationId)}

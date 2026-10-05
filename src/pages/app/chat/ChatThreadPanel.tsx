@@ -154,7 +154,6 @@ type ChatThreadPanelProps = {
 	targetProfileDetail?: ProfileDetail | null;
 	userId: number | null;
 	nowTimestamp: number;
-	presenceResults: Record<string, boolean>;
 	isUpdatingConversationState: boolean;
 	isHeaderActionsMenuOpen: boolean;
 	setIsHeaderActionsMenuOpen: (value: ((current: boolean) => boolean) | boolean) => void;
@@ -561,7 +560,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		targetProfileDetail = null,
 		userId,
 		nowTimestamp,
-		presenceResults,
 		isUpdatingConversationState,
 		isHeaderActionsMenuOpen,
 		setIsHeaderActionsMenuOpen,
@@ -1336,7 +1334,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										{[
 											onlineMeta.label,
 											distanceLabel,
-											profileId != null && presenceResults[profileId] ? "Free Grind" : null,
 										]
 											.filter(Boolean)
 											.join(" · ")}

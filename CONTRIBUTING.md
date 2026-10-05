@@ -6,16 +6,16 @@ To minimize effort and time spent on porting code across platform, the project i
 
 ## Reporting bugs & requesting features
 
-Bug reports and feature requests are tracked on our website rather than on GitHub Issues:
+Bug reports and feature requests are tracked on GitHub Issues:
 
-- 🐛 **Bug reports & feature requests:** [freegrind.imaoreo.dev/issues](https://freegrind.imaoreo.dev/issues)
+- 🐛 **Bug reports & feature requests:** [GitHub Issues](https://github.com/fdev8974/free-grind/issues)
 - 💬 **Community discussion & support:** [Discord](https://discord.gg/cJqTaWPMFF)
 
 Please search existing reports before submitting a new one. When filing a bug, include your OS/platform, app version, and clear reproduction steps.
 
 ## Selecting a issue to work on
 
-If you're looking to contribute code, please check out the [issues](https://freegrind.imaoreo.dev/issues) page for open bugs and feature requests. To assign yourself to a issue please create a account, then press the "assign to me" button on the issue page. If you want to work on a issue that is not yet reported, please create a new issue with the "bug" or "feature request" label and assign it to yourself.
+If you're looking to contribute code, please check out the [issues](https://github.com/fdev8974/free-grind/issues) page for open bugs and feature requests. To claim an issue, leave a comment on it. If you want to work on a issue that is not yet reported, please create a new issue with the "bug" or "feature request" label and mention that you are working on it.
 
 This stops multiple people from working on the same issue and helps us keep track of who is working on what. If you have any questions about an issue or need help getting started, feel free to ask in our [Discord](https://discord.gg/cJqTaWPMFF) server!
 

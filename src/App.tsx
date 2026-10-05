@@ -30,8 +30,6 @@ import { ApiInspectorPage } from "./pages/app/ApiInspectorPage.tsx";
 import { CustomizabilityPage } from "./pages/app/CustomizabilityPage.tsx";
 import { BehaviorPage } from "./pages/app/BehaviorPage.tsx";
 import { NotificationsPage } from "./pages/app/NotificationsPage.tsx";
-import { ReportIssuePage } from "./pages/app/ReportIssuePage.tsx";
-import { IssueSearchPage } from "./pages/app/IssueSearchPage.tsx";
 import { SettingsAutomationPage } from "./pages/app/SettingsAutomationPage.tsx";
 import { SettingsDataPage } from "./pages/app/SettingsDataPage.tsx";
 import { SettingsPrivacyPage } from "./pages/app/SettingsPrivacyPage.tsx";
@@ -214,7 +212,6 @@ export default function App() {
 								path="/auth/password-reset"
 								element={<PasswordResetPage />}
 							/>
-							<Route path="/report-issue" element={<ReportIssuePage />} />
 
 							{/* Protected Routes */}
 							<Route
@@ -269,14 +266,6 @@ export default function App() {
 								<Route
 									path="/settings/notifications"
 									element={<NotificationsPage />}
-								/>
-								<Route
-									path="/settings/report-issue"
-									element={<ReportIssuePage />}
-								/>
-								<Route
-									path="/settings/issues"
-									element={<IssueSearchPage />}
 								/>
 								<Route
 									path="/settings/profile-editor"

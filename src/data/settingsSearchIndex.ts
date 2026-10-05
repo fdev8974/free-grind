@@ -1,7 +1,6 @@
 import {
 	AlertTriangle,
 	Ban,
-	BarChart3,
 	Bell,
 	CalendarDays,
 	CheckCheck,
@@ -41,6 +40,7 @@ import {
 	Workflow,
 	type LucideIcon,
 } from "lucide-react";
+import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL } from "../utils/githubIssues";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -49,6 +49,8 @@ export type SettingsSearchEntry = {
 	route: string;
 	/** Anchor id of the row on the target page — jumped to and briefly highlighted. Omitted for top-level page links. */
 	anchor?: string;
+	/** Opens this URL externally instead of navigating to `route`. */
+	externalUrl?: string;
 	label: string;
 	description?: string;
 	/** Breadcrumb shown under the label in search results, e.g. "Customizability". */
@@ -405,16 +407,6 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-orange-500/15 text-orange-400",
 		},
 		{
-			id: "privacy-analytics",
-			route: "/settings/privacy",
-			anchor: "privacy-analytics",
-			label: t("customizability.analytics.title"),
-			description: t("customizability.analytics.description"),
-			section: "Privacy",
-			icon: BarChart3,
-			iconClass: "bg-violet-500/15 text-violet-400",
-		},
-		{
 			id: "nav-sexual-health",
 			route: "/settings/sexual-health",
 			label: t("settings.sexual_health", { defaultValue: "Sexual Health" }),
@@ -528,7 +520,8 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		},
 		{
 			id: "nav-issues",
-			route: "/settings/issues",
+			route: "/settings",
+			externalUrl: GITHUB_ISSUES_URL,
 			label: t("settings.issue_board"),
 			description: t("settings.issue_board_desc"),
 			section: "About",
@@ -537,7 +530,8 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		},
 		{
 			id: "nav-report-issue",
-			route: "/settings/report-issue",
+			route: "/settings",
+			externalUrl: GITHUB_NEW_ISSUE_URL,
 			label: t("settings.report_issue"),
 			description: t("settings.report_issue_desc"),
 			section: "About",

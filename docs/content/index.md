@@ -15,7 +15,7 @@ hero:
       link: /grindr-api/
     - theme: alt
       text: Source code
-      link: https://github.com/imaoreo/free-grind
+      link: https://github.com/fdev8974/free-grind
 
 features:
   - title: User Guides

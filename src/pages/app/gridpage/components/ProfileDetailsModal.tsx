@@ -7,7 +7,6 @@ import {
 	createBackdropCloseHandler,
 	useModalClose,
 } from "../../../../hooks/useModalClose";
-import { usePresenceCheck } from "../../../../hooks/usePresenceCheck";
 import { useTravelPlans } from "../../../../hooks/queries/useProfileQueries";
 import { useApiFunctions } from "../../../../hooks/useApiFunctions";
 import { useAuth } from "../../../../contexts/useAuth";
@@ -36,7 +35,6 @@ import { getForbiddenWords, setForbiddenWords } from "../../../../utils/autobloc
 import { ProfileImage } from "../../../../components/ui/profile-image";
 import { PromptDialog } from "../../../../components/ui/prompt-dialog";
 import freegrindLogo from "../../../../images/freegrind-logo.webp";
-import { FreeGrindBadge } from "../../../../components/FreeGrindBadge";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { formatDateTime24 } from "../../chat/chatUtils";
 import { formatRelativeTime } from "../../../../utils/relativeTime";
@@ -280,7 +278,6 @@ export function ProfileDetailsModal({
 		: "offline";
 	const estimatedCreatedAt = formatEstimatedAccountCreation(activeProfile?.profileId, t);
 	const { data: travelPlans } = useTravelPlans(activeProfile?.profileId);
-	const usesFreegrind = usePresenceCheck(messageProfileId);
 	const visualStateValue = typeof tapVisualState === "string" ? tapVisualState : tapVisualState.state;
 	const effectiveTapVisualState = isTappingProfile ? "single" : visualStateValue;
 	const isTapActive = effectiveTapVisualState !== "none";
@@ -1425,9 +1422,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					<div className={`min-w-0 flex-1${inlineScrolled ? "" : " drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]"}`}>
 						<div className="flex items-center gap-1.5 min-w-0">
 							<p className={`truncate text-base font-semibold leading-tight${inlineScrolled ? "" : " text-white"}`}>{activeProfileName}</p>
-							{usesFreegrind && (
-								<FreeGrindBadge size="sm" title={t("profile_details.uses_free_grind")} />
-							)}
 							{activeProfile?.age != null && Number.isFinite(activeProfile.age) && (
 								<span className={`shrink-0 text-sm${inlineScrolled ? " text-[var(--text-muted)]" : " text-white/70"}`}>{activeProfile.age}</span>
 							)}
@@ -1667,7 +1661,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							profileDistance={profileDistance}
 							chatContactStatus={chatContactStatus ?? null}
 							messageProfileId={messageProfileId}
-							usesFreegrind={usesFreegrind ?? false}
 							onMessageProfile={variant === "page" && !isOwnProfile ? onMessageProfile : undefined}
 							onTapProfile={variant === "page" && !isOwnProfile ? onTapProfile : undefined}
 							onTagClick={onTagClick}
@@ -2178,7 +2171,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											profileDistance={profileDistance}
 											chatContactStatus={chatContactStatus ?? null}
 											messageProfileId={messageProfileId}
-											usesFreegrind={usesFreegrind ?? false}
 											onMessageProfile={undefined}
 											onTapProfile={undefined}
 											onTagClick={onTagClick}

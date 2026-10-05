@@ -19,7 +19,6 @@ import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useBlockProfile, useUnblockProfile, useBlockedProfileIds, useMyOwnProfile } from "../../hooks/queries/useProfileQueries";
 import { getProfilePhotoHash } from "./profile-editor/profileEditorUtils";
-import { usePresenceCheckBatch } from "../../hooks/usePresenceCheck";
 import { useAuth } from "../../contexts/useAuth";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { ChatApiError, MESSAGE_PAGE_LIMIT } from "../../services/chatService";
@@ -547,7 +546,7 @@ export function ChatPage() {
 		string | null
 	>(null);
 
-	// Extract profile IDs from conversations for batch presence check
+	// Profile IDs of the visible conversations, used to hydrate the chat contact index
 	const conversationProfileIds = useMemo(
 		() =>
 			conversations
@@ -560,9 +559,6 @@ export function ChatPage() {
 				.filter((id): id is string => id != null)
 				.slice(0, 50), // Limit to 50
 		[conversations, userId],
-	);
-	const presenceResults = usePresenceCheckBatch(
-		conversationProfileIds.length > 0 ? conversationProfileIds : null,
 	);
 
 	const conversationProfileIdsJson = JSON.stringify(conversationProfileIds);
@@ -6421,7 +6417,6 @@ export function ChatPage() {
 			localNicknamesByProfileId={localNicknamesByProfileId}
 			chatContactIndexByProfileId={chatContactIndexByProfileId}
 			nowTimestamp={nowTimestamp}
-			presenceResults={presenceResults}
 			inboxListRef={inboxListRef}
 			onRefreshInbox={() => loadInbox({ page: 1, replace: true })}
 			onLoadMoreInbox={handleLoadMoreInbox}
@@ -6452,7 +6447,6 @@ export function ChatPage() {
 			targetProfileDetail={targetProfileDetail}
 			userId={userId}
 			nowTimestamp={nowTimestamp}
-			presenceResults={presenceResults}
 			isUpdatingConversationState={isUpdatingConversationState}
 			isHeaderActionsMenuOpen={isHeaderActionsMenuOpen}
 			setIsHeaderActionsMenuOpen={setIsHeaderActionsMenuOpen}

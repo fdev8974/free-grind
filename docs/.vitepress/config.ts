@@ -59,7 +59,7 @@ export default defineConfig({
 		},
 
 		socialLinks: [
-			{ icon: "github", link: "https://github.com/imaoreo/free-grind" },
+			{ icon: "github", link: "https://github.com/fdev8974/free-grind" },
 			{ icon: "discord", link: "https://discord.gg/cJqTaWPMFF" },
 			{
 				icon: {
@@ -72,7 +72,7 @@ export default defineConfig({
 		footer: {
 			message: "Free Grind is not affiliated with Grindr in any way.",
 			copyright:
-				'Licensed under the <a href="https://github.com/imaoreo/free-grind/blob/main/LICENSE">Personal Use Licence</a>.',
+				'Licensed under the <a href="https://github.com/fdev8974/free-grind/blob/main/LICENSE">Personal Use Licence</a>.',
 		},
 	},
 });

@@ -14,9 +14,8 @@ pub struct RawResponse {
     pub body: Vec<u8>,
 }
 
-/// Absolute URLs (this app's own grindapi server: presence, issue reports,
-/// update analytics) don't go to Grindr, so they get a plain client — no
-/// Grindr fingerprint, headers or session token.
+/// Absolute URLs don't go to Grindr, so they get a plain client — no Grindr
+/// fingerprint, headers or session token.
 async fn send_external(
     method: grindr::Method,
     url: &str,

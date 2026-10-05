@@ -13,11 +13,11 @@ Free Grind is actively under development.
 
 ## How to get updates
 
-- Download the latest release from the [Releases page](https://github.com/imaoreo/free-grind/releases).
+- Download the latest release from the [Releases page](https://github.com/fdev8974/free-grind/releases).
 - Watch the repository for release announcements.
 - Follow project discussions for milestone updates.
 
-Project repository: [Free Grind on GitHub](https://github.com/imaoreo/free-grind/)
+Project repository: [Free Grind on GitHub](https://github.com/fdev8974/free-grind/)
 
 ## After download
 

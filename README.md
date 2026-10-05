@@ -5,9 +5,9 @@
 <p align="center">
   <a href="https://discord.gg/cJqTaWPMFF"><img src="https://img.shields.io/discord/1496182396033175823?label=Discord&logo=discord" alt="Discord"></a>
   <a href="https://t.me/fre-grind"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=flat&logo=telegram&logoColor=white" alt="Telegram"></a>
-  <a href="https://github.com/imaoreo/free-grind/releases"><img src="https://img.shields.io/github/v/release/imaoreo/free-grind?logo=github&label=Release" alt="Latest Release"></a>
+  <a href="https://github.com/fdev8974/free-grind/releases"><img src="https://img.shields.io/github/v/release/fdev8974/free-grind?logo=github&label=Release" alt="Latest Release"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Personal%20Use-blue" alt="License"></a>
-  <a href="https://freegrind.imaoreo.dev/issues"><img src="https://img.shields.io/badge/Issues-freegrind.imaoreo.dev-blue?logo=bugatti" alt="Issues"></a>
+  <a href="https://github.com/fdev8974/free-grind/issues"><img src="https://img.shields.io/badge/Issues-GitHub-blue?logo=github" alt="Issues"></a>
 </p>
 
 <h1 align="center">Free Grind</h1>
@@ -34,7 +34,7 @@ Free Grind does not collect personal data, display ads, or generate revenue of a
 
 ## Downloads
 
-- Download the latest stable release from the [releases page](https://github.com/imaoreo/free-grind/releases).
+- Download the latest stable release from the [releases page](https://github.com/fdev8974/free-grind/releases).
 - You can build the latest version yourself by following the [Development](#development) guide below.
 
 ## Features
@@ -88,7 +88,7 @@ Free Grind does not collect personal data, display ads, or generate revenue of a
 - **Profile fields**: Some server-side fields are undocumented and may display incorrectly.
 
 > [!TIP]
-> Bug reports and feature requests are tracked on our website: [freegrind.imaoreo.dev/issues](https://freegrind.imaoreo.dev/issues). Please check there first to see if your issue is already known before opening a new one. For community discussion, join us on [Discord](https://discord.gg/cJqTaWPMFF).
+> Bug reports and feature requests are tracked on [GitHub Issues](https://github.com/fdev8974/free-grind/issues). Please check there first to see if your issue is already known before opening a new one. For community discussion, join us on [Discord](https://discord.gg/cJqTaWPMFF).
 
 ## Development
 
@@ -152,7 +152,7 @@ The API reference documentation lives in [`docs/`](./docs/content/grindr-api/) a
 <details>
   <summary>Why isn't feature X implemented yet?</summary>
 
-  Free Grind is community-driven and under active development. Check the [ROADMAP.md](./ROADMAP.md) for planned features, or open a [feature request](https://freegrind.imaoreo.dev/issues).
+  Free Grind is community-driven and under active development. Check the [ROADMAP.md](./ROADMAP.md) for planned features, or open a [feature request](https://github.com/fdev8974/free-grind/issues).
 </details>
 
 <details>
@@ -165,8 +165,8 @@ The API reference documentation lives in [`docs/`](./docs/content/grindr-api/) a
 
 This project is open to all kinds of contributions — code, documentation, bug reports, and reverse engineering.
 
-- **Code contributions:** [open a pull request](https://github.com/imaoreo/free-grind/pulls) on GitHub.
-- **Bug reports & feature requests:** submit them on our website at [freegrind.imaoreo.dev/issues](https://freegrind.imaoreo.dev/issues).
+- **Code contributions:** [open a pull request](https://github.com/fdev8974/free-grind/pulls) on GitHub.
+- **Bug reports & feature requests:** submit them on [GitHub Issues](https://github.com/fdev8974/free-grind/issues).
 - **Community discussion & support:** join us on [Discord](https://discord.gg/cJqTaWPMFF).
 
 ## Donate

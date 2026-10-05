@@ -46,7 +46,6 @@ import { getProfileImageUrl, getThumbImageUrl } from "../../../../utils/media";
 import { resolveAvatarSrc } from "../../../../services/avatarStore";
 import { ProfileImage } from "../../../../components/ui/profile-image";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
-import freegrindLogo from "../../../../images/freegrind-logo.webp";
 import { TapSelector } from "./TapSelector";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { formatRelativeTime } from "../../../../utils/relativeTime";
@@ -137,7 +136,6 @@ type ProfileDetailsContentProps = {
 	profileDistance: number | null;
 	chatContactStatus: ChatContactIndexRecord | null;
 	messageProfileId: string | null;
-	usesFreegrind: boolean;
 	onMessageProfile?: (profileId: string) => void;
 	onTapProfile?: (profileId: string, tapId?: number) => void;
 	onTagClick?: (tag: string) => void;
@@ -189,7 +187,6 @@ export function ProfileDetailsContent({
 	profileDistance,
 	chatContactStatus,
 	messageProfileId,
-	usesFreegrind,
 	onMessageProfile,
 	onTapProfile,
 	onTagClick,
@@ -539,12 +536,6 @@ export function ProfileDetailsContent({
 								<span className="flex items-center gap-1 font-semibold text-[var(--accent)]">
 									<Sparkles className="h-3.5 w-3.5" />
 									{t("profile_details.recently_joined")}
-								</span>
-							)}
-							{usesFreegrind && (
-								<span className="flex items-center gap-1 font-semibold" style={{ color: "#FF8C00" }}>
-									<img src={freegrindLogo} alt="" className="h-3.5 w-3.5 object-contain" />
-									{t("profile_details.uses_free_grind")}
 								</span>
 							)}
 						</div>

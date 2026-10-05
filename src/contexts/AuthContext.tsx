@@ -396,17 +396,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		})();
 	}, [state.userId, state.isLoading, queryClient, apiFunctions]);
 
-	// Register presence with Free Grind backend when a logged-in session is active.
-	// This must not depend only on `state.userId`, because consent/discovery settings can
-	// change after login while the user id stays the same.
-	useEffect(() => {
-		if (state.isLoading || !state.userId) {
-			return;
-		}
-
-		void apiFunctions.registerPresence(state.userId);
-	}, [state.userId, state.isLoading, apiFunctions]);
-
 	// A third-party (JWT) login's token has no real refresh mechanism, so once it
 	// expires any authenticated API call anywhere in the app can be the one that
 	// first surfaces it (see useApi.ts's asAppError). Listen globally rather than

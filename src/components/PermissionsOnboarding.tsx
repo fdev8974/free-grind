@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart2, Bell, Camera, Check, ChevronRight, Loader2, MapPin, Mic, Monitor, Moon, Sun, X } from "lucide-react";
+import { AlertTriangle, Bell, Camera, Check, ChevronRight, Loader2, MapPin, Mic, Monitor, Moon, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	isPermissionGranted,
@@ -13,7 +13,6 @@ import { isTauriRuntime } from "../services/tauriWebSocket";
 import { getCurrentLocation } from "../services/currentLocation";
 import { appLog } from "../utils/logger";
 import { markOnboardingComplete } from "../utils/onboardingStorage";
-import { writeAnalyticsConsentChoice } from "../utils/analyticsConsent";
 import { usePreferences } from "../contexts/PreferencesContext";
 import type { ColorScheme } from "../contexts/PreferencesContext";
 import { LoadingScreen } from "./LoadingScreen";
@@ -87,11 +86,11 @@ function classifyMediaError(
 
 const PERM_STEPS = ["notifications", "location", "microphone", "camera"] as const;
 type PermStep = typeof PERM_STEPS[number];
-type Step = "loading" | "welcome" | "theme" | PermStep | "analytics" | "scam";
+type Step = "loading" | "welcome" | "theme" | PermStep | "scam";
 
-const STEP_ORDER: Step[] = ["welcome", "theme", "notifications", "location", "microphone", "camera", "analytics", "scam"];
+const STEP_ORDER: Step[] = ["welcome", "theme", "notifications", "location", "microphone", "camera", "scam"];
 
-const DOT_STEPS: Step[] = ["theme", "notifications", "location", "microphone", "camera", "analytics", "scam"];
+const DOT_STEPS: Step[] = ["theme", "notifications", "location", "microphone", "camera", "scam"];
 
 function StepDots({ current }: { current: Step }) {
 	const currentIdx = DOT_STEPS.indexOf(current);
@@ -334,11 +333,6 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		}
 	};
 
-	const handleAnalyticsChoice = (choice: "granted" | "denied") => {
-		writeAnalyticsConsentChoice(choice);
-		advance();
-	};
-
 	const handleDone = () => {
 		markOnboardingComplete();
 		onComplete();
@@ -456,49 +450,6 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						>
 							Continue
 							<ChevronRight className="h-4 w-4" />
-						</button>
-					</div>
-				</div>
-			</div>
-		);
-	}
-
-	// ── Analytics ─────────────────────────────────────────────────────────────
-	if (step === "analytics") {
-		return (
-			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
-					<TopDots current="analytics" />
-
-					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-						<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-							<BarChart2 className="h-9 w-9 text-[var(--accent)]" />
-						</div>
-						<h2 className="text-xl font-bold text-[var(--text)]">Anonymous Analytics</h2>
-						<div className="flex h-24 flex-col items-center overflow-hidden">
-							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-								Help us improve Free Grind by sharing anonymous usage data. No personal information is ever collected.
-							</p>
-						</div>
-					</div>
-
-					<div
-						className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
-						style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
-					>
-						<button
-							type="button"
-							onClick={() => handleAnalyticsChoice("granted")}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
-						>
-							Allow Analytics
-						</button>
-						<button
-							type="button"
-							onClick={() => handleAnalyticsChoice("denied")}
-							className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
-						>
-							No Thanks
 						</button>
 					</div>
 				</div>

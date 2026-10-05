@@ -66,6 +66,7 @@ import { getThumbImageUrl } from "../../utils/media";
 import { getSavedAccountProfile, removeSavedAccountProfile } from "../../services/savedAccountProfiles";
 import { isAndroid } from "../../services/saveMedia";
 import { useSettingsSearchIndex } from "../../data/settingsSearchIndex";
+import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
 
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
 const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
@@ -74,7 +75,7 @@ const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
 const LATEST_ANNOUNCEMENT = VERSION_ANNOUNCEMENTS[VERSION_ANNOUNCEMENTS.length - 1] ?? null;
 const PREVIEW_RELEASE_INFO = {
 	latestVersion: "9.9.9",
-	releasesUrl: "https://github.com/imaoreo/free-grind/releases",
+	releasesUrl: "https://github.com/fdev8974/free-grind/releases",
 };
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -655,7 +656,13 @@ export function SettingsPage() {
 								<button
 									key={entry.id}
 									type="button"
-									onClick={() => navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route)}
+									onClick={() => {
+										if (entry.externalUrl) {
+											void openExternalUrl(entry.externalUrl);
+											return;
+										}
+										navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route);
+									}}
 									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 								>
 									<div className={`rounded-2xl p-2.5 shrink-0 ${entry.iconClass}`}>
@@ -1214,14 +1221,14 @@ export function SettingsPage() {
 							t("settings.about_desc"),
 						)}
 						{navRow(
-							() => navigate("/settings/issues"),
+							() => void openExternalUrl(GITHUB_ISSUES_URL),
 							<ClipboardList className="h-5 w-5" />,
 							"bg-orange-500/15 text-orange-400",
 							t("settings.issue_board"),
 							t("settings.issue_board_desc"),
 						)}
 						{navRow(
-							() => navigate("/settings/report-issue"),
+							() => void openExternalUrl(GITHUB_NEW_ISSUE_URL),
 							<MessageSquareWarning className="h-5 w-5" />,
 							"bg-rose-500/15 text-rose-400",
 							t("settings.report_issue"),
