@@ -13,11 +13,17 @@
  * code, including inside list-item loops, can resolve a cached avatar
  * without awaiting a DB read) backed by chatDb's avatars table, keyed by
  * content-addressed media hash.
+ *
+ * Two variants per hash, stored under separate keys: the square-cropped
+ * thumb (plain `<hash>` key — chat lists, legacy rows) and the uncropped
+ * full-size profile photo (`full:<hash>` key — profile page). Keying both
+ * by the bare hash let whichever got cached first win, so a profile page
+ * opened after the chat list showed the cropped low-res thumb.
  */
 
 import * as chatDb from "./chatDb";
 import { fetchAndEncode, toDataUri } from "./mediaStore";
-import { getThumbImageUrl, validateMediaHash } from "../utils/media";
+import { getProfileImageUrl, getThumbImageUrl, validateMediaHash } from "../utils/media";
 import { appLog } from "../utils/logger";
 import { limitChatDbBlobRead } from "../utils/chatDbBlobLimiter";
 
@@ -32,6 +38,28 @@ function setCachedAvatarUri(mediaHash: string, uri: string): void {
 	}
 }
 
+const FULL_KEY_PREFIX = "full:";
+
+/**
+ * A profile-image source URL (as opposed to a thumb URL) selects the
+ * full-size variant. Full-size is always fetched at 1024x1024 regardless of
+ * the requested size, so one cached copy serves every profile-page size
+ * instead of a smaller one shadowing the larger.
+ */
+function resolveVariant(
+	mediaHash: string,
+	sourceUrl: string | undefined,
+): { key: string; url: string; isFull: boolean } {
+	if (sourceUrl?.includes("/images/profile/")) {
+		return {
+			key: `${FULL_KEY_PREFIX}${mediaHash}`,
+			url: getProfileImageUrl(mediaHash, "1024x1024"),
+			isFull: true,
+		};
+	}
+	return { key: mediaHash, url: sourceUrl ?? getThumbImageUrl(mediaHash, "320x320"), isFull: false };
+}
+
 /** Subscribe to avatar cache updates; returns an unsubscribe function. */
 export function subscribeToAvatarCache(listener: () => void): () => void {
 	cacheListeners.add(listener);
@@ -44,9 +72,8 @@ export function subscribeToAvatarCache(listener: () => void): () => void {
  * Fetch and store the avatar for `mediaHash` if not already cached. Safe to
  * call repeatedly (fire-and-forget, e.g. on every render) — de-duped
  * in-flight and skipped once cached. Never throws. `sourceUrl` overrides the
- * default 320x320 thumb (e.g. a full-resolution profile photo URL) — a hash
- * already cached under a smaller size is left as-is rather than re-fetched,
- * since this is a best-effort offline fallback, not a quality guarantee.
+ * default 320x320 thumb; a profile-image URL (`/images/profile/...`) caches
+ * the uncropped full-size photo under its own key instead (see file header).
  */
 export async function fetchAndStoreAvatar(
 	mediaHash: string | null | undefined,
@@ -55,33 +82,44 @@ export async function fetchAndStoreAvatar(
 	if (!mediaHash || !validateMediaHash(mediaHash)) {
 		return;
 	}
-	if (memoryCache.has(mediaHash) || inFlight.has(mediaHash)) {
-		return inFlight.get(mediaHash);
+	const { key, url, isFull } = resolveVariant(mediaHash, sourceUrl);
+	if (memoryCache.has(key) || inFlight.has(key)) {
+		return inFlight.get(key);
 	}
 
 	const run = (async () => {
 		try {
-			const cached = await limitChatDbBlobRead(() => chatDb.getAvatar(mediaHash));
+			const cached = await limitChatDbBlobRead(() => chatDb.getAvatar(key));
 			if (cached) {
-				setCachedAvatarUri(mediaHash, toDataUri(cached.mimeType, cached.dataBase64));
+				setCachedAvatarUri(key, toDataUri(cached.mimeType, cached.dataBase64));
 				return;
 			}
 
-			const fetched = await fetchAndEncode(sourceUrl ?? getThumbImageUrl(mediaHash, "320x320"));
-			if (!fetched) {
+			const fetched = await fetchAndEncode(url);
+			if (fetched) {
+				await chatDb.upsertAvatar(key, fetched.base64, fetched.mimeType);
+				setCachedAvatarUri(key, toDataUri(fetched.mimeType, fetched.base64));
 				return;
 			}
 
-			await chatDb.upsertAvatar(mediaHash, fetched.base64, fetched.mimeType);
-			setCachedAvatarUri(mediaHash, toDataUri(fetched.mimeType, fetched.base64));
+			// Full-size unreachable (e.g. blocked/offline profile): fall back
+			// in memory only to whatever older copy sits under the bare hash,
+			// so the photo still shows — not persisted, so a later session
+			// can still pick up the real full-size version.
+			if (isFull) {
+				const legacy = await limitChatDbBlobRead(() => chatDb.getAvatar(mediaHash));
+				if (legacy) {
+					setCachedAvatarUri(key, toDataUri(legacy.mimeType, legacy.dataBase64));
+				}
+			}
 		} catch (error) {
-			appLog.warn(`[avatar-store] failed to fetch/store avatar ${mediaHash}`, error);
+			appLog.warn(`[avatar-store] failed to fetch/store avatar ${key}`, error);
 		} finally {
-			inFlight.delete(mediaHash);
+			inFlight.delete(key);
 		}
 	})();
 
-	inFlight.set(mediaHash, run);
+	inFlight.set(key, run);
 	return run;
 }
 
@@ -110,5 +148,5 @@ export function resolveAvatarSrc(
 	if (options?.cache ?? true) {
 		void fetchAndStoreAvatar(mediaHash, options?.sourceUrl);
 	}
-	return memoryCache.get(mediaHash) ?? fallbackUrl;
+	return memoryCache.get(resolveVariant(mediaHash, options?.sourceUrl).key) ?? fallbackUrl;
 }
