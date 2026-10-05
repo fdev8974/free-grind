@@ -35,7 +35,7 @@
 	"plugins": {
 		"hotswap": {
 			"endpoint": "https://freegrind-ota-{{channel}}.surge.sh/latest.json",
-			"pubkey": "RWRJW9mxbpaZjWQ7RPUHMYHtIPXb5r3uRCxnf/IrVaNHGr70C/MewrYZ"
+			"pubkey": "RWQfowNcYziP1BnTEyNrdZk2MymsuGVoCeqqtGE3OfpYfLqnvAvCS9JX"
 		}
 	}
 }
