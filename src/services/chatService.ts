@@ -41,6 +41,7 @@ import { runAutomationRulesForSender } from "../utils/automationRules";
 import { getIncognitoMode, isReadReceiptsHidden } from "../utils/privacy";
 import { ApiFunctionError, assertSuccess, commandErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
+import { withEntitlementBypass } from "./entitlementBypass";
 
 export { ApiFunctionError as ChatApiError };
 
@@ -87,7 +88,10 @@ async function parseDrawerMediaResponse(
 	return parsed.success ? parsed.data : [];
 }
 
-export function createChatService(fetchRest: RestFetcher, t: (key: string) => string) {
+export function createChatService(
+	fetchRest: RestFetcher,
+	t: (key: string, options?: { defaultValue?: string }) => string,
+) {
 	return {
 		async searchProfiles(
 			params: SearchProfilesParams,
@@ -323,19 +327,31 @@ export function createChatService(fetchRest: RestFetcher, t: (key: string) => st
 
 		async sendMessage(payload: SendMessagePayload): Promise<Message> {
 			const safePayload = sendMessagePayloadSchema.parse(payload);
-			try {
-				const result = await sendViaRealtime("chat.v1.message.send", safePayload);
-				return messageSchema.parse(result);
-			} catch {
-				// replyToMessageId is WS-only — HTTP returns 400 if included
-				const { replyToMessageId: _r, ...httpPayload } = safePayload;
-				const response = await fetchRest("/v4/chat/message/send", {
-					method: "POST",
-					body: httpPayload,
-				});
-				await assertSuccess(response, t("chat.errors.send_failed"));
-				return messageSchema.parse(await parseJsonSafe(response));
-			}
+			const send = async () => {
+				try {
+					const result = await sendViaRealtime("chat.v1.message.send", safePayload);
+					return messageSchema.parse(result);
+				} catch {
+					// replyToMessageId is WS-only — HTTP returns 400 if included
+					const { replyToMessageId: _r, ...httpPayload } = safePayload;
+					const response = await fetchRest("/v4/chat/message/send", {
+						method: "POST",
+						body: httpPayload,
+					});
+					await assertSuccess(response, t("chat.errors.send_failed"));
+					return messageSchema.parse(await parseJsonSafe(response));
+				}
+			};
+			const reason =
+				safePayload.type === "ExpiringImage"
+					? t("entitlement_bypass.reason_expiring_photo", {
+							defaultValue:
+								"Daily expiring photo limit reached. Sending more requires a Grindr subscription.",
+						})
+					: t("entitlement_bypass.reason_message", {
+							defaultValue: "Sending this message requires a Grindr subscription.",
+						});
+			return withEntitlementBypass(reason, send);
 		},
 
 		async sendText(payload: SendTextPayload): Promise<Message> {
@@ -417,11 +433,18 @@ export function createChatService(fetchRest: RestFetcher, t: (key: string) => st
 
 		async unsendMessage(payload: ChatMessageMutation) {
 			const safePayload = chatMessageMutationSchema.parse(payload);
-			const response = await fetchRest("/v4/chat/message/unsend", {
-				method: "POST",
-				body: safePayload,
-			});
-			await assertSuccess(response, t("chat.errors.unsend_failed"));
+			await withEntitlementBypass(
+				t("entitlement_bypass.reason_unsend", {
+					defaultValue: "Unsending a message requires a Grindr subscription.",
+				}),
+				async () => {
+					const response = await fetchRest("/v4/chat/message/unsend", {
+						method: "POST",
+						body: safePayload,
+					});
+					await assertSuccess(response, t("chat.errors.unsend_failed"));
+				},
+			);
 		},
 
 		async deleteMessage(payload: ChatMessageMutation) {
@@ -638,14 +661,21 @@ export function createChatService(fetchRest: RestFetcher, t: (key: string) => st
 
 		async shareAlbum(payload: ShareAlbumPayload) {
 			const safePayload = shareAlbumPayloadSchema.parse(payload);
-			const response = await fetchRest(
-				`/v4/albums/${safePayload.albumId}/shares`,
-				{
-					method: "POST",
-					body: { profiles: safePayload.profiles },
+			await withEntitlementBypass(
+				t("entitlement_bypass.reason_album_share", {
+					defaultValue: "Sharing this album requires a Grindr subscription.",
+				}),
+				async () => {
+					const response = await fetchRest(
+						`/v4/albums/${safePayload.albumId}/shares`,
+						{
+							method: "POST",
+							body: { profiles: safePayload.profiles },
+						},
+					);
+					await assertSuccess(response, t("chat.errors.album_share_failed"));
 				},
 			);
-			await assertSuccess(response, t("chat.errors.album_share_failed"));
 		},
 
 		async stopAlbumShare(albumId: number, recipientProfileId: number) {

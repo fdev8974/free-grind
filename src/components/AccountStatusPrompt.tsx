@@ -13,22 +13,25 @@ function contentFor(
 		const reason = status.info.reason ? ` (${status.info.reason})` : "";
 		return {
 			icon: <Ban className="h-9 w-9 text-[var(--accent)]" />,
-			title: t("account_status.banned.title"),
-			description: t("account_status.banned.description", { reason }),
+			title: t("account_status.banned.title", { defaultValue: "Account Banned" }),
+			description: t("account_status.banned.description", {
+				reason,
+				defaultValue: "Grindr has banned this account{{reason}}. You can't sign in until the ban is lifted.",
+			}),
 		};
 	}
 	if (status?.kind === "restriction") {
 		if (status.restriction.kind === "ageVerification") {
 			return {
 				icon: <ShieldAlert className="h-9 w-9 text-[var(--accent)]" />,
-				title: t("account_status.age_verification.title"),
-				description: t("account_status.age_verification.description"),
+				title: t("account_status.age_verification.title", { defaultValue: "Age Verification Required" }),
+				description: t("account_status.age_verification.description", { defaultValue: "Grindr requires you to verify your age before continuing. Complete it in the official Grindr app, then sign in again. Free Grind does not bypass age verification." }),
 			};
 		}
 		return {
 			icon: <ShieldAlert className="h-9 w-9 text-[var(--accent)]" />,
-			title: t("account_status.restricted.title"),
-			description: t("account_status.restricted.description"),
+			title: t("account_status.restricted.title", { defaultValue: "Account Restricted" }),
+			description: t("account_status.restricted.description", { defaultValue: "Your account is currently restricted and can't be used. Check the official Grindr app for details." }),
 		};
 	}
 	return null;
@@ -52,7 +55,7 @@ export function AccountStatusPromptView({
 			? () => {
 					navigator.clipboard
 						.writeText(JSON.stringify(status.info, null, 2))
-						.then(() => toast.success(t("account_status.banned.copy_details_success")))
+						.then(() => toast.success(t("account_status.banned.copy_details_success", { defaultValue: "Details copied to clipboard" })))
 						.catch(() => {});
 				}
 			: null;
@@ -86,7 +89,7 @@ export function AccountStatusPromptView({
 							onClick={copyDetails}
 							className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] py-3.5 text-sm font-semibold text-[var(--text)] transition hover:brightness-110"
 						>
-							{t("account_status.banned.copy_details")}
+							{t("account_status.banned.copy_details", { defaultValue: "Copy Details" })}
 						</button>
 					)}
 					<button
@@ -94,7 +97,7 @@ export function AccountStatusPromptView({
 						onClick={onSignOut}
 						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
 					>
-						{t("account_status.sign_out")}
+						{t("account_status.sign_out", { defaultValue: "Sign Out" })}
 					</button>
 				</div>
 			</div>

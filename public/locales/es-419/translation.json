@@ -920,7 +920,9 @@
         "default_expiring_photos": "Fotos de 10 segundos por defecto",
         "default_expiring_photos_desc": "Las nuevas fotos que envíes por chat usarán automáticamente el temporizador de desaparición de 10 segundos, sin necesidad de activarlo cada vez.",
         "default_album_expiration": "Caducidad predeterminada del álbum",
-        "default_album_expiration_desc": "Los álbumes que compartas en el chat usarán automáticamente esta fecha de caducidad, sin necesidad de seleccionarla cada vez."
+        "default_album_expiration_desc": "Los álbumes que compartas en el chat usarán automáticamente esta fecha de caducidad, sin necesidad de seleccionarla cada vez.",
+        "entitlement_bypass": "",
+        "entitlement_bypass_desc": ""
     },
     "notifications_page": {
         "subtitle": "Elige qué notificaciones quieres recibir y si quieres que aparezcan mientras la aplicación está abierta.",
@@ -2032,5 +2034,18 @@
         "import_invalid": "",
         "import_success": "",
         "import_failed": ""
+    },
+    "entitlement_bypass": {
+        "prompt_title": "",
+        "prompt_message": "",
+        "prompt_confirm": "",
+        "prompt_cancel": "",
+        "reason_expiring_photo": "",
+        "reason_message": "",
+        "reason_unsend": "",
+        "reason_album_share": "",
+        "still_refused": "",
+        "no_location": "",
+        "failed": ""
     }
 }

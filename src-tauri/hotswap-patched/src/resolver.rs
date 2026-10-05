@@ -51,7 +51,8 @@ pub trait HotswapResolver: Send + Sync + 'static {
 
 /// HTTP-based resolver that calls an endpoint URL.
 ///
-/// The URL may contain `{{current_sequence}}` which is replaced at runtime.
+/// The URL may contain `{{current_sequence}}` and `{{channel}}` (defaults to
+/// `main`), which are replaced at runtime.
 /// Query params `binary_version`, `platform`, `arch`, and `channel` are
 /// appended automatically.
 ///
@@ -103,7 +104,11 @@ impl HotswapResolver for HttpResolver {
         ctx: &CheckContext,
     ) -> Pin<Box<dyn Future<Output = Result<Option<HotswapManifest>>> + Send>> {
         let base = ctx.endpoint_override.as_deref().unwrap_or(&self.endpoint);
-        let raw = base.replace("{{current_sequence}}", &ctx.current_sequence.to_string());
+        // `{{channel}}` lets static hosts (one manifest per channel) route by
+        // path/host instead of the `channel` query param they would ignore.
+        let raw = base
+            .replace("{{current_sequence}}", &ctx.current_sequence.to_string())
+            .replace("{{channel}}", ctx.channel.as_deref().unwrap_or("main"));
         let mut parsed =
             Url::parse(&raw).map_err(|e| Error::Config(format!("invalid endpoint URL: {}", e)));
         if let Ok(ref mut u) = parsed {
@@ -140,6 +145,12 @@ impl HotswapResolver for HttpResolver {
 
             if response.status().as_u16() == 204 {
                 log::info!("[hotswap] No update available (204)");
+                return Ok(None);
+            }
+
+            // Static hosts return 404 for a channel that has no release yet.
+            if response.status().as_u16() == 404 {
+                log::info!("[hotswap] No manifest published for this channel (404)");
                 return Ok(None);
             }
 
@@ -451,6 +462,14 @@ mod tests {
         assert!(raw.contains("override.example.com"));
         assert!(raw.contains("10"));
         assert!(!raw.contains("original.example.com"));
+    }
+
+    #[test]
+    fn test_endpoint_channel_placeholder() {
+        let endpoint = "https://ota-{{channel}}.example.com/latest.json";
+        let replaced = endpoint.replace("{{channel}}", "development");
+        let url = Url::parse(&replaced).unwrap();
+        assert_eq!(url.host_str(), Some("ota-development.example.com"));
     }
 
     // ── HttpResolver header merging ────────────────────────────────────

@@ -912,7 +912,9 @@
     "auto_focus_location_search_desc": "Automatically focus the search text field when opening the location overlay. Turn off if the keyboard popping up right away bothers you.",
     "display": "Display",
     "keep_screen_on": "Keep Screen On",
-    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app."
+    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app.",
+    "entitlement_bypass": "Paid feature bypass",
+    "entitlement_bypass_desc": "When Grindr refuses a paid feature (expiring photos over the daily limit, unsending, album sharing), offer to unlock it by briefly spoofing your location to Honduras. Against Grindr's terms of service — use at your own risk."
   },
   "notifications_page": {
     "subtitle": "Choose which notifications you get, and whether they show up while the app is open.",
@@ -2014,5 +2016,18 @@
     "import_invalid": "This file isn't a valid data export.",
     "import_success": "Imported {{count}} rows. Reloading…",
     "import_failed": "Failed to read backup file."
+  },
+  "entitlement_bypass": {
+    "prompt_title": "Paid feature",
+    "prompt_message": "Free Grind can attempt to bypass this by momentarily spoofing your location to Honduras.",
+    "prompt_confirm": "Bypass",
+    "prompt_cancel": "Cancel",
+    "reason_expiring_photo": "Daily expiring photo limit reached. Sending more requires a Grindr subscription.",
+    "reason_message": "Sending this message requires a Grindr subscription.",
+    "reason_unsend": "Unsending a message requires a Grindr subscription.",
+    "reason_album_share": "Sharing this album requires a Grindr subscription.",
+    "still_refused": "Grindr still refused this paid feature",
+    "no_location": "Set your location before using this bypass",
+    "failed": "Failed to bypass this paid feature"
   }
 }

@@ -18,6 +18,7 @@ import { travelPlansResponseSchema, type TravelPlan, type TravelPlanPayload } fr
 import { homeLocationSchema, type HomeLocation } from "../../types/home-location";
 import { invoke } from "@tauri-apps/api/core";
 import { ApiFunctionError, assertSuccess, commandErrorToApiFunctionError, parseJsonSafe } from "../apiHelpers";
+import { awaitEntitlementGrant } from "../entitlementBypass";
 import { getIncognitoMode, isRecordProfileViewsEnabled } from "../../utils/privacy";
 import { appLog } from "../../utils/logger";
 
@@ -236,6 +237,8 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			if (params.filters?.tags) queryParams.set("tags", params.filters.tags);
 
 			const url = `/v4/cascade?${queryParams.toString()}`;
+			// Not while an entitlement bypass has the server-side location parked in Honduras.
+			await awaitEntitlementGrant();
 			const response = await fetchRest(url);
 			await assertSuccess(response, t("api.errors.load_browse_profiles"));
 			const parsed = cascadeResponseSchema.parse(await parseJsonSafe(response));

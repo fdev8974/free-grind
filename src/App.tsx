@@ -42,6 +42,7 @@ import { OutdatedVersionGate } from "./components/OutdatedVersionPrompt";
 import { TestReminderGate } from "./components/TestReminderPrompt";
 import { TokenExpiredGate } from "./components/TokenExpiredPrompt";
 import { AccountStatusGate } from "./components/AccountStatusPrompt";
+import { EntitlementBypassPrompt } from "./components/EntitlementBypassPrompt";
 import { PushNotificationBridge } from "./components/PushNotificationBridge";
 import { ChatRealtimeBridge } from "./components/ChatRealtimeBridge";
 import { GridAutoRefreshBridge } from "./components/GridAutoRefreshBridge";
@@ -179,6 +180,7 @@ export default function App() {
 			<PreferencesProvider>
 			<ExploreModeProvider>
 				<SinModeUnlockOverlay />
+				<EntitlementBypassPrompt />
 				<SmoothScroll>
 					{showOnboarding ? (
 						<div className="app-shell">

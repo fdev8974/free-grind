@@ -912,7 +912,9 @@
         "auto_focus_location_search_desc": "فعّل التركيز التلقائي على حقل نص الدور عند فتح نافذة الموقع. أوقف هذه الخاصية إذا كان ظهور لوحة المفاتيح فورًا يزعجك.",
         "display": "عرض",
         "keep_screen_on": "أبقِ الشاشة قيد التشغيل",
-        "keep_screen_on_desc": "يمنع هذا التطبيق من التعتيم أو القفل أثناء تشغيله. يتم إيقاف تشغيله تلقائيًا بمجرد الخروج من التطبيق."
+        "keep_screen_on_desc": "يمنع هذا التطبيق من التعتيم أو القفل أثناء تشغيله. يتم إيقاف تشغيله تلقائيًا بمجرد الخروج من التطبيق.",
+        "entitlement_bypass": "",
+        "entitlement_bypass_desc": ""
     },
     "notifications_page": {
         "subtitle": "اختار الإشعارات التي تريد تلقيها، وما إذا كانت ستظهر أثناء فتح التطبيق.",
@@ -2016,5 +2018,18 @@
         "import_invalid": "الملف ده مش تصدير بيانات صالح.",
         "import_success": "اتستوردت {{count}} صف. بيعيد التحميل…",
         "import_failed": "فشل قراءة ملف الباك أب."
+    },
+    "entitlement_bypass": {
+        "prompt_title": "",
+        "prompt_message": "",
+        "prompt_confirm": "",
+        "prompt_cancel": "",
+        "reason_expiring_photo": "",
+        "reason_message": "",
+        "reason_unsend": "",
+        "reason_album_share": "",
+        "still_refused": "",
+        "no_location": "",
+        "failed": ""
     }
 }

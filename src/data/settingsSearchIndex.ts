@@ -32,6 +32,7 @@ import {
 	Star,
 	Tag,
 	Timer,
+	Unlock,
 	ToggleRight,
 	Trash2,
 	Upload,
@@ -213,6 +214,19 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			description: t("behavior.default_expiring_photos_desc"),
 			section: "Behavior",
 			icon: Timer,
+			iconClass: "bg-violet-500/15 text-violet-400",
+		},
+		{
+			id: "behavior-entitlement-bypass",
+			route: "/settings/behavior",
+			anchor: "behavior-entitlement-bypass",
+			label: t("behavior.entitlement_bypass", { defaultValue: "Paid feature bypass" }),
+			description: t("behavior.entitlement_bypass_desc", {
+				defaultValue:
+					"When Grindr refuses a paid feature (expiring photos over the daily limit, unsending, album sharing), offer to unlock it by briefly spoofing your location to Honduras. Against Grindr's terms of service — use at your own risk.",
+			}),
+			section: "Behavior",
+			icon: Unlock,
 			iconClass: "bg-violet-500/15 text-violet-400",
 		},
 		{

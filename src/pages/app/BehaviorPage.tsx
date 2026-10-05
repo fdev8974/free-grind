@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, Images, LayoutGrid, MapPin, Sun, Timer, Trash2 } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, ExternalLink, Images, LayoutGrid, MapPin, Sun, Timer, Trash2, Unlock } from "lucide-react";
 import { BackToSettings } from "../../components/BackToSettings";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { Chip } from "../../components/ui/chip";
@@ -28,6 +28,7 @@ export function BehaviorPage() {
 	const {
 		defaultExpiringPhotos,
 		defaultAlbumExpirationType,
+		entitlementBypassEnabled,
 		openAlbumAsBottomSheet,
 		sortDrawerMediaByFrequency,
 		keepScreenOn,
@@ -136,6 +137,19 @@ export function BehaviorPage() {
 								</div>
 							</div>
 						</div>
+						<ToggleRow
+							id="behavior-entitlement-bypass"
+							highlighted={highlightId === "behavior-entitlement-bypass"}
+							icon={<Unlock className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("behavior.entitlement_bypass", { defaultValue: "Paid feature bypass" })}
+							description={t("behavior.entitlement_bypass_desc", {
+								defaultValue:
+									"When Grindr refuses a paid feature (expiring photos over the daily limit, unsending, album sharing), offer to unlock it by briefly spoofing your location to Honduras. Against Grindr's terms of service — use at your own risk.",
+							})}
+							checked={entitlementBypassEnabled}
+							onChange={(checked) => void setPreferences({ entitlementBypassEnabled: checked })}
+						/>
 					</div>
 				</div>
 

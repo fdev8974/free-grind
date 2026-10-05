@@ -912,7 +912,9 @@
         "default_expiring_photos": "",
         "default_expiring_photos_desc": "",
         "default_album_expiration": "",
-        "default_album_expiration_desc": ""
+        "default_album_expiration_desc": "",
+        "entitlement_bypass": "",
+        "entitlement_bypass_desc": ""
     },
     "notifications_page": {
         "subtitle": "",
@@ -2016,5 +2018,18 @@
             "daily_title": "",
             "daily_desc": ""
         }
+    },
+    "entitlement_bypass": {
+        "prompt_title": "",
+        "prompt_message": "",
+        "prompt_confirm": "",
+        "prompt_cancel": "",
+        "reason_expiring_photo": "",
+        "reason_message": "",
+        "reason_unsend": "",
+        "reason_album_share": "",
+        "still_refused": "",
+        "no_location": "",
+        "failed": ""
     }
 }

@@ -66,42 +66,15 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build frontend bundle
-        run: |
-          bun run build
-          tar -czf frontend.tar.gz -C dist .
-
-      - name: Sign OTA bundle
+      - name: Build, sign and publish OTA bundle to surge.sh
+        id: ota-upload
         env:
           HOTSWAP_PRIVATE_KEY: ${{ secrets.HOTSWAP_PRIVATE_KEY }}
           HOTSWAP_PRIVATE_KEY_PASSWORD: ${{ secrets.HOTSWAP_PRIVATE_KEY_PASSWORD }}
-        run: |
-          bunx tauri signer sign frontend.tar.gz -k "$HOTSWAP_PRIVATE_KEY" -p "${HOTSWAP_PRIVATE_KEY_PASSWORD:-}"
-
-      - name: Upload OTA bundle to backend
-        id: ota-upload
-        env:
-          OTA_BACKEND_URL: ${{ secrets.OTA_BACKEND_URL }}
-          OTA_BACKEND_TOKEN: ${{ secrets.OTA_BACKEND_TOKEN }}
-        run: |
-          BACKEND_URL="${OTA_BACKEND_URL%/}"
-          OTA_VERSION="$(jq -r '.version' package.json)-ota.${GITHUB_RUN_NUMBER}"
-          RESPONSE=$(curl --fail-with-body -sS -X POST "$BACKEND_URL/api/releases" \
-            -H "Authorization: Bearer $OTA_BACKEND_TOKEN" \
-            -F "channel=main" \
-            -F "platform=all" \
-            -F "arch=all" \
-            -F "version=$OTA_VERSION" \
-            -F "minBinaryVersion=$(jq -r '.version' package.json)" \
-            -F "signature=$(cat frontend.tar.gz.sig)" \
-            -F "notes=Automated OTA upload for ${GITHUB_SHA}" \
-            -F "mandatory=false" \
-            -F "bundleFile=@frontend.tar.gz;type=application/gzip")
-
-          echo "$RESPONSE" > ota-upload-response.json
-          echo "ota_version=$OTA_VERSION" >> "$GITHUB_OUTPUT"
-          echo "ota_sequence=$(jq -r '.sequence' ota-upload-response.json)" >> "$GITHUB_OUTPUT"
-          echo "ota_bundle_url=$(jq -r '.bundle_url' ota-upload-response.json)" >> "$GITHUB_OUTPUT"
+          SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+          OTA_NOTES: Automated OTA upload for ${{ github.sha }}
+        run: bun run scripts/publish-ota.mjs --channel main
 
       - name: Upload OTA artifacts to GitHub release
         uses: actions/github-script@v8
