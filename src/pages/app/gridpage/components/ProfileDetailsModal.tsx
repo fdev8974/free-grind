@@ -284,7 +284,7 @@ export function ProfileDetailsModal({
 	const isProfileUnavailable = isBlocked || isSnapshotProfile;
 	const isTapDisabled = isOwnProfile || !onTapProfile || isTappingProfile || isTapBlocked || isProfileUnavailable;
 	const isTriangleDisabled =
-		!onTriangleProfile || !messageProfileId || isLocatingProfile || isProfileUnavailable;
+		!onTriangleProfile || !messageProfileId || isProfileUnavailable;
 	const tapButtonClassName =
 		isTapActive
 			? "inline-flex h-16 w-16 items-center justify-center rounded-full border-2 border-[var(--accent)] bg-[var(--surface)] text-4xl leading-none text-[var(--text)] hover:brightness-110 overflow-hidden relative"

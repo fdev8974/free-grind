@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
 	useLocation,
 	useNavigate,
@@ -14,6 +14,7 @@ import { usePreferences } from "../../contexts/PreferencesContext";
 import { decodeGeohash, encodeGeohash } from "../../utils/geohash";
 import { validateMediaHash } from "../../utils/media";
 import { ProfileDetailsModal } from "./gridpage/components/ProfileDetailsModal";
+import { LocateResultSheet, type LocateProgress, type LocateRoundResult } from "./gridpage/components/LocateResultSheet";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { loadBrowseFiltersDraft } from "./browse-filters-storage";
 import {
@@ -117,6 +118,9 @@ export function GridProfilePage() {
 		null,
 	);
 	const [isLocatingProfile, setIsLocatingProfile] = useState(false);
+	const [locateProgress, setLocateProgress] = useState<LocateProgress | null>(null);
+	const [isLocateSheetOpen, setIsLocateSheetOpen] = useState(false);
+	const locateCancelledRef = useRef(false);
 	const [chatContactStatus, setChatContactStatus] = useState<ChatContactIndexRecord | null>(null);
 	const [localNickname, setLocalNickname] = useState<string | null>(null);
 	const [isSnapshotProfile, setIsSnapshotProfile] = useState(false);
@@ -582,12 +586,14 @@ export function GridProfilePage() {
     };
 
     const handleTriangleProfile = async (targetProfileId: string) => {
-        if (!geohash) {
-            toast.error(t("browse_page.errors.location_required"));
+        if (isLocatingProfile) {
+            // A run is already in progress — just bring its sheet back.
+            setIsLocateSheetOpen(true);
             return;
         }
 
-        if (isLocatingProfile) {
+        if (!geohash) {
+            toast.error(t("browse_page.errors.location_required"));
             return;
         }
 
@@ -595,8 +601,6 @@ export function GridProfilePage() {
         if (!confirmed) {
             return;
         }
-
-        setIsLocatingProfile(true);
 
         let originalLat: number;
         let originalLon: number;
@@ -612,11 +616,36 @@ export function GridProfilePage() {
                     ? error.message
                     : t("browse_page.errors.location_read_failed"),
             );
-            setIsLocatingProfile(false);
             return;
         }
 
+        setIsLocatingProfile(true);
+        locateCancelledRef.current = false;
+        setLocateProgress({
+            status: "measuring",
+            isRestoring: false,
+            initialDistance: null,
+            totalRounds: 0,
+            round: 0,
+            step: 0,
+            lat: originalLat,
+            lon: originalLon,
+            errorMeters: null,
+            rounds: [],
+            errorMessage: null,
+        });
+        setIsLocateSheetOpen(true);
+
+        const updateProgress = (patch: Partial<LocateProgress>) => {
+            setLocateProgress((prev) => (prev ? { ...prev, ...patch } : prev));
+        };
+
         const waitMs = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+        class LocateCancelledError extends Error {}
+        const throwIfCancelled = () => {
+            if (locateCancelledRef.current) throw new LocateCancelledError();
+        };
 
         const putServerLocation = async (lat: number, lon: number, targetGeohash: string) => {
             const payloads = [
@@ -653,9 +682,9 @@ export function GridProfilePage() {
 
         try {
             const initialDist = await getDistanceFromProfile();
+            throwIfCancelled();
             if (initialDist === null) {
-                toast.error(t("profile_details.location_finder_error_distance"));
-                return;
+                throw new Error(t("profile_details.location_finder_error_distance"));
             }
 
             let currentLat = originalLat;
@@ -667,9 +696,11 @@ export function GridProfilePage() {
             // Degrees per meter (approximate)
             let offset = (initialDist*1.5) / 111320;
 
-            toast.success(t("profile_details.location_finder_start", { distance: Math.round(initialDist), rounds }));
+            const roundResults: LocateRoundResult[] = [];
+            updateProgress({ status: "running", initialDistance: initialDist, totalRounds: rounds });
 
             for (let i = 0; i < rounds; i++) {
+                updateProgress({ round: i, step: 0 });
                 const points = [
                     { lat: currentLat + offset, lon: currentLon }, // Top
                     { lat: currentLat - (offset / 2), lon: currentLon + (offset * 0.866) }, // Bottom Right
@@ -678,11 +709,15 @@ export function GridProfilePage() {
 
                 const results: { lat: number, lon: number, dist: number }[] = [];
 
-                for (const p of points) {
+                for (const [pointIndex, p] of points.entries()) {
                     await putServerLocation(p.lat, p.lon, encodeGeohash(p.lat, p.lon));
+                    throwIfCancelled();
                     await waitMs(5000); // Wait for distance calculation to propagate on server
+                    throwIfCancelled();
                     const d = await getDistanceFromProfile();
+                    throwIfCancelled();
                     if (d !== null) results.push({ lat: p.lat, lon: p.lon, dist: d });
+                    updateProgress({ step: pointIndex + 1 });
                 }
 
                 if (results.length === 3) {
@@ -691,38 +726,44 @@ export function GridProfilePage() {
                     currentLon = estimate.lon;
                     offset /= 3; // Zoom in for the next round
 
-                    toast.success(t("profile_details.location_finder_round_complete", {
-                        round: i + 1,
-                        lat: currentLat.toFixed(6),
-                        lon: currentLon.toFixed(6),
-                        distance: Math.round(results[0].dist)
-                    }));
-
-                    toast.success(t("profile_details.location_finder_error_estimate", {
-                        round: i + 1,
-                        error: Math.round(offset * 111320)
-                    }));
+                    const errorMeters = Math.round(offset * 111320);
+                    roundResults.push({ round: i + 1, lat: currentLat, lon: currentLon, errorMeters, failed: false });
+                    updateProgress({
+                        lat: currentLat,
+                        lon: currentLon,
+                        errorMeters,
+                        rounds: [...roundResults],
+                    });
+                } else {
+                    roundResults.push({ round: i + 1, lat: currentLat, lon: currentLon, errorMeters: Math.round(offset * 111320), failed: true });
+                    updateProgress({ rounds: [...roundResults] });
                 }
             }
 
-            const finalCoords = `${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`;
-            toast.success(t("profile_details.location_finder_final_location", {
-                lat: currentLat.toFixed(6),
-                lon: currentLon.toFixed(6),
-                error: Math.round(offset * 111320)
-            }));
-
-            try {
-                await navigator.clipboard.writeText(finalCoords);
-                toast.success(t("profile_details.location_finder_location_copied"));
-            } catch (err) {
-                appLog.error("Failed to copy location to clipboard", err);
-            }
+            updateProgress({ status: "done", isRestoring: true });
+            // Pop the sheet back up if the user dismissed it mid-run.
+            setIsLocateSheetOpen(true);
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : t("profile_details.location_finder_error_general"));
+            if (error instanceof LocateCancelledError) {
+                updateProgress({ status: "cancelled", isRestoring: true });
+            } else {
+                updateProgress({
+                    status: "error",
+                    isRestoring: true,
+                    errorMessage: error instanceof Error ? error.message : t("profile_details.location_finder_error_general"),
+                });
+            }
         } finally {
-            await waitMs(10000);
-            await putServerLocation(originalLat, originalLon, geohash);
+            if (!locateCancelledRef.current) {
+                await waitMs(10000);
+            }
+            try {
+                await putServerLocation(originalLat, originalLon, geohash);
+            } catch (error) {
+                appLog.error("Failed to restore server location after locate", error);
+                toast.error(t("browse_page.errors.location_read_failed"));
+            }
+            updateProgress({ isRestoring: false });
             setIsLocatingProfile(false);
         }
     };
@@ -780,6 +821,18 @@ export function GridProfilePage() {
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>
+
+			{locateProgress && isLocateSheetOpen ? (
+				<LocateResultSheet
+					progress={locateProgress}
+					onClose={() => setIsLocateSheetOpen(false)}
+					onCancel={() => {
+						locateCancelledRef.current = true;
+						setLocateProgress((prev) => (prev ? { ...prev, status: "cancelled", isRestoring: true } : prev));
+					}}
+					isDesktop={isDesktopLike}
+				/>
+			) : null}
 
 			<ConfirmDialog
 				isOpen={pendingProfileConfirm !== null}
