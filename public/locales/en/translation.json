@@ -912,9 +912,7 @@
     "auto_focus_location_search_desc": "Automatically focus the search text field when opening the location overlay. Turn off if the keyboard popping up right away bothers you.",
     "display": "Display",
     "keep_screen_on": "Keep Screen On",
-    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app.",
-    "entitlement_bypass": "Paid feature bypass",
-    "entitlement_bypass_desc": "When Grindr refuses a paid feature (expiring photos over the daily limit, unsending, album sharing), offer to unlock it by briefly spoofing your location to Honduras. Against Grindr's terms of service — use at your own risk."
+    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app."
   },
   "notifications_page": {
     "subtitle": "Choose which notifications you get, and whether they show up while the app is open.",
@@ -2030,7 +2028,8 @@
   "entitlement_bypass": {
     "prompt_title": "Paid feature",
     "prompt_message": "Free Grind can attempt to bypass this by momentarily spoofing your location to Honduras.",
-    "prompt_confirm": "Bypass",
+    "prompt_warning": "This violates Grindr's terms of service and can get your account banned. Use at your own risk.",
+    "prompt_confirm": "Bypass anyway",
     "prompt_cancel": "Cancel",
     "reason_expiring_photo": "Daily expiring photo limit reached. Sending more requires a Grindr subscription.",
     "reason_message": "Sending this message requires a Grindr subscription.",

@@ -14,12 +14,12 @@ import {
 /**
  * "Paid feature" prompt for the Honduras entitlement bypass (see
  * services/entitlementBypass.ts). Also keeps the service in sync with the
- * Behavior toggle and the location to come back to, and drops anything still
- * queued when the account changes.
+ * location to come back to, and drops anything still queued when the account
+ * changes.
  */
 export function EntitlementBypassPrompt() {
 	const { t } = useTranslation();
-	const { entitlementBypassEnabled, geohash } = usePreferences();
+	const { geohash } = usePreferences();
 	const { userId } = useAuth();
 	const { open, reason, busy } = useSyncExternalStore(
 		subscribeEntitlementBypass,
@@ -27,8 +27,8 @@ export function EntitlementBypassPrompt() {
 	);
 
 	useEffect(() => {
-		configureEntitlementBypass({ enabled: entitlementBypassEnabled, homeGeohash: geohash });
-	}, [entitlementBypassEnabled, geohash]);
+		configureEntitlementBypass({ homeGeohash: geohash });
+	}, [geohash]);
 
 	useEffect(() => {
 		dismissEntitlementBypass();
@@ -44,7 +44,12 @@ export function EntitlementBypassPrompt() {
 			isOpen={open}
 			title={t("entitlement_bypass.prompt_title", { defaultValue: "Paid feature" })}
 			message={reason ? `${reason} ${explanation}` : explanation}
-			confirmLabel={t("entitlement_bypass.prompt_confirm", { defaultValue: "Bypass" })}
+			warning={t("entitlement_bypass.prompt_warning", {
+				defaultValue:
+					"This violates Grindr's terms of service and can get your account banned. Use at your own risk.",
+			})}
+			confirmLabel={t("entitlement_bypass.prompt_confirm", { defaultValue: "Bypass anyway" })}
+			confirmTone="danger"
 			cancelLabel={t("entitlement_bypass.prompt_cancel", { defaultValue: "Cancel" })}
 			onConfirm={() => runEntitlementBypass()}
 			onCancel={dismissEntitlementBypass}

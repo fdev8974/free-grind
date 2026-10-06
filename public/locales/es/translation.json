@@ -920,9 +920,7 @@
         "default_expiring_photos": "",
         "default_expiring_photos_desc": "",
         "default_album_expiration": "",
-        "default_album_expiration_desc": "",
-        "entitlement_bypass": "",
-        "entitlement_bypass_desc": ""
+        "default_album_expiration_desc": ""
     },
     "notifications_page": {
         "subtitle": "",
@@ -2048,6 +2046,7 @@
     "entitlement_bypass": {
         "prompt_title": "",
         "prompt_message": "",
+        "prompt_warning": "",
         "prompt_confirm": "",
         "prompt_cancel": "",
         "reason_expiring_photo": "",

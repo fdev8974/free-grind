@@ -920,9 +920,7 @@
         "default_expiring_photos": "Definir fotos de 10 segundos como padrão",
         "default_expiring_photos_desc": "Novas fotos enviadas no chat usam automaticamente o temporizador de 10 segundos para mensagens temporárias, sem a necessidade de ativá-lo a cada vez.",
         "default_album_expiration": "Tempo padrão para o álbum expirar",
-        "default_album_expiration_desc": "Álbuns compartilhados no chat usam automaticamente essa expiração, sem a necessidade de escolhê-la a cada vez.",
-        "entitlement_bypass": "",
-        "entitlement_bypass_desc": ""
+        "default_album_expiration_desc": "Álbuns compartilhados no chat usam automaticamente essa expiração, sem a necessidade de escolhê-la a cada vez."
     },
     "notifications_page": {
         "subtitle": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicativo está aberto.",
@@ -2048,6 +2046,7 @@
     "entitlement_bypass": {
         "prompt_title": "",
         "prompt_message": "",
+        "prompt_warning": "",
         "prompt_confirm": "",
         "prompt_cancel": "",
         "reason_expiring_photo": "",

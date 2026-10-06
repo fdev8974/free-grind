@@ -6,9 +6,10 @@
  * token. The Rust `entitlement_bypass` command does the handover and always
  * moves the server-side location back home.
  *
- * Opt-in (Behavior settings). When enabled, a paid action Grindr refuses
- * stays pending behind a prompt instead of failing: confirming runs the
- * handover and retries it, cancelling fails it with the original error.
+ * Every paid action Grindr refuses stays pending behind a prompt (which warns
+ * that this breaks Grindr's TOS and can get the account banned) instead of
+ * failing: confirming runs the handover and retries it, cancelling fails it
+ * with the original error.
  */
 import { invoke } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
@@ -73,13 +74,10 @@ function randomHondurasGeohash(): string {
 
 // --- configuration, synced from React by EntitlementBypassPrompt ---
 
-let enabled = false;
 let homeGeohash: string | null = null;
 
-export function configureEntitlementBypass(config: { enabled: boolean; homeGeohash: string | null }): void {
-	enabled = config.enabled;
+export function configureEntitlementBypass(config: { homeGeohash: string | null }): void {
 	homeGeohash = config.homeGeohash;
-	if (!enabled) dismissEntitlementBypass();
 }
 
 // --- prompt state (read via useSyncExternalStore) ---
@@ -123,13 +121,12 @@ function syncPromptToQueue(): void {
 }
 
 /**
- * Runs `action`; if Grindr refuses it as a paid feature and the bypass is
- * enabled, the returned promise stays pending behind the prompt and settles
+ * Runs `action`; if Grindr refuses it as a paid feature, the returned promise stays pending behind the prompt and settles
  * with the retry (or the original error if the user cancels).
  */
 export function withEntitlementBypass<T>(reason: string, action: () => Promise<T>): Promise<T> {
 	return action().catch((error: unknown) => {
-		if (!enabled || !isPaywallError(error)) throw error;
+		if (!isPaywallError(error)) throw error;
 		return new Promise<T>((resolve, reject) => {
 			blocked.push({
 				reason,

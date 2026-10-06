@@ -1,10 +1,12 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, TriangleAlert } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 type ConfirmDialogProps = {
 	isOpen: boolean;
 	title: string;
 	message: string;
+	/** Shown as a prominent red callout below the message. */
+	warning?: string;
 	confirmLabel: string;
 	cancelLabel: string;
 	onConfirm: () => void | Promise<void>;
@@ -20,6 +22,7 @@ export function ConfirmDialog({
 	isOpen,
 	title,
 	message,
+	warning,
 	confirmLabel,
 	cancelLabel,
 	onConfirm,
@@ -98,6 +101,16 @@ export function ConfirmDialog({
 			<div className="p-4">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
 				<p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
+
+				{warning ? (
+					<div
+						role="alert"
+						className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/50 bg-red-500/15 p-3 text-sm font-medium leading-relaxed text-red-300"
+					>
+						<TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />
+						<span>{warning}</span>
+					</div>
+				) : null}
 
 				{dontAskAgainLabel && onDontAskAgainChange ? (
 					<label className="mt-4 flex cursor-pointer items-center justify-between gap-3 text-sm text-[var(--text-muted)]">
