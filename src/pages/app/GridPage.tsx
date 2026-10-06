@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { decodeGeohash, encodeGeohash } from "../../utils/geohash";
+import { encodeGeohash } from "../../utils/geohash";
 import { reverseGeocodeGeohash } from "./gridpage/geocoding";
 import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
 import { usePreferences } from "../../contexts/PreferencesContext";
@@ -36,6 +36,7 @@ import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FilterPill } from "../../components/ui/FilterPill";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
+import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile, useMyOwnProfile } from "../../hooks/queries/useProfileQueries";
 import { useQueryClient } from "@tanstack/react-query";
@@ -1168,45 +1169,7 @@ export function GridPage() {
 		toast.success(t("browse_page.toasts.tag_filter_applied", { tag }));
 	};
 
-	const handleTriangleProfile = (targetProfileId: string) => {
-		if (!geohash) {
-			toast.error(t("browse_page.errors.location_required"));
-			return;
-		}
-
-		try {
-			const decoded = decodeGeohash(geohash);
-			const latitude = (decoded.lat[0] + decoded.lat[1]) / 2;
-			const longitude = (decoded.lon[0] + decoded.lon[1]) / 2;
-			const distanceMeters =
-				typeof activeProfile?.distance === "number" &&
-				Number.isFinite(activeProfile.distance)
-					? Math.round(activeProfile.distance)
-					: null;
-
-			if (distanceMeters !== null) {
-				toast.success(
-					t("browse_page.toasts.distance_info", {
-						lat: latitude.toFixed(5),
-						lon: longitude.toFixed(5),
-						id: targetProfileId,
-						distance: distanceMeters,
-					}),
-				);
-				return;
-			}
-
-			toast.success(
-				t("browse_page.toasts.distance_unavailable", {
-					lat: latitude.toFixed(5),
-					lon: longitude.toFixed(5),
-					id: targetProfileId,
-				}),
-			);
-		} catch {
-			toast.error(t("browse_page.errors.location_read_failed"));
-		}
-	};
+	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop });
 
 	const performBlockProfile = useCallback(
 		async (targetProfileId: string) => {
@@ -1842,6 +1805,7 @@ export function GridPage() {
 				isBlocked={activeProfileId ? blockedProfileIds.has(activeProfileId) : false}
 				isBlockedByOther={isActiveProfileBlockedByOther}
 				isBlockingProfile={isBlockingProfile || isUnblockingProfile}
+				isLocatingProfile={isLocatingProfile}
 				onTapProfile={handleTapProfile}
 				isTappingProfile={Boolean(tappingProfileId && tappingProfileId === activeProfileId)}
 				isTapBlocked={hasSentTapRecently}
@@ -1856,6 +1820,8 @@ export function GridPage() {
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>
+
+			{locateSheet}
 
 			<ConfirmDialog
 				isOpen={pendingProfileConfirm !== null}
