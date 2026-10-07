@@ -196,36 +196,36 @@ pub struct Restriction {
     pub kind: String,
     pub region: Option<String>,
     pub reason: Option<String>,
+    /// Unix seconds a timed ban ends at, when Grindr says.
+    pub expires_at: Option<i64>,
+}
+
+impl Restriction {
+    fn simple(kind: &str, region: Option<String>, reason: Option<String>) -> Self {
+        Self {
+            kind: kind.to_owned(),
+            region,
+            reason,
+            expires_at: None,
+        }
+    }
 }
 
 impl From<grindr::Restriction> for Restriction {
     fn from(r: grindr::Restriction) -> Self {
         match r {
-            grindr::Restriction::AgeVerification { region, reason } => Self {
-                kind: "ageVerification".to_owned(),
-                region: Some(region_str(region).to_owned()),
-                reason: Some(reason),
-            },
+            grindr::Restriction::AgeVerification { region, reason } => {
+                Self::simple("ageVerification", Some(region_str(region).to_owned()), Some(reason))
+            }
             grindr::Restriction::TimedBan(details) => Self {
                 kind: "timedBan".to_owned(),
                 region: None,
                 reason: details.reason,
+                expires_at: details.expiry_time,
             },
-            grindr::Restriction::TrustVendorRejected => Self {
-                kind: "trustVendorRejected".to_owned(),
-                region: None,
-                reason: None,
-            },
-            grindr::Restriction::Other(raw) => Self {
-                kind: "other".to_owned(),
-                region: None,
-                reason: Some(raw),
-            },
-            _ => Self {
-                kind: "other".to_owned(),
-                region: None,
-                reason: None,
-            },
+            grindr::Restriction::TrustVendorRejected => Self::simple("trustVendorRejected", None, None),
+            grindr::Restriction::Other(raw) => Self::simple("other", None, Some(raw)),
+            _ => Self::simple("other", None, None),
         }
     }
 }
@@ -1202,6 +1202,19 @@ mod tests {
         let (session, device) = decode_account(&bytes).unwrap();
         assert_eq!(session.credentials.profile_id.as_deref(), Some("42"));
         assert_eq!(device.device_id, "0123456789abcdef");
+    }
+
+    #[test]
+    fn timed_ban_keeps_its_reason_and_expiry_for_the_frontend() {
+        let details: grindr::BanDetails = serde_json::from_value(serde_json::json!({
+            "expiryTime": 1_800_000_000,
+            "reason": "SPAM",
+        }))
+        .unwrap();
+        let json = serde_json::to_value(Restriction::from(grindr::Restriction::TimedBan(details))).unwrap();
+        assert_eq!(json["kind"], "timedBan");
+        assert_eq!(json["reason"], "SPAM");
+        assert_eq!(json["expiresAt"], 1_800_000_000);
     }
 
     #[test]

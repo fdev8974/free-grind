@@ -18,6 +18,8 @@ export const restrictionSchema = z.object({
 	kind: z.enum(["ageVerification", "timedBan", "trustVendorRejected", "other"]),
 	region: z.string().nullish(),
 	reason: z.string().nullish(),
+	/** Unix seconds a timed ban ends at. */
+	expiresAt: z.number().nullish(),
 });
 export type Restriction = z.infer<typeof restrictionSchema>;
 

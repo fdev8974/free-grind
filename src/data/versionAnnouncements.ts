@@ -183,7 +183,7 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 			{
 				icon: Unlock,
 				title: "Paid Feature Bypass",
-				description: "Opt in from Behavior settings to unlock expiring photos past the daily limit, unsending messages, and album sharing when Grindr asks for a subscription. Against Grindr's terms of service — use at your own risk.",
+				description: "When Grindr asks for a subscription for expiring photos past the daily limit, unsending messages, or album sharing, Free Grind offers to unlock it for you. This violates Grindr's terms of service and can get your account banned — use at your own risk.",
 			},
 		],
 	},

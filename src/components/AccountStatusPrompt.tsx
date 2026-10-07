@@ -1,16 +1,65 @@
 import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Ban, ShieldAlert } from "lucide-react";
+import { Ban, Clock, ShieldAlert } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/useAuth";
 import type { AccountStatus } from "../contexts/auth-context";
 
-function contentFor(
-	status: AccountStatus,
-	t: (key: string, options?: Record<string, unknown>) => string,
-) {
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+type Detail = { label: string; value: string };
+
+/** Grindr's codes ("DRUG_SALES") as readable text ("Drug sales"). */
+function humanize(code: string): string {
+	const words = code.replace(/[_-]+/g, " ").trim().toLowerCase();
+	return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function banKindLabel(kind: string, t: Translate): string {
+	switch (kind) {
+		case "profile":
+			return t("account_status.ban_kinds.profile", { defaultValue: "Profile ban" });
+		case "device":
+			return t("account_status.ban_kinds.device", { defaultValue: "Device ban" });
+		case "network":
+			return t("account_status.ban_kinds.network", { defaultValue: "Network ban" });
+		case "underage":
+			return t("account_status.ban_kinds.underage", { defaultValue: "Underage" });
+		default:
+			return humanize(kind);
+	}
+}
+
+function formatExpiry(expiresAt: number, language: string): string {
+	// Grindr documents Unix seconds; read anything this large as milliseconds.
+	const ms = expiresAt > 1e12 ? expiresAt : expiresAt * 1000;
+	return new Date(ms).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" });
+}
+
+function contentFor(status: AccountStatus, t: Translate, language: string) {
 	if (status?.kind === "banned") {
-		const reason = status.info.reason ? ` (${status.info.reason})` : "";
+		const { info } = status;
+		const reason = info.reason ? ` (${info.reason})` : "";
+		const details: Detail[] = [
+			{
+				label: t("account_status.details.ban_type", { defaultValue: "Ban type" }),
+				value: banKindLabel(info.kind, t),
+			},
+		];
+		if (info.subReason) {
+			details.push({
+				label: t("account_status.details.sub_reason", { defaultValue: "Sub-reason" }),
+				value: humanize(info.subReason),
+			});
+		}
+		if (info.automated != null) {
+			details.push({
+				label: t("account_status.details.automated", { defaultValue: "Automated" }),
+				value: info.automated
+					? t("account_status.details.yes", { defaultValue: "Yes" })
+					: t("account_status.details.no", { defaultValue: "No" }),
+			});
+		}
 		return {
 			icon: <Ban className="h-9 w-9 text-[var(--accent)]" />,
 			title: t("account_status.banned.title", { defaultValue: "Account Banned" }),
@@ -18,20 +67,47 @@ function contentFor(
 				reason,
 				defaultValue: "Grindr has banned this account{{reason}}. You can't sign in until the ban is lifted.",
 			}),
+			details,
 		};
 	}
 	if (status?.kind === "restriction") {
-		if (status.restriction.kind === "ageVerification") {
+		const { restriction } = status;
+		if (restriction.kind === "ageVerification") {
 			return {
 				icon: <ShieldAlert className="h-9 w-9 text-[var(--accent)]" />,
 				title: t("account_status.age_verification.title", { defaultValue: "Age Verification Required" }),
 				description: t("account_status.age_verification.description", { defaultValue: "Grindr requires you to verify your age before continuing. Complete it in the official Grindr app, then sign in again. Free Grind does not bypass age verification." }),
+				details: [],
+			};
+		}
+		if (restriction.kind === "timedBan") {
+			const details: Detail[] = [];
+			if (restriction.reason) {
+				details.push({
+					label: t("account_status.details.reason", { defaultValue: "Reason" }),
+					value: humanize(restriction.reason),
+				});
+			}
+			if (restriction.expiresAt != null) {
+				details.push({
+					label: t("account_status.details.banned_until", { defaultValue: "Banned until" }),
+					value: formatExpiry(restriction.expiresAt, language),
+				});
+			}
+			return {
+				icon: <Clock className="h-9 w-9 text-[var(--accent)]" />,
+				title: t("account_status.timed_ban.title", { defaultValue: "Temporarily Banned" }),
+				description: t("account_status.timed_ban.description", {
+					defaultValue: "Grindr has temporarily banned this account. You can use it again once the ban expires.",
+				}),
+				details,
 			};
 		}
 		return {
 			icon: <ShieldAlert className="h-9 w-9 text-[var(--accent)]" />,
 			title: t("account_status.restricted.title", { defaultValue: "Account Restricted" }),
 			description: t("account_status.restricted.description", { defaultValue: "Your account is currently restricted and can't be used. Check the official Grindr app for details." }),
+			details: [],
 		};
 	}
 	return null;
@@ -44,8 +120,8 @@ export function AccountStatusPromptView({
 	status: AccountStatus;
 	onSignOut: () => void;
 }) {
-	const { t } = useTranslation();
-	const content = contentFor(status, t);
+	const { t, i18n } = useTranslation();
+	const content = contentFor(status, t, i18n.language);
 	if (!content) {
 		return null;
 	}
@@ -77,6 +153,16 @@ export function AccountStatusPromptView({
 					<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 						{content.description}
 					</p>
+					{content.details.length > 0 && (
+						<dl className="mt-5 w-full max-w-xs divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-left text-sm">
+							{content.details.map((detail) => (
+								<div key={detail.label} className="flex items-baseline justify-between gap-4 px-4 py-2.5">
+									<dt className="shrink-0 text-[var(--text-muted)]">{detail.label}</dt>
+									<dd className="text-right font-medium text-[var(--text)]">{detail.value}</dd>
+								</div>
+							))}
+						</dl>
+					)}
 				</div>
 
 				<div

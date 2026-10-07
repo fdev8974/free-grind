@@ -1840,6 +1840,25 @@
     "restricted": {
       "title": "Account Restricted",
       "description": "Your account is currently restricted and can't be used. Check the official Grindr app for details."
+    },
+    "ban_kinds": {
+      "profile": "Profile ban",
+      "device": "Device ban",
+      "network": "Network ban",
+      "underage": "Underage"
+    },
+    "details": {
+      "ban_type": "Ban type",
+      "sub_reason": "Sub-reason",
+      "automated": "Automated",
+      "yes": "Yes",
+      "no": "No",
+      "reason": "Reason",
+      "banned_until": "Banned until"
+    },
+    "timed_ban": {
+      "title": "Temporarily Banned",
+      "description": "Grindr has temporarily banned this account. You can use it again once the ban expires."
     }
   },
   "sexualHealth": {

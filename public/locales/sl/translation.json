@@ -1868,6 +1868,25 @@
         "restricted": {
             "title": "",
             "description": ""
+        },
+        "ban_kinds": {
+            "profile": "",
+            "device": "",
+            "network": "",
+            "underage": ""
+        },
+        "details": {
+            "ban_type": "",
+            "sub_reason": "",
+            "automated": "",
+            "yes": "",
+            "no": "",
+            "reason": "",
+            "banned_until": ""
+        },
+        "timed_ban": {
+            "title": "",
+            "description": ""
         }
     },
     "profile_photo_drawer": {
