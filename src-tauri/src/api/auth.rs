@@ -198,6 +198,10 @@ pub struct Restriction {
     pub reason: Option<String>,
     /// Unix seconds a timed ban ends at, when Grindr says.
     pub expires_at: Option<i64>,
+    /// A timed ban's sub-category (Grindr's BanSubReason).
+    pub sub_reason: Option<String>,
+    /// Whether a timed ban was issued automatically.
+    pub automated: Option<bool>,
 }
 
 impl Restriction {
@@ -207,6 +211,8 @@ impl Restriction {
             region,
             reason,
             expires_at: None,
+            sub_reason: None,
+            automated: None,
         }
     }
 }
@@ -222,6 +228,8 @@ impl From<grindr::Restriction> for Restriction {
                 region: None,
                 reason: details.reason,
                 expires_at: details.expiry_time,
+                sub_reason: details.sub_reason,
+                automated: Some(details.is_automated),
             },
             grindr::Restriction::TrustVendorRejected => Self::simple("trustVendorRejected", None, None),
             grindr::Restriction::Other(raw) => Self::simple("other", None, Some(raw)),
@@ -712,6 +720,30 @@ fn session_restriction(session: Option<&grindr::Session>) -> Option<grindr::Rest
     session?.token.as_ref()?.restriction.clone()
 }
 
+/// A session's restriction as the frontend gets it. grindr.rs keeps no reason
+/// for `TRUST_VENDOR_REJECTED`, whose `restrictionReason` is free-form text,
+/// so that one is read back out of the session JWT.
+fn frontend_restriction(session: Option<&grindr::Session>) -> Option<Restriction> {
+    let token = session?.token.as_ref()?;
+    let mut restriction = Restriction::from(token.restriction.clone()?);
+    if restriction.kind == "trustVendorRejected" {
+        restriction.reason = decode_jwt(&token.session_id)
+            .ok()
+            .and_then(|claims| claims.restriction_reason);
+    }
+    Some(restriction)
+}
+
+/// A sign-in/refresh result with the restriction taken from the session it
+/// produced, so it carries the details `frontend_restriction` adds.
+fn login_result(client: &grindr::GrindrClient, result: grindr::SignInResult) -> LoginResult {
+    let mut login = LoginResult::from(result);
+    if let Some(restriction) = frontend_restriction(client.session_receiver().borrow().as_ref()) {
+        login.restriction = Some(restriction);
+    }
+    login
+}
+
 // ---------------------------------------------------------------------------
 // Client lifecycle
 // ---------------------------------------------------------------------------
@@ -741,8 +773,8 @@ fn spawn_persistence_tasks(app: &tauri::AppHandle, client: grindr::GrindrClient)
 
                 let next_restriction = session_restriction(Some(&session));
                 if next_restriction != restriction {
-                    if let Some(r) = &next_restriction {
-                        let _ = app.emit("auth:restriction", Restriction::from(r.clone()));
+                    if let Some(r) = frontend_restriction(Some(&session)) {
+                        let _ = app.emit("auth:restriction", r);
                     }
                     restriction = next_restriction;
                 }
@@ -890,7 +922,7 @@ pub async fn login(
 
     // A key stored for this account belongs to its previous device.
     SigningKeyStorage::delete(&result.profile_id);
-    Ok(LoginResult::from(result))
+    Ok(login_result(&client, result))
 }
 
 #[tauri::command]
@@ -920,7 +952,7 @@ pub async fn login_with_jwt(app: tauri::AppHandle, token: String) -> Result<Logi
 
     Ok(LoginResult {
         profile_id: session.credentials.profile_id.clone().unwrap_or(profile_id),
-        restriction: session_restriction(Some(&session)).map(Restriction::from),
+        restriction: frontend_restriction(Some(&session)),
     })
 }
 
@@ -928,7 +960,7 @@ pub async fn login_with_jwt(app: tauri::AppHandle, token: String) -> Result<Logi
 pub async fn refresh_token(state: tauri::State<'_, AppState>) -> Result<LoginResult, AppError> {
     let client = state.client()?;
     match client.refresh_session().await {
-        Ok(result) => Ok(LoginResult::from(result)),
+        Ok(result) => Ok(login_result(&client, result)),
         // A 401 on refresh ends the session (grindr.rs clears it); surface it as
         // the expired-session prompt rather than a generic auth error.
         Err(grindr::GrindrError::Unauthorized { .. }) => Err(AppError::TokenExpired),
@@ -967,8 +999,8 @@ pub async fn account_restriction(state: tauri::State<'_, AppState>) -> Result<Op
     let Ok(client) = state.client() else {
         return Ok(None);
     };
-    let restriction = session_restriction(client.session_receiver().borrow().as_ref());
-    Ok(restriction.map(Restriction::from))
+    let restriction = frontend_restriction(client.session_receiver().borrow().as_ref());
+    Ok(restriction)
 }
 
 #[tauri::command]
@@ -983,7 +1015,7 @@ pub async fn switch_account(app: tauri::AppHandle, profile_id: String) -> Result
 
     let result = LoginResult {
         profile_id: session.credentials.profile_id.clone().unwrap_or(profile_id),
-        restriction: session_restriction(Some(&session)).map(Restriction::from),
+        restriction: frontend_restriction(Some(&session)),
     };
 
     AuthStorage::set_session(&session)?;
@@ -1215,6 +1247,18 @@ mod tests {
         assert_eq!(json["kind"], "timedBan");
         assert_eq!(json["reason"], "SPAM");
         assert_eq!(json["expiresAt"], 1_800_000_000);
+        assert_eq!(json["automated"], false);
+    }
+
+    #[test]
+    fn trust_vendor_rejection_reads_its_reason_from_the_jwt() {
+        // ... {"exp":9999999999,"profileId":"42","restriction":"TRUST_VENDOR_REJECTED","restrictionReason":"Device risk too high"} ...
+        let jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksInByb2ZpbGVJZCI6IjQyIiwicmVzdHJpY3Rpb24iOiJUUlVTVF9WRU5ET1JfUkVKRUNURUQiLCJyZXN0cmljdGlvblJlYXNvbiI6IkRldmljZSByaXNrIHRvbyBoaWdoIn0.sig";
+        let claims = decode_jwt(jwt).unwrap();
+        let session = jwt_only_session(jwt, &claims, "42".to_owned());
+        let restriction = frontend_restriction(Some(&session)).unwrap();
+        assert_eq!(restriction.kind, "trustVendorRejected");
+        assert_eq!(restriction.reason.as_deref(), Some("Device risk too high"));
     }
 
     #[test]

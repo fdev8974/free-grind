@@ -1868,11 +1868,22 @@
             "yes": "",
             "no": "",
             "reason": "",
-            "banned_until": ""
+            "banned_until": "",
+            "region": ""
         },
         "timed_ban": {
             "title": "",
             "description": ""
+        },
+        "device_ban": {
+            "title": "",
+            "description": ""
+        },
+        "regions": {
+            "uk": "",
+            "br": "",
+            "au": "",
+            "us": ""
         }
     },
     "profile_photo_drawer": {

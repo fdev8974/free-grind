@@ -1854,11 +1854,22 @@
       "yes": "Yes",
       "no": "No",
       "reason": "Reason",
-      "banned_until": "Banned until"
+      "banned_until": "Banned until",
+      "region": "Region"
     },
     "timed_ban": {
       "title": "Temporarily Banned",
       "description": "Grindr has temporarily banned this account. You can use it again once the ban expires."
+    },
+    "device_ban": {
+      "title": "Request Refused",
+      "description": "Grindr answered with ACCOUNT_BANNED (code 28). This is often not a real ban: Grindr blocked the request, for example because of the device fingerprint. Signing out creates a new device identity, which usually fixes it."
+    },
+    "regions": {
+      "uk": "United Kingdom",
+      "br": "Brazil",
+      "au": "Australia",
+      "us": "United States"
     }
   },
   "sexualHealth": {

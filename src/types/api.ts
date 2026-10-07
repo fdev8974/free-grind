@@ -20,6 +20,10 @@ export const restrictionSchema = z.object({
 	reason: z.string().nullish(),
 	/** Unix seconds a timed ban ends at. */
 	expiresAt: z.number().nullish(),
+	/** A timed ban's sub-category. */
+	subReason: z.string().nullish(),
+	/** Whether a timed ban was issued automatically. */
+	automated: z.boolean().nullish(),
 });
 export type Restriction = z.infer<typeof restrictionSchema>;
 
