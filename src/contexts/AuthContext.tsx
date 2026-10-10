@@ -219,18 +219,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	const loginWithJwt = async (token: string) => {
+	const loginWithGoogle = async (token: string) => {
 		try {
-			appLog.info("[Auth] loginWithJwt: attempting token login");
+			appLog.info("[Auth] loginWithGoogle: attempting Google third-party login");
 			dispatch({ type: "SET_LOADING", payload: true });
 			dispatch({ type: "SET_ERROR", payload: null });
 
-			const result = await callMethod("login_with_jwt", { token });
-			appLog.info("[Auth] loginWithJwt: succeeded");
+			const result = await callMethod("login_with_google", { token });
+			appLog.info("[Auth] loginWithGoogle: succeeded");
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
-				toast.success("Token login successful");
+				toast.success("Google login successful");
 			}
 		} catch (error) {
 			if (handleAccountBlock(error)) {
@@ -239,10 +239,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const appError = asAppError(error);
 			const message = describeLoginError(
 				appError,
-				"Token login failed",
-				"This token is invalid or has expired. Please generate a new one and try again.",
+				"Google login failed",
+				"This Google token is invalid or has expired. Please get a new one and try again.",
 			);
-			appLog.error("[Auth] loginWithJwt failed", { kind: appError?.kind, message });
+			appLog.error("[Auth] loginWithGoogle failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
 			toast.error(message);
 			throw error;
@@ -579,7 +579,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const value: AuthContextType = {
 		...state,
 		login,
-		loginWithJwt,
+		loginWithGoogle,
 		logout,
 		checkAuth,
 		savedAccounts,

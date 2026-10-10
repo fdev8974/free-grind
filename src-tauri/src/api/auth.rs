@@ -249,59 +249,23 @@ fn region_str(region: grindr::VerificationRegion) -> &'static str {
 }
 
 // ---------------------------------------------------------------------------
-// Session JWT decoding — only needed for `login_with_jwt`, where the session
-// is built here rather than by grindr.rs. Mirrors grindr.rs's own claim
-// handling; the signature isn't verified (the client doesn't hold the key and
-// the claims only decide when to refresh / what to show).
+// Session JWT decoding — only needed to read back the free-form
+// `restrictionReason` of a TRUST_VENDOR_REJECTED session, which grindr.rs
+// doesn't keep. The signature isn't verified (the client doesn't hold the key
+// and the claim only decides what to show).
 // ---------------------------------------------------------------------------
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct JwtClaims {
-    exp: u64,
-    #[serde(default)]
-    profile_id: Option<String>,
-    #[serde(default)]
-    restriction: Option<String>,
     #[serde(default)]
     restriction_reason: Option<String>,
-    #[serde(default)]
-    ban_details: Option<grindr::BanDetails>,
 }
 
 fn decode_jwt(token: &str) -> Result<JwtClaims, AppError> {
     jsonwebtoken::dangerous::insecure_decode::<JwtClaims>(token)
         .map(|data| data.claims)
         .map_err(|e| AppError::Auth(format!("JWT decode failed: {e}")))
-}
-
-fn restriction_from_claims(claims: &JwtClaims) -> Option<grindr::Restriction> {
-    let restriction = claims.restriction.as_deref()?;
-    Some(match restriction {
-        "AGE_RESTRICTED" => grindr::Restriction::AgeVerification {
-            region: match claims.restriction_reason.as_deref() {
-                Some("UK_VERIFICATION_REQUIRED") => grindr::VerificationRegion::Uk,
-                Some("BR_VERIFICATION_REQUIRED") => grindr::VerificationRegion::Br,
-                Some("AU_VERIFICATION_REQUIRED") => grindr::VerificationRegion::Au,
-                Some("US_VERIFICATION_REQUIRED") => grindr::VerificationRegion::Us,
-                _ => grindr::VerificationRegion::Other,
-            },
-            reason: claims.restriction_reason.clone().unwrap_or_default(),
-        },
-        "TIMED_BAN" => {
-            grindr::Restriction::TimedBan(claims.ban_details.clone().unwrap_or_default())
-        }
-        "TRUST_VENDOR_REJECTED" => grindr::Restriction::TrustVendorRejected,
-        other => grindr::Restriction::Other(other.to_owned()),
-    })
-}
-
-fn token_from_jwt(jwt: &str, claims: &JwtClaims) -> grindr::SessionToken {
-    grindr::SessionToken {
-        session_id: jwt.to_owned(),
-        expires_at: claims.exp,
-        restriction: restriction_from_claims(claims),
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -839,63 +803,6 @@ pub fn adopt_client(
     Ok(client)
 }
 
-/// Builds the session for a pasted JWT: a session token from the JWT itself,
-/// and the JWT doubling as the auth token — what this app always refreshed
-/// such sessions with, since there is no real auth token to use.
-fn jwt_only_session(jwt: &str, claims: &JwtClaims, profile_id: String) -> grindr::Session {
-    grindr::Session {
-        credentials: grindr::Credentials {
-            email: String::new(),
-            profile_id: Some(profile_id),
-            auth_token: jwt.to_owned(),
-            kind: grindr::SessionKind::Email,
-            third_party_user_id: None,
-        },
-        token: Some(token_from_jwt(jwt, claims)),
-    }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ExchangeResponse {
-    profile_id: String,
-    session_id: String,
-    auth_token: String,
-}
-
-/// Exchanges a pasted JWT for a full session (sessionId + authToken), so it
-/// refreshes like an email login afterwards. Sent authenticated with the JWT
-/// (`Grindr3 <JWT>`) and the JWT as the body's authToken, as this app always
-/// did — grindr.rs's own refresh goes out without the Authorization header.
-async fn exchange_jwt(client: &grindr::GrindrClient, jwt: &str) -> Option<grindr::Session> {
-    let response = client
-        .request(grindr::Method::POST, "/v8/sessions")
-        .json(&serde_json::json!({
-            "email": "",
-            "authToken": jwt,
-            "token": null,
-            "geohash": null,
-        }))
-        .send()
-        .await
-        .ok()?;
-    if !(200..300).contains(&response.status) {
-        return None;
-    }
-    let exchanged: ExchangeResponse = serde_json::from_slice(&response.body).ok()?;
-    let claims = decode_jwt(&exchanged.session_id).ok()?;
-    Some(grindr::Session {
-        credentials: grindr::Credentials {
-            email: String::new(),
-            profile_id: Some(exchanged.profile_id),
-            auth_token: exchanged.auth_token,
-            kind: grindr::SessionKind::Email,
-            third_party_user_id: None,
-        },
-        token: Some(token_from_jwt(&exchanged.session_id, &claims)),
-    })
-}
-
 // ---------------------------------------------------------------------------
 // Tauri commands
 // ---------------------------------------------------------------------------
@@ -925,35 +832,29 @@ pub async fn login(
     Ok(login_result(&client, result))
 }
 
+/// Third-party sign-in with a Google OAuth access token, as handed out by the
+/// Open Grind Google OAuth companion app or browser extension. Grindr no longer
+/// issues a session JWT for third-party accounts that could be pasted into
+/// a token login, so the provider token is exchanged for a session directly.
 #[tauri::command]
-pub async fn login_with_jwt(app: tauri::AppHandle, token: String) -> Result<LoginResult, AppError> {
-    let claims = decode_jwt(&token)?;
-    let profile_id = claims
-        .profile_id
-        .clone()
-        .ok_or_else(|| AppError::Auth("JWT missing profileId claim".to_owned()))?;
-    let device = grindr::DeviceInfo::generate();
+pub async fn login_with_google(
+    state: tauri::State<'_, AppState>,
+    token: String,
+) -> Result<LoginResult, AppError> {
+    let client = state.client()?;
 
-    // Persisted right away, not only after the exchange below, so a JWT-only
-    // session survives a restart within its own lifetime.
-    let jwt_only = jwt_only_session(&token, &claims, profile_id.clone());
-    persist(&jwt_only, &device);
-    let client = adopt_client(&app, Some(device.clone()), Some(jwt_only.clone()))?;
-    SigningKeyStorage::delete(&profile_id);
+    client
+        .rotate_device(grindr::DeviceInfo::generate())
+        .await
+        .map_err(AppError::from)?;
 
-    let session = match exchange_jwt(&client, &token).await {
-        Some(full) => {
-            persist(&full, &device);
-            adopt_client(&app, Some(device), Some(full.clone()))?;
-            full
-        }
-        None => jwt_only,
-    };
+    let result = client
+        .sign_in_with_google(token.trim())
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
 
-    Ok(LoginResult {
-        profile_id: session.credentials.profile_id.clone().unwrap_or(profile_id),
-        restriction: frontend_restriction(Some(&session)),
-    })
+    SigningKeyStorage::delete(&result.profile_id);
+    Ok(login_result(&client, result))
 }
 
 #[tauri::command]
@@ -1254,27 +1155,22 @@ mod tests {
     fn trust_vendor_rejection_reads_its_reason_from_the_jwt() {
         // ... {"exp":9999999999,"profileId":"42","restriction":"TRUST_VENDOR_REJECTED","restrictionReason":"Device risk too high"} ...
         let jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksInByb2ZpbGVJZCI6IjQyIiwicmVzdHJpY3Rpb24iOiJUUlVTVF9WRU5ET1JfUkVKRUNURUQiLCJyZXN0cmljdGlvblJlYXNvbiI6IkRldmljZSByaXNrIHRvbyBoaWdoIn0.sig";
-        let claims = decode_jwt(jwt).unwrap();
-        let session = jwt_only_session(jwt, &claims, "42".to_owned());
+        let session = grindr::Session {
+            credentials: grindr::Credentials {
+                email: String::new(),
+                profile_id: Some("42".to_owned()),
+                auth_token: String::new(),
+                kind: grindr::SessionKind::Email,
+                third_party_user_id: None,
+            },
+            token: Some(grindr::SessionToken {
+                session_id: jwt.to_owned(),
+                expires_at: 9_999_999_999,
+                restriction: Some(grindr::Restriction::TrustVendorRejected),
+            }),
+        };
         let restriction = frontend_restriction(Some(&session)).unwrap();
         assert_eq!(restriction.kind, "trustVendorRejected");
         assert_eq!(restriction.reason.as_deref(), Some("Device risk too high"));
-    }
-
-    #[test]
-    fn jwt_claims_carry_profile_id_and_age_restriction() {
-        // {"alg":"HS256","typ":"JWT"} . {"exp":9999999999,"profileId":"42","restriction":"AGE_RESTRICTED","restrictionReason":"UK_VERIFICATION_REQUIRED"} . sig
-        let jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksInByb2ZpbGVJZCI6IjQyIiwicmVzdHJpY3Rpb24iOiJBR0VfUkVTVFJJQ1RFRCIsInJlc3RyaWN0aW9uUmVhc29uIjoiVUtfVkVSSUZJQ0FUSU9OX1JFUVVJUkVEIn0.sig";
-        let claims = decode_jwt(jwt).unwrap();
-        assert_eq!(claims.profile_id.as_deref(), Some("42"));
-        let session = jwt_only_session(jwt, &claims, "42".to_owned());
-        assert_eq!(session.credentials.auth_token, jwt);
-        assert_eq!(
-            session_restriction(Some(&session)),
-            Some(grindr::Restriction::AgeVerification {
-                region: grindr::VerificationRegion::Uk,
-                reason: "UK_VERIFICATION_REQUIRED".to_owned(),
-            })
-        );
     }
 }

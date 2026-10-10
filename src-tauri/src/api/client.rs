@@ -2,7 +2,7 @@ use crate::error::AppError;
 
 /// Builds a `grindr::GrindrClient` from a stored (or freshly generated)
 /// device identity and an optional resumed session. Used both at app
-/// startup and on every account switch / `login_with_jwt` exchange, since a
+/// startup and on every account switch / logout, since a
 /// `grindr::GrindrClient`'s session can only be set at construction time.
 pub fn build_client(
     device: Option<grindr::DeviceInfo>,

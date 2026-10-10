@@ -38,7 +38,7 @@ export const methodSchemas = {
 			restriction: restrictionSchema.nullish(),
 		}),
 	},
-	login_with_jwt: {
+	login_with_google: {
 		request: z.object({
 			token: z.string().min(1),
 		}),
@@ -71,7 +71,7 @@ export const methodSchemas = {
 	},
 	list_saved_accounts: {
 		request: z.undefined(),
-		// profileId stays a string here (unlike login/login_with_jwt's
+		// profileId stays a string here (unlike login/login_with_google's
 		// coerced number) since it round-trips straight back into
 		// switch_account/remove_saved_account's profile_id: String param —
 		// keeping it a string end to end avoids a number<->string mismatch

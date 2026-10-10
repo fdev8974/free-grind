@@ -6,8 +6,17 @@ import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle } from "lucide-react";
 import { cn } from "../../utils/cn";
+
+// Lucide ships no brand logos; path from Simple Icons (CC0).
+function GoogleIcon({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+			<path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+		</svg>
+	);
+}
 
 function AuthMethodTab({
 	active,
@@ -53,6 +62,50 @@ function IconInput({
 				<span className="absolute right-3 top-1/2 -translate-y-1/2">{rightSlot}</span>
 			) : null}
 		</div>
+	);
+}
+
+function StepHeading({ step, title, hint }: { step: number; title: string; hint?: string }) {
+	return (
+		<div className="flex items-start gap-2.5">
+			<span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[11px] font-bold text-[var(--accent-contrast)]">
+				{step}
+			</span>
+			<div className="min-w-0">
+				<p className="text-sm font-semibold leading-5 text-[var(--text)]">{title}</p>
+				{hint ? <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">{hint}</p> : null}
+			</div>
+		</div>
+	);
+}
+
+function TokenSourceLink({
+	href,
+	icon,
+	title,
+	description,
+}: {
+	href: string;
+	icon: ReactNode;
+	title: string;
+	description: string;
+}) {
+	return (
+		<a
+			href={href}
+			target="_blank"
+			rel="noreferrer"
+			className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 transition-all duration-150 hover:border-[var(--accent)] active:scale-[0.99]"
+		>
+			<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)]">
+				{icon}
+			</span>
+			<span className="min-w-0 flex-1">
+				<span className="block truncate text-sm font-medium text-[var(--text)]">{title}</span>
+				<span className="block truncate text-xs text-[var(--text-muted)]">{description}</span>
+			</span>
+			<ExternalLink className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]" />
+		</a>
 	);
 }
 
@@ -103,14 +156,14 @@ export function SignInPage() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 
-	const [jwtToken, setJwtToken] = useState("");
-	const [isTokenLoading, setIsTokenLoading] = useState(false);
+	const [googleToken, setGoogleToken] = useState("");
+	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-	const { login, loginWithJwt, error } = useAuth();
+	const { login, loginWithGoogle, error } = useAuth();
 	const navigate = useNavigate();
 
 	const isPasswordFormValid = email.trim().length > 0 && password.trim().length > 0;
-	const isTokenFormValid = jwtToken.trim().length > 0;
+	const isGoogleFormValid = googleToken.trim().length > 0;
 
 	const handlePasswordSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -125,16 +178,16 @@ export function SignInPage() {
 		}
 	};
 
-	const handleTokenSubmit = async (e: React.FormEvent) => {
+	const handleGoogleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		setIsTokenLoading(true);
+		setIsGoogleLoading(true);
 		try {
-			await loginWithJwt(jwtToken.trim());
+			await loginWithGoogle(googleToken.trim());
 			navigate("/");
 		} catch {
 			// AuthContext updates `error`, which is rendered in the form.
 		} finally {
-			setIsTokenLoading(false);
+			setIsGoogleLoading(false);
 		}
 	};
 
@@ -178,10 +231,10 @@ export function SignInPage() {
 					onClick={() => setMethod("password")}
 				/>
 				<AuthMethodTab
-					active={method === "token"}
-					icon={<KeyRound className="h-3.5 w-3.5" />}
-					label={t("auth.sign_in.method_token")}
-					onClick={() => setMethod("token")}
+					active={method === "google"}
+					icon={<GoogleIcon className="h-3.5 w-3.5" />}
+					label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
+					onClick={() => setMethod("google")}
 				/>
 			</div>
 
@@ -232,32 +285,49 @@ export function SignInPage() {
 					/>
 				</form>
 			) : (
-				<form key="token" onSubmit={handleTokenSubmit} className="animate-fade-in space-y-3">
-					<div>
-						<a
-							href="https://freegrinddocs.imaoreo.dev/guide/login"
-							target="_blank"
-							rel="noreferrer"
-							className="mb-2 flex items-start gap-1.5 text-xs font-medium leading-relaxed text-[var(--accent)] hover:underline"
-						>
-							<ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-							<span>{t("auth.sign_in.token_help")}</span>
-						</a>
+				<form key="google" onSubmit={handleGoogleSubmit} className="animate-fade-in space-y-5">
+					<section className="space-y-2.5">
+						<StepHeading
+							step={1}
+							title={t("auth.sign_in.google_step_get", { defaultValue: "Get a sign-in token" })}
+							hint={t("auth.sign_in.google_step_get_hint", {
+								defaultValue: "Sign in with Google there, then tap \"Copy token\".",
+							})}
+						/>
+						<div className="space-y-2">
+							<TokenSourceLink
+								href="https://git.opengrind.org/open-grind/google-oauth-app/releases"
+								icon={<Smartphone className="h-4 w-4" />}
+								title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
+								description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}
+							/>
+							<TokenSourceLink
+								href="https://git.opengrind.org/open-grind/grindr-google-oauth-webextension#install"
+								icon={<Puzzle className="h-4 w-4" />}
+								title={t("auth.sign_in.google_extension_link", { defaultValue: "Browser extension" })}
+								description={t("auth.sign_in.google_extension_desc", { defaultValue: "Firefox, Chrome and other desktop browsers" })}
+							/>
+						</div>
+					</section>
+					<section className="space-y-2.5">
+						<StepHeading
+							step={2}
+							title={t("auth.sign_in.google_step_paste", { defaultValue: "Paste the token" })}
+						/>
 						<IconInput
 							icon={<KeyRound className="h-4 w-4" />}
-							type="text"
-							value={jwtToken}
-							onChange={(e) => setJwtToken(e.target.value)}
+							type="password"
+							value={googleToken}
+							onChange={(e) => setGoogleToken(e.target.value)}
 							required
-							autoFocus
-							placeholder="eyJhbGciOi..."
+							placeholder={t("auth.sign_in.google_token_placeholder", { defaultValue: "Google OAuth token" })}
 							autoComplete="off"
 						/>
-					</div>
+					</section>
 					<AuthSubmitSection
 						error={error}
-						loading={isTokenLoading}
-						disabled={!isTokenFormValid}
+						loading={isGoogleLoading}
+						disabled={!isGoogleFormValid}
 						loadingLabel={t("auth.sign_in.signing_in")}
 						label={t("auth.sign_in.submit")}
 					/>
