@@ -171,9 +171,22 @@ struct OutgoingFrame {
 }
 
 #[tauri::command]
-pub async fn ws_connect(state: tauri::State<'_, AppState>, url: Option<String>) -> Result<(), AppError> {
+pub async fn ws_connect(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    url: Option<String>,
+) -> Result<(), AppError> {
     let _ = url; // kept for frontend call-site compatibility; grindr.rs owns the endpoint
-    state.client()?.connect().await;
+    let client = state.client()?;
+    client.connect().await;
+    // The bridge only reports *transitions* to connected. A `TauriWebSocket`
+    // opened while grindr.rs's shared socket is already up (a reconnect by
+    // ChatRealtimeManager, React StrictMode's double mount) would otherwise
+    // never see `open` and stay stuck connecting, dropping every send.
+    // A duplicate `open` (the socket connecting right now) is harmless.
+    if *client.connection_state().borrow() == grindr::WsConnectionState::Connected {
+        emit(&app, WsEvent::Open);
+    }
     Ok(())
 }
 
