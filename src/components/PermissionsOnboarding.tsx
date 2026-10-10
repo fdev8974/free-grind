@@ -13,7 +13,7 @@ import { isTauriRuntime } from "../services/tauriWebSocket";
 import { getCurrentLocation } from "../services/currentLocation";
 import { appLog } from "../utils/logger";
 import { markOnboardingComplete } from "../utils/onboardingStorage";
-import { usePreferences } from "../contexts/PreferencesContext";
+import { usePreferences, ACCENT_PRESETS } from "../contexts/PreferencesContext";
 import type { ColorScheme } from "../contexts/PreferencesContext";
 import { LoadingScreen } from "./LoadingScreen";
 import logo from "../images/freegrind-logo.webp";
@@ -86,11 +86,11 @@ function classifyMediaError(
 
 const PERM_STEPS = ["notifications", "location", "microphone", "camera"] as const;
 type PermStep = typeof PERM_STEPS[number];
-type Step = "loading" | "welcome" | "theme" | PermStep | "scam";
+type Step = "loading" | "welcome" | "theme" | "accent" | PermStep | "scam";
 
-const STEP_ORDER: Step[] = ["welcome", "theme", "notifications", "location", "microphone", "camera", "scam"];
+const STEP_ORDER: Step[] = ["welcome", "theme", "accent", "notifications", "location", "microphone", "camera", "scam"];
 
-const DOT_STEPS: Step[] = ["theme", "notifications", "location", "microphone", "camera", "scam"];
+const DOT_STEPS: Step[] = ["theme", "accent", "notifications", "location", "microphone", "camera", "scam"];
 
 function StepDots({ current }: { current: Step }) {
 	const currentIdx = DOT_STEPS.indexOf(current);
@@ -148,7 +148,7 @@ function StatusBadge({ status, isRequesting }: { status: PermissionStatus; isReq
 }
 
 export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }) {
-	const { colorScheme, setPreferences } = usePreferences();
+	const { colorScheme, accentColor, setPreferences } = usePreferences();
 	const [step, setStep] = useState<Step>("loading");
 
 	const [notificationStatus, setNotificationStatus] = useState<PermissionStatus>("idle");
@@ -382,7 +382,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	if (step === "theme") {
 		const options: { value: ColorScheme; label: string; sub: string; icon: typeof Sun; previewBg: string; previewFg: string }[] = [
 			{ value: "system", label: "System", sub: "Follows your device", icon: Monitor, previewBg: "linear-gradient(135deg, #eceff4 50%, #1f2835 50%)", previewFg: "#96a2b6" },
-			{ value: "light",  label: "Light",  sub: "Always light",        icon: Sun,     previewBg: "#eceff4",  previewFg: "#765900" },
+			{ value: "light",  label: "Light",  sub: "Always light",        icon: Sun,     previewBg: "#eceff4",  previewFg: "#6d28d9" },
 			{ value: "dark",   label: "Dark",   sub: "Always dark",         icon: Moon,    previewBg: "#1f2835",  previewFg: "#96a2b6" },
 		];
 		return (
@@ -433,6 +433,63 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 										>
 											{active && <Check className="h-3 w-3 text-[var(--accent-contrast)]" />}
 										</div>
+									</button>
+								);
+							})}
+						</div>
+					</div>
+
+					<div
+						className="flex h-28 shrink-0 flex-col justify-end gap-2 px-6"
+						style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
+					>
+						<button
+							type="button"
+							onClick={advance}
+							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+						>
+							Continue
+							<ChevronRight className="h-4 w-4" />
+						</button>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// ── Accent Color ─────────────────────────────────────────────────────────
+	if (step === "accent") {
+		return (
+			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
+				<div className="fs-card-inner fs-card-lg flex flex-col">
+					<TopDots current="accent" />
+
+					<div className="flex flex-1 flex-col justify-center px-6">
+						<div className="mb-7 text-center">
+							<h2 className="text-xl font-bold text-[var(--text)]">Pick Your Color</h2>
+							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
+						</div>
+
+						{/* Same height as the theme step's three option rows, so the
+						    title doesn't jump between the two steps. */}
+						<div className="mx-auto grid h-[266px] grid-cols-4 content-start gap-4 pt-16">
+							{ACCENT_PRESETS.map((preset) => {
+								const active = accentColor === preset.color;
+								return (
+									<button
+										key={preset.color}
+										type="button"
+										onClick={() => setPreferences({ accentColor: preset.color, accentContrast: preset.contrast })}
+										title={preset.name}
+										aria-label={preset.name}
+										className="flex h-14 w-14 items-center justify-center rounded-full transition-transform active:scale-95"
+										style={{
+											background: preset.color,
+											outline: active ? `2.5px solid ${preset.color}` : "none",
+											outlineOffset: "3px",
+										}}
+									>
+										{active && <Check className="h-5 w-5" style={{ color: preset.contrast }} />}
 									</button>
 								);
 							})}

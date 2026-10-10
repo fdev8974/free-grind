@@ -96,7 +96,7 @@ export function createPinMarkerElement(accentColor?: string): HTMLDivElement {
 	const color =
 		accentColor ||
 		getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() ||
-		"#ffcc01";
+		"#7c3aed";
 
 	const el = document.createElement("div");
 	el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="${color}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3" fill="white" stroke="white"/></svg>`;

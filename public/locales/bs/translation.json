@@ -250,6 +250,22 @@
         "phrase_facebook_handle_prefix_not": "",
         "phrase_facebook_handle_suffix_not": ""
     },
+    "video_gallery": {
+        "title": "",
+        "open": "",
+        "loading": "",
+        "videos_count_one": "",
+        "videos_count_other": "",
+        "filter_albums": "",
+        "filter_chats": "",
+        "source_album": "",
+        "source_chat": "",
+        "video_alt": "",
+        "empty_title": "",
+        "empty_desc": "",
+        "error_load_title": "",
+        "error_load_fallback": ""
+    },
     "shared_albums": {
         "title": "",
         "subtitle": "",
@@ -843,6 +859,13 @@
         "show_right_now_desc": "",
         "show_interest": "",
         "show_interest_desc": "",
+        "show_video_gallery": "",
+        "show_video_gallery_desc": "",
+        "show_sexual_health": "",
+        "show_sexual_health_desc": "",
+        "show_locate": "",
+        "show_locate_desc": "",
+        "optional_features": "",
         "default_interest_view": "",
         "interest_show_taps": "",
         "interest_show_views": "",
@@ -920,9 +943,7 @@
         "default_expiring_photos": "",
         "default_expiring_photos_desc": "",
         "default_album_expiration": "",
-        "default_album_expiration_desc": "",
-        "entitlement_bypass": "",
-        "entitlement_bypass_desc": ""
+        "default_album_expiration_desc": ""
     },
     "notifications_page": {
         "subtitle": "",
@@ -1000,6 +1021,16 @@
             "method_token": "",
             "method_password": "",
             "token_help": "",
+            "method_google": "",
+            "google_help": "",
+            "google_app_link": "",
+            "google_extension_link": "",
+            "google_step_get": "",
+            "google_step_get_hint": "",
+            "google_app_desc": "",
+            "google_extension_desc": "",
+            "google_step_paste": "",
+            "google_token_placeholder": "",
             "jwt_label": "",
             "signing_in": "",
             "submit": "",
@@ -1303,6 +1334,7 @@
             "invalid_location": "",
             "missing_recipient": "",
             "send_failed": "",
+            "reply_requires_realtime": "",
             "rate_limited": "",
             "attachment_upload_send_failed": "",
             "reupload_image": "",
@@ -1517,7 +1549,10 @@
         "run_location_finder": "",
         "location_finder_running": "",
         "location_finder": "",
-        "location_finder_confirm": "",
+        "location_finder_confirm_title": "",
+        "location_finder_confirm_message": "",
+        "location_finder_confirm_warning": "",
+        "location_finder_confirm_start": "",
         "location_finder_error_distance": "",
         "location_finder_start": "",
         "location_finder_round_complete": "",
@@ -1853,6 +1888,36 @@
         "restricted": {
             "title": "",
             "description": ""
+        },
+        "ban_kinds": {
+            "profile": "",
+            "device": "",
+            "network": "",
+            "underage": ""
+        },
+        "details": {
+            "ban_type": "",
+            "sub_reason": "",
+            "automated": "",
+            "yes": "",
+            "no": "",
+            "reason": "",
+            "banned_until": "",
+            "region": ""
+        },
+        "timed_ban": {
+            "title": "",
+            "description": ""
+        },
+        "device_ban": {
+            "title": "",
+            "description": ""
+        },
+        "regions": {
+            "uk": "",
+            "br": "",
+            "au": "",
+            "us": ""
         }
     },
     "profile_photo_drawer": {
@@ -2048,6 +2113,7 @@
     "entitlement_bypass": {
         "prompt_title": "",
         "prompt_message": "",
+        "prompt_warning": "",
         "prompt_confirm": "",
         "prompt_cancel": "",
         "reason_expiring_photo": "",

@@ -1,4 +1,4 @@
-import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Eye, EyeOff, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, StickyNote, Star, Trash2, Triangle, X, Zap } from "lucide-react";
+import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Eye, EyeOff, Flame, HeartPulse, Images, LockKeyhole, MessageCircle, Pencil, PencilLine, Phone, ShieldCheck, StickyNote, Star, Trash2, Triangle, X, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -57,6 +57,11 @@ import { useProfileAlbumStatus } from "../../../../hooks/useProfileAlbumStatus";
 import { captureAlbum, getLocalAlbum } from "../../../../services/albumStore";
 import type { AlbumViewer } from "../../../../types/shared-albums";
 import { saveAllAlbumMedia, saveAllMedia } from "../../../../utils/albumMedia";
+import { EncounterLogSheet } from "../../sexual-health/EncounterLogSheet";
+import type { PickedPerson } from "../../sexual-health/PersonPicker";
+import { isLocateEnabled, isSexualHealthEnabled } from "../../../../utils/optionalFeatures";
+import { findConversationByProfileId } from "../../../../services/chatDb";
+import { setLocalNicknameForProfile } from "../../../../services/chatContactIndex";
 
 type OwnProfileData = { tags: string[] };
 const ownProfileDataCache = new Map<string, OwnProfileData>();
@@ -110,6 +115,8 @@ type ProfileDetailsModalProps = {
 	activeProfilePhotoHashes: string[];
 	chatContactStatus?: ChatContactIndexRecord | null;
 	localNickname?: string | null;
+	/** Enables "Set nickname" in the actions menu; called after the nickname was saved (null = cleared). */
+	onLocalNicknameChange?: (profileId: string, nickname: string | null) => void;
 	genderOptions: ManagedOption[];
 	pronounOptions: ManagedOption[];
 	variant?: "modal" | "page";
@@ -205,6 +212,7 @@ export function ProfileDetailsModal({
 	activeProfilePhotoHashes,
 	chatContactStatus,
 	localNickname,
+	onLocalNicknameChange,
 	genderOptions,
 	pronounOptions,
 	variant = "modal",
@@ -1287,6 +1295,103 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		</div>
 	);
 
+	// "I met this person now" — same encounter logging as the chat header
+	// menu, gated by the same Sexual Health optional-feature toggle.
+	const [showSexualHealth] = useState(isSexualHealthEnabled);
+	const [showLocate] = useState(isLocateEnabled);
+	const [encounterPrefill, setEncounterPrefill] = useState<PickedPerson | null>(null);
+	const canLogEncounter = showSexualHealth && messageProfileId != null && !isOwnProfile;
+
+	const handleLogEncounter = async () => {
+		setIsActionsMenuOpen(false);
+		if (messageProfileId == null) return;
+		const profileId = String(messageProfileId);
+		const conversation = await findConversationByProfileId(profileId).catch(() => null);
+		const avatarHash = activeProfilePhotoHashes[0] ?? null;
+		setEncounterPrefill({
+			profileId,
+			conversationId: conversation?.conversationId ?? null,
+			displayName: activeProfileName,
+			avatarSrc: avatarHash ? resolveAvatarSrc(avatarHash, getProfileImageUrl(avatarHash, "320x320")) : null,
+		});
+	};
+
+	// Same local nickname as the chat header menu's "Set nickname" — an
+	// empty value clears it.
+	const [isNicknamePromptOpen, setIsNicknamePromptOpen] = useState(false);
+	const [isSavingNickname, setIsSavingNickname] = useState(false);
+
+	const handleEditNickname = () => {
+		setIsActionsMenuOpen(false);
+		if (messageProfileId == null || !onLocalNicknameChange) return;
+		setIsNicknamePromptOpen(true);
+	};
+
+	const handleSaveNickname = async (value: string) => {
+		if (messageProfileId == null || !onLocalNicknameChange) return;
+		const profileId = String(messageProfileId);
+		const normalized = value.trim() || null;
+		setIsSavingNickname(true);
+		try {
+			await setLocalNicknameForProfile(profileId, normalized);
+			onLocalNicknameChange(profileId, normalized);
+			toast.success(normalized ? t("chat.nicknames.saved") : t("chat.nicknames.cleared"));
+			setIsNicknamePromptOpen(false);
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : t("chat.nicknames.save_failed"));
+		} finally {
+			setIsSavingNickname(false);
+		}
+	};
+
+	const nicknameMenuItem =
+		onLocalNicknameChange && messageProfileId != null && !isOwnProfile ? (
+			<button
+				type="button"
+				onClick={handleEditNickname}
+				className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+			>
+				<PencilLine className="mr-2 h-4 w-4 opacity-70" />
+				{localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+			</button>
+		) : null;
+
+	const encounterMenuItem = canLogEncounter ? (
+		<button
+			type="button"
+			onClick={() => void handleLogEncounter()}
+			className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+		>
+			<HeartPulse className="mr-2 h-4 w-4 opacity-70" />
+			{t("chat.log_encounter", { defaultValue: "I met this person now" })}
+		</button>
+	) : null;
+
+	const nicknamePrompt = (
+		<PromptDialog
+			isOpen={isNicknamePromptOpen}
+			title={localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+			message={t("chat.nicknames.prompt")}
+			defaultValue={localNickname || actualProfileName}
+			placeholder={actualProfileName || undefined}
+			confirmLabel={t("common.save", { defaultValue: "Save" })}
+			cancelLabel={t("chat.actions.cancel")}
+			onConfirm={handleSaveNickname}
+			onCancel={() => setIsNicknamePromptOpen(false)}
+			isProcessing={isSavingNickname}
+			allowEmpty
+			rows={1}
+		/>
+	);
+
+	const encounterSheet = encounterPrefill ? (
+		<EncounterLogSheet
+			prefill={encounterPrefill}
+			onClose={() => setEncounterPrefill(null)}
+			onLogged={() => setEncounterPrefill(null)}
+		/>
+	) : null;
+
 	const albumViewerOverlay = albumViewer && (
 		<PhotoViewer
 			isOpen={true}
@@ -1485,6 +1590,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								{isActionsMenuOpen && (
 									<div className="absolute right-0 top-full z-50 mt-2 flex min-w-[190px] flex-col gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 										<div className="flex flex-col gap-1 px-2">
+										{showLocate && (
 										<button
 											type="button"
 											disabled={isTriangleDisabled}
@@ -1494,6 +1600,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											<Triangle className="mr-2 h-4 w-4 opacity-70" />
 											{isLocatingProfile ? t("profile_details.locating") : t("profile_details.locate")}
 										</button>
+										)}
 										{(onHideProfile || onUnhideProfile) && (
 										<button
 											type="button"
@@ -1505,6 +1612,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
 										</button>
 										)}
+										{nicknameMenuItem}
+										{encounterMenuItem}
 										</div>
 										{(hasBio || actualProfileName) && <div className="h-px shrink-0 bg-[var(--border)]" />}
 										{(hasBio || actualProfileName) && (
@@ -1833,6 +1942,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				{photoViewerOverlay}
 				{albumOpeningOverlay}
 				{albumViewerOverlay}
+				{encounterSheet}
+				{nicknamePrompt}
 				<PromptDialog
 					isOpen={banBioPrompt !== null}
 					title={t("profile_details.ban_bio_title")}
@@ -2090,12 +2201,14 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 												{isActionsMenuOpen && (
 													<div className="absolute right-0 top-full z-50 mt-2 flex min-w-[190px] flex-col gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 														<div className="flex flex-col gap-1 px-2">
+														{showLocate && (
 														<button type="button" disabled={isTriangleDisabled}
 															onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
 															className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50">
 															<Triangle className="mr-2 h-4 w-4 opacity-70" />
 															{isLocatingProfile ? t("profile_details.locating") : t("profile_details.locate")}
 														</button>
+														)}
 														{(onHideProfile || onUnhideProfile) && (
 														<button
 															type="button"
@@ -2107,6 +2220,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
 														</button>
 														)}
+														{nicknameMenuItem}
+														{encounterMenuItem}
 														</div>
 														{(hasBio || actualProfileName) && <div className="h-px shrink-0 bg-[var(--border)]" />}
 														{(hasBio || actualProfileName) && (
@@ -2303,6 +2418,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			{photoViewerOverlay}
 			{albumOpeningOverlay}
 			{albumViewerOverlay}
+			{encounterSheet}
+			{nicknamePrompt}
 			<PromptDialog
 				isOpen={banBioPrompt !== null}
 				title={t("profile_details.ban_bio_title")}

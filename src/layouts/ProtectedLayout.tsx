@@ -5,7 +5,7 @@ import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 export function ProtectedLayout() {
 	const location = useLocation();
     const isChatConversationRoute =
-        (/^\/chat\/[^/]+$/.test(location.pathname) && location.pathname !== "/chat/albums") ||
+        (/^\/chat\/[^/]+$/.test(location.pathname) && location.pathname !== "/chat/albums" && location.pathname !== "/chat/videos") ||
         (location.pathname === "/chat" && new URLSearchParams(location.search).has("targetProfileId"));
 	const isProfileRoute = /^\/profile\/[^/]+$/.test(location.pathname);
 

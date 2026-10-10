@@ -23,6 +23,7 @@ import {
 	Palette,
 	Plus,
 	Radar,
+	RotateCcw,
 	RefreshCcw,
 	Search,
 	Shield,
@@ -66,6 +67,8 @@ import { getThumbImageUrl } from "../../utils/media";
 import { getSavedAccountProfile, removeSavedAccountProfile } from "../../services/savedAccountProfiles";
 import { isAndroid } from "../../services/saveMedia";
 import { useSettingsSearchIndex } from "../../data/settingsSearchIndex";
+import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
+import { replayOnboarding } from "../../utils/onboardingStorage";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
 
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
@@ -890,15 +893,16 @@ export function SettingsPage() {
 							t("settings.privacy"),
 							t("settings.privacy_desc"),
 						)}
-						{navRow(
-							() => navigate("/settings/sexual-health"),
-							<HeartPulse className="h-5 w-5" />,
-							"bg-rose-500/15 text-rose-400",
-							t("settings.sexual_health", { defaultValue: "Sexual Health" }),
-							t("settings.sexual_health_desc", {
-								defaultValue: "Track PrEP doses, encounters, tests and appointments.",
-							}),
-						)}
+						{isSexualHealthEnabled() &&
+							navRow(
+								() => navigate("/settings/sexual-health"),
+								<HeartPulse className="h-5 w-5" />,
+								"bg-rose-500/15 text-rose-400",
+								t("settings.sexual_health", { defaultValue: "Sexual Health" }),
+								t("settings.sexual_health_desc", {
+									defaultValue: "Track PrEP doses, encounters, tests and appointments.",
+								}),
+							)}
 					</div>
 				</div>
 
@@ -1045,6 +1049,13 @@ export function SettingsPage() {
 								"bg-[var(--surface-2)] text-[var(--text-muted)]",
 								t("settings.api_inspector"),
 								t("settings.api_inspector_desc"),
+							)}
+							{navRow(
+								replayOnboarding,
+								<RotateCcw className="h-5 w-5" />,
+								"bg-[var(--surface-2)] text-[var(--text-muted)]",
+								"Replay Onboarding",
+								"Shows the first-launch setup flow again.",
 							)}
 							{isAndroid() && (
 							<div className="p-4 sm:p-5">

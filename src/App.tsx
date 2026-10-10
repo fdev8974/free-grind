@@ -26,6 +26,7 @@ import { SettingsHiddenPage } from "./pages/app/SettingsHiddenPage.tsx";
 import { SettingsBlockHistoryPage } from "./pages/app/SettingsBlockHistoryPage.tsx";
 import { AgeVerificationPage } from "./pages/app/AgeVerificationPage.tsx";
 import { SharedAlbumsPage } from "./pages/app/SharedAlbumsPage.tsx";
+import { VideoGalleryPage } from "./pages/app/VideoGalleryPage.tsx";
 import { ApiInspectorPage } from "./pages/app/ApiInspectorPage.tsx";
 import { CustomizabilityPage } from "./pages/app/CustomizabilityPage.tsx";
 import { BehaviorPage } from "./pages/app/BehaviorPage.tsx";
@@ -55,7 +56,7 @@ import { SinModeUnlockOverlay } from "./components/SinModeUnlockOverlay";
 import { usePreferences } from "./contexts/PreferencesContext";
 import ManagerApp from "./ManagerApp";
 import { getRuntimeContext } from "./services/runtimeContext";
-import { hasCompletedOnboarding } from "./utils/onboardingStorage";
+import { hasCompletedOnboarding, REPLAY_ONBOARDING_EVENT } from "./utils/onboardingStorage";
 import { getLastSeenAnnouncementVersion, markAnnouncementSeen } from "./utils/announcementStorage";
 import { VERSION_ANNOUNCEMENTS } from "./data/versionAnnouncements";
 import { useRenderPhase } from "./hooks/useRenderPhase";
@@ -160,6 +161,12 @@ export default function App() {
 	// as the initial route.
 	const renderPhase = useRenderPhase(5);
 
+	useEffect(() => {
+		const handleReplay = () => setShowOnboarding(true);
+		window.addEventListener(REPLAY_ONBOARDING_EVENT, handleReplay);
+		return () => window.removeEventListener(REPLAY_ONBOARDING_EVENT, handleReplay);
+	}, []);
+
 	const handleOnboardingComplete = () => {
 		// A fresh install is already on the current version — it shouldn't
 		// immediately see a "what's new" screen for the version it just installed.
@@ -227,6 +234,7 @@ export default function App() {
 								<Route path="/interest" element={<InterestPage />} />
 								<Route path="/chat/filters" element={<ChatFiltersPage />} />
 								<Route path="/chat/albums" element={<SharedAlbumsPage />} />
+								<Route path="/chat/videos" element={<VideoGalleryPage />} />
 								<Route path="/chat/:conversationId?" element={<ChatPage />} />
 								<Route path="/profile/:profileId" element={<GridProfilePage />} />
 								<Route path="/settings" element={<SettingsPage />} />

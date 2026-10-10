@@ -248,6 +248,22 @@
         "phrase_facebook_handle_prefix_not": "",
         "phrase_facebook_handle_suffix_not": ""
     },
+    "video_gallery": {
+        "title": "",
+        "open": "",
+        "loading": "",
+        "videos_count_one": "",
+        "videos_count_other": "",
+        "filter_albums": "",
+        "filter_chats": "",
+        "source_album": "",
+        "source_chat": "",
+        "video_alt": "",
+        "empty_title": "",
+        "empty_desc": "",
+        "error_load_title": "",
+        "error_load_fallback": ""
+    },
     "shared_albums": {
         "title": "Geteilte Alben",
         "subtitle": "Durchstöbere alle Alben, die dir Leute aus deinen Chats geteilt haben.",
@@ -835,6 +851,13 @@
         "show_right_now_desc": "Right-Now-Tab in der unteren Navigation anzeigen.",
         "show_interest": "Interest-Tab",
         "show_interest_desc": "Interest-Tab in der unteren Navigation anzeigen.",
+        "show_video_gallery": "",
+        "show_video_gallery_desc": "",
+        "show_sexual_health": "",
+        "show_sexual_health_desc": "",
+        "show_locate": "",
+        "show_locate_desc": "",
+        "optional_features": "",
         "default_interest_view": "Standard-Ansicht",
         "interest_show_taps": "Taps zuerst",
         "interest_show_views": "Views zuerst",
@@ -912,9 +935,7 @@
         "default_expiring_photos": "",
         "default_expiring_photos_desc": "",
         "default_album_expiration": "",
-        "default_album_expiration_desc": "",
-        "entitlement_bypass": "",
-        "entitlement_bypass_desc": ""
+        "default_album_expiration_desc": ""
     },
     "notifications_page": {
         "subtitle": "Wähle, welche Benachrichtigungen du erhältst und ob sie bei geöffneter App angezeigt werden.",
@@ -992,6 +1013,16 @@
             "method_token": "Token",
             "method_password": "E-Mail & Passwort",
             "token_help": "Wie du deinen Authentifizierungs-Token erhältst",
+            "method_google": "",
+            "google_help": "",
+            "google_app_link": "",
+            "google_extension_link": "",
+            "google_step_get": "",
+            "google_step_get_hint": "",
+            "google_app_desc": "",
+            "google_extension_desc": "",
+            "google_step_paste": "",
+            "google_token_placeholder": "",
             "jwt_label": "JWT-Token",
             "signing_in": "Melde an...",
             "submit": "Anmelden",
@@ -1291,6 +1322,7 @@
             "invalid_location": "Ungültiges Standortformat",
             "missing_recipient": "Empfänger konnte nicht ermittelt werden",
             "send_failed": "Senden fehlgeschlagen",
+            "reply_requires_realtime": "",
             "rate_limited": "Zu schnelles Senden. Bitte kurz warten.",
             "attachment_upload_send_failed": "Hochladen/Senden des Anhangs fehlgeschlagen",
             "reupload_image": "Bitte lade dieses Bild erneut hoch.",
@@ -1504,7 +1536,10 @@
         "run_location_finder": "Standort-Finder starten",
         "location_finder_running": "Standort-Finder läuft",
         "location_finder": "Standort-Finder",
-        "location_finder_confirm": "⚠️ Warnung: Standort-Finder\n\nDiese Funktion aktualisiert wiederholt deinen Standort auf dem Server, um die Position eines anderen Benutzers zu triangulieren.\n\n• Dies kann einige Minuten dauern\n• Es kann dazu führen, dass dein Konto markiert oder gesperrt wird\n\nMöchtest du fortfahren?",
+        "location_finder_confirm_title": "",
+        "location_finder_confirm_message": "",
+        "location_finder_confirm_warning": "",
+        "location_finder_confirm_start": "",
         "location_finder_error_distance": "Zielentfernung konnte nicht ermittelt werden.",
         "location_finder_start": "Zielentfernung: {{distance}}m. Starte {{rounds}} Triangulationsrunden.",
         "location_finder_round_complete": "Runde {{round}} abgeschlossen. {{lat}}, {{lon}}. Geschätzte Entfernung: ~{{distance}}m.",
@@ -1839,6 +1874,36 @@
         "restricted": {
             "title": "",
             "description": ""
+        },
+        "ban_kinds": {
+            "profile": "",
+            "device": "",
+            "network": "",
+            "underage": ""
+        },
+        "details": {
+            "ban_type": "",
+            "sub_reason": "",
+            "automated": "",
+            "yes": "",
+            "no": "",
+            "reason": "",
+            "banned_until": "",
+            "region": ""
+        },
+        "timed_ban": {
+            "title": "",
+            "description": ""
+        },
+        "device_ban": {
+            "title": "",
+            "description": ""
+        },
+        "regions": {
+            "uk": "",
+            "br": "",
+            "au": "",
+            "us": ""
         }
     },
     "profile_photo_drawer": {
@@ -2032,6 +2097,7 @@
     "entitlement_bypass": {
         "prompt_title": "",
         "prompt_message": "",
+        "prompt_warning": "",
         "prompt_confirm": "",
         "prompt_cancel": "",
         "reason_expiring_photo": "",

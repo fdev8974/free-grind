@@ -4,7 +4,7 @@ use crate::error::AppError;
 
 /// Everything spawned against the *current* `grindr::GrindrClient` that must
 /// be torn down and respawned whenever the client itself is swapped out
-/// (account switch, `login_with_jwt`'s exchange). Held next to the client so
+/// (account switch, logout). Held next to the client so
 /// swapping never leaves an old bridge task pinned to a stale client.
 #[derive(Default)]
 pub struct ClientTasks {

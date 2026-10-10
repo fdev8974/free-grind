@@ -248,6 +248,22 @@
         "phrase_facebook_handle_prefix_not": "لا يحتوي اسم المستخدم الخاص بالمرسل على فيسبوك",
         "phrase_facebook_handle_suffix_not": " . "
     },
+    "video_gallery": {
+        "title": "",
+        "open": "",
+        "loading": "",
+        "videos_count_one": "",
+        "videos_count_other": "",
+        "filter_albums": "",
+        "filter_chats": "",
+        "source_album": "",
+        "source_chat": "",
+        "video_alt": "",
+        "empty_title": "",
+        "empty_desc": "",
+        "error_load_title": "",
+        "error_load_fallback": ""
+    },
     "shared_albums": {
         "title": "مشاركه الالبوم",
         "subtitle": "تصفح جميع الألبومات التي شاركها الأشخاص في محادثاتك.",
@@ -835,6 +851,13 @@
         "show_right_now_desc": "اعرض علامة التبويب \"دلوقتي\" في شريط التنقل السفلي.",
         "show_interest": "تبويب الاهتمامات",
         "show_interest_desc": "اظهرعلامة التبويب الاهتمامات في شريط التنقل السفلي",
+        "show_video_gallery": "",
+        "show_video_gallery_desc": "",
+        "show_sexual_health": "",
+        "show_sexual_health_desc": "",
+        "show_locate": "",
+        "show_locate_desc": "",
+        "optional_features": "",
         "default_interest_view": "اظهرالاهتمامات الافتراضي",
         "interest_show_taps": "نقرات أولاً",
         "interest_show_views": "الآراء أولاً",
@@ -912,9 +935,7 @@
         "auto_focus_location_search_desc": "بتفعيل التركيز التلقائي على حقل نص الدور عند فتح نافذة الموقع. أوقف هذه الخاصية إذا كان ظهور لوحة المفاتيح فورًا يزعجك.",
         "display": "عرض",
         "keep_screen_on": "أبقِ الشاشة قيد التشغيل",
-        "keep_screen_on_desc": "يمنع هذا الطبّق من التعتيم أو القفل أثناء تشغيله. يتم إيقاف تشغيله تلقائيًا بمجرد الخروج من الطبّق.",
-        "entitlement_bypass": "",
-        "entitlement_bypass_desc": ""
+        "keep_screen_on_desc": "يمنع هذا الطبّق من التعتيم أو القفل أثناء تشغيله. يتم إيقاف تشغيله تلقائيًا بمجرد الخروج من الطبّق."
     },
     "notifications_page": {
         "subtitle": "اختار الإشعارات التي تريد تلقيها، وما إذا كانت ستظهر أثناء فتح الطبّق.",
@@ -992,6 +1013,16 @@
             "method_token": "توكـــــــن",
             "method_password": "الايميل و الرالسري",
             "token_help": "كيفية الحصول على رمز المصادقة الخاص بك",
+            "method_google": "",
+            "google_help": "",
+            "google_app_link": "",
+            "google_extension_link": "",
+            "google_step_get": "",
+            "google_step_get_hint": "",
+            "google_app_desc": "",
+            "google_extension_desc": "",
+            "google_step_paste": "",
+            "google_token_placeholder": "",
             "jwt_label": "رمز JWT",
             "signing_in": "بيتسجيل الدخول...",
             "submit": "تسجيل الدخول",
@@ -1292,6 +1323,7 @@
             "invalid_location": "تنسيق موقع غير صالح",
             "missing_recipient": "تعذر تحديد مستلم الرسالة",
             "send_failed": "فشل الإرسال",
+            "reply_requires_realtime": "",
             "rate_limited": "اتإرسال بسرعة كبيرة. الانتظار والمحاولة تاني.",
             "attachment_upload_send_failed": "فشل تحميل/إرسال المرفقات",
             "reupload_image": "إعادة تحميل هذه الصورة.",
@@ -1504,7 +1536,10 @@
         "run_location_finder": "تشغيل محدد المواقع",
         "location_finder_running": "محدد الموقع قيد التشغيل",
         "location_finder": "محدد المواقع",
-        "location_finder_confirm": "⚠️ تحذير: خاصية تحديد الموقع\n🌐تعمل هذه الخاصية عن طريق تحديث موقعك على الخادم بشكل متكرر لتحديد 📌موقع مستخدم آخر\n📍 قد تستغرق هذه العملية عدة دقائق\n⌛قد يتم إعادة تشغيلها",
+        "location_finder_confirm_title": "",
+        "location_finder_confirm_message": "",
+        "location_finder_confirm_warning": "",
+        "location_finder_confirm_start": "",
         "location_finder_error_distance": "تعذر استرداد مسافة الهدف",
         "location_finder_start": "المسافة المستهدفة: \nمتر\nبدء جولة تثليث.",
         "location_finder_round_complete": "اكتملت الجولة \n المسافة المقدرة:\nمترا",
@@ -1839,6 +1874,36 @@
         "restricted": {
             "title": "",
             "description": ""
+        },
+        "ban_kinds": {
+            "profile": "",
+            "device": "",
+            "network": "",
+            "underage": ""
+        },
+        "details": {
+            "ban_type": "",
+            "sub_reason": "",
+            "automated": "",
+            "yes": "",
+            "no": "",
+            "reason": "",
+            "banned_until": "",
+            "region": ""
+        },
+        "timed_ban": {
+            "title": "",
+            "description": ""
+        },
+        "device_ban": {
+            "title": "",
+            "description": ""
+        },
+        "regions": {
+            "uk": "",
+            "br": "",
+            "au": "",
+            "us": ""
         }
     },
     "sexualHealth": {
@@ -2032,6 +2097,7 @@
     "entitlement_bypass": {
         "prompt_title": "",
         "prompt_message": "",
+        "prompt_warning": "",
         "prompt_confirm": "",
         "prompt_cancel": "",
         "reason_expiring_photo": "",

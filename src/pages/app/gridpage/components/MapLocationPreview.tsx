@@ -49,7 +49,7 @@ function syncAccuracyCircle(map: any, lat: number, lon: number, radiusMeters?: n
 		return;
 	}
 	const color =
-		getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#ffcc01";
+		getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#7c3aed";
 	map.addSource(ACCURACY_SOURCE_ID, { type: "geojson", data });
 	map.addLayer({
 		id: `${ACCURACY_SOURCE_ID}-fill`,

@@ -138,6 +138,27 @@ export type StoredAlbumMedia = {
 	position: number | null;
 };
 
+/** A captured album video's metadata + preview thumbnail, without the video bytes. */
+export type StoredAlbumVideo = {
+	contentId: string;
+	albumId: string;
+	contentType: string | null;
+	thumbDataBase64: string | null;
+	albumName: string | null;
+	ownerProfileId: string | null;
+	conversationId: string | null;
+	albumUpdatedAt: number | null;
+};
+
+/** A cached received chat video's metadata, without the video bytes. */
+export type StoredChatVideo = {
+	mediaKey: string;
+	conversationId: string;
+	mimeType: string | null;
+	senderId: number;
+	timestamp: number;
+};
+
 export type StoredAvatar = {
 	mediaHash: string;
 	dataBase64: string;

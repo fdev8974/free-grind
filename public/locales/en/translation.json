@@ -248,6 +248,22 @@
     "phrase_facebook_handle_prefix_not": "sender's Facebook handle doesn't contain",
     "phrase_facebook_handle_suffix_not": " "
   },
+  "video_gallery": {
+    "title": "Videos",
+    "open": "Videos",
+    "loading": "Loading videos…",
+    "videos_count_one": "{{count}} video",
+    "videos_count_other": "{{count}} videos",
+    "filter_albums": "Albums",
+    "filter_chats": "Chats",
+    "source_album": "Album",
+    "source_chat": "Chat",
+    "video_alt": "Video",
+    "empty_title": "No saved videos yet",
+    "empty_desc": "Videos you receive in chats or albums appear here once they've been stored on this device.",
+    "error_load_title": "Couldn't load videos",
+    "error_load_fallback": "Couldn't load videos."
+  },
   "shared_albums": {
     "title": "Shared Albums",
     "subtitle": "Browse all albums shared by people in your chats.",
@@ -835,6 +851,13 @@
     "show_right_now_desc": "Show the Right Now tab in the bottom navigation.",
     "show_interest": "Interest Tab",
     "show_interest_desc": "Show the Interest tab in the bottom navigation.",
+    "show_video_gallery": "Video Gallery",
+    "show_video_gallery_desc": "Show a button in the inbox header that opens a gallery of all locally stored videos from chats and albums.",
+    "show_sexual_health": "Sexual Health",
+    "show_sexual_health_desc": "Show the Sexual Health section, its inbox header button and \"I met this person now\" in the chat menu.",
+    "show_locate": "Locate",
+    "show_locate_desc": "Show \"Locate\" in the profile menu to estimate a profile's position by triangulation.",
+    "optional_features": "Optional Features",
     "default_interest_view": "Default Interest View",
     "interest_show_taps": "Taps First",
     "interest_show_views": "Views First",
@@ -912,9 +935,7 @@
     "auto_focus_location_search_desc": "Automatically focus the search text field when opening the location overlay. Turn off if the keyboard popping up right away bothers you.",
     "display": "Display",
     "keep_screen_on": "Keep Screen On",
-    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app.",
-    "entitlement_bypass": "Paid feature bypass",
-    "entitlement_bypass_desc": "When Grindr refuses a paid feature (expiring photos over the daily limit, unsending, album sharing), offer to unlock it by briefly spoofing your location to Honduras. Against Grindr's terms of service — use at your own risk."
+    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app."
   },
   "notifications_page": {
     "subtitle": "Choose which notifications you get, and whether they show up while the app is open.",
@@ -992,6 +1013,16 @@
       "method_token": "Token",
       "method_password": "Email & Password",
       "token_help": "How to get your authentication token",
+      "method_google": "Google",
+      "google_help": "For accounts created with Google.",
+      "google_app_link": "Google OAuth app",
+      "google_extension_link": "Browser extension",
+      "google_step_get": "Get a sign-in token",
+      "google_step_get_hint": "Sign in with Google there, then tap \"Copy token\".",
+      "google_app_desc": "Android",
+      "google_extension_desc": "Firefox, Chrome and other desktop browsers",
+      "google_step_paste": "Paste the token",
+      "google_token_placeholder": "Google OAuth token",
       "jwt_label": "JWT Token",
       "signing_in": "Signing in...",
       "submit": "Sign In",
@@ -1292,6 +1323,7 @@
       "invalid_location": "Invalid location format",
       "missing_recipient": "Unable to determine message recipient",
       "send_failed": "Failed to send",
+      "reply_requires_realtime": "Replies need a live connection. Reconnecting — try again in a moment.",
       "rate_limited": "Sending too fast. Please wait and retry.",
       "attachment_upload_send_failed": "Attachment upload/send failed",
       "reupload_image": "Please re-upload this image.",
@@ -1504,7 +1536,10 @@
     "run_location_finder": "Run location finder",
     "location_finder_running": "Location finder running",
     "location_finder": "Location finder",
-    "location_finder_confirm": "⚠️ Warning: Location Finder\n\nThis feature works by repeatedly updating your location on the server to triangulate another user's position.\n\n• This may take several minutes to complete\n• It could result in your account being flagged or banned\n\nDo you want to continue?",
+    "location_finder_confirm_title": "Location finder",
+    "location_finder_confirm_message": "Free Grind can triangulate this profile's position by repeatedly changing your location on the server. This takes a few minutes; your location is restored afterwards.",
+    "location_finder_confirm_warning": "This violates Grindr's terms of service and can get your account banned. Use at your own risk.",
+    "location_finder_confirm_start": "Locate anyway",
     "location_finder_error_distance": "Could not retrieve target distance.",
     "location_finder_start": "Target distance: {{distance}}m. Starting {{rounds}} triangulation rounds.",
     "location_finder_round_complete": "Round {{round}} complete. {{lat}}, {{lon}}. Estimated distance: ~{{distance}}m.",
@@ -1839,6 +1874,36 @@
     "restricted": {
       "title": "Account Restricted",
       "description": "Your account is currently restricted and can't be used. Check the official Grindr app for details."
+    },
+    "ban_kinds": {
+      "profile": "Profile ban",
+      "device": "Device ban",
+      "network": "Network ban",
+      "underage": "Underage"
+    },
+    "details": {
+      "ban_type": "Ban type",
+      "sub_reason": "Sub-reason",
+      "automated": "Automated",
+      "yes": "Yes",
+      "no": "No",
+      "reason": "Reason",
+      "banned_until": "Banned until",
+      "region": "Region"
+    },
+    "timed_ban": {
+      "title": "Temporarily Banned",
+      "description": "Grindr has temporarily banned this account. You can use it again once the ban expires."
+    },
+    "device_ban": {
+      "title": "Request Refused",
+      "description": "Grindr answered with ACCOUNT_BANNED (code 28). This is often not a real ban: Grindr blocked the request, for example because of the device fingerprint. Signing out creates a new device identity, which usually fixes it."
+    },
+    "regions": {
+      "uk": "United Kingdom",
+      "br": "Brazil",
+      "au": "Australia",
+      "us": "United States"
     }
   },
   "sexualHealth": {
@@ -2030,7 +2095,8 @@
   "entitlement_bypass": {
     "prompt_title": "Paid feature",
     "prompt_message": "Free Grind can attempt to bypass this by momentarily spoofing your location to Honduras.",
-    "prompt_confirm": "Bypass",
+    "prompt_warning": "This violates Grindr's terms of service and can get your account banned. Use at your own risk.",
+    "prompt_confirm": "Bypass anyway",
     "prompt_cancel": "Cancel",
     "reason_expiring_photo": "Daily expiring photo limit reached. Sending more requires a Grindr subscription.",
     "reason_message": "Sending this message requires a Grindr subscription.",

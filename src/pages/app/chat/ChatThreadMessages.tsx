@@ -90,6 +90,7 @@ type ChatThreadMessagesProps = {
 	handleDelete: (message: Message) => void | Promise<void>;
 	handleRetry: (message: Message) => void;
 	handleReply: (message: Message) => void | Promise<void>;
+	canReply: boolean;
 	handleStopAlbumShare: (albumId: number) => void | Promise<void>;
 	handleRemoveLocalAlbum: (albumId: number) => void | Promise<void>;
 	threadBottomRef: { current: HTMLDivElement | null };
@@ -318,6 +319,7 @@ export function ChatThreadMessages({
 	handleDelete,
 	handleRetry,
 	handleReply,
+	canReply,
 	handleStopAlbumShare,
 	handleRemoveLocalAlbum,
 	threadBottomRef,
@@ -524,10 +526,13 @@ export function ChatThreadMessages({
 
 	const swipeStateRef = useRef<{
 		messageId: string;
+		message: UiMessage;
 		startX: number;
 		startY: number;
-		triggered: boolean;
+		armed: boolean;
 	} | null>(null);
+	const SWIPE_REPLY_THRESHOLD = 55;
+	const SWIPE_REPLY_MAX_DRAG = 80;
 	const swipeElRef = useRef(new Map<string, HTMLDivElement>());
 	const swipeIconRef = useRef(new Map<string, HTMLDivElement>());
 
@@ -565,9 +570,10 @@ export function ChatThreadMessages({
 			const touch = event.touches[0];
 			swipeStateRef.current = {
 				messageId: message.messageId,
+				message,
 				startX: touch.clientX,
 				startY: touch.clientY,
-				triggered: false,
+				armed: false,
 			};
 		},
 		[isArchived, isDesktop, startMessageLongPress],
@@ -580,53 +586,54 @@ export function ChatThreadMessages({
 				return;
 			}
 			const state = swipeStateRef.current;
-			if (!state || state.messageId !== message.messageId || state.triggered) {
+			if (!state || state.messageId !== message.messageId) {
 				return;
 			}
 			const touch = event.touches[0];
-			const dx = touch.clientX - state.startX;
+			const dx = Math.min(touch.clientX - state.startX, SWIPE_REPLY_MAX_DRAG);
 			const dy = Math.abs(touch.clientY - state.startY);
-			if (dy >= 40) return;
-			if (dx > 0) {
-				const el = swipeElRef.current.get(state.messageId);
-				const icon = swipeIconRef.current.get(state.messageId);
-				if (el) {
-					el.style.transition = "none";
-					el.style.transform = `translateX(${dx}px)`;
-				}
-				if (icon) {
-					const progress = Math.min(dx / 40, 1);
-					icon.style.transition = "none";
-					icon.style.opacity = String(progress);
-					icon.style.transform = `translateY(-50%) scale(${0.5 + progress * 0.5})`;
-				}
+			if (dy >= 40 && !state.armed) return;
+			const el = swipeElRef.current.get(state.messageId);
+			const icon = swipeIconRef.current.get(state.messageId);
+			if (el) {
+				el.style.transition = "none";
+				el.style.transform = `translateX(${Math.max(dx, 0)}px)`;
 			}
-			if (dx > 55) {
-				state.triggered = true;
-				const triggeredId = state.messageId;
-				const icon = swipeIconRef.current.get(triggeredId);
-				if (icon) {
-					icon.style.transition = "transform 0.12s ease-out";
-					icon.style.transform = "translateY(-50%) scale(1.3)";
-					icon.style.opacity = "1";
+			const isArmed = dx > SWIPE_REPLY_THRESHOLD;
+			if (icon) {
+				const progress = Math.min(Math.max(dx, 0) / 40, 1);
+				icon.style.transition = isArmed !== state.armed ? "transform 0.12s ease-out" : "none";
+				icon.style.opacity = String(progress);
+				icon.style.transform = `translateY(-50%) scale(${isArmed ? 1.3 : 0.5 + progress * 0.5})`;
+			}
+			// Reply only fires on release (handleMobileTouchEnd) — crossing the
+			// threshold just arms it, and dragging back disarms it again.
+			if (isArmed !== state.armed) {
+				state.armed = isArmed;
+				if (isArmed) {
+					(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(40) ?? navigator.vibrate?.(40);
 				}
-				(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(40) ?? navigator.vibrate?.(40);
-				setTimeout(() => {
-					resetSwipeVisual(triggeredId);
-					void handleReply(message);
-				}, 150);
 			}
 		},
-		[endMessageLongPress, handleReply, isDesktop, resetSwipeVisual],
+		[endMessageLongPress, isDesktop],
 	);
 
 	const handleMobileTouchEnd = useCallback(() => {
 		const state = swipeStateRef.current;
-		if (state && !state.triggered) {
-			resetSwipeVisual(state.messageId);
-		}
 		swipeStateRef.current = null;
 		endMessageLongPress();
+		if (!state) return;
+		resetSwipeVisual(state.messageId);
+		if (state.armed) {
+			void handleReply(state.message);
+		}
+	}, [endMessageLongPress, handleReply, resetSwipeVisual]);
+
+	const handleMobileTouchCancel = useCallback(() => {
+		const state = swipeStateRef.current;
+		swipeStateRef.current = null;
+		endMessageLongPress();
+		if (state) resetSwipeVisual(state.messageId);
 	}, [endMessageLongPress, resetSwipeVisual]);
 
 	const scheduleMobileTap = useCallback(
@@ -702,6 +709,7 @@ export function ChatThreadMessages({
 				label: t("chat.actions.reply"),
 				icon: <Reply className="h-4 w-4" />,
 				onClick: () => void handleReply(message),
+				disabled: !canReply,
 			});
 		}
 
@@ -826,6 +834,7 @@ export function ChatThreadMessages({
 		isArchived,
 		t,
 		handleReply,
+		canReply,
 		handleCopy,
 		handleAddToSavedPhrases,
 		handleUnsend,
@@ -1341,7 +1350,7 @@ export function ChatThreadMessages({
                         style={{ touchAction: "pan-y" }}
                         onTouchStart={(event) => handleMobileTouchStart(event, message)}
                         onTouchEnd={handleMobileTouchEnd}
-                        onTouchCancel={handleMobileTouchEnd}
+                        onTouchCancel={handleMobileTouchCancel}
                         onTouchMove={(event) => handleMobileTouchMove(event, message)}
                         >
                             <div

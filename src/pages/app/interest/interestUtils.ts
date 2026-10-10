@@ -381,7 +381,9 @@ export function normalizeSentTaps(
 			tapType: toNumber(obj.tapType),
 			viewCount: null,
 			canOpenProfile: true,
-			isFromCache: !!match,
+			// Not a "recovered" entry — the endpoint always gives us the real
+			// receiver ID; the cache only fills in name/photo.
+			isFromCache: false,
 			isRead: obj.readOn != null,
 			onlineUntil: match?.onlineUntil ?? null,
 			rightNow: match?.rightNow ?? null,
@@ -449,7 +451,6 @@ export async function enrichSentTapsWithProfiles(
 			...item,
 			displayName: details.displayName ?? item.displayName,
 			imageHash: details.imageHash ?? item.imageHash,
-			isFromCache: true,
 		};
 	});
 }

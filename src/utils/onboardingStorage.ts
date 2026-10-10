@@ -23,3 +23,14 @@ export function markOnboardingComplete(): void {
 		// Ignore storage write failures.
 	}
 }
+
+export const REPLAY_ONBOARDING_EVENT = "fg:replay-onboarding";
+
+/** Re-shows the onboarding flow without touching the completed flag (dev tool). */
+export function replayOnboarding(): void {
+	if (typeof window === "undefined") {
+		return;
+	}
+
+	window.dispatchEvent(new Event(REPLAY_ONBOARDING_EVENT));
+}

@@ -250,6 +250,22 @@
         "phrase_facebook_handle_prefix_not": "o nome de usuário do Facebook do remetente não contém",
         "phrase_facebook_handle_suffix_not": " "
     },
+    "video_gallery": {
+        "title": "",
+        "open": "",
+        "loading": "",
+        "videos_count_one": "",
+        "videos_count_other": "",
+        "filter_albums": "",
+        "filter_chats": "",
+        "source_album": "",
+        "source_chat": "",
+        "video_alt": "",
+        "empty_title": "",
+        "empty_desc": "",
+        "error_load_title": "",
+        "error_load_fallback": ""
+    },
     "shared_albums": {
         "title": "Álbuns Compartilhados",
         "subtitle": "Veja todos os álbuns compartilhados pelas pessoas nos seus chats.",
@@ -843,6 +859,13 @@
         "show_right_now_desc": "Exiba a aba Right Now na navegação inferior.",
         "show_interest": "Aba de Interesse",
         "show_interest_desc": "Exiba a aba Interesses na navegação inferior.",
+        "show_video_gallery": "",
+        "show_video_gallery_desc": "",
+        "show_sexual_health": "",
+        "show_sexual_health_desc": "",
+        "show_locate": "",
+        "show_locate_desc": "",
+        "optional_features": "",
         "default_interest_view": "Exibição padrão da aba de Interesses",
         "interest_show_taps": "Toques primeiro",
         "interest_show_views": "Visualizações em Primeiro Lugar",
@@ -920,9 +943,7 @@
         "default_expiring_photos": "Definir fotos de 10 segundos como padrão",
         "default_expiring_photos_desc": "Novas fotos enviadas no chat usam automaticamente o temporizador de 10 segundos para mensagens temporárias, sem a necessidade de ativá-lo a cada vez.",
         "default_album_expiration": "Tempo padrão para o álbum expirar",
-        "default_album_expiration_desc": "Álbuns compartilhados no chat usam automaticamente essa expiração, sem a necessidade de escolhê-la a cada vez.",
-        "entitlement_bypass": "",
-        "entitlement_bypass_desc": ""
+        "default_album_expiration_desc": "Álbuns compartilhados no chat usam automaticamente essa expiração, sem a necessidade de escolhê-la a cada vez."
     },
     "notifications_page": {
         "subtitle": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicativo está aberto.",
@@ -1000,6 +1021,16 @@
             "method_token": "Token",
             "method_password": "E-mail e senha",
             "token_help": "Como obter seu token de autenticação",
+            "method_google": "",
+            "google_help": "",
+            "google_app_link": "",
+            "google_extension_link": "",
+            "google_step_get": "",
+            "google_step_get_hint": "",
+            "google_app_desc": "",
+            "google_extension_desc": "",
+            "google_step_paste": "",
+            "google_token_placeholder": "",
             "jwt_label": "Token JWT",
             "signing_in": "Entrando...",
             "submit": "Entrar",
@@ -1302,6 +1333,7 @@
             "invalid_location": "Formato de localização inválido",
             "missing_recipient": "Não foi possível determinar o destinatário da mensagem",
             "send_failed": "Falha ao enviar",
+            "reply_requires_realtime": "",
             "rate_limited": "O envio está sendo feito muito rápido. Aguarde e tente novamente.",
             "attachment_upload_send_failed": "Falha ao carregar/enviar anexos",
             "reupload_image": "Por favor, faça o upload desta imagem novamente.",
@@ -1517,7 +1549,10 @@
         "run_location_finder": "Executar localizador",
         "location_finder_running": "Localizador em execução",
         "location_finder": "Localizador",
-        "location_finder_confirm": "⚠️ Aviso: Localizador\n\nEste recurso funciona atualizando sua localização repetidamente no servidor para triangular a posição de outro usuário.\n\n• Isso pode levar vários minutos para ser concluído\n• Isso pode resultar na sinalização ou no banimento da sua conta\n\nDeseja continuar?",
+        "location_finder_confirm_title": "",
+        "location_finder_confirm_message": "",
+        "location_finder_confirm_warning": "",
+        "location_finder_confirm_start": "",
         "location_finder_error_distance": "Não foi possível obter a distância do alvo.",
         "location_finder_start": "Distância alvo: {{distance}}m. Iniciando {{rounds}} rodadas de triangulação.",
         "location_finder_round_complete": "Volta {{round}} concluída. {{lat}}, {{lon}}. Distância estimada: ~{{distance}}m.",
@@ -1853,6 +1888,36 @@
         "restricted": {
             "title": "",
             "description": ""
+        },
+        "ban_kinds": {
+            "profile": "",
+            "device": "",
+            "network": "",
+            "underage": ""
+        },
+        "details": {
+            "ban_type": "",
+            "sub_reason": "",
+            "automated": "",
+            "yes": "",
+            "no": "",
+            "reason": "",
+            "banned_until": "",
+            "region": ""
+        },
+        "timed_ban": {
+            "title": "",
+            "description": ""
+        },
+        "device_ban": {
+            "title": "",
+            "description": ""
+        },
+        "regions": {
+            "uk": "",
+            "br": "",
+            "au": "",
+            "us": ""
         }
     },
     "profile_photo_drawer": {
@@ -2048,6 +2113,7 @@
     "entitlement_bypass": {
         "prompt_title": "",
         "prompt_message": "",
+        "prompt_warning": "",
         "prompt_confirm": "",
         "prompt_cancel": "",
         "reason_expiring_photo": "",

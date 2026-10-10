@@ -4,6 +4,7 @@ import {
 	Bell,
 	CalendarDays,
 	CheckCheck,
+	Clapperboard,
 	ClipboardList,
 	DatabaseBackup,
 	Eye,
@@ -31,8 +32,8 @@ import {
 	Star,
 	Tag,
 	Timer,
-	Unlock,
 	ToggleRight,
+	Triangle,
 	Trash2,
 	Upload,
 	UserCircle,
@@ -42,6 +43,7 @@ import {
 } from "lucide-react";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL } from "../utils/githubIssues";
 import { useMemo } from "react";
+import { isSexualHealthEnabled } from "../utils/optionalFeatures";
 import { useTranslation } from "react-i18next";
 
 export type SettingsSearchEntry = {
@@ -67,6 +69,8 @@ export type SettingsSearchEntry = {
  */
 export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 	const { t } = useTranslation();
+
+	const showSexualHealth = isSexualHealthEnabled();
 
 	return useMemo<SettingsSearchEntry[]>(() => [
 		// Profile
@@ -149,6 +153,42 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-yellow-500/15 text-yellow-400",
 		},
 		{
+			id: "cust-show-video-gallery",
+			route: "/settings/customizability",
+			anchor: "cust-show-video-gallery",
+			label: t("customizability.show_video_gallery", { defaultValue: "Video Gallery" }),
+			description: t("customizability.show_video_gallery_desc", {
+				defaultValue: "Show a button in the inbox header that opens a gallery of all locally stored videos from chats and albums.",
+			}),
+			section: "Customizability",
+			icon: Clapperboard,
+			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
+			id: "cust-show-sexual-health",
+			route: "/settings/customizability",
+			anchor: "cust-show-sexual-health",
+			label: t("customizability.show_sexual_health", { defaultValue: "Sexual Health" }),
+			description: t("customizability.show_sexual_health_desc", {
+				defaultValue: "Show the Sexual Health section, its inbox header button and \"I met this person now\" in the chat menu.",
+			}),
+			section: "Customizability",
+			icon: HeartPulse,
+			iconClass: "bg-rose-500/15 text-rose-400",
+		},
+		{
+			id: "cust-show-locate",
+			route: "/settings/customizability",
+			anchor: "cust-show-locate",
+			label: t("customizability.show_locate", { defaultValue: "Locate" }),
+			description: t("customizability.show_locate_desc", {
+				defaultValue: "Show \"Locate\" in the profile menu to estimate a profile's position by triangulation.",
+			}),
+			section: "Customizability",
+			icon: Triangle,
+			iconClass: "bg-emerald-500/15 text-emerald-400",
+		},
+		{
 			id: "cust-language",
 			route: "/settings/customizability",
 			anchor: "cust-language",
@@ -216,19 +256,6 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			description: t("behavior.default_expiring_photos_desc"),
 			section: "Behavior",
 			icon: Timer,
-			iconClass: "bg-violet-500/15 text-violet-400",
-		},
-		{
-			id: "behavior-entitlement-bypass",
-			route: "/settings/behavior",
-			anchor: "behavior-entitlement-bypass",
-			label: t("behavior.entitlement_bypass", { defaultValue: "Paid feature bypass" }),
-			description: t("behavior.entitlement_bypass_desc", {
-				defaultValue:
-					"When Grindr refuses a paid feature (expiring photos over the daily limit, unsending, album sharing), offer to unlock it by briefly spoofing your location to Honduras. Against Grindr's terms of service — use at your own risk.",
-			}),
-			section: "Behavior",
-			icon: Unlock,
 			iconClass: "bg-violet-500/15 text-violet-400",
 		},
 		{
@@ -538,5 +565,5 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			icon: MessageSquareWarning,
 			iconClass: "bg-rose-500/15 text-rose-400",
 		},
-	], [t]);
+	].filter((entry) => showSexualHealth || entry.id !== "nav-sexual-health"), [t, showSexualHealth]);
 }

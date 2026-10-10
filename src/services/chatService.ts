@@ -332,7 +332,12 @@ export function createChatService(
 					const result = await sendViaRealtime("chat.v1.message.send", safePayload);
 					return messageSchema.parse(result);
 				} catch {
-					// replyToMessageId is WS-only — HTTP returns 400 if included
+					// replyToMessageId is WS-only — HTTP returns 400 if included.
+					// Don't fall back for replies: stripping it would silently send
+					// a plain message instead of the reply the user asked for.
+					if (safePayload.replyToMessageId) {
+						throw new Error(t("chat.errors.reply_requires_realtime"));
+					}
 					const { replyToMessageId: _r, ...httpPayload } = safePayload;
 					const response = await fetchRest("/v4/chat/message/send", {
 						method: "POST",

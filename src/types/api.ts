@@ -18,6 +18,12 @@ export const restrictionSchema = z.object({
 	kind: z.enum(["ageVerification", "timedBan", "trustVendorRejected", "other"]),
 	region: z.string().nullish(),
 	reason: z.string().nullish(),
+	/** Unix seconds a timed ban ends at. */
+	expiresAt: z.number().nullish(),
+	/** A timed ban's sub-category. */
+	subReason: z.string().nullish(),
+	/** Whether a timed ban was issued automatically. */
+	automated: z.boolean().nullish(),
 });
 export type Restriction = z.infer<typeof restrictionSchema>;
 
@@ -32,7 +38,7 @@ export const methodSchemas = {
 			restriction: restrictionSchema.nullish(),
 		}),
 	},
-	login_with_jwt: {
+	login_with_google: {
 		request: z.object({
 			token: z.string().min(1),
 		}),
@@ -65,7 +71,7 @@ export const methodSchemas = {
 	},
 	list_saved_accounts: {
 		request: z.undefined(),
-		// profileId stays a string here (unlike login/login_with_jwt's
+		// profileId stays a string here (unlike login/login_with_google's
 		// coerced number) since it round-trips straight back into
 		// switch_account/remove_saved_account's profile_id: String param —
 		// keeping it a string end to end avoids a number<->string mismatch

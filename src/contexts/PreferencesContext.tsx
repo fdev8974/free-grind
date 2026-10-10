@@ -152,8 +152,8 @@ const preferencesSchema = z.object({
 	geohash: geohashSchema.nullable().default(null),
 	locationName: z.string().nullable().optional(),
 	colorScheme: z.enum(["system", "light", "dark"]).default("dark"),
-	accentColor: z.string().default("#ffcc01"),
-	accentContrast: z.string().default("#1a1a1a"),
+	accentColor: z.string().default("#7c3aed"),
+	accentContrast: z.string().default("#ffffff"),
 	mobileGridColumns: z.enum(["2", "3"]).default("3"),
 	unitsPreset: z.enum(UNIT_PRESETS).default("world"),
 	blurIncomingMedia: z.boolean().default(false),
@@ -177,7 +177,6 @@ const preferencesSchema = z.object({
 	defaultAlbumExpirationType: z
 		.enum(["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"])
 		.default("INDEFINITE"),
-	entitlementBypassEnabled: z.boolean().default(false),
 });
 
 type Preferences = z.infer<typeof preferencesSchema>;
@@ -215,7 +214,6 @@ type PreferencesAction =
 	| { type: "SET_AUTO_FOCUS_LOCATION_SEARCH"; payload: boolean }
 	| { type: "SET_DEFAULT_EXPIRING_PHOTOS"; payload: boolean }
 	| { type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE"; payload: Preferences["defaultAlbumExpirationType"] }
-	| { type: "SET_ENTITLEMENT_BYPASS_ENABLED"; payload: boolean }
 	| { type: "SET_RIGHT_NOW_STATUS"; payload: { id: number | null; expiresAt: number | null } }
 	| { type: "SET_ACCENT"; payload: { color: string; contrast: string } };
 
@@ -270,8 +268,6 @@ function preferencesReducer(
 			return { ...state, defaultExpiringPhotos: action.payload };
 		case "SET_DEFAULT_ALBUM_EXPIRATION_TYPE":
 			return { ...state, defaultAlbumExpirationType: action.payload };
-		case "SET_ENTITLEMENT_BYPASS_ENABLED":
-			return { ...state, entitlementBypassEnabled: action.payload };
 		case "SET_RIGHT_NOW_STATUS":
 			return {
 				...state,
@@ -332,8 +328,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		geohash: null,
 		locationName: null,
 		colorScheme: "dark",
-		accentColor: "#ffcc01",
-		accentContrast: "#1a1a1a",
+		accentColor: "#7c3aed",
+		accentContrast: "#ffffff",
 		mobileGridColumns: "3",
 		unitsPreset: "world",
 		blurIncomingMedia: false,
@@ -355,7 +351,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusLocationSearch: true,
 		defaultExpiringPhotos: false,
 		defaultAlbumExpirationType: "INDEFINITE",
-		entitlementBypassEnabled: false,
 		isLoading: true,
 	});
 
@@ -398,7 +393,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: parsed.autoFocusLocationSearch });
 					dispatch({ type: "SET_DEFAULT_EXPIRING_PHOTOS", payload: parsed.defaultExpiringPhotos });
 					dispatch({ type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE", payload: parsed.defaultAlbumExpirationType });
-					dispatch({ type: "SET_ENTITLEMENT_BYPASS_ENABLED", payload: parsed.entitlementBypassEnabled });
 					dispatch({
 						type: "SET_RIGHT_NOW_STATUS",
 						payload: {
@@ -415,7 +409,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					// No stored preferences at all, apply device defaults immediately
 					dispatch({ type: "SET_REVEAL_EFFECT_STRENGTH", payload: deviceDefaultStrength });
 					// We also need to apply the theme with these defaults
-					applyTheme("dark", "#ffcc01", "#1a1a1a", deviceDefaultStrength);
+					applyTheme("dark", "#7c3aed", "#ffffff", deviceDefaultStrength);
 				}
 			} catch (error) {
 				appLog.error("Failed to load preferences:", error);
@@ -488,7 +482,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				autoFocusLocationSearch: currentState.autoFocusLocationSearch,
 				defaultExpiringPhotos: currentState.defaultExpiringPhotos,
 				defaultAlbumExpirationType: currentState.defaultAlbumExpirationType,
-				entitlementBypassEnabled: currentState.entitlementBypassEnabled,
 				activeRightNowId: currentState.activeRightNowId ?? null,
 				activeRightNowExpiresAt: currentState.activeRightNowExpiresAt ?? null,
 				...newValues,
@@ -569,9 +562,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			if (newValues.defaultAlbumExpirationType !== undefined) {
 				dispatch({ type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE", payload: newValues.defaultAlbumExpirationType });
 			}
-			if (newValues.entitlementBypassEnabled !== undefined) {
-				dispatch({ type: "SET_ENTITLEMENT_BYPASS_ENABLED", payload: newValues.entitlementBypassEnabled });
-			}
 			if (
 				newValues.activeRightNowId !== undefined ||
 				newValues.activeRightNowExpiresAt !== undefined
@@ -647,7 +637,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					autoFocusLocationSearch: preferences.autoFocusLocationSearch,
 					defaultExpiringPhotos: preferences.defaultExpiringPhotos,
 					defaultAlbumExpirationType: preferences.defaultAlbumExpirationType,
-					entitlementBypassEnabled: preferences.entitlementBypassEnabled,
 					activeRightNowId: preferences.activeRightNowId,
 					activeRightNowExpiresAt: preferences.activeRightNowExpiresAt,
 				}),
@@ -683,7 +672,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusLocationSearch: state.autoFocusLocationSearch,
 		defaultExpiringPhotos: state.defaultExpiringPhotos,
 		defaultAlbumExpirationType: state.defaultAlbumExpirationType,
-		entitlementBypassEnabled: state.entitlementBypassEnabled,
 		setPreferences,
 		isLoading: state.isLoading || !isLocationLoaded,
 	};

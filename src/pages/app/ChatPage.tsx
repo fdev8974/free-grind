@@ -1,4 +1,5 @@
 import { Images } from "lucide-react";
+import { PromptDialog } from "../../components/ui/prompt-dialog";
 import {
 	type FormEvent,
 	useCallback,
@@ -4657,19 +4658,22 @@ export function ChatPage() {
 		],
 	);
 
-	const editLocalNicknameFromChat = useCallback(
-		async (profileId: number, defaultName: string) => {
-			const profileKey = String(profileId);
-			const existingNickname = localNicknamesByProfileId[profileKey] ?? "";
-			const input = window.prompt(
-				t("chat.nicknames.prompt"),
-				existingNickname || defaultName,
-			);
-			if (input === null) {
+	const [nicknamePrompt, setNicknamePrompt] = useState<{ profileId: string; defaultName: string } | null>(null);
+	const [isSavingNickname, setIsSavingNickname] = useState(false);
+
+	const editLocalNicknameFromChat = useCallback((profileId: number, defaultName: string) => {
+		setNicknamePrompt({ profileId: String(profileId), defaultName });
+	}, []);
+
+	// An empty value clears the nickname.
+	const saveLocalNicknameFromChat = useCallback(
+		async (value: string) => {
+			if (!nicknamePrompt) {
 				return;
 			}
-
-			const normalized = input.trim();
+			const profileKey = nicknamePrompt.profileId;
+			const normalized = value.trim();
+			setIsSavingNickname(true);
 			try {
 				await setLocalNicknameForProfile(profileKey, normalized || null);
 				setLocalNicknamesByProfileId((previous) => {
@@ -4686,6 +4690,7 @@ export function ChatPage() {
 						? t("chat.nicknames.saved")
 						: t("chat.nicknames.cleared"),
 				);
+				setNicknamePrompt(null);
 			} catch (error) {
 				appLog.warn("[chat] failed to save local nickname", error);
 				const fallbackMessage = t("chat.nicknames.save_failed");
@@ -4698,9 +4703,11 @@ export function ChatPage() {
 				toast.error(
 					message || fallbackMessage,
 				);
+			} finally {
+				setIsSavingNickname(false);
 			}
 		},
-		[localNicknamesByProfileId, t],
+		[nicknamePrompt, t],
 	);
 
 	const sendTextMessage = useCallback(
@@ -5438,13 +5445,22 @@ export function ChatPage() {
 		});
 	};
 
+	// Replies are WS-only (the HTTP send endpoint rejects replyToMessageId),
+	// so block them outright while the socket is down.
+	const canReply = realtimeStatus === "connected";
+
 	const handleReplyToMessage = useCallback((message: UiMessage) => {
 		if (isLocalClientMessageId(message.messageId)) {
 			return;
 		}
+		if (!canReply) {
+			toast.error(t("chat.errors.reply_requires_realtime"));
+			setOpenMessageActionId(null);
+			return;
+		}
 		setReplyTargetMessageId(message.messageId);
 		setOpenMessageActionId(null);
-	}, []);
+	}, [canReply, t]);
 
 	const handleReact = async (message: UiMessage) => {
 		if (!selectedConversation || !userId || isMutatingMessageId) {
@@ -6511,6 +6527,7 @@ export function ChatPage() {
 			handleDelete={handleDelete}
 			handleRetry={handleRetry}
 			handleReply={handleReplyToMessage}
+			canReply={canReply}
 			handleStopAlbumShare={handleStopAlbumShare}
 			handleRemoveLocalAlbum={handleRemoveLocalAlbum}
 			threadBottomRef={threadBottomRef}
@@ -6713,6 +6730,28 @@ export function ChatPage() {
 						</p>
 					);
 				}}
+			/>
+			<PromptDialog
+				isOpen={nicknamePrompt !== null}
+				title={
+					nicknamePrompt && localNicknamesByProfileId[nicknamePrompt.profileId]
+						? t("chat.nicknames.edit")
+						: t("chat.nicknames.set")
+				}
+				message={t("chat.nicknames.prompt")}
+				defaultValue={
+					nicknamePrompt
+						? localNicknamesByProfileId[nicknamePrompt.profileId] ?? nicknamePrompt.defaultName
+						: ""
+				}
+				placeholder={nicknamePrompt?.defaultName || undefined}
+				confirmLabel={t("common.save", { defaultValue: "Save" })}
+				cancelLabel={t("chat.actions.cancel")}
+				onConfirm={saveLocalNicknameFromChat}
+				onCancel={() => setNicknamePrompt(null)}
+				isProcessing={isSavingNickname}
+				allowEmpty
+				rows={1}
 			/>
 		</section>
 	);
