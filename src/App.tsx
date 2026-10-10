@@ -55,7 +55,7 @@ import { SinModeUnlockOverlay } from "./components/SinModeUnlockOverlay";
 import { usePreferences } from "./contexts/PreferencesContext";
 import ManagerApp from "./ManagerApp";
 import { getRuntimeContext } from "./services/runtimeContext";
-import { hasCompletedOnboarding } from "./utils/onboardingStorage";
+import { hasCompletedOnboarding, REPLAY_ONBOARDING_EVENT } from "./utils/onboardingStorage";
 import { getLastSeenAnnouncementVersion, markAnnouncementSeen } from "./utils/announcementStorage";
 import { VERSION_ANNOUNCEMENTS } from "./data/versionAnnouncements";
 import { useRenderPhase } from "./hooks/useRenderPhase";
@@ -159,6 +159,12 @@ export default function App() {
 	// tracking, entitlements fetch) doesn't all land in the same first commit
 	// as the initial route.
 	const renderPhase = useRenderPhase(5);
+
+	useEffect(() => {
+		const handleReplay = () => setShowOnboarding(true);
+		window.addEventListener(REPLAY_ONBOARDING_EVENT, handleReplay);
+		return () => window.removeEventListener(REPLAY_ONBOARDING_EVENT, handleReplay);
+	}, []);
 
 	const handleOnboardingComplete = () => {
 		// A fresh install is already on the current version — it shouldn't

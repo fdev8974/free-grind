@@ -304,7 +304,7 @@ export function CustomizabilityPage() {
 											<input
 												id="accent-color-picker"
 												type="color"
-												value={normalizeHex(customHex) || "#ffcc01"}
+												value={normalizeHex(customHex) || "#7c3aed"}
 												onChange={(event) => handlePickColor(event.target.value)}
 												className="sr-only"
 											/>

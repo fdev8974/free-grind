@@ -152,8 +152,8 @@ const preferencesSchema = z.object({
 	geohash: geohashSchema.nullable().default(null),
 	locationName: z.string().nullable().optional(),
 	colorScheme: z.enum(["system", "light", "dark"]).default("dark"),
-	accentColor: z.string().default("#ffcc01"),
-	accentContrast: z.string().default("#1a1a1a"),
+	accentColor: z.string().default("#7c3aed"),
+	accentContrast: z.string().default("#ffffff"),
 	mobileGridColumns: z.enum(["2", "3"]).default("3"),
 	unitsPreset: z.enum(UNIT_PRESETS).default("world"),
 	blurIncomingMedia: z.boolean().default(false),
@@ -328,8 +328,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		geohash: null,
 		locationName: null,
 		colorScheme: "dark",
-		accentColor: "#ffcc01",
-		accentContrast: "#1a1a1a",
+		accentColor: "#7c3aed",
+		accentContrast: "#ffffff",
 		mobileGridColumns: "3",
 		unitsPreset: "world",
 		blurIncomingMedia: false,
@@ -409,7 +409,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					// No stored preferences at all, apply device defaults immediately
 					dispatch({ type: "SET_REVEAL_EFFECT_STRENGTH", payload: deviceDefaultStrength });
 					// We also need to apply the theme with these defaults
-					applyTheme("dark", "#ffcc01", "#1a1a1a", deviceDefaultStrength);
+					applyTheme("dark", "#7c3aed", "#ffffff", deviceDefaultStrength);
 				}
 			} catch (error) {
 				appLog.error("Failed to load preferences:", error);
