@@ -1018,13 +1018,16 @@ export function GridPage() {
 
 		if (sortBy === "default") {
 			results = allCards;
+		} else if (sortBy === "distance") {
+			// Profiles that hide their distance keep their original slot in the
+			// server order; only the slots of profiles with a distance get re-sorted.
+			const withDistance = allCards
+				.filter((card) => card.distanceMeters != null)
+				.sort((a, b) => a.distanceMeters! - b.distanceMeters!);
+			let nextWithDistance = 0;
+			results = allCards.map((card) => card.distanceMeters == null ? card : withDistance[nextWithDistance++]);
 		} else {
 			results = [...allCards].sort((a, b) => {
-				if (sortBy === "distance") {
-					const distA = a.distanceMeters ?? Infinity;
-					const distB = b.distanceMeters ?? Infinity;
-					return distA - distB;
-				}
 				if (sortBy === "age-asc") {
 					const ageA = a.age ?? Infinity;
 					const ageB = b.age ?? Infinity;
