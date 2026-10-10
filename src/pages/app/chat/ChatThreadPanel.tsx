@@ -205,6 +205,7 @@ type ChatThreadPanelProps = {
 	handleDelete: (message: Message) => void | Promise<void>;
 	handleRetry: (message: Message) => void;
 	handleReply: (message: Message) => void | Promise<void>;
+	canReply: boolean;
 	handleStopAlbumShare: (albumId: number) => void | Promise<void>;
 	handleRemoveLocalAlbum: (albumId: number) => void | Promise<void>;
 	threadBottomRef: { current: HTMLDivElement | null };
@@ -616,6 +617,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		handleDelete,
 		handleRetry,
 		handleReply,
+		canReply,
 		handleStopAlbumShare,
 		handleRemoveLocalAlbum,
 		threadBottomRef,
@@ -1867,6 +1869,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						handleDelete={handleDelete}
 						handleRetry={handleRetry}
 						handleReply={handleReply}
+						canReply={canReply}
 						handleStopAlbumShare={handleStopAlbumShare}
 						handleRemoveLocalAlbum={handleRemoveLocalAlbum}
 						threadBottomRef={threadBottomRef}
@@ -2831,7 +2834,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											icon: <Reply className="h-3.5 w-3.5" />,
 											label: t("chat.actions.reply", { defaultValue: "Reply" }),
 											onClick: () => void handleReply(message),
-											disabled: isMutating,
+											disabled: isMutating || !canReply,
 										});
 									}
 

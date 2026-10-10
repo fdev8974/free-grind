@@ -1300,6 +1300,7 @@
             "invalid_location": "Format d'emplacement non valide",
             "missing_recipient": "Impossible de déterminer le destinataire du message",
             "send_failed": "Échec de l'envoi",
+            "reply_requires_realtime": "",
             "rate_limited": "Envois trop fréquents. Veuillez patienter et réessayer.",
             "attachment_upload_send_failed": "Échec de l'importation de la pièce jointe",
             "reupload_image": "Veuillez importer cette image à nouveau.",

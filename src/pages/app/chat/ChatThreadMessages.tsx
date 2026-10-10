@@ -90,6 +90,7 @@ type ChatThreadMessagesProps = {
 	handleDelete: (message: Message) => void | Promise<void>;
 	handleRetry: (message: Message) => void;
 	handleReply: (message: Message) => void | Promise<void>;
+	canReply: boolean;
 	handleStopAlbumShare: (albumId: number) => void | Promise<void>;
 	handleRemoveLocalAlbum: (albumId: number) => void | Promise<void>;
 	threadBottomRef: { current: HTMLDivElement | null };
@@ -318,6 +319,7 @@ export function ChatThreadMessages({
 	handleDelete,
 	handleRetry,
 	handleReply,
+	canReply,
 	handleStopAlbumShare,
 	handleRemoveLocalAlbum,
 	threadBottomRef,
@@ -707,6 +709,7 @@ export function ChatThreadMessages({
 				label: t("chat.actions.reply"),
 				icon: <Reply className="h-4 w-4" />,
 				onClick: () => void handleReply(message),
+				disabled: !canReply,
 			});
 		}
 
@@ -831,6 +834,7 @@ export function ChatThreadMessages({
 		isArchived,
 		t,
 		handleReply,
+		canReply,
 		handleCopy,
 		handleAddToSavedPhrases,
 		handleUnsend,

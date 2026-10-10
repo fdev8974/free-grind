@@ -1289,6 +1289,7 @@
             "invalid_location": "Ungültiges Standortformat",
             "missing_recipient": "Empfänger konnte nicht ermittelt werden",
             "send_failed": "Senden fehlgeschlagen",
+            "reply_requires_realtime": "",
             "rate_limited": "Zu schnelles Senden. Bitte kurz warten.",
             "attachment_upload_send_failed": "Hochladen/Senden des Anhangs fehlgeschlagen",
             "reupload_image": "Bitte lade dieses Bild erneut hoch.",

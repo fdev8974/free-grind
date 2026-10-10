@@ -5438,13 +5438,22 @@ export function ChatPage() {
 		});
 	};
 
+	// Replies are WS-only (the HTTP send endpoint rejects replyToMessageId),
+	// so block them outright while the socket is down.
+	const canReply = realtimeStatus === "connected";
+
 	const handleReplyToMessage = useCallback((message: UiMessage) => {
 		if (isLocalClientMessageId(message.messageId)) {
 			return;
 		}
+		if (!canReply) {
+			toast.error(t("chat.errors.reply_requires_realtime"));
+			setOpenMessageActionId(null);
+			return;
+		}
 		setReplyTargetMessageId(message.messageId);
 		setOpenMessageActionId(null);
-	}, []);
+	}, [canReply, t]);
 
 	const handleReact = async (message: UiMessage) => {
 		if (!selectedConversation || !userId || isMutatingMessageId) {
@@ -6511,6 +6520,7 @@ export function ChatPage() {
 			handleDelete={handleDelete}
 			handleRetry={handleRetry}
 			handleReply={handleReplyToMessage}
+			canReply={canReply}
 			handleStopAlbumShare={handleStopAlbumShare}
 			handleRemoveLocalAlbum={handleRemoveLocalAlbum}
 			threadBottomRef={threadBottomRef}

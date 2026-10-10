@@ -1290,6 +1290,7 @@
       "invalid_location": "Invalid location format",
       "missing_recipient": "Unable to determine message recipient",
       "send_failed": "Failed to send",
+      "reply_requires_realtime": "Replies need a live connection. Reconnecting — try again in a moment.",
       "rate_limited": "Sending too fast. Please wait and retry.",
       "attachment_upload_send_failed": "Attachment upload/send failed",
       "reupload_image": "Please re-upload this image.",

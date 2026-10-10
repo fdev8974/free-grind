@@ -1301,6 +1301,7 @@
             "invalid_location": "",
             "missing_recipient": "",
             "send_failed": "",
+            "reply_requires_realtime": "",
             "rate_limited": "",
             "attachment_upload_send_failed": "",
             "reupload_image": "",

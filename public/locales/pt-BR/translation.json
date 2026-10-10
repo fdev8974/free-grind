@@ -1300,6 +1300,7 @@
             "invalid_location": "Formato de localização inválido",
             "missing_recipient": "Não foi possível determinar o destinatário da mensagem",
             "send_failed": "Falha ao enviar",
+            "reply_requires_realtime": "",
             "rate_limited": "O envio está sendo feito muito rápido. Aguarde e tente novamente.",
             "attachment_upload_send_failed": "Falha ao carregar/enviar anexos",
             "reupload_image": "Por favor, faça o upload desta imagem novamente.",

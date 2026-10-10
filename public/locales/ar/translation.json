@@ -1337,6 +1337,7 @@
             "invalid_location": "تنسيق موقع غير صالح",
             "missing_recipient": "تعذر تحديد مستلم الرسالة",
             "send_failed": "فشل الإرسال",
+            "reply_requires_realtime": "",
             "rate_limited": "اتإرسال بسرعة كبيرة. الانتظار والمحاولة تاني.",
             "attachment_upload_send_failed": "فشل تحميل/إرسال المرفقات",
             "reupload_image": "إعادة تحميل هذه الصورة.",
