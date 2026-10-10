@@ -215,8 +215,8 @@ function ConversationContextMenu({
 			>
 				{isHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
 				{isHidden
-					? t("chat.unhide_conversation", { defaultValue: "Unhide" })
-					: t("chat.hide_conversation", { defaultValue: "Hide" })}
+					? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
+					: t("chat.hide_conversation", { defaultValue: "Hide chat" })}
 			</button>
 			<div className="-mx-2 mt-1 border-t border-[var(--border)] pt-1" />
 			<button

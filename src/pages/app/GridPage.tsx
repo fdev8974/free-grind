@@ -1820,6 +1820,14 @@ export function GridPage() {
 				activeProfilePhotoHashes={activeProfilePhotoHashes}
 				chatContactStatus={selectedProfileChatContact}
 				localNickname={selectedProfileLocalNickname}
+				onLocalNicknameChange={(profileId, nickname) => {
+					setLocalNicknamesByProfileId((previous) => {
+						const next = { ...previous };
+						if (nickname) next[profileId] = nickname;
+						else delete next[profileId];
+						return next;
+					});
+				}}
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>

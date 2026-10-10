@@ -26,6 +26,7 @@ import { SettingsHiddenPage } from "./pages/app/SettingsHiddenPage.tsx";
 import { SettingsBlockHistoryPage } from "./pages/app/SettingsBlockHistoryPage.tsx";
 import { AgeVerificationPage } from "./pages/app/AgeVerificationPage.tsx";
 import { SharedAlbumsPage } from "./pages/app/SharedAlbumsPage.tsx";
+import { VideoGalleryPage } from "./pages/app/VideoGalleryPage.tsx";
 import { ApiInspectorPage } from "./pages/app/ApiInspectorPage.tsx";
 import { CustomizabilityPage } from "./pages/app/CustomizabilityPage.tsx";
 import { BehaviorPage } from "./pages/app/BehaviorPage.tsx";
@@ -233,6 +234,7 @@ export default function App() {
 								<Route path="/interest" element={<InterestPage />} />
 								<Route path="/chat/filters" element={<ChatFiltersPage />} />
 								<Route path="/chat/albums" element={<SharedAlbumsPage />} />
+								<Route path="/chat/videos" element={<VideoGalleryPage />} />
 								<Route path="/chat/:conversationId?" element={<ChatPage />} />
 								<Route path="/profile/:profileId" element={<GridProfilePage />} />
 								<Route path="/settings" element={<SettingsPage />} />

@@ -67,6 +67,7 @@ import { getThumbImageUrl } from "../../utils/media";
 import { getSavedAccountProfile, removeSavedAccountProfile } from "../../services/savedAccountProfiles";
 import { isAndroid } from "../../services/saveMedia";
 import { useSettingsSearchIndex } from "../../data/settingsSearchIndex";
+import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
 import { replayOnboarding } from "../../utils/onboardingStorage";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
 
@@ -892,15 +893,16 @@ export function SettingsPage() {
 							t("settings.privacy"),
 							t("settings.privacy_desc"),
 						)}
-						{navRow(
-							() => navigate("/settings/sexual-health"),
-							<HeartPulse className="h-5 w-5" />,
-							"bg-rose-500/15 text-rose-400",
-							t("settings.sexual_health", { defaultValue: "Sexual Health" }),
-							t("settings.sexual_health_desc", {
-								defaultValue: "Track PrEP doses, encounters, tests and appointments.",
-							}),
-						)}
+						{isSexualHealthEnabled() &&
+							navRow(
+								() => navigate("/settings/sexual-health"),
+								<HeartPulse className="h-5 w-5" />,
+								"bg-rose-500/15 text-rose-400",
+								t("settings.sexual_health", { defaultValue: "Sexual Health" }),
+								t("settings.sexual_health_desc", {
+									defaultValue: "Track PrEP doses, encounters, tests and appointments.",
+								}),
+							)}
 					</div>
 				</div>
 

@@ -32,7 +32,9 @@ import type {
 	MediaFileUpsertInput,
 	StoredAlbum,
 	StoredAlbumMedia,
+	StoredAlbumVideo,
 	StoredAvatar,
+	StoredChatVideo,
 	StoredBlockEvent,
 	StoredConversation,
 	StoredMediaFile,
@@ -1783,6 +1785,41 @@ export async function getMediaFilesForConversation(
 	return rows.map((row) => ({ ...rowToStoredMediaFile(row), senderId: row.sender_id }));
 }
 
+/**
+ * Every successfully-cached video received in any chat (sent by someone
+ * other than `userId`), newest first — metadata only, the bytes are loaded
+ * per item via getMediaFile. Media without a message to join against (e.g.
+ * reply-quote preview captures) is skipped, since its sender is unknown and
+ * could just as well be the user's own.
+ */
+export async function getAllReceivedChatVideos(userId: number | null): Promise<StoredChatVideo[]> {
+	const db = await getDb();
+	const rows = await db.select<
+		{ media_key: string; conversation_id: string; mime_type: string | null; sender_id: number; timestamp: number }[]
+	>(
+		`
+		SELECT mf.media_key, mf.conversation_id, mf.mime_type, m.sender_id,
+			COALESCE(m.timestamp, mf.fetched_at) AS timestamp
+		FROM media_files mf
+		JOIN messages m ON m.message_id = mf.message_id
+		WHERE mf.kind = 'video'
+			AND mf.fetch_status = 'ok'
+			AND mf.conversation_id IS NOT NULL
+			AND mf.media_key NOT LIKE 'drawer:%'
+			${userId != null ? "AND m.sender_id != $1" : ""}
+		ORDER BY timestamp DESC
+		`,
+		userId != null ? [userId] : [],
+	);
+	return rows.map((row) => ({
+		mediaKey: row.media_key,
+		conversationId: row.conversation_id,
+		mimeType: row.mime_type,
+		senderId: row.sender_id,
+		timestamp: row.timestamp,
+	}));
+}
+
 // ---------------------------------------------------------------------------
 // Albums
 // ---------------------------------------------------------------------------
@@ -1981,6 +2018,63 @@ export async function getAlbumMedia(albumId: string): Promise<StoredAlbumMedia[]
 		[albumId],
 	);
 	return rows.map(rowToStoredAlbumMedia);
+}
+
+type AlbumVideoRow = {
+	content_id: string;
+	album_id: string;
+	content_type: string | null;
+	thumb_data_base64: string | null;
+	album_name: string | null;
+	owner_profile_id: string | null;
+	conversation_id: string | null;
+	album_updated_at: number | null;
+};
+
+/**
+ * Every fully-captured video across all locally stored albums, without the
+ * (potentially huge) video bytes themselves — those are loaded one at a time
+ * via getAlbumMediaData when actually played. The thumbnail is only returned
+ * when it's a separate preview (captureAlbumContent falls back to storing
+ * the raw video bytes as the "thumb" when the item has no thumbUrl).
+ */
+export async function getAllAlbumVideos(): Promise<StoredAlbumVideo[]> {
+	const db = await getDb();
+	const rows = await db.select<AlbumVideoRow[]>(
+		`
+		SELECT
+			m.content_id, m.album_id, m.content_type,
+			CASE WHEN m.thumb_data_base64 IS NOT m.data_base64 THEN m.thumb_data_base64 END AS thumb_data_base64,
+			a.album_name, a.owner_profile_id, a.conversation_id, a.updated_at AS album_updated_at
+		FROM album_media m
+		LEFT JOIN albums a ON a.album_id = m.album_id
+		WHERE m.content_type LIKE 'video/%' AND m.data_base64 IS NOT NULL
+		ORDER BY a.updated_at DESC, m.album_id, m.position IS NULL, m.position ASC
+		`,
+	);
+	return rows.map((row) => ({
+		contentId: row.content_id,
+		albumId: row.album_id,
+		contentType: row.content_type,
+		thumbDataBase64: row.thumb_data_base64,
+		albumName: row.album_name,
+		ownerProfileId: row.owner_profile_id,
+		conversationId: row.conversation_id,
+		albumUpdatedAt: row.album_updated_at,
+	}));
+}
+
+/** The stored bytes of a single album content item (composite `${albumId}:${contentId}` key). */
+export async function getAlbumMediaData(
+	contentId: string,
+): Promise<{ contentType: string | null; dataBase64: string } | null> {
+	const db = await getDb();
+	const rows = await db.select<{ content_type: string | null; data_base64: string | null }[]>(
+		"SELECT content_type, data_base64 FROM album_media WHERE content_id = $1",
+		[contentId],
+	);
+	const row = rows[0];
+	return row?.data_base64 ? { contentType: row.content_type, dataBase64: row.data_base64 } : null;
 }
 
 // ---------------------------------------------------------------------------

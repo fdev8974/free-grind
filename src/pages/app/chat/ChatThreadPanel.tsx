@@ -66,6 +66,7 @@ import type { ProfileDetail } from "../../../types/grid";
 import type { DrawerMedia } from "./ChatDrawerPanel";
 import { ChatDrawerPanel } from "./ChatDrawerPanel";
 import { EncounterLogSheet } from "../sexual-health/EncounterLogSheet";
+import { isSexualHealthEnabled } from "../../../utils/optionalFeatures";
 import { decodeGeohash } from "../../../utils/geohash";
 import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
@@ -369,6 +370,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const [banNamePrompt, setBanNamePrompt] = useState<{ text: string } | null>(null);
 	const [isSavedPhrasesOpen, setIsSavedPhrasesOpen] = useState(false);
 	const [isEncounterSheetOpen, setIsEncounterSheetOpen] = useState(false);
+	const [showSexualHealth] = useState(isSexualHealthEnabled);
 	const [phrasesExpanded, setPhrasesExpanded] = useState(false);
 	const [isGiphyPickerOpen, setIsGiphyPickerOpen] = useState(false);
 	const [newPhraseInput, setNewPhraseInput] = useState("");
@@ -1458,7 +1460,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												{t("chat.view_profile")}
 											</button>
 											)}
-											{!isArchived && profileId != null && (
+											{!isArchived && profileId != null && showSexualHealth && (
 											<button
 												type="button"
 												onClick={() => {
@@ -1628,8 +1630,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											>
 												{isHidden ? <Eye className="mr-2 h-4 w-4 opacity-70" /> : <EyeOff className="mr-2 h-4 w-4 opacity-70" />}
 												{isHidden
-													? t("chat.unhide_conversation", { defaultValue: "Unhide" })
-													: t("chat.hide_conversation", { defaultValue: "Hide" })}
+													? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
+													: t("chat.hide_conversation", { defaultValue: "Hide chat" })}
 											</button>
 											{!isArchived && (
 												<button

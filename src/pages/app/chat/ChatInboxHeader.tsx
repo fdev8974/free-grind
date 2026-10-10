@@ -1,6 +1,6 @@
-import { Images, Loader2, Mail, Pill, Search, SlidersHorizontal, Star, X } from "lucide-react";
+import { Clapperboard, Images, Loader2, Mail, Pill, Search, SlidersHorizontal, Star, X } from "lucide-react";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
-import { type CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { PageHeaderBackground } from "../../../components/ui/PageHeaderBackground";
@@ -10,6 +10,7 @@ import { cn } from "../../../utils/cn";
 import type { InboxFilters } from "../../../types/messages";
 import type { InboxVisibilityFilter } from "../../../types/chat-page";
 import { useInboxSyncStatus } from "../../../hooks/useInboxSyncStatus";
+import { isSexualHealthEnabled, isVideoGalleryEnabled } from "../../../utils/optionalFeatures";
 
 type RealtimeStatusMeta = { className: string; symbol: string; label: string };
 
@@ -97,6 +98,8 @@ export function ChatInboxHeader({
 }: ChatInboxHeaderProps) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
+	const [showVideoGallery] = useState(isVideoGalleryEnabled);
+	const [showSexualHealth] = useState(isSexualHealthEnabled);
 
 	return (
 		<header className="relative z-20 shrink-0 pointer-events-none">
@@ -125,7 +128,7 @@ export function ChatInboxHeader({
 						</div>
 
 						<div className="flex shrink-0 items-center gap-0.5">
-							{!isSearchOpen && (
+							{!isSearchOpen && showSexualHealth && (
 								<button
 									type="button"
 									onClick={() => navigate("/settings/sexual-health", { state: { from: "inbox" } })}
@@ -133,6 +136,16 @@ export function ChatInboxHeader({
 									aria-label={t("sexualHealth.title", { defaultValue: "Sexual Health" })}
 								>
 									<Pill className="h-5 w-5" />
+								</button>
+							)}
+							{!isSearchOpen && showVideoGallery && (
+								<button
+									type="button"
+									onClick={() => navigate("/chat/videos")}
+									className="rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									aria-label={t("video_gallery.open", { defaultValue: "Videos" })}
+								>
+									<Clapperboard className="h-5 w-5" />
 								</button>
 							)}
 							{!isSearchOpen && (

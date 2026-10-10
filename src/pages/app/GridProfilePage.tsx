@@ -587,6 +587,7 @@ export function GridProfilePage() {
 				activeProfilePhotoHashes={activeProfilePhotoHashes}
 				chatContactStatus={chatContactStatus}
 				localNickname={localNickname}
+				onLocalNicknameChange={(_profileId, nickname) => setLocalNickname(nickname)}
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>

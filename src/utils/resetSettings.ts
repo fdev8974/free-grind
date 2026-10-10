@@ -1,6 +1,7 @@
 import * as chatDb from "../services/chatDb";
 import { PREFERENCES_STORAGE_KEY } from "../contexts/PreferencesContext";
 import { SKIP_BLOCK_CONFIRM_KEY, SKIP_DELETE_CONVERSATION_CONFIRM_KEY } from "./blockConfirm";
+import { SHOW_LOCATE_KEY, SHOW_SEXUAL_HEALTH_KEY, SHOW_VIDEO_GALLERY_KEY } from "./optionalFeatures";
 import { CHAT_NOTIFICATIONS_ENABLED_KEY, TAP_NOTIFICATIONS_ENABLED_KEY, FOREGROUND_NOTIFICATIONS_ENABLED_KEY } from "./notificationSettings";
 
 // localStorage keys owned by individual feature files that don't export a
@@ -13,6 +14,9 @@ const RESETTABLE_LOCAL_STORAGE_KEYS = [
 	"open-grind:right-now-filters",
 	"fg-show-right-now",
 	"fg-show-interest",
+	SHOW_VIDEO_GALLERY_KEY,
+	SHOW_SEXUAL_HEALTH_KEY,
+	SHOW_LOCATE_KEY,
 	"fg-interest-default-tab",
 	"fg-interest-last-tab",
 	SKIP_BLOCK_CONFIRM_KEY,

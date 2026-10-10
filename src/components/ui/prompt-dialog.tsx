@@ -12,6 +12,10 @@ type PromptDialogProps = {
 	onConfirm: (value: string) => void | Promise<void>;
 	onCancel: () => void;
 	isProcessing?: boolean;
+	/** Lets the user confirm an empty value (e.g. to clear something) instead of disabling the confirm button. */
+	allowEmpty?: boolean;
+	/** Textarea height; 1 makes it a single-line field where Enter confirms. */
+	rows?: number;
 };
 
 export function PromptDialog({
@@ -25,6 +29,8 @@ export function PromptDialog({
 	onConfirm,
 	onCancel,
 	isProcessing = false,
+	allowEmpty = false,
+	rows = 3,
 }: PromptDialogProps) {
 	const dialogRef = useRef<HTMLDialogElement | null>(null);
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -90,7 +96,7 @@ export function PromptDialog({
 	const trimmed = value.trim();
 
 	const handleSubmit = () => {
-		if (!trimmed || isProcessing) {
+		if ((!trimmed && !allowEmpty) || isProcessing) {
 			return;
 		}
 		void onConfirm(trimmed);
@@ -115,8 +121,14 @@ export function PromptDialog({
 					value={value}
 					onChange={(event) => setValue(event.target.value)}
 					placeholder={placeholder}
+					onKeyDown={(event) => {
+						if (rows === 1 && event.key === "Enter" && !event.shiftKey) {
+							event.preventDefault();
+							handleSubmit();
+						}
+					}}
 					disabled={isProcessing}
-					rows={3}
+					rows={rows}
 					className="mt-4 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)] disabled:opacity-60"
 				/>
 
@@ -132,7 +144,7 @@ export function PromptDialog({
 					<button
 						type="button"
 						onClick={handleSubmit}
-						disabled={isProcessing || !trimmed}
+						disabled={isProcessing || (!trimmed && !allowEmpty)}
 						className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
 					>
 						{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
