@@ -188,6 +188,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			icon: Triangle,
 			iconClass: "bg-emerald-500/15 text-emerald-400",
 		},
+
 		{
 			id: "cust-language",
 			route: "/settings/customizability",
@@ -308,6 +309,25 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-[var(--surface-2)] text-[var(--text-muted)]",
 		},
 
+		{
+			id: "nav-translation",
+			route: "/settings/translation",
+			label: t("settings.translation", { defaultValue: "Translation" }),
+			description: t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." }),
+			section: "Chat",
+			icon: Languages,
+			iconClass: "bg-cyan-500/15 text-cyan-400",
+		},
+		{
+			id: "translation-api-key",
+			route: "/settings/translation",
+			anchor: "translation-api-key",
+			label: t("auto_translate.api_section", { defaultValue: "Provider & API key" }),
+			description: t("auto_translate.api_key_desc", { defaultValue: "Used for all chat translations. One key for the whole app, stored only on this device." }),
+			section: "Translation",
+			icon: Languages,
+			iconClass: "bg-cyan-500/15 text-cyan-400",
+		},
 		{
 			id: "nav-automation",
 			route: "/settings/automation",

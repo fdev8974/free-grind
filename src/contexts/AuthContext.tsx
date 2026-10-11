@@ -26,6 +26,7 @@ import { clearAllCaches } from "../pages/app/gridpage/cache";
 import { loadAutomationCache } from "../utils/autoblock";
 import { loadAutomationRulesCache } from "../utils/automationRules";
 import { loadPrivacyCache } from "../utils/privacy";
+import { loadAutoTranslateCache } from "../utils/autoTranslate";
 import { loadSeenCache } from "../services/seenStore";
 import { runInboxSync } from "../services/inboxSync";
 import { runTapsAutomationSync } from "../services/tapsSync";
@@ -390,6 +391,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				loadAutomationCache(),
 				loadAutomationRulesCache(),
 				loadPrivacyCache(),
+				loadAutoTranslateCache(),
 				loadSeenCache(),
 			]);
 			dispatch({ type: "SET_SETTINGS_READY", payload: true });

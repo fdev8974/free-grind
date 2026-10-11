@@ -10,6 +10,7 @@ import {
 	EllipsisVertical,
 	Eye,
 	EyeOff,
+	Languages,
 	Star,
 	GitMerge,
 	GripVertical,
@@ -95,6 +96,8 @@ import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden } from "../../../utils/privacy";
+import { toggleAutoTranslate } from "../../../utils/autoTranslate";
+import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
 import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
@@ -903,6 +906,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
         }
     }, [selectedConversation]);
 
+	const messageTranslations = useMessageTranslations(
+		selectedConversation?.data.conversationId ?? null,
+		threadMessages,
+		userId,
+	);
+	const autoTranslateEnabled = messageTranslations.autoEnabled;
+
 	const closeBlockConfirm = () => {
 		if (isBlockingProfile) {
 			return;
@@ -1525,6 +1535,27 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													{t("chat.received_media")}
 												</button>
 											)}
+											{messageTranslations.available && (
+											<button
+												type="button"
+												onClick={() => {
+													if (!selectedConversation) return;
+													setIsHeaderActionsMenuOpen(false);
+													const enabled = toggleAutoTranslate(selectedConversation.data.conversationId);
+													toast.success(enabled ? t("auto_translate.enabled_toast", { defaultValue: "Auto-translate turned on for this chat." }) : t("auto_translate.disabled_toast", { defaultValue: "Auto-translate turned off for this chat." }));
+												}}
+												disabled={!selectedConversation}
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+											>
+												<Languages className="mr-2 h-4 w-4 opacity-70" />
+												<span className="flex flex-col">
+													<span>{t("auto_translate.chat_menu_label", { defaultValue: "Auto-translate" })}</span>
+													<span className="text-xs text-[var(--text-muted)]">
+														{autoTranslateEnabled ? t("auto_translate.chat_menu_on", { defaultValue: "On" }) : t("auto_translate.chat_menu_off", { defaultValue: "Off" })}
+													</span>
+												</span>
+											</button>
+											)}
 											{showReadReceiptToggle && !isArchived && (
 												<button
 													type="button"
@@ -1879,6 +1910,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						isArchived={isArchived}
 						ownProfilePhotoUrl={ownProfilePhotoUrl}
 						localNickname={localNickname}
+						messageTranslations={messageTranslations}
 				/>
 				)
 			) : (
@@ -2855,6 +2887,18 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											icon: <MessageSquarePlus className="h-3.5 w-3.5" />,
 											label: t("chat.actions.add_to_saved_phrases", { defaultValue: "Add to saved phrases" }),
 											onClick: () => void handleAddMessageToSavedPhrases(body.text),
+										});
+									}
+
+									if (
+										messageTranslations.canTranslate(message.messageId) &&
+										!messageTranslations.translations.has(message.messageId)
+									) {
+										rows.push({
+											key: "translate",
+											icon: <Languages className="h-3.5 w-3.5" />,
+											label: t("auto_translate.translate_message", { defaultValue: "Translate" }),
+											onClick: () => messageTranslations.translateMessage(message.messageId),
 										});
 									}
 

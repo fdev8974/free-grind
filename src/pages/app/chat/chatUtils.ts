@@ -570,6 +570,51 @@ export function getMessageText(message: UiMessage, t: TranslateFn): string {
 	return `[${message.type}]`;
 }
 
+/** The quoted text from a message's reply preview, if it has one. */
+export function getReplyPreviewText(message: UiMessage): string | null {
+	const replyPreview = message.replyPreview as { text?: unknown } | null | undefined;
+	return typeof replyPreview?.text === "string" && replyPreview.text.trim().length > 0
+		? replyPreview.text.trim()
+		: null;
+}
+
+/** Strips the "> quoted\n" prefix that gets embedded in body.text on send. */
+export function stripReplyQuotePrefix(text: string, replyText: string | null): string {
+	if (!replyText) {
+		return text;
+	}
+	const quotedPrefix = `> ${replyText}\n`;
+	if (text.startsWith(quotedPrefix)) {
+		return text.slice(quotedPrefix.length);
+	}
+	if (text.startsWith("> ")) {
+		return text.replace(/^>.*\n?/, "").trim();
+	}
+	return text;
+}
+
+/**
+ * The user-written text of a message as shown in its bubble, or null when it
+ * has none (media-only, unsent, system messages, …) — i.e. exactly the
+ * text auto-translate should translate. Never a localized placeholder.
+ */
+export function getTranslatableMessageText(message: UiMessage): string | null {
+	if (!message.body || typeof message.body !== "object") {
+		return null;
+	}
+	const body = message.body as Record<string, unknown>;
+	const rawText =
+		typeof body.text === "string" && body.text.trim().length > 0
+			? body.text
+			: message.type === "ProfilePhotoReply" && typeof body.photoContentReply === "string"
+				? body.photoContentReply.trim()
+				: message.type === "AlbumContentReply" && typeof body.albumContentReply === "string"
+					? body.albumContentReply.trim()
+					: "";
+	const text = stripReplyQuotePrefix(rawText, getReplyPreviewText(message)).trim();
+	return text.length > 0 ? text : null;
+}
+
 export function getMessageImageUrl(message: UiMessage): string | null {
 	const imageType = message.chat1Type?.toLowerCase();
 	const isImageMessage =

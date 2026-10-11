@@ -36,6 +36,18 @@ export type StoredMessage = Message & {
 	localHistory: boolean;
 };
 
+/**
+ * An auto-translate result for one message in one target language.
+ * `translatedText` is null when the message was already in the target
+ * language — kept so it's never sent to the translation API again.
+ */
+export type StoredMessageTranslation = {
+	messageId: string;
+	sourceText: string;
+	translatedText: string | null;
+	detectedSourceLang: string | null;
+};
+
 // A durable, standalone record of a block/unblock initiated by the *other*
 // side — kept separate from the messages table (rather than derived from
 // SystemBlocked/SystemUnblocked messages on read) so the profile's name and

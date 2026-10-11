@@ -14,6 +14,7 @@ import {
 	HeartPulse,
 	HelpCircle,
 	Images,
+	Languages,
 	Info,
 	Loader2,
 	LogOut,
@@ -853,6 +854,13 @@ export function SettingsPage() {
 							"bg-pink-500/15 text-pink-400",
 							t("settings.my_albums"),
 							t("settings.my_albums_desc"),
+						)}
+						{navRow(
+							() => navigate("/settings/translation"),
+							<Languages className="h-5 w-5" />,
+							"bg-cyan-500/15 text-cyan-400",
+							t("settings.translation", { defaultValue: "Translation" }),
+							t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." }),
 						)}
 					</div>
 				</div>

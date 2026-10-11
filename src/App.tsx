@@ -32,6 +32,7 @@ import { CustomizabilityPage } from "./pages/app/CustomizabilityPage.tsx";
 import { BehaviorPage } from "./pages/app/BehaviorPage.tsx";
 import { NotificationsPage } from "./pages/app/NotificationsPage.tsx";
 import { SettingsAutomationPage } from "./pages/app/SettingsAutomationPage.tsx";
+import { SettingsTranslationPage } from "./pages/app/SettingsTranslationPage.tsx";
 import { SettingsDataPage } from "./pages/app/SettingsDataPage.tsx";
 import { SettingsPrivacyPage } from "./pages/app/SettingsPrivacyPage.tsx";
 import { SexualHealthPage } from "./pages/app/sexual-health/SexualHealthPage.tsx";
@@ -239,6 +240,7 @@ export default function App() {
 								<Route path="/profile/:profileId" element={<GridProfilePage />} />
 								<Route path="/settings" element={<SettingsPage />} />
 								<Route path="/settings/automation" element={<SettingsAutomationPage />} />
+								<Route path="/settings/translation" element={<SettingsTranslationPage />} />
 								<Route path="/settings/data" element={<SettingsDataPage />} />
 								<Route path="/settings/privacy" element={<SettingsPrivacyPage />} />
 								<Route path="/settings/about" element={<AboutPage />} />

@@ -1,4 +1,4 @@
-import { Album, Ban, Copy, Download, Eye, History, Hourglass, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
+import { Album, Ban, Copy, Download, Eye, History, Hourglass, Languages, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
 import { createPortal } from "react-dom";
 import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -56,7 +56,9 @@ import {
 	getMessageVideoUrl,
 	getVideoCallStatusLabel,
 	isLocalClientMessageId,
+	stripReplyQuotePrefix,
 } from "./chatUtils";
+import type { MessageTranslations } from "../../../hooks/useMessageTranslations";
 
 type ChatThreadMessagesProps = {
 	isDesktop: boolean;
@@ -98,6 +100,7 @@ type ChatThreadMessagesProps = {
 	isArchived?: boolean;
 	ownProfilePhotoUrl?: string | null;
 	localNickname?: string | null;
+	messageTranslations: MessageTranslations;
 };
 
 const KNOWN_REPLY_TYPES = new Set([
@@ -327,6 +330,7 @@ export function ChatThreadMessages({
 	isArchived = false,
 	ownProfilePhotoUrl = null,
 	localNickname = null,
+	messageTranslations,
 }: ChatThreadMessagesProps) {
 	const { t } = useTranslation();
 	useLocalMediaCache();
@@ -731,6 +735,18 @@ export function ChatThreadMessages({
 			});
 		}
 
+		if (
+			messageTranslations.canTranslate(message.messageId) &&
+			!messageTranslations.translations.has(message.messageId)
+		) {
+			actions.push({
+				key: "translate",
+				label: t("auto_translate.translate_message", { defaultValue: "Translate" }),
+				icon: <Languages className="h-4 w-4" />,
+				onClick: () => messageTranslations.translateMessage(message.messageId),
+			});
+		}
+
 		if (imageUrl || videoUrl || audioUrl) {
 			actions.push({
 				key: "download",
@@ -830,6 +846,7 @@ export function ChatThreadMessages({
 	}, [
 		contextMenuTarget,
 		userId,
+		messageTranslations,
 		isMutatingMessageId,
 		isArchived,
 		t,
@@ -1182,16 +1199,9 @@ export function ChatThreadMessages({
                                         name: localNickname || selectedConversation?.data.name || t("common.unknown_display_name"),
                                     })
                         : null;
-                    // Strip the "> quoted\n" prefix that gets embedded in body.text on send
-                    let displayText = messageText;
-                    if (replyText) {
-                        const quotedPrefix = `> ${replyText}\n`;
-                        if (displayText.startsWith(quotedPrefix)) {
-                            displayText = displayText.slice(quotedPrefix.length);
-                        } else if (displayText.startsWith("> ")) {
-                            displayText = displayText.replace(/^>.*\n?/, "").trim();
-                        }
-                    }
+                    const displayText = stripReplyQuotePrefix(messageText, replyText);
+                    const translatedText = mine ? null : messageTranslations.translations.get(message.messageId) ?? null;
+                    const isTranslating = !mine && !translatedText && messageTranslations.translatingMessageIds.has(message.messageId);
                     const isExpiringImage = message.type === "ExpiringImage";
                     const isAlbumMessage =
                         message.type === "Album" ||
@@ -2051,9 +2061,24 @@ export function ChatThreadMessages({
                                                 <p className="whitespace-pre-wrap break-words">{displayText}</p>
                                             </div>
                                         ) : (
-                                            <p className="whitespace-pre-wrap break-words select-text">
-                                                {renderTextWithLinks(displayText, mine, (url) => requestOpenLink(url))}
-                                            </p>
+                                            <>
+                                                <p className="whitespace-pre-wrap break-words select-text">
+                                                    {renderTextWithLinks(displayText, mine, (url) => requestOpenLink(url))}
+                                                </p>
+                                                {translatedText ? (
+                                                    <div className="mt-1.5 flex items-start gap-1.5 text-[0.9em] opacity-70">
+                                                        <Languages className="mt-[0.2em] h-[1em] w-[1em] shrink-0" aria-hidden="true" />
+                                                        <p className="min-w-0 whitespace-pre-wrap break-words select-text">
+                                                            {renderTextWithLinks(translatedText, mine, (url) => requestOpenLink(url))}
+                                                        </p>
+                                                    </div>
+                                                ) : isTranslating ? (
+                                                    <div className="mt-1.5 flex items-center gap-1.5 text-[0.9em] opacity-70">
+                                                        <Loader2 className="h-[1em] w-[1em] shrink-0 animate-spin" aria-hidden="true" />
+                                                        <span>{t("auto_translate.translating", { defaultValue: "Translating…" })}</span>
+                                                    </div>
+                                                ) : null}
+                                            </>
                                         )
                                     ) : null}
                                     </div>
