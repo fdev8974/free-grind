@@ -1013,6 +1013,7 @@
       "subtitle": "Use your Grindr email and password, or sign in with Google.",
       "no_account_label": "Don't have an account?",
       "no_account_action": "Sign up",
+      "or_divider": "or",
       "method_token": "Token",
       "method_password": "Email & Password",
       "token_help": "How to get your authentication token",
@@ -1679,7 +1680,9 @@
         "doxy_pep": "I'm on doxyPEP",
         "prep": "I'm on PrEP",
         "hiv_undetectable": "I'm HIV undetectable",
-        "discuss": "Prefer to discuss"
+        "discuss": "Prefer to discuss",
+        "sober": "Sober",
+        "drug_free": "Drug free"
       },
       "vaccines": {
         "covid": "COVID-19",

@@ -1021,6 +1021,7 @@
             "subtitle": "",
             "no_account_label": "¿No tienes cuenta?",
             "no_account_action": "Regístrate",
+            "or_divider": "",
             "method_token": "Token",
             "method_password": "Correo y contraseña",
             "token_help": "Cómo conseguir tu token de autentificación",
@@ -1692,7 +1693,9 @@
                 "doxy_pep": "Tomo doxi-PEP",
                 "prep": "Estoy bajo Profilaxis Pre-Exposición (PrEP)",
                 "hiv_undetectable": "Soy VIH indetectable",
-                "discuss": "Prefiero hablarlo"
+                "discuss": "Prefiero hablarlo",
+                "sober": "",
+                "drug_free": ""
             },
             "vaccines": {
                 "covid": "COVID-19",

@@ -393,6 +393,12 @@ export function SettingsPage() {
 		const loggedOutProfileId = userId != null ? String(userId) : null;
 		try {
 			await logout();
+			// An explicit logout also forgets the account in the switcher;
+			// plain account switches and expired-token prompts keep it.
+			if (loggedOutProfileId) {
+				await removeSavedAccount(loggedOutProfileId);
+				removeSavedAccountProfile(loggedOutProfileId);
+			}
 			const nextAccount = savedAccounts.find((account) => account.profileId !== loggedOutProfileId);
 			if (nextAccount) {
 				await switchAccount(nextAccount.profileId);

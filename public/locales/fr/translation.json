@@ -1021,6 +1021,7 @@
             "subtitle": "",
             "no_account_label": "Pas de compte ?",
             "no_account_action": "Inscrivez-vous",
+            "or_divider": "",
             "method_token": "Token",
             "method_password": "Email et mot de passe",
             "token_help": "Comment obtenir votre token d'authentification",
@@ -1692,7 +1693,9 @@
                 "doxy_pep": "Je prends la DoxyPEP",
                 "prep": "Je suis sous PrEP",
                 "hiv_undetectable": "Je suis Indétectable (I=I)",
-                "discuss": "À discuter"
+                "discuss": "À discuter",
+                "sober": "",
+                "drug_free": ""
             },
             "vaccines": {
                 "covid": "COVID-19",

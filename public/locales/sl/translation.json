@@ -1029,6 +1029,7 @@
             "subtitle": "",
             "no_account_label": "",
             "no_account_action": "",
+            "or_divider": "",
             "method_token": "",
             "method_password": "",
             "token_help": "",
@@ -1705,7 +1706,9 @@
                 "doxy_pep": "",
                 "prep": "",
                 "hiv_undetectable": "",
-                "discuss": ""
+                "discuss": "",
+                "sober": "",
+                "drug_free": ""
             },
             "vaccines": {
                 "covid": "",

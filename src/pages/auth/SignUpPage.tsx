@@ -35,7 +35,7 @@ export function SignUpPage() {
 					{t("auth.sign_up.have_account_label")}{" "}
 					<Link
 						to="/auth/sign-in"
-						className="font-bold underline hover:text-[var(--text)]"
+						className="font-semibold text-[var(--accent)] underline-offset-4 hover:underline"
 					>
 						{t("auth.sign_up.have_account_action")}
 					</Link>

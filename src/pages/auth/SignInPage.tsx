@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { AuthShell } from "../../components/ui/auth-shell";
 import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, ShieldCheck, UserPlus, ChevronDown } from "lucide-react";
 import { describeApkUpdateError, useGoogleOAuthAppInstall, useRecaptchaHelperInstall } from "../../services/apkUpdate";
 import { RecaptchaError } from "../../services/recaptcha";
 import { isAndroid } from "../../services/saveMedia";
@@ -68,10 +68,8 @@ function AuthMethodTab({
 			type="button"
 			onClick={onClick}
 			className={cn(
-				"flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-medium transition-all duration-200 active:scale-[0.97]",
-				active
-					? "bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md shadow-[var(--accent)]/25"
-					: "text-[var(--text-muted)] hover:text-[var(--text)]",
+				"relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-medium transition-colors duration-300 active:scale-[0.97]",
+				active ? "text-[var(--accent-contrast)]" : "text-[var(--text-muted)] hover:text-[var(--text)]",
 			)}
 		>
 			{icon}
@@ -99,15 +97,33 @@ function IconInput({
 	);
 }
 
-function StepHeading({ step, title, hint }: { step: number; title: string; hint?: string }) {
+function Step({
+	step,
+	title,
+	hint,
+	last = false,
+	children,
+}: {
+	step: number;
+	title: string;
+	hint?: string;
+	last?: boolean;
+	children: ReactNode;
+}) {
 	return (
-		<div className="flex items-start gap-2.5">
-			<span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[11px] font-bold text-[var(--accent-contrast)]">
-				{step}
-			</span>
-			<div className="min-w-0">
-				<p className="text-sm font-semibold leading-5 text-[var(--text)]">{title}</p>
-				{hint ? <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">{hint}</p> : null}
+		<div className="flex gap-3">
+			<div className="flex flex-col items-center">
+				<span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-xs font-bold text-[var(--accent-contrast)]">
+					{step}
+				</span>
+				{last ? null : <span className="mt-1.5 w-px flex-1 bg-[var(--border)]" />}
+			</div>
+			<div className={cn("min-w-0 flex-1 space-y-2.5", !last && "pb-5")}>
+				<div>
+					<p className="text-sm font-semibold leading-6 text-[var(--text)]">{title}</p>
+					{hint ? <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">{hint}</p> : null}
+				</div>
+				{children}
 			</div>
 		</div>
 	);
@@ -234,6 +250,15 @@ function AppInstallCard({
 	);
 }
 
+function AuthErrorBox({ message }: { message: string }) {
+	return (
+		<div className="animate-fade-in flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]">
+			<AlertCircle className="h-4 w-4 shrink-0 text-[#f87171]" />
+			<span>{message}</span>
+		</div>
+	);
+}
+
 function AuthSubmitSection({
 	error,
 	loading,
@@ -250,10 +275,7 @@ function AuthSubmitSection({
 	return (
 		<>
 			{error ? (
-				<div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]">
-					<AlertCircle className="h-4 w-4 shrink-0 text-[#f87171]" />
-					<span>{error}</span>
-				</div>
+				<AuthErrorBox message={error} />
 			) : null}
 			<div className="pt-1">
 				<Button
@@ -285,6 +307,8 @@ export function SignInPage() {
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 	const [hasGoogleOAuthApp, setHasGoogleOAuthApp] = useState(isGoogleOAuthAppInstalled);
 	const [googleAppError, setGoogleAppError] = useState<string | null>(null);
+	// With the companion app installed, the manual token flow stays folded away.
+	const [showManualToken, setShowManualToken] = useState(false);
 	const googleAppInstall = useGoogleOAuthAppInstall();
 	const [isAndroidDevice] = useState(isAndroid);
 	// Set once a sign-in needed a reCAPTCHA token but the helper isn't installed.
@@ -418,37 +442,34 @@ export function SignInPage() {
 						</button>
 					</div>
 				) : (
-					<div className="flex flex-col items-center gap-3">
-						<span className="text-sm text-[var(--text-muted)]">
-							{t("auth.sign_in.no_account_label")}{" "}
-							<Link
-								to="/auth/sign-up"
-								className="font-bold underline hover:text-[var(--text)]"
-							>
-								{t("auth.sign_in.no_account_action")}
-							</Link>
-						</span>
-						<BugReportButton />
-					</div>
+					<BugReportButton />
 				)
 			}
+			toolbar={
+				<div className="relative flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
+					{/* Sliding active indicator: half the track minus the gap-1 between the tabs. */}
+					<span
+						aria-hidden="true"
+						className={cn(
+							"absolute inset-y-1 left-1 w-[calc(50%-6px)] rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+							method === "google" && "translate-x-[calc(100%+4px)]",
+						)}
+					/>
+					<AuthMethodTab
+						active={method === "password"}
+						icon={<Lock className="h-3.5 w-3.5" />}
+						label={t("auth.sign_in.method_password")}
+						onClick={() => setMethod("password")}
+					/>
+					<AuthMethodTab
+						active={method === "google"}
+						icon={<GoogleIcon className="h-3.5 w-3.5" />}
+						label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
+						onClick={() => setMethod("google")}
+					/>
+				</div>
+			}
 		>
-			{/* Method selector */}
-			<div className="mb-6 flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
-				<AuthMethodTab
-					active={method === "password"}
-					icon={<Lock className="h-3.5 w-3.5" />}
-					label={t("auth.sign_in.method_password")}
-					onClick={() => setMethod("password")}
-				/>
-				<AuthMethodTab
-					active={method === "google"}
-					icon={<GoogleIcon className="h-3.5 w-3.5" />}
-					label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
-					onClick={() => setMethod("google")}
-				/>
-			</div>
-
 			{method === "password" ? (
 				<form key="password" onSubmit={handlePasswordSubmit} className="animate-fade-in space-y-3">
 					<IconInput
@@ -519,73 +540,100 @@ export function SignInPage() {
 							>
 								{t("auth.sign_in.google_app_sign_in", { defaultValue: "Sign in with the Google app" })}
 							</Button>
-							{googleAppError ? (
-								<div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]">
-									<AlertCircle className="h-4 w-4 shrink-0 text-[#f87171]" />
-									<span>{googleAppError}</span>
-								</div>
-							) : null}
-							<p className="text-center text-xs text-[var(--text-muted)]">
+							{googleAppError ? <AuthErrorBox message={googleAppError} /> : null}
+							{!showManualToken && error ? <AuthErrorBox message={error} /> : null}
+							<button
+								type="button"
+								onClick={() => setShowManualToken((prev) => !prev)}
+								aria-expanded={showManualToken}
+								className="mx-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+							>
 								{t("auth.sign_in.google_app_or_manual", { defaultValue: "or paste a token manually" })}
-							</p>
+								<ChevronDown
+									className={cn("h-3.5 w-3.5 transition-transform duration-200", showManualToken && "rotate-180")}
+								/>
+							</button>
 						</section>
 					) : null}
-					<section className="space-y-2.5">
-						<StepHeading
-							step={1}
-							title={t("auth.sign_in.google_step_get", { defaultValue: "Get a sign-in token" })}
-							hint={t("auth.sign_in.google_step_get_hint", {
-								defaultValue: "Sign in with Google there, then tap \"Copy token\".",
-							})}
-						/>
-						<div className="space-y-2">
-							{/* The companion app is Android-only; desktop gets the browser extension. */}
-							{!isAndroidDevice ? null : googleAppInstall.supported && !hasGoogleOAuthApp ? (
-								<AppInstallCard
-									install={googleAppInstall}
-									icon={<Smartphone className="h-4 w-4" />}
-									title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
-									installHint={t("auth.sign_in.google_app_install_hint", { defaultValue: "Android · Tap to install" })}
-								/>
-							) : (
-								<TokenSourceLink
-									href={GOOGLE_OAUTH_APP_RELEASES}
-									icon={<Smartphone className="h-4 w-4" />}
-									title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
-									description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}
-								/>
-							)}
-							<TokenSourceLink
-								href="https://github.com/fdev8974/freegrind-google-oauth-webextension#install"
-								icon={<Puzzle className="h-4 w-4" />}
-								title={t("auth.sign_in.google_extension_link", { defaultValue: "Browser extension" })}
-								description={t("auth.sign_in.google_extension_desc", { defaultValue: "Firefox, Chrome and other desktop browsers" })}
+					{hasGoogleOAuthApp && !showManualToken ? null : (
+						<div className="animate-fade-in space-y-5">
+							<div>
+								<Step
+									step={1}
+									title={t("auth.sign_in.google_step_get", { defaultValue: "Get a sign-in token" })}
+									hint={t("auth.sign_in.google_step_get_hint", {
+										defaultValue: "Sign in with Google there, then tap \"Copy token\".",
+									})}
+								>
+									<div className="space-y-2">
+										{/* The companion app is Android-only; desktop gets the browser extension. */}
+										{!isAndroidDevice ? null : googleAppInstall.supported && !hasGoogleOAuthApp ? (
+											<AppInstallCard
+												install={googleAppInstall}
+												icon={<Smartphone className="h-4 w-4" />}
+												title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
+												installHint={t("auth.sign_in.google_app_install_hint", { defaultValue: "Android · Tap to install" })}
+											/>
+										) : (
+											<TokenSourceLink
+												href={GOOGLE_OAUTH_APP_RELEASES}
+												icon={<Smartphone className="h-4 w-4" />}
+												title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
+												description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}
+											/>
+										)}
+										<TokenSourceLink
+											href="https://github.com/fdev8974/freegrind-google-oauth-webextension#install"
+											icon={<Puzzle className="h-4 w-4" />}
+											title={t("auth.sign_in.google_extension_link", { defaultValue: "Browser extension" })}
+											description={t("auth.sign_in.google_extension_desc", { defaultValue: "Firefox, Chrome and other desktop browsers" })}
+										/>
+									</div>
+								</Step>
+								<Step
+									step={2}
+									title={t("auth.sign_in.google_step_paste", { defaultValue: "Paste the token" })}
+									last
+								>
+									<IconInput
+										icon={<KeyRound className="h-4 w-4" />}
+										type="password"
+										value={googleToken}
+										onChange={(e) => setGoogleToken(e.target.value)}
+										required
+										placeholder={t("auth.sign_in.google_token_placeholder", { defaultValue: "Google OAuth token" })}
+										autoComplete="off"
+									/>
+								</Step>
+							</div>
+							<AuthSubmitSection
+								error={error}
+								loading={isGoogleLoading}
+								disabled={!isGoogleFormValid}
+								loadingLabel={t("auth.sign_in.signing_in")}
+								label={t("auth.sign_in.submit")}
 							/>
 						</div>
-					</section>
-					<section className="space-y-2.5">
-						<StepHeading
-							step={2}
-							title={t("auth.sign_in.google_step_paste", { defaultValue: "Paste the token" })}
-						/>
-						<IconInput
-							icon={<KeyRound className="h-4 w-4" />}
-							type="password"
-							value={googleToken}
-							onChange={(e) => setGoogleToken(e.target.value)}
-							required
-							placeholder={t("auth.sign_in.google_token_placeholder", { defaultValue: "Google OAuth token" })}
-							autoComplete="off"
-						/>
-					</section>
-					<AuthSubmitSection
-						error={error}
-						loading={isGoogleLoading}
-						disabled={!isGoogleFormValid}
-						loadingLabel={t("auth.sign_in.signing_in")}
-						label={t("auth.sign_in.submit")}
-					/>
+					)}
 				</form>
+			)}
+			{addProfileMode ? null : (
+				<div className="mt-5 flex flex-col items-center gap-5">
+					<div className="flex w-full items-center gap-3 text-xs uppercase tracking-wider text-[var(--text-muted)]">
+						<span className="h-px flex-1 bg-[var(--border)]" />
+						{t("auth.sign_in.or_divider", { defaultValue: "or" })}
+						<span className="h-px flex-1 bg-[var(--border)]" />
+					</div>
+					<Button
+						type="button"
+						variant="secondary"
+						onClick={() => navigate("/auth/sign-up")}
+						leftIcon={<UserPlus className="h-4 w-4" />}
+						className="w-full"
+					>
+						{t("auth.sign_in.no_account_action")}
+					</Button>
+				</div>
 			)}
 		</AuthShell>
 	);

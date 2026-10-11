@@ -115,6 +115,8 @@ const SEXUAL_HEALTH_DEFS: readonly OptionDef[] = [
 	{ value: 3, key: "profile_details.labels.sexual_health.prep" },
 	{ value: 4, key: "profile_details.labels.sexual_health.hiv_undetectable" },
 	{ value: 5, key: "profile_details.labels.sexual_health.discuss" },
+	{ value: 6, key: "profile_details.labels.sexual_health.sober" },
+	{ value: 7, key: "profile_details.labels.sexual_health.drug_free" },
 ];
 
 const VACCINE_DEFS: readonly OptionDef[] = [
