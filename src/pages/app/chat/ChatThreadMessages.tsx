@@ -2170,9 +2170,9 @@ export function ChatThreadMessages({
 
                                 {mine && !pending && !failed && lastMyMessageId === message.messageId && (
                                     // Absolutely positioned so a long label ("Read yesterday") doesn't widen the bubble column.
-                                    <div className="relative -mt-1 h-4 w-full">
+                                    <div className="relative h-5 w-full">
                                         <span
-                                            className="absolute right-1 top-0 whitespace-nowrap text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)] opacity-80"
+                                            className="absolute right-1 top-1 whitespace-nowrap text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)] opacity-80"
                                             title={
                                                 threadLastReadTimestamp != null && message.timestamp <= threadLastReadTimestamp
                                                     ? t("chat.read_at", { time: formatFullDateTime(threadLastReadTimestamp) })
