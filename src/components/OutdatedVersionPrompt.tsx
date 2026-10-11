@@ -50,6 +50,24 @@ function buildDismissStorageKey(appVersion: string): string {
     return `outdated-version-dismissed-${normalizeVersion(appVersion)}`;
 }
 
+/**
+ * The main app's APK is published as `free-grind-v<version>.apk`. Prefers the
+ * exact name for this release, then any `free-grind-v<x.y.z>.apk` — never some
+ * other `.apk` that might get attached to a release later.
+ */
+function pickApkAsset(
+    assets: { name?: string; browser_download_url?: string }[],
+    version: string,
+): string | undefined {
+    const usable = assets.filter(
+        (asset): asset is { name: string; browser_download_url: string } =>
+            typeof asset.name === "string" && typeof asset.browser_download_url === "string",
+    );
+    const exact = usable.find((asset) => asset.name === `free-grind-v${version}.apk`);
+    if (exact) return exact.browser_download_url;
+    return usable.find((asset) => /^free-grind-v\d+(\.\d+)*\.apk$/.test(asset.name))?.browser_download_url;
+}
+
 async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
     const response = await fetch(
         "https://api.github.com/repos/fdev8974/free-grind/releases/latest",
@@ -71,12 +89,10 @@ async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
         assets?: { name?: string; browser_download_url?: string }[];
     };
 
-    const apkUrl = payload.assets?.find(
-        (asset) => asset.name?.endsWith(".apk") && typeof asset.browser_download_url === "string",
-    )?.browser_download_url;
-
     const parts = payload.name?.split(" ") ?? [];
     const version = parts[2]?.replace("v", "") ?? "";
+
+    const apkUrl = pickApkAsset(payload.assets ?? [], normalizeVersion(version));
 
     return {
         latestVersion:
