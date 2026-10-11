@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, ShieldCheck } from "lucide-react";
 import { describeApkUpdateError, useGoogleOAuthAppInstall, useRecaptchaHelperInstall } from "../../services/apkUpdate";
 import { RecaptchaError } from "../../services/recaptcha";
+import { isAndroid } from "../../services/saveMedia";
 import { cn } from "../../utils/cn";
 
 const GOOGLE_OAUTH_APP_RELEASES = "https://github.com/fdev8974/free-grind-oauth-app/releases";
@@ -285,6 +286,7 @@ export function SignInPage() {
 	const [hasGoogleOAuthApp, setHasGoogleOAuthApp] = useState(isGoogleOAuthAppInstalled);
 	const [googleAppError, setGoogleAppError] = useState<string | null>(null);
 	const googleAppInstall = useGoogleOAuthAppInstall();
+	const [isAndroidDevice] = useState(isAndroid);
 	// Set once a sign-in needed a reCAPTCHA token but the helper isn't installed.
 	const [needsRecaptchaHelper, setNeedsRecaptchaHelper] = useState(false);
 	const recaptchaHelperInstall = useRecaptchaHelperInstall();
@@ -403,7 +405,7 @@ export function SignInPage() {
 	return (
 		<AuthShell
 			title={addProfileMode ? t("auth.sign_in.add_profile_title", { defaultValue: "Add Profile" }) : t("auth.sign_in.title")}
-			subtitle={addProfileMode ? t("auth.sign_in.add_profile_subtitle", { defaultValue: "Sign in with the account you want to add." }) : t("auth.sign_in.subtitle")}
+			subtitle={addProfileMode ? t("auth.sign_in.add_profile_subtitle", { defaultValue: "Sign in with the account you want to add." }) : t("auth.sign_in.subtitle", { defaultValue: "Use your Grindr email and password, or sign in with Google." })}
 			footer={
 				addProfileMode ? (
 					<div className="flex flex-col items-center gap-3">
@@ -537,7 +539,8 @@ export function SignInPage() {
 							})}
 						/>
 						<div className="space-y-2">
-							{googleAppInstall.supported && !hasGoogleOAuthApp ? (
+							{/* The companion app is Android-only; desktop gets the browser extension. */}
+							{!isAndroidDevice ? null : googleAppInstall.supported && !hasGoogleOAuthApp ? (
 								<AppInstallCard
 									install={googleAppInstall}
 									icon={<Smartphone className="h-4 w-4" />}

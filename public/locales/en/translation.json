@@ -1010,7 +1010,7 @@
     },
     "sign_in": {
       "title": "Sign In",
-      "subtitle": "Use your Grindr credentials or a token for Google, Apple, or Facebook.",
+      "subtitle": "Use your Grindr email and password, or sign in with Google.",
       "no_account_label": "Don't have an account?",
       "no_account_action": "Sign up",
       "method_token": "Token",
