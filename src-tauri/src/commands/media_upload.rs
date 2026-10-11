@@ -26,6 +26,12 @@ async fn send_upload(
         .map_err(|e| AppError::from_client_error(e, &client))?;
 
     if !(200..300).contains(&response.status) {
+        if let Some(reason) = rejection_reason(&response.body) {
+            return Err(AppError::MediaRejected {
+                status: response.status,
+                reason,
+            });
+        }
         return Err(AppError::from(grindr::GrindrError::from_response(
             response.status,
             &response.body,
@@ -33,6 +39,27 @@ async fn send_upload(
     }
     serde_json::from_slice(&response.body)
         .map_err(|e| AppError::Http(format!("Failed to parse upload response: {e}")))
+}
+
+/// Pulls a documented rejection reason out of an upload error body: the
+/// RFC-7807 `type` of a moderation 422 (`urn:gr:err:banned_image` →
+/// `banned_image`), or one of the signing errors, whose body shape isn't
+/// documented, so those are matched anywhere in the body text.
+fn rejection_reason(body: &[u8]) -> Option<String> {
+    let problem_type = serde_json::from_slice::<serde_json::Value>(body)
+        .ok()
+        .and_then(|json| json.get("type")?.as_str().map(str::to_owned));
+    if let Some(reason) = problem_type
+        .as_deref()
+        .and_then(|t| t.strip_prefix("urn:gr:err:"))
+    {
+        return Some(reason.to_owned());
+    }
+    let text = String::from_utf8_lossy(body);
+    ["timestamp_drift", "nonce_replayed"]
+        .into_iter()
+        .find(|reason| text.contains(reason))
+        .map(str::to_owned)
 }
 
 /// Returns the upload response as-is; the frontend reads the media hash out

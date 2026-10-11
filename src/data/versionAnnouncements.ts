@@ -13,6 +13,7 @@ import {
 	Images,
 	Inbox,
 	KeyRound,
+	Languages,
 	LayoutGrid,
 	Link2,
 	LogIn,
@@ -216,6 +217,11 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 				icon: ShieldAlert,
 				title: "Ban Details",
 				description: "See exactly why and how long an account is restricted, including the ban type, reason and expiry date. Device-related refusals now come with a hint on how to fix them.",
+			},
+			{
+				icon: Languages,
+				title: "Chat Translation",
+				description: "Translate messages into your app language with Google Translate, Gemini, ChatGPT or Claude. Translate single messages from the context menu or turn on auto-translate per chat.",
 			},
 			{
 				icon: Wrench,

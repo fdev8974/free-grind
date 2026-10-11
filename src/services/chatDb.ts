@@ -40,6 +40,7 @@ import type {
 	StoredMediaFile,
 	StoredMediaFileWithSender,
 	StoredMessage,
+	StoredMessageTranslation,
 } from "../types/chat-db";
 import type { IndexedMessage } from "../types/chat-cache";
 import { appLog } from "../utils/logger";
@@ -509,6 +510,29 @@ async function getDb(): Promise<Database> {
 						updated_at INTEGER NOT NULL
 					)
 				`);
+
+				// Auto-translate results (Google Translate), one row per message and
+				// target language. source_text is kept so a changed message body
+				// (e.g. a restored local copy) is detected and re-translated instead
+				// of showing a stale translation. translated_text is NULL when the
+				// message was already in the target language — remembered so it's
+				// never sent to the API again.
+				await db.execute(`
+					CREATE TABLE IF NOT EXISTS message_translations (
+						message_id TEXT NOT NULL,
+						target_lang TEXT NOT NULL,
+						conversation_id TEXT NOT NULL,
+						source_text TEXT NOT NULL,
+						translated_text TEXT,
+						detected_source_lang TEXT,
+						created_at INTEGER NOT NULL,
+						PRIMARY KEY (message_id, target_lang)
+					)
+				`);
+				await db.execute(
+					"CREATE INDEX IF NOT EXISTS idx_message_translations_conversation ON message_translations(conversation_id, target_lang)",
+				);
+
 			});
 
 			return db;
@@ -1165,6 +1189,9 @@ export async function deleteConversationCascade(
 		await db.execute("DELETE FROM conversation_meta WHERE conversation_id = $1", [
 			conversationId,
 		]);
+		await db.execute("DELETE FROM message_translations WHERE conversation_id = $1", [
+			conversationId,
+		]);
 		await db.execute("DELETE FROM conversations WHERE conversation_id = $1", [
 			conversationId,
 		]);
@@ -1208,6 +1235,10 @@ export async function mergeConversationInto(
 		await db.execute(
 			"UPDATE albums SET conversation_id = $2, updated_at = $3 WHERE conversation_id = $1",
 			[sourceConversationId, targetConversationId, now],
+		);
+		await db.execute(
+			"UPDATE message_translations SET conversation_id = $2 WHERE conversation_id = $1",
+			[sourceConversationId, targetConversationId],
 		);
 		// Keeps the target's sort position honest if the merged-in history
 		// happens to be more recent than anything already there — a no-op MAX
@@ -1608,6 +1639,83 @@ export async function deleteMessageRow(messageId: string): Promise<void> {
 
 	await executeWithLockRetry(db, "delete-message", async () => {
 		await db.execute("DELETE FROM messages WHERE message_id = $1", [messageId]);
+		await db.execute("DELETE FROM message_translations WHERE message_id = $1", [messageId]);
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Message translations (auto-translate)
+// ---------------------------------------------------------------------------
+
+type MessageTranslationRow = {
+	message_id: string;
+	source_text: string;
+	translated_text: string | null;
+	detected_source_lang: string | null;
+};
+
+function rowToStoredMessageTranslation(row: MessageTranslationRow): StoredMessageTranslation {
+	return {
+		messageId: row.message_id,
+		sourceText: row.source_text,
+		translatedText: row.translated_text,
+		detectedSourceLang: row.detected_source_lang,
+	};
+}
+
+export async function getMessageTranslations(
+	conversationId: string,
+	targetLang: string,
+): Promise<StoredMessageTranslation[]> {
+	const db = await getDb();
+	const rows = await db.select<MessageTranslationRow[]>(
+		`
+		SELECT message_id, source_text, translated_text, detected_source_lang
+		FROM message_translations
+		WHERE conversation_id = $1 AND target_lang = $2
+		`,
+		[conversationId, targetLang],
+	);
+	return rows.map(rowToStoredMessageTranslation);
+}
+
+export async function upsertMessageTranslations(
+	conversationId: string,
+	targetLang: string,
+	translations: StoredMessageTranslation[],
+): Promise<void> {
+	if (translations.length === 0) {
+		return;
+	}
+	const db = await getDb();
+
+	await executeWithLockRetry(db, "upsert-message-translations", async () => {
+		const now = Date.now();
+		for (const translation of translations) {
+			await db.execute(
+				`
+				INSERT INTO message_translations (
+					message_id, target_lang, conversation_id, source_text,
+					translated_text, detected_source_lang, created_at
+				) VALUES ($1, $2, $3, $4, $5, $6, $7)
+				ON CONFLICT(message_id, target_lang) DO UPDATE SET
+					conversation_id = excluded.conversation_id,
+					source_text = excluded.source_text,
+					translated_text = excluded.translated_text,
+					detected_source_lang = excluded.detected_source_lang,
+					created_at = excluded.created_at
+				`,
+				[
+					translation.messageId,
+					targetLang,
+					conversationId,
+					translation.sourceText,
+					translation.translatedText,
+					translation.detectedSourceLang,
+					now,
+				],
+			);
+		}
 	});
 }
 

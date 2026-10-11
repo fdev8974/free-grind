@@ -42,6 +42,54 @@ export function commandErrorToApiFunctionError(error: unknown, fallback: string)
 	return new ApiFunctionError(fallback, 0, error);
 }
 
+const MEDIA_REJECTION_MESSAGES: Record<string, { key: string; defaultValue: string }> = {
+	banned_image: {
+		key: "api.errors.media_banned_image",
+		defaultValue: "This image was rejected by Grindr's moderation and can't be sent.",
+	},
+	banned_video: {
+		key: "api.errors.media_banned_video",
+		defaultValue: "This video was rejected by Grindr's moderation and can't be sent.",
+	},
+	timestamp_drift: {
+		key: "api.errors.media_timestamp_drift",
+		defaultValue: "Upload rejected: your device clock is out of sync. Check your date and time settings.",
+	},
+	nonce_replayed: {
+		key: "api.errors.media_nonce_replayed",
+		defaultValue: "Upload rejected as a duplicate request. Please try again.",
+	},
+};
+
+/**
+ * Like `commandErrorToApiFunctionError`, for the media-upload commands: a
+ * `MediaRejected` error (moderation or signature refusal) becomes a readable
+ * explanation, anything else keeps its detail behind the fallback so the
+ * toast says both what failed and why.
+ */
+export function mediaUploadErrorToApiFunctionError(
+	error: unknown,
+	fallback: string,
+	t: (key: string, options?: { defaultValue?: string }) => string,
+): ApiFunctionError {
+	if (error && typeof error === "object" && (error as { kind?: unknown }).kind === "MediaRejected") {
+		const { status, reason } = ((error as { message?: unknown }).message ?? {}) as {
+			status?: unknown;
+			reason?: unknown;
+		};
+		const known = typeof reason === "string" ? MEDIA_REJECTION_MESSAGES[reason] : undefined;
+		const message = known
+			? t(known.key, { defaultValue: known.defaultValue })
+			: `${t("api.errors.media_rejected", { defaultValue: "The server rejected the upload" })} (${String(reason)})`;
+		return new ApiFunctionError(message, typeof status === "number" ? status : 0, error);
+	}
+	const base = commandErrorToApiFunctionError(error, fallback);
+	if (base.message === fallback) {
+		return base;
+	}
+	return new ApiFunctionError(`${fallback}: ${base.message}`, base.status, base.payload);
+}
+
 export async function parseJsonSafe(response: RestResponse | Response): Promise<unknown> {
 	try {
 		return response.json();

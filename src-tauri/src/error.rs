@@ -42,6 +42,10 @@ pub enum AppError {
     NotSignedIn,
     SessionStale,
     Api { code: i32, message: String },
+    /// A media upload the server refused for a documented reason: moderation
+    /// (`banned_image` / `banned_video`, 422 problem body) or the device-key
+    /// signature (`timestamp_drift` / `nonce_replayed`).
+    MediaRejected { status: u16, reason: String },
     Unauthorized { code: i32, message: String },
     Banned(BanInfo),
     RateLimited,
@@ -62,6 +66,9 @@ impl fmt::Display for AppError {
             AppError::NotSignedIn => write!(f, "Not signed in"),
             AppError::SessionStale => write!(f, "Could not refresh the session"),
             AppError::Api { code, message } => write!(f, "API error {code}: {message}"),
+            AppError::MediaRejected { status, reason } => {
+                write!(f, "Media rejected ({status}): {reason}")
+            }
             AppError::Unauthorized { code, message } => {
                 write!(f, "Unauthorized ({code}): {message}")
             }

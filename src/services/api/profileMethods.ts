@@ -17,7 +17,7 @@ import { isVisitingMode } from "../../types/visiting";
 import { travelPlansResponseSchema, type TravelPlan, type TravelPlanPayload } from "../../types/travel";
 import { homeLocationSchema, type HomeLocation } from "../../types/home-location";
 import { invoke } from "@tauri-apps/api/core";
-import { ApiFunctionError, assertSuccess, commandErrorToApiFunctionError, parseJsonSafe } from "../apiHelpers";
+import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "../apiHelpers";
 import { awaitEntitlementGrant } from "../entitlementBypass";
 import { getIncognitoMode, isRecordProfileViewsEnabled } from "../../utils/privacy";
 import { appLog } from "../../utils/logger";
@@ -523,7 +523,7 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 					takenOnGrindr: params.takenOnGrindr,
 				});
 			} catch (error) {
-				throw commandErrorToApiFunctionError(error, t("api.errors.upload_image"));
+				throw mediaUploadErrorToApiFunctionError(error, t("api.errors.upload_image"), t);
 			}
 		},
 	};
