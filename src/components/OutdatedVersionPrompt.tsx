@@ -1,6 +1,7 @@
-import { ChevronRight, Download } from "lucide-react";
+import { ChevronRight, Download, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
+import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
 
 const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
 const DEFAULT_LATEST_VERSION = "1.0.0";
@@ -10,6 +11,8 @@ const OUTDATED_VERSION_REOPEN_COUNT = 5;
 export type ReleaseInfo = {
     latestVersion: string;
     releasesUrl: string;
+    /** Release APK asset — enables the in-app download & install on Android. */
+    apkUrl?: string;
 };
 
 function normalizeVersion(value: string): string {
@@ -47,6 +50,24 @@ function buildDismissStorageKey(appVersion: string): string {
     return `outdated-version-dismissed-${normalizeVersion(appVersion)}`;
 }
 
+/**
+ * The main app's APK is published as `free-grind-v<version>.apk`. Prefers the
+ * exact name for this release, then any `free-grind-v<x.y.z>.apk` — never some
+ * other `.apk` that might get attached to a release later.
+ */
+function pickApkAsset(
+    assets: { name?: string; browser_download_url?: string }[],
+    version: string,
+): string | undefined {
+    const usable = assets.filter(
+        (asset): asset is { name: string; browser_download_url: string } =>
+            typeof asset.name === "string" && typeof asset.browser_download_url === "string",
+    );
+    const exact = usable.find((asset) => asset.name === `free-grind-v${version}.apk`);
+    if (exact) return exact.browser_download_url;
+    return usable.find((asset) => /^free-grind-v\d+(\.\d+)*\.apk$/.test(asset.name))?.browser_download_url;
+}
+
 async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
     const response = await fetch(
         "https://api.github.com/repos/fdev8974/free-grind/releases/latest",
@@ -65,10 +86,13 @@ async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
     const payload = (await response.json()) as {
         name?: string;
         html_url?: string;
+        assets?: { name?: string; browser_download_url?: string }[];
     };
 
     const parts = payload.name?.split(" ") ?? [];
     const version = parts[2]?.replace("v", "") ?? "";
+
+    const apkUrl = pickApkAsset(payload.assets ?? [], normalizeVersion(version));
 
     return {
         latestVersion:
@@ -79,6 +103,7 @@ async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
             typeof payload.html_url === "string" && payload.html_url.length > 0
                 ? payload.html_url
                 : DEFAULT_RELEASES_URL,
+        apkUrl,
     };
 }
 
@@ -91,6 +116,10 @@ export function OutdatedVersionPromptView({
 	releaseInfo: ReleaseInfo;
 	onDismiss: () => void;
 }) {
+	const apkUpdate = useApkUpdate(releaseInfo.apkUrl);
+	const { phase } = apkUpdate.state;
+	const isBusy = phase === "downloading" || phase === "verifying" || phase === "installing";
+
 	return (
 		<div className="fs-card-outer fs-card-overlay z-[110] no-touch-callout">
 			<div className="fs-card-inner fs-card-lg flex flex-col">
@@ -116,25 +145,100 @@ export function OutdatedVersionPromptView({
 				</div>
 
 				<div
-					className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
+					className="flex min-h-44 shrink-0 flex-col justify-end gap-2 px-6"
 					style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
 				>
-					<a
-						href={releaseInfo.releasesUrl}
-						target="_blank"
-						rel="noreferrer"
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
-					>
-						Get {releaseInfo.latestVersion}
-						<ChevronRight className="h-4 w-4" />
-					</a>
-					<button
-						type="button"
-						onClick={onDismiss}
-						className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
-					>
-						Dismiss
-					</button>
+					{apkUpdate.supported ? (
+						<>
+							{apkUpdate.state.phase === "downloading" && (
+								<div className="mb-1 flex flex-col gap-1.5">
+									<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+										<div
+											className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ${apkUpdate.state.progress === null ? "w-1/3 animate-pulse" : ""}`}
+											style={apkUpdate.state.progress === null ? undefined : { width: `${Math.round(apkUpdate.state.progress * 100)}%` }}
+										/>
+									</div>
+									<p className="text-center text-xs text-[var(--text-muted)]">
+										{apkUpdate.state.progress === null
+											? "Downloading…"
+											: `Downloading… ${Math.round(apkUpdate.state.progress * 100)}%`}
+									</p>
+								</div>
+							)}
+							{phase === "needs-permission" && (
+								<p className="mb-1 text-center text-xs leading-relaxed text-[var(--text-muted)]">
+									Allow Free Grind to install apps, then come back here — the update continues automatically.
+								</p>
+							)}
+							{apkUpdate.state.phase === "error" && (
+								<p className="mb-1 text-center text-xs leading-relaxed text-red-400">
+									{describeApkUpdateError(apkUpdate.state.code)}
+								</p>
+							)}
+							<button
+								type="button"
+								disabled={isBusy || phase === "installed"}
+								onClick={() => {
+									if (phase === "needs-permission") apkUpdate.openPermissionSettings();
+									else if (apkUpdate.state.phase === "error" && apkUpdate.state.code === "canceled") apkUpdate.installDownloaded();
+									else apkUpdate.start();
+								}}
+								className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-70"
+							>
+								{isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+								{phase === "downloading"
+									? "Downloading…"
+									: phase === "verifying"
+										? "Verifying…"
+										: phase === "installing"
+											? "Installing…"
+											: phase === "installed"
+												? "Installed"
+												: phase === "needs-permission"
+													? "Allow installs"
+													: phase === "error"
+														? "Try again"
+														: <>Download & install {releaseInfo.latestVersion}<Download className="h-4 w-4" /></>}
+							</button>
+							<div className="flex gap-2">
+								<a
+									href={releaseInfo.releasesUrl}
+									target="_blank"
+									rel="noreferrer"
+									className="flex-1 rounded-xl py-3 text-center text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
+								>
+									Open on GitHub
+								</a>
+								<button
+									type="button"
+									onClick={onDismiss}
+									disabled={isBusy}
+									className="flex-1 rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
+								>
+									Dismiss
+								</button>
+							</div>
+						</>
+					) : (
+						<>
+							<a
+								href={releaseInfo.releasesUrl}
+								target="_blank"
+								rel="noreferrer"
+								className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							>
+								Get {releaseInfo.latestVersion}
+								<ChevronRight className="h-4 w-4" />
+							</a>
+							<button
+								type="button"
+								onClick={onDismiss}
+								className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
+							>
+								Dismiss
+							</button>
+						</>
+					)}
 				</div>
 			</div>
 		</div>

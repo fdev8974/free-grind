@@ -156,6 +156,30 @@ class MainActivity : TauriActivity() {
   // Result of JsBridge.requestGoogleToken(). The companion app answers
   // RESULT_OK with the token, RESULT_CANCELED when the user backed out, and
   // RESULT_FIRST_USER when it refused us (signature mismatch).
+  // JsBridge.mintRecaptchaToken() allows one request at a time; this is the
+  // id the frontend will match the `fg:recaptcha-result` event against.
+  @Volatile private var pendingRecaptchaRequestId: String? = null
+
+  private val recaptchaLauncher = registerForActivityResult(
+    ActivityResultContracts.StartActivityForResult()
+  ) { result ->
+    val requestId = pendingRecaptchaRequestId ?: return@registerForActivityResult
+    pendingRecaptchaRequestId = null
+    val data = result.data
+    val token = data?.getStringExtra(RecaptchaHelper.EXTRA_TOKEN)?.trim().orEmpty()
+    val outcome = JSONObject().put("requestId", requestId)
+    if (result.resultCode == RESULT_OK && token.isNotEmpty()) {
+      outcome.put("token", token)
+    } else {
+      // The helper names its refusal ("untrusted-caller", "grindr-missing",
+      // "mint-failed", ...); no marker means the user backed out.
+      val refusal = data?.getStringExtra(RecaptchaHelper.EXTRA_ERROR)
+      outcome.put("error", if (refusal.isNullOrEmpty()) "cancelled" else refusal)
+      data?.getStringExtra(RecaptchaHelper.EXTRA_ERROR_DETAIL)?.let { outcome.put("detail", it) }
+    }
+    dispatchRecaptchaResultToWebview(outcome.toString())
+  }
+
   private val googleTokenLauncher = registerForActivityResult(
     ActivityResultContracts.StartActivityForResult()
   ) { result ->
@@ -230,6 +254,8 @@ class MainActivity : TauriActivity() {
     }
     mainHandler.postDelayed({ dismissSplash() }, 45000)
     activityRef = WeakReference(this)
+    ApkUpdater.emit = { event -> dispatchApkUpdateEvent(event) }
+    localNotifExecutor.execute { ApkUpdater.cleanupStale(this) }
     // Run off the main thread — createNotificationChannel makes IPC calls to
     // NotificationManagerService that can block for several seconds on some
     // devices (OxygenOS in particular) and cause a startup ANR.
@@ -439,6 +465,97 @@ class MainActivity : TauriActivity() {
       return "ok"
     }
 
+    /**
+     * In-app self-update (see ApkUpdater.kt): downloads the release APK and
+     * hands it to Android's installer. Progress arrives as `fg:apk-update`
+     * window events. Returns false for a non-release URL or while an update
+     * is already running.
+     */
+    @JavascriptInterface
+    fun downloadApkUpdate(url: String): Boolean {
+      return ApkUpdater.downloadAndInstall(this@MainActivity, url)
+    }
+
+    /** Re-runs the install of an already downloaded APK after the user granted "install unknown apps". */
+    @JavascriptInterface
+    fun installDownloadedApkUpdate(): Boolean {
+      return ApkUpdater.installDownloaded(this@MainActivity)
+    }
+
+    @JavascriptInterface
+    fun canInstallApkUpdates(): Boolean {
+      return ApkUpdater.canInstallNow(this@MainActivity)
+    }
+
+    @JavascriptInterface
+    fun openInstallPermissionSettings(): Boolean {
+      return ApkUpdater.openInstallPermissionSettings(this@MainActivity)
+    }
+
+    /**
+     * Installs the Google OAuth companion app from its latest GitHub release
+     * (see ApkUpdater.Target.GOOGLE_OAUTH). Reports through the same
+     * `fg:apk-update` events, with `target: "google-oauth"`.
+     */
+    @JavascriptInterface
+    fun downloadGoogleOAuthApp(): Boolean {
+      return ApkUpdater.downloadAndInstallGoogleOAuthApp(this@MainActivity)
+    }
+
+    @JavascriptInterface
+    fun installDownloadedGoogleOAuthApp(): Boolean {
+      return ApkUpdater.installDownloaded(this@MainActivity, ApkUpdater.Target.GOOGLE_OAUTH)
+    }
+
+    /**
+     * Installs the reCAPTCHA helper from its latest GitHub release (see
+     * ApkUpdater.Target.RECAPTCHA), with `target: "recaptcha"` events.
+     */
+    @JavascriptInterface
+    fun downloadRecaptchaHelper(): Boolean {
+      return ApkUpdater.downloadAndInstallRecaptchaHelper(this@MainActivity)
+    }
+
+    @JavascriptInterface
+    fun installDownloadedRecaptchaHelper(): Boolean {
+      return ApkUpdater.installDownloaded(this@MainActivity, ApkUpdater.Target.RECAPTCHA)
+    }
+
+    /** "available", "addonUnavailable" or "addonUntrusted" — see RecaptchaHelper.Availability. */
+    @JavascriptInterface
+    fun recaptchaHelperAvailability(): String {
+      return RecaptchaHelper.availability(this@MainActivity).wire
+    }
+
+    /**
+     * Asks the reCAPTCHA helper for a token for one of Grindr's actions
+     * ("login", "report", ...). The outcome arrives as a
+     * `fg:recaptcha-result` window event carrying [requestId]. Returns "ok",
+     * "busy" while another request is in flight, or the availability wire
+     * value when the helper can't be used.
+     */
+    @JavascriptInterface
+    fun mintRecaptchaToken(action: String, requestId: String): String {
+      val availability = RecaptchaHelper.availability(this@MainActivity)
+      if (availability != RecaptchaHelper.Availability.AVAILABLE) return availability.wire
+      synchronized(this@MainActivity) {
+        if (pendingRecaptchaRequestId != null) return "busy"
+        pendingRecaptchaRequestId = requestId
+      }
+      runOnUiThread {
+        try {
+          recaptchaLauncher.launch(RecaptchaHelper.mintIntent(action))
+        } catch (e: Exception) {
+          Log.e("Recaptcha", "Failed to launch reCAPTCHA helper", e)
+          pendingRecaptchaRequestId = null
+          dispatchRecaptchaResultToWebview(
+            JSONObject().put("requestId", requestId).put("error", "addonUnavailable").toString()
+          )
+        }
+      }
+      return "ok"
+    }
+
     @JavascriptInterface
     fun vibrate(durationMs: Long) {
       try {
@@ -574,6 +691,12 @@ class MainActivity : TauriActivity() {
 
   // Not persisted to localStorage (unlike the FCM token): it's a Google
   // credential and only needed until the sign-in page consumes it.
+  private fun dispatchApkUpdateEvent(event: JSONObject) {
+    val script =
+      "window.dispatchEvent(new CustomEvent('fg:apk-update', { detail: $event }));"
+    runOnUiThread { webViewRef?.evaluateJavascript(script, null) }
+  }
+
   private fun dispatchGoogleTokenToWebview(token: String, attempt: Int) {
     val script =
       "(function(){" +
@@ -597,6 +720,12 @@ class MainActivity : TauriActivity() {
         }
       }
     }
+  }
+
+  private fun dispatchRecaptchaResultToWebview(outcomeJson: String) {
+    val script =
+      "window.dispatchEvent(new CustomEvent('fg:recaptcha-result', { detail: $outcomeJson }));"
+    runOnUiThread { webViewRef?.evaluateJavascript(script, null) }
   }
 
   private fun dispatchGoogleTokenErrorToWebview(reason: String) {

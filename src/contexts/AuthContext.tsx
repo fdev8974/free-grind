@@ -31,6 +31,7 @@ import { loadSeenCache } from "../services/seenStore";
 import { runInboxSync } from "../services/inboxSync";
 import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
+import { mintRecaptchaToken, RecaptchaError, type RecaptchaFailure } from "../services/recaptcha";
 
 const AUTH_USER_ID_STORAGE_KEY = "fg-user-id";
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
@@ -55,6 +56,26 @@ function describeLoginError(
 	}
 	return appError?.prettyMessage || fallback;
 }
+
+function isInvalidCredentials(appError: AppError | null): boolean {
+	if (appError?.kind === "Unauthorized") return true;
+	return (
+		appError?.kind === "Api" &&
+		typeof appError.message === "object" &&
+		appError.message.code === INVALID_INPUT_PARAMETERS_CODE
+	);
+}
+
+// Shown when an account needs a reCAPTCHA token to sign in (Grindr's
+// first-party reCAPTCHA) but the helper couldn't mint one.
+const CAPTCHA_SIGN_IN_MESSAGES: Partial<Record<RecaptchaFailure, string>> = {
+	unsupportedPlatform:
+		"This account needs captcha verification, available through the Free Grind reCAPTCHA helper on Android.",
+	addonUnavailable: "Install the Free Grind reCAPTCHA helper to sign in to this account.",
+	addonUntrusted: "The installed reCAPTCHA helper isn't the official Free Grind build.",
+	untrustedCaller: "The reCAPTCHA helper doesn't trust this Free Grind build. Install both from the same source.",
+	grindrMissing: "The reCAPTCHA helper needs the Grindr app installed to verify this sign-in.",
+};
 
 type AuthAction =
 	| { type: "SET_USER"; payload: number }
@@ -194,7 +215,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_LOADING", payload: true });
 			dispatch({ type: "SET_ERROR", payload: null });
 
-			const result = await callMethod("login", { email, password });
+			let result;
+			try {
+				result = await callMethod("login", { email, password });
+			} catch (error) {
+				// Accounts with Grindr's first-party reCAPTCHA fail the plain
+				// /v8 sign-in as invalid credentials. Open Grind retries those
+				// with a reCAPTCHA token via /v9 once the assignment says so.
+				if (!isInvalidCredentials(asAppError(error))) throw error;
+				const required = await callMethod("recaptcha_first_party_enabled").catch((checkError) => {
+					appLog.warn("[Auth] recaptcha_first_party check failed", asAppError(checkError) ?? checkError);
+					return false;
+				});
+				if (!required) throw error;
+				appLog.info("[Auth] login: retrying with a reCAPTCHA token");
+				const captchaToken = await mintRecaptchaToken("login");
+				result = await callMethod("login", { email, password, captchaToken });
+			}
 			appLog.info("[Auth] login: succeeded");
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
@@ -203,6 +240,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 		} catch (error) {
 			if (handleAccountBlock(error)) {
+				throw error;
+			}
+			if (error instanceof RecaptchaError) {
+				appLog.warn("[Auth] login: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
+				if (error.reason !== "cancelled") {
+					const message =
+						CAPTCHA_SIGN_IN_MESSAGES[error.reason] ?? "Captcha verification failed. Please try again.";
+					dispatch({ type: "SET_ERROR", payload: message });
+					toast.error(message);
+				}
 				throw error;
 			}
 			const appError = asAppError(error);

@@ -1010,7 +1010,7 @@
     },
     "sign_in": {
       "title": "Sign In",
-      "subtitle": "Use your Grindr credentials or a token for Google, Apple, or Facebook.",
+      "subtitle": "Use your Grindr email and password, or sign in with Google.",
       "no_account_label": "Don't have an account?",
       "no_account_action": "Sign up",
       "method_token": "Token",
@@ -1019,6 +1019,8 @@
       "method_google": "Google",
       "google_help": "For accounts created with Google.",
       "google_app_link": "Google OAuth app",
+      "recaptcha_helper_link": "reCAPTCHA helper",
+      "recaptcha_helper_install_hint": "Needed to sign in to this account · Tap to install",
       "google_app_sign_in": "Sign in with the Google app",
       "google_app_or_manual": "or paste a token manually",
       "google_app_error": "The Google OAuth app could not sign you in. Make sure it is the Free Grind version.",
@@ -1026,6 +1028,12 @@
       "google_step_get": "Get a sign-in token",
       "google_step_get_hint": "Sign in with Google there, then tap \"Copy token\".",
       "google_app_desc": "Android",
+      "google_app_install_hint": "Android · Tap to install",
+      "google_app_downloading": "Downloading…",
+      "google_app_verifying": "Verifying…",
+      "google_app_installing": "Installing…",
+      "google_app_installed": "Installed",
+      "google_app_needs_permission": "Allow Free Grind to install apps, then come back here",
       "google_extension_desc": "Firefox, Chrome and other desktop browsers",
       "google_step_paste": "Paste the token",
       "google_token_placeholder": "Google OAuth token",
@@ -1692,6 +1700,39 @@
         "sober": "Sober",
         "trans": "Trans",
         "twink": "Twink"
+      }
+    },
+    "report": {
+      "menu_item": "Report profile",
+      "title": "Report profile",
+      "message": "Send a report about this profile to Grindr. Pick the reason that fits best.",
+      "reason_label": "Reason",
+      "location_label": "Where it happened",
+      "details_placeholder": "Details (optional)",
+      "submit": "Submit report",
+      "failed": "Failed to send report",
+      "submitted_title": "Report submitted",
+      "submitted_message": "Grindr will review this profile.",
+      "block_hint": "You can block this profile so you stop seeing it.",
+      "done": "Done",
+      "reasons": {
+        "SPAM": "Spam / Scam",
+        "HARASSMENT_BULLYING": "Harassment or bullying",
+        "HATE_DISCRIMINATION": "Hate speech / discrimination",
+        "NUDITY_PORNOGRAPHY": "Nudity or pornography",
+        "UNDERAGE": "Underage",
+        "IMPERSONATION": "Impersonation",
+        "ILLEGAL_ACTIVITY": "Illegal activity",
+        "SEXUAL_SOLICITATION": "Sexual solicitation",
+        "SERIOUS_IN_PERSON_INCIDENT": "Serious in-person incident"
+      },
+      "locations": {
+        "PROFILE_PHOTO": "Profile photo",
+        "PROFILE_INFORMATION": "Profile information",
+        "CHAT_MESSAGE": "Chat message",
+        "ALBUM": "Album",
+        "RIGHT_NOW_PHOTO": "Right Now image",
+        "RIGHT_NOW_TEXT": "Right Now text"
       }
     }
   },

@@ -1010,7 +1010,7 @@
         },
         "sign_in": {
             "title": "تسجيل الدخول",
-            "subtitle": "سجّل دخول بتوكن جريندر، أو بالإيميل وكلمة السر، أو بحساب جوجل أو فيسبوك",
+            "subtitle": "",
             "no_account_label": "معنديش حساب",
             "no_account_action": "سجّل حساب",
             "method_token": "توكن",
@@ -1019,6 +1019,8 @@
             "method_google": "",
             "google_help": "",
             "google_app_link": "",
+            "recaptcha_helper_link": "",
+            "recaptcha_helper_install_hint": "",
             "google_app_sign_in": "",
             "google_app_or_manual": "",
             "google_app_error": "",
@@ -1026,6 +1028,12 @@
             "google_step_get": "",
             "google_step_get_hint": "",
             "google_app_desc": "",
+            "google_app_install_hint": "",
+            "google_app_downloading": "",
+            "google_app_verifying": "",
+            "google_app_installing": "",
+            "google_app_installed": "",
+            "google_app_needs_permission": "",
             "google_extension_desc": "",
             "google_step_paste": "",
             "google_token_placeholder": "",
@@ -1692,6 +1700,39 @@
                 "sober": "مُتّزِن",
                 "trans": "ترانس",
                 "twink": "توينك"
+            }
+        },
+        "report": {
+            "menu_item": "",
+            "title": "",
+            "message": "",
+            "reason_label": "",
+            "location_label": "",
+            "details_placeholder": "",
+            "submit": "",
+            "failed": "",
+            "submitted_title": "",
+            "submitted_message": "",
+            "block_hint": "",
+            "done": "",
+            "reasons": {
+                "SPAM": "",
+                "HARASSMENT_BULLYING": "",
+                "HATE_DISCRIMINATION": "",
+                "NUDITY_PORNOGRAPHY": "",
+                "UNDERAGE": "",
+                "IMPERSONATION": "",
+                "ILLEGAL_ACTIVITY": "",
+                "SEXUAL_SOLICITATION": "",
+                "SERIOUS_IN_PERSON_INCIDENT": ""
+            },
+            "locations": {
+                "PROFILE_PHOTO": "",
+                "PROFILE_INFORMATION": "",
+                "CHAT_MESSAGE": "",
+                "ALBUM": "",
+                "RIGHT_NOW_PHOTO": "",
+                "RIGHT_NOW_TEXT": ""
             }
         }
     },
