@@ -1,4 +1,4 @@
-import { useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { AuthShell } from "../../components/ui/auth-shell";
@@ -8,6 +8,37 @@ import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
 import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle } from "lucide-react";
 import { cn } from "../../utils/cn";
+
+const GOOGLE_OAUTH_APP_RELEASES = "https://github.com/fdev8974/free-grind-oauth-app/releases";
+
+/**
+ * Android-only native side of the Free Grind Google OAuth companion app (see
+ * GoogleOAuthApp.kt). requestGoogleToken() answers through the
+ * `fg:google-token` / `fg:google-token-error` window events; a token the app
+ * handed over on its own before this page mounted waits in __FG_GOOGLE_TOKEN.
+ */
+type GoogleOAuthWindow = Window & {
+	FreeGrindBridge?: {
+		isGoogleOAuthAppInstalled?: () => boolean;
+		requestGoogleToken?: () => string;
+	};
+	__FG_GOOGLE_TOKEN?: string;
+};
+
+function isGoogleOAuthAppInstalled(): boolean {
+	try {
+		return (window as GoogleOAuthWindow).FreeGrindBridge?.isGoogleOAuthAppInstalled?.() === true;
+	} catch {
+		return false;
+	}
+}
+
+function takePendingGoogleToken(): string | null {
+	const w = window as GoogleOAuthWindow;
+	const token = w.__FG_GOOGLE_TOKEN?.trim();
+	delete w.__FG_GOOGLE_TOKEN;
+	return token || null;
+}
 
 // Lucide ships no brand logos; path from Simple Icons (CC0).
 function GoogleIcon({ className }: { className?: string }) {
@@ -158,6 +189,8 @@ export function SignInPage() {
 
 	const [googleToken, setGoogleToken] = useState("");
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+	const [hasGoogleOAuthApp, setHasGoogleOAuthApp] = useState(isGoogleOAuthAppInstalled);
+	const [googleAppError, setGoogleAppError] = useState<string | null>(null);
 
 	const { login, loginWithGoogle, error } = useAuth();
 	const navigate = useNavigate();
@@ -178,16 +211,73 @@ export function SignInPage() {
 		}
 	};
 
-	const handleGoogleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const submitGoogleToken = async (token: string) => {
+		setGoogleAppError(null);
 		setIsGoogleLoading(true);
 		try {
-			await loginWithGoogle(googleToken.trim());
+			await loginWithGoogle(token);
 			navigate("/");
 		} catch {
 			// AuthContext updates `error`, which is rendered in the form.
 		} finally {
 			setIsGoogleLoading(false);
+		}
+	};
+
+	const handleGoogleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		await submitGoogleToken(googleToken.trim());
+	};
+
+	// The listeners below outlive renders; always submit through the latest closure.
+	const submitGoogleTokenRef = useRef(submitGoogleToken);
+	submitGoogleTokenRef.current = submitGoogleToken;
+
+	useEffect(() => {
+		const receiveToken = (token: string) => {
+			setMethod("google");
+			setGoogleToken(token);
+			void submitGoogleTokenRef.current(token);
+		};
+		const pending = takePendingGoogleToken();
+		if (pending) receiveToken(pending);
+
+		const onToken = () => {
+			const token = takePendingGoogleToken();
+			if (token) receiveToken(token);
+		};
+		const onError = (event: Event) => {
+			setIsGoogleLoading(false);
+			const reason = (event as CustomEvent<{ reason?: string }>).detail?.reason;
+			if (reason && reason !== "cancelled") {
+				setGoogleAppError(
+					t("auth.sign_in.google_app_error", {
+						defaultValue: "The Google OAuth app could not sign you in. Make sure it is the Free Grind version.",
+					}),
+				);
+			}
+		};
+		// The app may get installed while this page sits in the background.
+		const onVisible = () => {
+			if (document.visibilityState === "visible") setHasGoogleOAuthApp(isGoogleOAuthAppInstalled());
+		};
+		window.addEventListener("fg:google-token", onToken);
+		window.addEventListener("fg:google-token-error", onError);
+		document.addEventListener("visibilitychange", onVisible);
+		return () => {
+			window.removeEventListener("fg:google-token", onToken);
+			window.removeEventListener("fg:google-token-error", onError);
+			document.removeEventListener("visibilitychange", onVisible);
+		};
+	}, [t]);
+
+	const handleGoogleAppSignIn = () => {
+		setGoogleAppError(null);
+		const result = (window as GoogleOAuthWindow).FreeGrindBridge?.requestGoogleToken?.();
+		if (result === "ok") {
+			setIsGoogleLoading(true);
+		} else {
+			setHasGoogleOAuthApp(false);
 		}
 	};
 
@@ -286,6 +376,29 @@ export function SignInPage() {
 				</form>
 			) : (
 				<form key="google" onSubmit={handleGoogleSubmit} className="animate-fade-in space-y-5">
+					{hasGoogleOAuthApp ? (
+						<section className="space-y-2.5">
+							<Button
+								type="button"
+								variant="primary"
+								loading={isGoogleLoading}
+								onClick={handleGoogleAppSignIn}
+								leftIcon={<GoogleIcon className="h-4 w-4" />}
+								className="w-full"
+							>
+								{t("auth.sign_in.google_app_sign_in", { defaultValue: "Sign in with the Google app" })}
+							</Button>
+							{googleAppError ? (
+								<div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]">
+									<AlertCircle className="h-4 w-4 shrink-0 text-[#f87171]" />
+									<span>{googleAppError}</span>
+								</div>
+							) : null}
+							<p className="text-center text-xs text-[var(--text-muted)]">
+								{t("auth.sign_in.google_app_or_manual", { defaultValue: "or paste a token manually" })}
+							</p>
+						</section>
+					) : null}
 					<section className="space-y-2.5">
 						<StepHeading
 							step={1}
@@ -296,7 +409,7 @@ export function SignInPage() {
 						/>
 						<div className="space-y-2">
 							<TokenSourceLink
-								href="https://git.opengrind.org/open-grind/google-oauth-app/releases"
+								href={GOOGLE_OAUTH_APP_RELEASES}
 								icon={<Smartphone className="h-4 w-4" />}
 								title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
 								description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}

@@ -24,6 +24,7 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.ImageView
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -113,6 +114,18 @@ class MainActivity : TauriActivity() {
     }
 
     private var pendingRefreshedFcmToken: String? = null
+
+    /** Token from TokenHandoffActivity, held until the WebView can take it. */
+    private var pendingGoogleToken: String? = null
+
+    fun deliverGoogleToken(token: String) {
+      val activity = activityRef?.get()
+      if (activity?.webViewRef != null) {
+        activity.dispatchGoogleTokenToWebview(token, 0)
+      } else {
+        pendingGoogleToken = token
+      }
+    }
   }
 
   private var webViewRef: WebView? = null
@@ -139,6 +152,20 @@ class MainActivity : TauriActivity() {
   // stay well above that or it'll cut the splash early on every
   // normal-but-slow launch instead of only on a genuinely broken one.
   private var splashDialog: Dialog? = null
+
+  // Result of JsBridge.requestGoogleToken(). The companion app answers
+  // RESULT_OK with the token, RESULT_CANCELED when the user backed out, and
+  // RESULT_FIRST_USER when it refused us (signature mismatch).
+  private val googleTokenLauncher = registerForActivityResult(
+    ActivityResultContracts.StartActivityForResult()
+  ) { result ->
+    val token = result.data?.getStringExtra(GoogleOAuthApp.EXTRA_TOKEN)?.trim().orEmpty()
+    when {
+      result.resultCode == RESULT_OK && token.isNotEmpty() -> dispatchGoogleTokenToWebview(token, 0)
+      result.resultCode == RESULT_FIRST_USER -> dispatchGoogleTokenErrorToWebview("refused")
+      else -> dispatchGoogleTokenErrorToWebview("cancelled")
+    }
+  }
   private var splashSpinnerAnimator: Animator? = null
 
   private fun dismissSplash() {
@@ -228,6 +255,10 @@ class MainActivity : TauriActivity() {
       pendingFcmToken = null
     }
     dispatchPendingPushNotifications()
+    pendingGoogleToken?.let {
+      pendingGoogleToken = null
+      dispatchGoogleTokenToWebview(it, 0)
+    }
     handleNotificationIntent(intent)
   }
 
@@ -383,6 +414,31 @@ class MainActivity : TauriActivity() {
       return AppDisguise.currentDisguise(this@MainActivity).id
     }
 
+    /** Whether the Free Grind Google OAuth app is installed and signed like us. */
+    @JavascriptInterface
+    fun isGoogleOAuthAppInstalled(): Boolean {
+      return GoogleOAuthApp.isTrusted(this@MainActivity, GoogleOAuthApp.PACKAGE)
+    }
+
+    /**
+     * Opens the Google OAuth app to sign in. The outcome arrives as a
+     * `fg:google-token` or `fg:google-token-error` window event. Returns
+     * "ok", or "not_installed" when no trusted companion app is present.
+     */
+    @JavascriptInterface
+    fun requestGoogleToken(): String {
+      if (!GoogleOAuthApp.isTrusted(this@MainActivity, GoogleOAuthApp.PACKAGE)) return "not_installed"
+      runOnUiThread {
+        try {
+          googleTokenLauncher.launch(GoogleOAuthApp.requestTokenIntent())
+        } catch (e: Exception) {
+          Log.e("GoogleOAuth", "Failed to launch Google OAuth app", e)
+          dispatchGoogleTokenErrorToWebview("launch_failed")
+        }
+      }
+      return "ok"
+    }
+
     @JavascriptInterface
     fun vibrate(durationMs: Long) {
       try {
@@ -514,6 +570,39 @@ class MainActivity : TauriActivity() {
         }
       }
     }
+  }
+
+  // Not persisted to localStorage (unlike the FCM token): it's a Google
+  // credential and only needed until the sign-in page consumes it.
+  private fun dispatchGoogleTokenToWebview(token: String, attempt: Int) {
+    val script =
+      "(function(){" +
+      "var token = ${JSONObject.quote(token)};" +
+      "var href = String(location && location.href || '');" +
+      "if (href.indexOf('tauri.localhost') === -1) { return 'retry:not-ready:' + href; }" +
+      "window.__FG_GOOGLE_TOKEN = token;" +
+      "window.dispatchEvent(new CustomEvent('fg:google-token', { detail: { token: token } }));" +
+      "return 'ok';" +
+      "})();"
+
+    runOnUiThread {
+      val webView = webViewRef
+      if (webView == null) {
+        pendingGoogleToken = token
+        return@runOnUiThread
+      }
+      webView.evaluateJavascript(script) { result ->
+        if (result.contains("retry") && attempt < 12) {
+          mainHandler.postDelayed({ dispatchGoogleTokenToWebview(token, attempt + 1) }, 400)
+        }
+      }
+    }
+  }
+
+  private fun dispatchGoogleTokenErrorToWebview(reason: String) {
+    val script =
+      "window.dispatchEvent(new CustomEvent('fg:google-token-error', { detail: { reason: ${JSONObject.quote(reason)} } }));"
+    runOnUiThread { webViewRef?.evaluateJavascript(script, null) }
   }
 
   private fun dispatchPendingPushNotifications() {

@@ -16,6 +16,8 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
+        <!-- Google OAuth companion app, see GoogleOAuthApp.kt -->
+        <package android:name="dev.estopia.free_grind.google_oauth" />
     </queries>
 
     <!-- AndroidTV support -->
@@ -110,6 +112,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity-alias>
+
+        <!-- Receives a token from the Google OAuth app; the caller is checked
+             against our own signature in TokenHandoffActivity. -->
+        <activity
+            android:name=".TokenHandoffActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <provider
           android:name="androidx.core.content.FileProvider"
