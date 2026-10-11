@@ -6,7 +6,9 @@ import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle } from "lucide-react";
+import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, ShieldCheck } from "lucide-react";
+import { describeApkUpdateError, useGoogleOAuthAppInstall, useRecaptchaHelperInstall } from "../../services/apkUpdate";
+import { RecaptchaError } from "../../services/recaptcha";
 import { cn } from "../../utils/cn";
 
 const GOOGLE_OAUTH_APP_RELEASES = "https://github.com/fdev8974/free-grind-oauth-app/releases";
@@ -140,6 +142,97 @@ function TokenSourceLink({
 	);
 }
 
+/**
+ * Android: installs a companion app (Google OAuth app, reCAPTCHA helper) in
+ * place, like the in-app update (see useGoogleOAuthAppInstall), instead of
+ * linking to its releases page.
+ */
+function AppInstallCard({
+	install,
+	icon,
+	title,
+	installHint,
+}: {
+	install: ReturnType<typeof useGoogleOAuthAppInstall>;
+	icon: ReactNode;
+	title: string;
+	installHint: string;
+}) {
+	const { t } = useTranslation();
+	const { state } = install;
+	const busy = state.phase === "downloading" || state.phase === "verifying" || state.phase === "installing";
+
+	const status =
+		state.phase === "downloading"
+			? state.progress === null
+				? t("auth.sign_in.google_app_downloading", { defaultValue: "Downloading…" })
+				: `${t("auth.sign_in.google_app_downloading", { defaultValue: "Downloading…" })} ${Math.round(state.progress * 100)}%`
+			: state.phase === "verifying"
+				? t("auth.sign_in.google_app_verifying", { defaultValue: "Verifying…" })
+				: state.phase === "installing"
+					? t("auth.sign_in.google_app_installing", { defaultValue: "Installing…" })
+					: state.phase === "installed"
+						? t("auth.sign_in.google_app_installed", { defaultValue: "Installed" })
+						: state.phase === "needs-permission"
+							? t("auth.sign_in.google_app_needs_permission", {
+									defaultValue: "Allow Free Grind to install apps, then come back here",
+								})
+							: state.phase === "error"
+								? describeApkUpdateError(state.code)
+								: installHint;
+
+	const onClick = () => {
+		if (state.phase === "needs-permission") install.openPermissionSettings();
+		else if (state.phase === "error" && state.code === "canceled") install.installDownloaded();
+		else install.start();
+	};
+
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={busy || state.phase === "installed"}
+			className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-left transition-all duration-150 hover:border-[var(--accent)] active:scale-[0.99] disabled:active:scale-100"
+		>
+			<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)]">
+				{icon}
+			</span>
+			<span className="min-w-0 flex-1">
+				<span className="block truncate text-sm font-medium text-[var(--text)]">{title}</span>
+				<span
+					className={cn(
+						"block text-xs",
+						state.phase === "error" ? "text-[#f87171]" : "text-[var(--text-muted)]",
+						state.phase === "error" || state.phase === "needs-permission" ? "leading-relaxed" : "truncate",
+					)}
+				>
+					{status}
+				</span>
+			</span>
+			{busy ? (
+				<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--accent)]" />
+			) : state.phase === "installed" ? (
+				<Check className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+			) : state.phase === "needs-permission" ? (
+				<ShieldAlert className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+			) : (
+				<Download className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]" />
+			)}
+			{state.phase === "downloading" ? (
+				<span className="absolute inset-x-0 bottom-0 h-0.5 bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]">
+					<span
+						className={cn(
+							"block h-full bg-[var(--accent)] transition-[width] duration-200",
+							state.progress === null && "w-1/3 animate-pulse",
+						)}
+						style={state.progress === null ? undefined : { width: `${Math.round(state.progress * 100)}%` }}
+					/>
+				</span>
+			) : null}
+		</button>
+	);
+}
+
 function AuthSubmitSection({
 	error,
 	loading,
@@ -191,6 +284,10 @@ export function SignInPage() {
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 	const [hasGoogleOAuthApp, setHasGoogleOAuthApp] = useState(isGoogleOAuthAppInstalled);
 	const [googleAppError, setGoogleAppError] = useState<string | null>(null);
+	const googleAppInstall = useGoogleOAuthAppInstall();
+	// Set once a sign-in needed a reCAPTCHA token but the helper isn't installed.
+	const [needsRecaptchaHelper, setNeedsRecaptchaHelper] = useState(false);
+	const recaptchaHelperInstall = useRecaptchaHelperInstall();
 
 	const { login, loginWithGoogle, error } = useAuth();
 	const navigate = useNavigate();
@@ -198,18 +295,35 @@ export function SignInPage() {
 	const isPasswordFormValid = email.trim().length > 0 && password.trim().length > 0;
 	const isGoogleFormValid = googleToken.trim().length > 0;
 
-	const handlePasswordSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
+	const submitPassword = async () => {
 		setIsPasswordLoading(true);
 		try {
 			await login(email, password);
 			navigate("/");
-		} catch {
+		} catch (error) {
 			// AuthContext updates `error`, which is rendered in the form.
+			if (error instanceof RecaptchaError && error.reason === "addonUnavailable") {
+				setNeedsRecaptchaHelper(true);
+			}
 		} finally {
 			setIsPasswordLoading(false);
 		}
 	};
+
+	const handlePasswordSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		await submitPassword();
+	};
+
+	// The helper was just installed for this sign-in: retry it right away.
+	const submitPasswordRef = useRef(submitPassword);
+	submitPasswordRef.current = submitPassword;
+	useEffect(() => {
+		if (needsRecaptchaHelper && recaptchaHelperInstall.state.phase === "installed") {
+			setNeedsRecaptchaHelper(false);
+			void submitPasswordRef.current();
+		}
+	}, [needsRecaptchaHelper, recaptchaHelperInstall.state.phase]);
 
 	const submitGoogleToken = async (token: string) => {
 		setGoogleAppError(null);
@@ -270,6 +384,11 @@ export function SignInPage() {
 			document.removeEventListener("visibilitychange", onVisible);
 		};
 	}, [t]);
+
+	// Freshly installed in place: switch to the one-tap sign-in right away.
+	useEffect(() => {
+		if (googleAppInstall.state.phase === "installed") setHasGoogleOAuthApp(isGoogleOAuthAppInstalled());
+	}, [googleAppInstall.state.phase]);
 
 	const handleGoogleAppSignIn = () => {
 		setGoogleAppError(null);
@@ -373,6 +492,16 @@ export function SignInPage() {
 						loadingLabel={t("auth.sign_in.signing_in")}
 						label={t("auth.sign_in.submit")}
 					/>
+					{recaptchaHelperInstall.supported && needsRecaptchaHelper ? (
+						<AppInstallCard
+							install={recaptchaHelperInstall}
+							icon={<ShieldCheck className="h-4 w-4" />}
+							title={t("auth.sign_in.recaptcha_helper_link", { defaultValue: "reCAPTCHA helper" })}
+							installHint={t("auth.sign_in.recaptcha_helper_install_hint", {
+								defaultValue: "Needed to sign in to this account · Tap to install",
+							})}
+						/>
+					) : null}
 				</form>
 			) : (
 				<form key="google" onSubmit={handleGoogleSubmit} className="animate-fade-in space-y-5">
@@ -408,12 +537,21 @@ export function SignInPage() {
 							})}
 						/>
 						<div className="space-y-2">
-							<TokenSourceLink
-								href={GOOGLE_OAUTH_APP_RELEASES}
-								icon={<Smartphone className="h-4 w-4" />}
-								title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
-								description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}
-							/>
+							{googleAppInstall.supported && !hasGoogleOAuthApp ? (
+								<AppInstallCard
+									install={googleAppInstall}
+									icon={<Smartphone className="h-4 w-4" />}
+									title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
+									installHint={t("auth.sign_in.google_app_install_hint", { defaultValue: "Android · Tap to install" })}
+								/>
+							) : (
+								<TokenSourceLink
+									href={GOOGLE_OAUTH_APP_RELEASES}
+									icon={<Smartphone className="h-4 w-4" />}
+									title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
+									description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}
+								/>
+							)}
 							<TokenSourceLink
 								href="https://github.com/fdev8974/freegrind-google-oauth-webextension#install"
 								icon={<Puzzle className="h-4 w-4" />}

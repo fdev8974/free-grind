@@ -812,6 +812,7 @@ pub async fn login(
     state: tauri::State<'_, AppState>,
     email: String,
     password: String,
+    captcha_token: Option<String>,
 ) -> Result<LoginResult, AppError> {
     let client = state.client()?;
 
@@ -822,14 +823,32 @@ pub async fn login(
         .await
         .map_err(AppError::from)?;
 
-    let result = client
-        .sign_in_with_email(&email, &password)
-        .await
-        .map_err(|e| AppError::from_client_error(e, &client))?;
+    // With a reCAPTCHA token (minted by the Free Grind reCAPTCHA helper)
+    // the crate signs in via /v9/sessions, which accounts with first-party
+    // reCAPTCHA require; otherwise via /v8/sessions.
+    let result = match captcha_token.as_deref() {
+        Some(token) => client.sign_in_with_email_captcha(&email, &password, token).await,
+        None => client.sign_in_with_email(&email, &password).await,
+    }
+    .map_err(|e| AppError::from_client_error(e, &client))?;
 
     // A key stored for this account belongs to its previous device.
     SigningKeyStorage::delete(&result.profile_id);
     Ok(login_result(&client, result))
+}
+
+/// Whether Grindr has first-party reCAPTCHA enabled (the
+/// `recaptcha_first_party` assignment). When it is, an email sign-in that
+/// fails as invalid credentials is retried with a reCAPTCHA token.
+#[tauri::command]
+pub async fn recaptcha_first_party_enabled(
+    state: tauri::State<'_, AppState>,
+) -> Result<bool, AppError> {
+    state
+        .client()?
+        .recaptcha_first_party_enabled()
+        .await
+        .map_err(AppError::from)
 }
 
 /// Third-party sign-in with a Google OAuth access token, as handed out by the

@@ -1,20 +1,30 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * In-app APK self-update on Android — the native side lives in
- * ApkUpdater.kt and reports through `fg:apk-update` window events.
+ * In-app APK installs on Android — the native side lives in ApkUpdater.kt
+ * and reports through `fg:apk-update` window events, tagged with the
+ * `target` they belong to: the app's own self-update ("app"), the Google
+ * OAuth companion app ("google-oauth") or the reCAPTCHA helper ("recaptcha").
  */
 type ApkUpdateBridge = {
 	downloadApkUpdate?: (url: string) => boolean;
 	installDownloadedApkUpdate?: () => boolean;
+	downloadGoogleOAuthApp?: () => boolean;
+	installDownloadedGoogleOAuthApp?: () => boolean;
+	downloadRecaptchaHelper?: () => boolean;
+	installDownloadedRecaptchaHelper?: () => boolean;
 	canInstallApkUpdates?: () => boolean;
 	openInstallPermissionSettings?: () => boolean;
 };
 
-type NativeEvent =
+type ApkInstallTarget = "app" | "google-oauth" | "recaptcha";
+
+type NativeEvent = { target?: ApkInstallTarget } & (
+	| { state: "resolving" }
 	| { state: "downloading"; received: number; total: number }
 	| { state: "verifying" | "needs-permission" | "installing" | "installed" }
-	| { state: "error"; code: string; message?: string };
+	| { state: "error"; code: string; message?: string }
+);
 
 export type ApkUpdateState =
 	| { phase: "idle" }
@@ -29,6 +39,14 @@ function getBridge(): ApkUpdateBridge | null {
 
 export function isApkUpdateSupported(): boolean {
 	return getBridge() !== null;
+}
+
+export function isGoogleOAuthAppInstallSupported(): boolean {
+	return typeof getBridge()?.downloadGoogleOAuthApp === "function";
+}
+
+export function isRecaptchaHelperInstallSupported(): boolean {
+	return typeof getBridge()?.downloadRecaptchaHelper === "function";
 }
 
 export function describeApkUpdateError(code: string): string {
@@ -50,21 +68,31 @@ export function describeApkUpdateError(code: string): string {
 			return "Android blocked the installation.";
 		case "start-failed":
 			return "Couldn't start the download.";
+		case "no-asset":
+			return "There's no download for this device's processor.";
+		case "conflict":
+			return "A differently signed version is already installed. Uninstall it first, then try again.";
 		default:
 			return "The update couldn't be installed.";
 	}
 }
 
-export function useApkUpdate(apkUrl: string | undefined) {
+/**
+ * Tracks one target's install from its native events, and resumes the
+ * install of the already downloaded APK when the user comes back from the
+ * "install unknown apps" settings screen.
+ */
+function useApkInstall(target: ApkInstallTarget, enabled: boolean, installDownloadedNative: () => boolean | undefined) {
 	const [state, setState] = useState<ApkUpdateState>({ phase: "idle" });
-	const supported = Boolean(apkUrl) && isApkUpdateSupported();
 
 	useEffect(() => {
-		if (!supported) return;
+		if (!enabled) return;
 		const handler = (event: Event) => {
 			const detail = (event as CustomEvent<NativeEvent>).detail;
-			if (!detail) return;
-			if (detail.state === "downloading") {
+			if (!detail || (detail.target ?? "app") !== target) return;
+			if (detail.state === "resolving") {
+				setState({ phase: "downloading", progress: null });
+			} else if (detail.state === "downloading") {
 				setState({
 					phase: "downloading",
 					progress: detail.total > 0 ? Math.min(1, detail.received / detail.total) : null,
@@ -77,10 +105,12 @@ export function useApkUpdate(apkUrl: string | undefined) {
 		};
 		window.addEventListener("fg:apk-update", handler);
 		return () => window.removeEventListener("fg:apk-update", handler);
-	}, [supported]);
+	}, [enabled, target]);
 
+	const installDownloadedRef = useRef(installDownloadedNative);
+	installDownloadedRef.current = installDownloadedNative;
 	const installDownloaded = useCallback(() => {
-		if (getBridge()?.installDownloadedApkUpdate?.()) {
+		if (installDownloadedRef.current()) {
 			setState({ phase: "verifying" });
 		}
 	}, []);
@@ -101,6 +131,21 @@ export function useApkUpdate(apkUrl: string | undefined) {
 		};
 	}, [state.phase, installDownloaded]);
 
+	const openPermissionSettings = useCallback(() => {
+		getBridge()?.openInstallPermissionSettings?.();
+	}, []);
+
+	return { state, setState, installDownloaded, openPermissionSettings };
+}
+
+export function useApkUpdate(apkUrl: string | undefined) {
+	const supported = Boolean(apkUrl) && isApkUpdateSupported();
+	const { state, setState, installDownloaded, openPermissionSettings } = useApkInstall(
+		"app",
+		supported,
+		() => getBridge()?.installDownloadedApkUpdate?.(),
+	);
+
 	const start = useCallback(() => {
 		const bridge = getBridge();
 		if (!bridge || !apkUrl) return;
@@ -109,11 +154,47 @@ export function useApkUpdate(apkUrl: string | undefined) {
 		} else {
 			setState({ phase: "error", code: "start-failed" });
 		}
-	}, [apkUrl]);
+	}, [apkUrl, setState]);
 
-	const openPermissionSettings = useCallback(() => {
-		getBridge()?.openInstallPermissionSettings?.();
-	}, []);
+	return { supported, state, start, installDownloaded, openPermissionSettings };
+}
+
+/** Installs the Google OAuth companion app from its latest release (Android only). */
+export function useGoogleOAuthAppInstall() {
+	const supported = isGoogleOAuthAppInstallSupported();
+	const { state, setState, installDownloaded, openPermissionSettings } = useApkInstall(
+		"google-oauth",
+		supported,
+		() => getBridge()?.installDownloadedGoogleOAuthApp?.(),
+	);
+
+	const start = useCallback(() => {
+		if (getBridge()?.downloadGoogleOAuthApp?.()) {
+			setState({ phase: "downloading", progress: null });
+		} else {
+			setState({ phase: "error", code: "start-failed" });
+		}
+	}, [setState]);
+
+	return { supported, state, start, installDownloaded, openPermissionSettings };
+}
+
+/** Installs the reCAPTCHA helper from its latest release (Android only). */
+export function useRecaptchaHelperInstall() {
+	const supported = isRecaptchaHelperInstallSupported();
+	const { state, setState, installDownloaded, openPermissionSettings } = useApkInstall(
+		"recaptcha",
+		supported,
+		() => getBridge()?.installDownloadedRecaptchaHelper?.(),
+	);
+
+	const start = useCallback(() => {
+		if (getBridge()?.downloadRecaptchaHelper?.()) {
+			setState({ phase: "downloading", progress: null });
+		} else {
+			setState({ phase: "error", code: "start-failed" });
+		}
+	}, [setState]);
 
 	return { supported, state, start, installDownloaded, openPermissionSettings };
 }

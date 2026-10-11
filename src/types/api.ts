@@ -32,6 +32,7 @@ export const methodSchemas = {
 		request: z.object({
 			email: z.email(),
 			password: z.string().min(1),
+			captchaToken: z.string().min(1).optional(),
 		}),
 		response: z.object({
 			profileId: z.coerce.number().int().nonnegative(),
@@ -46,6 +47,10 @@ export const methodSchemas = {
 			profileId: z.coerce.number().int().nonnegative(),
 			restriction: restrictionSchema.nullish(),
 		}),
+	},
+	recaptcha_first_party_enabled: {
+		request: z.undefined(),
+		response: z.boolean(),
 	},
 	auth_state: {
 		request: z.undefined(),

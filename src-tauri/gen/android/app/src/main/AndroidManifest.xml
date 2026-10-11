@@ -20,6 +20,8 @@
         </intent>
         <!-- Google OAuth companion app, see GoogleOAuthApp.kt -->
         <package android:name="dev.estopia.free_grind.google_oauth" />
+        <!-- reCAPTCHA helper, see RecaptchaHelper.kt -->
+        <package android:name="dev.estopia.free_grind.recaptcha" />
     </queries>
 
     <!-- AndroidTV support -->

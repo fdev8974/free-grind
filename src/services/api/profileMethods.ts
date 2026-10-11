@@ -22,6 +22,7 @@ import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, pa
 import { awaitEntitlementGrant } from "../entitlementBypass";
 import { getIncognitoMode, isRecordProfileViewsEnabled } from "../../utils/privacy";
 import { appLog } from "../../utils/logger";
+import { isRecaptchaHelperAvailable, mintRecaptchaToken } from "../recaptcha";
 
 export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, options?: { defaultValue?: string }) => string) {
 	return {
@@ -82,13 +83,31 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 		},
 
 		/**
-		 * Files a report with Grindr's moderation. Uses the ungated v3.1
-		 * endpoint — v5 additionally wants a reCAPTCHA token, which we
-		 * can't mint, and Open Grind falls back to v3.1 the same way.
+		 * Files a report with Grindr's moderation. Like Open Grind: v5 with a
+		 * reCAPTCHA token when the reCAPTCHA helper can mint one, otherwise —
+		 * or when v5 refuses it with a 4xx — the ungated v3.1 endpoint.
 		 */
 		async reportProfile(profileId: string, report: ProfileReportRequest): Promise<{ ok: true }> {
+			const id = encodeURIComponent(profileId);
+			if (isRecaptchaHelperAvailable()) {
+				const captchaToken = await mintRecaptchaToken("report").catch((error) => {
+					appLog.warn("[Report] reCAPTCHA token unavailable, using v3.1", error);
+					return null;
+				});
+				if (captchaToken !== null) {
+					const v5 = await fetchRest(`/v5/flags/${id}`, {
+						method: "POST",
+						body: { ...report, captchaToken },
+					});
+					if (v5.status < 400 || v5.status >= 500) {
+						await assertSuccess(v5, t("profile_details.report.failed"));
+						return { ok: true };
+					}
+					appLog.warn("[Report] v5 refused the report, using v3.1", { status: v5.status });
+				}
+			}
 			const response = await fetchRest(
-				`/v3.1/flags/${encodeURIComponent(profileId)}`,
+				`/v3.1/flags/${id}`,
 				{ method: "POST", body: report },
 			);
 			await assertSuccess(response, t("profile_details.report.failed"));
