@@ -16,6 +16,7 @@ import type { VisitingMode } from "../../types/visiting";
 import { isVisitingMode } from "../../types/visiting";
 import { travelPlansResponseSchema, type TravelPlan, type TravelPlanPayload } from "../../types/travel";
 import { homeLocationSchema, type HomeLocation } from "../../types/home-location";
+import type { ProfileReportRequest } from "../../types/reports";
 import { invoke } from "@tauri-apps/api/core";
 import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "../apiHelpers";
 import { awaitEntitlementGrant } from "../entitlementBypass";
@@ -77,6 +78,20 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 		async unblockAllProfiles(): Promise<{ ok: true }> {
 			const response = await fetchRest("/v3/me/blocks", { method: "DELETE" });
 			await assertSuccess(response, t("settings_blocked.unblock_all_failed", { defaultValue: "Failed to unblock all profiles." }));
+			return { ok: true };
+		},
+
+		/**
+		 * Files a report with Grindr's moderation. Uses the ungated v3.1
+		 * endpoint — v5 additionally wants a reCAPTCHA token, which we
+		 * can't mint, and Open Grind falls back to v3.1 the same way.
+		 */
+		async reportProfile(profileId: string, report: ProfileReportRequest): Promise<{ ok: true }> {
+			const response = await fetchRest(
+				`/v3.1/flags/${encodeURIComponent(profileId)}`,
+				{ method: "POST", body: report },
+			);
+			await assertSuccess(response, t("profile_details.report.failed"));
 			return { ok: true };
 		},
 

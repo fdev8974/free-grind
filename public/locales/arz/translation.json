@@ -1693,6 +1693,39 @@
                 "trans": "ترانس",
                 "twink": "توينك"
             }
+        },
+        "report": {
+            "menu_item": "",
+            "title": "",
+            "message": "",
+            "reason_label": "",
+            "location_label": "",
+            "details_placeholder": "",
+            "submit": "",
+            "failed": "",
+            "submitted_title": "",
+            "submitted_message": "",
+            "block_hint": "",
+            "done": "",
+            "reasons": {
+                "SPAM": "",
+                "HARASSMENT_BULLYING": "",
+                "HATE_DISCRIMINATION": "",
+                "NUDITY_PORNOGRAPHY": "",
+                "UNDERAGE": "",
+                "IMPERSONATION": "",
+                "ILLEGAL_ACTIVITY": "",
+                "SEXUAL_SOLICITATION": "",
+                "SERIOUS_IN_PERSON_INCIDENT": ""
+            },
+            "locations": {
+                "PROFILE_PHOTO": "",
+                "PROFILE_INFORMATION": "",
+                "CHAT_MESSAGE": "",
+                "ALBUM": "",
+                "RIGHT_NOW_PHOTO": "",
+                "RIGHT_NOW_TEXT": ""
+            }
         }
     },
     "interest_page": {

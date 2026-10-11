@@ -1,4 +1,4 @@
-import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Eye, EyeOff, Flame, HeartPulse, Images, LockKeyhole, MessageCircle, Pencil, PencilLine, Phone, ShieldCheck, StickyNote, Star, Trash2, Triangle, X, Zap } from "lucide-react";
+import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Eye, EyeOff, Flag, Flame, HeartPulse, Images, LockKeyhole, MessageCircle, Pencil, PencilLine, Phone, ShieldCheck, StickyNote, Star, Trash2, Triangle, X, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +34,7 @@ import { resolveAvatarSrc } from "../../../../services/avatarStore";
 import { getForbiddenWords, setForbiddenWords } from "../../../../utils/autoblock";
 import { ProfileImage } from "../../../../components/ui/profile-image";
 import { PromptDialog } from "../../../../components/ui/prompt-dialog";
+import { ReportProfileDialog } from "../../../../components/ReportProfileDialog";
 import freegrindLogo from "../../../../images/freegrind-logo.webp";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { formatDateTime24 } from "../../chat/chatUtils";
@@ -1367,6 +1368,30 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		</button>
 	) : null;
 
+	const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+	const closeReportDialog = useCallback(() => setIsReportDialogOpen(false), []);
+
+	const reportMenuItem =
+		messageProfileId != null && !isOwnProfile && !isSnapshotProfile ? (
+			<button
+				type="button"
+				onClick={() => { setIsActionsMenuOpen(false); setIsReportDialogOpen(true); }}
+				className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-red-400 transition hover:bg-[var(--surface-2)]"
+			>
+				<Flag className="mr-2 h-4 w-4 opacity-70" />
+				{t("profile_details.report.menu_item")}
+			</button>
+		) : null;
+
+	const reportDialog = messageProfileId != null ? (
+		<ReportProfileDialog
+			isOpen={isReportDialogOpen}
+			profileId={String(messageProfileId)}
+			onClose={closeReportDialog}
+			onBlock={onBlockProfile && !isBlocked ? () => onBlockProfile(String(messageProfileId)) : undefined}
+		/>
+	) : null;
+
 	const nicknamePrompt = (
 		<PromptDialog
 			isOpen={isNicknamePromptOpen}
@@ -1614,6 +1639,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 										)}
 										{nicknameMenuItem}
 										{encounterMenuItem}
+										{reportMenuItem}
 										</div>
 										{(hasBio || actualProfileName) && <div className="h-px shrink-0 bg-[var(--border)]" />}
 										{(hasBio || actualProfileName) && (
@@ -1944,6 +1970,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				{albumViewerOverlay}
 				{encounterSheet}
 				{nicknamePrompt}
+				{reportDialog}
 				<PromptDialog
 					isOpen={banBioPrompt !== null}
 					title={t("profile_details.ban_bio_title")}
@@ -2222,6 +2249,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 														)}
 														{nicknameMenuItem}
 														{encounterMenuItem}
+														{reportMenuItem}
 														</div>
 														{(hasBio || actualProfileName) && <div className="h-px shrink-0 bg-[var(--border)]" />}
 														{(hasBio || actualProfileName) && (
@@ -2420,6 +2448,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			{albumViewerOverlay}
 			{encounterSheet}
 			{nicknamePrompt}
+			{reportDialog}
 			<PromptDialog
 				isOpen={banBioPrompt !== null}
 				title={t("profile_details.ban_bio_title")}

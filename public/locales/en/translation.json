@@ -1693,6 +1693,39 @@
         "trans": "Trans",
         "twink": "Twink"
       }
+    },
+    "report": {
+      "menu_item": "Report profile",
+      "title": "Report profile",
+      "message": "Send a report about this profile to Grindr. Pick the reason that fits best.",
+      "reason_label": "Reason",
+      "location_label": "Where it happened",
+      "details_placeholder": "Details (optional)",
+      "submit": "Submit report",
+      "failed": "Failed to send report",
+      "submitted_title": "Report submitted",
+      "submitted_message": "Grindr will review this profile.",
+      "block_hint": "You can block this profile so you stop seeing it.",
+      "done": "Done",
+      "reasons": {
+        "SPAM": "Spam / Scam",
+        "HARASSMENT_BULLYING": "Harassment or bullying",
+        "HATE_DISCRIMINATION": "Hate speech / discrimination",
+        "NUDITY_PORNOGRAPHY": "Nudity or pornography",
+        "UNDERAGE": "Underage",
+        "IMPERSONATION": "Impersonation",
+        "ILLEGAL_ACTIVITY": "Illegal activity",
+        "SEXUAL_SOLICITATION": "Sexual solicitation",
+        "SERIOUS_IN_PERSON_INCIDENT": "Serious in-person incident"
+      },
+      "locations": {
+        "PROFILE_PHOTO": "Profile photo",
+        "PROFILE_INFORMATION": "Profile information",
+        "CHAT_MESSAGE": "Chat message",
+        "ALBUM": "Album",
+        "RIGHT_NOW_PHOTO": "Right Now image",
+        "RIGHT_NOW_TEXT": "Right Now text"
+      }
     }
   },
   "interest_page": {
