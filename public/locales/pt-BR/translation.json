@@ -842,6 +842,7 @@
         "per_chat_overrides_desc": "Exiba um botão no cabeçalho do chat para substituir a configuração global em conversas específicas. Conversas com confirmações de leitura ocultas são destacadas na sua Caixa de Entrada.",
         "nsfw_content": "Conteúdo impróprio para menores",
         "read_receipts_hidden_badge": "Confirmações de leitura ocultas para esta conversa",
+        "read_receipts_shown_badge": "",
         "profile_views": "Visualizações do perfil",
         "record_profile_views": "Registrar visualizações de perfil",
         "record_profile_views_desc": "Permita que as pessoas saibam que você visualizou o perfil delas. Desative essa opção para navegar pelos perfis sem deixar rastros.",
@@ -1405,6 +1406,7 @@
             "filter_label": "Arquivadas"
         },
         "read_at": "",
+        "read_relative": "",
         "log_encounter": ""
     },
     "chat_drawer": {

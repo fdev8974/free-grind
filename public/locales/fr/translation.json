@@ -842,6 +842,7 @@
         "per_chat_overrides_desc": "Afficher un bouton dans l'en-tête de la conversation pour remplacer le paramètre global pour des conversations spécifiques. Les conversations avec accusés de lecture masqués sont mises en évidence dans votre boîte de réception.",
         "nsfw_content": "Contenu NSFW",
         "read_receipts_hidden_badge": "Accusés de lecture masqués pour cette conversation",
+        "read_receipts_shown_badge": "",
         "profile_views": "Visites de profil",
         "record_profile_views": "Enregistrer les visites de profil",
         "record_profile_views_desc": "Permet aux autres de voir que vous avez consulté leur profil. Désactivez ceci pour parcourir les profils sans laisser de trace.",
@@ -1405,7 +1406,8 @@
             "filter_label": "Archivé"
         },
         "log_encounter": "Je viens de rencontrer cette personne",
-        "read_at": ""
+        "read_at": "",
+        "read_relative": ""
     },
     "chat_drawer": {
         "title": "Dossier multimédia",

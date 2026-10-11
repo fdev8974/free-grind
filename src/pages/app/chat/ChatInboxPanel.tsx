@@ -1,4 +1,4 @@
-import { Archive, BellOff, Eye, EyeOff, Home, Loader2, MessageCircle, Pin, PinOff, Star, Trash2, Zap } from "lucide-react";
+import { Archive, BellOff, CheckCheck, Eye, EyeOff, Home, Loader2, MessageCircle, Pin, PinOff, Star, Trash2, Zap } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -18,7 +18,7 @@ import {
 	getParticipantOnlineMeta,
 	getPreviewText,
 } from "../chat/chatUtils";
-import { isReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
+import { isReadReceiptsHidden, isReadReceiptsOverridden, useReadReceiptsChanged } from "../../../utils/privacy";
 import {
 	SKIP_DELETE_CONVERSATION_CONFIRM_KEY,
 	isDeleteConversationConfirmSkipped,
@@ -394,6 +394,8 @@ function ChatConversationRow({
 	const isOtherParticipantOnline = otherParticipantOnlineMeta.isOnline;
 	const databaseUnread = otherProfileId ? chatContactIndexByProfileId[otherProfileId]?.unreadCount ?? 0 : 0;
 	const apiUnread = conversation.data.unreadCount;
+	// Only badge chats that deviate from the global setting; otherwise every row would carry the icon.
+	const readReceiptsOverridden = isReadReceiptsOverridden(conversation.data.conversationId);
 	const readReceiptsHidden = isReadReceiptsHidden(conversation.data.conversationId);
 
 	return (
@@ -495,11 +497,15 @@ function ChatConversationRow({
 										<Zap className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 									</span>
 								)}
-								{readReceiptsHidden && (
+								{readReceiptsOverridden && (readReceiptsHidden ? (
 									<span title={t("privacy.read_receipts_hidden_badge")}>
 										<EyeOff className="h-3.5 w-3.5 shrink-0 text-purple-400" />
 									</span>
-								)}
+								) : (
+									<span title={t("privacy.read_receipts_shown_badge", { defaultValue: "Read receipts sent for this chat" })}>
+										<CheckCheck className="h-3.5 w-3.5 shrink-0 text-purple-400" />
+									</span>
+								))}
 							</div>
 							<span className="shrink-0 text-xs text-[var(--text-muted)]">
 								{formatConversationTime(conversation.data.lastActivityTimestamp)}

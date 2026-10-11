@@ -842,6 +842,7 @@
         "per_chat_overrides_desc": "Muestra un botón en la cabecera del chat para sobrescribir la configuración global para los chats especificados. Los chats con confirmaciones de lectura ocultas se resaltan en el buzón.",
         "nsfw_content": "Contenido No Apto Para el Trabajo",
         "read_receipts_hidden_badge": "Confirmaciones de lectura ocultas para este chat",
+        "read_receipts_shown_badge": "",
         "profile_views": "Vistas de perfil",
         "record_profile_views": "Registrar vistas de perfil",
         "record_profile_views_desc": "Permite que otros vean que has visitado su perfil. Desactívalo para explorar perfiles sin dejar rastro.",
@@ -1405,7 +1406,8 @@
             "filter_label": "Archivados"
         },
         "log_encounter": "Conocí a esta persona ahor",
-        "read_at": ""
+        "read_at": "",
+        "read_relative": ""
     },
     "chat_drawer": {
         "title": "Galería",

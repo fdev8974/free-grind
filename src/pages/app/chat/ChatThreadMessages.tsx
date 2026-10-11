@@ -35,6 +35,7 @@ import {
 	SKIP_LINK_OPEN_CONFIRM_KEY,
 	isLinkOpenConfirmSkipped,
 } from "../../../utils/blockConfirm";
+import { formatRelativeTime } from "../../../utils/relativeTime";
 import {
 	formatDateHeader,
 	formatDateTime24,
@@ -124,6 +125,18 @@ const getReactionEmoji = (type: number): string => {
         default: return "🔥";
     }
 };
+
+// "Read 5 minutes ago" under the last own message; re-renders periodically so the relative time stays fresh.
+function ReadStatusRelativeTime({ readAt, t }: { readAt: number; t: any }) {
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		const timer = setInterval(() => setNow(Date.now()), 30_000);
+		return () => clearInterval(timer);
+	}, []);
+
+	return <>{t("chat.read_relative", { time: formatRelativeTime(readAt, now), defaultValue: "Read {{time}}" })}</>;
+}
 
 function AlbumExpirationCountdown({ expiresAt, isOnce, t }: { expiresAt: number; isOnce?: boolean; t: any }) {
 	const [timeLeft, setTimeLeft] = useState<number>(expiresAt - Date.now());
@@ -2166,7 +2179,7 @@ export function ChatThreadMessages({
                                             }
                                         >
                                             {threadLastReadTimestamp != null && message.timestamp <= threadLastReadTimestamp
-                                                ? t("chat.read")
+                                                ? <ReadStatusRelativeTime readAt={threadLastReadTimestamp} t={t} />
                                                 : t("chat.unread")}
                                         </span>
                                     </div>

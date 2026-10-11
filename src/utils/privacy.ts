@@ -65,6 +65,11 @@ export function isReadReceiptsHidden(conversationId: string): boolean {
     return privacyCache.hideReadReceiptsGlobal;
 }
 
+/** True when this chat's read-receipts state differs from the global setting (a per-chat override). */
+export function isReadReceiptsOverridden(conversationId: string): boolean {
+    return isReadReceiptsHidden(conversationId) !== privacyCache.hideReadReceiptsGlobal;
+}
+
 /** Optimistic: updates the cache and returns the new state synchronously, persists in the background. */
 export function toggleReadReceiptsHidden(conversationId: string): boolean {
     const nextState = !isReadReceiptsHidden(conversationId);
