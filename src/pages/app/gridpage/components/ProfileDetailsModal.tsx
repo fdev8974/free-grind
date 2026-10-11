@@ -1373,6 +1373,9 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 
 	const reportMenuItem =
 		messageProfileId != null && !isOwnProfile && !isSnapshotProfile ? (
+			<>
+			<div className="h-px shrink-0 bg-[var(--border)]" />
+			<div className="flex flex-col gap-1 px-2">
 			<button
 				type="button"
 				onClick={() => { setIsActionsMenuOpen(false); setIsReportDialogOpen(true); }}
@@ -1381,6 +1384,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				<Flag className="mr-2 h-4 w-4 opacity-70" />
 				{t("profile_details.report.menu_item")}
 			</button>
+			</div>
+			</>
 		) : null;
 
 	const reportDialog = messageProfileId != null ? (
@@ -1639,7 +1644,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 										)}
 										{nicknameMenuItem}
 										{encounterMenuItem}
-										{reportMenuItem}
 										</div>
 										{(hasBio || actualProfileName) && <div className="h-px shrink-0 bg-[var(--border)]" />}
 										{(hasBio || actualProfileName) && (
@@ -1672,6 +1676,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 										)}
 										</div>
 										)}
+										{reportMenuItem}
 									</div>
 								)}
 							</div>
@@ -2249,7 +2254,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 														)}
 														{nicknameMenuItem}
 														{encounterMenuItem}
-														{reportMenuItem}
 														</div>
 														{(hasBio || actualProfileName) && <div className="h-px shrink-0 bg-[var(--border)]" />}
 														{(hasBio || actualProfileName) && (
@@ -2282,6 +2286,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 														)}
 														</div>
 														)}
+														{reportMenuItem}
 													</div>
 												)}
 											</div>

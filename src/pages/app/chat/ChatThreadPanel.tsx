@@ -27,6 +27,7 @@ import {
 	BookMarked,
 	MessageCircleOff,
 	MessageCircleX,
+	Flag,
 	MessageSquarePlus,
 	MessageSquareQuote,
 	PencilLine,
@@ -93,6 +94,7 @@ import { ProfileImage } from "../../../components/ui/profile-image";
 import { ChatThreadMessages } from "./ChatThreadMessages";
 import { AudioMessagePlayer } from "./AudioMessagePlayer";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { ReportProfileDialog } from "../../../components/ReportProfileDialog";
 import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden } from "../../../utils/privacy";
@@ -373,6 +375,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const [banNamePrompt, setBanNamePrompt] = useState<{ text: string } | null>(null);
 	const [isSavedPhrasesOpen, setIsSavedPhrasesOpen] = useState(false);
 	const [isEncounterSheetOpen, setIsEncounterSheetOpen] = useState(false);
+	const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+	const closeReportDialog = useCallback(() => setIsReportDialogOpen(false), []);
 	const [showSexualHealth] = useState(isSexualHealthEnabled);
 	const [phrasesExpanded, setPhrasesExpanded] = useState(false);
 	const [isGiphyPickerOpen, setIsGiphyPickerOpen] = useState(false);
@@ -1726,6 +1730,19 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													{isUnblockingProfile ? t("profile_details.unblock_in_progress") : t("profile_details.unblock")}
 												</button>
 											)}
+											{profileId != null && (
+												<button
+													type="button"
+													onClick={() => {
+														setIsHeaderActionsMenuOpen(false);
+														setIsReportDialogOpen(true);
+													}}
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10"
+												>
+													<Flag className="mr-2 h-4 w-4 opacity-70" />
+													{t("profile_details.report.menu_item")}
+												</button>
+											)}
 											<button
 												type="button"
 												onClick={requestDeleteConversation}
@@ -1742,6 +1759,14 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							</div>
 						</div>
 
+						{profileId != null && (
+							<ReportProfileDialog
+								isOpen={isReportDialogOpen}
+								profileId={String(profileId)}
+								onClose={closeReportDialog}
+								onBlock={showBlockGroup && onBlockProfile ? () => void onBlockProfile(profileId) : undefined}
+							/>
+						)}
 						<ConfirmDialog
 							isOpen={isBlockConfirmOpen}
 							title={t("profile_details.block")}
