@@ -415,7 +415,7 @@ export function SignInPage() {
 								description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}
 							/>
 							<TokenSourceLink
-								href="https://git.opengrind.org/open-grind/grindr-google-oauth-webextension#install"
+								href="https://github.com/fdev8974/freegrind-google-oauth-webextension#install"
 								icon={<Puzzle className="h-4 w-4" />}
 								title={t("auth.sign_in.google_extension_link", { defaultValue: "Browser extension" })}
 								description={t("auth.sign_in.google_extension_desc", { defaultValue: "Firefox, Chrome and other desktop browsers" })}
