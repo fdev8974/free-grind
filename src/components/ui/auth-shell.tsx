@@ -37,7 +37,7 @@ export function AuthShell({
 				</div>
 
 				{/* Form */}
-				<div className="animate-fade-in relative flex flex-1 flex-col overflow-y-auto px-6">
+				<div className="animate-fade-in relative flex min-h-0 flex-1 flex-col overflow-y-auto px-6" data-lenis-prevent>
 					<div className="flex-1">{children}</div>
 					{footer ? (
 						<div
