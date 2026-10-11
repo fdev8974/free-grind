@@ -1,7 +1,7 @@
 {
     "name": "free-grind",
     "version": "1.0.0",
-    "license": "Personal Use License",
+    "license": "MIT",
     "author": "Jay Brammeld <jay@imaoreo.dev> (https://imaoreo.dev)",
     "type": "module",
     "scripts": {

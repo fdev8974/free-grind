@@ -6,7 +6,7 @@
   <a href="https://discord.gg/cJqTaWPMFF"><img src="https://img.shields.io/discord/1496182396033175823?label=Discord&logo=discord" alt="Discord"></a>
   <a href="https://t.me/fre-grind"><img src="https://img.shields.io/badge/Telegram-2CA5E0?style=flat&logo=telegram&logoColor=white" alt="Telegram"></a>
   <a href="https://github.com/fdev8974/free-grind/releases"><img src="https://img.shields.io/github/v/release/fdev8974/free-grind?logo=github&label=Release" alt="Latest Release"></a>
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Personal%20Use-blue" alt="License"></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue" alt="License"></a>
   <a href="https://github.com/fdev8974/free-grind/issues"><img src="https://img.shields.io/badge/Issues-GitHub-blue?logo=github" alt="Issues"></a>
 </p>
 
@@ -175,4 +175,4 @@ If you'd like to support the project, see [FUNDING.md](./FUNDING.md).
 
 ## License
 
-[Personal Use Licence](./LICENSE)
+[MIT](./LICENSE)
