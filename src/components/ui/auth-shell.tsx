@@ -47,7 +47,10 @@ export function AuthShell({
 					className={cn(
 						"animate-fade-in relative flex min-h-0 flex-1 flex-col overflow-y-auto px-6",
 						// Content fades out under the pinned toolbar instead of being cut off hard.
-						toolbar && "pt-5 [mask-image:linear-gradient(to_bottom,transparent,black_20px)]",
+						toolbar
+							? "pt-5 [mask-image:linear-gradient(to_bottom,transparent,black_20px)]"
+							: // Room for the inputs' focus outline, which the scroll container would clip.
+								"pt-1",
 					)}
 					data-lenis-prevent
 				>

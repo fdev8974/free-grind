@@ -1057,11 +1057,16 @@
         },
         "sign_up": {
             "title": "Inscription",
-            "subtitle": "L'inscription n'est pas encore implémentée. Suivez la progression sur le Ticket #2.",
+            "subtitle": "",
             "have_account_label": "Déjà un compte ?",
             "have_account_action": "Connectez-vous",
-            "opening_issue": "Ouverture du ticket...",
-            "open_issue": "Ouvrir le Ticket #2"
+            "birthday_label": "",
+            "too_young": "",
+            "opt_in": "",
+            "creating": "",
+            "submit": "",
+            "recaptcha_helper_install_hint": "",
+            "recaptcha_helper_unsupported": ""
         }
     },
     "chat": {

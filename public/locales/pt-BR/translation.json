@@ -1057,11 +1057,16 @@
         },
         "sign_up": {
             "title": "Inscrever-se",
-            "subtitle": "O cadastro ainda não foi implementado. Acompanhe o progresso na Issue #2.",
+            "subtitle": "",
             "have_account_label": "Já tem uma conta?",
             "have_account_action": "Iniciar sessão",
-            "opening_issue": "Abrindo chamadao...",
-            "open_issue": "Questão em aberto #2"
+            "birthday_label": "",
+            "too_young": "",
+            "opt_in": "",
+            "creating": "",
+            "submit": "",
+            "recaptcha_helper_install_hint": "",
+            "recaptcha_helper_unsupported": ""
         }
     },
     "chat": {

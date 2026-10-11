@@ -1081,11 +1081,16 @@
         },
         "sign_up": {
             "title": "تسجيل الخروج",
-            "subtitle": "لم يتم تفعيل خاصية التسجيل بعد. تابعوا التقدم في المشكلة ر٢.",
+            "subtitle": "",
             "have_account_label": "هل لديك حساب بالفعل؟",
             "have_account_action": "تسجيل الدخول",
-            "opening_issue": "العدد الافتتاحي...",
-            "open_issue": "العدد المفتوح T2"
+            "birthday_label": "",
+            "too_young": "",
+            "opt_in": "",
+            "creating": "",
+            "submit": "",
+            "recaptcha_helper_install_hint": "",
+            "recaptcha_helper_unsupported": ""
         }
     },
     "chat": {

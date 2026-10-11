@@ -18,6 +18,7 @@ import {
 	type AuthContextType,
 	type AuthState,
 	type SavedAccountMeta,
+	type SignUpData,
 } from "./auth-context";
 import { appLog } from "../utils/logger";
 import { setActiveChatDbUser, migrateLegacySettingsIfNeeded } from "../services/chatDb";
@@ -209,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	const login = async (email: string, password: string) => {
+	const login = async (email: string, password: string, { keepDevice }: { keepDevice?: boolean } = {}) => {
 		try {
 			appLog.info("[Auth] login: attempting email/password login");
 			dispatch({ type: "SET_LOADING", payload: true });
@@ -217,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 			let result;
 			try {
-				result = await callMethod("login", { email, password });
+				result = await callMethod("login", { email, password, keepDevice });
 			} catch (error) {
 				// Accounts with Grindr's first-party reCAPTCHA fail the plain
 				// /v8 sign-in as invalid credentials. Open Grind retries those
@@ -230,7 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				if (!required) throw error;
 				appLog.info("[Auth] login: retrying with a reCAPTCHA token");
 				const captchaToken = await mintRecaptchaToken("login");
-				result = await callMethod("login", { email, password, captchaToken });
+				result = await callMethod("login", { email, password, captchaToken, keepDevice });
 			}
 			appLog.info("[Auth] login: succeeded");
 			dispatch({ type: "SET_USER", payload: result.profileId });
@@ -297,6 +298,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
 		}
+	};
+
+	const signUp = async ({ email, password, birthday, optIn }: SignUpData) => {
+		try {
+			appLog.info("[Auth] signUp: creating email account");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			// Sign-up is helper-only: rejects with a RecaptchaError without one.
+			const captchaToken = await mintRecaptchaToken("sign_up");
+			await callMethod("create_account", { email, password, birthday, optIn, captchaToken });
+			appLog.info("[Auth] signUp: account created");
+		} catch (error) {
+			if (error instanceof RecaptchaError) {
+				appLog.warn("[Auth] signUp: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
+				// A missing helper is answered by SignUpPage's install card instead.
+				if (error.reason !== "cancelled" && error.reason !== "addonUnavailable") {
+					const message = "Captcha verification failed. Please try again.";
+					dispatch({ type: "SET_ERROR", payload: message });
+					toast.error(message);
+				}
+				throw error;
+			}
+			const appError = asAppError(error);
+			const message = appError?.prettyMessage || "Sign up failed";
+			appLog.error("[Auth] signUp failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			toast.error(message);
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+
+		// The response carries no session: sign in on the device the account
+		// was just created on.
+		await login(email, password, { keepDevice: true });
 	};
 
 	const logout = async () => {
@@ -629,6 +666,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		...state,
 		login,
 		loginWithGoogle,
+		signUp,
 		logout,
 		checkAuth,
 		savedAccounts,

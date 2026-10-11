@@ -813,15 +813,20 @@ pub async fn login(
     email: String,
     password: String,
     captcha_token: Option<String>,
+    keep_device: Option<bool>,
 ) -> Result<LoginResult, AppError> {
     let client = state.client()?;
 
     // A fresh device identity per login attempt (including re-logins to the
-    // same account) so logins can't be correlated with each other.
-    client
-        .rotate_device(grindr::DeviceInfo::generate())
-        .await
-        .map_err(AppError::from)?;
+    // same account) so logins can't be correlated with each other. The first
+    // sign-in right after create_account keeps the device the account was
+    // created on.
+    if !keep_device.unwrap_or(false) {
+        client
+            .rotate_device(grindr::DeviceInfo::generate())
+            .await
+            .map_err(AppError::from)?;
+    }
 
     // With a reCAPTCHA token (minted by the Free Grind reCAPTCHA helper)
     // the crate signs in via /v9/sessions, which accounts with first-party
@@ -835,6 +840,93 @@ pub async fn login(
     // A key stored for this account belongs to its previous device.
     SigningKeyStorage::delete(&result.profile_id);
     Ok(login_result(&client, result))
+}
+
+/// Body of `POST /v8/users`, in the order the app's Moshi adapter writes it
+/// (CreateAccountEmailRequest).
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateAccountEmailRequest<'a> {
+    email: &'a str,
+    password: &'a str,
+    /// Unix milliseconds.
+    birthday: i64,
+    captcha_token: &'a str,
+    token: &'a str,
+    opt_in: bool,
+    session_id: Option<&'a str>,
+}
+
+/// First-party account creation with email and password. Returns the new
+/// profile id; the response carries no session, so the caller signs in
+/// afterwards with `login` and `keep_device`.
+#[tauri::command]
+pub async fn create_account(
+    state: tauri::State<'_, AppState>,
+    email: String,
+    password: String,
+    birthday: i64,
+    opt_in: bool,
+    captcha_token: String,
+) -> Result<String, AppError> {
+    let client = state.client()?;
+
+    client
+        .rotate_device(grindr::DeviceInfo::generate())
+        .await
+        .map_err(AppError::from)?;
+
+    let captcha = captcha_token.trim();
+    if captcha.is_empty() {
+        return Err(AppError::Api {
+            code: 400,
+            message: "A reCAPTCHA token is required to create an account".to_owned(),
+        });
+    }
+    let body = CreateAccountEmailRequest {
+        email: email.trim(),
+        password: &password,
+        birthday,
+        captcha_token: captcha,
+        // The app's Sift token; we have none, so the reCAPTCHA token stands in.
+        token: captcha,
+        opt_in,
+        session_id: None,
+    };
+    // Raw bytes rather than .json(), which goes through serde_json::Value and
+    // would reorder the keys.
+    let bytes = serde_json::to_vec(&body).map_err(|e| AppError::Api {
+        code: 400,
+        message: e.to_string(),
+    })?;
+    let response = client
+        .request(grindr::Method::POST, "/v8/users")
+        .unauthenticated()
+        .bytes("application/json", bytes)
+        .send()
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+
+    if !(200..300).contains(&response.status) {
+        return Err(AppError::from(grindr::GrindrError::from_response(
+            response.status,
+            &response.body,
+        )));
+    }
+
+    let parsed: serde_json::Value =
+        serde_json::from_slice(&response.body).map_err(|e| AppError::Api {
+            code: response.status as i32,
+            message: format!("unexpected create-account response: {e}"),
+        })?;
+    match parsed.get("profileId") {
+        Some(serde_json::Value::String(id)) => Ok(id.clone()),
+        Some(serde_json::Value::Number(id)) => Ok(id.to_string()),
+        _ => Err(AppError::Api {
+            code: response.status as i32,
+            message: "create-account response has no profileId".to_owned(),
+        }),
+    }
 }
 
 /// Whether Grindr has first-party reCAPTCHA enabled (the

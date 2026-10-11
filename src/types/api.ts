@@ -33,11 +33,23 @@ export const methodSchemas = {
 			email: z.email(),
 			password: z.string().min(1),
 			captchaToken: z.string().min(1).optional(),
+			keepDevice: z.boolean().optional(),
 		}),
 		response: z.object({
 			profileId: z.coerce.number().int().nonnegative(),
 			restriction: restrictionSchema.nullish(),
 		}),
+	},
+	create_account: {
+		request: z.object({
+			email: z.email(),
+			password: z.string().min(1),
+			/** Unix milliseconds. */
+			birthday: z.number().int(),
+			optIn: z.boolean(),
+			captchaToken: z.string().min(1),
+		}),
+		response: z.coerce.number().int().nonnegative(),
 	},
 	login_with_google: {
 		request: z.object({

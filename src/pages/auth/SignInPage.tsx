@@ -78,7 +78,7 @@ function AuthMethodTab({
 	);
 }
 
-function IconInput({
+export function IconInput({
 	icon,
 	className,
 	rightSlot,
@@ -164,7 +164,7 @@ function TokenSourceLink({
  * place, like the in-app update (see useGoogleOAuthAppInstall), instead of
  * linking to its releases page.
  */
-function AppInstallCard({
+export function AppInstallCard({
 	install,
 	icon,
 	title,
@@ -259,7 +259,7 @@ function AuthErrorBox({ message }: { message: string }) {
 	);
 }
 
-function AuthSubmitSection({
+export function AuthSubmitSection({
 	error,
 	loading,
 	disabled,

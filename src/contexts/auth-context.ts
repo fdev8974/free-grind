@@ -41,9 +41,18 @@ export interface SavedAccountMeta {
 	lastUsedAt: number;
 }
 
+export interface SignUpData {
+	email: string;
+	password: string;
+	/** Unix milliseconds. */
+	birthday: number;
+	optIn: boolean;
+}
+
 export interface AuthContextType extends AuthState {
 	login: (email: string, password: string) => Promise<void>;
 	loginWithGoogle: (token: string) => Promise<void>;
+	signUp: (account: SignUpData) => Promise<void>;
 	logout: () => Promise<void>;
 	checkAuth: () => Promise<void>;
 	savedAccounts: SavedAccountMeta[];

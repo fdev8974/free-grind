@@ -1052,8 +1052,13 @@
             "subtitle": "",
             "have_account_label": "",
             "have_account_action": "",
-            "opening_issue": "",
-            "open_issue": ""
+            "birthday_label": "",
+            "too_young": "",
+            "opt_in": "",
+            "creating": "",
+            "submit": "",
+            "recaptcha_helper_install_hint": "",
+            "recaptcha_helper_unsupported": ""
         }
     },
     "chat": {

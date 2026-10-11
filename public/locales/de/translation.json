@@ -1049,11 +1049,16 @@
         },
         "sign_up": {
             "title": "Registrieren",
-            "subtitle": "Die Registrierung ist noch nicht implementiert. Verfolge den Fortschritt in Issue #2.",
+            "subtitle": "",
             "have_account_label": "Hast du bereits ein Konto?",
             "have_account_action": "Anmelden",
-            "opening_issue": "Öffne Issue...",
-            "open_issue": "Issue #2 öffnen"
+            "birthday_label": "",
+            "too_young": "",
+            "opt_in": "",
+            "creating": "",
+            "submit": "",
+            "recaptcha_helper_install_hint": "",
+            "recaptcha_helper_unsupported": ""
         }
     },
     "chat": {

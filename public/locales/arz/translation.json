@@ -1049,11 +1049,16 @@
         },
         "sign_up": {
             "title": "إنشاء حساب",
-            "subtitle": "خاصية التسجيل لسه مش مفعّلة. تابع التقدم في المشكلة #2.",
+            "subtitle": "",
             "have_account_label": "عندك حساب بالفعل؟",
             "have_account_action": "تسجيل الدخول",
-            "opening_issue": "بيفتح المشكلة...",
-            "open_issue": "افتح المشكلة #2"
+            "birthday_label": "",
+            "too_young": "",
+            "opt_in": "",
+            "creating": "",
+            "submit": "",
+            "recaptcha_helper_install_hint": "",
+            "recaptcha_helper_unsupported": ""
         }
     },
     "chat": {
