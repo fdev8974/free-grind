@@ -39,7 +39,7 @@ import type {
 
 import { runAutomationRulesForSender } from "../utils/automationRules";
 import { getIncognitoMode, isReadReceiptsHidden } from "../utils/privacy";
-import { ApiFunctionError, assertSuccess, commandErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
+import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
 import { withEntitlementBypass } from "./entitlementBypass";
 
@@ -628,7 +628,7 @@ export function createChatService(
 					looping: params.options.looping,
 				});
 			} catch (error) {
-				throw commandErrorToApiFunctionError(error, t("chat.errors.upload_media_failed"));
+				throw mediaUploadErrorToApiFunctionError(error, t("chat.errors.upload_media_failed"), t);
 			}
 
 			const parsed = z
