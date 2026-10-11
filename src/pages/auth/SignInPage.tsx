@@ -292,6 +292,24 @@ export function AuthSubmitSection({
 	);
 }
 
+/** "— or —" divider plus a secondary button to the other auth page. */
+export function AuthAltAction({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
+	const { t } = useTranslation();
+	const navigate = useNavigate();
+	return (
+		<div className="mt-5 flex flex-col items-center gap-5">
+			<div className="flex w-full items-center gap-3 text-xs uppercase tracking-wider text-[var(--text-muted)]">
+				<span className="h-px flex-1 bg-[var(--border)]" />
+				{t("auth.sign_in.or_divider", { defaultValue: "or" })}
+				<span className="h-px flex-1 bg-[var(--border)]" />
+			</div>
+			<Button type="button" variant="secondary" onClick={() => navigate(to)} leftIcon={icon} className="w-full">
+				{label}
+			</Button>
+		</div>
+	);
+}
+
 export function SignInPage() {
 	const { t } = useTranslation();
 	const [searchParams] = useSearchParams();
@@ -620,22 +638,11 @@ export function SignInPage() {
 				</form>
 			)}
 			{addProfileMode ? null : (
-				<div className="mt-5 flex flex-col items-center gap-5">
-					<div className="flex w-full items-center gap-3 text-xs uppercase tracking-wider text-[var(--text-muted)]">
-						<span className="h-px flex-1 bg-[var(--border)]" />
-						{t("auth.sign_in.or_divider", { defaultValue: "or" })}
-						<span className="h-px flex-1 bg-[var(--border)]" />
-					</div>
-					<Button
-						type="button"
-						variant="secondary"
-						onClick={() => navigate("/auth/sign-up")}
-						leftIcon={<UserPlus className="h-4 w-4" />}
-						className="w-full"
-					>
-						{t("auth.sign_in.no_account_action")}
-					</Button>
-				</div>
+				<AuthAltAction
+					to="/auth/sign-up"
+					icon={<UserPlus className="h-4 w-4" />}
+					label={t("auth.sign_in.no_account_action")}
+				/>
 			)}
 		</AuthShell>
 	);

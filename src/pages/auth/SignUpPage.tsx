@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, Cake, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Mail, Lock, Cake, Eye, EyeOff, ShieldCheck, LogIn } from "lucide-react";
 import { AuthShell } from "../../components/ui/auth-shell";
+import { BugReportButton } from "../../components/ui/BugReportButton";
 import { useAuth } from "../../contexts/useAuth";
 import { useRecaptchaHelperInstall } from "../../services/apkUpdate";
 import { isRecaptchaHelperAvailable, RecaptchaError } from "../../services/recaptcha";
-import { AppInstallCard, AuthSubmitSection, IconInput } from "./SignInPage";
+import { AppInstallCard, AuthAltAction, AuthSubmitSection, IconInput } from "./SignInPage";
 
 const MIN_AGE = 18;
 
@@ -82,17 +83,7 @@ export function SignUpPage() {
 		<AuthShell
 			title={t("auth.sign_up.title")}
 			subtitle={t("auth.sign_up.subtitle", { defaultValue: "Create a new Grindr account with your email and password." })}
-			footer={
-				<span className="text-sm text-[var(--text-muted)]">
-					{t("auth.sign_up.have_account_label")}{" "}
-					<Link
-						to="/auth/sign-in"
-						className="font-semibold text-[var(--accent)] underline-offset-4 hover:underline"
-					>
-						{t("auth.sign_up.have_account_action")}
-					</Link>
-				</span>
-			}
+			footer={<BugReportButton />}
 		>
 			<form onSubmit={handleSubmit} className="animate-fade-in space-y-3">
 				{hasRecaptchaHelper ? null : recaptchaHelperInstall.supported ? (
@@ -176,6 +167,7 @@ export function SignUpPage() {
 					label={t("auth.sign_up.submit", { defaultValue: "Create account" })}
 				/>
 			</form>
+			<AuthAltAction to="/auth/sign-in" icon={<LogIn className="h-4 w-4" />} label={t("auth.sign_up.have_account_action")} />
 		</AuthShell>
 	);
 }
