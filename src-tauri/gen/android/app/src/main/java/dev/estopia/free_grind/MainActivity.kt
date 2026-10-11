@@ -230,6 +230,8 @@ class MainActivity : TauriActivity() {
     }
     mainHandler.postDelayed({ dismissSplash() }, 45000)
     activityRef = WeakReference(this)
+    ApkUpdater.emit = { event -> dispatchApkUpdateEvent(event) }
+    localNotifExecutor.execute { ApkUpdater.cleanupStale(this) }
     // Run off the main thread — createNotificationChannel makes IPC calls to
     // NotificationManagerService that can block for several seconds on some
     // devices (OxygenOS in particular) and cause a startup ANR.
@@ -439,6 +441,33 @@ class MainActivity : TauriActivity() {
       return "ok"
     }
 
+    /**
+     * In-app self-update (see ApkUpdater.kt): downloads the release APK and
+     * hands it to Android's installer. Progress arrives as `fg:apk-update`
+     * window events. Returns false for a non-release URL or while an update
+     * is already running.
+     */
+    @JavascriptInterface
+    fun downloadApkUpdate(url: String): Boolean {
+      return ApkUpdater.downloadAndInstall(this@MainActivity, url)
+    }
+
+    /** Re-runs the install of an already downloaded APK after the user granted "install unknown apps". */
+    @JavascriptInterface
+    fun installDownloadedApkUpdate(): Boolean {
+      return ApkUpdater.installDownloaded(this@MainActivity)
+    }
+
+    @JavascriptInterface
+    fun canInstallApkUpdates(): Boolean {
+      return ApkUpdater.canInstallNow(this@MainActivity)
+    }
+
+    @JavascriptInterface
+    fun openInstallPermissionSettings(): Boolean {
+      return ApkUpdater.openInstallPermissionSettings(this@MainActivity)
+    }
+
     @JavascriptInterface
     fun vibrate(durationMs: Long) {
       try {
@@ -574,6 +603,12 @@ class MainActivity : TauriActivity() {
 
   // Not persisted to localStorage (unlike the FCM token): it's a Google
   // credential and only needed until the sign-in page consumes it.
+  private fun dispatchApkUpdateEvent(event: JSONObject) {
+    val script =
+      "window.dispatchEvent(new CustomEvent('fg:apk-update', { detail: $event }));"
+    runOnUiThread { webViewRef?.evaluateJavascript(script, null) }
+  }
+
   private fun dispatchGoogleTokenToWebview(token: String, attempt: Int) {
     val script =
       "(function(){" +
