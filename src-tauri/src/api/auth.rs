@@ -984,6 +984,25 @@ pub async fn create_account(
     Ok(profile_id)
 }
 
+/// Asks Grindr to email a password-reset link to `email`
+/// (`POST /v3/users/forgot-password`). Runs without a session, on a fresh
+/// device identity like the other pre-login calls.
+#[tauri::command]
+pub async fn forgot_password(
+    state: tauri::State<'_, AppState>,
+    email: String,
+) -> Result<(), AppError> {
+    let client = state.client()?;
+    client
+        .rotate_device(grindr::DeviceInfo::generate())
+        .await
+        .map_err(AppError::from)?;
+    client
+        .forgot_password(email.trim())
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SmsCodeResult {

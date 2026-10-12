@@ -588,8 +588,7 @@ pub(crate) async fn create_account_with_email(
 		opt_in: account.opt_in,
 		session_id: None,
 	};
-	// Serialized straight from the struct: Body::json goes through
-	// serde_json::Value, which would sort the keys.
+
 	let bytes = serde_json::to_vec(&body)
 		.map_err(|e| GrindrError::InvalidRequest(e.to_string()))?;
 	let mut request = Request::new(
@@ -605,9 +604,6 @@ pub(crate) async fn create_account_with_email(
 	Ok(resp.profile_id)
 }
 
-/// `POST /v4/sms/verification/{profileId}/{action}` for a profile whose
-/// sign-in was refused as verification required (code 30). There is no
-/// session yet, so it goes out without one.
 pub(crate) async fn sms_verification(
 	inner: &InnerClient,
 	profile_id: &str,
@@ -642,6 +638,29 @@ pub(crate) async fn sms_verification(
 		});
 	}
 	crate::rest::parse_json(response)
+}
+
+#[derive(Debug, Serialize)]
+struct ForgotPasswordRequest<'a> {
+	email: &'a str,
+}
+
+pub(crate) async fn forgot_password(
+	inner: &InnerClient,
+	email: &str,
+) -> Result<(), GrindrError> {
+	let body = ForgotPasswordRequest { email };
+	let mut request = Request::new(
+		wreq::Method::POST,
+		"/v3/users/forgot-password",
+		Body::json(&body)?,
+	);
+	request.required_device_info = Some(crate::rest::RequiredDeviceInfo::Real);
+	let response = inner.send(Access::Anonymous, &request).await?;
+	if (200..300).contains(&response.status) {
+		return Ok(());
+	}
+	Err(crate::rest::parse_api_error(&response.body, response.status))
 }
 
 pub(crate) async fn sign_in_with_email(

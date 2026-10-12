@@ -466,6 +466,12 @@ impl GrindrClient {
 		crate::auth::create_account_with_email(&self.inner, account).await
 	}
 
+	/// Asks Grindr to email a password-reset link to `email`
+	/// (`POST /v3/users/forgot-password`). No session is needed.
+	pub async fn forgot_password(&self, email: &str) -> Result<(), GrindrError> {
+		crate::auth::forgot_password(&self.inner, email).await
+	}
+
 	/// Texts a verification code to a phone number for a profile whose
 	/// sign-in was refused as verification required (code 30).
 	pub async fn send_sms_verification_code(

@@ -1056,7 +1056,21 @@
       "signing_in": "Signing in...",
       "submit": "Sign In",
       "add_profile_title": "Add Profile",
-      "add_profile_subtitle": "Sign in with the account you want to add."
+      "add_profile_subtitle": "Sign in with the account you want to add.",
+      "forgot_password": "Forgot password?"
+    },
+    "reset": {
+      "title": "Reset password",
+      "subtitle": "Enter your email and we'll send you a link to reset your password.",
+      "submit": "Send reset link",
+      "sending": "Sending…",
+      "sent_toast": "Password reset email sent",
+      "sent_subtitle": "If an account exists for that email, a reset link is on its way.",
+      "sent_title": "Check your inbox",
+      "sent_hint": "Follow the link in the email to choose a new password. It may take a few minutes to arrive.",
+      "resend": "Use a different email",
+      "failed": "Couldn't send the reset email. Please try again.",
+      "back_to_sign_in": "Back"
     },
     "bug_report": {
       "button": "Report a bug"

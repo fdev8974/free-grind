@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { AuthShell } from "../../components/ui/auth-shell";
 import { AuthAltAction, AuthErrorBox, AuthSubmitSection, IconInput } from "./auth-form";
@@ -471,6 +471,14 @@ export function SignInPage() {
 							</button>
 						}
 					/>
+					<div className="flex justify-end">
+						<Link
+							to={`/auth/password-reset${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`}
+							className="text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+						>
+							{t("auth.sign_in.forgot_password", { defaultValue: "Forgot password?" })}
+						</Link>
+					</div>
 					<AuthSubmitSection
 						error={error}
 						loading={isPasswordLoading}

@@ -59,14 +59,17 @@ export const methodSchemas = {
 		request: z.object({
 			email: z.email(),
 			password: z.string().min(1),
-			/** Unix milliseconds. */
 			birthday: z.number().int(),
 			captchaToken: z.string().min(1),
-			/** The device's FCM token, sent as the request's `token`. */
 			pushToken: z.string().min(1).nullable(),
 		}),
-		/** The new account's profile id, as the response body carries it. */
 		response: z.string().min(1),
+	},
+	forgot_password: {
+		request: z.object({
+			email: z.email(),
+		}),
+		response: z.undefined(),
 	},
 	send_sms_verification_code: {
 		request: z.object({
