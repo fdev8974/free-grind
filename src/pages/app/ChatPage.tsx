@@ -47,6 +47,7 @@ import {
 } from "../../services/conversationHide";
 import {
 	CHAT_REALTIME_EVENT,
+	CHAT_REALTIME_RESYNC,
 	CHAT_REALTIME_STATUS,
 	CHAT_SYSTEM_MESSAGE_EVENT,
 	TYPING_STATUS_EVENT,
@@ -3445,6 +3446,9 @@ export function ChatPage() {
 			: baseIntervalMs;
 
 		const intervalId = window.setInterval(() => {
+			// Backgrounded Android deliberately drops the socket (FCM covers it)
+			// and the resume handler below refetches anyway.
+			if (document.hidden) return;
 			void loadInbox({ page: 1, replace: true, silent: true });
 		}, intervalMs);
 
@@ -3457,8 +3461,7 @@ export function ChatPage() {
 	// relying on live WS events from then on — fine while the app stays
 	// foregrounded, but mobile suspends rather than kills the app in the
 	// background, so nothing re-checks the inbox purely from closing and
-	// reopening it (ChatRealtimeBridge's visibilitychange handler only
-	// reconnects the socket). A stuck block_state can otherwise only clear
+	// reopening it (appLifecycle only reconnects the socket). A stuck block_state can otherwise only clear
 	// via a live WS event landing from that exact profile while the app
 	// happens to be connected, or a fresh process start (AuthContext's
 	// inboxSync). Fetch the inbox once on resume so a block/unblock that
@@ -3475,6 +3478,22 @@ export function ChatPage() {
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 		};
 	}, [loadInbox]);
+
+	// Events that arrived while the socket was down (or that the Rust bridge
+	// dropped under load) are gone for good — catch up over REST.
+	useEffect(() => {
+		const handleResync = () => {
+			void loadInbox({ page: 1, replace: true, silent: true });
+			const conversationId = selectedConversationIdRef.current;
+			if (conversationId) {
+				void loadThread({ conversationId, older: false, silent: true });
+			}
+		};
+		window.addEventListener(CHAT_REALTIME_RESYNC, handleResync);
+		return () => {
+			window.removeEventListener(CHAT_REALTIME_RESYNC, handleResync);
+		};
+	}, [loadInbox, loadThread]);
 
 	// The realtime socket can report "connected" while still silently dropping
 	// individual events (e.g. chat.v1.conversation_read), so read-receipt status

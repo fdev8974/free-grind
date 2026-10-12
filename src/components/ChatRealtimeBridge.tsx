@@ -28,9 +28,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/useAuth";
-import { useApi } from "../hooks/useApi";
 import { ChatRealtimeManager, setActiveRealtimeManager } from "../services/chatRealtime";
-import { TauriWebSocket, isTauriRuntime } from "../services/tauriWebSocket";
+import { isTauriRuntime } from "../services/tauriWebSocket";
+import { installAppLifecycle } from "../services/appLifecycle";
 import * as chatLog from "../services/chatLog";
 import {
 	incrementUnreadCountForProfile,
@@ -123,6 +123,9 @@ function isAppForeground(): boolean {
 
 export const CHAT_REALTIME_EVENT = "fg:chat-realtime-event";
 export const CHAT_REALTIME_STATUS = "fg:chat-realtime-status";
+// Fired when realtime events may have been missed (socket came back after
+// a drop, or the Rust bridge lagged) — listeners refetch over REST.
+export const CHAT_REALTIME_RESYNC = "fg:chat-realtime-resync";
 export const TAP_RECEIVED_EVENT = "fg:tap-received";
 export const VIEW_RECEIVED_EVENT = "fg:view-received";
 export const TYPING_STATUS_EVENT = "fg:typing-status";
@@ -303,16 +306,10 @@ function extractMessages(envelope: RealtimeEnvelope): Message[] {
 
 export function ChatRealtimeBridge() {
 	const { userId, settingsReady } = useAuth();
-	const { callMethod } = useApi();
     const apiFunctions = useApiFunctions();
 	const queryClient = useQueryClient();
 	const location = useLocation();
 	const { t } = useTranslation();
-
-	const callMethodRef = useRef(callMethod);
-	useEffect(() => {
-		callMethodRef.current = callMethod;
-	}, [callMethod]);
 
 	const tRef = useRef(t);
 	useEffect(() => {
@@ -682,20 +679,22 @@ export function ChatRealtimeBridge() {
 			void notifyLocal({ title: senderName, body: bodyText, group: "taps" });
 		};
 
+		let lastResyncAt = 0;
+		const requestResync = (reason: string) => {
+			const now = Date.now();
+			if (now - lastResyncAt < 2_000) return;
+			lastResyncAt = now;
+			appLog.debug(`[chat-ws:bridge] resync (${reason})`);
+			void queryClient.invalidateQueries({ queryKey: ["interest", "list"] });
+			window.dispatchEvent(new CustomEvent(CHAT_REALTIME_RESYNC));
+		};
+
 		const manager = new ChatRealtimeManager({
-			url: "wss://grindr.mobi/v1/ws",
-			getToken: async () => {
-				try {
-					const tok = await callMethodRef.current("websocket_token");
-					return typeof tok === "string" ? tok : null;
-				} catch {
-					appLog.warn("[chat-ws:bridge] token fetch failed");
-					return null;
-				}
-			},
 			onStatusChange: (status) => {
 				dispatchStatus(status);
 			},
+			onReconnect: () => requestResync("reconnected"),
+			onEventsDropped: () => requestResync("events dropped"),
 			onEvent: async (envelope) => {
 				appLog.debug(`[chat-ws:bridge] onEvent type=${envelope.type} payload=${JSON.stringify(envelope.payload)}`);
 
@@ -949,36 +948,20 @@ export function ChatRealtimeBridge() {
 					}),
 				);
 			},
-			onRawMessage: (_raw) => {
-				// appLog.debug(`[chat-ws:bridge:raw] ${JSON.stringify(raw)}`);
-			},
 			onParseError: (raw, error) => {
 				appLog.warn("[chat-ws:bridge:parse-error]", { raw, error });
 			},
-			buildSocket: isTauriRuntime()
-				? (url) => new TauriWebSocket(url) as unknown as WebSocket
-				: undefined,
 		});
 
 		manager.start();
 		setActiveRealtimeManager(manager);
 
-		// Handle Foreground/Background shifts on Android
-		const handleVisibilityChange = () => {
-			if (document.visibilityState === "visible") {
-				// appLog.debug("[chat-ws:bridge] app visible; checking connection...");
-				// Restarting the manager is the safest way to ensure a fresh,
-				// functional socket after a potentially long background sleep.
-				manager.stop({ suppressStatus: true });
-				manager.start();
-			}
-		};
-
-		document.addEventListener("visibilitychange", handleVisibilityChange);
+		// Suspend/resume and network changes force a fresh socket on the Rust
+		// side; the manager just sees the resulting close/open.
+		const uninstallLifecycle = installAppLifecycle();
 
 		return () => {
-			// appLog.debug("[chat-ws:bridge] stopping manager");
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			uninstallLifecycle();
 			setActiveRealtimeManager(null);
 			manager.stop({ suppressStatus: true });
 		};

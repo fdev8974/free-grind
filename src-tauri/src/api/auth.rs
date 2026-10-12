@@ -865,6 +865,7 @@ pub fn adopt_client(
 ) -> Result<grindr::GrindrClient, AppError> {
     let client = super::client::build_client(device, session)?;
     let state = app.state::<AppState>();
+    client.set_active(state.app_active.load(std::sync::atomic::Ordering::SeqCst));
     if let Some(old_client) = state.set_client(client.clone()) {
         tauri::async_runtime::spawn(async move {
             old_client.sign_out().await;
