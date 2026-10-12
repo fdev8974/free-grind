@@ -32,6 +32,8 @@ const ACCOUNT_CREATION_ANCHORS: readonly AccountCreationAnchor[] = [
 	{ time: 1738065780, id: 730248000 },
 	{ time: 1739059200, id: 733779000 },
 	{ time: 1741564800, id: 744008000 },
+	{ time: 1779660000, id: 901631500 },
+	{ time: 1791816200, id: 927729800 },
 ];
 
 function parseProfileId(profileId: string | number | null | undefined): number | null {
