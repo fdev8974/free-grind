@@ -25,6 +25,16 @@ import { profileSchema } from "../../pages/app/profile-editor/profileEditorUtils
 // applySelfBlockAction's local state check could see it — producing a
 // duplicate "You blocked/unblocked this person".
 function markConversationSelfAction(profileId: string, action: "block" | "unblock") {
+	// Key the mark on the profile id too — it's always known here and is the
+	// only self-attribution signal available when there's no local conversation
+	// yet (we blocked/unblocked someone we never chatted with). The WS handler
+	// derives the same profile id from the chat.v1.conversation.delete event and
+	// consumes it, so our own action can't fall through and be misrecorded as
+	// "they blocked/unblocked you".
+	markSelfBlockAction(profileId, action);
+	// When a conversation does exist, also key the mark (and the WS-echo dedup
+	// lock) on its id — that's what the chat-open / grid / reconcile paths
+	// consume, and it's a local DB read that reliably lands before the event.
 	void findConversationByProfileId(profileId)
 		.then((conversation) => {
 			if (conversation) {

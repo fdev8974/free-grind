@@ -263,7 +263,7 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 			{
 				icon: Wrench,
 				title: "Fixes & Polish",
-				description: "Smoother swipe to reply, a clearer Locate warning, more reliable connection handling, hidden profiles staying in place when sorting by distance, no more distracting scrollbars on mobile, logging out now removes the account from the switcher, and a redesigned sign-in, restore and onboarding experience.",
+				description: "Smoother swipe to reply, more reliable connection handling, hidden profiles staying in place when sorting by distance, no more distracting scrollbars on mobile, logging out now removes the account from the switcher, and a redesigned sign-in, restore and onboarding experience.",
 			},
 		],
 	},

@@ -31,3 +31,19 @@ export function consumeSelfBlockAction(
 	pending.delete(conversationId);
 	return entry.expiresAt >= Date.now() && entry.action === expectedAction;
 }
+
+/**
+ * Returns the pending self-triggered action for `key` (and clears it),
+ * whatever it is, or null if none is set / it has expired. Unlike
+ * consumeSelfBlockAction this reads the action in a single take, so a caller
+ * that needs to branch on block-vs-unblock can't accidentally delete an
+ * "unblock" mark while probing for "block". Keyed by conversation id or by
+ * profile id — the mutation marks both so the WS handler can still attribute a
+ * block/unblock of a profile we never had a conversation with.
+ */
+export function takeSelfBlockAction(key: string): SelfBlockAction | null {
+	const entry = pending.get(key);
+	if (!entry) return null;
+	pending.delete(key);
+	return entry.expiresAt >= Date.now() ? entry.action : null;
+}

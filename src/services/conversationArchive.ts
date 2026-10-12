@@ -25,7 +25,7 @@ import { clearUnreadCountForProfile } from "./chatContactIndex";
 import type { ArchivedReason, BlockState } from "../types/chat-db";
 import type { Message } from "../types/messages";
 import { appLog } from "../utils/logger";
-import { consumeSelfBlockAction } from "../utils/selfBlockActions";
+import { consumeSelfBlockAction, takeSelfBlockAction } from "../utils/selfBlockActions";
 
 // A synthetic, locally-generated block/unblock marker (see chatDb.insertSystemMessage)
 // was inserted — dispatched so any mounted chat UI can append it live.
@@ -288,6 +288,40 @@ export async function toggleArchiveOnConversationDelete(
 				return;
 			}
 			if (consumeSelfBlockAction(conversationId, "unblock")) {
+				if (await claimBlockStateTransition(conversationId, null)) {
+					await unarchiveConversation(conversationId);
+					unarchived.push(conversationId);
+					await insertBlockMessage(conversationId, "SystemUnblockedBySelf", otherProfileId);
+				}
+				return;
+			}
+
+			// 1b. No conversation-id-keyed self marker matched — but blocking or
+			// unblocking a profile we never had a chat thread with leaves no local
+			// conversation for the mutation to key that marker (or the WS-echo
+			// dedup lock) on, so step 1 silently misses it. The mutation also marks
+			// the action by profile id, which is always available; attribute from
+			// that here. Without it our own unblock's conversation.delete falls
+			// through to step 5, sees the profile reachable again, and gets
+			// misrecorded as "they blocked you".
+			const selfActionByProfile = otherProfileId ? takeSelfBlockAction(otherProfileId) : null;
+			if (selfActionByProfile === "block") {
+				if (!existing) {
+					await chatDb.ensureConversationRow(conversationId, otherProfileId).catch((error) => {
+						appLog.warn(
+							`[conversation-archive] failed to materialize placeholder conversation for ${conversationId}`,
+							error,
+						);
+					});
+				}
+				if (await claimBlockStateTransition(conversationId, "blocked_by_me")) {
+					await archiveConversation(conversationId, "ws_delete", otherProfileId);
+					archived.push(conversationId);
+					await insertBlockMessage(conversationId, "SystemBlockedBySelf", otherProfileId);
+				}
+				return;
+			}
+			if (selfActionByProfile === "unblock") {
 				if (await claimBlockStateTransition(conversationId, null)) {
 					await unarchiveConversation(conversationId);
 					unarchived.push(conversationId);
