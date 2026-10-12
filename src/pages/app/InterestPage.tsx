@@ -305,10 +305,6 @@ export function InterestPage() {
 		}
 	}, [activeTab]);
 
-	const handleCloseOnboarding = useCallback(() => {
-		setShowOnboarding(false);
-	}, []);
-
 	const handleAcknowledgeOnboarding = useCallback(() => {
 		setShowOnboarding(false);
 		localStorage.setItem(ONBOARDING_KEY, "true");
@@ -680,10 +676,7 @@ export function InterestPage() {
 			</FeedScrollContainer>
 		</PullToRefreshContainer>
 		{showOnboarding && activeTab === "views" && (
-			<InterestOnboardingModal
-				onClose={handleCloseOnboarding}
-				onConfirm={handleAcknowledgeOnboarding}
-			/>
+			<InterestOnboardingModal onConfirm={handleAcknowledgeOnboarding} />
 		)}
 	</>
 	);
