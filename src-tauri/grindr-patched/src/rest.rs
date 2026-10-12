@@ -349,12 +349,29 @@ pub(crate) fn raw_or_blocked(
 	Ok(RawResponse { status, body })
 }
 
+/// Sign-in refused until the account verifies a phone number by SMS.
+const VERIFICATION_REQUIRED_CODE: i32 = 30;
+
 pub(crate) fn parse_api_error(bytes: &[u8], http_status: u16) -> GrindrError {
 	if let Some(kind) = block_kind(http_status, bytes) {
 		return GrindrError::Blocked(kind);
 	}
 
 	let (code, message) = extract_api_error(bytes, http_status);
+
+	if code == VERIFICATION_REQUIRED_CODE {
+		let profile_id = serde_json::from_slice::<serde_json::Value>(bytes)
+			.ok()
+			.and_then(|json| match json.get("profileId")? {
+				serde_json::Value::String(id) => Some(id.clone()),
+				serde_json::Value::Number(id) => Some(id.to_string()),
+				_ => None,
+			});
+		return GrindrError::VerificationRequired {
+			profile_id,
+			message,
+		};
+	}
 
 	if let Some(kind) = BanKind::from_code(code) {
 		return GrindrError::Banned(ban_info(kind, code, message, bytes));
@@ -459,6 +476,22 @@ fn find_ignore_ascii_case(haystack: &str, needle: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn verification_required_keeps_the_profile_id() {
+		let err = GrindrError::from_response(
+			403,
+			br#"{"code":30,"message":"Verification required","profileId":"927729807","type":null,"reason":null,"isBanAutomated":null,"thirdPartyUserIdToShow":null,"banSubReason":null}"#,
+		);
+		assert!(
+			matches!(
+				err,
+				GrindrError::VerificationRequired { profile_id: Some(ref id), ref message }
+					if id == "927729807" && message == "Verification required"
+			),
+			"got {err:?}"
+		);
+	}
 
 	#[test]
 	fn sms_requests_carry_both_device_info_markers() {

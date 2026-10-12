@@ -46,16 +46,14 @@ export interface SignUpData {
 	password: string;
 	/** Unix milliseconds. */
 	birthday: number;
-	optIn: boolean;
 }
 
 /**
  * Sign-in refused with Grindr code 30: the account has to verify a phone
- * number by SMS first. `profileId` is null when this device never saw the
- * account's id (it is remembered from sign-up).
+ * number by SMS first. `profileId` comes from the error body.
  */
 export class SmsVerificationRequiredError extends Error {
-	constructor(readonly profileId: string | null) {
+	constructor(readonly profileId: string) {
 		super("SMS verification required");
 		this.name = "SmsVerificationRequiredError";
 	}
@@ -69,8 +67,7 @@ export interface LoginOptions {
 export interface AuthContextType extends AuthState {
 	login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
 	loginWithGoogle: (token: string) => Promise<void>;
-	/** `onCreated` gets the new profile id before the follow-up sign-in, which may still fail. */
-	signUp: (account: SignUpData, onCreated?: (profileId: string) => void) => Promise<void>;
+	signUp: (account: SignUpData) => Promise<void>;
 	logout: () => Promise<void>;
 	checkAuth: () => Promise<void>;
 	savedAccounts: SavedAccountMeta[];

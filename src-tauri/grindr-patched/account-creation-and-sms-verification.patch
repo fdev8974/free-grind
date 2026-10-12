@@ -1,6 +1,6 @@
 diff -ruN a/src/auth.rs b/src/auth.rs
---- a/src/auth.rs	2026-10-12 03:59:44.820981542 +0200
-+++ b/src/auth.rs	2026-10-12 03:59:44.821587533 +0200
+--- a/src/auth.rs	2026-10-12 04:21:10.697001519 +0200
++++ b/src/auth.rs	2026-10-12 04:21:10.697571603 +0200
 @@ -7,6 +7,7 @@
  use tokio::time::Instant;
  
@@ -72,7 +72,20 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  #[derive(Debug, Serialize)]
  #[serde(rename_all = "camelCase")]
  pub(crate) struct RefreshRequest {
-@@ -514,6 +571,75 @@
+@@ -336,7 +393,11 @@
+ 			| GrindrError::Timeout(_) => Self::Transport,
+ 			GrindrError::Blocked(_) => Self::Blocked,
+ 			GrindrError::RateLimited => Self::RateLimited,
+-			GrindrError::Api { .. } => Self::Server,
++			// Code 30 was an Api error before it got its own variant; keep
++			// refresh treating it the same.
++			GrindrError::Api { .. } | GrindrError::VerificationRequired { .. } => {
++				Self::Server
++			}
+ 			_ => Self::Session,
+ 		}
+ 	}
+@@ -514,6 +575,75 @@
  	Ok((session, result))
  }
  
@@ -148,7 +161,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  pub(crate) async fn sign_in_with_email(
  	inner: &InnerClient,
  	auth: &AuthState,
-@@ -862,6 +988,44 @@
+@@ -862,6 +992,44 @@
  mod tests {
  	use super::*;
  
@@ -194,8 +207,8 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  	const JWT: &str =
  		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTl9.sig";
 diff -ruN a/src/client.rs b/src/client.rs
---- a/src/client.rs	2026-10-12 03:59:44.822113848 +0200
-+++ b/src/client.rs	2026-10-12 03:59:44.822701496 +0200
+--- a/src/client.rs	2026-10-12 04:21:10.698221709 +0200
++++ b/src/client.rs	2026-10-12 04:21:10.698866286 +0200
 @@ -456,6 +456,56 @@
  		self.ensure_ws_task();
  	}
@@ -253,9 +266,30 @@ diff -ruN a/src/client.rs b/src/client.rs
  	/// Signs in with email and password and stores the session.
  	pub async fn sign_in_with_email(
  		&self,
+diff -ruN a/src/error.rs b/src/error.rs
+--- a/src/error.rs	2026-10-12 04:21:10.699500220 +0200
++++ b/src/error.rs	2026-10-12 04:21:10.700018083 +0200
+@@ -94,6 +94,17 @@
+ 	#[error("banned: {0}")]
+ 	Banned(BanInfo),
+ 
++	/// Sign-in was refused until the account verifies a phone number by SMS
++	/// (code 30); see
++	/// [`send_sms_verification_code`](crate::GrindrClient::send_sms_verification_code).
++	#[error("verification required: {message}")]
++	VerificationRequired {
++		/// The account's profile id, from the body's `profileId`.
++		profile_id: Option<String>,
++		/// Message from the response body.
++		message: String,
++	},
++
+ 	/// The API returned `429`.
+ 	#[error("rate limited")]
+ 	RateLimited,
 diff -ruN a/src/lib.rs b/src/lib.rs
---- a/src/lib.rs	2026-10-12 03:59:44.823252805 +0200
-+++ b/src/lib.rs	2026-10-12 03:59:44.823860468 +0200
+--- a/src/lib.rs	2026-10-12 04:21:10.700502505 +0200
++++ b/src/lib.rs	2026-10-12 04:21:10.700988565 +0200
 @@ -62,8 +62,9 @@
  mod ws;
  
@@ -269,8 +303,8 @@ diff -ruN a/src/lib.rs b/src/lib.rs
  pub use captcha::{CaptchaAction, CaptchaTokenProvider};
  pub use client::{probe_emulation, GrindrClient};
 diff -ruN a/src/rest.rs b/src/rest.rs
---- a/src/rest.rs	2026-10-12 03:59:44.824458995 +0200
-+++ b/src/rest.rs	2026-10-12 03:59:44.825015846 +0200
+--- a/src/rest.rs	2026-10-12 04:21:10.701499580 +0200
++++ b/src/rest.rs	2026-10-12 04:21:10.701992959 +0200
 @@ -94,13 +94,18 @@
  pub(crate) enum RequiredDeviceInfo {
  	Real,
@@ -308,10 +342,57 @@ diff -ruN a/src/rest.rs b/src/rest.rs
  }
  
  pub(crate) struct InnerClient {
-@@ -454,6 +459,18 @@
+@@ -344,6 +349,9 @@
+ 	Ok(RawResponse { status, body })
+ }
+ 
++/// Sign-in refused until the account verifies a phone number by SMS.
++const VERIFICATION_REQUIRED_CODE: i32 = 30;
++
+ pub(crate) fn parse_api_error(bytes: &[u8], http_status: u16) -> GrindrError {
+ 	if let Some(kind) = block_kind(http_status, bytes) {
+ 		return GrindrError::Blocked(kind);
+@@ -351,6 +359,20 @@
+ 
+ 	let (code, message) = extract_api_error(bytes, http_status);
+ 
++	if code == VERIFICATION_REQUIRED_CODE {
++		let profile_id = serde_json::from_slice::<serde_json::Value>(bytes)
++			.ok()
++			.and_then(|json| match json.get("profileId")? {
++				serde_json::Value::String(id) => Some(id.clone()),
++				serde_json::Value::Number(id) => Some(id.to_string()),
++				_ => None,
++			});
++		return GrindrError::VerificationRequired {
++			profile_id,
++			message,
++		};
++	}
++
+ 	if let Some(kind) = BanKind::from_code(code) {
+ 		return GrindrError::Banned(ban_info(kind, code, message, bytes));
+ 	}
+@@ -454,6 +476,34 @@
  #[cfg(test)]
  mod tests {
  	use super::*;
++
++	#[test]
++	fn verification_required_keeps_the_profile_id() {
++		let err = GrindrError::from_response(
++			403,
++			br#"{"code":30,"message":"Verification required","profileId":"927729807","type":null,"reason":null,"isBanAutomated":null,"thirdPartyUserIdToShow":null,"banSubReason":null}"#,
++		);
++		assert!(
++			matches!(
++				err,
++				GrindrError::VerificationRequired { profile_id: Some(ref id), ref message }
++					if id == "927729807" && message == "Verification required"
++			),
++			"got {err:?}"
++		);
++	}
 +
 +	#[test]
 +	fn sms_requests_carry_both_device_info_markers() {

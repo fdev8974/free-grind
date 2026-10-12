@@ -65,6 +65,7 @@ export function useApi() {
 					"SessionStale",
 					"Api",
 					"Unauthorized",
+					"VerificationRequired",
 					"Banned",
 					"RateLimited",
 					"RequestBlocked",
@@ -79,6 +80,7 @@ export function useApi() {
 						z.object({
 							code: z.number(),
 							message: z.string(),
+							profileId: z.string().nullish(),
 						}),
 					)
 					.or(banInfoSchema)

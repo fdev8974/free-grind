@@ -1,4 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { AlertCircle } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { cn } from "../../utils/cn";
@@ -61,5 +63,33 @@ export function AuthSubmitSection({
 				</Button>
 			</div>
 		</>
+	);
+}
+
+/** "— or —" divider with a secondary button below: a route to open, or an action. */
+export function AuthAltAction({
+	icon,
+	label,
+	...target
+}: { icon: ReactNode; label: string } & ({ to: string } | { onClick: () => void })) {
+	const { t } = useTranslation();
+	const navigate = useNavigate();
+	return (
+		<div className="mt-5 flex flex-col items-center gap-5">
+			<div className="flex w-full items-center gap-3 text-xs uppercase tracking-wider text-[var(--text-muted)]">
+				<span className="h-px flex-1 bg-[var(--border)]" />
+				{t("auth.sign_in.or_divider", { defaultValue: "or" })}
+				<span className="h-px flex-1 bg-[var(--border)]" />
+			</div>
+			<Button
+				type="button"
+				variant="secondary"
+				onClick={"to" in target ? () => navigate(target.to) : target.onClick}
+				leftIcon={icon}
+				className="w-full"
+			>
+				{label}
+			</Button>
+		</div>
 	);
 }

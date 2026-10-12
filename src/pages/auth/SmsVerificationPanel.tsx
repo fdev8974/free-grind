@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Hash, MessageSquareText, Phone, Plus, UserRound } from "lucide-react";
+import { ArrowLeft, Hash, Phone, Plus } from "lucide-react";
+import { AuthShell } from "../../components/ui/auth-shell";
+import { BugReportButton } from "../../components/ui/BugReportButton";
 import { useApi } from "../../hooks/useApi";
+import { detectCallingCode } from "../../utils/callingCodes";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
-import { AuthSubmitSection, IconInput } from "./auth-form";
+import { AuthAltAction, AuthSubmitSection, IconInput } from "./auth-form";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
@@ -11,16 +14,17 @@ const digitsOnly = (value: string) => value.replace(/\D/g, "");
 const RESEND_COOLDOWN_MS = 60_000;
 
 /**
- * SMS verification for a sign-in refused with code 30: text a code to a phone
- * number, submit it, then `onVerified` signs in again. Asks for the profile id
- * when the device doesn't know it (accounts not created here).
+ * SMS verification page for a sign-in refused with code 30: text a code to a
+ * phone number, submit it, then `onVerified` signs in again. Rendered by the
+ * sign-in/sign-up pages in place of their own page.
  */
 export function SmsVerificationPanel({
-	profileId: knownProfileId,
+	profileId,
 	onVerified,
 	onCancel,
 }: {
-	profileId: string | null;
+	/** From the code-30 error body. */
+	profileId: string;
 	/** Signs in again; rejects if that fails. */
 	onVerified: () => Promise<void>;
 	onCancel: () => void;
@@ -29,7 +33,6 @@ export function SmsVerificationPanel({
 	const { callMethod, asAppError } = useApi();
 
 	const [step, setStep] = useState<"phone" | "code">("phone");
-	const [profileId, setProfileId] = useState(knownProfileId ?? "");
 	const [countryCode, setCountryCode] = useState("");
 	const [phoneNumber, setPhoneNumber] = useState("");
 	const [code, setCode] = useState("");
@@ -50,14 +53,25 @@ export function SmsVerificationPanel({
 		return () => window.clearInterval(timer);
 	}, [resendAt]);
 
+	// Prefill the device region's calling code unless the user typed one already.
+	useEffect(() => {
+		let cancelled = false;
+		void detectCallingCode().then((detected) => {
+			if (!cancelled && detected) setCountryCode((current) => current || detected);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
 	const cooldownSeconds = resendAt === null ? 0 : Math.max(0, Math.ceil((resendAt - now) / 1000));
 
 	const target = {
-		profileId: digitsOnly(profileId),
+		profileId,
 		countryCode: digitsOnly(countryCode),
 		phoneNumber: digitsOnly(phoneNumber),
 	};
-	const isPhoneValid = target.profileId.length > 0 && target.countryCode.length > 0 && target.phoneNumber.length > 0;
+	const isPhoneValid = target.countryCode.length > 0 && target.phoneNumber.length > 0;
 
 	const run = async (action: () => Promise<void>) => {
 		setIsLoading(true);
@@ -108,48 +122,29 @@ export function SmsVerificationPanel({
 	const signInAgain = () => run(onVerified);
 
 	return (
-		<div className="animate-fade-in space-y-4">
-			<div className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5">
-				<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)]">
-					<MessageSquareText className="h-4 w-4" />
-				</span>
-				<div className="min-w-0">
-					<p className="text-sm font-semibold text-[var(--text)]">
-						{t("auth.sms_verification.title", { defaultValue: "Verify your phone number" })}
-					</p>
-					<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
-						{step === "phone"
-							? t("auth.sms_verification.phone_hint", {
-									defaultValue: "Grindr requires this account to verify a phone number by SMS before it can sign in.",
-								})
-							: t("auth.sms_verification.code_hint", {
-									defaultValue: "Enter the code sent to +{{country}} {{phone}}.",
-									country: target.countryCode,
-									phone: target.phoneNumber,
-								})}
-					</p>
-				</div>
-			</div>
-
+		<AuthShell
+			title={t("auth.sms_verification.title", { defaultValue: "Verification" })}
+			subtitle={
+				step === "phone"
+					? t("auth.sms_verification.phone_hint", {
+							defaultValue: "Grindr requires this account to verify a phone number by SMS before it can sign in.",
+						})
+					: t("auth.sms_verification.code_hint", {
+							defaultValue: "Enter the code sent to +{{country}} {{phone}}.",
+							country: target.countryCode,
+							phone: target.phoneNumber,
+						})
+			}
+			footer={<BugReportButton />}
+		>
 			{step === "phone" ? (
 				<form
 					onSubmit={(e) => {
 						e.preventDefault();
 						if (isPhoneValid) void sendCode();
 					}}
-					className="space-y-3"
+					className="animate-fade-in space-y-3"
 				>
-					{knownProfileId ? null : (
-						<IconInput
-							icon={<UserRound className="h-4 w-4" />}
-							inputMode="numeric"
-							value={profileId}
-							onChange={(e) => setProfileId(digitsOnly(e.target.value))}
-							required
-							autoFocus
-							placeholder={t("auth.sms_verification.profile_id_placeholder", { defaultValue: "Profile ID" })}
-						/>
-					)}
 					<div className="flex gap-2">
 						<IconInput
 							icon={<Plus className="h-4 w-4" />}
@@ -158,7 +153,7 @@ export function SmsVerificationPanel({
 							value={countryCode}
 							onChange={(e) => setCountryCode(digitsOnly(e.target.value).slice(0, 4))}
 							required
-							autoFocus={Boolean(knownProfileId)}
+							autoFocus
 							placeholder="49"
 							className="w-24"
 						/>
@@ -196,7 +191,7 @@ export function SmsVerificationPanel({
 						e.preventDefault();
 						if (code.trim()) void verifyCode();
 					}}
-					className="space-y-3"
+					className="animate-fade-in space-y-3"
 				>
 					<IconInput
 						icon={<Hash className="h-4 w-4" />}
@@ -246,15 +241,12 @@ export function SmsVerificationPanel({
 				</form>
 			)}
 
-			<button
-				type="button"
+			<AuthAltAction
 				onClick={onCancel}
-				className="mx-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-			>
-				<ArrowLeft className="h-3.5 w-3.5" />
-				{t("auth.sms_verification.back", { defaultValue: "Back" })}
-			</button>
-		</div>
+				icon={<ArrowLeft className="h-4 w-4" />}
+				label={t("auth.sms_verification.back", { defaultValue: "Back" })}
+			/>
+		</AuthShell>
 	);
 }
 

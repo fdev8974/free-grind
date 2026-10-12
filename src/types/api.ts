@@ -52,7 +52,6 @@ export const methodSchemas = {
 			password: z.string().min(1),
 			/** Unix milliseconds. */
 			birthday: z.number().int(),
-			optIn: z.boolean(),
 			captchaToken: z.string().min(1),
 			/** The device's FCM token, sent as the request's `token`. */
 			pushToken: z.string().min(1).nullable(),
@@ -158,6 +157,7 @@ export type AppErrorKind =
 	| "SessionStale"
 	| "Api"
 	| "Unauthorized"
+	| "VerificationRequired"
 	| "Banned"
 	| "RateLimited"
 	| "RequestBlocked"
@@ -168,6 +168,7 @@ export type AppErrorKind =
 
 export interface AppError {
 	kind: AppErrorKind;
-	message?: string | { code: number; message: string } | BanInfo;
+	/** `profileId` only on VerificationRequired. */
+	message?: string | { code: number; message: string; profileId?: string | null } | BanInfo;
 	prettyMessage: string;
 }

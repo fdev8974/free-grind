@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { AuthShell } from "../../components/ui/auth-shell";
-import { AuthErrorBox, AuthSubmitSection, IconInput } from "./auth-form";
+import { AuthAltAction, AuthErrorBox, AuthSubmitSection, IconInput } from "./auth-form";
 import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
@@ -235,22 +235,6 @@ export function AppInstallCard({
 }
 
 /** "— or —" divider plus a secondary button to the other auth page. */
-export function AuthAltAction({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
-	const { t } = useTranslation();
-	const navigate = useNavigate();
-	return (
-		<div className="mt-5 flex flex-col items-center gap-5">
-			<div className="flex w-full items-center gap-3 text-xs uppercase tracking-wider text-[var(--text-muted)]">
-				<span className="h-px flex-1 bg-[var(--border)]" />
-				{t("auth.sign_in.or_divider", { defaultValue: "or" })}
-				<span className="h-px flex-1 bg-[var(--border)]" />
-			</div>
-			<Button type="button" variant="secondary" onClick={() => navigate(to)} leftIcon={icon} className="w-full">
-				{label}
-			</Button>
-		</div>
-	);
-}
 
 export function SignInPage() {
 	const { t } = useTranslation();
@@ -276,7 +260,7 @@ export function SignInPage() {
 	const recaptchaHelperInstall = useRecaptchaHelperInstall();
 
 	// Set when an email sign-in is refused until the account verifies by SMS.
-	const [verification, setVerification] = useState<{ profileId: string | null } | null>(null);
+	const [verification, setVerification] = useState<{ profileId: string } | null>(null);
 
 	const { login, loginWithGoogle, error } = useAuth();
 	const navigate = useNavigate();
@@ -391,6 +375,20 @@ export function SignInPage() {
 		}
 	};
 
+	if (verification) {
+		return (
+			<SmsVerificationPanel
+				profileId={verification.profileId}
+				onVerified={async () => {
+					// Same device as the refused attempt the verification belongs to.
+					await login(email, password, { keepDevice: true });
+					navigate("/");
+				}}
+				onCancel={() => setVerification(null)}
+			/>
+		);
+	}
+
 	return (
 		<AuthShell
 			title={addProfileMode ? t("auth.sign_in.add_profile_title", { defaultValue: "Add Profile" }) : t("auth.sign_in.title")}
@@ -411,43 +409,31 @@ export function SignInPage() {
 				)
 			}
 			toolbar={
-				verification ? undefined : (
-					<div className="relative flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
-						{/* Sliding active indicator: half the track minus the gap-1 between the tabs. */}
-						<span
-							aria-hidden="true"
-							className={cn(
-								"absolute inset-y-1 left-1 w-[calc(50%-6px)] rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-								method === "google" && "translate-x-[calc(100%+4px)]",
-							)}
-						/>
-						<AuthMethodTab
-							active={method === "password"}
-							icon={<Lock className="h-3.5 w-3.5" />}
-							label={t("auth.sign_in.method_password")}
-							onClick={() => setMethod("password")}
-						/>
-						<AuthMethodTab
-							active={method === "google"}
-							icon={<GoogleIcon className="h-3.5 w-3.5" />}
-							label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
-							onClick={() => setMethod("google")}
-						/>
-					</div>
-				)
+				<div className="relative flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
+					{/* Sliding active indicator: half the track minus the gap-1 between the tabs. */}
+					<span
+						aria-hidden="true"
+						className={cn(
+							"absolute inset-y-1 left-1 w-[calc(50%-6px)] rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+							method === "google" && "translate-x-[calc(100%+4px)]",
+						)}
+					/>
+					<AuthMethodTab
+						active={method === "password"}
+						icon={<Lock className="h-3.5 w-3.5" />}
+						label={t("auth.sign_in.method_password")}
+						onClick={() => setMethod("password")}
+					/>
+					<AuthMethodTab
+						active={method === "google"}
+						icon={<GoogleIcon className="h-3.5 w-3.5" />}
+						label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
+						onClick={() => setMethod("google")}
+					/>
+				</div>
 			}
 		>
-			{verification ? (
-				<SmsVerificationPanel
-					profileId={verification.profileId}
-					onVerified={async () => {
-						// Same device as the refused attempt the verification belongs to.
-						await login(email, password, { keepDevice: true });
-						navigate("/");
-					}}
-					onCancel={() => setVerification(null)}
-				/>
-			) : method === "password" ? (
+			{method === "password" ? (
 				<form key="password" onSubmit={handlePasswordSubmit} className="animate-fade-in space-y-3">
 					<IconInput
 						icon={<Mail className="h-4 w-4" />}
@@ -596,7 +582,7 @@ export function SignInPage() {
 					)}
 				</form>
 			)}
-			{addProfileMode || verification ? null : (
+			{addProfileMode ? null : (
 				<AuthAltAction
 					to="/auth/sign-up"
 					icon={<UserPlus className="h-4 w-4" />}

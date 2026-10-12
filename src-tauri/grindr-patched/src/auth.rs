@@ -393,7 +393,11 @@ impl RefreshFailureKind {
 			| GrindrError::Timeout(_) => Self::Transport,
 			GrindrError::Blocked(_) => Self::Blocked,
 			GrindrError::RateLimited => Self::RateLimited,
-			GrindrError::Api { .. } => Self::Server,
+			// Code 30 was an Api error before it got its own variant; keep
+			// refresh treating it the same.
+			GrindrError::Api { .. } | GrindrError::VerificationRequired { .. } => {
+				Self::Server
+			}
 			_ => Self::Session,
 		}
 	}

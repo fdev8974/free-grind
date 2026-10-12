@@ -94,6 +94,17 @@ pub enum GrindrError {
 	#[error("banned: {0}")]
 	Banned(BanInfo),
 
+	/// Sign-in was refused until the account verifies a phone number by SMS
+	/// (code 30); see
+	/// [`send_sms_verification_code`](crate::GrindrClient::send_sms_verification_code).
+	#[error("verification required: {message}")]
+	VerificationRequired {
+		/// The account's profile id, from the body's `profileId`.
+		profile_id: Option<String>,
+		/// Message from the response body.
+		message: String,
+	},
+
 	/// The API returned `429`.
 	#[error("rate limited")]
 	RateLimited,

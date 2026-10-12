@@ -8,8 +8,8 @@ import { useAuth } from "../../contexts/useAuth";
 import { useRecaptchaHelperInstall } from "../../services/apkUpdate";
 import { isRecaptchaHelperAvailable, RecaptchaError } from "../../services/recaptcha";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
-import { AuthSubmitSection, IconInput } from "./auth-form";
-import { AppInstallCard, AuthAltAction } from "./SignInPage";
+import { AuthAltAction, AuthSubmitSection, IconInput } from "./auth-form";
+import { AppInstallCard } from "./SignInPage";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 
 const MIN_AGE = 18;
@@ -37,10 +37,9 @@ export function SignUpPage() {
 	const [password, setPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [birthday, setBirthday] = useState("");
-	const [optIn, setOptIn] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	// Set when the sign-in after creating the account asks for SMS verification.
-	const [verification, setVerification] = useState<{ profileId: string | null } | null>(null);
+	const [verification, setVerification] = useState<{ profileId: string } | null>(null);
 	// Sign-up always sends a reCAPTCHA token, so it needs the helper.
 	const [hasRecaptchaHelper, setHasRecaptchaHelper] = useState(isRecaptchaHelperAvailable);
 	const recaptchaHelperInstall = useRecaptchaHelperInstall();
@@ -71,16 +70,13 @@ export function SignUpPage() {
 		e.preventDefault();
 		if (!isFormValid || birthdayMillis === null) return;
 		setIsLoading(true);
-		let created: string | null = null;
 		try {
-			await signUp({ email: email.trim(), password, birthday: birthdayMillis, optIn }, (profileId) => {
-				created = profileId;
-			});
+			await signUp({ email: email.trim(), password, birthday: birthdayMillis });
 			navigate("/");
 		} catch (error) {
 			// AuthContext updates `error`, which is rendered in the form.
 			if (error instanceof SmsVerificationRequiredError) {
-				setVerification({ profileId: error.profileId ?? created });
+				setVerification({ profileId: error.profileId });
 			} else if (error instanceof RecaptchaError && error.reason === "addonUnavailable") {
 				setHasRecaptchaHelper(false);
 			}
@@ -89,106 +85,103 @@ export function SignUpPage() {
 		}
 	};
 
+	if (verification) {
+		return (
+			<SmsVerificationPanel
+				profileId={verification.profileId}
+				onVerified={async () => {
+					await login(email.trim(), password, { keepDevice: true });
+					navigate("/");
+				}}
+				onCancel={() => setVerification(null)}
+			/>
+		);
+	}
+
 	return (
 		<AuthShell
 			title={t("auth.sign_up.title")}
 			subtitle={t("auth.sign_up.subtitle", { defaultValue: "Create a new Grindr account with your email and password." })}
 			footer={<BugReportButton />}
 		>
-			{verification ? (
-				<SmsVerificationPanel
-					profileId={verification.profileId}
-					onVerified={async () => {
-						await login(email.trim(), password, { keepDevice: true });
-						navigate("/");
-					}}
-					onCancel={() => setVerification(null)}
+			<form onSubmit={handleSubmit} className="animate-fade-in space-y-3">
+				{hasRecaptchaHelper ? null : recaptchaHelperInstall.supported ? (
+					<AppInstallCard
+						install={recaptchaHelperInstall}
+						icon={<ShieldCheck className="h-4 w-4" />}
+						title={t("auth.sign_in.recaptcha_helper_link", { defaultValue: "reCAPTCHA helper" })}
+						installHint={t("auth.sign_up.recaptcha_helper_install_hint", {
+							defaultValue: "Needed to create an account · Tap to install",
+						})}
+					/>
+				) : (
+					<p className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]">
+						{t("auth.sign_up.recaptcha_helper_unsupported", {
+							defaultValue: "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android.",
+						})}
+					</p>
+				)}
+				<IconInput
+					icon={<Mail className="h-4 w-4" />}
+					type="email"
+					value={email}
+					onChange={(e) => setEmail(e.target.value)}
+					required
+					autoFocus
+					autoComplete="email"
+					placeholder={t("auth.common.email")}
 				/>
-			) : (
-				<form onSubmit={handleSubmit} className="animate-fade-in space-y-3">
-					{hasRecaptchaHelper ? null : recaptchaHelperInstall.supported ? (
-						<AppInstallCard
-							install={recaptchaHelperInstall}
-							icon={<ShieldCheck className="h-4 w-4" />}
-							title={t("auth.sign_in.recaptcha_helper_link", { defaultValue: "reCAPTCHA helper" })}
-							installHint={t("auth.sign_up.recaptcha_helper_install_hint", {
-								defaultValue: "Needed to create an account · Tap to install",
-							})}
-						/>
-					) : (
-						<p className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]">
-							{t("auth.sign_up.recaptcha_helper_unsupported", {
-								defaultValue: "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android.",
-							})}
-						</p>
-					)}
-					<IconInput
-						icon={<Mail className="h-4 w-4" />}
-						type="email"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-						required
-						autoFocus
-						autoComplete="email"
-						placeholder={t("auth.common.email")}
-					/>
-					<IconInput
-						icon={<Lock className="h-4 w-4" />}
-						type={showPassword ? "text" : "password"}
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						required
-						autoComplete="new-password"
-						placeholder={t("auth.common.password")}
-						rightSlot={
-							<button
-								type="button"
-								onClick={() => setShowPassword((prev) => !prev)}
-								className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
-								tabIndex={-1}
-								aria-label={showPassword ? t("auth.common.hide_password") : t("auth.common.show_password")}
-							>
-								{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-							</button>
-						}
-					/>
-					<div className="space-y-1.5">
-						<label htmlFor="sign-up-birthday" className="block text-xs font-medium text-[var(--text-muted)]">
-							{t("auth.sign_up.birthday_label", { defaultValue: "Date of birth" })}
-						</label>
-						<IconInput
-							id="sign-up-birthday"
-							icon={<Cake className="h-4 w-4" />}
-							type="date"
-							value={birthday}
-							onChange={(e) => setBirthday(e.target.value)}
-							required
-							max={maxBirthday}
-							autoComplete="bday"
-						/>
-						{isTooYoung ? (
-							<p className="text-xs text-[#f87171]">{t("auth.sign_up.too_young", { age: MIN_AGE, defaultValue: "You must be at least {{age}} years old." })}</p>
-						) : null}
-					</div>
-					<label className="flex cursor-pointer items-start gap-2.5 py-1 text-sm text-[var(--text-muted)]">
-						<input
-							type="checkbox"
-							checked={optIn}
-							onChange={(e) => setOptIn(e.target.checked)}
-							className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--accent)]"
-						/>
-						<span>{t("auth.sign_up.opt_in", { defaultValue: "Send me news and offers from Grindr by email" })}</span>
+				<IconInput
+					icon={<Lock className="h-4 w-4" />}
+					type={showPassword ? "text" : "password"}
+					value={password}
+					onChange={(e) => setPassword(e.target.value)}
+					required
+					autoComplete="new-password"
+					placeholder={t("auth.common.password")}
+					rightSlot={
+						<button
+							type="button"
+							onClick={() => setShowPassword((prev) => !prev)}
+							className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
+							tabIndex={-1}
+							aria-label={showPassword ? t("auth.common.hide_password") : t("auth.common.show_password")}
+						>
+							{showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+						</button>
+					}
+				/>
+				<div className="space-y-1.5">
+					<label htmlFor="sign-up-birthday" className="block text-xs font-medium text-[var(--text-muted)]">
+						{t("auth.sign_up.birthday_label", { defaultValue: "Date of birth" })}
 					</label>
-						<AuthSubmitSection
-						error={error}
-						loading={isLoading}
-						disabled={!isFormValid}
-						loadingLabel={t("auth.sign_up.creating", { defaultValue: "Creating account..." })}
-						label={t("auth.sign_up.submit", { defaultValue: "Create account" })}
+					<IconInput
+						id="sign-up-birthday"
+						icon={<Cake className="h-4 w-4" />}
+						type="date"
+						value={birthday}
+						onChange={(e) => setBirthday(e.target.value)}
+						required
+						max={maxBirthday}
+						autoComplete="bday"
 					/>
-				</form>
-			)}
-			<AuthAltAction to="/auth/sign-in" icon={<LogIn className="h-4 w-4" />} label={t("auth.sign_up.have_account_action")} />
+					{isTooYoung ? (
+						<p className="text-xs text-[#f87171]">{t("auth.sign_up.too_young", { age: MIN_AGE, defaultValue: "You must be at least {{age}} years old." })}</p>
+					) : null}
+				</div>
+				<AuthSubmitSection
+					error={error}
+					loading={isLoading}
+					disabled={!isFormValid}
+					loadingLabel={t("auth.sign_up.creating", { defaultValue: "Creating account..." })}
+					label={t("auth.sign_up.submit", { defaultValue: "Create account" })}
+				/>
+			</form>
+			<AuthAltAction
+				to="/auth/sign-in"
+				icon={<LogIn className="h-4 w-4" />}
+				label={t("auth.sign_up.have_account_action")}
+			/>
 		</AuthShell>
 	);
 }

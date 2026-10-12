@@ -50,41 +50,12 @@ function cachedPushToken(): string | null {
 // cases (wrong credentials, malformed/expired token) rather than a specific one,
 // so its raw "Error 4: invalid input parameters" text is meaningless to users.
 const INVALID_INPUT_PARAMETERS_CODE = 4;
-// Sign-in refused until the account verifies a phone number by SMS.
-const VERIFICATION_REQUIRED_CODE = 30;
-
-function isVerificationRequired(appError: AppError | null): boolean {
-	return (
-		(appError?.kind === "Api" || appError?.kind === "Unauthorized") &&
-		typeof appError.message === "object" &&
-		appError.message.code === VERIFICATION_REQUIRED_CODE
-	);
-}
-
-// Profile ids of accounts created here, by lowercased email: a code-30
-// sign-in carries no id, but the SMS verification endpoints need it.
-const PENDING_VERIFICATION_STORAGE_KEY = "fg-pending-sms-verification";
-
-function readPendingVerifications(): Record<string, string> {
-	try {
-		const parsed: unknown = JSON.parse(window.localStorage.getItem(PENDING_VERIFICATION_STORAGE_KEY) ?? "{}");
-		return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
-	} catch {
-		return {};
-	}
-}
-
-function updatePendingVerification(email: string, profileId: string | null) {
-	const pending = readPendingVerifications();
-	const key = email.trim().toLowerCase();
-	if (profileId) pending[key] = profileId;
-	else if (key in pending) delete pending[key];
-	else return;
-	try {
-		window.localStorage.setItem(PENDING_VERIFICATION_STORAGE_KEY, JSON.stringify(pending));
-	} catch {
-		// Only costs the user typing the profile id in by hand.
-	}
+// Sign-in refused until the account verifies a phone number by SMS (Grindr
+// code 30): the profile id the error body carries, null for anything else.
+function verificationRequiredProfileId(appError: AppError | null): string | null {
+	if (appError?.kind !== "VerificationRequired") return null;
+	const message = appError.message;
+	return (typeof message === "object" && "profileId" in message && message.profileId) || null;
 }
 
 function describeLoginError(
@@ -268,7 +239,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// /v8 sign-in as invalid credentials. Open Grind retries those
 				// with a reCAPTCHA token via /v9 once the assignment says so.
 				const firstError = asAppError(error);
-				if (isVerificationRequired(firstError) || !isInvalidCredentials(firstError)) throw error;
+				if (firstError?.kind === "VerificationRequired" || !isInvalidCredentials(firstError)) throw error;
 				const required = await callMethod("recaptcha_first_party_enabled").catch((checkError) => {
 					appLog.warn("[Auth] recaptcha_first_party check failed", asAppError(checkError) ?? checkError);
 					return false;
@@ -279,7 +250,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				result = await callMethod("login", { email, password, captchaToken, keepDevice });
 			}
 			appLog.info("[Auth] login: succeeded");
-			updatePendingVerification(email, null);
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
@@ -287,9 +257,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 		} catch (error) {
 			// Not a failure to report: the page switches to SMS verification.
-			if (isVerificationRequired(asAppError(error))) {
+			// Without a profile id there's nothing to verify against, so that
+			// falls through to the generic error below.
+			const verificationProfileId = verificationRequiredProfileId(asAppError(error));
+			if (verificationProfileId) {
 				appLog.info("[Auth] login: SMS verification required");
-				throw new SmsVerificationRequiredError(readPendingVerifications()[email.trim().toLowerCase()] ?? null);
+				throw new SmsVerificationRequiredError(verificationProfileId);
 			}
 			if (handleAccountBlock(error)) {
 				throw error;
@@ -351,10 +324,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	const signUp = async (
-		{ email, password, birthday, optIn }: SignUpData,
-		onCreated?: (profileId: string) => void,
-	) => {
+	const signUp = async ({ email, password, birthday }: SignUpData) => {
 		try {
 			appLog.info("[Auth] signUp: creating email account");
 			dispatch({ type: "SET_LOADING", payload: true });
@@ -366,14 +336,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				email,
 				password,
 				birthday,
-				optIn,
 				captchaToken,
 				pushToken: cachedPushToken(),
 			});
 			appLog.info("[Auth] signUp: account created", { profileId });
 			toast.success("Account created");
-			updatePendingVerification(email, profileId);
-			onCreated?.(profileId);
 		} catch (error) {
 			if (error instanceof RecaptchaError) {
 				appLog.warn("[Auth] signUp: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });

@@ -47,6 +47,14 @@ pub enum AppError {
     /// signature (`timestamp_drift` / `nonce_replayed`).
     MediaRejected { status: u16, reason: String },
     Unauthorized { code: i32, message: String },
+    /// Sign-in refused until the account verifies a phone number by SMS
+    /// (Grindr code 30); `profile_id` comes from the response body.
+    #[serde(rename_all = "camelCase")]
+    VerificationRequired {
+        code: i32,
+        message: String,
+        profile_id: Option<String>,
+    },
     Banned(BanInfo),
     RateLimited,
     RequestBlocked,
@@ -71,6 +79,9 @@ impl fmt::Display for AppError {
             }
             AppError::Unauthorized { code, message } => {
                 write!(f, "Unauthorized ({code}): {message}")
+            }
+            AppError::VerificationRequired { message, .. } => {
+                write!(f, "Verification required: {message}")
             }
             AppError::Banned(info) => write!(f, "Banned ({}): {}", info.kind, info.message),
             AppError::RateLimited => write!(f, "Rate limited"),
@@ -97,6 +108,13 @@ impl From<grindr::GrindrError> for AppError {
             grindr::GrindrError::Api { code, message } => AppError::Api { code, message },
             grindr::GrindrError::Unauthorized { code, message } => {
                 AppError::Unauthorized { code, message }
+            }
+            grindr::GrindrError::VerificationRequired { profile_id, message } => {
+                AppError::VerificationRequired {
+                    code: 30,
+                    message,
+                    profile_id,
+                }
             }
             grindr::GrindrError::Banned(info) => AppError::Banned(info.into()),
             grindr::GrindrError::RateLimited => AppError::RateLimited,

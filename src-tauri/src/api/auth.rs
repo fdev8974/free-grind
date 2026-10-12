@@ -851,7 +851,6 @@ pub async fn create_account(
     email: String,
     password: String,
     birthday: i64,
-    opt_in: bool,
     captcha_token: String,
     push_token: Option<String>,
 ) -> Result<String, AppError> {
@@ -878,7 +877,8 @@ pub async fn create_account(
             captcha_token: captcha,
             // "" before Android has handed over an FCM token.
             push_token: push_token.as_deref().map(str::trim).unwrap_or(""),
-            opt_in,
+            // Never sign up for Grindr's marketing email.
+            opt_in: false,
         })
         .await
         .map_err(|e| AppError::from_client_error(e, &client))
