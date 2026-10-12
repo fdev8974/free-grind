@@ -2,8 +2,10 @@
 //! ported from open-grind. Grindr decides a session's entitlements from the
 //! geohash sent when its token is minted, so re-issuing the token from
 //! Honduras unlocks paid features (expiring photos, unsending, album
-//! sharing) for that token. The server-side location is moved there only
-//! for the handover and always moved back home afterwards.
+//! sharing) for that token. `enter_honduras` moves the server-side location
+//! there and leaves it; the paid action runs while still in Honduras (Grindr
+//! re-checks the location when the action runs), then `leave_honduras` moves
+//! it back home.
 
 use std::fs;
 use std::future::Future;
@@ -108,15 +110,18 @@ async fn reconnect_ws(client: &grindr::GrindrClient) {
     .await;
 }
 
-/// Moves to `honduras`, re-issues the session there, then moves back to
-/// `home` — even when the re-issue failed — and reconnects the websocket.
+/// Moves the server-side location to `honduras`, re-issues the session there,
+/// and reconnects the websocket — then **leaves the location in Honduras** so
+/// the caller can perform the paid action while Grindr still allows it. The
+/// caller must pair every successful `enter_honduras` with [`leave_honduras`]
+/// to move back home.
 ///
-/// A recovery marker holding `home` is written before the location leaves home
-/// and cleared only once it is back, so a trip interrupted by a crash, a
-/// suspended mobile app, or a failed move-back can be repaired by
-/// [`restore_stranded_location`] on the next launch or sign-out.
+/// A recovery marker holding `home` is written before the location leaves home,
+/// so a trip interrupted by a crash, a suspended mobile app, or a failed
+/// move-back can be repaired by [`restore_stranded_location`] on the next
+/// launch or sign-out. [`leave_honduras`] clears it once home again.
 #[tauri::command]
-pub async fn entitlement_bypass(
+pub async fn enter_honduras(
     app: AppHandle,
     state: tauri::State<'_, AppState>,
     honduras: String,
@@ -124,17 +129,16 @@ pub async fn entitlement_bypass(
 ) -> Result<(), AppError> {
     let client = state.client()?;
 
-    let marker = marker_path(&app);
-    match &marker {
+    match marker_path(&app) {
         Ok(path) => {
-            if let Err(e) = write_marker_at(path, &home) {
+            if let Err(e) = write_marker_at(&path, &home) {
                 eprintln!("[entitlements] could not write the Honduras recovery marker: {e}");
             }
         }
         Err(e) => eprintln!("[entitlements] could not resolve the recovery marker path: {e}"),
     }
 
-    let granted = within("the handover", async {
+    within("the handover", async {
         update_location(&client, &honduras).await?;
         client
             .refresh_session_at_geohash(Some(&honduras))
@@ -142,23 +146,28 @@ pub async fn entitlement_bypass(
             .map_err(|e| AppError::from_client_error(e, &client))?;
         Ok(())
     })
-    .await;
+    .await?;
 
-    match within("moving back", update_location(&client, &home)).await {
-        // Back home: the trip is complete, so drop the recovery marker.
-        Ok(()) => {
-            if let Ok(path) = &marker {
-                if let Err(e) = remove_marker_at(path) {
-                    eprintln!("[entitlements] could not clear the Honduras recovery marker: {e}");
-                }
-            }
-        }
-        // Still in Honduras: leave the marker so restore_stranded_location retries.
-        Err(e) => eprintln!("[entitlements] could not move back from Honduras: {e}"),
-    }
-
-    granted?;
     reconnect_ws(&client).await;
+    Ok(())
+}
+
+/// Moves the server-side location back to `home` after an [`enter_honduras`]
+/// and clears the recovery marker. On failure the marker is kept so
+/// [`restore_stranded_location`] can retry on a later launch or sign-out.
+#[tauri::command]
+pub async fn leave_honduras(
+    app: AppHandle,
+    state: tauri::State<'_, AppState>,
+    home: String,
+) -> Result<(), AppError> {
+    let client = state.client()?;
+    within("moving back", update_location(&client, &home)).await?;
+    if let Ok(path) = marker_path(&app) {
+        if let Err(e) = remove_marker_at(&path) {
+            eprintln!("[entitlements] could not clear the Honduras recovery marker: {e}");
+        }
+    }
     Ok(())
 }
 
