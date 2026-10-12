@@ -3,7 +3,7 @@ import { FileArchive, FileUp, Loader2, Lock, UploadCloud, X } from "lucide-react
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
-import { OnboardingModal } from "./OnboardingModal";
+import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { BottomSheet, SheetClose } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import * as chatDb from "../services/chatDb";
@@ -115,19 +115,18 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 
 	return (
 		<>
-			<OnboardingModal
+			<FullscreenPrompt
+				icon={FileUp}
 				title={t("restore_offer.title", { defaultValue: "Restore your data?" })}
-				headerIcon={FileUp}
-				onClose={finish}
-				onConfirm={finish}
-				buttonLabel={t("restore_offer.skip", { defaultValue: "Skip for now" })}
-				buttonVariant="secondary"
+				description={t("restore_offer.description", {
+					defaultValue: "If you have a backup file from this account, you can restore your conversations, media, and settings now.",
+				})}
+				footer={
+					<button type="button" onClick={finish} disabled={isBusy} className={fullscreenSecondaryButtonClass}>
+						{t("restore_offer.skip", { defaultValue: "Skip for now" })}
+					</button>
+				}
 			>
-				<p className="text-center text-sm leading-relaxed text-[var(--text-muted)]">
-					{t("restore_offer.description", {
-						defaultValue: "If you have a backup file from this account, you can restore your conversations, media, and settings now.",
-					})}
-				</p>
 
 				<button
 					type="button"
@@ -144,13 +143,13 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 						if (file && !isBusy) void handleFilePicked(file);
 					}}
 					disabled={isBusy}
-					className={`group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-8 text-center transition disabled:cursor-wait ${
+					className={`group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-7 text-center transition disabled:cursor-wait ${
 						isDragging
 							? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface))]"
 							: "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-2))]"
 					}`}
 				>
-					<span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)] transition group-hover:scale-105">
+					<span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/20 transition group-hover:scale-105">
 						{isBusy ? <Loader2 className="h-7 w-7 animate-spin" /> : <UploadCloud className="h-7 w-7" />}
 					</span>
 					<span className="space-y-1">
@@ -177,11 +176,11 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					}}
 				/>
 
-				<p className="flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
+				<p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
 					<Lock className="h-3.5 w-3.5" />
 					{t("restore_offer.local_hint", { defaultValue: "Your backup stays on this device." })}
 				</p>
-			</OnboardingModal>
+			</FullscreenPrompt>
 
 			{pendingImport && (
 				<BottomSheet

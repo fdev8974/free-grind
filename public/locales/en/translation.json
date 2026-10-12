@@ -2295,6 +2295,7 @@
     "up_to_date": "Already accepted",
     "read": "Read",
     "accept": "Accept",
-    "accept_failed": "Couldn't confirm the agreements. Please try again."
+    "accept_failed": "Couldn't confirm the agreements. Please try again.",
+    "accepted_on": "Accepted on {{date}}"
   }
 }

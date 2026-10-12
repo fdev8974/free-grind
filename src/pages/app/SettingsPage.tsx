@@ -35,6 +35,8 @@ import {
 	UserPlus,
 	UserX,
 	X,
+	FileUp,
+	ScrollText,
 } from "lucide-react";
 import { useState, useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
 import toast from "react-hot-toast";
@@ -71,6 +73,8 @@ import { isAndroid } from "../../services/saveMedia";
 import { useSettingsSearchIndex } from "../../data/settingsSearchIndex";
 import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
 import { replayOnboarding } from "../../utils/onboardingStorage";
+import { replayRestoreOffer } from "../../utils/restoreOfferStorage";
+import { showLegalAgreementsPrompt } from "../../utils/legalAgreementsDebug";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
 
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
@@ -1078,6 +1082,20 @@ export function SettingsPage() {
 								"bg-[var(--surface-2)] text-[var(--text-muted)]",
 								"Replay Onboarding",
 								"Shows the first-launch setup flow again.",
+							)}
+							{navRow(
+								replayRestoreOffer,
+								<FileUp className="h-5 w-5" />,
+								"bg-[var(--surface-2)] text-[var(--text-muted)]",
+								"Show Restore Offer",
+								"Opens the first-login backup restore dialog.",
+							)}
+							{navRow(
+								showLegalAgreementsPrompt,
+								<ScrollText className="h-5 w-5" />,
+								"bg-[var(--surface-2)] text-[var(--text-muted)]",
+								"Show Legal Agreements",
+								"Opens the Terms of Service / Privacy Policy dialog, even if already accepted.",
 							)}
 							{isAndroid() && (
 							<div className="p-4 sm:p-5">

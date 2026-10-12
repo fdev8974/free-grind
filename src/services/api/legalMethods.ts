@@ -17,6 +17,8 @@ const acceptedLegalAgreementsSchema = z.object({
 	termsOfServiceVersion: versionSchema.nullish(),
 	privacyPolicyVersion: versionSchema.nullish(),
 	userConsentList: z.array(z.string()).nullish(),
+	createdAtTermsAgreement: z.number().nullish(),
+	createdAtPrivacyAgreement: z.number().nullish(),
 });
 
 export type LegalAgreementsInfo = z.infer<typeof legalAgreementsInfoSchema>["legalAgreements"];
@@ -25,6 +27,9 @@ export interface AcceptedLegalAgreements {
 	termsOfServiceVersion: string | null;
 	privacyPolicyVersion: string | null;
 	userConsentList: string[];
+	/** Epoch ms of the last acceptance. */
+	termsAcceptedAt: number | null;
+	privacyAcceptedAt: number | null;
 }
 
 /** Grindr's versions are date stamps ("20260706"); the PUT body wants them as numbers. */
@@ -52,6 +57,8 @@ export function createLegalMethods(fetchRest: RestFetcher, t: (key: string, defa
 				termsOfServiceVersion: parsed.termsOfServiceVersion ?? null,
 				privacyPolicyVersion: parsed.privacyPolicyVersion ?? null,
 				userConsentList: parsed.userConsentList ?? [],
+				termsAcceptedAt: parsed.createdAtTermsAgreement ?? null,
+				privacyAcceptedAt: parsed.createdAtPrivacyAgreement ?? null,
 			};
 		},
 

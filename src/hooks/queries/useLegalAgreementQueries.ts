@@ -36,9 +36,12 @@ export function useAcceptLegalAgreements(userId: number | null) {
 		mutationFn: (params: { termsOfServiceVersion: string; privacyPolicyVersion: string }) =>
 			api.acceptLegalAgreements(params),
 		onSuccess: (_, params) => {
+			const now = Date.now();
 			queryClient.setQueryData<AcceptedLegalAgreements>(["legal-agreements-accepted", userId], (old) => ({
 				...params,
 				userConsentList: old?.userConsentList ?? [],
+				termsAcceptedAt: now,
+				privacyAcceptedAt: now,
 			}));
 		},
 	});

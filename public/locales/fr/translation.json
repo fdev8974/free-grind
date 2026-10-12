@@ -2313,6 +2313,7 @@
         "up_to_date": "",
         "read": "",
         "accept": "",
-        "accept_failed": ""
+        "accept_failed": "",
+        "accepted_on": ""
     }
 }
