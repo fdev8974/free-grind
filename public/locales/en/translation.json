@@ -1076,7 +1076,9 @@
       "change_number": "Change number",
       "resend": "Resend code",
       "back": "Back",
-      "sign_in": "Sign in"
+      "sign_in": "Sign in",
+      "send_in": "Send code ({{seconds}}s)",
+      "resend_in": "Resend code ({{seconds}}s)"
     }
   },
   "chat": {

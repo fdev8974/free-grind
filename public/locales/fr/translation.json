@@ -1084,7 +1084,9 @@
             "change_number": "",
             "resend": "",
             "back": "",
-            "sign_in": ""
+            "sign_in": "",
+            "send_in": "",
+            "resend_in": ""
         }
     },
     "chat": {

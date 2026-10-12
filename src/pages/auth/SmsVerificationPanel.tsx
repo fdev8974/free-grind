@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Hash, MessageSquareText, Phone, Plus, UserRound } from "lucide-react";
 import { useApi } from "../../hooks/useApi";
@@ -6,6 +6,9 @@ import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { AuthSubmitSection, IconInput } from "./auth-form";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
+
+// Wait after a sendcode request before another one can be sent.
+const RESEND_COOLDOWN_MS = 60_000;
 
 /**
  * SMS verification for a sign-in refused with code 30: text a code to a phone
@@ -34,6 +37,20 @@ export function SmsVerificationPanel({
 	const [error, setError] = useState<string | null>(null);
 	// A non-null `code` in the answer, e.g. "Profile is already verified".
 	const [notice, setNotice] = useState<string | null>(null);
+	const [resendAt, setResendAt] = useState<number | null>(null);
+	const [now, setNow] = useState(Date.now);
+
+	useEffect(() => {
+		if (resendAt === null) return;
+		const timer = window.setInterval(() => {
+			const current = Date.now();
+			setNow(current);
+			if (current >= resendAt) setResendAt(null);
+		}, 1000);
+		return () => window.clearInterval(timer);
+	}, [resendAt]);
+
+	const cooldownSeconds = resendAt === null ? 0 : Math.max(0, Math.ceil((resendAt - now) / 1000));
 
 	const target = {
 		profileId: digitsOnly(profileId),
@@ -62,9 +79,13 @@ export function SmsVerificationPanel({
 		}
 	};
 
-	const sendCode = () =>
-		run(async () => {
+	const sendCode = () => {
+		if (cooldownSeconds > 0) return;
+		return run(async () => {
 			const result = await callMethod("send_sms_verification_code", target);
+			const answeredAt = Date.now();
+			setNow(answeredAt);
+			setResendAt(answeredAt + RESEND_COOLDOWN_MS);
 			if (result.code != null) {
 				setNotice(result.message);
 				return;
@@ -72,6 +93,7 @@ export function SmsVerificationPanel({
 			setCode("");
 			setStep("code");
 		});
+	};
 
 	const verifyCode = () =>
 		run(async () => {
@@ -156,9 +178,16 @@ export function SmsVerificationPanel({
 					<AuthSubmitSection
 						error={error}
 						loading={isLoading}
-						disabled={!isPhoneValid}
+						disabled={!isPhoneValid || cooldownSeconds > 0}
 						loadingLabel={t("auth.sms_verification.sending", { defaultValue: "Sending code..." })}
-						label={t("auth.sms_verification.send", { defaultValue: "Send code" })}
+						label={
+							cooldownSeconds > 0
+								? t("auth.sms_verification.send_in", {
+										defaultValue: "Send code ({{seconds}}s)",
+										seconds: cooldownSeconds,
+									})
+								: t("auth.sms_verification.send", { defaultValue: "Send code" })
+						}
 					/>
 				</form>
 			) : (
@@ -203,10 +232,15 @@ export function SmsVerificationPanel({
 						<button
 							type="button"
 							onClick={() => void sendCode()}
-							disabled={isLoading}
-							className="font-semibold text-[var(--accent)] disabled:opacity-50"
+							disabled={isLoading || cooldownSeconds > 0}
+							className="font-semibold tabular-nums text-[var(--accent)] disabled:text-[var(--text-muted)] disabled:opacity-70"
 						>
-							{t("auth.sms_verification.resend", { defaultValue: "Resend code" })}
+							{cooldownSeconds > 0
+								? t("auth.sms_verification.resend_in", {
+										defaultValue: "Resend code ({{seconds}}s)",
+										seconds: cooldownSeconds,
+									})
+								: t("auth.sms_verification.resend", { defaultValue: "Resend code" })}
 						</button>
 					</div>
 				</form>
