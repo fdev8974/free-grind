@@ -24,6 +24,8 @@ export const restrictionSchema = z.object({
 	subReason: z.string().nullish(),
 	/** Whether a timed ban was issued automatically. */
 	automated: z.boolean().nullish(),
+	/** Whether a timed ban's ban agreement has been accepted. */
+	agreementCompleted: z.boolean().nullish(),
 });
 export type Restriction = z.infer<typeof restrictionSchema>;
 

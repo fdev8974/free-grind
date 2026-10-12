@@ -1996,7 +1996,9 @@
             "accept": "",
             "accepting": "",
             "accept_success": "",
-            "accept_failed": ""
+            "accept_failed": "",
+            "agreement_completed_title": "",
+            "agreement_completed_description": ""
         },
         "device_ban": {
             "title": "",

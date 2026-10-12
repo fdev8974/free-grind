@@ -1982,7 +1982,9 @@
       "accept": "Accept & Continue",
       "accepting": "Accepting…",
       "accept_success": "Agreement accepted",
-      "accept_failed": "Couldn't accept the agreement"
+      "accept_failed": "Couldn't accept the agreement",
+      "agreement_completed_title": "All Set",
+      "agreement_completed_description": "You've accepted Grindr's ban agreement. There's nothing else you need to do."
     },
     "device_ban": {
       "title": "Request Refused",

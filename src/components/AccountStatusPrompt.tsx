@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Ban, Clock, ShieldAlert } from "lucide-react";
+import { Ban, CircleCheck, Clock, ShieldAlert } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/useAuth";
 import type { AccountStatus } from "../contexts/auth-context";
@@ -181,6 +181,16 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 					value: formatExpiry(restriction.expiresAt, language),
 				});
 			}
+			if (restriction.agreementCompleted) {
+				return {
+					icon: <CircleCheck className="h-9 w-9 text-[var(--accent)]" />,
+					title: t("account_status.timed_ban.agreement_completed_title", { defaultValue: "All Set" }),
+					description: t("account_status.timed_ban.agreement_completed_description", {
+						defaultValue: "You've accepted Grindr's ban agreement. There's nothing else you need to do.",
+					}),
+					details,
+				};
+			}
 			if (timedBanExpired) {
 				return {
 					icon: <Clock className="h-9 w-9 text-[var(--accent)]" />,
@@ -238,8 +248,10 @@ export function AccountStatusPromptView({
 				}
 			: null;
 
+	const agreementCompleted =
+		status?.kind === "restriction" && status.restriction.agreementCompleted === true;
 	const acceptBanAgreement =
-		timedBanExpired && onAcceptBanAgreement
+		timedBanExpired && !agreementCompleted && onAcceptBanAgreement
 			? () => {
 					setAccepting(true);
 					onAcceptBanAgreement()

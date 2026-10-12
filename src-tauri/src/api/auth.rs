@@ -202,6 +202,8 @@ pub struct Restriction {
     pub sub_reason: Option<String>,
     /// Whether a timed ban was issued automatically.
     pub automated: Option<bool>,
+    /// Whether the ban agreement of a timed ban has been accepted.
+    pub agreement_completed: Option<bool>,
 }
 
 impl Restriction {
@@ -213,6 +215,7 @@ impl Restriction {
             expires_at: None,
             sub_reason: None,
             automated: None,
+            agreement_completed: None,
         }
     }
 }
@@ -230,6 +233,7 @@ impl From<grindr::Restriction> for Restriction {
                 expires_at: details.expiry_time,
                 sub_reason: details.sub_reason,
                 automated: Some(details.is_automated),
+                agreement_completed: None,
             },
             grindr::Restriction::TrustVendorRejected => Self::simple("trustVendorRejected", None, None),
             grindr::Restriction::Other(raw) => Self::simple("other", None, Some(raw)),
@@ -249,9 +253,9 @@ fn region_str(region: grindr::VerificationRegion) -> &'static str {
 }
 
 // ---------------------------------------------------------------------------
-// Session JWT decoding — only needed to read back the free-form
-// `restrictionReason` of a TRUST_VENDOR_REJECTED session, which grindr.rs
-// doesn't keep. The signature isn't verified (the client doesn't hold the key
+// Session JWT decoding — only needed to read back what grindr.rs doesn't
+// keep: the free-form `restrictionReason` of a TRUST_VENDOR_REJECTED session
+// and a timed ban's `banDetails.isAgreementCompleted`. The signature isn't verified (the client doesn't hold the key
 // and the claim only decides what to show).
 // ---------------------------------------------------------------------------
 
@@ -260,6 +264,15 @@ fn region_str(region: grindr::VerificationRegion) -> &'static str {
 struct JwtClaims {
     #[serde(default)]
     restriction_reason: Option<String>,
+    #[serde(default)]
+    ban_details: Option<JwtBanDetails>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JwtBanDetails {
+    #[serde(default)]
+    is_agreement_completed: Option<bool>,
 }
 
 fn decode_jwt(token: &str) -> Result<JwtClaims, AppError> {
@@ -738,14 +751,23 @@ fn session_restriction(session: Option<&grindr::Session>) -> Option<grindr::Rest
 
 /// A session's restriction as the frontend gets it. grindr.rs keeps no reason
 /// for `TRUST_VENDOR_REJECTED`, whose `restrictionReason` is free-form text,
-/// so that one is read back out of the session JWT.
+/// and no agreement state for a timed ban, so those are read back out of the
+/// session JWT.
 fn frontend_restriction(session: Option<&grindr::Session>) -> Option<Restriction> {
     let token = session?.token.as_ref()?;
     let mut restriction = Restriction::from(token.restriction.clone()?);
-    if restriction.kind == "trustVendorRejected" {
-        restriction.reason = decode_jwt(&token.session_id)
-            .ok()
-            .and_then(|claims| claims.restriction_reason);
+    match restriction.kind.as_str() {
+        "trustVendorRejected" => {
+            restriction.reason = decode_jwt(&token.session_id)
+                .ok()
+                .and_then(|claims| claims.restriction_reason);
+        }
+        "timedBan" => {
+            restriction.agreement_completed = decode_jwt(&token.session_id)
+                .ok()
+                .and_then(|claims| claims.ban_details?.is_agreement_completed);
+        }
+        _ => {}
     }
     Some(restriction)
 }
@@ -1403,5 +1425,28 @@ mod tests {
         let restriction = frontend_restriction(Some(&session)).unwrap();
         assert_eq!(restriction.kind, "trustVendorRejected");
         assert_eq!(restriction.reason.as_deref(), Some("Device risk too high"));
+    }
+
+    #[test]
+    fn timed_ban_reads_its_agreement_state_from_the_jwt() {
+        // ... {"exp":9999999999,"profileId":"42","restriction":"TIMED_BAN","banDetails":{"expiryTime":1800000000,"isAgreementCompleted":true}} ...
+        let jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksInByb2ZpbGVJZCI6IjQyIiwicmVzdHJpY3Rpb24iOiJUSU1FRF9CQU4iLCJiYW5EZXRhaWxzIjp7ImV4cGlyeVRpbWUiOjE4MDAwMDAwMDAsImlzQWdyZWVtZW50Q29tcGxldGVkIjp0cnVlfX0.sig";
+        let session = grindr::Session {
+            credentials: grindr::Credentials {
+                email: String::new(),
+                profile_id: Some("42".to_owned()),
+                auth_token: String::new(),
+                kind: grindr::SessionKind::Email,
+                third_party_user_id: None,
+            },
+            token: Some(grindr::SessionToken {
+                session_id: jwt.to_owned(),
+                expires_at: 9_999_999_999,
+                restriction: Some(grindr::Restriction::TimedBan(grindr::BanDetails::default())),
+            }),
+        };
+        let restriction = frontend_restriction(Some(&session)).unwrap();
+        assert_eq!(restriction.kind, "timedBan");
+        assert_eq!(restriction.agreement_completed, Some(true));
     }
 }
