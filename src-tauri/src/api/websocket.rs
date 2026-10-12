@@ -15,20 +15,11 @@ use tauri::{AppHandle, Emitter};
 use tokio::sync::broadcast::error::RecvError;
 use tokio::time::timeout;
 
+use super::session_recovery::{report_refresh_failure, SessionErrorPayload};
 use crate::error::{AppError, BanInfo};
 use crate::state::AppState;
 
 const WS_EVENT: &str = "grindr-ws://event";
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct SessionErrorPayload {
-    message: String,
-    /// The session is gone (401 on refresh); signing in again is the only fix.
-    unauthorized: bool,
-    /// A retry of the same refresh could still succeed.
-    transient: bool,
-}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -139,14 +130,7 @@ pub fn spawn_bridge(app: &AppHandle, client: grindr::GrindrClient) {
                         );
                     }
                     grindr::AuthEvent::RefreshFailed { message, kind, .. } => {
-                        let _ = app.emit(
-                            "auth:session-error",
-                            SessionErrorPayload {
-                                message,
-                                unauthorized: false,
-                                transient: kind.is_transient(),
-                            },
-                        );
+                        report_refresh_failure(&app, message, kind.is_transient());
                     }
                     grindr::AuthEvent::RefreshRecovered => {
                         let _ = app.emit("auth:session-ok", ());

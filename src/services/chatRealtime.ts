@@ -32,6 +32,21 @@ type BridgeEvent =
 
 const WS_EVENT_NAME = "grindr-ws://event";
 const COMMAND_TIMEOUT_MS = 10_000;
+// How long a sent message stays eligible for the message_sent fallback match,
+// even after its command timed out — a late echo must still land on it, not
+// on a newer send to the same person.
+const SEND_MATCH_WINDOW_MS = 60_000;
+
+type PendingSend = { ref: string; targetId: string | null; type: unknown; sentAt: number };
+
+function messageSendTarget(payload: unknown): { targetId: string | null; type: unknown } {
+	const p = payload as { type?: unknown; target?: { targetId?: unknown } } | null;
+	const targetId = p?.target?.targetId;
+	return {
+		targetId: targetId == null ? null : String(targetId),
+		type: p?.type,
+	};
+}
 
 export class ChatRealtimeManager {
 	private readonly options: ChatRealtimeManagerOptions;
@@ -49,8 +64,9 @@ export class ChatRealtimeManager {
 		string,
 		{ resolve: (result: unknown) => void; reject: (err: Error) => void; timer: number }
 	>();
-	// FIFO queue of refs for chat.v1.message.send — server responds with chat.v1.message_sent but ref is always null
-	private pendingSendRefs: string[] = [];
+	// chat.v1.message.send commands still eligible for the message_sent
+	// fallback match (see dispatchEvent), oldest first.
+	private pendingSends: PendingSend[] = [];
 
 	constructor(options: ChatRealtimeManagerOptions) {
 		this.options = options;
@@ -90,14 +106,18 @@ export class ChatRealtimeManager {
 			}
 			const ref = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 			const timer = window.setTimeout(() => {
-				// The ref stays queued: the command did go out, so a late
-				// message_sent still belongs to it, not to the next send.
+				// The send stays in pendingSends: the command did go out, so a
+				// late message_sent still belongs to it, not to the next send.
 				this.pendingCommands.delete(ref);
 				reject(new Error("WebSocket command timed out"));
 			}, COMMAND_TIMEOUT_MS);
 			this.pendingCommands.set(ref, { resolve, reject, timer });
 			if (commandType === "chat.v1.message.send") {
-				this.pendingSendRefs.push(ref);
+				const now = Date.now();
+				this.pendingSends = this.pendingSends.filter(
+					(p) => now - p.sentAt < SEND_MATCH_WINDOW_MS,
+				);
+				this.pendingSends.push({ ref, ...messageSendTarget(payload), sentAt: now });
 			}
 			// The Rust side injects the session token itself.
 			const msg = { type: commandType, ref, payload };
@@ -107,7 +127,7 @@ export class ChatRealtimeManager {
 				if (!pending) return;
 				window.clearTimeout(pending.timer);
 				this.pendingCommands.delete(ref);
-				this.pendingSendRefs = this.pendingSendRefs.filter((r) => r !== ref);
+				this.pendingSends = this.pendingSends.filter((p) => p.ref !== ref);
 				reject(err instanceof Error ? err : new Error(String(err)));
 			});
 		});
@@ -210,7 +230,7 @@ export class ChatRealtimeManager {
 			pending.reject(err);
 		}
 		this.pendingCommands.clear();
-		this.pendingSendRefs = [];
+		this.pendingSends = [];
 	}
 
 	private dispatchEvent(envelope: RealtimeEnvelope) {
@@ -220,32 +240,55 @@ export class ChatRealtimeManager {
 		// stripped in prod builds) — mirror just the readable event name there
 		// too, so event traffic is visible without devtools open.
 		logWsEventToTerminal(eventType ?? "(no type)");
-		// Server responds to chat.v1.message.send with chat.v1.message_sent but always ref=null,
-		// so match against the FIFO queue of pending sends instead.
-		if (eventType === "chat.v1.message_sent" && this.pendingSendRefs.length > 0) {
-			const pendingRef = this.pendingSendRefs.shift()!;
-			const pending = this.pendingCommands.get(pendingRef);
-			if (pending) {
-				window.clearTimeout(pending.timer);
-				this.pendingCommands.delete(pendingRef);
-				pending.resolve(envelope.payload);
-				// Fall through to onEvent so ChatRealtimeBridge still persists the message
-			}
-		}
-		// Ref-based matching for other command types
+		// Every command is answered on `<type>.response`, echoing our ref and
+		// carrying an HTTP-shaped status.
 		const ref = (envelope as Record<string, unknown>).ref as string | undefined;
 		if (ref) {
+			this.pendingSends = this.pendingSends.filter((p) => p.ref !== ref);
 			const pending = this.pendingCommands.get(ref);
 			if (pending) {
 				window.clearTimeout(pending.timer);
 				this.pendingCommands.delete(ref);
 				const status = (envelope as Record<string, unknown>).status as number | undefined;
-				if (status !== undefined && status >= 400) {
+				if (status != null && status >= 400) {
 					pending.reject(new Error(`WS command failed with status ${status}`));
 				} else {
 					pending.resolve(envelope.payload);
 				}
 				return;
+			}
+		}
+		// A response whose command already settled (timed out, or matched via
+		// the fallback below) — nothing else consumes these.
+		if (eventType?.endsWith(".response")) {
+			return;
+		}
+		// Fallback for message sends, in case the response is late or missing:
+		// the chat.v1.message_sent echo (ref always null). That event fires for
+		// *every* message in our conversations, incoming ones included, so only
+		// take one we sent to that send's recipient — never one from them.
+		if (eventType === "chat.v1.message_sent") {
+			const msg = envelope.payload as
+				| { senderId?: unknown; conversationId?: unknown; type?: unknown }
+				| undefined;
+			const participants =
+				typeof msg?.conversationId === "string" ? msg.conversationId.split(":") : [];
+			const index = this.pendingSends.findIndex(
+				(p) =>
+					p.targetId != null &&
+					String(msg?.senderId) !== p.targetId &&
+					participants.includes(p.targetId) &&
+					msg?.type === p.type,
+			);
+			if (index !== -1) {
+				const [match] = this.pendingSends.splice(index, 1);
+				const pending = this.pendingCommands.get(match.ref);
+				if (pending) {
+					window.clearTimeout(pending.timer);
+					this.pendingCommands.delete(match.ref);
+					pending.resolve(envelope.payload);
+				}
+				// Fall through to onEvent so ChatRealtimeBridge still persists the message
 			}
 		}
 		this.options.onEvent(envelope);
