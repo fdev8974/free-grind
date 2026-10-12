@@ -94,13 +94,18 @@ impl BodyHeaders<'_> {
 pub(crate) enum RequiredDeviceInfo {
 	Real,
 	Anonymous,
+	/// Both markers, as the SMS verification endpoints carry them.
+	RealAndAnonymous,
 }
 
 impl RequiredDeviceInfo {
-	fn header_name(self) -> &'static str {
+	fn header_names(self) -> &'static [&'static str] {
 		match self {
-			Self::Real => "requirerealdeviceinfo",
-			Self::Anonymous => "requireanondeviceinfo",
+			Self::Real => &["requirerealdeviceinfo"],
+			Self::Anonymous => &["requireanondeviceinfo"],
+			Self::RealAndAnonymous => {
+				&["requirerealdeviceinfo", "requireanondeviceinfo"]
+			}
 		}
 	}
 }
@@ -109,10 +114,10 @@ pub(crate) fn apply_required_device_info(
 	req: wreq::RequestBuilder,
 	required: Option<RequiredDeviceInfo>,
 ) -> wreq::RequestBuilder {
-	match required {
-		Some(variant) => req.header(variant.header_name(), "true"),
-		None => req,
-	}
+	let names = required.map_or(&[][..], RequiredDeviceInfo::header_names);
+	names
+		.iter()
+		.fold(req, |req, name| req.header(*name, "true"))
 }
 
 pub(crate) struct InnerClient {
@@ -454,6 +459,18 @@ fn find_ignore_ascii_case(haystack: &str, needle: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn sms_requests_carry_both_device_info_markers() {
+		assert_eq!(
+			RequiredDeviceInfo::RealAndAnonymous.header_names(),
+			["requirerealdeviceinfo", "requireanondeviceinfo"]
+		);
+		assert_eq!(
+			RequiredDeviceInfo::Real.header_names(),
+			["requirerealdeviceinfo"]
+		);
+	}
 	use crate::auth::Session;
 	use crate::GrindrClient;
 

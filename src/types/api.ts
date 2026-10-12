@@ -27,6 +27,12 @@ export const restrictionSchema = z.object({
 });
 export type Restriction = z.infer<typeof restrictionSchema>;
 
+// SmsCodeResponse of the /v4/sms/verification endpoints.
+const smsCodeResultSchema = z.object({
+	code: z.number().int().nullish(),
+	message: z.string(),
+});
+
 export const methodSchemas = {
 	login: {
 		request: z.object({
@@ -51,7 +57,25 @@ export const methodSchemas = {
 			/** The device's FCM token, sent as the request's `token`. */
 			pushToken: z.string().min(1).nullable(),
 		}),
-		response: z.coerce.number().int().nonnegative(),
+		/** The new account's profile id, as the response body carries it. */
+		response: z.string().min(1),
+	},
+	send_sms_verification_code: {
+		request: z.object({
+			profileId: z.string().regex(/^\d+$/),
+			countryCode: z.string().min(1),
+			phoneNumber: z.string().min(1),
+		}),
+		response: smsCodeResultSchema,
+	},
+	verify_sms_verification_code: {
+		request: z.object({
+			profileId: z.string().regex(/^\d+$/),
+			countryCode: z.string().min(1),
+			phoneNumber: z.string().min(1),
+			code: z.string().min(1),
+		}),
+		response: smsCodeResultSchema,
 	},
 	login_with_google: {
 		request: z.object({

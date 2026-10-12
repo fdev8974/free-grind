@@ -884,6 +884,61 @@ pub async fn create_account(
         .map_err(|e| AppError::from_client_error(e, &client))
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmsCodeResult {
+    code: Option<i32>,
+    message: String,
+}
+
+impl From<grindr::SmsCodeResponse> for SmsCodeResult {
+    fn from(r: grindr::SmsCodeResponse) -> Self {
+        Self {
+            code: r.code,
+            message: r.message,
+        }
+    }
+}
+
+/// Texts a verification code for a profile whose sign-in was refused as
+/// verification required (code 30). Runs on the device of that sign-in
+/// attempt, without a session.
+#[tauri::command]
+pub async fn send_sms_verification_code(
+    state: tauri::State<'_, AppState>,
+    profile_id: String,
+    country_code: String,
+    phone_number: String,
+) -> Result<SmsCodeResult, AppError> {
+    let client = state.client()?;
+    client
+        .send_sms_verification_code(&profile_id, country_code.trim(), phone_number.trim())
+        .await
+        .map(SmsCodeResult::from)
+        .map_err(|e| AppError::from_client_error(e, &client))
+}
+
+#[tauri::command]
+pub async fn verify_sms_verification_code(
+    state: tauri::State<'_, AppState>,
+    profile_id: String,
+    country_code: String,
+    phone_number: String,
+    code: String,
+) -> Result<SmsCodeResult, AppError> {
+    let client = state.client()?;
+    client
+        .verify_sms_verification_code(
+            &profile_id,
+            country_code.trim(),
+            phone_number.trim(),
+            code.trim(),
+        )
+        .await
+        .map(SmsCodeResult::from)
+        .map_err(|e| AppError::from_client_error(e, &client))
+}
+
 /// Whether Grindr has first-party reCAPTCHA enabled (the
 /// `recaptcha_first_party` assignment). When it is, an email sign-in that
 /// fails as invalid credentials is retried with a reCAPTCHA token.

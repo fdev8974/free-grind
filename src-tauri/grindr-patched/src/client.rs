@@ -466,6 +466,46 @@ impl GrindrClient {
 		crate::auth::create_account_with_email(&self.inner, account).await
 	}
 
+	/// Texts a verification code to a phone number for a profile whose
+	/// sign-in was refused as verification required (code 30).
+	pub async fn send_sms_verification_code(
+		&self,
+		profile_id: &str,
+		country_code: &str,
+		phone_number: &str,
+	) -> Result<crate::SmsCodeResponse, GrindrError> {
+		crate::auth::sms_verification(
+			&self.inner,
+			profile_id,
+			"sendcode",
+			country_code,
+			phone_number,
+			None,
+		)
+		.await
+	}
+
+	/// Submits the code from
+	/// [`send_sms_verification_code`](Self::send_sms_verification_code); sign
+	/// in again afterwards.
+	pub async fn verify_sms_verification_code(
+		&self,
+		profile_id: &str,
+		country_code: &str,
+		phone_number: &str,
+		code: &str,
+	) -> Result<crate::SmsCodeResponse, GrindrError> {
+		crate::auth::sms_verification(
+			&self.inner,
+			profile_id,
+			"verifycode",
+			country_code,
+			phone_number,
+			Some(code),
+		)
+		.await
+	}
+
 	/// Signs in with email and password and stores the session.
 	pub async fn sign_in_with_email(
 		&self,

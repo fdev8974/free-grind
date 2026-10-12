@@ -217,6 +217,25 @@ struct CreateAccountResponse {
 	profile_id: String,
 }
 
+/// Answer of the SMS verification endpoints (SmsCodeResponse).
+#[derive(Debug, Clone, Deserialize)]
+#[non_exhaustive]
+pub struct SmsCodeResponse {
+	/// Grindr status code, if any.
+	pub code: Option<i32>,
+	/// Status message, e.g. `"Profile is already verified"`.
+	#[serde(default)]
+	pub message: String,
+}
+
+#[derive(Debug, Serialize)]
+struct SmsCodeRequest<'a> {
+	country_code: &'a str,
+	phone_number: &'a str,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	code: Option<&'a str>,
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct RefreshRequest {
@@ -582,6 +601,45 @@ pub(crate) async fn create_account_with_email(
 	Ok(resp.profile_id)
 }
 
+/// `POST /v4/sms/verification/{profileId}/{action}` for a profile whose
+/// sign-in was refused as verification required (code 30). There is no
+/// session yet, so it goes out without one.
+pub(crate) async fn sms_verification(
+	inner: &InnerClient,
+	profile_id: &str,
+	action: &str,
+	country_code: &str,
+	phone_number: &str,
+	code: Option<&str>,
+) -> Result<SmsCodeResponse, GrindrError> {
+	if profile_id.is_empty() || !profile_id.bytes().all(|b| b.is_ascii_digit()) {
+		return Err(GrindrError::InvalidRequest(format!(
+			"invalid profile id {profile_id:?}"
+		)));
+	}
+	let body = SmsCodeRequest {
+		country_code,
+		phone_number,
+		code,
+	};
+	let path = format!("/v4/sms/verification/{profile_id}/{action}");
+	let mut request =
+		Request::new(wreq::Method::POST, &path, Body::json(&body)?);
+	request.required_device_info =
+		Some(crate::rest::RequiredDeviceInfo::RealAndAnonymous);
+	let response = inner.send(Access::Anonymous, &request).await?;
+	// An empty success body is a plain "done".
+	if (200..300).contains(&response.status)
+		&& response.body.iter().all(u8::is_ascii_whitespace)
+	{
+		return Ok(SmsCodeResponse {
+			code: None,
+			message: String::new(),
+		});
+	}
+	crate::rest::parse_json(response)
+}
+
 pub(crate) async fn sign_in_with_email(
 	inner: &InnerClient,
 	auth: &AuthState,
@@ -929,6 +987,27 @@ pub(crate) async fn authorize(
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn sms_code_bodies_use_snake_case_and_omit_a_missing_code() {
+		let send = SmsCodeRequest {
+			country_code: "49",
+			phone_number: "1701234567",
+			code: None,
+		};
+		assert_eq!(
+			serde_json::to_string(&send).unwrap(),
+			r#"{"country_code":"49","phone_number":"1701234567"}"#
+		);
+		let verify = SmsCodeRequest {
+			code: Some("123456"),
+			..send
+		};
+		assert_eq!(
+			serde_json::to_string(&verify).unwrap(),
+			r#"{"country_code":"49","phone_number":"1701234567","code":"123456"}"#
+		);
+	}
 
 	#[test]
 	fn create_account_body_keeps_the_adapter_key_order() {

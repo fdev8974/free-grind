@@ -1059,6 +1059,24 @@
       "submit": "Create account",
       "recaptcha_helper_install_hint": "Needed to create an account · Tap to install",
       "recaptcha_helper_unsupported": "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android."
+    },
+    "sms_verification": {
+      "still_required": "Grindr still asks for verification. Check the code or request a new one.",
+      "failed": "Something went wrong. Please try again.",
+      "title": "Verify your phone number",
+      "phone_hint": "Grindr requires this account to verify a phone number by SMS before it can sign in.",
+      "code_hint": "Enter the code sent to +{{country}} {{phone}}.",
+      "profile_id_placeholder": "Profile ID",
+      "phone_placeholder": "Phone number",
+      "sending": "Sending code...",
+      "send": "Send code",
+      "code_placeholder": "Verification code",
+      "verifying": "Verifying...",
+      "verify": "Verify and sign in",
+      "change_number": "Change number",
+      "resend": "Resend code",
+      "back": "Back",
+      "sign_in": "Sign in"
     }
   },
   "chat": {

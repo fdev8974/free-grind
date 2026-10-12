@@ -1075,6 +1075,24 @@
             "submit": "",
             "recaptcha_helper_install_hint": "",
             "recaptcha_helper_unsupported": ""
+        },
+        "sms_verification": {
+            "still_required": "",
+            "failed": "",
+            "title": "",
+            "phone_hint": "",
+            "code_hint": "",
+            "profile_id_placeholder": "",
+            "phone_placeholder": "",
+            "sending": "",
+            "send": "",
+            "code_placeholder": "",
+            "verifying": "",
+            "verify": "",
+            "change_number": "",
+            "resend": "",
+            "back": "",
+            "sign_in": ""
         }
     },
     "chat": {

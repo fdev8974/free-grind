@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../contexts/useAuth";
 import { AuthShell } from "../../components/ui/auth-shell";
+import { AuthErrorBox, AuthSubmitSection, IconInput } from "./auth-form";
 import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, KeyRound, AlertCircle, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, ShieldCheck, UserPlus, ChevronDown } from "lucide-react";
+import { Mail, Lock, KeyRound, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, ShieldCheck, UserPlus, ChevronDown } from "lucide-react";
 import { describeApkUpdateError, useGoogleOAuthAppInstall, useRecaptchaHelperInstall } from "../../services/apkUpdate";
 import { RecaptchaError } from "../../services/recaptcha";
+import { SmsVerificationRequiredError } from "../../contexts/auth-context";
+import { SmsVerificationPanel } from "./SmsVerificationPanel";
 import { isAndroid } from "../../services/saveMedia";
 import { cn } from "../../utils/cn";
 
@@ -75,25 +78,6 @@ function AuthMethodTab({
 			{icon}
 			{label}
 		</button>
-	);
-}
-
-export function IconInput({
-	icon,
-	className,
-	rightSlot,
-	...inputProps
-}: { icon: ReactNode; rightSlot?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
-	return (
-		<div className="group relative">
-			<span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] transition-colors duration-150 group-focus-within:text-[var(--accent)]">
-				{icon}
-			</span>
-			<input {...inputProps} className={cn("input-field pl-9", rightSlot && "pr-10", className)} />
-			{rightSlot ? (
-				<span className="absolute right-3 top-1/2 -translate-y-1/2">{rightSlot}</span>
-			) : null}
-		</div>
 	);
 }
 
@@ -250,48 +234,6 @@ export function AppInstallCard({
 	);
 }
 
-function AuthErrorBox({ message }: { message: string }) {
-	return (
-		<div className="animate-fade-in flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]">
-			<AlertCircle className="h-4 w-4 shrink-0 text-[#f87171]" />
-			<span>{message}</span>
-		</div>
-	);
-}
-
-export function AuthSubmitSection({
-	error,
-	loading,
-	disabled,
-	loadingLabel,
-	label,
-}: {
-	error: string | null;
-	loading: boolean;
-	disabled: boolean;
-	loadingLabel: string;
-	label: string;
-}) {
-	return (
-		<>
-			{error ? (
-				<AuthErrorBox message={error} />
-			) : null}
-			<div className="pt-1">
-				<Button
-					type="submit"
-					variant="primary"
-					loading={loading}
-					disabled={disabled}
-					className="w-full"
-				>
-					{loading ? loadingLabel : label}
-				</Button>
-			</div>
-		</>
-	);
-}
-
 /** "— or —" divider plus a secondary button to the other auth page. */
 export function AuthAltAction({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
 	const { t } = useTranslation();
@@ -333,6 +275,9 @@ export function SignInPage() {
 	const [needsRecaptchaHelper, setNeedsRecaptchaHelper] = useState(false);
 	const recaptchaHelperInstall = useRecaptchaHelperInstall();
 
+	// Set when an email sign-in is refused until the account verifies by SMS.
+	const [verification, setVerification] = useState<{ profileId: string | null } | null>(null);
+
 	const { login, loginWithGoogle, error } = useAuth();
 	const navigate = useNavigate();
 
@@ -346,7 +291,9 @@ export function SignInPage() {
 			navigate("/");
 		} catch (error) {
 			// AuthContext updates `error`, which is rendered in the form.
-			if (error instanceof RecaptchaError && error.reason === "addonUnavailable") {
+			if (error instanceof SmsVerificationRequiredError) {
+				setVerification({ profileId: error.profileId });
+			} else if (error instanceof RecaptchaError && error.reason === "addonUnavailable") {
 				setNeedsRecaptchaHelper(true);
 			}
 		} finally {
@@ -464,31 +411,43 @@ export function SignInPage() {
 				)
 			}
 			toolbar={
-				<div className="relative flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
-					{/* Sliding active indicator: half the track minus the gap-1 between the tabs. */}
-					<span
-						aria-hidden="true"
-						className={cn(
-							"absolute inset-y-1 left-1 w-[calc(50%-6px)] rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-							method === "google" && "translate-x-[calc(100%+4px)]",
-						)}
-					/>
-					<AuthMethodTab
-						active={method === "password"}
-						icon={<Lock className="h-3.5 w-3.5" />}
-						label={t("auth.sign_in.method_password")}
-						onClick={() => setMethod("password")}
-					/>
-					<AuthMethodTab
-						active={method === "google"}
-						icon={<GoogleIcon className="h-3.5 w-3.5" />}
-						label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
-						onClick={() => setMethod("google")}
-					/>
-				</div>
+				verification ? undefined : (
+					<div className="relative flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
+						{/* Sliding active indicator: half the track minus the gap-1 between the tabs. */}
+						<span
+							aria-hidden="true"
+							className={cn(
+								"absolute inset-y-1 left-1 w-[calc(50%-6px)] rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+								method === "google" && "translate-x-[calc(100%+4px)]",
+							)}
+						/>
+						<AuthMethodTab
+							active={method === "password"}
+							icon={<Lock className="h-3.5 w-3.5" />}
+							label={t("auth.sign_in.method_password")}
+							onClick={() => setMethod("password")}
+						/>
+						<AuthMethodTab
+							active={method === "google"}
+							icon={<GoogleIcon className="h-3.5 w-3.5" />}
+							label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
+							onClick={() => setMethod("google")}
+						/>
+					</div>
+				)
 			}
 		>
-			{method === "password" ? (
+			{verification ? (
+				<SmsVerificationPanel
+					profileId={verification.profileId}
+					onVerified={async () => {
+						// Same device as the refused attempt the verification belongs to.
+						await login(email, password, { keepDevice: true });
+						navigate("/");
+					}}
+					onCancel={() => setVerification(null)}
+				/>
+			) : method === "password" ? (
 				<form key="password" onSubmit={handlePasswordSubmit} className="animate-fade-in space-y-3">
 					<IconInput
 						icon={<Mail className="h-4 w-4" />}
@@ -637,7 +596,7 @@ export function SignInPage() {
 					)}
 				</form>
 			)}
-			{addProfileMode ? null : (
+			{addProfileMode || verification ? null : (
 				<AuthAltAction
 					to="/auth/sign-up"
 					icon={<UserPlus className="h-4 w-4" />}
