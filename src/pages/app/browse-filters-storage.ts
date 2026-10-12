@@ -78,6 +78,11 @@ import { getSetting, setSetting } from "../../services/chatDb";
 
 const STORAGE_KEY = "browseFilters";
 
+// v2: default sort switched from server order ("default") to "distance".
+// Drafts saved before that stored "default" without the user picking it, so
+// migrate them once; drafts saved at v2+ keep an explicit "default" choice.
+const STORAGE_VERSION = 2;
+
 function isNumberArray(value: unknown): value is number[] {
 	return Array.isArray(value) && value.every((item) => typeof item === "number");
 }
@@ -88,7 +93,7 @@ function isStringArray(value: unknown): value is string[] {
 
 export function getDefaultBrowseFiltersDraft(): BrowseFiltersDraft {
 	return {
-		sortBy: "default",
+		sortBy: "distance",
 		browseFilters: { ...defaultBrowseFilters },
 		ageMin: "",
 		ageMax: "",
@@ -178,8 +183,11 @@ export function getCachedBrowseFiltersDraft(): BrowseFiltersDraft | null {
 
 export async function loadBrowseFiltersDraft(): Promise<BrowseFiltersDraft> {
 	try {
-		const stored = await getSetting<BrowseFiltersDraftInput>(STORAGE_KEY);
+		const stored = await getSetting<BrowseFiltersDraftInput & { version?: number }>(STORAGE_KEY);
 		const normalized = normalizeBrowseFiltersDraft(stored);
+		if (stored && (stored.version ?? 1) < 2 && normalized.sortBy === "default") {
+			normalized.sortBy = "distance";
+		}
 		lastKnownBrowseFiltersDraft = normalized;
 		return normalized;
 	} catch {
@@ -190,7 +198,7 @@ export async function loadBrowseFiltersDraft(): Promise<BrowseFiltersDraft> {
 export async function saveBrowseFiltersDraft(draft: BrowseFiltersDraft): Promise<void> {
 	lastKnownBrowseFiltersDraft = draft;
 	try {
-		await setSetting(STORAGE_KEY, draft);
+		await setSetting(STORAGE_KEY, { ...draft, version: STORAGE_VERSION });
 	} catch {
 		// Ignore storage failures to avoid blocking filter interactions.
 	}

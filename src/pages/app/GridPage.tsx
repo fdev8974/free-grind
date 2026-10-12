@@ -742,6 +742,23 @@ export function GridPage() {
 		setHasRestoredScroll(false);
 	}, [browseCacheKey]);
 
+	// Jump back to the top whenever filters/sort/search change — the grid is
+	// reordered, so the old offset points at unrelated profiles. Also drop the
+	// saved offset for the new cache key so BrowseGrid doesn't restore it.
+	const gridOrderKey = useMemo(
+		() => JSON.stringify([browseRequestFilters, browseFilters, sortBy, nicknameFilter, searchTerm]),
+		[browseRequestFilters, browseFilters, sortBy, nicknameFilter, searchTerm],
+	);
+	const prevGridOrderKeyRef = useRef(gridOrderKey);
+	useEffect(() => {
+		if (prevGridOrderKeyRef.current === gridOrderKey) return;
+		prevGridOrderKeyRef.current = gridOrderKey;
+		if (browseCacheKey) {
+			sessionStorage.removeItem(`grid-scroll-${browseCacheKey}`);
+		}
+		feedContainerRef.current?.scrollTo({ top: 0 });
+	}, [gridOrderKey, browseCacheKey]);
+
 	// Scroll restore + header-snap now lives inside BrowseGrid (see its
 	// hasRestoredScroll/onRestoredScrollChange props) — with the grid
 	// virtualized, only BrowseGrid knows the real (measured) row size needed
