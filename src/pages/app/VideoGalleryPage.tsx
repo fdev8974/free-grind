@@ -409,6 +409,14 @@ export function VideoGalleryPage() {
 
 	const currentItem = viewerItems?.[viewerIndex] ?? null;
 
+	const openProfile = useCallback(
+		(profileId: number) => {
+			closeViewer();
+			navigate(`/profile/${profileId}`, { state: { returnTo: "/chat/videos" } });
+		},
+		[closeViewer, navigate],
+	);
+
 	const menuActions = useMemo<PhotoViewerMenuAction[]>(() => {
 		if (!currentItem) return [];
 		const actions: PhotoViewerMenuAction[] = [];
@@ -429,17 +437,15 @@ export function VideoGalleryPage() {
 				key: "view-profile",
 				label: t("chat.view_profile"),
 				icon: UserRound,
-				onClick: () => {
-					closeViewer();
-					navigate(`/profile/${profileId}`, { state: { returnTo: "/chat/videos" } });
-				},
+				onClick: () => openProfile(profileId),
 			});
 		}
 		return actions;
-	}, [currentItem, t, closeViewer, navigate]);
+	}, [currentItem, t, closeViewer, navigate, openProfile]);
 
 	const albumHeader = useMemo(() => {
 		if (!currentItem) return undefined;
+		const { profileId } = currentItem;
 		return {
 			avatarUrl: currentItem.profileMediaHash ? getThumbImageUrl(currentItem.profileMediaHash, "75x75") : null,
 			name: currentItem.profileName,
@@ -448,8 +454,9 @@ export function VideoGalleryPage() {
 					? currentItem.albumName ?? t("video_gallery.source_album", { defaultValue: "Album" })
 					: t("video_gallery.source_chat", { defaultValue: "Chat" }),
 			isOnline: false,
+			onClick: profileId != null ? () => openProfile(profileId) : undefined,
 		};
-	}, [currentItem, t]);
+	}, [currentItem, t, openProfile]);
 
 	const handleRefresh = () => {
 		if (isLoading) return;

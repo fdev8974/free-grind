@@ -1989,6 +1989,15 @@ export async function getAllReceivedChatVideos(userId: number | null): Promise<S
 			AND mf.fetch_status = 'ok'
 			AND mf.conversation_id IS NOT NULL
 			AND mf.media_key NOT LIKE 'drawer:%'
+			-- One message's video can be stored under several keys (video:media:<id>
+			-- while the body still carried mediaId, video:msg:<messageId> once it
+			-- didn't), so only the first-fetched copy per message is listed.
+			AND mf.media_key = (
+				SELECT mf2.media_key FROM media_files mf2
+				WHERE mf2.message_id = mf.message_id AND mf2.kind = 'video' AND mf2.fetch_status = 'ok'
+				ORDER BY mf2.fetched_at, mf2.media_key
+				LIMIT 1
+			)
 			${userId != null ? "AND m.sender_id != $1" : ""}
 		ORDER BY timestamp DESC
 		`,
