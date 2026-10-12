@@ -9,7 +9,7 @@ import {
 	markConversationDeleteHandled,
 } from "../../services/conversationArchive";
 import { profileSchema } from "../../pages/app/profile-editor/profileEditorUtils";
-import { getSpotifyTracks, type SpotifyTrack } from "../../services/spotify";
+import { getSpotifyTracks, searchSpotifyTracks, type SpotifyTrack } from "../../services/spotify";
 
 // chat.v1.conversation.delete fires identically for "we blocked/unblocked
 // them" and "they blocked/unblocked us" — mark the conversation right after
@@ -308,6 +308,35 @@ export function useProfileSpotifyFavorites(
 		},
 		enabled: enabled && !!profileId,
 		staleTime: 1000 * 60 * 30,
+		retry: 1,
+	});
+}
+
+/**
+ * Mutation to save the current account's favourite Spotify songs. Invalidates
+ * that profile's cached favourites so the profile view reflects the change.
+ */
+export function useUpdateSpotifyFavorites(profileId: string | null | undefined) {
+	const api = useApiFunctions();
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (songIds: string[]) => api.setSpotifyFavoriteSongIds(songIds),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["spotify-favorites", profileId ?? null] });
+		},
+	});
+}
+
+/**
+ * Hook to search the Spotify catalogue for tracks. Debounce the query at the
+ * call site; passes an empty result straight through for a blank query.
+ */
+export function useSpotifyTrackSearch(query: string) {
+	return useQuery<SpotifyTrack[]>({
+		queryKey: ["spotify-search", query.trim()],
+		queryFn: () => searchSpotifyTracks(query),
+		enabled: query.trim().length > 0,
+		staleTime: 1000 * 60 * 5,
 		retry: 1,
 	});
 }

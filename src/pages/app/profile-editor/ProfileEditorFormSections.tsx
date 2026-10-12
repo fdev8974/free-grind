@@ -40,6 +40,7 @@ import { Chip } from "../../../components/ui/chip";
 import { LastTestedMonthPicker } from "../../../components/LastTestedMonthPicker";
 import { CategoryHeader, ChipGroup, ToggleRow } from "./ProfileEditorComponents";
 import { TravelPlansSection } from "./TravelPlansSection";
+import { SpotifyFavoritesSection } from "./SpotifyFavoritesSection";
 import { TagsPickerDialog } from "./TagsPickerDialog";
 import { ManagedOptionsPickerDialog } from "./ManagedOptionsPickerDialog";
 import {
@@ -912,6 +913,8 @@ export function ProfileEditorFormSections({
 					</div>
 				</div>
 			</div>
+
+			<SpotifyFavoritesSection profileId={profileId} />
 
 			{/* Other / Account Info */}
 			<div>

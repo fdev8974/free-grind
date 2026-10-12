@@ -149,6 +149,42 @@ async function fetchTrackBatch(ids: string[]): Promise<void> {
 }
 
 /**
+ * Searches the Spotify catalogue for tracks matching `query`. Returns [] for
+ * an empty query. Resolved tracks are also warmed into the session cache.
+ */
+export async function searchSpotifyTracks(query: string, limit = 20): Promise<SpotifyTrack[]> {
+	const trimmed = query.trim();
+	if (trimmed.length === 0) {
+		return [];
+	}
+
+	const token = await getAccessToken();
+	const params = new URLSearchParams({ q: trimmed, type: "track", limit: String(limit) });
+	const response = await fetch(`${SPOTIFY_API_BASE}/search?${params.toString()}`, {
+		method: "GET",
+		headers: { Authorization: `Bearer ${token}` },
+	});
+
+	if (response.status === 401) {
+		cachedToken = null;
+	}
+	if (!response.ok) {
+		throw new Error(`Spotify search request failed (${response.status})`);
+	}
+
+	const payload = (await response.json()) as { tracks?: { items?: unknown[] } };
+	const tracks: SpotifyTrack[] = [];
+	for (const raw of payload.tracks?.items ?? []) {
+		const track = parseTrack(raw);
+		if (track) {
+			trackCache.set(track.id, track);
+			tracks.push(track);
+		}
+	}
+	return tracks;
+}
+
+/**
  * Resolves Spotify track metadata for the given track ids, preserving input
  * order and skipping ids Spotify can't resolve. Results are cached per session.
  */

@@ -21,5 +21,14 @@ export function createSpotifyMethods(fetchRest: RestFetcher, t: (key: string) =>
 			}
 			return songIds.filter((id): id is string => typeof id === "string");
 		},
+
+		/** Saves the current account's favourite Spotify track ids (max 5). */
+		async setSpotifyFavoriteSongIds(songIds: string[]): Promise<void> {
+			const response = await fetchRest("/v4/spotify/favorites", {
+				method: "POST",
+				body: { songIds },
+			});
+			await assertSuccess(response, t("profile_details.spotify.save_failed"));
+		},
 	};
 }

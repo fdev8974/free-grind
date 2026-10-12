@@ -813,6 +813,20 @@
       "see_more": "See {{count}} more",
       "search_placeholder": "Search tags...",
       "no_matches": "No tags match your search."
+    },
+    "spotify": {
+      "title": "Music",
+      "description": "Favorite songs",
+      "add": "Add",
+      "empty": "Add up to 5 songs from Spotify",
+      "remove": "Remove song",
+      "save": "Save favorite songs",
+      "saved": "Favorite songs saved",
+      "max_reached": "You can pick up to {{max}} songs",
+      "picker_title": "Add songs ({{count}}/{{max}})",
+      "search_placeholder": "Search songs or artists...",
+      "search_hint": "Search Spotify to add songs",
+      "no_matches": "No songs match your search."
     }
   },
   "privacy": {
@@ -1640,7 +1654,8 @@
     "social": "Social",
     "spotify": {
       "title": "Favorite songs",
-      "load_failed": "Couldn't load favorite songs"
+      "load_failed": "Couldn't load favorite songs",
+      "save_failed": "Couldn't save favorite songs"
     },
     "labels": {
       "looking_for": {
