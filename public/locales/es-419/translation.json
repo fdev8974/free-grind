@@ -2221,7 +2221,8 @@
         "reason_album_share": "",
         "still_refused": "",
         "no_location": "",
-        "failed": ""
+        "failed": "",
+        "expiring_album_no_bypass": ""
     },
     "auto_translate": {
         "api_section": "",

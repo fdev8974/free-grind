@@ -2236,7 +2236,8 @@
     "reason_album_share": "Sharing this album requires a Grindr subscription.",
     "still_refused": "Grindr still refused this paid feature",
     "no_location": "Set your location before using this bypass",
-    "failed": "Failed to bypass this paid feature"
+    "failed": "Failed to bypass this paid feature",
+    "expiring_album_no_bypass": "Expiring albums are a paid Grindr feature, and there's no bypass for them."
   },
   "auto_translate": {
     "api_section": "Provider & API key",
