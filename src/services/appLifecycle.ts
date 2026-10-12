@@ -91,11 +91,16 @@ export function installAppLifecycle(): () => void {
 	document.addEventListener("visibilitychange", onVisibilityChange);
 	window.addEventListener("online", onOnline);
 
-	// Mounted while already backgrounded (e.g. Android restoring the activity
-	// behind the lock screen).
-	if (isAndroid && document.visibilityState === "hidden") {
+	// Sync Rust with the actual state on every mount. Rust's active flag
+	// outlives the page: a reload (incl. dev hot reload) fires a `hidden`
+	// visibilitychange while unloading, which deactivates the client, and the
+	// fresh page starts out `visible` with no event to switch it back on.
+	// A redundant `true` is a no-op on the Rust side.
+	if (document.visibilityState === "hidden") {
 		hiddenAt = Date.now();
-		setAppActive(false);
+		if (isAndroid) setAppActive(false);
+	} else {
+		setAppActive(true);
 	}
 
 	return () => {
