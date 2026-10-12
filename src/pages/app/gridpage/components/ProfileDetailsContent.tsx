@@ -920,11 +920,9 @@ export function ProfileDetailsContent({
 					<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 						{t("profile_details.spotify.title")}
 					</p>
-					<div className="grid gap-2">
+					<div className="-mx-3 flex gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-lenis-prevent>
 						{favoriteSongs.map((song) => {
-							const subtitle = [song.artists.join(", "), song.albumName]
-								.filter((part) => part && part.trim().length > 0)
-								.join(" · ");
+							const artistLabel = song.artists.join(", ");
 							return (
 								<button
 									key={song.id}
@@ -935,28 +933,30 @@ export function ProfileDetailsContent({
 											void openUrl(song.externalUrl);
 										}
 									}}
-									className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 text-left transition hover:border-[var(--accent)] disabled:cursor-default disabled:hover:border-[var(--border)]"
+									className="group w-32 shrink-0 text-left disabled:cursor-default"
 								>
-									{song.albumImageUrl ? (
-										<img
-											src={song.albumImageUrl}
-											alt=""
-											loading="lazy"
-											className="h-10 w-10 shrink-0 rounded-md object-cover"
-										/>
-									) : (
-										<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--surface-3)]">
-											<Music className="h-4 w-4 text-[var(--text-muted)]" />
-										</span>
-									)}
-									<span className="min-w-0 flex-1">
-										<span className="block truncate text-sm font-medium text-[var(--text)]">{song.name}</span>
-										{subtitle && (
-											<span className="block truncate text-xs text-[var(--text-muted)]">{subtitle}</span>
+									<span className="relative block aspect-square w-full overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-2)] transition group-hover:border-[var(--accent)] group-enabled:group-hover:shadow-lg">
+										{song.albumImageUrl ? (
+											<img
+												src={song.albumImageUrl}
+												alt=""
+												loading="lazy"
+												className="h-full w-full object-cover"
+											/>
+										) : (
+											<span className="flex h-full w-full items-center justify-center bg-[var(--surface-3)]">
+												<Music className="h-6 w-6 text-[var(--text-muted)]" />
+											</span>
+										)}
+										{song.externalUrl && (
+											<span className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 opacity-0 transition group-hover:opacity-100">
+												<ExternalLink className="h-3.5 w-3.5 text-white" />
+											</span>
 										)}
 									</span>
-									{song.externalUrl && (
-										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+									<span className="mt-1.5 block truncate text-sm font-medium text-[var(--text)]">{song.name}</span>
+									{artistLabel && (
+										<span className="block truncate text-xs text-[var(--text-muted)]">{artistLabel}</span>
 									)}
 								</button>
 							);
