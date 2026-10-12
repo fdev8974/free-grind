@@ -1988,7 +1988,10 @@
             "no": "",
             "reason": "",
             "banned_until": "",
-            "region": ""
+            "region": "",
+            "ban_agreement": "",
+            "agreement_accepted": "",
+            "agreement_pending": ""
         },
         "timed_ban": {
             "title": "",

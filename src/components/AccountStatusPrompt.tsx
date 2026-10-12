@@ -1,14 +1,31 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Ban, CircleCheck, Clock, ShieldAlert } from "lucide-react";
+import {
+	Ban,
+	Bot,
+	CalendarClock,
+	ChevronRight,
+	CircleCheck,
+	Clock,
+	Copy,
+	Globe,
+	Info,
+	Loader2,
+	ScrollText,
+	ShieldAlert,
+	Tag,
+	type LucideIcon,
+} from "lucide-react";
 import toast from "react-hot-toast";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { useAuth } from "../contexts/useAuth";
 import type { AccountStatus } from "../contexts/auth-context";
 import type { AppError } from "../types/api";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-type Detail = { label: string; value: string };
+/** `highlight` marks a value that needs the user's attention (accent color). */
+type Detail = { icon: LucideIcon; label: string; value: string; highlight?: boolean };
 
 /**
  * Grindr's codes ("DRUG_SALES") as readable text ("Drug sales"); anything
@@ -90,12 +107,14 @@ function banDetailRows(subReason: string | null | undefined, automated: boolean 
 	const rows: Detail[] = [];
 	if (subReason) {
 		rows.push({
+			icon: Tag,
 			label: t("account_status.details.sub_reason", { defaultValue: "Sub-reason" }),
 			value: humanize(subReason),
 		});
 	}
 	if (automated != null) {
 		rows.push({
+			icon: Bot,
 			label: t("account_status.details.automated", { defaultValue: "Automated" }),
 			value: automated
 				? t("account_status.details.yes", { defaultValue: "Yes" })
@@ -107,16 +126,18 @@ function banDetailRows(subReason: string | null | undefined, automated: boolean 
 
 function reasonRow(reason: string, t: Translate): Detail {
 	return {
+		icon: Info,
 		label: t("account_status.details.reason", { defaultValue: "Reason" }),
 		value: humanize(reason),
 	};
 }
 
-function contentFor(status: AccountStatus, t: Translate, language: string, timedBanExpired: boolean) {
+function contentFor(status: AccountStatus, t: Translate, language: string, agreementPending: boolean) {
 	if (status?.kind === "banned") {
 		const { info } = status;
 		const details: Detail[] = [
 			{
+				icon: Ban,
 				label: t("account_status.details.ban_type", { defaultValue: "Ban type" }),
 				value: banKindLabel(info.kind, t),
 			},
@@ -128,7 +149,7 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 		// usually what fixes it.
 		if (info.kind === "device") {
 			return {
-				icon: <ShieldAlert className="h-9 w-9 text-[var(--accent)]" />,
+				icon: ShieldAlert,
 				title: t("account_status.device_ban.title", { defaultValue: "Request Refused" }),
 				description: t("account_status.device_ban.description", {
 					defaultValue:
@@ -139,7 +160,7 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 		}
 		const reason = info.reason ? ` (${info.reason})` : "";
 		return {
-			icon: <Ban className="h-9 w-9 text-[var(--accent)]" />,
+			icon: Ban,
 			title: t("account_status.banned.title", { defaultValue: "Account Banned" }),
 			description: t("account_status.banned.description", {
 				reason,
@@ -155,6 +176,7 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 			const region = restriction.region ? regionLabel(restriction.region, t) : null;
 			if (region) {
 				details.push({
+					icon: Globe,
 					label: t("account_status.details.region", { defaultValue: "Region" }),
 					value: region,
 				});
@@ -163,7 +185,7 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 				details.push(reasonRow(restriction.reason, t));
 			}
 			return {
-				icon: <ShieldAlert className="h-9 w-9 text-[var(--accent)]" />,
+				icon: ShieldAlert,
 				title: t("account_status.age_verification.title", { defaultValue: "Age Verification Required" }),
 				description: t("account_status.age_verification.description", { defaultValue: "Grindr requires you to verify your age before continuing. Complete it in the official Grindr app, then sign in again. Free Grind does not bypass age verification." }),
 				details,
@@ -177,13 +199,24 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 			details.push(...banDetailRows(restriction.subReason, restriction.automated, t));
 			if (restriction.expiresAt != null) {
 				details.push({
+					icon: CalendarClock,
 					label: t("account_status.details.banned_until", { defaultValue: "Banned until" }),
 					value: formatExpiry(restriction.expiresAt, language),
 				});
 			}
+			if (restriction.agreementCompleted != null || agreementPending) {
+				details.push({
+					icon: ScrollText,
+					label: t("account_status.details.ban_agreement", { defaultValue: "Ban agreement" }),
+					value: restriction.agreementCompleted
+						? t("account_status.details.agreement_accepted", { defaultValue: "Accepted" })
+						: t("account_status.details.agreement_pending", { defaultValue: "Not accepted yet" }),
+					highlight: !restriction.agreementCompleted,
+				});
+			}
 			if (restriction.agreementCompleted) {
 				return {
-					icon: <CircleCheck className="h-9 w-9 text-[var(--accent)]" />,
+					icon: CircleCheck,
 					title: t("account_status.timed_ban.agreement_completed_title", { defaultValue: "All Set" }),
 					description: t("account_status.timed_ban.agreement_completed_description", {
 						defaultValue: "You've accepted Grindr's ban agreement. There's nothing else you need to do.",
@@ -191,18 +224,18 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 					details,
 				};
 			}
-			if (timedBanExpired) {
+			if (agreementPending) {
 				return {
-					icon: <Clock className="h-9 w-9 text-[var(--accent)]" />,
-					title: t("account_status.timed_ban.expired_title", { defaultValue: "Ban Expired" }),
+					icon: Clock,
+					title: t("account_status.timed_ban.expired_title", { defaultValue: "Agreement Required" }),
 					description: t("account_status.timed_ban.expired_description", {
-						defaultValue: "Your temporary ban has ended. Accept Grindr's community guidelines agreement to use this account again.",
+						defaultValue: "Accept Grindr's ban agreement to use this account again.",
 					}),
 					details,
 				};
 			}
 			return {
-				icon: <Clock className="h-9 w-9 text-[var(--accent)]" />,
+				icon: Clock,
 				title: t("account_status.timed_ban.title", { defaultValue: "Temporarily Banned" }),
 				description: t("account_status.timed_ban.description", {
 					defaultValue: "Grindr has temporarily banned this account. You can use it again once the ban expires.",
@@ -212,7 +245,7 @@ function contentFor(status: AccountStatus, t: Translate, language: string, timed
 		}
 		// TRUST_VENDOR_REJECTED (free-form reason text) and anything unmodelled.
 		return {
-			icon: <ShieldAlert className="h-9 w-9 text-[var(--accent)]" />,
+			icon: ShieldAlert,
 			title: t("account_status.restricted.title", { defaultValue: "Account Restricted" }),
 			description: t("account_status.restricted.description", { defaultValue: "Your account is currently restricted and can't be used. Check the official Grindr app for details." }),
 			details: restriction.reason ? [reasonRow(restriction.reason, t)] : [],
@@ -233,7 +266,14 @@ export function AccountStatusPromptView({
 	const { t, i18n } = useTranslation();
 	const timedBanExpired = useTimedBanExpired(status);
 	const [accepting, setAccepting] = useState(false);
-	const content = contentFor(status, t, i18n.language, timedBanExpired);
+	// banDetails.isAgreementCompleted decides when Grindr says; only without
+	// it does the ban's expiry stand in for it.
+	const agreementCompleted =
+		status?.kind === "restriction" && status.restriction.kind === "timedBan"
+			? status.restriction.agreementCompleted
+			: undefined;
+	const agreementPending = agreementCompleted === false || (agreementCompleted == null && timedBanExpired);
+	const content = contentFor(status, t, i18n.language, agreementPending);
 	if (!content) {
 		return null;
 	}
@@ -248,10 +288,8 @@ export function AccountStatusPromptView({
 				}
 			: null;
 
-	const agreementCompleted =
-		status?.kind === "restriction" && status.restriction.agreementCompleted === true;
 	const acceptBanAgreement =
-		timedBanExpired && !agreementCompleted && onAcceptBanAgreement
+		agreementPending && onAcceptBanAgreement
 			? () => {
 					setAccepting(true);
 					onAcceptBanAgreement()
@@ -265,71 +303,58 @@ export function AccountStatusPromptView({
 			: null;
 
 	return (
-		<div className="fs-card-outer fs-card-overlay z-[110] no-touch-callout">
-			<div className="fs-card-inner fs-card-lg flex flex-col">
-				<div
-					className="flex flex-1 flex-col items-center justify-center px-8 text-center"
-					style={{
-						paddingTop: "max(48px, env(safe-area-inset-top))",
-						paddingBottom: "max(24px, env(safe-area-inset-bottom))",
-					}}
-				>
-					<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-						{content.icon}
-					</div>
-					<h1 className="text-2xl font-bold text-[var(--text)]">{content.title}</h1>
-					<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-						{content.description}
-					</p>
-					{content.details.length > 0 && (
-						<dl className="mt-5 w-full max-w-xs divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-left text-sm">
-							{content.details.map((detail) => (
-								<div key={detail.label} className="flex items-baseline justify-between gap-4 px-4 py-2.5">
-									<dt className="shrink-0 text-[var(--text-muted)]">{detail.label}</dt>
-									<dd className="text-right font-medium text-[var(--text)]">{detail.value}</dd>
-								</div>
-							))}
-						</dl>
-					)}
-				</div>
-
-				<div
-					className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
-					style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
-				>
-					{copyDetails && (
-						<button
-							type="button"
-							onClick={copyDetails}
-							className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] py-3.5 text-sm font-semibold text-[var(--text)] transition hover:brightness-110"
-						>
-							{t("account_status.banned.copy_details", { defaultValue: "Copy Details" })}
+		<FullscreenPrompt
+			icon={content.icon}
+			title={content.title}
+			description={content.description}
+			footer={
+				<>
+					{acceptBanAgreement && (
+						<button type="button" onClick={acceptBanAgreement} disabled={accepting} className={fullscreenPrimaryButtonClass}>
+							{accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+							{t("account_status.timed_ban.accept", { defaultValue: "Accept & Continue" })}
+							{accepting ? null : <ChevronRight className="h-4 w-4" />}
 						</button>
 					)}
-					{acceptBanAgreement && (
-						<button
-							type="button"
-							onClick={acceptBanAgreement}
-							disabled={accepting}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-						>
-							{accepting
-								? t("account_status.timed_ban.accepting", { defaultValue: "Accepting…" })
-								: t("account_status.timed_ban.accept", { defaultValue: "Accept & Continue" })}
+					{copyDetails && (
+						<button type="button" onClick={copyDetails} className={fullscreenSecondaryButtonClass}>
+							<span className="inline-flex items-center justify-center gap-2">
+								<Copy className="h-4 w-4" />
+								{t("account_status.banned.copy_details", { defaultValue: "Copy Details" })}
+							</span>
 						</button>
 					)}
 					<button
 						type="button"
 						onClick={onSignOut}
-						className={acceptBanAgreement
-							? "flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] py-3.5 text-sm font-semibold text-[var(--text)] transition hover:brightness-110"
-							: "flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"}
+						disabled={accepting}
+						className={acceptBanAgreement ? fullscreenSecondaryButtonClass : fullscreenPrimaryButtonClass}
 					>
 						{t("account_status.sign_out", { defaultValue: "Sign Out" })}
 					</button>
-				</div>
-			</div>
-		</div>
+				</>
+			}
+		>
+			{content.details.length > 0 && (
+				<dl className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
+					{content.details.map(({ icon: Icon, label, value, highlight }) => (
+						<div key={label} className="flex items-center gap-3 px-4 py-3.5">
+							<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--accent)]">
+								<Icon className="h-5 w-5" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<dt className="text-xs text-[var(--text-muted)]">{label}</dt>
+								<dd
+									className={`mt-0.5 text-sm font-semibold leading-snug ${highlight ? "text-[var(--accent)]" : "text-[var(--text)]"}`}
+								>
+									{value}
+								</dd>
+							</div>
+						</div>
+					))}
+				</dl>
+			)}
+		</FullscreenPrompt>
 	);
 }
 
