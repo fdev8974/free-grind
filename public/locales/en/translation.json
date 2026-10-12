@@ -1976,7 +1976,13 @@
     },
     "timed_ban": {
       "title": "Temporarily Banned",
-      "description": "Grindr has temporarily banned this account. You can use it again once the ban expires."
+      "description": "Grindr has temporarily banned this account. You can use it again once the ban expires.",
+      "expired_title": "Ban Expired",
+      "expired_description": "Your temporary ban has ended. Accept Grindr's community guidelines agreement to use this account again.",
+      "accept": "Accept & Continue",
+      "accepting": "Accepting…",
+      "accept_success": "Agreement accepted",
+      "accept_failed": "Couldn't accept the agreement"
     },
     "device_ban": {
       "title": "Request Refused",

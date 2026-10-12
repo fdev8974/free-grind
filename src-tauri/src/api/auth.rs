@@ -1103,8 +1103,40 @@ pub async fn account_restriction(state: tauri::State<'_, AppState>) -> Result<Op
     Ok(restriction)
 }
 
+/// Accepts the ban agreement Grindr requires once a timed ban has run out,
+/// then refreshes the session: the restriction lives on the session token,
+/// so only a new token tells whether the account is usable again.
 #[tauri::command]
-pub async fn list_saved_accounts() -> Result<Vec<SavedAccountMeta>, AppError> {
+pub async fn accept_ban_agreement(state: tauri::State<'_, AppState>) -> Result<LoginResult, AppError> {
+    let client = state.client()?;
+    // Same locale the L-Locale header carries for this device.
+    let locale = client.current_device().await.locale;
+    let response = client
+        .request(grindr::Method::POST, "/v1/agreements/ban")
+        .json(&serde_json::json!({
+            "version": 1,
+            "locale": locale,
+        }))
+        .send()
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+
+    if !(200..300).contains(&response.status) {
+        return Err(AppError::from(grindr::GrindrError::from_response(
+            response.status,
+            &response.body,
+        )));
+    }
+
+    match client.refresh_session().await {
+        Ok(result) => Ok(login_result(&client, result)),
+        Err(grindr::GrindrError::Unauthorized { .. }) => Err(AppError::TokenExpired),
+        Err(e) => Err(AppError::from_client_error(e, &client)),
+    }
+}
+
+#[tauri::command]
+pub async fn list_saved_accounts()-> Result<Vec<SavedAccountMeta>, AppError> {
     AuthStorage::list_saved_accounts()
 }
 

@@ -70,6 +70,8 @@ export interface AuthContextType extends AuthState {
 	signUp: (account: SignUpData) => Promise<void>;
 	logout: () => Promise<void>;
 	checkAuth: () => Promise<void>;
+	/** Accepts the ban agreement of an expired timed ban; see AccountStatusPrompt. */
+	acceptBanAgreement: () => Promise<void>;
 	savedAccounts: SavedAccountMeta[];
 	switchAccount: (profileId: string) => Promise<void>;
 	removeSavedAccount: (profileId: string) => Promise<void>;

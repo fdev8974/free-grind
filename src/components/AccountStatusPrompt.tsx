@@ -1,9 +1,10 @@
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Ban, Clock, ShieldAlert } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/useAuth";
 import type { AccountStatus } from "../contexts/auth-context";
+import type { AppError } from "../types/api";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -35,10 +36,38 @@ function banKindLabel(kind: string, t: Translate): string {
 	}
 }
 
+// Grindr documents Unix seconds; read anything this large as milliseconds.
+function expiryMs(expiresAt: number): number {
+	return expiresAt > 1e12 ? expiresAt : expiresAt * 1000;
+}
+
 function formatExpiry(expiresAt: number, language: string): string {
-	// Grindr documents Unix seconds; read anything this large as milliseconds.
-	const ms = expiresAt > 1e12 ? expiresAt : expiresAt * 1000;
-	return new Date(ms).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" });
+	return new Date(expiryMs(expiresAt)).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" });
+}
+
+/**
+ * Whether a timed ban has run out, flipping to true at the expiry moment
+ * while the prompt stays open. An unknown expiry counts as run out: Grindr
+ * then decides whether the agreement can be accepted.
+ */
+function useTimedBanExpired(status: AccountStatus): boolean {
+	const expiresAt =
+		status?.kind === "restriction" && status.restriction.kind === "timedBan"
+			? status.restriction.expiresAt
+			: undefined;
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		if (expiresAt == null) return;
+		const remaining = expiryMs(expiresAt) - Date.now();
+		if (remaining <= 0) return;
+		// setTimeout overflows past ~24.8 days; re-arming then is enough.
+		const timer = window.setTimeout(() => setNow(Date.now()), Math.min(remaining + 500, 2 ** 31 - 1));
+		return () => window.clearTimeout(timer);
+	}, [expiresAt, now]);
+
+	if (status?.kind !== "restriction" || status.restriction.kind !== "timedBan") return false;
+	return expiresAt == null || expiryMs(expiresAt) <= now;
 }
 
 function regionLabel(region: string, t: Translate): string | null {
@@ -83,7 +112,7 @@ function reasonRow(reason: string, t: Translate): Detail {
 	};
 }
 
-function contentFor(status: AccountStatus, t: Translate, language: string) {
+function contentFor(status: AccountStatus, t: Translate, language: string, timedBanExpired: boolean) {
 	if (status?.kind === "banned") {
 		const { info } = status;
 		const details: Detail[] = [
@@ -152,6 +181,16 @@ function contentFor(status: AccountStatus, t: Translate, language: string) {
 					value: formatExpiry(restriction.expiresAt, language),
 				});
 			}
+			if (timedBanExpired) {
+				return {
+					icon: <Clock className="h-9 w-9 text-[var(--accent)]" />,
+					title: t("account_status.timed_ban.expired_title", { defaultValue: "Ban Expired" }),
+					description: t("account_status.timed_ban.expired_description", {
+						defaultValue: "Your temporary ban has ended. Accept Grindr's community guidelines agreement to use this account again.",
+					}),
+					details,
+				};
+			}
 			return {
 				icon: <Clock className="h-9 w-9 text-[var(--accent)]" />,
 				title: t("account_status.timed_ban.title", { defaultValue: "Temporarily Banned" }),
@@ -175,12 +214,16 @@ function contentFor(status: AccountStatus, t: Translate, language: string) {
 export function AccountStatusPromptView({
 	status,
 	onSignOut,
+	onAcceptBanAgreement,
 }: {
 	status: AccountStatus;
 	onSignOut: () => void;
+	onAcceptBanAgreement?: () => Promise<void>;
 }) {
 	const { t, i18n } = useTranslation();
-	const content = contentFor(status, t, i18n.language);
+	const timedBanExpired = useTimedBanExpired(status);
+	const [accepting, setAccepting] = useState(false);
+	const content = contentFor(status, t, i18n.language, timedBanExpired);
 	if (!content) {
 		return null;
 	}
@@ -192,6 +235,20 @@ export function AccountStatusPromptView({
 						.writeText(JSON.stringify(status.info, null, 2))
 						.then(() => toast.success(t("account_status.banned.copy_details_success", { defaultValue: "Details copied to clipboard" })))
 						.catch(() => {});
+				}
+			: null;
+
+	const acceptBanAgreement =
+		timedBanExpired && onAcceptBanAgreement
+			? () => {
+					setAccepting(true);
+					onAcceptBanAgreement()
+						.then(() => toast.success(t("account_status.timed_ban.accept_success", { defaultValue: "Agreement accepted" })))
+						.catch((error: unknown) => {
+							const message = (error as Partial<AppError> | null)?.prettyMessage;
+							toast.error(message || t("account_status.timed_ban.accept_failed", { defaultValue: "Couldn't accept the agreement" }));
+						})
+						.finally(() => setAccepting(false));
 				}
 			: null;
 
@@ -237,10 +294,24 @@ export function AccountStatusPromptView({
 							{t("account_status.banned.copy_details", { defaultValue: "Copy Details" })}
 						</button>
 					)}
+					{acceptBanAgreement && (
+						<button
+							type="button"
+							onClick={acceptBanAgreement}
+							disabled={accepting}
+							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+						>
+							{accepting
+								? t("account_status.timed_ban.accepting", { defaultValue: "Accepting…" })
+								: t("account_status.timed_ban.accept", { defaultValue: "Accept & Continue" })}
+						</button>
+					)}
 					<button
 						type="button"
 						onClick={onSignOut}
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+						className={acceptBanAgreement
+							? "flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] py-3.5 text-sm font-semibold text-[var(--text)] transition hover:brightness-110"
+							: "flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"}
 					>
 						{t("account_status.sign_out", { defaultValue: "Sign Out" })}
 					</button>
@@ -259,7 +330,7 @@ export function AccountStatusPromptView({
  * an asynchronous auth:banned event pushed mid-session.
  */
 export function AccountStatusGate({ children }: { children: ReactNode }) {
-	const { accountStatus, logout } = useAuth();
+	const { accountStatus, logout, acceptBanAgreement } = useAuth();
 
 	if (!accountStatus) {
 		return <>{children}</>;
@@ -267,7 +338,11 @@ export function AccountStatusGate({ children }: { children: ReactNode }) {
 
 	return (
 		<div className="app-shell">
-			<AccountStatusPromptView status={accountStatus} onSignOut={() => void logout()} />
+			<AccountStatusPromptView
+				status={accountStatus}
+				onSignOut={() => void logout()}
+				onAcceptBanAgreement={acceptBanAgreement}
+			/>
 		</div>
 	);
 }

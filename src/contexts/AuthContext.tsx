@@ -367,6 +367,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		await login(email, password, { keepDevice: true });
 	};
 
+	// Once a timed ban has run out, Grindr wants its ban agreement accepted
+	// before the account can be used again. The backend refreshes the session
+	// right after, so the result's restriction is the account's new state.
+	// Throws on failure so the prompt can show it.
+	const acceptBanAgreement = async () => {
+		try {
+			const result = await callMethod("accept_ban_agreement");
+			if (!showRestriction(result.restriction)) {
+				appLog.info("[Auth] ban agreement accepted, restriction lifted");
+				dispatch({ type: "SET_ACCOUNT_STATUS", payload: null });
+			}
+		} catch (error) {
+			// The session is gone; let TokenExpiredGate (behind this gate) take over.
+			if (asAppError(error)?.kind === "TokenExpired") {
+				dispatch({ type: "SET_ACCOUNT_STATUS", payload: null });
+			}
+			throw error;
+		}
+	};
+
 	const logout = async () => {
 		try {
 			dispatch({ type: "SET_LOADING", payload: true });
@@ -700,6 +720,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		signUp,
 		logout,
 		checkAuth,
+		acceptBanAgreement,
 		savedAccounts,
 		switchAccount,
 		removeSavedAccount,

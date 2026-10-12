@@ -2032,7 +2032,13 @@
         },
         "timed_ban": {
             "title": "",
-            "description": ""
+            "description": "",
+            "expired_title": "",
+            "expired_description": "",
+            "accept": "",
+            "accepting": "",
+            "accept_success": "",
+            "accept_failed": ""
         },
         "device_ban": {
             "title": "",

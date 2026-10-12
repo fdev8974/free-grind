@@ -104,6 +104,13 @@ export const methodSchemas = {
 		request: z.undefined(),
 		response: restrictionSchema.nullish(),
 	},
+	accept_ban_agreement: {
+		request: z.undefined(),
+		response: z.object({
+			profileId: z.coerce.number().int().nonnegative(),
+			restriction: restrictionSchema.nullish(),
+		}),
+	},
 	websocket_token: {
 		request: z.undefined(),
 		response: z.string().min(1).nullable(),
