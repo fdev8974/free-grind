@@ -920,7 +920,7 @@ export function ProfileDetailsContent({
 					<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 						{t("profile_details.spotify.title")}
 					</p>
-					<div className="-mx-3 flex gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-lenis-prevent>
+					<div className="grid grid-cols-5 gap-2">
 						{favoriteSongs.map((song) => {
 							const artistLabel = song.artists.join(", ");
 							return (
@@ -933,7 +933,7 @@ export function ProfileDetailsContent({
 											void openUrl(song.externalUrl);
 										}
 									}}
-									className="group w-32 shrink-0 text-left disabled:cursor-default"
+									className="group min-w-0 text-left disabled:cursor-default"
 								>
 									<span className="relative block aspect-square w-full overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-2)] transition group-hover:border-[var(--accent)] group-enabled:group-hover:shadow-lg">
 										{song.albumImageUrl ? (
@@ -945,18 +945,18 @@ export function ProfileDetailsContent({
 											/>
 										) : (
 											<span className="flex h-full w-full items-center justify-center bg-[var(--surface-3)]">
-												<Music className="h-6 w-6 text-[var(--text-muted)]" />
+												<Music className="h-5 w-5 text-[var(--text-muted)]" />
 											</span>
 										)}
 										{song.externalUrl && (
-											<span className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 opacity-0 transition group-hover:opacity-100">
-												<ExternalLink className="h-3.5 w-3.5 text-white" />
+											<span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 opacity-0 transition group-hover:opacity-100">
+												<ExternalLink className="h-3 w-3 text-white" />
 											</span>
 										)}
 									</span>
-									<span className="mt-1.5 block truncate text-sm font-medium text-[var(--text)]">{song.name}</span>
+									<span className="mt-1 block truncate text-xs font-medium text-[var(--text)]">{song.name}</span>
 									{artistLabel && (
-										<span className="block truncate text-xs text-[var(--text-muted)]">{artistLabel}</span>
+										<span className="block truncate text-[10px] leading-tight text-[var(--text-muted)]">{artistLabel}</span>
 									)}
 								</button>
 							);
