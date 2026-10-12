@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, Cake, Eye, EyeOff, ShieldCheck, LogIn, ShieldAlert } from "lucide-react";
+import { Mail, Lock, Cake, Eye, EyeOff, ShieldCheck, LogIn, ShieldAlert, Smartphone } from "lucide-react";
 import { AuthShell } from "../../components/ui/auth-shell";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import { useAuth } from "../../contexts/useAuth";
@@ -111,6 +111,34 @@ export function SignUpPage() {
 		);
 	}
 
+	// The helper only exists on Android; elsewhere the form could never submit.
+	if (!hasRecaptchaHelper && !recaptchaHelperInstall.supported) {
+		return (
+			<AuthShell
+				title={t("auth.sign_up.title")}
+				subtitle={t("auth.sign_up.subtitle", { defaultValue: "Create a new Grindr account with your email and password." })}
+				footer={<BugReportButton />}
+			>
+				<div className="animate-fade-in flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
+					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)]">
+						<Smartphone className="h-4 w-4" />
+					</span>
+					<div className="min-w-0 space-y-1 text-sm">
+						<p className="font-semibold text-[var(--text)]">
+							{t("auth.sign_up.android_only_title", { defaultValue: "Only available on Android" })}
+						</p>
+						<p className="leading-relaxed text-[var(--text-muted)]">
+							{t("auth.sign_up.recaptcha_helper_unsupported", {
+								defaultValue: "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android.",
+							})}
+						</p>
+					</div>
+				</div>
+				<AuthAltAction to="/auth/sign-in" label={t("auth.sign_up.back", { defaultValue: "Back" })} />
+			</AuthShell>
+		);
+	}
+
 	return (
 		<AuthShell
 			title={t("auth.sign_up.title")}
@@ -135,7 +163,7 @@ export function SignUpPage() {
 				</div>
 			) : (
 				<form onSubmit={handleSubmit} className="animate-fade-in space-y-3">
-					{hasRecaptchaHelper ? null : recaptchaHelperInstall.supported ? (
+					{hasRecaptchaHelper ? null : (
 						<AppInstallCard
 							install={recaptchaHelperInstall}
 							icon={<ShieldCheck className="h-4 w-4" />}
@@ -144,12 +172,6 @@ export function SignUpPage() {
 								defaultValue: "Needed to create an account · Tap to install",
 							})}
 						/>
-					) : (
-						<p className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm leading-relaxed text-[var(--text-muted)]">
-							{t("auth.sign_up.recaptcha_helper_unsupported", {
-								defaultValue: "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android.",
-							})}
-						</p>
 					)}
 					<IconInput
 						icon={<Mail className="h-4 w-4" />}
