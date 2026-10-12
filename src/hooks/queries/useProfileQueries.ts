@@ -9,6 +9,7 @@ import {
 	markConversationDeleteHandled,
 } from "../../services/conversationArchive";
 import { profileSchema } from "../../pages/app/profile-editor/profileEditorUtils";
+import { getSpotifyTracks, type SpotifyTrack } from "../../services/spotify";
 
 // chat.v1.conversation.delete fires identically for "we blocked/unblocked
 // them" and "they blocked/unblocked us" — mark the conversation right after
@@ -283,5 +284,30 @@ export function useDeleteTravelPlan() {
 		mutationFn: ({ travelPlanId }: { travelPlanId: number; profileId: number }) =>
 			api.deleteTravelPlan(travelPlanId),
 		onSuccess: (_, variables) => invalidateTravelPlans(queryClient, variables.profileId),
+	});
+}
+
+/**
+ * Hook to fetch a profile's favourite Spotify songs. Resolves the backend's
+ * list of track ids into full track metadata via the Spotify Web API.
+ * Returns [] when the profile has none.
+ */
+export function useProfileSpotifyFavorites(
+	profileId: string | null | undefined,
+	enabled = true,
+) {
+	const api = useApiFunctions();
+	return useQuery<SpotifyTrack[]>({
+		queryKey: ["spotify-favorites", profileId ?? null],
+		queryFn: async () => {
+			const songIds = await api.getSpotifyFavoriteSongIds(profileId!);
+			if (songIds.length === 0) {
+				return [];
+			}
+			return getSpotifyTracks(songIds);
+		},
+		enabled: enabled && !!profileId,
+		staleTime: 1000 * 60 * 30,
+		retry: 1,
 	});
 }

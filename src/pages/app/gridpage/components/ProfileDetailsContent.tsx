@@ -17,6 +17,7 @@ import {
 	MessageCircle,
 	MessageSquare,
 	type LucideIcon,
+	Music,
 	Plane,
 	Ruler,
 	Scale,
@@ -55,6 +56,7 @@ import { decodeGeohash } from "../../../../utils/geohash";
 import { appLog } from "../../../../utils/logger";
 import { isIos } from "../../../../services/saveMedia";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { useProfileSpotifyFavorites } from "../../../../hooks/queries/useProfileQueries";
 
 type LabelMap = Record<number, string>;
 
@@ -228,6 +230,8 @@ export function ProfileDetailsContent({
 		return resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url;
 	};
 	const { unitsPreset } = usePreferences();
+	const { data: spotifyFavorites } = useProfileSpotifyFavorites(activeProfile.profileId);
+	const favoriteSongs = spotifyFavorites ?? [];
 	const hasChatHistory = Boolean(chatContactStatus?.hasChatted) || (chatContactStatus?.unreadCount ?? 0) > 0;
 	const lastMessageLabel = formatRelativeTime(chatContactStatus?.lastMessageTimestamp ?? null);
 	const visibleTravelPlans = useMemo(
@@ -909,6 +913,56 @@ export function ProfileDetailsContent({
 				</div>
 				)}
 			</div>
+			)}
+
+			{favoriteSongs.length > 0 && (
+				<div className="px-3">
+					<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+						{t("profile_details.spotify.title")}
+					</p>
+					<div className="grid gap-2">
+						{favoriteSongs.map((song) => {
+							const subtitle = [song.artists.join(", "), song.albumName]
+								.filter((part) => part && part.trim().length > 0)
+								.join(" · ");
+							return (
+								<button
+									key={song.id}
+									type="button"
+									disabled={!song.externalUrl}
+									onClick={() => {
+										if (song.externalUrl) {
+											void openUrl(song.externalUrl);
+										}
+									}}
+									className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 text-left transition hover:border-[var(--accent)] disabled:cursor-default disabled:hover:border-[var(--border)]"
+								>
+									{song.albumImageUrl ? (
+										<img
+											src={song.albumImageUrl}
+											alt=""
+											loading="lazy"
+											className="h-10 w-10 shrink-0 rounded-md object-cover"
+										/>
+									) : (
+										<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--surface-3)]">
+											<Music className="h-4 w-4 text-[var(--text-muted)]" />
+										</span>
+									)}
+									<span className="min-w-0 flex-1">
+										<span className="block truncate text-sm font-medium text-[var(--text)]">{song.name}</span>
+										{subtitle && (
+											<span className="block truncate text-xs text-[var(--text-muted)]">{subtitle}</span>
+										)}
+									</span>
+									{song.externalUrl && (
+										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+									)}
+								</button>
+							);
+						})}
+					</div>
+				</div>
 			)}
 
 			<div className="px-3">

@@ -1638,6 +1638,10 @@
     "ethnicity": "Ethnicity",
     "relationship": "Relationship",
     "social": "Social",
+    "spotify": {
+      "title": "Favorite songs",
+      "load_failed": "Couldn't load favorite songs"
+    },
     "labels": {
       "looking_for": {
         "chat": "Chat",
