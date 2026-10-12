@@ -734,7 +734,7 @@ export function ChatInboxPanel({
 							WebkitMaskImage: `linear-gradient(to bottom, transparent, black ${FEED_MASK_GRADIENT_STOP})`,
 						} : undefined}
 					>
-						<div className={!isDesktop ? "pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px)+16px)]" : ""}>
+						<div className={!isDesktop ? "pb-[calc(env(safe-area-inset-bottom,0px)+120px)]" : ""}>
 							{isLoadingInbox ? (
 								<div className="flex flex-col">
 									{Array.from({ length: 12 }).map((_, i) => (
