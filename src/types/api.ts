@@ -46,6 +46,13 @@ export const methodSchemas = {
 			restriction: restrictionSchema.nullish(),
 		}),
 	},
+	sign_up_quota: {
+		request: z.undefined(),
+		response: z.object({
+			used: z.number().int().nonnegative(),
+			limit: z.number().int().nonnegative(),
+		}),
+	},
 	create_account: {
 		request: z.object({
 			email: z.email(),
@@ -164,7 +171,8 @@ export type AppErrorKind =
 	| "NetworkBlocked"
 	| "SessionCleared"
 	| "NotInitialized"
-	| "TokenExpired";
+	| "TokenExpired"
+	| "SignUpLimitReached";
 
 export interface AppError {
 	kind: AppErrorKind;

@@ -63,6 +63,8 @@ pub enum AppError {
     NotInitialized,
     Backup(String),
     TokenExpired,
+    /// This app already created as many accounts as it allows.
+    SignUpLimitReached,
 }
 
 impl fmt::Display for AppError {
@@ -93,6 +95,7 @@ impl fmt::Display for AppError {
             AppError::NotInitialized => write!(f, "GrindrClient not initialized"),
             AppError::Backup(msg) => write!(f, "Backup error: {msg}"),
             AppError::TokenExpired => write!(f, "Session token expired"),
+            AppError::SignUpLimitReached => write!(f, "Sign-up limit reached"),
         }
     }
 }

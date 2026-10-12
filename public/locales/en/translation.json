@@ -1057,7 +1057,9 @@
       "creating": "Creating account...",
       "submit": "Create account",
       "recaptcha_helper_install_hint": "Needed to create an account · Tap to install",
-      "recaptcha_helper_unsupported": "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android."
+      "recaptcha_helper_unsupported": "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android.",
+      "limit_reached_title": "Account limit reached",
+      "limit_reached_desc": "This app has already created {{limit}} accounts. To prevent abuse, no further accounts can be created."
     },
     "sms_verification": {
       "still_required": "Grindr still asks for verification. Check the code or request a new one.",

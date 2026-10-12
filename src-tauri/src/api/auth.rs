@@ -518,6 +518,58 @@ impl DeviceStorage {
     }
 }
 
+/// Accounts created with this app. Kept with the device identity rather than
+/// in the frontend, so resetting settings or clearing webview data doesn't
+/// clear it; on Windows it is shared by every instance.
+struct SignUpCounter;
+
+const SIGN_UP_LIMIT: u32 = 3;
+const SIGN_UP_COUNT_SLOT: &str = "sign-up-count";
+
+#[cfg(target_os = "windows")]
+fn sign_up_count_path() -> PathBuf {
+    crate::windows_instance::windows_app_data_root_dir()
+        .join("free-grind")
+        .join(format!("{SIGN_UP_COUNT_SLOT}.msgpack"))
+}
+
+impl SignUpCounter {
+    #[cfg(target_os = "windows")]
+    fn read_bytes() -> Result<Option<Vec<u8>>, AppError> {
+        read_file(&sign_up_count_path())
+    }
+
+    #[cfg(target_os = "windows")]
+    fn write_bytes(bytes: &[u8]) -> Result<(), AppError> {
+        write_file(&sign_up_count_path(), bytes)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn read_bytes() -> Result<Option<Vec<u8>>, AppError> {
+        get_slot_bytes(SIGN_UP_COUNT_SLOT)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn write_bytes(bytes: &[u8]) -> Result<(), AppError> {
+        set_slot_bytes(SIGN_UP_COUNT_SLOT, bytes)
+    }
+
+    fn count() -> Result<u32, AppError> {
+        match Self::read_bytes()? {
+            Some(bytes) => rmp_serde::from_slice(&bytes)
+                .map_err(|e| AppError::Auth(format!("sign-up count decode failed: {e}"))),
+            None => Ok(0),
+        }
+    }
+
+    fn record() -> Result<(), AppError> {
+        let next = Self::count()?.saturating_add(1);
+        let bytes = rmp_serde::to_vec(&next)
+            .map_err(|e| AppError::Auth(format!("sign-up count encode failed: {e}")))?;
+        Self::write_bytes(&bytes)
+    }
+}
+
 /// Device signing keys, one per account: grindr.rs refuses to restore a key
 /// that belongs to a different account than the session's, so a single slot
 /// would lose each account's key on every switch.
@@ -842,6 +894,21 @@ pub async fn login(
     Ok(login_result(&client, result))
 }
 
+#[derive(Serialize)]
+pub struct SignUpQuota {
+    used: u32,
+    limit: u32,
+}
+
+/// How many accounts this app has created, out of how many it allows.
+#[tauri::command]
+pub async fn sign_up_quota() -> Result<SignUpQuota, AppError> {
+    Ok(SignUpQuota {
+        used: SignUpCounter::count()?,
+        limit: SIGN_UP_LIMIT,
+    })
+}
+
 /// First-party account creation with email and password. Returns the new
 /// profile id; the response carries no session, so the caller signs in
 /// afterwards with `login` and `keep_device`.
@@ -854,6 +921,11 @@ pub async fn create_account(
     captcha_token: String,
     push_token: Option<String>,
 ) -> Result<String, AppError> {
+    // Enforced here, not just in the UI. An unreadable count refuses too.
+    if SignUpCounter::count()? >= SIGN_UP_LIMIT {
+        return Err(AppError::SignUpLimitReached);
+    }
+
     let client = state.client()?;
 
     let captcha = captcha_token.trim();
@@ -869,7 +941,7 @@ pub async fn create_account(
         .await
         .map_err(AppError::from)?;
 
-    client
+    let profile_id = client
         .create_account_with_email(&grindr::NewEmailAccount {
             email: email.trim(),
             password: &password,
@@ -881,7 +953,13 @@ pub async fn create_account(
             opt_in: false,
         })
         .await
-        .map_err(|e| AppError::from_client_error(e, &client))
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+
+    // The account exists either way; a failed write only loses the count.
+    if let Err(e) = SignUpCounter::record() {
+        eprintln!("[auth] failed to record sign-up: {e}");
+    }
+    Ok(profile_id)
 }
 
 #[derive(Serialize)]

@@ -73,6 +73,7 @@ export function useApi() {
 					"SessionCleared",
 					"NotInitialized",
 					"TokenExpired",
+					"SignUpLimitReached",
 				]),
 				message: z
 					.string()
@@ -98,6 +99,8 @@ export function useApi() {
 				prettyMessage = `Error ${data.message.code}: ${data.message.message}`;
 			} else if (data.kind === "NotInitialized") {
 				prettyMessage = "The app failed to start correctly. Please restart the app and try again.";
+			} else if (data.kind === "SignUpLimitReached") {
+				prettyMessage = "This app can't create any more accounts.";
 			} else if (data.kind === "TokenExpired") {
 				prettyMessage = "Your login token has expired. Please sign in again.";
 			} else if (data.kind === "RateLimited") {

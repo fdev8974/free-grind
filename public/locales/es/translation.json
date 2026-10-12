@@ -1065,7 +1065,9 @@
             "creating": "",
             "submit": "",
             "recaptcha_helper_install_hint": "",
-            "recaptcha_helper_unsupported": ""
+            "recaptcha_helper_unsupported": "",
+            "limit_reached_title": "",
+            "limit_reached_desc": ""
         },
         "sms_verification": {
             "still_required": "",
