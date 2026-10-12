@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreBackupOffer } from "./RestoreBackupOffer";
+import { LegalAgreementsPrompt } from "./LegalAgreementsPrompt";
 import * as chatDb from "../services/chatDb";
 import { hasOfferedRestore, markRestoreOffered } from "../utils/restoreOfferStorage";
 
@@ -52,5 +53,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 		return <RestoreBackupOffer userId={userId} onDone={() => setShowRestoreOffer(false)} />;
 	}
 
-	return children;
+	return (
+		<>
+			{children}
+			<LegalAgreementsPrompt userId={userId} />
+		</>
+	);
 }

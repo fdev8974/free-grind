@@ -23,3 +23,42 @@
 - DELETE /v1/opt-out ConsentRequest (body)
 - POST /v1/opt-out ConsentRequest ConsentOptStatusResponse
 
+
+## Terms of Service & Privacy Policy
+
+Versions are date stamps. The app compares them on login and asks for acceptance when the accepted version is missing or older than the latest one.
+
+`GET /v3/legal-agreements`
+
+```json
+{
+  "legalAgreements": {
+    "termsOfServiceUrl": "https://trust.grindr.com/en-US/legal",
+    "latestTermsOfServiceVersion": "20260706",
+    "privacyPolicyUrl": "https://trust.grindr.com/en-US/privacy",
+    "latestPrivacyPolicyVersion": "20260706"
+  }
+}
+```
+
+`GET /v3/me/legal-agreements`
+
+```json
+{
+  "termsOfServiceVersion": "20260706",
+  "privacyPolicyVersion": "20260706",
+  "userConsentList": ["VACCINE_COLLECT", "DOXYPEP_COLLECT", "HIV_COLLECT"],
+  "createdAtPrivacyAgreement": 1791752920001,
+  "createdAtTermsAgreement": 1791752920001
+}
+```
+
+`PUT /v3/me/legal-agreements` — `userConsentList` only adds consents, it can't remove any, so an empty list leaves the existing ones untouched.
+
+```json
+{
+  "termsOfServiceVersion": 20260706,
+  "privacyPolicyVersion": 20260706,
+  "userConsentList": []
+}
+```

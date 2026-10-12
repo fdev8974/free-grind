@@ -1863,7 +1863,9 @@
             "session_right_now": "Session konnte nicht gestartet werden",
             "load_tags": "Tags konnten nicht geladen werden",
             "invalid_tags_response": "Ungültige Antwort für Tags",
-            "load_photos": ""
+            "load_photos": "",
+            "load_legal_agreements": "",
+            "accept_legal_agreements": ""
         }
     },
     "errors": {
@@ -2039,7 +2041,10 @@
         "import_wrong_owner": "",
         "import_invalid": "",
         "import_success": "",
-        "import_failed": ""
+        "import_failed": "",
+        "reading_file": "",
+        "file_hint": "",
+        "local_hint": ""
     },
     "sexualHealth": {
         "title": "",
@@ -2282,5 +2287,16 @@
         "provider_gemini_tagline": "",
         "provider_openai_tagline": "",
         "provider_claude_tagline": ""
+    },
+    "legal_agreements": {
+        "title": "",
+        "description": "",
+        "tos_title": "",
+        "privacy_title": "",
+        "updated": "",
+        "up_to_date": "",
+        "read": "",
+        "accept": "",
+        "accept_failed": ""
     }
 }

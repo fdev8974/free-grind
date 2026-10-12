@@ -1,4 +1,4 @@
-import { X, type LucideIcon } from "lucide-react";
+import { Loader2, X, type LucideIcon } from "lucide-react";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Button } from "./ui/button";
 
@@ -9,6 +9,10 @@ interface OnboardingModalProps {
 	headerIcon: LucideIcon;
 	children: ReactNode;
 	buttonLabel: string;
+	/** Runs before the confirm close animation; resolving false keeps the modal open. */
+	beforeConfirm?: () => Promise<boolean>;
+	/** "secondary" for a dismiss-style action when the real action lives in the body. */
+	buttonVariant?: "primary" | "secondary";
 }
 
 export function OnboardingModal({
@@ -18,8 +22,11 @@ export function OnboardingModal({
 	headerIcon: HeaderIcon,
 	children,
 	buttonLabel,
+	beforeConfirm,
+	buttonVariant = "primary",
 }: OnboardingModalProps) {
 	const [isClosing, setIsClosing] = useState(false);
+	const [isConfirming, setIsConfirming] = useState(false);
 	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	// Prevent background scrolling while the modal is open
@@ -55,7 +62,15 @@ export function OnboardingModal({
 		}, 300); // Match transition duration
 	};
 
-	const handleConfirm = () => {
+	const handleConfirm = async () => {
+		if (beforeConfirm) {
+			setIsConfirming(true);
+			try {
+				if (!(await beforeConfirm())) return;
+			} finally {
+				setIsConfirming(false);
+			}
+		}
 		if (onConfirm) {
 			setIsClosing(true);
 			if (closeTimeoutRef.current) {
@@ -116,10 +131,16 @@ export function OnboardingModal({
 
 					<div className="pt-2">
 						<Button
-							variant="primary"
-							className="w-full py-4 text-base font-bold rounded-2xl shadow-lg shadow-[var(--accent)]/20 !text-white"
-							onClick={handleConfirm}
+							variant={buttonVariant}
+							className={
+								buttonVariant === "primary"
+									? "w-full py-4 text-base font-bold rounded-2xl shadow-lg shadow-[var(--accent)]/20 !text-white"
+									: "w-full py-4 text-base font-semibold rounded-2xl text-[var(--text-muted)] hover:text-[var(--text)]"
+							}
+							onClick={() => void handleConfirm()}
+							disabled={isConfirming}
 						>
+							{isConfirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
 							{buttonLabel}
 						</Button>
 					</div>

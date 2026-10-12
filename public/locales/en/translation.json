@@ -1863,7 +1863,9 @@
       "session_right_now": "Failed to start session",
       "load_tags": "Failed to load tags",
       "invalid_tags_response": "Invalid tags response",
-      "load_photos": "Failed to load profile photos"
+      "load_photos": "Failed to load profile photos",
+      "load_legal_agreements": "Failed to load legal agreements",
+      "accept_legal_agreements": "Failed to accept legal agreements"
     }
   },
   "errors": {
@@ -2181,7 +2183,10 @@
     "import_wrong_owner": "This export belongs to a different profile and can't be imported here.",
     "import_invalid": "This file isn't a valid data export.",
     "import_success": "Imported {{count}} rows. Reloading…",
-    "import_failed": "Failed to read backup file."
+    "import_failed": "Failed to read backup file.",
+    "reading_file": "Reading backup…",
+    "file_hint": "Free Grind data export (.zip)",
+    "local_hint": "Your backup stays on this device."
   },
   "entitlement_bypass": {
     "prompt_title": "Paid feature",
@@ -2280,5 +2285,16 @@
     "provider_gemini_tagline": "Understands slang · free tier",
     "provider_openai_tagline": "Understands slang · paid",
     "provider_claude_tagline": "Understands slang · paid"
+  },
+  "legal_agreements": {
+    "title": "Updated Terms",
+    "description": "Grindr has updated its policies. Please review and accept them to keep using your account.",
+    "tos_title": "Terms of Service",
+    "privacy_title": "Privacy Policy",
+    "updated": "New version available",
+    "up_to_date": "Already accepted",
+    "read": "Read",
+    "accept": "Accept",
+    "accept_failed": "Couldn't confirm the agreements. Please try again."
   }
 }

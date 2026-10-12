@@ -1919,7 +1919,9 @@
             "session_right_now": "فشل بدء الجلسة",
             "load_tags": "فشل تحميل التاجات",
             "invalid_tags_response": "رد التاجات مش صالح",
-            "load_photos": "فشل تحميل صور البروفايل"
+            "load_photos": "فشل تحميل صور البروفايل",
+            "load_legal_agreements": "",
+            "accept_legal_agreements": ""
         }
     },
     "errors": {
@@ -2247,7 +2249,10 @@
         "import_wrong_owner": "التصدير ده تبع بروفايل تاني ومش هينفع يتستورد هنا.",
         "import_invalid": "الملف ده مش تصدير بيانات صالح.",
         "import_success": "Imported {{count}} rows. Reloading…",
-        "import_failed": "فشل قراءة ملف الباك أب."
+        "import_failed": "فشل قراءة ملف الباك أب.",
+        "reading_file": "",
+        "file_hint": "",
+        "local_hint": ""
     },
     "entitlement_bypass": {
         "prompt_title": "",
@@ -2346,5 +2351,16 @@
         "provider_gemini_tagline": "",
         "provider_openai_tagline": "",
         "provider_claude_tagline": ""
+    },
+    "legal_agreements": {
+        "title": "",
+        "description": "",
+        "tos_title": "",
+        "privacy_title": "",
+        "updated": "",
+        "up_to_date": "",
+        "read": "",
+        "accept": "",
+        "accept_failed": ""
     }
 }

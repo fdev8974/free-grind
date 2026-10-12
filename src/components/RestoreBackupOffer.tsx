@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
-import { FileUp, Loader2, UploadCloud, X } from "lucide-react";
+import { FileArchive, FileUp, Loader2, Lock, UploadCloud, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
-import { OnboardingItem, OnboardingModal } from "./OnboardingModal";
+import { OnboardingModal } from "./OnboardingModal";
 import { BottomSheet, SheetClose } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import * as chatDb from "../services/chatDb";
@@ -26,6 +26,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const [isBusy, setIsBusy] = useState(false);
+	const [isDragging, setIsDragging] = useState(false);
 	const [pendingImport, setPendingImport] = useState<{
 		tempPath: string;
 		categories: BackupCategoryId[];
@@ -120,35 +121,66 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 				onClose={finish}
 				onConfirm={finish}
 				buttonLabel={t("restore_offer.skip", { defaultValue: "Skip for now" })}
+				buttonVariant="secondary"
 			>
-				<OnboardingItem
-					icon={UploadCloud}
-					title={t("restore_offer.item_title", { defaultValue: "Have a backup file?" })}
-					description={t("restore_offer.description", {
+				<p className="text-center text-sm leading-relaxed text-[var(--text-muted)]">
+					{t("restore_offer.description", {
 						defaultValue: "If you have a backup file from this account, you can restore your conversations, media, and settings now.",
 					})}
+				</p>
+
+				<button
+					type="button"
+					onClick={() => fileInputRef.current?.click()}
+					onDragOver={(event) => {
+						event.preventDefault();
+						if (!isBusy) setIsDragging(true);
+					}}
+					onDragLeave={() => setIsDragging(false)}
+					onDrop={(event) => {
+						event.preventDefault();
+						setIsDragging(false);
+						const file = event.dataTransfer.files?.[0];
+						if (file && !isBusy) void handleFilePicked(file);
+					}}
+					disabled={isBusy}
+					className={`group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-8 text-center transition disabled:cursor-wait ${
+						isDragging
+							? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface))]"
+							: "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-2))]"
+					}`}
 				>
-					<button
-						type="button"
-						onClick={() => fileInputRef.current?.click()}
-						disabled={isBusy}
-						className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-					>
-						{isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-						{t("restore_offer.choose_file", { defaultValue: "Choose backup file" })}
-					</button>
-					<input
-						ref={fileInputRef}
-						type="file"
-						accept="application/zip,.zip"
-						className="hidden"
-						onChange={(event) => {
-							const file = event.target.files?.[0];
-							event.target.value = "";
-							if (file) void handleFilePicked(file);
-						}}
-					/>
-				</OnboardingItem>
+					<span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)] transition group-hover:scale-105">
+						{isBusy ? <Loader2 className="h-7 w-7 animate-spin" /> : <UploadCloud className="h-7 w-7" />}
+					</span>
+					<span className="space-y-1">
+						<span className="block font-semibold text-[var(--text)]">
+							{isBusy
+								? t("restore_offer.reading_file", { defaultValue: "Reading backup…" })
+								: t("restore_offer.choose_file", { defaultValue: "Choose backup file" })}
+						</span>
+						<span className="flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
+							<FileArchive className="h-3.5 w-3.5" />
+							{t("restore_offer.file_hint", { defaultValue: "Free Grind data export (.zip)" })}
+						</span>
+					</span>
+				</button>
+				<input
+					ref={fileInputRef}
+					type="file"
+					accept="application/zip,.zip"
+					className="hidden"
+					onChange={(event) => {
+						const file = event.target.files?.[0];
+						event.target.value = "";
+						if (file) void handleFilePicked(file);
+					}}
+				/>
+
+				<p className="flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
+					<Lock className="h-3.5 w-3.5" />
+					{t("restore_offer.local_hint", { defaultValue: "Your backup stays on this device." })}
+				</p>
 			</OnboardingModal>
 
 			{pendingImport && (
