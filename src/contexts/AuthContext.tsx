@@ -35,6 +35,7 @@ import { runInboxSync } from "../services/inboxSync";
 import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
 import { mintRecaptchaToken, RecaptchaError, type RecaptchaFailure } from "../services/recaptcha";
+import { restoreStrandedLocation } from "../services/entitlementBypass";
 
 const AUTH_USER_ID_STORAGE_KEY = "fg-user-id";
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
@@ -390,6 +391,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const logout = async () => {
 		try {
 			dispatch({ type: "SET_LOADING", payload: true });
+			// Repair a location left parked in Honduras before the session goes
+			// away, so the account isn't stranded there after sign-out (#446).
+			await restoreStrandedLocation();
 			await callMethod("logout");
 			dispatch({ type: "CLEAR_USER" });
 			toast.success("Logged out");

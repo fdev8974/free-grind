@@ -869,6 +869,41 @@ export async function backfillOtherProfileId(
 	});
 }
 
+/**
+ * Creates a minimal placeholder conversation row if (and only if) none exists
+ * yet, so the durable block_state column and the archived flag have somewhere
+ * to live for a conversation we only ever learned about from a
+ * chat.v1.conversation.delete event — e.g. being blocked by a profile we never
+ * had an actual chat thread with. Both block_state and archived are UPDATE-only
+ * columns (setBlockState/setConversationArchived no-op without a row), so the
+ * "who blocked whom" state — and therefore correct later unblock detection —
+ * would otherwise be lost entirely. Never overwrites an existing row. The
+ * participant list is intentionally empty; the other profile's name/avatar, if
+ * ever resolved, come from the profile snapshot cache (see recordBlockEvent).
+ */
+export async function ensureConversationRow(
+	conversationId: string,
+	otherProfileId: string | null,
+): Promise<void> {
+	const db = await getDb();
+	const now = Date.now();
+
+	await executeWithLockRetry(db, "ensure-conversation-row", async () => {
+		await db.execute(
+			`
+			INSERT INTO conversations (
+				conversation_id, other_profile_id, name, participants_json,
+				last_activity_timestamp, unread_count, pinned, muted, favorite,
+				preview_json, archived, archived_reason, archived_at,
+				last_seen_in_inbox_at, created_at, updated_at
+			) VALUES ($1, $2, '', '[]', $3, 0, 0, 0, 0, NULL, 0, NULL, NULL, NULL, $3, $3)
+			ON CONFLICT(conversation_id) DO NOTHING
+			`,
+			[conversationId, otherProfileId, now],
+		);
+	});
+}
+
 export async function setConversationArchived(
 	conversationId: string,
 	archived: boolean,
@@ -1399,6 +1434,7 @@ export async function insertSystemMessage(
 	conversationId: string,
 	type: SystemMessageType,
 	timestamp: number = Date.now(),
+	otherProfileId?: string | null,
 ): Promise<Message> {
 	const message: Message = {
 		messageId: `local-system:${type}:${conversationId}:${timestamp}`,
@@ -1424,6 +1460,7 @@ export async function insertSystemMessage(
 			conversationId,
 			type === "SystemBlocked" ? "blocked" : "unblocked",
 			timestamp,
+			otherProfileId,
 		);
 	}
 
@@ -1437,20 +1474,58 @@ export async function insertSystemMessage(
  * blocked us can later become fully unresolvable (deleted/banned, or its
  * conversation ages out of the live inbox), which would otherwise leave the
  * history page unable to show who it even was.
+ *
+ * `otherProfileIdFallback` covers being blocked by a profile we never had an
+ * actual chat thread with: there's no local conversation to read from, but the
+ * conversation id a chat.v1.conversation.delete carries still identifies the
+ * other profile (see deriveOtherProfileIdFromConversationId). When the
+ * conversation is missing (or has no name/avatar yet), the profile snapshot
+ * cache fills them in — it's written from any live fetch that still resolved to
+ * a real profile, including the block detection's own brief fetch in the
+ * seconds right after the block (a blocked profile is often still fetchable
+ * then, before it collapses to the nulled stub classifyProfileAccess detects).
  */
 async function recordBlockEvent(
 	conversationId: string,
 	eventType: BlockEventType,
 	timestamp: number,
+	otherProfileIdFallback?: string | null,
 ): Promise<void> {
 	const conversation = await getConversation(conversationId);
-	const otherProfileId = conversation?.otherProfileId ?? null;
+	const otherProfileId = conversation?.otherProfileId ?? otherProfileIdFallback ?? null;
 	const otherParticipant =
 		conversation?.entry.data.participants.find(
 			(p) => String(p.profileId) === otherProfileId,
 		) ?? conversation?.entry.data.participants[0] ?? null;
-	const displayName = conversation?.entry.data.name?.trim() || null;
-	const avatarMediaHash = otherParticipant?.primaryMediaHash ?? null;
+	let displayName = conversation?.entry.data.name?.trim() || null;
+	let avatarMediaHash = otherParticipant?.primaryMediaHash ?? null;
+
+	if ((!displayName || !avatarMediaHash) && otherProfileId) {
+		const snapshot = await getProfileSnapshot(otherProfileId).catch(() => null);
+		if (snapshot) {
+			try {
+				const parsed = JSON.parse(snapshot.data) as {
+					displayName?: string | null;
+					profileImageMediaHash?: string | null;
+				};
+				// Guard against persisting the blocked/gone stub's placeholder
+				// display name ("4"/"3") as if it were a real name.
+				if (
+					!displayName &&
+					parsed.displayName &&
+					parsed.displayName !== "4" &&
+					parsed.displayName !== "3"
+				) {
+					displayName = parsed.displayName;
+				}
+				if (!avatarMediaHash && parsed.profileImageMediaHash) {
+					avatarMediaHash = parsed.profileImageMediaHash;
+				}
+			} catch {
+				// Malformed snapshot — leave name/avatar unresolved.
+			}
+		}
+	}
 
 	const id = `${conversationId}:${eventType}:${timestamp}`;
 	const db = await getDb();

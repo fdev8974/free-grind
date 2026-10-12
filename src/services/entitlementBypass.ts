@@ -153,6 +153,21 @@ export function awaitEntitlementGrant(): Promise<void> {
 	return granting ?? Promise.resolve();
 }
 
+/**
+ * Moves the server-side location back home if a previous bypass was interrupted
+ * before it could return — a crash, a suspended mobile app, or a failed
+ * move-back can otherwise leave the account stranded in Honduras. Safe to call
+ * anytime (a no-op when nothing is stranded); best-effort and never throws.
+ * Run on app launch and before sign-out.
+ */
+export async function restoreStrandedLocation(): Promise<void> {
+	try {
+		await invoke<void>("restore_stranded_location");
+	} catch (error) {
+		appLog.error("[entitlements] could not restore a stranded location", error);
+	}
+}
+
 async function startBypass(home: string): Promise<void> {
 	const actions = blocked;
 	blocked = [];

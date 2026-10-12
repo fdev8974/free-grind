@@ -59,6 +59,7 @@ import { fetchAndStoreMedia } from "../services/mediaStore";
 import { captureAlbumsForMessages } from "../services/albumStore";
 import { captureReplyPreviewsForMessages } from "../services/replyMediaStore";
 import { getConversation, getDisplayName } from "../services/conversationDirectory";
+import { saveProfileSnapshot } from "../services/chatDb";
 import { runAutomationRulesForSender } from "../utils/automationRules";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useBlockedProfileIds } from "../hooks/queries/useProfileQueries";
@@ -523,7 +524,17 @@ export function ChatRealtimeBridge() {
 		): Promise<"accessible" | "not_found" | "blocked"> => {
 			try {
 				const profile = await apiFunctions.getProfileDetail(profileId);
-				return classifyProfileAccess(profile);
+				const status = classifyProfileAccess(profile);
+				// A profile that just blocked us is often still fully fetchable for
+				// a few seconds before it collapses to the nulled stub — snapshot
+				// it while we can (awaited, so it lands before recordBlockEvent reads
+				// it) so the Block Activity entry can show a name + avatar even for
+				// someone we never had a chat thread with. Mirrors GridProfilePage/
+				// ChatPage, which snapshot on any accessible fetch.
+				if (status === "accessible") {
+					await saveProfileSnapshot(profileId, JSON.stringify(profile)).catch(() => {});
+				}
+				return status;
 			} catch {
 				return "accessible";
 			}
