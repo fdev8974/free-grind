@@ -30,6 +30,7 @@ import {
 	Shield,
 	SlidersHorizontal,
 	Terminal,
+	FlaskConical,
     Workflow,
 	UserPlus,
 	UserX,
@@ -1063,6 +1064,13 @@ export function SettingsPage() {
 								"bg-[var(--surface-2)] text-[var(--text-muted)]",
 								t("settings.api_inspector"),
 								t("settings.api_inspector_desc"),
+							)}
+							{navRow(
+								() => navigate("/settings/assignments"),
+								<FlaskConical className="h-5 w-5" />,
+								"bg-[var(--surface-2)] text-[var(--text-muted)]",
+								"Assignments & Feature Flags",
+								"Server-side flags and A/B experiments assigned to this account.",
 							)}
 							{navRow(
 								replayOnboarding,
