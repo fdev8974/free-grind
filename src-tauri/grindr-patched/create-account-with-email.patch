@@ -1,0 +1,151 @@
+diff -ruN a/src/auth.rs b/src/auth.rs
+--- a/src/auth.rs	2026-10-12 03:04:50.213777304 +0200
++++ b/src/auth.rs	2026-10-12 03:04:50.214365795 +0200
+@@ -7,6 +7,7 @@
+ use tokio::time::Instant;
+ 
+ use crate::error::{BanInfo, GrindrError};
++use crate::request::{Access, Body, Request};
+ use crate::rest::InnerClient;
+ 
+ /// How a [`Session`] was obtained.
+@@ -179,6 +180,43 @@
+ 	pub captcha_token: Option<String>,
+ }
+ 
++/// A first-party account to create with
++/// [`create_account_with_email`](crate::GrindrClient::create_account_with_email).
++#[derive(Debug, Clone, Copy)]
++pub struct NewEmailAccount<'a> {
++	/// Account email address.
++	pub email: &'a str,
++	/// Account password.
++	pub password: &'a str,
++	/// Date of birth, Unix milliseconds.
++	pub birthday_ms: i64,
++	/// reCAPTCHA token scored against the `sign_up` action.
++	pub captcha_token: &'a str,
++	/// The device's FCM push token, sent as `token`.
++	pub push_token: &'a str,
++	/// Marketing email opt-in.
++	pub opt_in: bool,
++}
++
++/// `POST /v8/users` body, in the order the app's Moshi adapter writes it.
++#[derive(Debug, Serialize)]
++#[serde(rename_all = "camelCase")]
++struct CreateAccountEmailRequest<'a> {
++	email: &'a str,
++	password: &'a str,
++	birthday: i64,
++	captcha_token: &'a str,
++	token: &'a str,
++	opt_in: bool,
++	session_id: Option<&'a str>,
++}
++
++#[derive(Debug, Deserialize)]
++#[serde(rename_all = "camelCase")]
++struct CreateAccountResponse {
++	profile_id: String,
++}
++
+ #[derive(Debug, Serialize)]
+ #[serde(rename_all = "camelCase")]
+ pub(crate) struct RefreshRequest {
+@@ -514,6 +552,36 @@
+ 	Ok((session, result))
+ }
+ 
++pub(crate) async fn create_account_with_email(
++	inner: &InnerClient,
++	account: &NewEmailAccount<'_>,
++) -> Result<String, GrindrError> {
++	let body = CreateAccountEmailRequest {
++		email: account.email,
++		password: account.password,
++		birthday: account.birthday_ms,
++		captcha_token: account.captcha_token,
++		token: account.push_token,
++		opt_in: account.opt_in,
++		session_id: None,
++	};
++	// Serialized straight from the struct: Body::json goes through
++	// serde_json::Value, which would sort the keys.
++	let bytes = serde_json::to_vec(&body)
++		.map_err(|e| GrindrError::InvalidRequest(e.to_string()))?;
++	let mut request = Request::new(
++		wreq::Method::POST,
++		"/v8/users",
++		Body::Json(bytes.into()),
++	);
++	request.required_device_info =
++		Some(crate::rest::RequiredDeviceInfo::Real);
++	let resp: CreateAccountResponse = crate::rest::parse_json(
++		inner.send(Access::Anonymous, &request).await?,
++	)?;
++	Ok(resp.profile_id)
++}
++
+ pub(crate) async fn sign_in_with_email(
+ 	inner: &InnerClient,
+ 	auth: &AuthState,
+@@ -862,6 +930,23 @@
+ mod tests {
+ 	use super::*;
+ 
++	#[test]
++	fn create_account_body_keeps_the_adapter_key_order() {
++		let body = CreateAccountEmailRequest {
++			email: "user@example.com",
++			password: "pw",
++			birthday: 946_684_800_000,
++			captcha_token: "cap",
++			token: "fcm",
++			opt_in: false,
++			session_id: None,
++		};
++		assert_eq!(
++			serde_json::to_string(&body).unwrap(),
++			r#"{"email":"user@example.com","password":"pw","birthday":946684800000,"captchaToken":"cap","token":"fcm","optIn":false,"sessionId":null}"#
++		);
++	}
++
+ 	// Header {"alg":"HS256","typ":"JWT"} . payload {"exp":9999999999} . sig
+ 	const JWT: &str =
+ 		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTl9.sig";
+diff -ruN a/src/client.rs b/src/client.rs
+--- a/src/client.rs	2026-10-12 03:04:50.216318310 +0200
++++ b/src/client.rs	2026-10-12 03:04:50.216845044 +0200
+@@ -456,6 +456,16 @@
+ 		self.ensure_ws_task();
+ 	}
+ 
++	/// Creates a first-party account with email and password
++	/// (`POST /v8/users`) and returns its profile id. The response carries no
++	/// session: sign in afterwards on the same device.
++	pub async fn create_account_with_email(
++		&self,
++		account: &crate::NewEmailAccount<'_>,
++	) -> Result<String, GrindrError> {
++		crate::auth::create_account_with_email(&self.inner, account).await
++	}
++
+ 	/// Signs in with email and password and stores the session.
+ 	pub async fn sign_in_with_email(
+ 		&self,
+diff -ruN a/src/lib.rs b/src/lib.rs
+--- a/src/lib.rs	2026-10-12 03:04:50.218642718 +0200
++++ b/src/lib.rs	2026-10-12 03:04:50.219125327 +0200
+@@ -62,8 +62,9 @@
+ mod ws;
+ 
+ pub use auth::{
+-	AuthEvent, BanDetails, Credentials, RefreshFailureKind, Restriction,
+-	Session, SessionKind, SessionToken, SignInResult, VerificationRegion,
++	AuthEvent, BanDetails, Credentials, NewEmailAccount, RefreshFailureKind,
++	Restriction, Session, SessionKind, SessionToken, SignInResult,
++	VerificationRegion,
+ };
+ pub use captcha::{CaptchaAction, CaptchaTokenProvider};
+ pub use client::{probe_emulation, GrindrClient};

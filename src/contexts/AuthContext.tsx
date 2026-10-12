@@ -38,6 +38,12 @@ const AUTH_USER_ID_STORAGE_KEY = "fg-user-id";
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
 const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
 
+/** The FCM token Android handed over, cached or still waiting on window. */
+function cachedPushToken(): string | null {
+	const fallback = (window as Window & { __FG_FCM_TOKEN?: unknown }).__FG_FCM_TOKEN;
+	return window.localStorage.getItem(PUSH_TOKEN_STORAGE_KEY) || (typeof fallback === "string" ? fallback : null) || null;
+}
+
 // Grindr's API returns this generic validation error for several rejected-login
 // cases (wrong credentials, malformed/expired token) rather than a specific one,
 // so its raw "Error 4: invalid input parameters" text is meaningless to users.
@@ -308,7 +314,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 			// Sign-up is helper-only: rejects with a RecaptchaError without one.
 			const captchaToken = await mintRecaptchaToken("sign_up");
-			await callMethod("create_account", { email, password, birthday, optIn, captchaToken });
+			await callMethod("create_account", {
+				email,
+				password,
+				birthday,
+				optIn,
+				captchaToken,
+				pushToken: cachedPushToken(),
+			});
 			appLog.info("[Auth] signUp: account created");
 		} catch (error) {
 			if (error instanceof RecaptchaError) {

@@ -1,0 +1,11 @@
+extends:
+  - node_modules/@opengrind/config/lefthook.yml
+
+pre-commit:
+  commands:
+    clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets
+    rust-test:
+      glob: "*.rs"
+      run: cargo test --quiet

@@ -48,6 +48,8 @@ export const methodSchemas = {
 			birthday: z.number().int(),
 			optIn: z.boolean(),
 			captchaToken: z.string().min(1),
+			/** The device's FCM token, sent as the request's `token`. */
+			pushToken: z.string().min(1).nullable(),
 		}),
 		response: z.coerce.number().int().nonnegative(),
 	},
