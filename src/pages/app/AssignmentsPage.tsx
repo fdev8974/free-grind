@@ -113,7 +113,7 @@ function valueClass(value: string): string {
 	if (v === "off" || v === "false" || v === "disabled" || v === "control") {
 		return "bg-[var(--surface-2)] text-[var(--text-muted)]";
 	}
-	return "bg-[var(--accent)]/20 text-[var(--accent)]";
+	return "bg-[var(--accent)] text-[var(--accent-contrast)]";
 }
 
 function typeLabel(type: string | null): string {
@@ -199,7 +199,7 @@ export function AssignmentsPage() {
 	};
 
 	const chipClass = (active: boolean) =>
-		`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${active ? "bg-[var(--accent)] text-white" : "bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]"}`;
+		`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${active ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]"}`;
 
 	return (
 		<PullToRefreshContainer
