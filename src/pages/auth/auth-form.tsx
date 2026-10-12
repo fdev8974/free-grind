@@ -71,7 +71,7 @@ export function AuthAltAction({
 	icon,
 	label,
 	...target
-}: { icon: ReactNode; label: string } & ({ to: string } | { onClick: () => void })) {
+}: { icon?: ReactNode; label: string } & ({ to: string } | { onClick: () => void })) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	return (

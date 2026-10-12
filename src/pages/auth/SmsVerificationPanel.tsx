@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Hash, Phone, Plus } from "lucide-react";
+import { Hash, Phone, Plus } from "lucide-react";
 import { AuthShell } from "../../components/ui/auth-shell";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import { useApi } from "../../hooks/useApi";
@@ -12,6 +12,7 @@ const digitsOnly = (value: string) => value.replace(/\D/g, "");
 
 // Wait after a sendcode request before another one can be sent.
 const RESEND_COOLDOWN_MS = 60_000;
+const MAX_CODE_LENGTH = 6;
 
 /**
  * SMS verification page for a sign-in refused with code 30: text a code to a
@@ -198,7 +199,8 @@ export function SmsVerificationPanel({
 						inputMode="numeric"
 						autoComplete="one-time-code"
 						value={code}
-						onChange={(e) => setCode(digitsOnly(e.target.value))}
+						onChange={(e) => setCode(digitsOnly(e.target.value).slice(0, MAX_CODE_LENGTH))}
+						maxLength={MAX_CODE_LENGTH}
 						required
 						autoFocus
 						placeholder={t("auth.sms_verification.code_placeholder", { defaultValue: "Verification code" })}
@@ -219,6 +221,8 @@ export function SmsVerificationPanel({
 								setStep("phone");
 								setError(null);
 								setNotice(null);
+								// A different number may get its code right away.
+								setResendAt(null);
 							}}
 							className="text-[var(--text-muted)] hover:text-[var(--text)]"
 						>
@@ -243,7 +247,6 @@ export function SmsVerificationPanel({
 
 			<AuthAltAction
 				onClick={onCancel}
-				icon={<ArrowLeft className="h-4 w-4" />}
 				label={t("auth.sms_verification.back", { defaultValue: "Back" })}
 			/>
 		</AuthShell>
