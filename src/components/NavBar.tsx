@@ -1,5 +1,4 @@
-import { Grid as GridIcon, Flame, MessageCircle, Check, Loader2, Settings } from "lucide-react";
-import toast from "react-hot-toast";
+import { Grid as GridIcon, Flame, MessageCircle } from "lucide-react";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -27,7 +26,6 @@ import { Avatar } from "./ui/avatar";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import { getProfilePhotoHash } from "../pages/app/profile-editor/profileEditorUtils";
 import { getThumbImageUrl } from "../utils/media";
-import { getSavedAccountProfile } from "../services/savedAccountProfiles";
 
 // Bottom-nav style options; only offered (and only honoured) in the mobile app.
 export const NAV_SHOW_LABELS_KEY = "fg-nav-show-labels";
@@ -85,7 +83,7 @@ export function NavBar() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const apiFunctions = useApiFunctions();
-	const { userId, savedAccounts, switchAccount } = useAuth();
+	const { userId } = useAuth();
 	const { data: myProfile } = useMyOwnProfile();
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
@@ -123,47 +121,6 @@ export function NavBar() {
 	const profileImageHash = getProfilePhotoHash(myProfile);
 	const profilePhotoUrl = profileImageHash ? getThumbImageUrl(profileImageHash, "75x75") : null;
 
-	// Account tab: opens settings directly, or the account switcher first when
-	// more than one account is saved.
-	const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
-	const [switchingProfileId, setSwitchingProfileId] = useState<string | null>(null);
-	const accountSwitcherRef = useRef<HTMLDivElement>(null);
-	const hasAccountSwitcher = savedAccounts.length > 1;
-
-	useEffect(() => {
-		if (!isAccountSwitcherOpen) return;
-		const handler = (e: MouseEvent | TouchEvent) => {
-			const target = e.target as Element | null;
-			if (accountSwitcherRef.current?.contains(target)) return;
-			// Tapping the account tab itself toggles via its own click handler.
-			if (target?.closest?.("[data-nav-account-tab]")) return;
-			setIsAccountSwitcherOpen(false);
-		};
-		document.addEventListener("mousedown", handler);
-		document.addEventListener("touchstart", handler);
-		return () => {
-			document.removeEventListener("mousedown", handler);
-			document.removeEventListener("touchstart", handler);
-		};
-	}, [isAccountSwitcherOpen]);
-
-	useEffect(() => {
-		setIsAccountSwitcherOpen(false);
-	}, [location.pathname]);
-
-	const handleSwitchAccount = async (profileId: string) => {
-		setSwitchingProfileId(profileId);
-		try {
-			await switchAccount(profileId);
-			setIsAccountSwitcherOpen(false);
-			navigate("/");
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to switch account.");
-		} finally {
-			setSwitchingProfileId(null);
-		}
-	};
-
 	const navItems = [
 		{
 			value: "browse",
@@ -194,8 +151,8 @@ export function NavBar() {
 			visible: true, // Mandatory
 		},
 		{
-			value: "account",
-			label: t("nav.account", { defaultValue: "Account" }),
+			value: "settings",
+			label: t("nav.settings", { defaultValue: "Settings" }),
 			icon: null,
 			path: "/settings",
 			visible: true, // Mandatory
@@ -409,8 +366,6 @@ export function NavBar() {
 	}, [location.pathname]);
 
 	const handleTabChange = (value: string) => {
-		// With several accounts the account tab opens the switcher instead of navigating.
-		if (value === "account" && hasAccountSwitcher) return;
 		setActiveTab(value);
 		const item = navItems.find((i) => i.value === value);
 		if (item) {
@@ -437,7 +392,6 @@ export function NavBar() {
 			    Desktop/web: floating rounded card. */}
 			<div
 				className={cn(
-					"relative",
 					fullWidth
 						? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
 						: "mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5",
@@ -465,19 +419,11 @@ export function NavBar() {
 					>
 						{navItems.map((item) => {
 							const Icon = item.icon;
-							const isAccountTab = item.value === "account";
 							return (
 								<TabsTrigger
 									key={item.value}
 									value={item.value}
-									data-nav-account-tab={isAccountTab ? "" : undefined}
-									aria-expanded={isAccountTab && hasAccountSwitcher ? isAccountSwitcherOpen : undefined}
 									onClick={() => {
-										if (isAccountTab && hasAccountSwitcher) {
-											haptic(10);
-											setIsAccountSwitcherOpen((v) => !v);
-											return;
-										}
 										if (item.value === "browse" && activeTab === "browse") {
 											window.dispatchEvent(new CustomEvent("browse-scroll-top"));
 										}
@@ -513,12 +459,12 @@ export function NavBar() {
 												alt={t("browse_page.your_profile_photo")}
 												className={cn(
 													"h-6 w-6 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
-													activeTab === "account" || isAccountSwitcherOpen
-														? // The floating bar fills the active tab with the accent, so the ring flips to its contrast color there.
-															fullWidth || activeTab !== "account"
+													activeTab !== "settings"
+														? "ring-transparent"
+														: // The floating bar fills the active tab with the accent, so the ring flips to its contrast color there.
+															fullWidth
 															? "ring-[var(--accent)]"
-															: "ring-[var(--accent-contrast)]"
-														: "ring-transparent",
+															: "ring-[var(--accent-contrast)]",
 												)}
 											/>
 										)}
@@ -560,71 +506,6 @@ export function NavBar() {
 						})}
 					</TabsList>
 				</Tabs>
-
-				{isAccountSwitcherOpen && (
-					<div
-						ref={accountSwitcherRef}
-						className={cn(
-							"absolute bottom-full z-50 mb-2 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-150",
-							fullWidth ? "right-3" : "right-0",
-						)}
-					>
-						<div className="flex flex-col gap-1">
-							{savedAccounts.map((account) => {
-								const isActive = userId != null && String(userId) === account.profileId;
-								const isSwitching = switchingProfileId === account.profileId;
-								const savedProfile = getSavedAccountProfile(account.profileId);
-								return (
-									<button
-										key={account.profileId}
-										type="button"
-										onClick={() => void handleSwitchAccount(account.profileId)}
-										disabled={isActive || isSwitching}
-										className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default"
-									>
-										<div className="relative h-10 w-10 shrink-0">
-											<Avatar
-												src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
-												alt=""
-												className="h-full w-full rounded-full border-0"
-											/>
-											{isSwitching && (
-												<div className="absolute inset-0 flex items-center justify-center rounded-full bg-[var(--surface)]/80">
-													<Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
-												</div>
-											)}
-											{isActive && (
-												<div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-white ring-2 ring-[var(--surface)]">
-													<Check className="h-2.5 w-2.5" strokeWidth={3} />
-												</div>
-											)}
-										</div>
-										<div className="min-w-0 flex-1">
-											<p className="truncate text-sm font-semibold leading-snug text-[var(--text)]">
-												{savedProfile.displayName || t("settings.account_unnamed", { defaultValue: "Someone" })}
-											</p>
-											{account.email && (
-												<p className="truncate text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-													{account.email}
-												</p>
-											)}
-										</div>
-									</button>
-								);
-							})}
-						</div>
-						<div className="-mx-3 mt-2 border-t border-[var(--border)] px-3 pt-2">
-							<button
-								type="button"
-								onClick={() => { setIsAccountSwitcherOpen(false); navigate("/settings", { replace: true }); }}
-								className="flex w-full items-center justify-center gap-1.5 rounded-sm py-1.5 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-							>
-								<Settings className="h-3.5 w-3.5" />
-								{t("browse_page.settings")}
-							</button>
-						</div>
-					</div>
-				)}
 			</div>
 		</nav>
 	);
