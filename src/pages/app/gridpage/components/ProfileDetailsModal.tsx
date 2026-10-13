@@ -1592,7 +1592,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									<Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
 								</button>
 							)}
-							{(onBlockProfile || onUnblockProfile) && !isBlockedByOther && (
+							{(onBlockProfile || onUnblockProfile) && !isBlockedByOther && (isBlocked || !isSnapshotProfile) && (
 								<button
 									type="button"
 									onClick={() => isBlocked ? onUnblockProfile?.(String(messageProfileId)) : (messageProfileId && onBlockProfile?.(String(messageProfileId)))}
@@ -2217,7 +2217,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 													<Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
 												</button>
 											)}
-											{(onBlockProfile || onUnblockProfile) && !isBlockedByOther && (
+											{(onBlockProfile || onUnblockProfile) && !isBlockedByOther && (isBlocked || !isSnapshotProfile) && (
 												<button type="button" onClick={() => isBlocked ? onUnblockProfile?.(String(messageProfileId)) : (messageProfileId && onBlockProfile?.(String(messageProfileId)))} disabled={isBlockingProfile}
 													className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-60 ${isBlocked ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-red-500/40 bg-red-500/8 text-red-400 hover:border-red-500/70 hover:bg-red-500/15"}`}
 													aria-label={isBlocked ? t("profile_details.unblock") : t("profile_details.block")}>

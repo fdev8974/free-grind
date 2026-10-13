@@ -127,7 +127,7 @@ export function ChatInboxHeader({
 							{!isDesktop && !isSearchOpen && <ChatSyncHeaderCaption userId={userId} />}
 						</div>
 
-						<div className="flex shrink-0 items-center gap-0.5">
+						<div className="-my-2 flex shrink-0 items-center gap-0.5">
 							{!isSearchOpen && showSexualHealth && (
 								<button
 									type="button"

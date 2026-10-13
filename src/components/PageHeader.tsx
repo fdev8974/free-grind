@@ -51,8 +51,10 @@ export function PageHeader({
 	return (
 		<>
 			<header className={cn("page-header sticky top-0 z-30 -mx-[var(--app-px)] px-[var(--app-px)] pb-2.5", !subtitle && "mb-4", className)}>
+				{/* Full-bleed (100vw, centred) so the bar spans the window on desktop rather than
+				    stopping at the page's max-width; the overshoot is clipped by html's overflow-x. */}
 				<div
-					className="pointer-events-none absolute inset-0 border-b border-[var(--border)] bg-[var(--bg)] backdrop-blur-xl"
+					className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 border-b border-[var(--border)] bg-[var(--bg)] backdrop-blur-xl"
 					style={{ opacity: progress }}
 					aria-hidden="true"
 				/>
