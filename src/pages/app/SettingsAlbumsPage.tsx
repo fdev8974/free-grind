@@ -2,6 +2,7 @@ import {
 	AlertTriangle,
 	Check,
 	ChevronDown,
+	ChevronRight,
 	Clock,
 	Film,
 	FolderPlus,
@@ -33,6 +34,7 @@ import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
+import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
 import {
 	EmptyState,
 	ErrorState,
@@ -246,6 +248,8 @@ export function SettingsAlbumsPage() {
 	const [unsharingKey, setUnsharingKey] = useState<string | null>(null);
 	const [unsharingAllAlbumId, setUnsharingAllAlbumId] = useState<string | null>(null);
 	const [confirmUnshareAllAlbumId, setConfirmUnshareAllAlbumId] = useState<string | null>(null);
+	const [sharesSheetAlbumId, setSharesSheetAlbumId] = useState<string | null>(null);
+	const pendingShareNavigationRef = useRef<(() => void) | null>(null);
 
 	// DnD sensors
 	const sensors = useSensors(
@@ -544,12 +548,22 @@ export function SettingsAlbumsPage() {
 	useEffect(() => {
 		if (isLoading || albums.length === 0 || restoredRef.current) return;
 		restoredRef.current = true;
-		const savedId = sessionStorage.getItem("settings-albums-open");
-		if (!savedId || !albums.some((a) => a.albumId === savedId)) return;
-		setOpenAlbumId(savedId);
-		void loadAlbumDetails(savedId);
-		void loadAlbumShares(savedId);
-	}, [isLoading, albums, loadAlbumDetails, loadAlbumShares]);
+		// An album handed over via navigation state (e.g. the chat drawer's
+		// edit button) wins over the one remembered from this session.
+		const requestedId = (location.state as { openAlbumId?: unknown } | null)?.openAlbumId;
+		const fromNavigation = typeof requestedId === "string" || typeof requestedId === "number";
+		const savedId = fromNavigation ? String(requestedId) : sessionStorage.getItem("settings-albums-open");
+		if (!savedId || !albums.some((a) => String(a.albumId) === savedId)) return;
+		const albumId = albums.find((a) => String(a.albumId) === savedId)!.albumId;
+		setOpenAlbumId(albumId);
+		void loadAlbumDetails(albumId);
+		void loadAlbumShares(albumId);
+		if (fromNavigation) {
+			requestAnimationFrame(() => {
+				document.getElementById(`settings-album-${albumId}`)?.scrollIntoView({ block: "start", behavior: "smooth" });
+			});
+		}
+	}, [isLoading, albums, loadAlbumDetails, loadAlbumShares, location.state]);
 
 	const unshareAlbumFromProfile = async (albumId: string, profileId: number) => {
 		const key = `${albumId}:${profileId}`;
@@ -938,7 +952,7 @@ export function SettingsAlbumsPage() {
 								const isLoadingShares = loadingSharesAlbumId === album.albumId;
 
 								return (
-									<div key={album.albumId} className="surface-card overflow-hidden">
+									<div key={album.albumId} id={`settings-album-${album.albumId}`} className="surface-card overflow-hidden">
 										{/* Album row */}
 										<div
 											className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[var(--surface-2)]"
@@ -1040,10 +1054,10 @@ export function SettingsAlbumsPage() {
 											<div className="border-t border-[var(--border)] p-4">
 												{/* Media toolbar */}
 												<div className="mb-3 flex items-center justify-between gap-2">
-													<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+													<p className="min-w-0 truncate text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 														{t("settings_albums.section_content", { defaultValue: "Content" })}
 													</p>
-													<div className="flex items-center gap-1.5">
+													<div className="flex shrink-0 items-center gap-1.5">
 														<input
 															id={uploadInputId}
 															type="file"
@@ -1054,7 +1068,7 @@ export function SettingsAlbumsPage() {
 														/>
 														<label
 															htmlFor={uploadInputId}
-															className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+															className="inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
 														>
 															<Upload className="h-3.5 w-3.5" />
 															{uploadingAlbumId === album.albumId ? t("settings_albums.uploading") : t("settings_albums.upload")}
@@ -1062,7 +1076,7 @@ export function SettingsAlbumsPage() {
 														<button
 															type="button"
 															onClick={() => openDrawerPicker(album.albumId)}
-															className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+															className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
 														>
 															<Inbox className="h-3.5 w-3.5" />
 															{t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" })}
@@ -1114,91 +1128,30 @@ export function SettingsAlbumsPage() {
 													</DndContext>
 												)}
 
-												{/* Shared with section */}
-												<div className="mt-4">
-													{/* Section header */}
-													<p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+												{/* Shared with — compact row; the list itself lives in a bottom sheet. */}
+												<button
+													type="button"
+													onClick={() => {
+														setSharesSheetAlbumId(album.albumId);
+														void loadAlbumShares(album.albumId);
+													}}
+													className="mt-4 flex w-full items-center gap-3 rounded-xl border border-[var(--border)] px-3 py-2.5 text-left transition hover:border-[var(--accent)]"
+												>
+													<div className="shrink-0 rounded-xl bg-[var(--surface-2)] p-2 text-[var(--text-muted)]">
+														<Share2 className="h-4 w-4" />
+													</div>
+													<p className="min-w-0 flex-1 truncate text-sm font-semibold">
 														{t("settings_albums.shared_with", { defaultValue: "Shared With" })}
-														{shareProfiles && shareProfiles.length > 0 && (
-															<span className="ml-2 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums normal-case tracking-normal">
-																{shareProfiles.length}
-															</span>
-														)}
 													</p>
-
 													{isLoadingShares ? (
-														<div className="space-y-2">
-															{[0, 1].map((i) => (
-																<div key={i} className="flex items-center gap-3 py-1">
-																	<div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-[var(--surface-2)]" />
-																	<div className="min-w-0 flex-1 space-y-1.5">
-																		<div className="h-3.5 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
-																		<div className="h-3 w-16 animate-pulse rounded-full bg-[var(--surface-2)]" />
-																	</div>
-																	<div className="h-7 w-20 animate-pulse rounded-xl bg-[var(--surface-2)]" />
-																</div>
-															))}
-														</div>
-													) : !shareProfiles || shareProfiles.length === 0 ? (
-														<p className="text-sm text-[var(--text-muted)]">
-															{t("settings_albums.not_shared", { defaultValue: "Not shared with anyone." })}
-														</p>
+														<div className="h-4 w-6 shrink-0 animate-pulse rounded-full bg-[var(--surface-2)]" />
 													) : (
-														<>
-															<div className="max-h-[260px] overflow-y-auto overflow-x-hidden">
-																<div className="divide-y divide-[var(--border)]">
-																	{shareProfiles.map((profile) => {
-																		const uKey = `${album.albumId}:${profile.profileId}`;
-																		const isUnsharing = unsharingKey === uKey;
-																		return (
-																			<div key={profile.profileId} className="flex items-center gap-3 py-2.5">
-																				<button
-																					type="button"
-																					onClick={() => navigate(`/profile/${profile.profileId}`, { state: { returnTo: location.pathname } })}
-																					className="flex min-w-0 flex-1 items-center gap-3 text-left transition-opacity hover:opacity-70"
-																				>
-																					<div className="h-9 w-9 shrink-0 overflow-hidden rounded-full">
-																						<ProfileImage
-																							src={profile.avatarUrl}
-																							alt={profile.displayName}
-																						/>
-																					</div>
-																					<div className="min-w-0 flex-1">
-																						<p className="truncate text-sm font-semibold">{profile.displayName}</p>
-																						<p className="text-xs text-[var(--text-muted)]">
-																							{t("settings_blocked.profile_id", { id: profile.profileId })}
-																						</p>
-																					</div>
-																				</button>
-																				<button
-																					type="button"
-																					onClick={() => void unshareAlbumFromProfile(album.albumId, profile.profileId)}
-																					disabled={isUnsharing}
-																					className="shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-red-400/60 hover:bg-red-500/5 hover:text-red-400 disabled:opacity-50"
-																				>
-																					<UserMinus className="h-3.5 w-3.5" />
-																					{isUnsharing
-																						? t("settings_albums.unsharing", { defaultValue: "Removing…" })
-																						: t("settings_albums.unshare", { defaultValue: "Remove" })}
-																				</button>
-																			</div>
-																		);
-																	})}
-																</div>
-															</div>
-														<button
-																type="button"
-																onClick={() => setConfirmUnshareAllAlbumId(album.albumId)}
-																disabled={unsharingAllAlbumId === album.albumId}
-																className="mt-3 w-full inline-flex items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
-															>
-																{unsharingAllAlbumId === album.albumId
-																	? t("settings_albums.unsharing_all", { defaultValue: "Removing…" })
-																	: t("settings_albums.unshare_all", { defaultValue: "Remove All" })}
-															</button>
-														</>
+														<span className="shrink-0 text-sm font-medium tabular-nums text-[var(--text-muted)]">
+															{shareProfiles?.length ?? 0}
+														</span>
 													)}
-												</div>
+													<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+												</button>
 											</div>
 										)}
 									</div>
@@ -1216,6 +1169,112 @@ export function SettingsAlbumsPage() {
 					isDesktop={isDesktop}
 				/>
 			</div>
+
+			{sharesSheetAlbumId && (() => {
+				const albumId = sharesSheetAlbumId;
+				const shareProfiles = albumShareProfiles[albumId];
+				const isLoadingShares = loadingSharesAlbumId === albumId;
+				return (
+					<BottomSheet
+						onClose={() => {
+							setSharesSheetAlbumId(null);
+							// Navigate only after the sheet has popped its history entry.
+							const next = pendingShareNavigationRef.current;
+							pendingShareNavigationRef.current = null;
+							next?.();
+						}}
+						isDesktop={isDesktop}
+						panelClassName="max-h-[82dvh]"
+					>
+						<div className="flex items-center justify-between px-4 pb-3">
+							<p className="text-sm font-semibold text-[var(--text)]">
+								{t("settings_albums.shared_with", { defaultValue: "Shared With" })}
+								{shareProfiles && shareProfiles.length > 0 && (
+									<span className="ml-2 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums">
+										{shareProfiles.length}
+									</span>
+								)}
+							</p>
+							<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+								<X className="h-4 w-4" />
+							</SheetClose>
+						</div>
+						<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+							{isLoadingShares ? (
+								<div className="space-y-2">
+									{[0, 1].map((i) => (
+										<div key={i} className="flex items-center gap-3 py-1">
+											<div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-[var(--surface-2)]" />
+											<div className="min-w-0 flex-1 space-y-1.5">
+												<div className="h-3.5 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
+												<div className="h-3 w-16 animate-pulse rounded-full bg-[var(--surface-2)]" />
+											</div>
+											<div className="h-7 w-20 animate-pulse rounded-xl bg-[var(--surface-2)]" />
+										</div>
+									))}
+								</div>
+							) : !shareProfiles || shareProfiles.length === 0 ? (
+								<p className="py-2 text-sm text-[var(--text-muted)]">
+									{t("settings_albums.not_shared", { defaultValue: "Not shared with anyone." })}
+								</p>
+							) : (
+								<div className="divide-y divide-[var(--border)]">
+									{shareProfiles.map((profile) => {
+										const uKey = `${albumId}:${profile.profileId}`;
+										const isUnsharing = unsharingKey === uKey;
+										return (
+											<div key={profile.profileId} className="flex items-center gap-3 py-2.5">
+												<SheetClose
+													onClick={() => {
+														pendingShareNavigationRef.current = () =>
+															navigate(`/profile/${profile.profileId}`, { state: { returnTo: location.pathname } });
+													}}
+													className="flex min-w-0 flex-1 items-center gap-3 text-left transition-opacity hover:opacity-70"
+												>
+													<div className="h-9 w-9 shrink-0 overflow-hidden rounded-full">
+														<ProfileImage src={profile.avatarUrl} alt={profile.displayName} />
+													</div>
+													<div className="min-w-0 flex-1">
+														<p className="truncate text-sm font-semibold">{profile.displayName}</p>
+														<p className="text-xs text-[var(--text-muted)]">
+															{t("settings_blocked.profile_id", { id: profile.profileId })}
+														</p>
+													</div>
+												</SheetClose>
+												<button
+													type="button"
+													onClick={() => void unshareAlbumFromProfile(albumId, profile.profileId)}
+													disabled={isUnsharing}
+													className="shrink-0 inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-red-400/60 hover:bg-red-500/5 hover:text-red-400 disabled:opacity-50"
+												>
+													<UserMinus className="h-3.5 w-3.5" />
+													{isUnsharing
+														? t("settings_albums.unsharing", { defaultValue: "Removing…" })
+														: t("settings_albums.unshare", { defaultValue: "Remove" })}
+												</button>
+											</div>
+										);
+									})}
+								</div>
+							)}
+						</div>
+						{shareProfiles && shareProfiles.length > 0 && !isLoadingShares && (
+							<div className="px-4 pt-2">
+								<button
+									type="button"
+									onClick={() => setConfirmUnshareAllAlbumId(albumId)}
+									disabled={unsharingAllAlbumId === albumId}
+									className="w-full inline-flex items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+								>
+									{unsharingAllAlbumId === albumId
+										? t("settings_albums.unsharing_all", { defaultValue: "Removing…" })
+										: t("settings_albums.unshare_all", { defaultValue: "Remove All" })}
+								</button>
+							</div>
+						)}
+					</BottomSheet>
+				);
+			})()}
 
 			<ConfirmDialog
 				isOpen={confirmDeleteAlbumId !== null}

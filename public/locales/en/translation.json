@@ -1524,7 +1524,8 @@
     "is_expiring_title_off": "Send normal",
     "collection_badge": "Collection",
     "collection_empty_send": "None of this collection's media is in your drawer anymore.",
-    "collection_manage": "Manage collections"
+    "collection_manage": "Manage collections",
+    "album_manage": "Manage albums"
   },
   "favorites": {
     "added": "Added to favorites",

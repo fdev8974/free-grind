@@ -867,27 +867,44 @@ export function ChatDrawerPanel({
 						{/* Footer - Album share button */}
 						{hasAlbumSelection ? (() => {
 							const isSelectedShared = selectedAlbumIds.size > 0 && [...selectedAlbumIds].every(id => sharedAlbumIds.has(id));
+							const editButton = (
+								<button
+									type="button"
+									onClick={() => {
+										// With exactly one album selected, open it straight away there.
+										const [onlyAlbumId] = selectedAlbumIds.size === 1 ? [...selectedAlbumIds] : [];
+										onBack();
+										navigate("/settings/albums", onlyAlbumId != null ? { state: { openAlbumId: onlyAlbumId } } : undefined);
+									}}
+									disabled={isSharingAlbum}
+									className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+									aria-label={t("chat_drawer.album_manage")}
+									title={t("chat_drawer.album_manage")}
+								>
+									<Pencil className="h-4 w-4" />
+								</button>
+							);
 							return (
 								<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4 flex gap-2">
 									{isSelectedShared ? (
-										<button
-											type="button"
-											onClick={() => {
-												if (selectedAlbumIds.size === 0 || !onStopAlbumShare) return;
-												void Promise.all([...selectedAlbumIds].map(id => onStopAlbumShare!(id))).then(() => { setSelectedAlbumIds(new Set()); onBack(); });
-											}}
-											disabled={isSharingAlbum}
-											className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:opacity-60"
-										>
-											{isSharingAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-											<span>{t("chat.actions.stop_sharing", { defaultValue: "Stop Sharing" })} ({selectedAlbumIds.size})</span>
-										</button>
+										<>
+											{editButton}
+											<button
+												type="button"
+												onClick={() => {
+													if (selectedAlbumIds.size === 0 || !onStopAlbumShare) return;
+													void Promise.all([...selectedAlbumIds].map(id => onStopAlbumShare!(id))).then(() => { setSelectedAlbumIds(new Set()); onBack(); });
+												}}
+												disabled={isSharingAlbum}
+												className="min-w-0 flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:opacity-60"
+											>
+												{isSharingAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+												<span>{t("chat.actions.stop_sharing", { defaultValue: "Stop Sharing" })} ({selectedAlbumIds.size})</span>
+											</button>
+										</>
 									) : (
 										<>
-											<div
-												className="relative inline-flex h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
-												style={{ flex: "0 0 50%" }}
-											>
+											<div className="relative inline-flex h-11 min-w-0 flex-1 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]">
 												<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
 												<select
 													value={albumExpirationType}
@@ -899,6 +916,7 @@ export function ChatDrawerPanel({
 													))}
 												</select>
 											</div>
+											{editButton}
 											<button
 												type="button"
 												onClick={() => {
@@ -906,8 +924,7 @@ export function ChatDrawerPanel({
 													void Promise.all([...selectedAlbumIds].map(id => onShareAlbum!(id, albumExpirationType))).then(() => { setSelectedAlbumIds(new Set()); onBack(); });
 												}}
 												disabled={isSharingAlbum}
-												className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-												style={{ flex: "0 0 50%" }}
+												className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
 											>
 												{isSharingAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
 												<span>{isSharingAlbum ? t("chat_drawer.sending") : `${t("chat.share")} (${selectedAlbumIds.size})`}</span>

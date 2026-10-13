@@ -1496,7 +1496,8 @@
         "is_expiring_title_off": "",
         "collection_badge": "",
         "collection_empty_send": "",
-        "collection_manage": ""
+        "collection_manage": "",
+        "album_manage": ""
     },
     "favorites": {
         "added": "",
