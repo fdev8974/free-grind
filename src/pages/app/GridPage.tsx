@@ -1854,32 +1854,25 @@ export function GridPage() {
 				<GridTileContextMenu
 					x={tileContextMenu.x}
 					y={tileContextMenu.y}
+					isDesktop={isDesktop}
+					title={
+						localNicknamesByProfileId[tileContextMenu.card.profileId]?.trim() ||
+						getDisplayName(tileContextMenu.card) ||
+						t("common.unknown_display_name")
+					}
 					isFavorite={tileContextMenu.card.favorite === true}
 					hasNickname={Boolean(localNicknamesByProfileId[tileContextMenu.card.profileId])}
 					onClose={handleCloseTileContextMenu}
-					onMessage={() => {
-						setTileContextMenu(null);
-						handleMessageProfile(tileContextMenu.card.profileId);
-					}}
-					onToggleFavorite={() => {
-						setTileContextMenu(null);
+					onMessage={() => handleMessageProfile(tileContextMenu.card.profileId)}
+					onToggleFavorite={() =>
 						void handleToggleFavoriteProfile(
 							tileContextMenu.card.profileId,
 							tileContextMenu.card.favorite === true,
-						);
-					}}
-					onEditNickname={() => {
-						setTileContextMenu(null);
-						setNicknamePromptCard(tileContextMenu.card);
-					}}
-					onHide={() => {
-						setTileContextMenu(null);
-						handleHideProfile(tileContextMenu.card.profileId);
-					}}
-					onBlock={() => {
-						setTileContextMenu(null);
-						void handleBlockProfile(tileContextMenu.card.profileId);
-					}}
+						)
+					}
+					onEditNickname={() => setNicknamePromptCard(tileContextMenu.card)}
+					onHide={() => handleHideProfile(tileContextMenu.card.profileId)}
+					onBlock={() => void handleBlockProfile(tileContextMenu.card.profileId)}
 				/>
 			)}
 
