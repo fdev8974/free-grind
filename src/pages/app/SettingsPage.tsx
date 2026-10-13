@@ -1076,7 +1076,7 @@ export function SettingsPage() {
 																className={
 																	percent == null
 																		? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
-																		: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+																		: "h-full rounded-full bg-[var(--accent)] transition-[width] duration-200"
 																}
 																style={percent != null ? { width: `${percent}%` } : undefined}
 															/>

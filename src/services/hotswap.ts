@@ -41,14 +41,22 @@ if (typeof window !== "undefined") {
 			const name = (event.payload as { event?: string } | null)?.event;
 			// applyUpdate() keeps running after the download (verify, extract, activate).
 			if (name === "download-complete" && progress.phase === "downloading") {
-				setProgress({ phase: "installing" });
+				// Fill the bar first, then switch once its width transition has finished.
+				if (progress.total) {
+					setProgress({ phase: "downloading", downloaded: progress.total, total: progress.total });
+				}
+				setTimeout(() => {
+					if (progress.phase === "downloading") setProgress({ phase: "installing" });
+				}, 250);
 			}
 		});
 		await listen("hotswap://download-progress", (event) => {
 			const p = event.payload as { downloaded: number; total?: number | null };
 			appLog.debug(`[hotswap-progress] ${p.downloaded}/${p.total ?? "?"}`);
-			if (progress.phase === "downloading") {
-				setProgress({ phase: "downloading", downloaded: p.downloaded, total: p.total ?? null });
+			// Never move backwards: a retry restarts the stream at 0 and late events can
+			// arrive out of order — the bar holds its position instead of jumping back.
+			if (progress.phase === "downloading" && p.downloaded > progress.downloaded) {
+				setProgress({ phase: "downloading", downloaded: p.downloaded, total: p.total ?? progress.total });
 			}
 		});
 	})();
@@ -219,11 +227,22 @@ export async function checkForHotswapUpdate(): Promise<HotswapCheckResult> {
 	};
 }
 
-export async function installHotswapUpdate(): Promise<void> {
+// Shared so a manual install during the startup auto-install joins it instead of
+// starting a second, interleaved download.
+let installInFlight: Promise<void> | null = null;
+
+export function installHotswapUpdate(): Promise<void> {
 	if (!isHotswapAvailable()) {
-		return;
+		return Promise.resolve();
 	}
 
+	installInFlight ??= runInstall().finally(() => {
+		installInFlight = null;
+	});
+	return installInFlight;
+}
+
+async function runInstall(): Promise<void> {
 	setProgress({ phase: "downloading", downloaded: 0, total: null });
 	let version: string;
 	try {
