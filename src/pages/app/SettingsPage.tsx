@@ -311,6 +311,7 @@ export function SettingsPage() {
 	const inboxSyncStatus = useInboxSyncStatus(userId);
 	const inboxSyncDisplay = describeInboxSyncStatus(inboxSyncStatus, t);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const settingsSearchIndex = useSettingsSearchIndex();
 	const searchResults = useMemo(() => {
 		const query = searchQuery.trim().toLowerCase();
@@ -626,29 +627,51 @@ export function SettingsPage() {
 						Developer Mode
 					</span>
 				) : null}
-				subtitle={t("settings.subtitle")}
-			/>
-
-			<div className="settings-search-bar mb-6 flex items-center gap-2.5 px-4 py-0.5">
-				<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-				<input
-					type="search"
-					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					placeholder={t("settings.search_placeholder")}
-					className="h-11 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
-				/>
-				{searchQuery ? (
+				subtitle={isSearchOpen ? undefined : t("settings.subtitle")}
+				actions={
 					<button
 						type="button"
-						onClick={() => setSearchQuery("")}
-						className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-						aria-label={t("common.clear", { defaultValue: "Clear" })}
+						onClick={() => {
+							if (isSearchOpen) setSearchQuery("");
+							setIsSearchOpen(!isSearchOpen);
+						}}
+						className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+						aria-label={isSearchOpen ? t("common.close", { defaultValue: "Close" }) : t("settings.search_placeholder")}
 					>
-						<X className="h-4 w-4" />
+						{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
 					</button>
-				) : null}
-			</div>
+				}
+			/>
+
+			{isSearchOpen && (
+				<div className="settings-search-bar mb-6 flex items-center gap-2.5 px-4 py-0.5">
+					<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+					<input
+						type="search"
+						autoFocus
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						onKeyDown={(e) => {
+							if (e.key === "Escape") {
+								setSearchQuery("");
+								setIsSearchOpen(false);
+							}
+						}}
+						placeholder={t("settings.search_placeholder")}
+						className="h-11 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
+					/>
+					{searchQuery ? (
+						<button
+							type="button"
+							onClick={() => setSearchQuery("")}
+							className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+							aria-label={t("common.clear", { defaultValue: "Clear" })}
+						>
+							<X className="h-4 w-4" />
+						</button>
+					) : null}
+				</div>
+			)}
 
 			{searchQuery.trim() ? (
 				<div className="grid gap-6">
