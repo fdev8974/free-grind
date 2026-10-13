@@ -375,7 +375,14 @@ export function NavBar() {
 					// background spans the full screen on mobile.
 					className={cn(isMobilePlatform && "mx-auto w-full max-w-4xl px-[calc(0.75rem+1px+0.375rem)]")}
 				>
-					<TabsList className={`grid h-16 w-full ${gridColsClass} bg-transparent p-0 md:h-[4.1rem]`}>
+					<TabsList
+						className={cn(
+							"grid w-full bg-transparent p-0",
+							gridColsClass,
+							// Mobile app without labels: keep icon size, shrink the bar instead.
+							isMobilePlatform && hideLabels ? "h-12" : "h-16 md:h-[4.1rem]",
+						)}
+					>
 						{navItems.map((item) => {
 							const Icon = item.icon;
 							return (
@@ -409,7 +416,7 @@ export function NavBar() {
 									)}
 								>
 									<div className="relative">
-										<Icon className={hideLabels ? "h-7 w-7" : "h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]"} />
+										<Icon className={hideLabels && !isMobilePlatform ? "h-7 w-7" : "h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]"} />
 										{(item.value === "inbox" && inboxUnseen) ||
 										(item.value === "interest" && interestUnseen) ? (
 											<span className="absolute -right-1 -top-1 flex h-2 w-2">
