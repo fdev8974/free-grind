@@ -1,5 +1,5 @@
 import { useAuth } from "../../contexts/useAuth";
-import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, Check, Loader2, RefreshCw, Settings, X } from "lucide-react";
+import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X } from "lucide-react";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -24,8 +24,7 @@ import {
 	setCachedBrowseCards,
 	setCachedProfileDetail,
 } from "./gridpage/cache";
-import { setSavedAccountDisplayName, setSavedAccountPhotoHash, getSavedAccountProfile } from "../../services/savedAccountProfiles";
-import { Avatar } from "../../components/ui/avatar";
+import { setSavedAccountDisplayName, setSavedAccountPhotoHash } from "../../services/savedAccountProfiles";
 import {
 	type BrowseSortOption,
 	getCachedBrowseFiltersDraft,
@@ -86,7 +85,7 @@ export function GridPage() {
 	const BROWSE_LOAD_TIMEOUT_MS = 15000;
 	const TAP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-	const { userId, savedAccounts, switchAccount, settingsReady } = useAuth();
+	const { userId, settingsReady } = useAuth();
 	const apiFunctions = useApiFunctions();
 	const {
 		geohash,
@@ -360,9 +359,6 @@ export function GridPage() {
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const [isLocationOpen, setIsLocationOpen] = useState(false);
-	const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
-	const [switchingProfileId, setSwitchingProfileId] = useState<string | null>(null);
-	const accountSwitcherRef = useRef<HTMLDivElement>(null);
 
 	const {
 		tappingProfileId,
@@ -412,30 +408,6 @@ export function GridPage() {
 			setIsTogglingDistance(false);
 		}
 	}, [apiFunctions, isTogglingDistance, showDistance, queryClient, t]);
-
-	useEffect(() => {
-		if (!isAccountSwitcherOpen) return;
-		const handler = (e: MouseEvent) => {
-			if (accountSwitcherRef.current && !accountSwitcherRef.current.contains(e.target as Node)) {
-				setIsAccountSwitcherOpen(false);
-			}
-		};
-		document.addEventListener("mousedown", handler);
-		return () => document.removeEventListener("mousedown", handler);
-	}, [isAccountSwitcherOpen]);
-
-	const handleSwitchAccount = async (profileId: string) => {
-		setSwitchingProfileId(profileId);
-		try {
-			await switchAccount(profileId);
-			setIsAccountSwitcherOpen(false);
-			navigate("/");
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to switch account.");
-		} finally {
-			setSwitchingProfileId(null);
-		}
-	};
 
 	const browseCacheKey = useMemo(() => {
 		if (!geohash) {
@@ -1008,14 +980,6 @@ export function GridPage() {
 		};
 	}, [activeProfileId]);
 
-	const profilePhotoUrl = useMemo(() => {
-		if (!profileImageHash) {
-			return null;
-		}
-
-		return getThumbImageUrl(profileImageHash, "75x75");
-	}, [profileImageHash]);
-
 	const selfCardImageUrl = useMemo(
 		() => profileImageHash ? getThumbImageUrl(profileImageHash, "320x320") : null,
 		[profileImageHash],
@@ -1451,87 +1415,6 @@ export function GridPage() {
 					<div>
 						<div>
 							<div className="mb-1 flex items-center gap-2">
-								<div ref={accountSwitcherRef} className="relative shrink-0">
-									<button
-										type="button"
-										onClick={() => {
-											if (savedAccounts.length <= 1) {
-												navigate("/settings");
-											} else {
-												setIsAccountSwitcherOpen((v) => !v);
-											}
-										}}
-										className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full ring-2 ring-transparent transition-all hover:ring-[var(--border)] hover:brightness-110 active:scale-95"
-										aria-label={t("browse_page.open_settings")}
-										aria-expanded={isAccountSwitcherOpen}
-										title={t("browse_page.settings")}
-									>
-										<Avatar
-											src={profilePhotoUrl}
-											alt={t("browse_page.your_profile_photo")}
-											className="h-full w-full"
-										/>
-									</button>
-									{isAccountSwitcherOpen && (
-									<div className="absolute left-0 top-full z-50 mt-2 w-max min-w-[14rem] max-w-[calc(100vw-2*var(--app-px))] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150">
-										<div className="flex flex-col gap-1">
-											{savedAccounts.map((account) => {
-												const isActive = userId != null && String(userId) === account.profileId;
-												const isSwitching = switchingProfileId === account.profileId;
-												const savedProfile = getSavedAccountProfile(account.profileId);
-												return (
-													<button
-														key={account.profileId}
-														type="button"
-														onClick={() => void handleSwitchAccount(account.profileId)}
-														disabled={isActive || isSwitching}
-														className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default"
-													>
-														<div className="relative h-10 w-10 shrink-0">
-															<Avatar
-																src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
-																alt=""
-																className="h-full w-full rounded-full border-0"
-															/>
-															{isSwitching && (
-																<div className="absolute inset-0 flex items-center justify-center rounded-full bg-[var(--surface)]/80">
-																	<Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
-																</div>
-															)}
-															{isActive && (
-																<div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-white ring-2 ring-[var(--surface)]">
-																	<Check className="h-2.5 w-2.5" strokeWidth={3} />
-																</div>
-															)}
-														</div>
-														<div className="min-w-0 flex-1">
-															<p className="truncate text-sm font-semibold leading-snug text-[var(--text)]">
-																{savedProfile.displayName || t("settings.account_unnamed", { defaultValue: "Someone" })}
-															</p>
-															{account.email && (
-																<p className="truncate text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-																	{account.email}
-																</p>
-															)}
-														</div>
-													</button>
-												);
-											})}
-										</div>
-										<div className="-mx-3 mt-2 border-t border-[var(--border)] px-3 pt-2">
-											<button
-												type="button"
-												onClick={() => { setIsAccountSwitcherOpen(false); navigate("/settings"); }}
-												className="flex w-full items-center justify-center gap-1.5 rounded-sm py-1.5 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-											>
-												<Settings className="h-3.5 w-3.5" />
-												{t("browse_page.settings")}
-											</button>
-										</div>
-									</div>
-								)}
-								</div>
-
 								<div
 									className="glass-pill inline-flex h-12 w-full items-center overflow-hidden transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_26%,transparent)] has-[button:active]:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_38%,transparent)]"
 									style={{ "--pill-color": exploreLocation ? EXPLORE_COLOR : "var(--accent)" } as React.CSSProperties}

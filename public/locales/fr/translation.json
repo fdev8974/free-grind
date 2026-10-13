@@ -477,7 +477,8 @@
         "browse": "Explorer",
         "right_now": "Right Now",
         "interest": "Activité",
-        "inbox": "Messagerie"
+        "inbox": "Messagerie",
+        "account": ""
     },
     "browse_page": {
         "title": "Explorer les profils",

@@ -472,7 +472,8 @@
         "browse": "تصفح",
         "right_now": "دلوقتي",
         "interest": "الاهتمام",
-        "inbox": "الرسائل"
+        "inbox": "الرسائل",
+        "account": ""
     },
     "browse_page": {
         "title": "تصفح البروفايلات الشخصية",

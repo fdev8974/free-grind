@@ -477,7 +477,8 @@
         "browse": "Navegar",
         "right_now": "Right Now",
         "interest": "Interés",
-        "inbox": "Buzón"
+        "inbox": "Buzón",
+        "account": ""
     },
     "browse_page": {
         "title": "Buscar perfiles",

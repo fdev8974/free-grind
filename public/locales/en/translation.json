@@ -472,7 +472,8 @@
     "browse": "Browse",
     "right_now": "Right Now",
     "interest": "Interest",
-    "inbox": "Inbox"
+    "inbox": "Inbox",
+    "account": "Account"
   },
   "browse_page": {
     "title": "Browse Profiles",

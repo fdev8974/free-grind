@@ -477,7 +477,8 @@
         "browse": "Navegar",
         "right_now": "Right Now",
         "interest": "Interesse",
-        "inbox": "Caixa de entrada"
+        "inbox": "Caixa de entrada",
+        "account": ""
     },
     "browse_page": {
         "title": "Ver perfis",
