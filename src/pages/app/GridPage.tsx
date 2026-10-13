@@ -366,12 +366,26 @@ export function GridPage() {
 
 	// Fade the right edge of the quick-filter row while more chips are
 	// scrolled out of view — otherwise nothing hints that the row scrolls.
+	// The mask goes on each chip, not the scroll container: a masked ancestor
+	// becomes the backdrop root and kills the pills' backdrop-blur glass effect.
 	const chipRowRef = useRef<HTMLDivElement | null>(null);
-	const [chipRowHasMore, setChipRowHasMore] = useState(false);
 	const updateChipRowFade = useCallback(() => {
 		const el = chipRowRef.current;
-		if (!el) return;
-		setChipRowHasMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+		const row = el?.firstElementChild;
+		if (!el || !row) return;
+		const hasMore = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+		const fadeEnd = el.getBoundingClientRect().right;
+		const fadeStart = fadeEnd - 48;
+		for (const chip of Array.from(row.children) as HTMLElement[]) {
+			const rect = chip.getBoundingClientRect();
+			let mask = "";
+			if (hasMore && rect.right > fadeStart) {
+				// Gradient stops in chip-local px so all chips share one continuous fade.
+				mask = `linear-gradient(to right, black ${fadeStart - rect.left}px, transparent ${fadeEnd - rect.left}px)`;
+			}
+			chip.style.maskImage = mask;
+			chip.style.webkitMaskImage = mask;
+		}
 	}, []);
 	useEffect(() => {
 		const el = chipRowRef.current;
@@ -1543,14 +1557,6 @@ export function GridPage() {
 								ref={chipRowRef}
 								onScroll={updateChipRowFade}
 								className="-mx-[var(--app-px)] overflow-x-auto pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-								style={
-									chipRowHasMore
-										? {
-											maskImage: "linear-gradient(to right, black calc(100% - 48px), transparent)",
-											WebkitMaskImage: "linear-gradient(to right, black calc(100% - 48px), transparent)",
-										}
-										: undefined
-								}
 							>
 								<div className="flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">
 									<button
