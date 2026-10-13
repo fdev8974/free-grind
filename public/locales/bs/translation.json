@@ -1003,7 +1003,11 @@
         "auto_focus_location_search_desc": "Automatski fokusiraj polje za pretragu pri otvaranju prozora lokacije. Isključi ako ti smeta da se tastatura odmah pojavi.",
         "display": "Ekran",
         "keep_screen_on": "Drži ekran uključenim",
-        "keep_screen_on_desc": "Spriječi zatamnjivanje ili zaključavanje ekrana dok je aplikacija otvorena. Automatski se isključuje kad napustiš aplikaciju."
+        "keep_screen_on_desc": "Spriječi zatamnjivanje ili zaključavanje ekrana dok je aplikacija otvorena. Automatski se isključuje kad napustiš aplikaciju.",
+        "grid": "",
+        "double_tap_tap_type": "",
+        "double_tap_tap_type_desc": "",
+        "double_tap_off": ""
     },
     "notifications_page": {
         "subtitle": "Odaberi koja obavještenja primaš i da li se prikazuju dok je aplikacija otvorena.",

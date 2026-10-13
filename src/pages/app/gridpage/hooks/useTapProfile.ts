@@ -83,16 +83,28 @@ export function useTapProfile({
 		return sentFromServer || sentLocally;
 	}, [activeProfile, activeProfileId, tapVisualStates, TAP_WINDOW_MS]);
 
+	// Synchronous pre-check so callers (e.g. the grid tile double tap) can
+	// decide on optimistic feedback before the request goes out.
+	const canTapProfile = useCallback(
+		(profileId: string) => {
+			if (tappingProfileId === profileId) {
+				return false;
+			}
+			const sentFromServer =
+				activeProfile?.profileId === profileId && activeProfile.tapped === true;
+			const sentLocally = isWithinWindow(tapVisualStates[profileId]?.sentAt, TAP_WINDOW_MS);
+			return !sentFromServer && !sentLocally;
+		},
+		[activeProfile, tapVisualStates, tappingProfileId, TAP_WINDOW_MS],
+	);
+
 	const handleTapProfile = useCallback(
 		async (profileId: string, tapId: number = 1) => {
 			if (tappingProfileId === profileId) {
 				return;
 			}
 
-			const sentFromServer =
-				activeProfile?.profileId === profileId && activeProfile.tapped === true;
-			const sentLocally = isWithinWindow(tapVisualStates[profileId]?.sentAt, TAP_WINDOW_MS);
-			if (sentFromServer || sentLocally) {
+			if (!canTapProfile(profileId)) {
 				toast(t("browse_page.toasts.tap_limit"));
 				return;
 			}
@@ -143,7 +155,7 @@ export function useTapProfile({
 				);
 			}
 		},
-		[activeProfile, tap, tapVisualStates, tappingProfileId, TAP_WINDOW_MS, t, setPreferences],
+		[canTapProfile, tap, tappingProfileId, setActiveProfile, t, setPreferences],
 	);
 
 	return {
@@ -151,6 +163,7 @@ export function useTapProfile({
 		tapVisualStates,
 		resolvedTapVisualState,
 		hasSentTapRecently,
+		canTapProfile,
 		handleTapProfile,
 	};
 }

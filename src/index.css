@@ -1295,3 +1295,42 @@ dialog::backdrop {
 		color: var(--accent) !important;
 	}
 }
+
+/* Grid tile double-tap burst (tint via --burst-rgb, see TileFlameBurst) */
+@keyframes tile-flame-glow {
+  0%   { opacity: 0; transform: scale(0.6); }
+  25%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+.tile-flame-glow {
+  background: radial-gradient(circle at 50% 55%, rgba(var(--burst-rgb, 255, 140, 20), 0.55) 0%, rgba(var(--burst-rgb, 255, 140, 20), 0.25) 35%, transparent 70%);
+  mix-blend-mode: screen;
+  animation: tile-flame-glow 0.9s ease-out forwards;
+}
+
+@keyframes tile-flame-emoji {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(-12deg); }
+  25%  { opacity: 1; transform: translate(-50%, -55%) scale(1.35) rotate(6deg); }
+  40%  { transform: translate(-50%, -52%) scale(0.95) rotate(-3deg); }
+  55%  { opacity: 1; transform: translate(-50%, -54%) scale(1.05) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-50%, -110%) scale(0.85) rotate(4deg); }
+}
+.tile-flame-emoji {
+  animation: tile-flame-emoji 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  filter: drop-shadow(0 0 10px rgba(var(--burst-rgb, 255, 140, 20), 0.9)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+
+@keyframes tile-flame-ember {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  12%  { opacity: 1; transform: translate(calc(var(--dx) * 0.15), calc(var(--dy) * 0.15)) scale(1.2); }
+  60%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); }
+}
+.tile-flame-ember {
+  opacity: 0;
+  animation: tile-flame-ember var(--dur, 0.8s) cubic-bezier(0.22, 0.61, 0.36, 1) var(--delay, 0s) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-flame-ember { display: none; }
+}

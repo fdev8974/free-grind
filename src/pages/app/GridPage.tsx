@@ -405,6 +405,7 @@ export function GridPage() {
 		tappingProfileId,
 		resolvedTapVisualState,
 		hasSentTapRecently,
+		canTapProfile,
 		handleTapProfile,
 	} = useTapProfile({
 		activeProfile,
@@ -1169,6 +1170,16 @@ export function GridPage() {
 		return hashes;
 	}, [activeProfile]);
 
+	// Grid tile double tap sends the tap type chosen in Behavior settings.
+	// Returns whether the tap goes out so the tile only plays its burst
+	// animation when it actually does; a blocked tap still runs through
+	// handleTapProfile for the "already tapped" toast.
+	const handleDoubleTapProfile = (profileId: string, tapId: number) => {
+		const willSend = canTapProfile(profileId);
+		void handleTapProfile(profileId, tapId);
+		return willSend;
+	};
+
 	const handleSelectProfile = (profileId: string) => {
 		if (window.matchMedia("(max-width: 639px)").matches) {
 			navigate(`/profile/${profileId}`, {
@@ -1750,6 +1761,7 @@ export function GridPage() {
 							}
 							localNicknamesByProfileId={localNicknamesByProfileId}
 							onSelectProfile={handleSelectProfile}
+							onDoubleTapProfile={handleDoubleTapProfile}
 							onMessageProfile={handleMessageProfile}
 							onOpenContextMenu={handleOpenTileContextMenu}
 							hasMore={nextPage !== null && !(nicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}

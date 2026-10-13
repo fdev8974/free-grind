@@ -12,17 +12,24 @@ import { ProfileImage } from "../../../../components/ui/profile-image";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { useRevealOnScroll } from "../../../../hooks/useRevealOnScroll";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { haptic } from "../../../../utils/haptics";
+import { TileFlameBurst } from "./TileFlameBurst";
 
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
+// A second tap within this window counts as a double tap (flame); a single
+// tap only opens the profile once the window has passed.
+const DOUBLE_TAP_MS = 250;
+const FLAME_BURST_MS = 1200;
 
 type BrowseCardTileProps = {
 	card: BrowseCard;
 	chatContactStatus?: ChatContactIndexRecord | null;
 	localNickname?: string;
 	onSelectProfile: (profileId: string) => void;
+	/** Returns whether the tap was actually sent, which gates the fire animation. */
+	onDoubleTapProfile?: (profileId: string, tapId: number) => boolean;
 	onMessageProfile: (profileId: string) => void;
 	onOpenContextMenu?: (card: BrowseCard, x: number, y: number) => void;
 	isDesktop?: boolean;
@@ -33,12 +40,13 @@ export function BrowseCardTile({
 	chatContactStatus,
 	localNickname,
 	onSelectProfile,
+	onDoubleTapProfile,
 	onMessageProfile: _onMessageProfile,
 	onOpenContextMenu,
 	isDesktop = false,
 }: BrowseCardTileProps) {
 	const { t } = useTranslation();
-	const { unitsPreset, showDebugInfo, blurGridProfilePictures } = usePreferences();
+	const { unitsPreset, showDebugInfo, blurGridProfilePictures, doubleTapTapType } = usePreferences();
 	const { ref, revealClass } = useRevealOnScroll();
 	const name = localNickname?.trim() || getDisplayName(card);
 	const onlineStatus = getOnlineStatusMeta(card.lastOnline, card.onlineUntil);
@@ -106,12 +114,45 @@ export function BrowseCardTile({
 		onOpenContextMenu?.(card, event.clientX, event.clientY);
 	};
 
+	const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const [flameBurst, setFlameBurst] = useState<{ key: number; tapId: number } | null>(null);
+
+	useEffect(() => {
+		if (flameBurst === null) return;
+		const timer = setTimeout(() => setFlameBurst(null), FLAME_BURST_MS);
+		return () => clearTimeout(timer);
+	}, [flameBurst]);
+
+	useEffect(() => () => {
+		if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+	}, []);
+
 	const handleClick = () => {
 		if (longPressTriggeredRef.current) {
 			longPressTriggeredRef.current = false;
 			return;
 		}
-		if (!isDemoCard) onSelectProfile(card.profileId);
+		if (isDemoCard) return;
+		// Without double tap there's nothing to wait for, so open right away.
+		if (!onDoubleTapProfile || doubleTapTapType === null) {
+			onSelectProfile(card.profileId);
+			return;
+		}
+
+		if (singleTapTimerRef.current) {
+			clearTimeout(singleTapTimerRef.current);
+			singleTapTimerRef.current = null;
+			if (onDoubleTapProfile(card.profileId, doubleTapTapType)) {
+				haptic(30, [15, 10, 25]);
+				setFlameBurst({ key: Date.now(), tapId: doubleTapTapType });
+			}
+			return;
+		}
+
+		singleTapTimerRef.current = setTimeout(() => {
+			singleTapTimerRef.current = null;
+			onSelectProfile(card.profileId);
+		}, DOUBLE_TAP_MS);
 	};
 
 
@@ -128,7 +169,7 @@ export function BrowseCardTile({
 				onPointerLeave={cancelPress}
 				onContextMenu={handleContextMenu}
 				className={cn(
-					"no-touch-callout surface-card-grid overflow-hidden text-left transition-transform w-full block relative",
+					"no-touch-callout touch-manipulation surface-card-grid overflow-hidden text-left transition-transform w-full block relative",
 					!isDemoCard && "active:scale-95",
 					isDesktop
 						? "rounded-xl shadow-sm"
@@ -269,6 +310,8 @@ export function BrowseCardTile({
 							</span>
 						)}
 					</div>
+
+					{flameBurst !== null && <TileFlameBurst key={flameBurst.key} tapId={flameBurst.tapId} />}
 					</div>
 				</div>
 			</button>

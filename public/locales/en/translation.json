@@ -995,7 +995,11 @@
     "auto_focus_location_search_desc": "Automatically focus the search text field when opening the location overlay. Turn off if the keyboard popping up right away bothers you.",
     "display": "Display",
     "keep_screen_on": "Keep Screen On",
-    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app."
+    "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app.",
+    "grid": "Grid",
+    "double_tap_tap_type": "Double Tap to Send a Tap",
+    "double_tap_tap_type_desc": "Double tap a profile in the grid to send this tap. Turn off to open profiles instantly on a single tap.",
+    "double_tap_off": "Off"
   },
   "notifications_page": {
     "subtitle": "Choose which notifications you get, and whether they show up while the app is open.",

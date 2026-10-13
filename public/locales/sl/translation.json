@@ -1011,7 +1011,11 @@
         "auto_focus_location_search_desc": "Ob odpiranju okna lokacije samodejno izberi iskalno polje. Izklopi, če te moti, da se tipkovnica takoj prikaže.",
         "display": "Zaslon",
         "keep_screen_on": "Ohrani zaslon vklopljen",
-        "keep_screen_on_desc": "Prepreči zatemnitev ali zaklepanje zaslona, dokler je aplikacija odprta. Samodejno se izklopi, ko zapustiš aplikacijo."
+        "keep_screen_on_desc": "Prepreči zatemnitev ali zaklepanje zaslona, dokler je aplikacija odprta. Samodejno se izklopi, ko zapustiš aplikacijo.",
+        "grid": "",
+        "double_tap_tap_type": "",
+        "double_tap_tap_type_desc": "",
+        "double_tap_off": ""
     },
     "notifications_page": {
         "subtitle": "Izberi, katera obvestila prejemaš in ali se prikazujejo, ko je aplikacija odprta.",

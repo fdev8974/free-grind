@@ -1003,7 +1003,11 @@
         "auto_focus_location_search_desc": "Al abrir la superposición de ubicación, el campo de texto de búsqueda se enfocará automáticamente. Desactive esta opción si le molesta que aparezca el teclado inmediatamente.",
         "display": "Mostrar",
         "keep_screen_on": "Mantener la pantalla encendida",
-        "keep_screen_on_desc": "Evita que la pantalla se atenúe o se bloquee mientras la aplicación está abierta. Se desactiva automáticamente al salir de la aplicación."
+        "keep_screen_on_desc": "Evita que la pantalla se atenúe o se bloquee mientras la aplicación está abierta. Se desactiva automáticamente al salir de la aplicación.",
+        "grid": "",
+        "double_tap_tap_type": "",
+        "double_tap_tap_type_desc": "",
+        "double_tap_off": ""
     },
     "notifications_page": {
         "subtitle": "Elige qué notificaciones quieres recibir y si quieres que aparezcan mientras la aplicación está abierta.",

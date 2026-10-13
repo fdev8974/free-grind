@@ -61,6 +61,7 @@ type BrowseGridProps = {
 	chatContactIndexByProfileId?: Record<string, ChatContactIndexRecord>;
 	localNicknamesByProfileId?: Record<string, string>;
 	onSelectProfile: (profileId: string) => void;
+	onDoubleTapProfile?: (profileId: string, tapId: number) => boolean;
 	onMessageProfile: (profileId: string) => void;
 	onOpenContextMenu?: (card: BrowseCard, x: number, y: number) => void;
 	hasMore?: boolean;
@@ -90,6 +91,7 @@ export function BrowseGrid({
 	chatContactIndexByProfileId,
 	localNicknamesByProfileId,
 	onSelectProfile,
+	onDoubleTapProfile,
 	onMessageProfile,
 	onOpenContextMenu,
 	hasMore,
@@ -382,6 +384,7 @@ export function BrowseGrid({
 									chatContactStatus={chatContactIndexByProfileId?.[card.profileId] ?? null}
 									localNickname={localNicknamesByProfileId?.[card.profileId]}
 									onSelectProfile={onSelectProfile}
+									onDoubleTapProfile={onDoubleTapProfile}
 									onMessageProfile={onMessageProfile}
 									onOpenContextMenu={onOpenContextMenu}
 									isDesktop={isDesktop}

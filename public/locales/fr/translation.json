@@ -1003,7 +1003,11 @@
         "auto_focus_location_search_desc": "Placez automatiquement le curseur dans le champ de recherche à l'ouverture. Désactivez cette option si l'apparition immédiate du clavier vous gêne.",
         "display": "Afficher",
         "keep_screen_on": "Maintenir l'écran allumé",
-        "keep_screen_on_desc": "Empêche l'écran de s'assombrir ou de se verrouiller tant que l'application est ouverte. Se désactive automatiquement une fois que vous quittez l'application."
+        "keep_screen_on_desc": "Empêche l'écran de s'assombrir ou de se verrouiller tant que l'application est ouverte. Se désactive automatiquement une fois que vous quittez l'application.",
+        "grid": "",
+        "double_tap_tap_type": "",
+        "double_tap_tap_type_desc": "",
+        "double_tap_off": ""
     },
     "notifications_page": {
         "subtitle": "Choisissez les notifications que vous recevez et si elles s'affichent lorsque l'application est ouverte.",

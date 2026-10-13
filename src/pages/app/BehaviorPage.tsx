@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, Images, LayoutGrid, MapPin, Sun, Timer, Trash2 } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, Sun, Timer, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { Chip } from "../../components/ui/chip";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
+import { getTapEmoji, tapLabel } from "./interest/interestUtils";
 import {
 	SKIP_BLOCK_CONFIRM_KEY,
 	SKIP_DELETE_CONVERSATION_CONFIRM_KEY,
@@ -16,6 +17,7 @@ import {
 } from "../../utils/blockConfirm";
 
 const ALBUM_EXPIRATION_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"] as const;
+const DOUBLE_TAP_TAP_TYPES = [0, 1, 2] as const;
 
 // Wake Lock support varies by webview, not by platform: WebView2 (Windows)
 // and the Android/iOS system webviews support it, WebKitGTK (Linux desktop)
@@ -32,6 +34,7 @@ export function BehaviorPage() {
 		sortDrawerMediaByFrequency,
 		keepScreenOn,
 		autoFocusLocationSearch,
+		doubleTapTapType,
 		setPreferences,
 	} = usePreferences();
 	const albumExpirationLabels: Record<(typeof ALBUM_EXPIRATION_OPTIONS)[number], string> = {
@@ -168,6 +171,45 @@ export function BehaviorPage() {
 							checked={sortDrawerMediaByFrequency}
 							onChange={(checked) => void setPreferences({ sortDrawerMediaByFrequency: checked })}
 						/>
+					</div>
+				</div>
+
+				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.grid", { defaultValue: "Grid" })}</p>
+					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div
+							id="behavior-double-tap-tap-type"
+							className={`flex items-start gap-3 px-4 py-3.5 ${highlightId === "behavior-double-tap-tap-type" ? "animate-settings-highlight" : ""}`}
+						>
+							<div className="rounded-2xl p-2.5 shrink-0 bg-orange-500/15 text-orange-400">
+								<Flame className="h-5 w-5" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<p className="text-sm font-semibold">{t("behavior.double_tap_tap_type", { defaultValue: "Double Tap to Send a Tap" })}</p>
+								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+									{t("behavior.double_tap_tap_type_desc", {
+										defaultValue: "Double tap a profile in the grid to send this tap. Turn off to open profiles instantly on a single tap.",
+									})}
+								</p>
+								<div className="mt-3 flex flex-wrap gap-2">
+									<Chip
+										selected={doubleTapTapType === null}
+										onClick={() => void setPreferences({ doubleTapTapType: null })}
+									>
+										{t("behavior.double_tap_off", { defaultValue: "Off" })}
+									</Chip>
+									{DOUBLE_TAP_TAP_TYPES.map((tapType) => (
+										<Chip
+											key={tapType}
+											selected={doubleTapTapType === tapType}
+											onClick={() => void setPreferences({ doubleTapTapType: tapType })}
+										>
+											{getTapEmoji(tapType)} {tapLabel(tapType, t)}
+										</Chip>
+									))}
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 

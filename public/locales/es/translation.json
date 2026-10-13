@@ -1003,7 +1003,11 @@
         "auto_focus_location_search_desc": "Enfoca automáticamente el campo de búsqueda al abrir la pantalla de ubicación. Desactívalo si te molesta que el teclado aparezca de inmediato.",
         "display": "Pantalla",
         "keep_screen_on": "Mantener la pantalla encendida",
-        "keep_screen_on_desc": "Evita que la pantalla se atenúe o se bloquee mientras la app está abierta. Se desactiva automáticamente al salir de la app."
+        "keep_screen_on_desc": "Evita que la pantalla se atenúe o se bloquee mientras la app está abierta. Se desactiva automáticamente al salir de la app.",
+        "grid": "",
+        "double_tap_tap_type": "",
+        "double_tap_tap_type_desc": "",
+        "double_tap_off": ""
     },
     "notifications_page": {
         "subtitle": "Elige qué notificaciones recibes y si se muestran mientras la app está abierta.",

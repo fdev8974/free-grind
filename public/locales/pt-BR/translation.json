@@ -1003,7 +1003,11 @@
         "auto_focus_location_search_desc": "Foca automaticamente o campo de texto de busca ao abrir a sobreposição de localização. Desative essa opção se o surgimento imediato do teclado incomodar você.",
         "display": "Exibição",
         "keep_screen_on": "Manter tela ligada",
-        "keep_screen_on_desc": "Impede que a tela escureça ou bloqueie enquanto o aplicativo estiver aberto. Desativa-se automaticamente ao sair do aplicativo."
+        "keep_screen_on_desc": "Impede que a tela escureça ou bloqueie enquanto o aplicativo estiver aberto. Desativa-se automaticamente ao sair do aplicativo.",
+        "grid": "",
+        "double_tap_tap_type": "",
+        "double_tap_tap_type_desc": "",
+        "double_tap_off": ""
     },
     "notifications_page": {
         "subtitle": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicativo está aberto.",
