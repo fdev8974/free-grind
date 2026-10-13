@@ -63,6 +63,7 @@ import type { PickedPerson } from "../../sexual-health/PersonPicker";
 import { isLocateEnabled, isSexualHealthEnabled } from "../../../../utils/optionalFeatures";
 import { findConversationByProfileId } from "../../../../services/chatDb";
 import { setLocalNicknameForProfile } from "../../../../services/chatContactIndex";
+import { haptic } from "../../../../utils/haptics";
 
 type OwnProfileData = { tags: string[] };
 const ownProfileDataCache = new Map<string, OwnProfileData>();
@@ -697,8 +698,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			setBarTapPickerOpen(true);
 			setBarInputVisible(false);
 			if (barInputTimerRef.current) clearTimeout(barInputTimerRef.current);
-			const bridge = (window as any).FreeGrindBridge;
-			bridge?.vibrate?.(10) ?? navigator.vibrate?.(10);
+			haptic(10);
 		}, 300);
 	};
 
@@ -717,16 +717,14 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		if (newId !== barTapHoverId) {
 			setBarTapHoverId(newId);
 			if (newId !== null) {
-				const bridge = (window as any).FreeGrindBridge;
-				bridge?.vibrate?.(8) ?? navigator.vibrate?.(8);
+				haptic(8);
 			}
 		}
 	};
 
 	const fireTap = (tapId: number) => {
 		if (!onTapProfile || !messageProfileId || isTapBlocked) return;
-		const bridge = (window as any).FreeGrindBridge;
-		bridge?.vibrate?.(30) ?? navigator.vibrate?.([15, 10, 25]);
+		haptic(30, [15, 10, 25]);
 		onTapProfile(String(messageProfileId), tapId);
 		const btnRect = barTapButtonRef.current?.getBoundingClientRect();
 		const originDx = btnRect ? btnRect.left + btnRect.width / 2 - window.innerWidth / 2 : window.innerWidth / 2 - 110;

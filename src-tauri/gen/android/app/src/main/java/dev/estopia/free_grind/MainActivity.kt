@@ -559,9 +559,22 @@ class MainActivity : TauriActivity() {
     @JavascriptInterface
     fun vibrate(durationMs: Long) {
       try {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-          val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-          vm.defaultVibrator.vibrate(VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+          } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+          }
+          // Very short one-shots (10–40ms) are often too brief for the motor to
+          // spin up, so taps were only felt sometimes. The predefined click
+          // effects are tuned per device for exactly this kind of UI feedback.
+          val effect = when {
+            durationMs <= 20 -> VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK)
+            durationMs <= 50 -> VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+            else -> VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
+          }
+          vibrator.vibrate(effect)
         } else {
           @Suppress("DEPRECATION")
           val v = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator

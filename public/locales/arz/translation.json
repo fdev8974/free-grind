@@ -904,6 +904,7 @@
         "time_format_system": "",
         "time_format_12h": "",
         "time_format_24h": "",
+        "interaction": "",
         "haptic_feedback": "",
         "haptic_feedback_desc": "",
         "units": "الوحدات",

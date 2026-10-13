@@ -612,26 +612,30 @@ export function CustomizabilityPage() {
 								))}
 							</div>
 						)}
-						{/* Haptics (mobile app only) */}
-						{isMobilePlatform && (
-							<div className="border-t border-[var(--border)]">
-								<ToggleRow
-									id="cust-haptics"
-									highlighted={highlightId === "cust-haptics"}
-									icon={<Vibrate className="h-5 w-5" />}
-									iconClass="bg-rose-500/15 text-rose-400"
-									label={t("customizability.haptic_feedback")}
-									description={t("customizability.haptic_feedback_desc")}
-									checked={hapticsEnabled}
-									onChange={(checked) => {
-										setHapticsEnabled(checked);
-										window.localStorage.setItem(HAPTICS_ENABLED_KEY, String(checked));
-									}}
-								/>
-							</div>
-						)}
 					</div>
 				</div>
+
+				{/* INTERACTION (mobile app only) */}
+				{isMobilePlatform && (
+					<div>
+						<SectionLabel>{t("customizability.interaction")}</SectionLabel>
+						<div className="surface-card overflow-hidden">
+							<ToggleRow
+								id="cust-haptics"
+								highlighted={highlightId === "cust-haptics"}
+								icon={<Vibrate className="h-5 w-5" />}
+								iconClass="bg-rose-500/15 text-rose-400"
+								label={t("customizability.haptic_feedback")}
+								description={t("customizability.haptic_feedback_desc")}
+								checked={hapticsEnabled}
+								onChange={(checked) => {
+									setHapticsEnabled(checked);
+									window.localStorage.setItem(HAPTICS_ENABLED_KEY, String(checked));
+								}}
+							/>
+						</div>
+					</div>
+				)}
 
 				{/* REGIONAL */}
 				<div>
