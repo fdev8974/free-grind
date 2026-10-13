@@ -66,6 +66,7 @@ import {
 import type { RealtimeEnvelope, RealtimeStatus } from "../../types/chat-realtime";
 import type {
 	AlbumListItem,
+	AlbumMediaCount,
 	AlbumViewerState,
 	InboxVisibilityFilter,
 	UiMessage,
@@ -679,6 +680,7 @@ export function ChatPage() {
 	const [isSharingAlbum, setIsSharingAlbum] = useState(false);
 	const [shareableAlbums, setShareableAlbums] = useState<AlbumListItem[]>([]);
 	const [albumCoverMap, setAlbumCoverMap] = useState<Map<number, string>>(new Map());
+	const [albumMediaCountMap, setAlbumMediaCountMap] = useState<Map<number, AlbumMediaCount>>(new Map());
 	const [ownProfilePhotoUrl, setOwnProfilePhotoUrl] = useState<string | null>(null);
 	const [pendingAlbumShare, setPendingAlbumShare] = useState<{
 		albumId: number;
@@ -1253,19 +1255,25 @@ export function ChatPage() {
 				.filter((item) => Number.isFinite(item.albumId));
 			setShareableAlbums(mapped);
 
-			const coverEntries = await Promise.all(
+			const detailEntries = await Promise.all(
 				mapped.map(async ({ albumId }) => {
 					try {
 						const detail = await service.getAlbum(albumId);
-						const first = detail.content?.[0];
-						const url = first?.thumbUrl || first?.url || first?.coverUrl;
-						return url ? ([albumId, url] as [number, string]) : null;
+						const content = detail.content ?? [];
+						const first = content[0];
+						const url = first?.thumbUrl || first?.url || first?.coverUrl || null;
+						const videos = content.filter((c) => c.contentType?.startsWith("video/")).length;
+						return { albumId, url, counts: { images: content.length - videos, videos } };
 					} catch {
 						return null;
 					}
 				}),
 			);
-			setAlbumCoverMap(new Map(coverEntries.filter((e): e is [number, string] => e !== null)));
+			const loadedDetails = detailEntries.filter((e) => e !== null);
+			setAlbumCoverMap(
+				new Map(loadedDetails.flatMap((e) => (e.url ? [[e.albumId, e.url] as [number, string]] : []))),
+			);
+			setAlbumMediaCountMap(new Map(loadedDetails.map((e) => [e.albumId, e.counts] as [number, AlbumMediaCount])));
 
 			return mapped;
 		} catch (error) {
@@ -6562,6 +6570,7 @@ export function ChatPage() {
 			isLoadingAlbums={isLoadingAlbums}
 			shareableAlbums={shareableAlbums}
 			albumCoverMap={albumCoverMap}
+			albumMediaCountMap={albumMediaCountMap}
 			ownProfilePhotoUrl={ownProfilePhotoUrl}
 			isSharingAlbum={isSharingAlbum}
 			pendingAlbumShare={pendingAlbumShare}

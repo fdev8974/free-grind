@@ -62,7 +62,7 @@ import { isWebRtcSupported } from "../../../services/agoraCall";
 import {
 	useModalClose,
 } from "../../../hooks/useModalClose";
-import type { AlbumListItem, UiMessage } from "../../../types/chat-page";
+import type { AlbumListItem, AlbumMediaCount, UiMessage } from "../../../types/chat-page";
 import type { ConversationEntry, Message } from "../../../types/messages";
 import type { ProfileDetail } from "../../../types/grid";
 import type { DrawerMedia } from "./ChatDrawerPanel";
@@ -239,6 +239,7 @@ type ChatThreadPanelProps = {
 	isLoadingAlbums: boolean;
 	shareableAlbums: AlbumListItem[];
 	albumCoverMap?: Map<number, string>;
+	albumMediaCountMap?: Map<number, AlbumMediaCount>;
 	ownProfilePhotoUrl?: string | null;
 	isSharingAlbum: boolean;
 	pendingAlbumShare: {
@@ -653,6 +654,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		isLoadingAlbums,
 		shareableAlbums,
 		albumCoverMap: externalAlbumCoverMap,
+		albumMediaCountMap,
 		ownProfilePhotoUrl,
 		isSharingAlbum,
 		pendingAlbumShare,
@@ -2630,6 +2632,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							albums={shareableAlbums}
 							isLoadingAlbums={isLoadingAlbums}
 							albumCoverMap={albumCoverMap}
+							albumMediaCountMap={albumMediaCountMap}
 							sharedAlbumIds={sharedAlbumIds}
 							isSharingAlbum={isSharingAlbum}
 							isDesktop={isDesktop}

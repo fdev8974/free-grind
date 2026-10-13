@@ -20,7 +20,7 @@ import {
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AlbumListItem } from "../../../types/chat-page";
+import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +38,26 @@ import { usePreferences } from "../../../contexts/PreferencesContext";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { appLog } from "../../../utils/logger";
+
+/** Bottom-left photo/video count on album and collection tiles. */
+function TileMediaCount({ images, videos }: AlbumMediaCount) {
+	return (
+		<span className="pointer-events-none absolute bottom-1 left-1.5 inline-flex items-center gap-2 text-[10px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+			{images > 0 || videos === 0 ? (
+				<span className="inline-flex items-center gap-1">
+					<Images className="h-3 w-3" />
+					{images}
+				</span>
+			) : null}
+			{videos > 0 ? (
+				<span className="inline-flex items-center gap-1">
+					<Video className="h-3 w-3" />
+					{videos}
+				</span>
+			) : null}
+		</span>
+	);
+}
 
 export interface DrawerMedia {
 	id: number;
@@ -68,6 +88,7 @@ interface ChatDrawerPanelProps {
 	albums?: AlbumListItem[];
 	isLoadingAlbums?: boolean;
 	albumCoverMap?: Map<number, string>;
+	albumMediaCountMap?: Map<number, AlbumMediaCount>;
 	sharedAlbumIds?: Set<number>;
 	onShareAlbum?: (albumId: number, expirationType: string) => Promise<void>;
 	isSharingAlbum?: boolean;
@@ -92,6 +113,7 @@ export function ChatDrawerPanel({
 	albums = [],
 	isLoadingAlbums: _isLoadingAlbums = false,
 	albumCoverMap = new Map(),
+	albumMediaCountMap = new Map(),
 	sharedAlbumIds = new Set(),
 	onShareAlbum,
 	isSharingAlbum = false,
@@ -651,6 +673,7 @@ export function ChatDrawerPanel({
 									{albums.map((album) => {
 										const cover = albumCoverMap.get(album.albumId);
 										const isShared = sharedAlbumIds.has(album.albumId);
+										const mediaCount = albumMediaCountMap.get(album.albumId);
 										const isSelected = selectedAlbumIds.has(album.albumId);
 										const dimmed = (hasSelection || hasCollectionSelection) && !isSelected;
 										return (
@@ -672,6 +695,7 @@ export function ChatDrawerPanel({
 													<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{album.albumName || t("chat_drawer.album_fallback", { defaultValue: "My Album" })}</p>
 													{isShared && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-contrast)]">{t("chat_drawer.sharing", { defaultValue: "Sharing" })}</span>}
 												</div>
+												{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
 												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 												{isSelected && <div className="absolute inset-0 pointer-events-none" style={{ border: "2px solid var(--accent)" }} />}
 											</div>
@@ -680,6 +704,7 @@ export function ChatDrawerPanel({
 									{/* Collections */}
 									{collections.map((collection) => {
 										const presentIds = getPresentCollectionMediaIds(collection);
+										const presentVideoCount = presentIds.filter((id) => isVideoMediaId(id)).length;
 										// Up to four items as a mosaic cover, so a collection reads as
 										// "several photos" at a glance.
 										const coverItems = presentIds
@@ -734,10 +759,7 @@ export function ChatDrawerPanel({
 													</div>
 													<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{collection.name}</p>
 												</div>
-												<span className="pointer-events-none absolute bottom-1 left-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-													<Images className="h-3 w-3" />
-													{presentIds.length}
-												</span>
+												<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
 												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 												{isSelected && <div className="absolute inset-0 pointer-events-none" style={{ border: "2px solid var(--accent)" }} />}
 											</div>
