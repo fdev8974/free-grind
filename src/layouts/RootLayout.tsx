@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useExploreMode } from "../contexts/ExploreModeContext";
+import { useKeyboardInsetVar } from "../hooks/useKeyboardInsetVar";
 
 export function RootLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const { isExploreActive } = useExploreMode();
 	const isRightNow = location.pathname === "/right-now";
+	useKeyboardInsetVar();
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {

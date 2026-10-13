@@ -1906,7 +1906,7 @@ export function GridPage() {
 
 			<dialog
 				ref={profileSearchDialogRef}
-				className="fixed left-1/2 top-1/2 m-0 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
+				className="fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
 				onClick={(e) => { if (e.target === profileSearchDialogRef.current) setIsProfileSearchOpen(false); }}
 				onKeyDown={(e) => { if (e.key === "Escape") setIsProfileSearchOpen(false); }}
 			>

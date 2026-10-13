@@ -266,7 +266,7 @@ export function AutomationRuleEditor({
 			}}
 		>
 			<AppToaster />
-			{draft && <div className="grid max-h-[85dvh] grid-rows-[auto_1fr_auto]">
+			{draft && <div className="grid max-h-[min(85dvh,calc(100dvh-var(--keyboard-inset,0px)-2rem))] grid-rows-[auto_1fr_auto]">
 			<div className="border-b border-[var(--border)] p-5 pb-4">
 				<div className="flex items-center justify-between gap-2">
 					<p className="text-base font-semibold">{t(isNew ? "settings_automation.add_rule" : "settings_automation.edit_rule")}</p>

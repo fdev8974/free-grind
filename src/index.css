@@ -1221,3 +1221,21 @@
   }
 
 }
+
+/* Keep modal <dialog>s (prompts, "open profile by ID", report, …) above the
+   mobile keyboard: shrink their containing area to the visible part of the
+   viewport so the usual `inset-0 m-auto` centering lands above the keyboard.
+   --keyboard-inset is published by useKeyboardInsetVar (RootLayout).
+   Unlayered on purpose so it wins over Tailwind's inset/max-h utilities. */
+dialog:modal {
+	bottom: var(--keyboard-inset, 0px);
+	max-height: calc(100dvh - var(--keyboard-inset, 0px) - 2rem);
+	transition: bottom 0.2s ease-out;
+}
+
+/* Blur whatever sits behind a modal <dialog>; the tint still comes from each
+   dialog's own backdrop:bg-* utility. */
+dialog::backdrop {
+	-webkit-backdrop-filter: blur(6px);
+	backdrop-filter: blur(6px);
+}
