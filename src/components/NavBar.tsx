@@ -20,6 +20,7 @@ import { CHAT_REALTIME_EVENT } from "./ChatRealtimeBridge";
 import { messageSchema, type Message } from "../types/messages";
 import type { RealtimeEnvelope } from "../types/chat-realtime";
 import { useInterestData } from "../hooks/queries/useInterestQueries";
+import { isAndroid, isIos } from "../services/saveMedia";
 
 /**
  * Extracts and validates chat messages from a variety of possible realtime envelope formats.
@@ -70,6 +71,7 @@ export function NavBar() {
 	const { userId } = useAuth();
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
+	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
@@ -336,16 +338,34 @@ export function NavBar() {
 		"grid-cols-4";
 
 	return (
-		<nav className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:px-4 md:pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
+		<nav
+			className={cn(
+				"fixed inset-x-0 bottom-0 z-50",
+				!isMobilePlatform && "px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:px-4 md:pb-[calc(env(safe-area-inset-bottom,0px)+14px)]",
+			)}
+		>
+			{/* Mobile app: full-width bar that extends under the system navigation
+			    bar (edge-to-edge), with the safe-area inset as inner padding.
+			    Desktop/web: floating rounded card. */}
 			<div
-				className="mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5"
+				className={cn(
+					isMobilePlatform
+						? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
+						: "mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5",
+				)}
 				style={{
 					backgroundColor: "rgba(22, 29, 39, 0.9)",
 					background: "color-mix(in srgb, var(--surface) 90%, transparent)",
 					backdropFilter: "blur(16px)",
 				}}
 			>
-				<Tabs value={activeTab} onValueChange={handleTabChange}>
+				<Tabs
+					value={activeTab}
+					onValueChange={handleTabChange}
+					// Keep the tabs at their previous centered width; only the
+					// background spans the full screen on mobile.
+					className={cn(isMobilePlatform && "mx-auto w-full max-w-4xl px-[calc(0.75rem+1px+0.375rem)]")}
+				>
 					<TabsList className={`grid h-16 w-full ${gridColsClass} bg-transparent p-0 md:h-[4.1rem]`}>
 						{navItems.map((item) => {
 							const Icon = item.icon;
