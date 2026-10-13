@@ -3,7 +3,7 @@ import { ShieldOff, UserX } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useBlockedProfileIds, useUnblockProfile } from "../../hooks/queries/useProfileQueries";
@@ -161,13 +161,11 @@ export function SettingsBlockedPage() {
 			isDisabled={isLoading}
 			refreshingLabel={t("settings_blocked.refreshing")}
 		>
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings_blocked.title")}</h1>
-				</div>
-				<p className="app-subtitle">{t("settings_blocked.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings_blocked.title")}
+				subtitle={t("settings_blocked.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 				{isLoading ? (

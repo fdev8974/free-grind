@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { AlertCircle, Bot, BrainCircuit, Check, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, KeyRound, Languages, Sparkles, X } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
@@ -294,13 +294,11 @@ export function SettingsTranslationPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings.translation", { defaultValue: "Translation" })}</h1>
-				</div>
-				<p className="app-subtitle">{t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." })}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.translation", { defaultValue: "Translation" })}
+				subtitle={t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." })}
+			/>
 
 			<div className="grid gap-6">
 				<div>

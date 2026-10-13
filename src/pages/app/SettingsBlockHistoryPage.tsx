@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ShieldCheck, ShieldOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { ProfileImage } from "../../components/ui/profile-image";
 import { EmptyState, ErrorState } from "../../components/ui/states";
@@ -58,13 +58,11 @@ export function SettingsBlockHistoryPage() {
 			isDisabled={isLoading}
 			refreshingLabel={t("settings_block_history.refreshing")}
 		>
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings_block_history.title")}</h1>
-				</div>
-				<p className="app-subtitle">{t("settings_block_history.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings_block_history.title")}
+				subtitle={t("settings_block_history.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 				{isLoading ? (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { HeaderBackButton } from "../../components/HeaderBackButton";
+import { PageHeader } from "../../components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import z from "zod";
 import { useTranslation } from "react-i18next";
@@ -168,13 +168,13 @@ export function BrowseLocationPage() {
 	return (
 		<section className="app-screen">
 			<div className="mx-auto w-full max-w-4xl">
-				<header className="mb-4 flex items-center gap-3">
-					<HeaderBackButton onClick={() => navigate("/")} label={t("browse_location.back_aria")} />
-					<div>
-						<h1 className="app-title">{t("browse_location.title")}</h1>
-						<p className="app-subtitle">{t("browse_location.subtitle")}</p>
-					</div>
-				</header>
+				<PageHeader
+					onBack={() => navigate("/")}
+					backLabel={t("browse_location.back_aria")}
+					title={t("browse_location.title")}
+					subtitle={t("browse_location.subtitle")}
+					subtitleClassName="mb-4"
+				/>
 
 				{locationError ? (
 					<p className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-muted)]">

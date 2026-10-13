@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, LockKeyhole, Plus, Save, Tag, Upload, Workflow } from "lucide-react";
 import toast from "react-hot-toast";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../../contexts/useAuth";
@@ -215,13 +215,11 @@ export function SettingsAutomationPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings.automation")}</h1>
-				</div>
-				<p className="app-subtitle">{t("settings.automation_desc")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.automation")}
+				subtitle={t("settings.automation_desc")}
+			/>
 
 			<div className="grid min-w-0 gap-6">
 				{/* CUSTOM RULES */}

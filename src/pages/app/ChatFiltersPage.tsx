@@ -1,4 +1,4 @@
-import { HeaderBackButton } from "../../components/HeaderBackButton";
+import { PageHeader } from "../../components/PageHeader";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -136,22 +136,22 @@ export function ChatFiltersPage() {
 	return (
 		<section className="app-screen">
 			<div className="mx-auto w-full max-w-4xl">
-				<header className="mb-4 flex items-center justify-between gap-3">
-					<div className="inline-flex items-center gap-2">
-						<HeaderBackButton onClick={() => navigate(-1)} label={t("chat_filters.back")} />
-						<div>
-							<h1 className="app-title">{t("chat_filters.title")}</h1>
-							<p className="app-subtitle">{t("chat_filters.subtitle")}</p>
-						</div>
-					</div>
-					<button
-						type="button"
-						onClick={applyAndReturn}
-						className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
-					>
-						{t("browse_filters.apply")}
-					</button>
-				</header>
+				<PageHeader
+					onBack={() => navigate(-1)}
+					backLabel={t("chat_filters.back")}
+					title={t("chat_filters.title")}
+					subtitle={t("chat_filters.subtitle")}
+					subtitleClassName="mb-4"
+					actions={
+						<button
+							type="button"
+							onClick={applyAndReturn}
+							className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+						>
+							{t("browse_filters.apply")}
+						</button>
+					}
+				/>
 
 				<div className="surface-card space-y-4 p-4 sm:p-5">
 					<div>

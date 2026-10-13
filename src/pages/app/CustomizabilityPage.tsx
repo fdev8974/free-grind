@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Clapperboard, Clock, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Triangle, Type, Vibrate } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { HAPTICS_ENABLED_KEY, isHapticsEnabled } from "../../utils/haptics";
 import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/timeFormat";
@@ -228,13 +228,11 @@ export function CustomizabilityPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings.customizability")}</h1>
-				</div>
-				<p className="app-subtitle">{t("customizability.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.customizability")}
+				subtitle={t("customizability.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 

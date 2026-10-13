@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowDownWideNarrow, Ban, ExternalLink, Images, LayoutGrid, MapPin, Sun, Timer, Trash2 } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { Chip } from "../../components/ui/chip";
 import { useTranslation } from "react-i18next";
@@ -49,13 +49,11 @@ export function BehaviorPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings.behavior")}</h1>
-				</div>
-				<p className="app-subtitle">{t("behavior.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.behavior")}
+				subtitle={t("behavior.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 				<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">

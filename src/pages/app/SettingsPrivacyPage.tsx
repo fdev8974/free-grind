@@ -12,7 +12,7 @@ import {
 	StickyNote,
 	ToggleRight,
 } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
@@ -62,13 +62,11 @@ export function SettingsPrivacyPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings.privacy")}</h1>
-				</div>
-				<p className="app-subtitle">{t("settings.privacy_desc")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.privacy")}
+				subtitle={t("settings.privacy_desc")}
+			/>
 
 			<div className="grid gap-6">
 

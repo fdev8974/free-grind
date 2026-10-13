@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { HeaderBackButton } from "../../components/HeaderBackButton";
+import { PageHeader } from "../../components/PageHeader";
 import {
 	AlertCircle,
 	Bell,
@@ -617,18 +617,17 @@ export function SettingsPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="flex items-center gap-2">
-					<HeaderBackButton onClick={() => navigate("/", { replace: true })} label={t("settings.back_to_browse")} />
-					<h1 className="app-title min-w-0">{t("settings.title")}</h1>
-					{developerMode ? (
-						<span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
-							Developer Mode
-						</span>
-					) : null}
-				</div>
-				<p className="app-subtitle mt-1">{t("settings.subtitle")}</p>
-			</header>
+			<PageHeader
+				onBack={() => navigate("/", { replace: true })}
+				backLabel={t("settings.back_to_browse")}
+				title={t("settings.title")}
+				titleAccessory={developerMode ? (
+					<span className="shrink-0 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
+						Developer Mode
+					</span>
+				) : null}
+				subtitle={t("settings.subtitle")}
+			/>
 
 			<div className="settings-search-bar mb-6 flex items-center gap-2.5 px-4 py-0.5">
 				<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />

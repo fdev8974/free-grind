@@ -878,7 +878,7 @@ export function SharedAlbumsPage() {
 							<div className="flex min-w-0 items-center gap-2">
 								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
 								<div className="min-w-0">
-									<h1 className="app-title">{t("shared_albums.title")}</h1>
+									<h1 className="truncate text-lg font-semibold">{t("shared_albums.title")}</h1>
 									<p className="app-subtitle">
 										{isLoading
 											? t("shared_albums.loading_title")

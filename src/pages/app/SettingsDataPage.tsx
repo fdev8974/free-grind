@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
 import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
@@ -484,15 +484,11 @@ export function SettingsDataPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("data_backup.title", { defaultValue: "Backup & Restore" })}</h1>
-				</div>
-				<p className="app-subtitle">
-					{t("data_backup.subtitle", { defaultValue: "Manage downloaded media and back up your account's entire data." })}
-				</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("data_backup.title", { defaultValue: "Backup & Restore" })}
+				subtitle={t("data_backup.subtitle", { defaultValue: "Manage downloaded media and back up your account's entire data." })}
+			/>
 
 			<div className="grid gap-8">
 				<div>

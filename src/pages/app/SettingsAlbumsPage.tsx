@@ -19,7 +19,7 @@ import {
 	UserMinus,
 	X,
 } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import {
 	useCallback,
 	useEffect,
@@ -771,13 +771,12 @@ export function SettingsAlbumsPage() {
 	return (
 		<section className="app-screen">
 			<div className="grid gap-6">
-				<header className="mb-1">
-					<div className="mb-1 flex items-center gap-2">
-						<BackToSettings />
-						<h1 className="app-title min-w-0">{t("settings_albums.title")}</h1>
-					</div>
-					<p className="app-subtitle">{t("settings_albums.subtitle", { defaultValue: "Manage your private albums." })}</p>
-				</header>
+				<PageHeader
+					backTo="/settings"
+					title={t("settings_albums.title")}
+					subtitle={t("settings_albums.subtitle", { defaultValue: "Manage your private albums." })}
+					subtitleClassName="-mt-4 mb-0"
+				/>
 
 				{/* Combined plan summary + create album */}
 				<div className="surface-card overflow-hidden">

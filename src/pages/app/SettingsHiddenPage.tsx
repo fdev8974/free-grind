@@ -3,7 +3,7 @@ import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import * as chatDb from "../../services/chatDb";
@@ -161,13 +161,11 @@ export function SettingsHiddenPage() {
 			isDisabled={isLoading}
 			refreshingLabel={t("settings_hidden.refreshing")}
 		>
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings_hidden.title")}</h1>
-				</div>
-				<p className="app-subtitle">{t("settings_hidden.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings_hidden.title")}
+				subtitle={t("settings_hidden.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 				{isLoading ? (

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Copy, Download, RotateCcw, Search, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { Card } from "../../components/ui/card";
 import { useApi } from "../../hooks/useApi";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
@@ -173,35 +173,30 @@ export function ApiInspectorPage() {
 	return (
 		<section className="app-screen">
 			<div className="mx-auto grid w-full min-w-0 max-w-4xl gap-4">
-				<header className="grid gap-3 sm:flex sm:items-end sm:justify-between">
-					<div className="grid gap-2">
-					<div className="flex items-center gap-2">
-						<BackToSettings />
-						<h1 className="app-title min-w-0">API Inspector</h1>
-					</div>
-						<p className="app-subtitle">
-							Inspect recent request and response history for REST and invoke commands.
-						</p>
-					</div>
-					<div className="flex flex-wrap items-center gap-2">
-						<Button type="button" onClick={() => setEntries(getApiTraceEntries())}>
-							<RotateCcw className="h-4 w-4" />
-							Refresh
-						</Button>
-						<Button type="button" onClick={handleCopy} disabled={!selected}>
-							<Copy className="h-4 w-4" />
-							Copy Selected
-						</Button>
-						<Button type="button" onClick={handleExport}>
-							<Download className="h-4 w-4" />
-							Export
-						</Button>
-						<Button type="button" variant="danger" onClick={clearApiTraceEntries}>
-							<Trash2 className="h-4 w-4" />
-							Clear
-						</Button>
-					</div>
-				</header>
+				<PageHeader
+					backTo="/settings"
+					title="API Inspector"
+					subtitle="Inspect recent request and response history for REST and invoke commands."
+					subtitleClassName="-mt-3 mb-0"
+				/>
+				<div className="flex flex-wrap items-center gap-2">
+					<Button type="button" onClick={() => setEntries(getApiTraceEntries())}>
+						<RotateCcw className="h-4 w-4" />
+						Refresh
+					</Button>
+					<Button type="button" onClick={handleCopy} disabled={!selected}>
+						<Copy className="h-4 w-4" />
+						Copy Selected
+					</Button>
+					<Button type="button" onClick={handleExport}>
+						<Download className="h-4 w-4" />
+						Export
+					</Button>
+					<Button type="button" variant="danger" onClick={clearApiTraceEntries}>
+						<Trash2 className="h-4 w-4" />
+						Clear
+					</Button>
+				</div>
 
 				<Card className="p-4">
 					<div className="mb-3 grid gap-1">

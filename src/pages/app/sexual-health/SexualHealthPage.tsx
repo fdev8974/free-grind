@@ -88,7 +88,7 @@ export function SexualHealthPage() {
 								onClick={() => navigate(cameFromInbox ? "/chat" : "/settings")}
 								label={cameFromInbox ? t("nav.inbox") : t("settings.title")}
 							/>
-							<h1 className="app-title min-w-0">{t("sexualHealth.title", { defaultValue: "Sexual Health" })}</h1>
+							<h1 className="min-w-0 truncate text-lg font-semibold">{t("sexualHealth.title", { defaultValue: "Sexual Health" })}</h1>
 						</div>
 						<button
 							type="button"

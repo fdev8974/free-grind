@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Copy, Search } from "lucide-react";
 import toast from "react-hot-toast";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { EmptyState, ErrorState } from "../../components/ui/states";
 import { useApi } from "../../hooks/useApi";
@@ -208,13 +208,11 @@ export function AssignmentsPage() {
 			isDisabled={isLoading}
 			refreshingLabel="Refreshing…"
 		>
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">Assignments &amp; Feature Flags</h1>
-				</div>
-				<p className="app-subtitle">What the server currently assigns to this account and device.</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={"Assignments & Feature Flags"}
+				subtitle={"What the server currently assigns to this account and device."}
+			/>
 
 			<div className="grid gap-4">
 				<div className="flex flex-wrap gap-2">

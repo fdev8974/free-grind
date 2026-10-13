@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Bell, Flame, MessageCircle } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
@@ -28,13 +28,11 @@ export function NotificationsPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<div className="mb-1 flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("settings.notifications")}</h1>
-				</div>
-				<p className="app-subtitle">{t("notifications_page.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.notifications")}
+				subtitle={t("notifications_page.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 				<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">

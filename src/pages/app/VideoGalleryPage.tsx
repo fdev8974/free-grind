@@ -491,7 +491,7 @@ export function VideoGalleryPage() {
 							<div className="flex min-w-0 items-center gap-2">
 								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
 								<div className="min-w-0">
-									<h1 className="app-title">{t("video_gallery.title", { defaultValue: "Videos" })}</h1>
+									<h1 className="truncate text-lg font-semibold">{t("video_gallery.title", { defaultValue: "Videos" })}</h1>
 									<p className="app-subtitle">
 										{isLoading
 											? t("video_gallery.loading", { defaultValue: "Loading videos…" })

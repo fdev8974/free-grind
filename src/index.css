@@ -425,7 +425,9 @@
 	#app {
 		width: 100%;
 		min-height: 100%;
-		overflow-x: hidden;
+		/* clip, not hidden: hidden turns these into scroll containers, which
+		   silently breaks `position: sticky` (PageHeader) for window-scrolled pages. */
+		overflow-x: clip;
 	}
 
 	body {
@@ -780,6 +782,14 @@
 		padding: calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))
 			var(--app-px)
 			calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px));
+	}
+
+	/* Sticky page header (PageHeader): pulls itself up over .app-screen's top
+	   padding so its scrolled backdrop also covers the status-bar area, and
+	   lines its row up with the profile page's floating header. */
+	.page-header {
+		margin-top: calc(-1 * (env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px)));
+		padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
 	}
 
 	@media (min-width: 1024px) {

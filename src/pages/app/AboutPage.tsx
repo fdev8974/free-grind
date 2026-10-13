@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/chip";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { triggerSinModeUnlock } from "../../utils/sinModeEasterEgg";
 
@@ -107,9 +107,8 @@ export function AboutPage() {
 	return (
 		<section className="app-screen">
 			<div className="mx-auto grid w-full max-w-6xl gap-6">
+				<PageHeader backTo="/settings" title={t("settings.about")} className="mb-0" />
 				<header className="grid gap-4">
-					<BackToSettings />
-
 					<Card className="overflow-hidden p-0">
 						<div className="grid gap-0 lg:grid-cols-[1.25fr_0.75fr]">
 							<div className="grid gap-5 p-6 sm:p-8">

@@ -16,7 +16,7 @@ import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { validateMediaHash } from "../../utils/media";
 import { buildTagLabelMap } from "../../utils/tags";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { BottomDrawer } from "../../components/ui/bottom-drawer";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import freegrindLogo from "../../images/freegrind-logo.webp";
@@ -832,13 +832,12 @@ export function ProfileEditorPage() {
 	return (
 		<section className="app-screen">
 			<div className="mx-auto grid w-full max-w-[1180px] gap-6">
-				<header>
-					<div className="mb-1 flex items-center gap-2">
-						<BackToSettings />
-						<h1 className="app-title min-w-0">{t("profile_editor.title")}</h1>
-					</div>
-					<p className="app-subtitle">{t("profile_editor.subtitle")}</p>
-				</header>
+				<PageHeader
+					backTo="/settings"
+					title={t("profile_editor.title")}
+					subtitle={t("profile_editor.subtitle")}
+					subtitleClassName="-mt-4 mb-0"
+				/>
 
 				{isLoadingProfile && !profile ? (
 					<div className="surface-card p-5 sm:p-6">

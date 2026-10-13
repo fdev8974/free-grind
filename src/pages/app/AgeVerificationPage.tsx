@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Fingerprint, ScanFace, ShieldCheck } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { LoadingState, ErrorState } from "../../components/ui/states";
@@ -138,13 +138,12 @@ export function AgeVerificationPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-6">
-				<div className="flex items-center gap-2">
-					<BackToSettings />
-					<h1 className="app-title min-w-0">{t("age_verification.title")}</h1>
-				</div>
-				<p className="app-subtitle">{t("age_verification.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("age_verification.title")}
+				subtitle={t("age_verification.subtitle")}
+				subtitleClassName="mb-5"
+			/>
 
 			<div className="grid gap-4">
 				{step === "loading-options" && (
