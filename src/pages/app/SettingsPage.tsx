@@ -40,7 +40,7 @@ import {
 	FileUp,
 	ScrollText,
 } from "lucide-react";
-import { useState, useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -54,6 +54,8 @@ import {
 	checkForHotswapUpdate,
 	getCurrentHotswapChannel,
 	getHotswapChannels,
+	getHotswapProgress,
+	subscribeHotswapProgress,
 	getHotswapChannelLabel,
 	installHotswapUpdate,
 	isHotswapAvailable,
@@ -105,6 +107,10 @@ function getErrorMessage(error: unknown, fallback: string): string {
 	}
 
 	return fallback;
+}
+
+function formatMegabytes(bytes: number): string {
+	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function describeInboxSyncStatus(status: InboxSyncStatus, t: TFunction) {
@@ -338,6 +344,7 @@ export function SettingsPage() {
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 	const [isSwitchingChannel, setIsSwitchingChannel] = useState(false);
+	const hotswapProgress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
 	const fingerprintCheck = useFingerprintCheck();
 	const [isSyncingFcm, setIsSyncingFcm] = useState(false);
 	const [fcmToken, setFcmToken] = useState<string | null>(() => {
@@ -1033,6 +1040,49 @@ export function SettingsPage() {
 											</div>
 											<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("settings.check_updates_desc")}</p>
 										</div>
+										{hotswapProgress.phase !== "idle" && (() => {
+											const percent =
+												hotswapProgress.phase === "downloading" && hotswapProgress.total
+													? Math.min(100, Math.round((hotswapProgress.downloaded / hotswapProgress.total) * 100))
+													: hotswapProgress.phase === "done"
+														? 100
+														: null;
+											const label =
+												hotswapProgress.phase === "checking"
+													? t("settings.ota_progress_checking", { defaultValue: "Checking for updates…" })
+													: hotswapProgress.phase === "downloading"
+														? t("settings.ota_progress_downloading", {
+																defaultValue: "Downloading update… {{size}}",
+																size: hotswapProgress.total
+																	? `${formatMegabytes(hotswapProgress.downloaded)} / ${formatMegabytes(hotswapProgress.total)}`
+																	: formatMegabytes(hotswapProgress.downloaded),
+															})
+														: hotswapProgress.phase === "installing"
+															? t("settings.ota_progress_installing", { defaultValue: "Installing update…" })
+															: t("settings.ota_progress_done", { defaultValue: "Update installed. Reloading…" });
+											return (
+												<div className="mt-3">
+													<div className="flex items-center justify-between gap-2">
+														<p className="text-xs leading-snug tabular-nums text-[var(--text-muted)]">{label}</p>
+														{percent != null && (
+															<p className="shrink-0 text-xs font-semibold tabular-nums text-[var(--accent)]">
+																{percent}%
+															</p>
+														)}
+													</div>
+													<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+														<div
+															className={
+																percent == null
+																	? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
+																	: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+															}
+															style={percent != null ? { width: `${percent}%` } : undefined}
+														/>
+													</div>
+												</div>
+											);
+										})()}
 										{visibleChannels.length > 0 && (
 											<div className="mt-3 flex flex-wrap items-center gap-1">
 												{visibleChannels.map((channel) => (

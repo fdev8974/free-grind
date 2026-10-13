@@ -8,16 +8,48 @@ import {
 } from "tauri-plugin-hotswap-api";
 import { appLog } from "../utils/logger";
 
-// Subscribe to hotswap lifecycle events for debugging
+export type HotswapProgress =
+	| { phase: "idle" }
+	| { phase: "checking" }
+	| { phase: "downloading"; downloaded: number; total: number | null }
+	| { phase: "installing" }
+	| { phase: "done" };
+
+let progress: HotswapProgress = { phase: "idle" };
+const progressListeners = new Set<() => void>();
+
+function setProgress(next: HotswapProgress): void {
+	progress = next;
+	for (const listener of progressListeners) listener();
+}
+
+export function getHotswapProgress(): HotswapProgress {
+	return progress;
+}
+
+export function subscribeHotswapProgress(listener: () => void): () => void {
+	progressListeners.add(listener);
+	return () => progressListeners.delete(listener);
+}
+
+// Subscribe to hotswap lifecycle events for debugging and progress reporting
 if (typeof window !== "undefined") {
 	void (async () => {
 		if (!isTauri()) return;
 		await listen("hotswap://lifecycle", (event) => {
 			appLog.debug("[hotswap-lifecycle]", JSON.stringify(event.payload));
+			const name = (event.payload as { event?: string } | null)?.event;
+			// applyUpdate() keeps running after the download (verify, extract, activate).
+			if (name === "download-complete" && progress.phase === "downloading") {
+				setProgress({ phase: "installing" });
+			}
 		});
 		await listen("hotswap://download-progress", (event) => {
-			const p = event.payload as { downloaded: number; total?: number };
+			const p = event.payload as { downloaded: number; total?: number | null };
 			appLog.debug(`[hotswap-progress] ${p.downloaded}/${p.total ?? "?"}`);
+			if (progress.phase === "downloading") {
+				setProgress({ phase: "downloading", downloaded: p.downloaded, total: p.total ?? null });
+			}
 		});
 	})();
 }
@@ -171,7 +203,13 @@ export async function checkForHotswapUpdate(): Promise<HotswapCheckResult> {
 		return { available: false, requiresBinaryUpdate: false, notes: null };
 	}
 
-	const result = await checkUpdate();
+	setProgress({ phase: "checking" });
+	let result: Awaited<ReturnType<typeof checkUpdate>>;
+	try {
+		result = await checkUpdate();
+	} finally {
+		setProgress({ phase: "idle" });
+	}
 	const parsedNotes = parseBinaryRequiredNotes(result.notes);
 
 	return {
@@ -186,7 +224,16 @@ export async function installHotswapUpdate(): Promise<void> {
 		return;
 	}
 
-	const version = await applyUpdate();
+	setProgress({ phase: "downloading", downloaded: 0, total: null });
+	let version: string;
+	try {
+		version = await applyUpdate();
+	} catch (error) {
+		setProgress({ phase: "idle" });
+		throw error;
+	}
+	// Callers reload right after; "done" stays visible until then.
+	setProgress({ phase: "done" });
 	try {
 		window.localStorage.setItem(HOTSWAP_JUST_UPDATED_STORAGE_KEY, version);
 	} catch {
