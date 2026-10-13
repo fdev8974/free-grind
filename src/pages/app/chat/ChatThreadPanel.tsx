@@ -1989,12 +1989,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					) : (
 					<form
 						onSubmit={onFormSubmit}
-						className={`relative ${!isDesktop ? "shrink-0 px-[var(--app-px)] py-3" : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4"} border-t border-[var(--border)] bg-[var(--surface)]`}
-						style={
-							!isDesktop
-								? { paddingBottom: mobileKeyboardInset > 0 ? "12px" : "max(12px, env(safe-area-inset-bottom))" }
-								: undefined
-						}
+						className={`relative ${!isDesktop ? "shrink-0 px-[var(--app-px)] pt-3" : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4"} border-t border-[var(--border)] bg-[var(--surface)]`}
 					>
 						{(isUploadingAttachment || uploadProgress > 0) && (
 							<div
@@ -2401,14 +2396,28 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						</div>}
 						</div>
 
-                        <div className={`${!isDesktop ? "mb-2" : ""} mx-5 flex items-center justify-between gap-2`}>
+                        {/* Mirrors the mobile NavBar geometry (same side inset, equal-width
+                            columns, h-12 row) so the icons line up with the app's bottom menu. */}
+                        <div
+							className={
+								!isDesktop
+									? "-mx-[var(--app-px)]"
+									: "mx-5"
+							}
+							style={
+								!isDesktop
+									? { paddingBottom: mobileKeyboardInset > 0 ? "0.375rem" : "calc(env(safe-area-inset-bottom, 0px) + 0.375rem)" }
+									: undefined
+							}
+						>
+						<div className={!isDesktop ? "mx-auto grid h-12 w-full max-w-4xl grid-cols-5 px-[calc(0.75rem+1px+0.375rem)]" : "flex items-center justify-between gap-2"}>
 							<button
 								type="button"
 								onClick={() => {
 									setIsGiphyPickerOpen((prev) => !prev);
 									if (isDrawerOpen) toggleDrawer();
 								}}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.giphy.button_label")}
 								title={t("chat.giphy.button_label")}
 							>
@@ -2422,7 +2431,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									if (pendingLocationShare) handleLocationShareRequest();
 								}}
 								disabled={isUploadingAttachment}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.attach_media")}
 								title={t("chat.attach_media")}
 							>
@@ -2435,7 +2444,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									if (pendingLocationShare) handleLocationShareRequest();
 								}}
 								disabled={!selectedConversation && !targetProfileId}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed`}
 								aria-label={t("chat.drawer_label")}
 								title={t("chat.drawer_label")}
 							>
@@ -2447,7 +2456,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									handleLocationShareRequest();
 									if (isDrawerOpen) toggleDrawer();
 								}}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.share_location_label", { defaultValue: "Share Location" })}
 								title={t("chat.share_location_label", { defaultValue: "Share Location" })}
 							>
@@ -2456,7 +2465,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							<button
 								type="button"
 								onClick={() => setIsSavedPhrasesOpen((prev) => !prev)}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 								title={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 							>
@@ -2470,6 +2479,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								accept="image/*,video/*"
 								className="hidden"
 							/>
+						</div>
 						</div>
 
 
