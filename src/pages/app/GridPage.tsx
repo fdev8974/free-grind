@@ -97,6 +97,7 @@ export function GridPage() {
 		setPreferences,
 		isLoading: isLoadingPreferences,
 		showDebugInfo,
+		showGridTapStatus,
 	} = usePreferences();
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -1775,7 +1776,7 @@ export function GridPage() {
 									: chatContactIndexByProfileId
 							}
 							localNicknamesByProfileId={localNicknamesByProfileId}
-							tapStatusByProfileId={tapStatusByProfileId}
+							tapStatusByProfileId={showGridTapStatus ? tapStatusByProfileId : undefined}
 							onSelectProfile={handleSelectProfile}
 							onDoubleTapProfile={handleDoubleTapProfile}
 							onMessageProfile={handleMessageProfile}

@@ -129,6 +129,18 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-blue-500/15 text-blue-400",
 		},
 		{
+			id: "cust-grid-tap-status",
+			route: "/settings/customizability",
+			anchor: "cust-grid-tap-status",
+			label: t("customizability.show_grid_tap_status", { defaultValue: "Show Taps on the Grid" }),
+			description: t("customizability.show_grid_tap_status_desc", {
+				defaultValue: "Show a small flame on grid tiles of profiles you've tapped or who tapped you in the last 24 hours.",
+			}),
+			section: "Look & Feel",
+			icon: Flame,
+			iconClass: "bg-orange-500/15 text-orange-400",
+		},
+		{
 			id: "cust-reveal-effect",
 			route: "/settings/customizability",
 			anchor: "cust-reveal-effect",

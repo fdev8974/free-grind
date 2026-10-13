@@ -1005,7 +1005,9 @@
             "deny": "Negar",
             "current": "Atual",
             "not_selected": "Ainda não selecionado"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "Gira os avisos de confirmação antes de bloquear perfis ou eliminar conversas.",

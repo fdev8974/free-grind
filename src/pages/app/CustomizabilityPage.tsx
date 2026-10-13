@@ -149,6 +149,7 @@ export function CustomizabilityPage() {
 		unitsPreset,
 		revealEffectEnabled,
 		revealEffectStrength,
+		showGridTapStatus,
 		setPreferences,
 	} = usePreferences();
 	const [customHex, setCustomHex] = useState(accentColor);
@@ -442,10 +443,10 @@ export function CustomizabilityPage() {
 				</div>
 
 				{/* GRID PAGE (column count only affects the mobile app) */}
-				{isMobilePlatform && (
-					<div>
-						<SectionLabel>{t("customizability.grid_page")}</SectionLabel>
-						<div className="surface-card overflow-hidden">
+				<div>
+					<SectionLabel>{t("customizability.grid_page")}</SectionLabel>
+					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						{isMobilePlatform && (
 							<div
 								id="cust-browse-grid"
 								className={`p-4 ${highlightId === "cust-browse-grid" ? "animate-settings-highlight" : ""}`}
@@ -481,9 +482,21 @@ export function CustomizabilityPage() {
 									</div>
 								</div>
 							</div>
-						</div>
+						)}
+						<ToggleRow
+							id="cust-grid-tap-status"
+							highlighted={highlightId === "cust-grid-tap-status"}
+							icon={<Flame className="h-5 w-5" />}
+							iconClass="bg-orange-500/15 text-orange-400"
+							label={t("customizability.show_grid_tap_status", { defaultValue: "Show Taps on the Grid" })}
+							description={t("customizability.show_grid_tap_status_desc", {
+								defaultValue: "Show a small flame on grid tiles of profiles you've tapped or who tapped you in the last 24 hours.",
+							})}
+							checked={showGridTapStatus}
+							onChange={(checked) => void setPreferences({ showGridTapStatus: checked })}
+						/>
 					</div>
-				)}
+				</div>
 
 				{/* NAVIGATION */}
 				<div>

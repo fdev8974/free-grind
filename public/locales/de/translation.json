@@ -997,7 +997,9 @@
             "deny": "Ablehnen",
             "current": "Aktuell",
             "not_selected": "Noch nicht ausgewählt"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "Verwalte Bestätigungsabfragen vor dem Blockieren von Profilen oder dem Löschen von Chats.",

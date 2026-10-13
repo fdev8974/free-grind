@@ -1005,7 +1005,9 @@
             "deny": "Odbij",
             "current": "Trenutno",
             "not_selected": "Još nije odabrano"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "Upravljaj potvrdama prije blokiranja profila ili brisanja razgovora.",

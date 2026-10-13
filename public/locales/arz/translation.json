@@ -997,7 +997,9 @@
             "deny": "رفض",
             "current": "الحالي",
             "not_selected": "لم يتم الاختيار بعد"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "إدارة مطالبات التأكيد قبل بلوك البروفايلات الشخصية أو حذف الشات.",

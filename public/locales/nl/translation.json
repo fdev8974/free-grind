@@ -997,7 +997,9 @@
             "deny": "Weigeren",
             "current": "Huidig",
             "not_selected": "Nog niet gekozen"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "Beheer bevestigingsmeldingen voordat je profielen blokkeert of chats verwijdert.",

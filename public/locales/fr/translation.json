@@ -1005,7 +1005,9 @@
             "deny": "Refuser",
             "current": "Actuel",
             "not_selected": "Non sélectionné"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "Gérez les invites de confirmation avant de bloquer des profils ou de supprimer des discussions.",

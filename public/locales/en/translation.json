@@ -997,7 +997,9 @@
       "deny": "Deny",
       "current": "Current",
       "not_selected": "Not selected yet"
-    }
+    },
+    "show_grid_tap_status": "Show Taps on the Grid",
+    "show_grid_tap_status_desc": "Show a small flame on grid tiles of profiles you've tapped or who tapped you in the last 24 hours."
   },
   "behavior": {
     "subtitle": "Manage confirmation prompts before blocking profiles or deleting chats.",

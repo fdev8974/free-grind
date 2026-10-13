@@ -1005,7 +1005,9 @@
             "deny": "Denegar",
             "current": "Actual",
             "not_selected": "Sin seleccionar todavía"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "Gestiona los avisos de confirmación antes de bloquear perfiles o eliminar chats.",

@@ -175,6 +175,7 @@ const preferencesSchema = z.object({
 	autoFocusLocationSearch: z.boolean().default(true),
 	// Tap type sent by double tapping a grid tile; null disables the gesture.
 	doubleTapTapType: z.number().int().min(0).max(2).nullable().default(1),
+	showGridTapStatus: z.boolean().default(true),
 	defaultExpiringPhotos: z.boolean().default(false),
 	defaultAlbumExpirationType: z
 		.enum(["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"])
@@ -214,6 +215,7 @@ type PreferencesAction =
 	| { type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY"; payload: boolean }
 	| { type: "SET_KEEP_SCREEN_ON"; payload: boolean }
 	| { type: "SET_DOUBLE_TAP_TAP_TYPE"; payload: number | null }
+	| { type: "SET_SHOW_GRID_TAP_STATUS"; payload: boolean }
 	| { type: "SET_AUTO_FOCUS_LOCATION_SEARCH"; payload: boolean }
 	| { type: "SET_DEFAULT_EXPIRING_PHOTOS"; payload: boolean }
 	| { type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE"; payload: Preferences["defaultAlbumExpirationType"] }
@@ -269,6 +271,8 @@ function preferencesReducer(
 			return { ...state, autoFocusLocationSearch: action.payload };
 		case "SET_DOUBLE_TAP_TAP_TYPE":
 			return { ...state, doubleTapTapType: action.payload };
+		case "SET_SHOW_GRID_TAP_STATUS":
+			return { ...state, showGridTapStatus: action.payload };
 		case "SET_DEFAULT_EXPIRING_PHOTOS":
 			return { ...state, defaultExpiringPhotos: action.payload };
 		case "SET_DEFAULT_ALBUM_EXPIRATION_TYPE":
@@ -355,6 +359,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		keepScreenOn: false,
 		autoFocusLocationSearch: true,
 		doubleTapTapType: 1,
+		showGridTapStatus: true,
 		defaultExpiringPhotos: false,
 		defaultAlbumExpirationType: "INDEFINITE",
 		isLoading: true,
@@ -398,6 +403,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_KEEP_SCREEN_ON", payload: parsed.keepScreenOn });
 					dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: parsed.autoFocusLocationSearch });
 					dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: parsed.doubleTapTapType });
+					dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: parsed.showGridTapStatus });
 					dispatch({ type: "SET_DEFAULT_EXPIRING_PHOTOS", payload: parsed.defaultExpiringPhotos });
 					dispatch({ type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE", payload: parsed.defaultAlbumExpirationType });
 					dispatch({
@@ -488,6 +494,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				keepScreenOn: currentState.keepScreenOn,
 				autoFocusLocationSearch: currentState.autoFocusLocationSearch,
 				doubleTapTapType: currentState.doubleTapTapType,
+				showGridTapStatus: currentState.showGridTapStatus,
 				defaultExpiringPhotos: currentState.defaultExpiringPhotos,
 				defaultAlbumExpirationType: currentState.defaultAlbumExpirationType,
 				activeRightNowId: currentState.activeRightNowId ?? null,
@@ -566,6 +573,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.doubleTapTapType !== undefined) {
 				dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: newValues.doubleTapTapType });
+			}
+			if (newValues.showGridTapStatus !== undefined) {
+				dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: newValues.showGridTapStatus });
 			}
 			if (newValues.defaultExpiringPhotos !== undefined) {
 				dispatch({ type: "SET_DEFAULT_EXPIRING_PHOTOS", payload: newValues.defaultExpiringPhotos });
@@ -647,6 +657,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					keepScreenOn: preferences.keepScreenOn,
 					autoFocusLocationSearch: preferences.autoFocusLocationSearch,
 					doubleTapTapType: preferences.doubleTapTapType,
+					showGridTapStatus: preferences.showGridTapStatus,
 					defaultExpiringPhotos: preferences.defaultExpiringPhotos,
 					defaultAlbumExpirationType: preferences.defaultAlbumExpirationType,
 					activeRightNowId: preferences.activeRightNowId,
@@ -683,6 +694,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		keepScreenOn: state.keepScreenOn,
 		autoFocusLocationSearch: state.autoFocusLocationSearch,
 		doubleTapTapType: state.doubleTapTapType,
+		showGridTapStatus: state.showGridTapStatus,
 		defaultExpiringPhotos: state.defaultExpiringPhotos,
 		defaultAlbumExpirationType: state.defaultAlbumExpirationType,
 		setPreferences,

@@ -283,24 +283,25 @@ export function BrowseCardTile({
 					<div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1">
 						{/* Tap status sits above the row so it doesn't crowd favorite + chat
 							next to the distance. Outlined flame = you tapped, filled = they
-							tapped you, double flame = both (mutual). */}
+							tapped you, white flame on orange = both (mutual). */}
 						{(hasSentTap || hasReceivedTap) && (
 							<div
-								className="flex h-5 min-w-5 items-center justify-center rounded-full bg-black/50 px-0.5 text-orange-400 shadow-lg backdrop-blur-sm"
+								className={cn(
+									"flex h-5 w-5 items-center justify-center rounded-full shadow-lg",
+									hasSentTap && hasReceivedTap
+										? "bg-orange-500 text-white"
+										: "bg-black/50 text-orange-400 backdrop-blur-sm",
+								)}
 								title={hasSentTap && hasReceivedTap
 									? t("browse_page.tile_tap.mutual", { defaultValue: "You tapped each other" })
 									: hasSentTap
 										? t("browse_page.tile_tap.sent", { defaultValue: "You tapped them" })
 										: t("browse_page.tile_tap.received", { defaultValue: "They tapped you" })}
 							>
-								{hasSentTap && hasReceivedTap ? (
-									<>
-										<Flame className="h-3.5 w-3.5 fill-current" />
-										<Flame className="-ml-1.5 h-3.5 w-3.5 fill-current text-amber-300" />
-									</>
-								) : (
-									<Flame className={cn("h-3.5 w-3.5", hasReceivedTap && "fill-current")} strokeWidth={hasSentTap ? 2.5 : 2} />
-								)}
+								<Flame
+									className={cn("h-3.5 w-3.5", hasReceivedTap && "fill-current")}
+									strokeWidth={hasSentTap && !hasReceivedTap ? 2.5 : 2}
+								/>
 							</div>
 						)}
 						<div className="flex items-center gap-1">

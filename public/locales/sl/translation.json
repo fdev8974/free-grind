@@ -1013,7 +1013,9 @@
             "deny": "Zavrni",
             "current": "Trenutno",
             "not_selected": "Še ni izbrano"
-        }
+        },
+        "show_grid_tap_status": "",
+        "show_grid_tap_status_desc": ""
     },
     "behavior": {
         "subtitle": "Upravljaj potrditvena obvestila pred blokiranjem profilov ali brisanjem klepetov.",
