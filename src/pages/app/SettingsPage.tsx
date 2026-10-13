@@ -618,709 +618,711 @@ export function SettingsPage() {
 	}
 
 	return (
-		<section className="app-screen">
-			{/* Main-page header (like Interest / Right Now): reached from the bottom nav, so no back button.
-			    Sticky like the inbox header — pulled up over .app-screen's top padding (and
-			    re-adding it inside) so it pins at the very top with the title where it was. */}
-			<header
-				className="sticky top-0 z-20 mb-3 flex items-center justify-between gap-2 pb-3 pointer-events-none"
-				style={{
-					marginTop: "calc(-1 * (env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px)))",
-					paddingTop: "calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))",
-				}}
-			>
+		<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
+			{/* Main-page header, same structure as Inbox / Interest: a fixed header with the
+			    accent glow over its own scroll container. Reached from the bottom nav, so no back button. */}
+			<header className="relative z-20 flex shrink-0 flex-col pb-3 pointer-events-none">
 				<PageHeaderBackground color="var(--accent)" />
-				<div className="pointer-events-auto flex min-w-0 items-center gap-2">
-					<h1 className="app-title truncate">{t("settings.title")}</h1>
-					{developerMode ? (
-						<span className="shrink-0 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
-							Developer Mode
-						</span>
-					) : null}
+				<div className="pointer-events-auto mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--app-px)]">
+					<div className="flex items-center justify-between gap-2">
+						<div className="flex min-w-0 items-center gap-2">
+							<h1 className="app-title truncate">{t("settings.title")}</h1>
+							{developerMode ? (
+								<span className="shrink-0 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
+									Developer Mode
+								</span>
+							) : null}
+						</div>
+						<div className="-my-2 flex shrink-0 items-center gap-0.5">
+							<button
+								type="button"
+								onClick={() => {
+									if (isSearchOpen) setSearchQuery("");
+									setIsSearchOpen(!isSearchOpen);
+								}}
+								className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+								aria-label={isSearchOpen ? t("common.close", { defaultValue: "Close" }) : t("settings.search_placeholder")}
+							>
+								{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+							</button>
+						</div>
+					</div>
+					{isSearchOpen && (
+						<div className="settings-search-bar flex items-center gap-2.5 px-4 py-0.5">
+							<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+							<input
+								type="search"
+								autoFocus
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Escape") {
+										setSearchQuery("");
+										setIsSearchOpen(false);
+									}
+								}}
+								placeholder={t("settings.search_placeholder")}
+								className="h-11 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
+							/>
+							{searchQuery ? (
+								<button
+									type="button"
+									onClick={() => setSearchQuery("")}
+									className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+									aria-label={t("common.clear", { defaultValue: "Clear" })}
+								>
+									<X className="h-4 w-4" />
+								</button>
+							) : null}
+						</div>
+					)}
 				</div>
-				<button
-					type="button"
-					onClick={() => {
-						if (isSearchOpen) setSearchQuery("");
-						setIsSearchOpen(!isSearchOpen);
-					}}
-					className="header-icon-btn pointer-events-auto -my-2 shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-					aria-label={isSearchOpen ? t("common.close", { defaultValue: "Close" }) : t("settings.search_placeholder")}
-				>
-					{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
-				</button>
 			</header>
 
-			{isSearchOpen && (
-				<div className="settings-search-bar mb-6 flex items-center gap-2.5 px-4 py-0.5">
-					<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-					<input
-						type="search"
-						autoFocus
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						onKeyDown={(e) => {
-							if (e.key === "Escape") {
-								setSearchQuery("");
-								setIsSearchOpen(false);
-							}
-						}}
-						placeholder={t("settings.search_placeholder")}
-						className="h-11 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
-					/>
-					{searchQuery ? (
-						<button
-							type="button"
-							onClick={() => setSearchQuery("")}
-							className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-							aria-label={t("common.clear", { defaultValue: "Clear" })}
-						>
-							<X className="h-4 w-4" />
-						</button>
-					) : null}
-				</div>
-			)}
-
-			{searchQuery.trim() ? (
-				<div className="grid gap-6">
-					{searchResults.length === 0 ? (
-						<p className="px-1 text-sm text-[var(--text-muted)]">
-							{t("settings.search_no_results", { query: searchQuery.trim() })}
-						</p>
+			<div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto">
+				<div className="mx-auto w-full max-w-[var(--content-max)] px-[var(--app-px)] pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px))]">
+					{searchQuery.trim() ? (
+						<div className="grid gap-6">
+							{searchResults.length === 0 ? (
+								<p className="px-1 text-sm text-[var(--text-muted)]">
+									{t("settings.search_no_results", { query: searchQuery.trim() })}
+								</p>
+							) : (
+								<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+									{searchResults.map((entry) => (
+										<button
+											key={entry.id}
+											type="button"
+											onClick={() => {
+												if (entry.externalUrl) {
+													void openExternalUrl(entry.externalUrl);
+													return;
+												}
+												navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route);
+											}}
+											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+										>
+											<div className={`rounded-2xl p-2.5 shrink-0 ${entry.iconClass}`}>
+												<entry.icon className="h-5 w-5" />
+											</div>
+											<div className="min-w-0 flex-1">
+												<p className="text-sm font-semibold leading-snug">{entry.label}</p>
+												<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5 truncate">
+													{entry.section}{entry.description ? ` — ${entry.description}` : ""}
+												</p>
+											</div>
+											<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+										</button>
+									))}
+								</div>
+							)}
+						</div>
 					) : (
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-							{searchResults.map((entry) => (
+					<div className="grid gap-6">
+
+						{/* Profile — the active profile is the primary focus (tap it to edit
+						    your profile), with the account switcher folded in below it for
+						    the other saved accounts you can tap between without
+						    re-entering a password. Each saved account keeps its own chat
+						    history and caches fully separate (see chatDb.ts/cache.ts), so
+						    switching never shows a leftover account's data. */}
+						<div className="min-w-0">
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Profile</p>
+							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								{(() => {
+									const activeAccount = userId != null
+										? savedAccounts.find((account) => String(userId) === account.profileId)
+										: undefined;
+									const activeProfile = userId != null ? getSavedAccountProfile(String(userId)) : null;
+									return (
+										<div className="flex items-center gap-1">
+											<button
+												type="button"
+												onClick={() => navigate("/settings/profile-editor")}
+												className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+											>
+												<Avatar
+													src={activeProfile?.photoHash ? getThumbImageUrl(activeProfile.photoHash, "75x75") : null}
+													alt=""
+													className="h-10 w-10 shrink-0 rounded-2xl border-0"
+												/>
+												<div className="min-w-0 flex-1">
+													<p className="truncate text-sm font-semibold leading-snug">
+														{activeProfile?.displayName || activeAccount?.email || t("settings.profile_editor")}
+													</p>
+													<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+														{t("settings.profile_editor_desc")}
+													</p>
+												</div>
+											</button>
+											<button
+												type="button"
+												onClick={() => setLogoutConfirmTarget("active")}
+												aria-label={t("settings.logout")}
+												className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+											>
+												<LogOut className="h-4 w-4" />
+											</button>
+										</div>
+									);
+								})()}
+
+								{savedAccounts
+									.filter((account) => !(userId != null && String(userId) === account.profileId))
+									.map((account) => {
+										const isSwitching = switchingProfileId === account.profileId;
+										const isRemoving = removingProfileId === account.profileId;
+										const savedProfile = getSavedAccountProfile(account.profileId);
+										return (
+											<div key={account.profileId} className="flex items-center gap-1">
+												<button
+													type="button"
+													onClick={() => void handleSwitchAccount(account.profileId)}
+													disabled={isSwitching || isRemoving}
+													className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-not-allowed"
+												>
+													<div className="relative h-10 w-10 shrink-0">
+														<Avatar
+															src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
+															alt=""
+															className="h-full w-full rounded-2xl border-0"
+														/>
+														{isSwitching && (
+															<div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[var(--surface)]/80">
+																<Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
+															</div>
+														)}
+													</div>
+													<div className="min-w-0 flex-1">
+														<p className="truncate text-sm font-semibold leading-snug">
+															{savedProfile.displayName || account.email || account.profileId}
+														</p>
+														<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+															{t("settings.account_tap_to_switch", { defaultValue: "Tap to switch" })}
+														</p>
+													</div>
+												</button>
+												<button
+													type="button"
+													onClick={() => setLogoutConfirmTarget(account.profileId)}
+													disabled={isSwitching || isRemoving}
+													aria-label={t("settings.logout")}
+													className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
+												>
+													{isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+												</button>
+											</div>
+										);
+									})}
 								<button
-									key={entry.id}
 									type="button"
-									onClick={() => {
-										if (entry.externalUrl) {
-											void openExternalUrl(entry.externalUrl);
-											return;
-										}
-										navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route);
-									}}
+									onClick={() => navigate("/auth/sign-in?mode=add-profile")}
 									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 								>
-									<div className={`rounded-2xl p-2.5 shrink-0 ${entry.iconClass}`}>
-										<entry.icon className="h-5 w-5" />
+									<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
+										<UserPlus className="h-5 w-5" />
 									</div>
 									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">{entry.label}</p>
-										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5 truncate">
-											{entry.section}{entry.description ? ` — ${entry.description}` : ""}
+										<p className="text-sm font-semibold leading-snug">
+											{t("settings.add_account", { defaultValue: "Add account" })}
+										</p>
+										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+											{t("settings.add_account_desc", { defaultValue: "Sign in with another account" })}
 										</p>
 									</div>
 									<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 								</button>
-							))}
-						</div>
-					)}
-				</div>
-			) : (
-			<div className="grid gap-6">
-
-				{/* Profile — the active profile is the primary focus (tap it to edit
-				    your profile), with the account switcher folded in below it for
-				    the other saved accounts you can tap between without
-				    re-entering a password. Each saved account keeps its own chat
-				    history and caches fully separate (see chatDb.ts/cache.ts), so
-				    switching never shows a leftover account's data. */}
-				<div className="min-w-0">
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Profile</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{(() => {
-							const activeAccount = userId != null
-								? savedAccounts.find((account) => String(userId) === account.profileId)
-								: undefined;
-							const activeProfile = userId != null ? getSavedAccountProfile(String(userId)) : null;
-							return (
-								<div className="flex items-center gap-1">
-									<button
-										type="button"
-										onClick={() => navigate("/settings/profile-editor")}
-										className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-									>
-										<Avatar
-											src={activeProfile?.photoHash ? getThumbImageUrl(activeProfile.photoHash, "75x75") : null}
-											alt=""
-											className="h-10 w-10 shrink-0 rounded-2xl border-0"
-										/>
-										<div className="min-w-0 flex-1">
-											<p className="truncate text-sm font-semibold leading-snug">
-												{activeProfile?.displayName || activeAccount?.email || t("settings.profile_editor")}
-											</p>
-											<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-												{t("settings.profile_editor_desc")}
-											</p>
-										</div>
-									</button>
-									<button
-										type="button"
-										onClick={() => setLogoutConfirmTarget("active")}
-										aria-label={t("settings.logout")}
-										className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
-									>
-										<LogOut className="h-4 w-4" />
-									</button>
-								</div>
-							);
-						})()}
-
-						{savedAccounts
-							.filter((account) => !(userId != null && String(userId) === account.profileId))
-							.map((account) => {
-								const isSwitching = switchingProfileId === account.profileId;
-								const isRemoving = removingProfileId === account.profileId;
-								const savedProfile = getSavedAccountProfile(account.profileId);
-								return (
-									<div key={account.profileId} className="flex items-center gap-1">
-										<button
-											type="button"
-											onClick={() => void handleSwitchAccount(account.profileId)}
-											disabled={isSwitching || isRemoving}
-											className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-not-allowed"
-										>
-											<div className="relative h-10 w-10 shrink-0">
-												<Avatar
-													src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
-													alt=""
-													className="h-full w-full rounded-2xl border-0"
-												/>
-												{isSwitching && (
-													<div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[var(--surface)]/80">
-														<Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
-													</div>
-												)}
-											</div>
-											<div className="min-w-0 flex-1">
-												<p className="truncate text-sm font-semibold leading-snug">
-													{savedProfile.displayName || account.email || account.profileId}
-												</p>
-												<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-													{t("settings.account_tap_to_switch", { defaultValue: "Tap to switch" })}
-												</p>
-											</div>
-										</button>
-										<button
-											type="button"
-											onClick={() => setLogoutConfirmTarget(account.profileId)}
-											disabled={isSwitching || isRemoving}
-											aria-label={t("settings.logout")}
-											className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
-										>
-											{isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-										</button>
-									</div>
-								);
-							})}
-						<button
-							type="button"
-							onClick={() => navigate("/auth/sign-in?mode=add-profile")}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-						>
-							<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-								<UserPlus className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold leading-snug">
-									{t("settings.add_account", { defaultValue: "Add account" })}
-								</p>
-								<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-									{t("settings.add_account_desc", { defaultValue: "Sign in with another account" })}
-								</p>
-							</div>
-							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-						</button>
-					</div>
-				</div>
-
-				{/* Chat */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Chat</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						<div className="flex items-center gap-3 px-4 py-3.5">
-							<div className="relative shrink-0">
-								<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-									<DatabaseBackup className="h-5 w-5" />
-								</div>
-								<div
-									className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)] ${inboxSyncDisplay.badgeClass}`}
-									style={inboxSyncDisplay.badgeStyle}
-								>
-									{inboxSyncDisplay.badgeIcon}
-								</div>
-							</div>
-							<div className="min-w-0 flex-1">
-								<div className="flex items-center justify-between gap-2">
-									<p className="text-sm font-semibold leading-snug">{inboxSyncDisplay.title}</p>
-									{inboxSyncDisplay.progressPercent != null && (
-										<p className="shrink-0 text-xs font-semibold tabular-nums text-[var(--accent)]">
-											{inboxSyncDisplay.progressPercent}%
-										</p>
-									)}
-								</div>
-								<p className="mt-0.5 text-xs leading-snug tabular-nums text-[var(--text-muted)]">
-									{inboxSyncDisplay.description}
-								</p>
-								{inboxSyncDisplay.active && (
-									<div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
-										<div
-											className={
-												inboxSyncDisplay.progressPercent == null
-													? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
-													: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
-											}
-											style={
-												inboxSyncDisplay.progressPercent != null
-													? { width: `${inboxSyncDisplay.progressPercent}%` }
-													: undefined
-											}
-										/>
-									</div>
-								)}
 							</div>
 						</div>
-						{navRow(
-							() => navigate("/settings/albums"),
-							<Images className="h-5 w-5" />,
-							"bg-pink-500/15 text-pink-400",
-							t("settings.my_albums"),
-							t("settings.my_albums_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/translation"),
-							<Languages className="h-5 w-5" />,
-							"bg-cyan-500/15 text-cyan-400",
-							t("settings.translation", { defaultValue: "Translation" }),
-							t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." }),
-						)}
-					</div>
-				</div>
 
-				{/* Safety */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Safety</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/blocked"),
-							<UserX className="h-5 w-5" />,
-							"bg-red-500/15 text-red-400",
-							t("settings.blocked_accounts"),
-							t("settings.blocked_accounts_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/hidden"),
-							<EyeOff className="h-5 w-5" />,
-							"bg-slate-500/15 text-slate-400",
-							t("settings.hidden_profiles", { defaultValue: "Hidden Profiles" }),
-							t("settings.hidden_profiles_desc", {
-								defaultValue: "See who you hid from the grid and unhide them anytime.",
-							}),
-						)}
-						{navRow(
-							() => navigate("/settings/block-history"),
-							<History className="h-5 w-5" />,
-							"bg-orange-500/15 text-orange-400",
-							t("settings.block_history", { defaultValue: "Block Activity" }),
-							t("settings.block_history_desc", {
-								defaultValue: "See who has blocked or unblocked you, and when.",
-							}),
-						)}
-						{navRow(
-							() => navigate("/settings/privacy"),
-							<Shield className="h-5 w-5" />,
-							"bg-sky-500/15 text-sky-400",
-							t("settings.privacy"),
-							t("settings.privacy_desc"),
-						)}
-						{isSexualHealthEnabled() &&
-							navRow(
-								() => navigate("/settings/sexual-health"),
-								<HeartPulse className="h-5 w-5" />,
-								"bg-rose-500/15 text-rose-400",
-								t("settings.sexual_health", { defaultValue: "Sexual Health" }),
-								t("settings.sexual_health_desc", {
-									defaultValue: "Track PrEP doses, encounters, tests and appointments.",
-								}),
-							)}
-					</div>
-				</div>
-
-				{/* Customizability */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Customizability</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/customizability"),
-							<Palette className="h-5 w-5" />,
-							"bg-violet-500/15 text-violet-400",
-							t("settings.customizability"),
-							t("settings.customizability_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/behavior"),
-							<SlidersHorizontal className="h-5 w-5" />,
-							"bg-slate-500/15 text-slate-400",
-							t("settings.behavior"),
-							t("settings.behavior_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/optional-features"),
-							<ToggleRight className="h-5 w-5" />,
-							"bg-emerald-500/15 text-emerald-400",
-							t("customizability.optional_features", { defaultValue: "Optional Features" }),
-							t("customizability.optional_features_desc", {
-								defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
-							}),
-						)}
-						{navRow(
-							() => navigate("/settings/notifications"),
-							<Bell className="h-5 w-5" />,
-							"bg-blue-500/15 text-blue-400",
-							t("settings.notifications"),
-							t("settings.notifications_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/automation"),
-							<Workflow className="h-5 w-5" />,
-							"bg-amber-500/15 text-amber-400",
-							t("settings.automation"),
-							t("settings.automation_desc"),
-						)}
-					</div>
-				</div>
-
-				{/* Backup & Restore */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-						{t("settings.data_section", { defaultValue: "Backup & Restore" })}
-					</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/data"),
-							<DatabaseBackup className="h-5 w-5" />,
-							"bg-teal-500/15 text-teal-400",
-							t("settings.data", { defaultValue: "Backup & Restore" }),
-							t("settings.data_desc", { defaultValue: "Downloaded media storage, and back up/restore your entire account" }),
-						)}
-					</div>
-				</div>
-
-				{/* Updates */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
-					<div className="surface-card overflow-hidden">
-						<div className="flex items-start gap-3 px-4 py-3.5">
-							<div className="relative shrink-0">
-								<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
-									<RefreshCcw className={`h-5 w-5 ${isCheckingUpdates || isSwitchingChannel ? "animate-spin" : ""}`} />
-								</div>
-								{isContributorChannel(updateChannel) && (
-									<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] ring-2 ring-[var(--surface)]">
-										<GitBranch className="h-3 w-3" />
-									</div>
-								)}
-							</div>
-							<div className="min-w-0 flex-1">
-								<div className="grid grid-cols-[1fr_auto] gap-x-3">
-									<p className="text-sm font-semibold leading-snug">{t("settings.check_updates")}</p>
-									<div className="row-span-2 flex items-start">
-										<Button type="button" onClick={() => void handleCheckUpdates()} disabled={isCheckingUpdates || isSwitchingChannel}>
-											{t("settings.check_now")}
-										</Button>
-									</div>
-									<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("settings.check_updates_desc")}</p>
-								</div>
-								{visibleChannels.length > 0 && (
-									<div className="mt-3 flex flex-wrap items-center gap-1">
-										{visibleChannels.map((channel) => (
-											<button
-												key={channel}
-												type="button"
-												disabled={isSwitchingChannel || isCheckingUpdates}
-												onClick={() => void handleSwitchUpdateChannel(channel)}
-												className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${
-													channel === updateChannel
-														? "border-[var(--accent)] bg-[var(--accent)] text-black"
-														: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--accent)]/50"
-												}`}
-											>
-												{getHotswapChannelLabel(channel)}
-											</button>
-										))}
-										{isContributorChannel(updateChannel) ? (
-											<span className="rounded-full border border-[var(--accent)] bg-[var(--accent)] px-2.5 py-0.5 text-xs font-semibold text-black">
-												{getContributorHandle(updateChannel)}
-											</span>
-										) : developerMode ? (
-											<button
-												type="button"
-												onClick={() => setIsContributorDialogOpen(true)}
-												disabled={isSwitchingChannel || isCheckingUpdates}
-												aria-label="Add contributor channel"
-												title="Add contributor channel"
-												className="flex h-[22px] w-[22px] items-center justify-center rounded-full border border-dashed border-[var(--border)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/50 hover:text-[var(--accent)] disabled:opacity-50"
-											>
-												<Plus className="h-3 w-3" />
-											</button>
-										) : null}
-									</div>
-								)}
-							</div>
-						</div>
-					</div>
-				</div>
-
-				{/* Dev tools */}
-				{developerMode ? (
-					<div>
-						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Developer</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-							<div className="flex w-full items-center gap-3 px-4 py-3.5">
-								<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-									<Bug className="h-5 w-5" />
-								</div>
-								<div className="min-w-0 flex-1">
-									<p className="text-sm font-semibold leading-snug">Show Debug Overlays</p>
-									<p className="text-xs text-[var(--text-muted)] mt-0.5">Displays source (cache/network) info in the grid.</p>
-								</div>
-								<button
-									type="button"
-									onClick={() => void setPreferences({ showDebugInfo: !showDebugInfo })}
-									className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${showDebugInfo ? "bg-[var(--accent)]" : "bg-[var(--surface-2)]"}`}
-								>
-									<span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${showDebugInfo ? "translate-x-5" : "translate-x-0"}`} />
-								</button>
-							</div>
-							{navRow(
-								() => navigate("/settings/api-inspector"),
-								<Terminal className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								t("settings.api_inspector"),
-								t("settings.api_inspector_desc"),
-							)}
-							{navRow(
-								() => navigate("/settings/assignments"),
-								<FlaskConical className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Assignments & Feature Flags",
-								"Server-side flags and A/B experiments assigned to this account.",
-							)}
-							{navRow(
-								replayOnboarding,
-								<RotateCcw className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Replay Onboarding",
-								"Shows the first-launch setup flow again.",
-							)}
-							{navRow(
-								replayRestoreOffer,
-								<FileUp className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Show Restore Offer",
-								"Opens the first-login backup restore dialog.",
-							)}
-							{navRow(
-								showLegalAgreementsPrompt,
-								<ScrollText className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Show Legal Agreements",
-								"Opens the Terms of Service / Privacy Policy dialog, even if already accepted.",
-							)}
-							{isAndroid() && (
-							<div className="p-4 sm:p-5">
-								<div className="flex items-start gap-3">
-									<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-										<Bell className="h-5 w-5" />
-									</div>
-									<div className="grid gap-3 min-w-0 flex-1">
-										<div className="flex items-center gap-2 flex-wrap">
-											<p className="text-sm font-semibold">Push Token (FCM)</p>
-											{fcmToken && (() => {
-												// Sync marker is `${token}::${userId}` (see AuthContext) since the
-												// device token is shared across saved accounts but sync is per-account.
-												const isSynced = fcmSyncedToken === `${fcmToken}::${userId}`;
-												return (
-													<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isSynced ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-														{isSynced ? "✓ Synced" : "⚠ Not synced"}
-													</span>
-												);
-											})()}
-										</div>
-										{fcmToken ? (
-											<div className="grid gap-2">
-												<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-													<p className="text-xs text-[var(--text-muted)] mb-1">Token (tap to select)</p>
-													<p className="break-all font-mono text-xs select-all">{fcmToken}</p>
-												</div>
-												<Button type="button" size="sm" disabled={isSyncingFcm} onClick={() => void handleForceSyncFcm()} className="w-full justify-center">
-													{isSyncingFcm ? "Syncing..." : "Force re-sync"}
-												</Button>
-                                            </div>
-										) : (
-											<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
-												<p className="font-medium mb-0.5">No token received yet</p>
-												<p className="text-xs opacity-80">Android delivers the FCM token via the <code>fg:fcm-token</code> event after Firebase initialises on launch.</p>
-											</div>
-										)}
-										<div>
-											<p className="text-xs font-medium text-[var(--text-muted)] mb-1">
-												Live event log {fcmEventLog.length > 0 ? `(${fcmEventLog.length} received this session)` : "(waiting…)"}
-											</p>
-											<div ref={fcmLogRef} className="rounded-lg bg-[var(--surface-2)] px-3 py-2 max-h-32 overflow-y-auto">
-												{fcmEventLog.length === 0 ? (
-													<p className="font-mono text-xs text-[var(--text-muted)] italic">No fg:fcm-token events fired since this page opened</p>
-												) : (
-													fcmEventLog.map((entry, i) => (
-														<p key={i} className="font-mono text-xs break-all">
-															<span className="text-[var(--text-muted)]">[{entry.time}] </span>
-															{entry.token.slice(0, 20)}…{entry.token.slice(-8)}
-														</p>
-													))
-												)}
-											</div>
-										</div>
-										<div className="grid gap-1.5">
-											<p className="text-xs font-medium text-[var(--text-muted)]">Manual token (paste to force-sync)</p>
-											<div className="flex gap-2">
-												<input
-													type="text"
-													value={manualToken}
-													onChange={(e) => setManualToken(e.target.value)}
-													placeholder="Paste FCM token here…"
-													className="input-field min-w-0 flex-1 font-mono text-xs"
-												/>
-												<Button type="button" size="sm" disabled={isSyncingFcm || !manualToken.trim()} onClick={() => void handleForceSyncFcm(manualToken.trim())}>
-													Sync
-												</Button>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-							)}
-							<div className="p-4 sm:p-5">
-								<div className="flex items-start gap-3">
+						{/* Chat */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Chat</p>
+							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								<div className="flex items-center gap-3 px-4 py-3.5">
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-											<Radar className="h-5 w-5" />
+											<DatabaseBackup className="h-5 w-5" />
 										</div>
-										{fingerprintCheck.loading ? (
-											<div
-												className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)]"
-												style={{ backgroundColor: "var(--accent)", color: "var(--accent-contrast)" }}
-											>
-												<Loader2 className="h-3 w-3 animate-spin" />
-											</div>
-										) : fingerprintCheck.ok ? (
-											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-[var(--surface)]">
-												<CheckCircle2 className="h-3 w-3" />
-											</div>
-										) : fingerprintCheck.result || fingerprintCheck.error ? (
-											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-[var(--surface)]">
-												<AlertCircle className="h-3 w-3" />
-											</div>
-										) : (
-											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-2 ring-[var(--surface)]">
-												<HelpCircle className="h-3 w-3" />
+										<div
+											className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)] ${inboxSyncDisplay.badgeClass}`}
+											style={inboxSyncDisplay.badgeStyle}
+										>
+											{inboxSyncDisplay.badgeIcon}
+										</div>
+									</div>
+									<div className="min-w-0 flex-1">
+										<div className="flex items-center justify-between gap-2">
+											<p className="text-sm font-semibold leading-snug">{inboxSyncDisplay.title}</p>
+											{inboxSyncDisplay.progressPercent != null && (
+												<p className="shrink-0 text-xs font-semibold tabular-nums text-[var(--accent)]">
+													{inboxSyncDisplay.progressPercent}%
+												</p>
+											)}
+										</div>
+										<p className="mt-0.5 text-xs leading-snug tabular-nums text-[var(--text-muted)]">
+											{inboxSyncDisplay.description}
+										</p>
+										{inboxSyncDisplay.active && (
+											<div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+												<div
+													className={
+														inboxSyncDisplay.progressPercent == null
+															? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
+															: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+													}
+													style={
+														inboxSyncDisplay.progressPercent != null
+															? { width: `${inboxSyncDisplay.progressPercent}%` }
+															: undefined
+													}
+												/>
 											</div>
 										)}
 									</div>
-									<div className="grid gap-3 min-w-0 flex-1">
-										<div className="grid grid-cols-[1fr_auto] gap-x-3">
-											<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
-											<div className="row-span-2 flex items-start">
-												<Button type="button" disabled={fingerprintCheck.loading} onClick={() => void fingerprintCheck.checkFingerprint()}>
-													Check
-												</Button>
-											</div>
-											<p className="mt-0.5 text-xs text-[var(--text-muted)]">Verify your HTTP/TLS fingerprint matches OkHttp configuration.</p>
+								</div>
+								{navRow(
+									() => navigate("/settings/albums"),
+									<Images className="h-5 w-5" />,
+									"bg-pink-500/15 text-pink-400",
+									t("settings.my_albums"),
+									t("settings.my_albums_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/translation"),
+									<Languages className="h-5 w-5" />,
+									"bg-cyan-500/15 text-cyan-400",
+									t("settings.translation", { defaultValue: "Translation" }),
+									t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." }),
+								)}
+							</div>
+						</div>
+
+						{/* Safety */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Safety</p>
+							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/blocked"),
+									<UserX className="h-5 w-5" />,
+									"bg-red-500/15 text-red-400",
+									t("settings.blocked_accounts"),
+									t("settings.blocked_accounts_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/hidden"),
+									<EyeOff className="h-5 w-5" />,
+									"bg-slate-500/15 text-slate-400",
+									t("settings.hidden_profiles", { defaultValue: "Hidden Profiles" }),
+									t("settings.hidden_profiles_desc", {
+										defaultValue: "See who you hid from the grid and unhide them anytime.",
+									}),
+								)}
+								{navRow(
+									() => navigate("/settings/block-history"),
+									<History className="h-5 w-5" />,
+									"bg-orange-500/15 text-orange-400",
+									t("settings.block_history", { defaultValue: "Block Activity" }),
+									t("settings.block_history_desc", {
+										defaultValue: "See who has blocked or unblocked you, and when.",
+									}),
+								)}
+								{navRow(
+									() => navigate("/settings/privacy"),
+									<Shield className="h-5 w-5" />,
+									"bg-sky-500/15 text-sky-400",
+									t("settings.privacy"),
+									t("settings.privacy_desc"),
+								)}
+								{isSexualHealthEnabled() &&
+									navRow(
+										() => navigate("/settings/sexual-health"),
+										<HeartPulse className="h-5 w-5" />,
+										"bg-rose-500/15 text-rose-400",
+										t("settings.sexual_health", { defaultValue: "Sexual Health" }),
+										t("settings.sexual_health_desc", {
+											defaultValue: "Track PrEP doses, encounters, tests and appointments.",
+										}),
+									)}
+							</div>
+						</div>
+
+						{/* Customizability */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Customizability</p>
+							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/customizability"),
+									<Palette className="h-5 w-5" />,
+									"bg-violet-500/15 text-violet-400",
+									t("settings.customizability"),
+									t("settings.customizability_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/behavior"),
+									<SlidersHorizontal className="h-5 w-5" />,
+									"bg-slate-500/15 text-slate-400",
+									t("settings.behavior"),
+									t("settings.behavior_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/optional-features"),
+									<ToggleRight className="h-5 w-5" />,
+									"bg-emerald-500/15 text-emerald-400",
+									t("customizability.optional_features", { defaultValue: "Optional Features" }),
+									t("customizability.optional_features_desc", {
+										defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
+									}),
+								)}
+								{navRow(
+									() => navigate("/settings/notifications"),
+									<Bell className="h-5 w-5" />,
+									"bg-blue-500/15 text-blue-400",
+									t("settings.notifications"),
+									t("settings.notifications_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/automation"),
+									<Workflow className="h-5 w-5" />,
+									"bg-amber-500/15 text-amber-400",
+									t("settings.automation"),
+									t("settings.automation_desc"),
+								)}
+							</div>
+						</div>
+
+						{/* Backup & Restore */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+								{t("settings.data_section", { defaultValue: "Backup & Restore" })}
+							</p>
+							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/data"),
+									<DatabaseBackup className="h-5 w-5" />,
+									"bg-teal-500/15 text-teal-400",
+									t("settings.data", { defaultValue: "Backup & Restore" }),
+									t("settings.data_desc", { defaultValue: "Downloaded media storage, and back up/restore your entire account" }),
+								)}
+							</div>
+						</div>
+
+						{/* Updates */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
+							<div className="surface-card overflow-hidden">
+								<div className="flex items-start gap-3 px-4 py-3.5">
+									<div className="relative shrink-0">
+										<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
+											<RefreshCcw className={`h-5 w-5 ${isCheckingUpdates || isSwitchingChannel ? "animate-spin" : ""}`} />
 										</div>
-										{fingerprintCheck.result && (
-											<div className="grid gap-2">
-												<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-													<div className="mb-1 flex items-center justify-between gap-2">
-														<p className="text-xs text-[var(--text-muted)]">JA3 Hash</p>
-														<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.ja3_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-															{fingerprintCheck.result.ja3_match ? "✓ Match" : "✗ Mismatch"}
-														</span>
-													</div>
-													<p className="break-all font-mono text-xs">{fingerprintCheck.result.ja3_hash}</p>
-												</div>
-												<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-													<div className="mb-1 flex items-center justify-between gap-2">
-														<p className="text-xs text-[var(--text-muted)]">Akamai Fingerprint</p>
-														<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.akamai_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-															{fingerprintCheck.result.akamai_match ? "✓ Match" : "✗ Mismatch"}
-														</span>
-													</div>
-													<p className="break-all font-mono text-xs">{fingerprintCheck.result.akamai_fingerprint}</p>
-												</div>
-												<p className="text-xs text-[var(--text-muted)]">HTTP Version <span className="font-mono text-[var(--text)]">{fingerprintCheck.result.http_version}</span></p>
+										{isContributorChannel(updateChannel) && (
+											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] ring-2 ring-[var(--surface)]">
+												<GitBranch className="h-3 w-3" />
 											</div>
 										)}
-										{fingerprintCheck.error && (
-											<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
-												<p className="font-medium mb-0.5">Fingerprint check failed</p>
-												<p className="text-xs opacity-80">{fingerprintCheck.error}</p>
+									</div>
+									<div className="min-w-0 flex-1">
+										<div className="grid grid-cols-[1fr_auto] gap-x-3">
+											<p className="text-sm font-semibold leading-snug">{t("settings.check_updates")}</p>
+											<div className="row-span-2 flex items-start">
+												<Button type="button" onClick={() => void handleCheckUpdates()} disabled={isCheckingUpdates || isSwitchingChannel}>
+													{t("settings.check_now")}
+												</Button>
+											</div>
+											<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("settings.check_updates_desc")}</p>
+										</div>
+										{visibleChannels.length > 0 && (
+											<div className="mt-3 flex flex-wrap items-center gap-1">
+												{visibleChannels.map((channel) => (
+													<button
+														key={channel}
+														type="button"
+														disabled={isSwitchingChannel || isCheckingUpdates}
+														onClick={() => void handleSwitchUpdateChannel(channel)}
+														className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${
+															channel === updateChannel
+																? "border-[var(--accent)] bg-[var(--accent)] text-black"
+																: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--accent)]/50"
+														}`}
+													>
+														{getHotswapChannelLabel(channel)}
+													</button>
+												))}
+												{isContributorChannel(updateChannel) ? (
+													<span className="rounded-full border border-[var(--accent)] bg-[var(--accent)] px-2.5 py-0.5 text-xs font-semibold text-black">
+														{getContributorHandle(updateChannel)}
+													</span>
+												) : developerMode ? (
+													<button
+														type="button"
+														onClick={() => setIsContributorDialogOpen(true)}
+														disabled={isSwitchingChannel || isCheckingUpdates}
+														aria-label="Add contributor channel"
+														title="Add contributor channel"
+														className="flex h-[22px] w-[22px] items-center justify-center rounded-full border border-dashed border-[var(--border)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/50 hover:text-[var(--accent)] disabled:opacity-50"
+													>
+														<Plus className="h-3 w-3" />
+													</button>
+												) : null}
 											</div>
 										)}
 									</div>
 								</div>
 							</div>
-							{navRow(
-								() => setPreviewAnnouncement(true),
-								<Megaphone className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Preview Version Announcement",
-								LATEST_ANNOUNCEMENT
-									? `View the "${LATEST_ANNOUNCEMENT.headline}" screen (v${LATEST_ANNOUNCEMENT.version}).`
-									: "No version announcement configured yet.",
-								undefined,
-								!LATEST_ANNOUNCEMENT,
-							)}
-							{navRow(
-								() => setPreviewOutdatedPrompt(true),
-								<Download className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Preview Outdated Update Prompt",
-								"View the \"Update Available\" screen shown when the app is out of date.",
-							)}
 						</div>
-					</div>
-				) : null}
 
-				{/* About */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">About</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/about"),
-							<Info className="h-5 w-5" />,
-							"bg-slate-500/15 text-slate-400",
-							t("settings.about"),
-							t("settings.about_desc"),
-						)}
-						{navRow(
-							() => void openExternalUrl(GITHUB_ISSUES_URL),
-							<ClipboardList className="h-5 w-5" />,
-							"bg-orange-500/15 text-orange-400",
-							t("settings.issue_board"),
-							t("settings.issue_board_desc"),
-						)}
-						{navRow(
-							() => void openExternalUrl(GITHUB_NEW_ISSUE_URL),
-							<MessageSquareWarning className="h-5 w-5" />,
-							"bg-rose-500/15 text-rose-400",
-							t("settings.report_issue"),
-							t("settings.report_issue_desc"),
-						)}
+						{/* Dev tools */}
+						{developerMode ? (
+							<div>
+								<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Developer</p>
+								<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+									<div className="flex w-full items-center gap-3 px-4 py-3.5">
+										<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
+											<Bug className="h-5 w-5" />
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-semibold leading-snug">Show Debug Overlays</p>
+											<p className="text-xs text-[var(--text-muted)] mt-0.5">Displays source (cache/network) info in the grid.</p>
+										</div>
+										<button
+											type="button"
+											onClick={() => void setPreferences({ showDebugInfo: !showDebugInfo })}
+											className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${showDebugInfo ? "bg-[var(--accent)]" : "bg-[var(--surface-2)]"}`}
+										>
+											<span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${showDebugInfo ? "translate-x-5" : "translate-x-0"}`} />
+										</button>
+									</div>
+									{navRow(
+										() => navigate("/settings/api-inspector"),
+										<Terminal className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										t("settings.api_inspector"),
+										t("settings.api_inspector_desc"),
+									)}
+									{navRow(
+										() => navigate("/settings/assignments"),
+										<FlaskConical className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"Assignments & Feature Flags",
+										"Server-side flags and A/B experiments assigned to this account.",
+									)}
+									{navRow(
+										replayOnboarding,
+										<RotateCcw className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"Replay Onboarding",
+										"Shows the first-launch setup flow again.",
+									)}
+									{navRow(
+										replayRestoreOffer,
+										<FileUp className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"Show Restore Offer",
+										"Opens the first-login backup restore dialog.",
+									)}
+									{navRow(
+										showLegalAgreementsPrompt,
+										<ScrollText className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"Show Legal Agreements",
+										"Opens the Terms of Service / Privacy Policy dialog, even if already accepted.",
+									)}
+									{isAndroid() && (
+									<div className="p-4 sm:p-5">
+										<div className="flex items-start gap-3">
+											<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
+												<Bell className="h-5 w-5" />
+											</div>
+											<div className="grid gap-3 min-w-0 flex-1">
+												<div className="flex items-center gap-2 flex-wrap">
+													<p className="text-sm font-semibold">Push Token (FCM)</p>
+													{fcmToken && (() => {
+														// Sync marker is `${token}::${userId}` (see AuthContext) since the
+														// device token is shared across saved accounts but sync is per-account.
+														const isSynced = fcmSyncedToken === `${fcmToken}::${userId}`;
+														return (
+															<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isSynced ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
+																{isSynced ? "✓ Synced" : "⚠ Not synced"}
+															</span>
+														);
+													})()}
+												</div>
+												{fcmToken ? (
+													<div className="grid gap-2">
+														<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
+															<p className="text-xs text-[var(--text-muted)] mb-1">Token (tap to select)</p>
+															<p className="break-all font-mono text-xs select-all">{fcmToken}</p>
+														</div>
+														<Button type="button" size="sm" disabled={isSyncingFcm} onClick={() => void handleForceSyncFcm()} className="w-full justify-center">
+															{isSyncingFcm ? "Syncing..." : "Force re-sync"}
+														</Button>
+		                                            </div>
+												) : (
+													<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
+														<p className="font-medium mb-0.5">No token received yet</p>
+														<p className="text-xs opacity-80">Android delivers the FCM token via the <code>fg:fcm-token</code> event after Firebase initialises on launch.</p>
+													</div>
+												)}
+												<div>
+													<p className="text-xs font-medium text-[var(--text-muted)] mb-1">
+														Live event log {fcmEventLog.length > 0 ? `(${fcmEventLog.length} received this session)` : "(waiting…)"}
+													</p>
+													<div ref={fcmLogRef} className="rounded-lg bg-[var(--surface-2)] px-3 py-2 max-h-32 overflow-y-auto">
+														{fcmEventLog.length === 0 ? (
+															<p className="font-mono text-xs text-[var(--text-muted)] italic">No fg:fcm-token events fired since this page opened</p>
+														) : (
+															fcmEventLog.map((entry, i) => (
+																<p key={i} className="font-mono text-xs break-all">
+																	<span className="text-[var(--text-muted)]">[{entry.time}] </span>
+																	{entry.token.slice(0, 20)}…{entry.token.slice(-8)}
+																</p>
+															))
+														)}
+													</div>
+												</div>
+												<div className="grid gap-1.5">
+													<p className="text-xs font-medium text-[var(--text-muted)]">Manual token (paste to force-sync)</p>
+													<div className="flex gap-2">
+														<input
+															type="text"
+															value={manualToken}
+															onChange={(e) => setManualToken(e.target.value)}
+															placeholder="Paste FCM token here…"
+															className="input-field min-w-0 flex-1 font-mono text-xs"
+														/>
+														<Button type="button" size="sm" disabled={isSyncingFcm || !manualToken.trim()} onClick={() => void handleForceSyncFcm(manualToken.trim())}>
+															Sync
+														</Button>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+									)}
+									<div className="p-4 sm:p-5">
+										<div className="flex items-start gap-3">
+											<div className="relative shrink-0">
+												<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
+													<Radar className="h-5 w-5" />
+												</div>
+												{fingerprintCheck.loading ? (
+													<div
+														className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)]"
+														style={{ backgroundColor: "var(--accent)", color: "var(--accent-contrast)" }}
+													>
+														<Loader2 className="h-3 w-3 animate-spin" />
+													</div>
+												) : fingerprintCheck.ok ? (
+													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-[var(--surface)]">
+														<CheckCircle2 className="h-3 w-3" />
+													</div>
+												) : fingerprintCheck.result || fingerprintCheck.error ? (
+													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-[var(--surface)]">
+														<AlertCircle className="h-3 w-3" />
+													</div>
+												) : (
+													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-2 ring-[var(--surface)]">
+														<HelpCircle className="h-3 w-3" />
+													</div>
+												)}
+											</div>
+											<div className="grid gap-3 min-w-0 flex-1">
+												<div className="grid grid-cols-[1fr_auto] gap-x-3">
+													<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
+													<div className="row-span-2 flex items-start">
+														<Button type="button" disabled={fingerprintCheck.loading} onClick={() => void fingerprintCheck.checkFingerprint()}>
+															Check
+														</Button>
+													</div>
+													<p className="mt-0.5 text-xs text-[var(--text-muted)]">Verify your HTTP/TLS fingerprint matches OkHttp configuration.</p>
+												</div>
+												{fingerprintCheck.result && (
+													<div className="grid gap-2">
+														<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
+															<div className="mb-1 flex items-center justify-between gap-2">
+																<p className="text-xs text-[var(--text-muted)]">JA3 Hash</p>
+																<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.ja3_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+																	{fingerprintCheck.result.ja3_match ? "✓ Match" : "✗ Mismatch"}
+																</span>
+															</div>
+															<p className="break-all font-mono text-xs">{fingerprintCheck.result.ja3_hash}</p>
+														</div>
+														<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
+															<div className="mb-1 flex items-center justify-between gap-2">
+																<p className="text-xs text-[var(--text-muted)]">Akamai Fingerprint</p>
+																<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.akamai_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
+																	{fingerprintCheck.result.akamai_match ? "✓ Match" : "✗ Mismatch"}
+																</span>
+															</div>
+															<p className="break-all font-mono text-xs">{fingerprintCheck.result.akamai_fingerprint}</p>
+														</div>
+														<p className="text-xs text-[var(--text-muted)]">HTTP Version <span className="font-mono text-[var(--text)]">{fingerprintCheck.result.http_version}</span></p>
+													</div>
+												)}
+												{fingerprintCheck.error && (
+													<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
+														<p className="font-medium mb-0.5">Fingerprint check failed</p>
+														<p className="text-xs opacity-80">{fingerprintCheck.error}</p>
+													</div>
+												)}
+											</div>
+										</div>
+									</div>
+									{navRow(
+										() => setPreviewAnnouncement(true),
+										<Megaphone className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"Preview Version Announcement",
+										LATEST_ANNOUNCEMENT
+											? `View the "${LATEST_ANNOUNCEMENT.headline}" screen (v${LATEST_ANNOUNCEMENT.version}).`
+											: "No version announcement configured yet.",
+										undefined,
+										!LATEST_ANNOUNCEMENT,
+									)}
+									{navRow(
+										() => setPreviewOutdatedPrompt(true),
+										<Download className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"Preview Outdated Update Prompt",
+										"View the \"Update Available\" screen shown when the app is out of date.",
+									)}
+								</div>
+							</div>
+						) : null}
+
+						{/* About */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">About</p>
+							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/about"),
+									<Info className="h-5 w-5" />,
+									"bg-slate-500/15 text-slate-400",
+									t("settings.about"),
+									t("settings.about_desc"),
+								)}
+								{navRow(
+									() => void openExternalUrl(GITHUB_ISSUES_URL),
+									<ClipboardList className="h-5 w-5" />,
+									"bg-orange-500/15 text-orange-400",
+									t("settings.issue_board"),
+									t("settings.issue_board_desc"),
+								)}
+								{navRow(
+									() => void openExternalUrl(GITHUB_NEW_ISSUE_URL),
+									<MessageSquareWarning className="h-5 w-5" />,
+									"bg-rose-500/15 text-rose-400",
+									t("settings.report_issue"),
+									t("settings.report_issue_desc"),
+								)}
+							</div>
+						</div>
+
 					</div>
+					)}
 				</div>
-
 			</div>
-			)}
 
 			<ConfirmDialog
 				isOpen={logoutConfirmTarget != null}
