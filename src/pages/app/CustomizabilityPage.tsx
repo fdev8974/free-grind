@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clapperboard, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, Ruler, Sparkles, Star, Sun, Triangle } from "lucide-react";
+import { Clapperboard, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, Ruler, Sparkles, Star, Sun, Triangle, Type } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { BackToSettings } from "../../components/BackToSettings";
+import { NAV_HIDE_LABELS_EVENT, NAV_HIDE_LABELS_KEY } from "../../components/NavBar";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
@@ -127,6 +128,7 @@ export function CustomizabilityPage() {
 	const [customHex, setCustomHex] = useState(accentColor);
 	const [hexError, setHexError] = useState<string | null>(null);
 	const [showRightNow, setShowRightNow] = useState(() => window.localStorage.getItem("fg-show-right-now") !== "false");
+	const [hideNavLabels, setHideNavLabels] = useState(() => window.localStorage.getItem(NAV_HIDE_LABELS_KEY) === "true");
 	const [showInterest, setShowInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
 	const [showVideoGallery, setShowVideoGallery] = useState(isVideoGalleryEnabled);
 	const [showSexualHealth, setShowSexualHealth] = useState(isSexualHealthEnabled);
@@ -457,6 +459,24 @@ export function CustomizabilityPage() {
 									{/* spacer matching toggle width so buttons align with reveal effect */}
 									<div className="w-12 shrink-0" />
 								</div>
+							</div>
+
+							{/* Nav labels */}
+							<div className="border-t border-[var(--border)]">
+								<ToggleRow
+									id="cust-nav-hide-labels"
+									highlighted={highlightId === "cust-nav-hide-labels"}
+									icon={<Type className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("customizability.nav_hide_labels")}
+									description={t("customizability.nav_hide_labels_desc")}
+									checked={hideNavLabels}
+									onChange={(checked) => {
+										setHideNavLabels(checked);
+										window.localStorage.setItem(NAV_HIDE_LABELS_KEY, String(checked));
+										window.dispatchEvent(new Event(NAV_HIDE_LABELS_EVENT));
+									}}
+								/>
 							</div>
 
 							{/* Reveal Effect */}

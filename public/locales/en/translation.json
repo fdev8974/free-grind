@@ -864,6 +864,8 @@
     "layout": "Layout",
     "regional": "Regional",
     "navigation_tabs": "Navigation Tabs",
+    "nav_hide_labels": "Hide Navigation Labels",
+    "nav_hide_labels_desc": "Show only larger icons in the bottom navigation, without text labels.",
     "show_right_now": "Right Now Tab",
     "show_right_now_desc": "Show the Right Now tab in the bottom navigation.",
     "show_interest": "Interest Tab",

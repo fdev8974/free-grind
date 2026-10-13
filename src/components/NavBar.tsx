@@ -22,6 +22,9 @@ import type { RealtimeEnvelope } from "../types/chat-realtime";
 import { useInterestData } from "../hooks/queries/useInterestQueries";
 import { isAndroid, isIos } from "../services/saveMedia";
 
+export const NAV_HIDE_LABELS_KEY = "fg-nav-hide-labels";
+export const NAV_HIDE_LABELS_EVENT = "fg-nav-hide-labels-changed";
+
 /**
  * Extracts and validates chat messages from a variety of possible realtime envelope formats.
  * WebSocket events from the API can wrap messages in several ways (e.g., direct payload,
@@ -72,6 +75,12 @@ export function NavBar() {
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
+	const [hideLabels, setHideLabels] = useState(() => window.localStorage.getItem(NAV_HIDE_LABELS_KEY) === "true");
+	useEffect(() => {
+		const onChange = () => setHideLabels(window.localStorage.getItem(NAV_HIDE_LABELS_KEY) === "true");
+		window.addEventListener(NAV_HIDE_LABELS_EVENT, onChange);
+		return () => window.removeEventListener(NAV_HIDE_LABELS_EVENT, onChange);
+	}, []);
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
@@ -400,7 +409,7 @@ export function NavBar() {
 									)}
 								>
 									<div className="relative">
-										<Icon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+										<Icon className={hideLabels ? "h-7 w-7" : "h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]"} />
 										{(item.value === "inbox" && inboxUnseen) ||
 										(item.value === "interest" && interestUnseen) ? (
 											<span className="absolute -right-1 -top-1 flex h-2 w-2">
@@ -427,9 +436,13 @@ export function NavBar() {
 											</span>
 										) : null}
 									</div>
-									<span className="text-xs md:text-[0.8rem]">
-										{item.label}
-									</span>
+									{hideLabels ? (
+										<span className="sr-only">{item.label}</span>
+									) : (
+										<span className="text-xs md:text-[0.8rem]">
+											{item.label}
+										</span>
+									)}
 								</TabsTrigger>
 							);
 						})}

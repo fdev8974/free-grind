@@ -858,6 +858,8 @@
         "layout": "Disposición",
         "regional": "Regional",
         "navigation_tabs": "Pestañas de navegación",
+        "nav_hide_labels": "",
+        "nav_hide_labels_desc": "",
         "show_right_now": "Pestaña Right Now",
         "show_right_now_desc": "Muestra la pestaña Right Now en la parte inferior de navegación.",
         "show_interest": "Pestaña interés",

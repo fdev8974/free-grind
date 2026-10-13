@@ -14,6 +14,7 @@ const RESETTABLE_LOCAL_STORAGE_KEYS = [
 	"open-grind:right-now-filters",
 	"fg-show-right-now",
 	"fg-show-interest",
+	"fg-nav-hide-labels",
 	SHOW_VIDEO_GALLERY_KEY,
 	SHOW_SEXUAL_HEALTH_KEY,
 	SHOW_LOCATE_KEY,

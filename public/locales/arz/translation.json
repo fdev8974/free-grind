@@ -850,6 +850,8 @@
         "layout": "التخطيط",
         "regional": "إقليمي",
         "navigation_tabs": "علامات تبويب التنقل",
+        "nav_hide_labels": "",
+        "nav_hide_labels_desc": "",
         "show_right_now": "علامة تبويب دلوقتي",
         "show_right_now_desc": "اعرض علامة التبويب \"دلوقتي\" في شريط التنقل السفلي.",
         "show_interest": "تبويب الاهتمامات",

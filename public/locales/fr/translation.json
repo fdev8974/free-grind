@@ -858,6 +858,8 @@
         "layout": "Mise en page",
         "regional": "Régional",
         "navigation_tabs": "Onglets de navigation",
+        "nav_hide_labels": "",
+        "nav_hide_labels_desc": "",
         "show_right_now": "Onglet Right Now",
         "show_right_now_desc": "Afficher l'onglet Right Now dans la barre de navigation.",
         "show_interest": "Onglet Interest",

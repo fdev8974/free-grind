@@ -858,6 +858,8 @@
         "layout": "Organização",
         "regional": "Regional",
         "navigation_tabs": "Abas de navegação",
+        "nav_hide_labels": "",
+        "nav_hide_labels_desc": "",
         "show_right_now": "Aba Right Now",
         "show_right_now_desc": "Exiba a aba Right Now na navegação inferior.",
         "show_interest": "Aba de Interesse",
