@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Calendar, Check, ChevronLeft, Clock, FlaskConical, Pill, Settings, TriangleAlert } from "lucide-react";
+import { HeaderBackButton } from "../../../components/HeaderBackButton";
+import { Calendar, Check, Clock, FlaskConical, Pill, Settings, TriangleAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FilterPill } from "../../../components/ui/FilterPill";
@@ -81,16 +82,14 @@ export function SexualHealthPage() {
 			<header className="relative z-20 flex shrink-0 flex-col pb-3 pointer-events-none">
 				<PageHeaderBackground color="var(--accent)" />
 				<div className="pointer-events-auto mx-auto grid w-full max-w-4xl gap-3 px-[var(--app-px)]">
-					<button
-						type="button"
-						onClick={() => navigate(cameFromInbox ? "/chat" : "/settings")}
-						className="flex w-fit items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-					>
-						<ChevronLeft className="h-4 w-4" />
-						{cameFromInbox ? t("nav.inbox") : t("settings.title")}
-					</button>
 					<div className="flex items-center justify-between gap-2">
-						<h1 className="app-title">{t("sexualHealth.title", { defaultValue: "Sexual Health" })}</h1>
+						<div className="flex min-w-0 items-center gap-2">
+							<HeaderBackButton
+								onClick={() => navigate(cameFromInbox ? "/chat" : "/settings")}
+								label={cameFromInbox ? t("nav.inbox") : t("settings.title")}
+							/>
+							<h1 className="app-title min-w-0">{t("sexualHealth.title", { defaultValue: "Sexual Health" })}</h1>
+						</div>
 						<button
 							type="button"
 							onClick={() => setIsSettingsOpen(true)}

@@ -1,4 +1,5 @@
-import { Album, ChevronLeft, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Wifi } from "lucide-react";
+import { Album, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Wifi } from "lucide-react";
+import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -872,27 +873,21 @@ export function SharedAlbumsPage() {
 				<header className="relative z-20 shrink-0 pointer-events-none">
 					<PageHeaderBackground color="var(--accent)" />
 					<div className="pointer-events-auto flex flex-col gap-3 mx-auto w-full max-w-6xl px-[var(--app-px)]">
-						<button
-							type="button"
-							onClick={() => navigate("/chat", { replace: true })}
-							className="mt-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-						>
-							<ChevronLeft className="h-4 w-4" />
-							{t("nav.inbox")}
-						</button>
-
 						{/* Row 1: title + count subtitle + refresh */}
-						<div className="flex items-center justify-between gap-2">
-							<div className="min-w-0">
-								<h1 className="app-title">{t("shared_albums.title")}</h1>
-								<p className="app-subtitle">
-									{isLoading
-										? t("shared_albums.loading_title")
-										: [
-											t("shared_albums.albums_count", { count: items.length }),
-											t("shared_albums.people_count", { count: profileCount }),
-										].join(" · ")}
-								</p>
+						<div className="mt-3 flex items-center justify-between gap-2">
+							<div className="flex min-w-0 items-center gap-2">
+								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
+								<div className="min-w-0">
+									<h1 className="app-title">{t("shared_albums.title")}</h1>
+									<p className="app-subtitle">
+										{isLoading
+											? t("shared_albums.loading_title")
+											: [
+												t("shared_albums.albums_count", { count: items.length }),
+												t("shared_albums.people_count", { count: profileCount }),
+											].join(" · ")}
+									</p>
+								</div>
 							</div>
 							<button
 								type="button"

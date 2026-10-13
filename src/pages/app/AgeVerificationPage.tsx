@@ -139,8 +139,10 @@ export function AgeVerificationPage() {
 	return (
 		<section className="app-screen">
 			<header className="mb-6">
-				<BackToSettings />
-				<h1 className="app-title">{t("age_verification.title")}</h1>
+				<div className="flex items-center gap-2">
+					<BackToSettings />
+					<h1 className="app-title min-w-0">{t("age_verification.title")}</h1>
+				</div>
 				<p className="app-subtitle">{t("age_verification.subtitle")}</p>
 			</header>
 

@@ -833,8 +833,10 @@ export function ProfileEditorPage() {
 		<section className="app-screen">
 			<div className="mx-auto grid w-full max-w-[1180px] gap-6">
 				<header>
-					<BackToSettings />
-					<h1 className="app-title mb-1">{t("profile_editor.title")}</h1>
+					<div className="mb-1 flex items-center gap-2">
+						<BackToSettings />
+						<h1 className="app-title min-w-0">{t("profile_editor.title")}</h1>
+					</div>
 					<p className="app-subtitle">{t("profile_editor.subtitle")}</p>
 				</header>
 

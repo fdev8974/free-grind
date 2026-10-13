@@ -485,8 +485,10 @@ export function SettingsDataPage() {
 	return (
 		<section className="app-screen">
 			<header className="mb-7">
-				<BackToSettings />
-				<h1 className="app-title mb-1">{t("data_backup.title", { defaultValue: "Backup & Restore" })}</h1>
+				<div className="mb-1 flex items-center gap-2">
+					<BackToSettings />
+					<h1 className="app-title min-w-0">{t("data_backup.title", { defaultValue: "Backup & Restore" })}</h1>
+				</div>
 				<p className="app-subtitle">
 					{t("data_backup.subtitle", { defaultValue: "Manage downloaded media and back up your account's entire data." })}
 				</p>

@@ -59,8 +59,10 @@ export function SettingsBlockHistoryPage() {
 			refreshingLabel={t("settings_block_history.refreshing")}
 		>
 			<header className="mb-7">
-				<BackToSettings />
-				<h1 className="app-title mb-1">{t("settings_block_history.title")}</h1>
+				<div className="mb-1 flex items-center gap-2">
+					<BackToSettings />
+					<h1 className="app-title min-w-0">{t("settings_block_history.title")}</h1>
+				</div>
 				<p className="app-subtitle">{t("settings_block_history.subtitle")}</p>
 			</header>
 

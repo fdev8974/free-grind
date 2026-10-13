@@ -1,4 +1,4 @@
-import { ChevronLeft } from "lucide-react";
+import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -138,14 +138,7 @@ export function ChatFiltersPage() {
 			<div className="mx-auto w-full max-w-4xl">
 				<header className="mb-4 flex items-center justify-between gap-3">
 					<div className="inline-flex items-center gap-2">
-						<button
-							type="button"
-							onClick={() => navigate(-1)}
-							className="header-icon-btn header-icon-btn--back shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
-							aria-label={t("chat_filters.back")}
-						>
-							<ChevronLeft className="h-4 w-4" />
-						</button>
+						<HeaderBackButton onClick={() => navigate(-1)} label={t("chat_filters.back")} />
 						<div>
 							<h1 className="app-title">{t("chat_filters.title")}</h1>
 							<p className="app-subtitle">{t("chat_filters.subtitle")}</p>

@@ -772,8 +772,10 @@ export function SettingsAlbumsPage() {
 		<section className="app-screen">
 			<div className="grid gap-6">
 				<header className="mb-1">
-					<BackToSettings />
-					<h1 className="app-title mb-1">{t("settings_albums.title")}</h1>
+					<div className="mb-1 flex items-center gap-2">
+						<BackToSettings />
+						<h1 className="app-title min-w-0">{t("settings_albums.title")}</h1>
+					</div>
 					<p className="app-subtitle">{t("settings_albums.subtitle", { defaultValue: "Manage your private albums." })}</p>
 				</header>
 

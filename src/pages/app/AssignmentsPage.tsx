@@ -209,8 +209,10 @@ export function AssignmentsPage() {
 			refreshingLabel="Refreshing…"
 		>
 			<header className="mb-7">
-				<BackToSettings />
-				<h1 className="app-title mb-1">Assignments &amp; Feature Flags</h1>
+				<div className="mb-1 flex items-center gap-2">
+					<BackToSettings />
+					<h1 className="app-title min-w-0">Assignments &amp; Feature Flags</h1>
+				</div>
 				<p className="app-subtitle">What the server currently assigns to this account and device.</p>
 			</header>
 

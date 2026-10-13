@@ -1,4 +1,5 @@
-import { ChevronLeft, Film, Images, MessageCircle, Play, RefreshCw, UserRound } from "lucide-react";
+import { Film, Images, MessageCircle, Play, RefreshCw, UserRound } from "lucide-react";
+import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -486,31 +487,25 @@ export function VideoGalleryPage() {
 				<header className="pointer-events-none relative z-20 shrink-0">
 					<PageHeaderBackground color="var(--accent)" />
 					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-[var(--app-px)]">
-						<button
-							type="button"
-							onClick={() => navigate("/chat", { replace: true })}
-							className="mt-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-						>
-							<ChevronLeft className="h-4 w-4" />
-							{t("nav.inbox")}
-						</button>
-
-						<div className="flex items-center justify-between gap-2">
-							<div className="min-w-0">
-								<h1 className="app-title">{t("video_gallery.title", { defaultValue: "Videos" })}</h1>
-								<p className="app-subtitle">
-									{isLoading
-										? t("video_gallery.loading", { defaultValue: "Loading videos…" })
-										: [
-											t("video_gallery.videos_count", {
-												count: items.length,
-												defaultValue: items.length === 1 ? "{{count}} video" : "{{count}} videos",
-											}),
-											t("shared_albums.people_count", {
-												count: new Set(items.map((item) => item.profileId)).size,
-											}),
-										].join(" · ")}
-								</p>
+						<div className="mt-3 flex items-center justify-between gap-2">
+							<div className="flex min-w-0 items-center gap-2">
+								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
+								<div className="min-w-0">
+									<h1 className="app-title">{t("video_gallery.title", { defaultValue: "Videos" })}</h1>
+									<p className="app-subtitle">
+										{isLoading
+											? t("video_gallery.loading", { defaultValue: "Loading videos…" })
+											: [
+												t("video_gallery.videos_count", {
+													count: items.length,
+													defaultValue: items.length === 1 ? "{{count}} video" : "{{count}} videos",
+												}),
+												t("shared_albums.people_count", {
+													count: new Set(items.map((item) => item.profileId)).size,
+												}),
+											].join(" · ")}
+									</p>
+								</div>
 							</div>
 							<button
 								type="button"

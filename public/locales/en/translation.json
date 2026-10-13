@@ -1970,6 +1970,7 @@
     "delete_confirm_message": "This removes it from your profile immediately."
   },
   "common": {
+    "back": "Back",
     "cancel": "Cancel",
     "save": "Save",
     "edit": "Edit",

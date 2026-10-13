@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
+import { HeaderBackButton } from "../../components/HeaderBackButton";
 import {
 	AlertCircle,
 	Bell,
 	Bug,
 	CheckCircle2,
-	ChevronLeft,
 	ChevronRight,
 	ClipboardList,
 	DatabaseBackup,
@@ -618,17 +618,9 @@ export function SettingsPage() {
 	return (
 		<section className="app-screen">
 			<header className="mb-7">
-				<button
-					type="button"
-					onClick={() => navigate("/", { replace: true })}
-					className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-					aria-label={t("settings.back_to_browse")}
-				>
-					<ChevronLeft className="h-4 w-4" />
-					Browse
-				</button>
 				<div className="flex items-center gap-2">
-					<h1 className="app-title">{t("settings.title")}</h1>
+					<HeaderBackButton onClick={() => navigate("/", { replace: true })} label={t("settings.back_to_browse")} />
+					<h1 className="app-title min-w-0">{t("settings.title")}</h1>
 					{developerMode ? (
 						<span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
 							Developer Mode

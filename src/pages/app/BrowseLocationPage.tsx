@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { useNavigate } from "react-router-dom";
 import z from "zod";
-import { ChevronLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { appLog } from "../../utils/logger";
 import { getCurrentLocation, getLocationErrorMessageKey } from "../../services/currentLocation";
@@ -169,14 +169,7 @@ export function BrowseLocationPage() {
 		<section className="app-screen">
 			<div className="mx-auto w-full max-w-4xl">
 				<header className="mb-4 flex items-center gap-3">
-					<button
-						type="button"
-						onClick={() => navigate("/")}
-						className="header-icon-btn header-icon-btn--back inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
-						aria-label={t("browse_location.back_aria")}
-					>
-						<ChevronLeft className="h-4 w-4" />
-					</button>
+					<HeaderBackButton onClick={() => navigate("/")} label={t("browse_location.back_aria")} />
 					<div>
 						<h1 className="app-title">{t("browse_location.title")}</h1>
 						<p className="app-subtitle">{t("browse_location.subtitle")}</p>

@@ -1937,6 +1937,7 @@
         "delete_confirm_message": "ده مش هيتراجع."
     },
     "common": {
+        "back": "",
         "cancel": "إلغاء",
         "save": "حفظ",
         "edit": "تعديل",

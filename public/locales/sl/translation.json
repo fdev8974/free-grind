@@ -1965,6 +1965,7 @@
         "delete_confirm_message": ""
     },
     "common": {
+        "back": "",
         "cancel": "Prekliči",
         "save": "Shrani",
         "edit": "Uredi",

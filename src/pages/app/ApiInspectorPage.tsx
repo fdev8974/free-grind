@@ -175,8 +175,10 @@ export function ApiInspectorPage() {
 			<div className="mx-auto grid w-full min-w-0 max-w-4xl gap-4">
 				<header className="grid gap-3 sm:flex sm:items-end sm:justify-between">
 					<div className="grid gap-2">
-					<BackToSettings />
-						<h1 className="app-title">API Inspector</h1>
+					<div className="flex items-center gap-2">
+						<BackToSettings />
+						<h1 className="app-title min-w-0">API Inspector</h1>
+					</div>
 						<p className="app-subtitle">
 							Inspect recent request and response history for REST and invoke commands.
 						</p>
