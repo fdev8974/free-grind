@@ -44,7 +44,7 @@
       "devDependencies": {
         "@csstools/postcss-cascade-layers": "^6.0.0",
         "@eslint/js": "^10.0.1",
-        "@fontsource-variable/ibm-plex-sans": "^5.2.8",
+        "@fontsource-variable/inter": "^5.3.0",
         "@internationalized/date": "^3.12.0",
         "@tailwindcss/postcss": "^4.2.4",
         "@tauri-apps/cli": "2.10.1",
@@ -221,7 +221,7 @@
 
     "@eslint/plugin-kit": ["@eslint/plugin-kit@0.6.1", "", { "dependencies": { "@eslint/core": "^1.1.1", "levn": "^0.4.1" } }, "sha512-iH1B076HoAshH1mLpHMgwdGeTs0CYwL0SPMkGuSebZrwBp16v415e9NZXg2jtrqPVQjf6IANe2Vtlr5KswtcZQ=="],
 
-    "@fontsource-variable/ibm-plex-sans": ["@fontsource-variable/ibm-plex-sans@5.2.8", "", {}, "sha512-n5PF2iFa0CZT0QYTPzxvZ39opC9LnU0zdoRccoADbs+Dtsd+lbXOZF7RNuIPHcQX1dKjF63sxnRImQIB5eD0Ag=="],
+    "@fontsource-variable/inter": ["@fontsource-variable/inter@5.3.0", "", {}, "sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA=="],
 
     "@gbyte/tauri-plugin-ios-photos": ["@gbyte/tauri-plugin-ios-photos@0.3.0", "", { "dependencies": { "@tauri-apps/api": "^2.0.0" } }, "sha512-q5kvL1z4XrAhoQxUDRnhVoZDmejfwX9F2vsTbD6Y2p9IroNDRFKMo95H/eAJsHEag+vs6iCqI/P5haS6KIfqSA=="],
 

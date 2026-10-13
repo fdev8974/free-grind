@@ -434,7 +434,7 @@
 		margin: 0;
 		background: var(--bg);
 		color: var(--text);
-		font-family: "IBM Plex Sans Variable", "IBM Plex Sans", sans-serif;
+		font-family: "Inter Variable", "Inter", sans-serif;
 		font-feature-settings:
 			"rlig" 1,
 			"calt" 1;
