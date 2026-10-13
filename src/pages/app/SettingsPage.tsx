@@ -626,12 +626,11 @@ export function SettingsPage() {
 				<PageHeaderBackground color="var(--accent)" />
 				<div className="pointer-events-auto mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--app-px)]">
 					<div className="flex items-center justify-between gap-2">
-						<div className="flex min-w-0 items-center gap-2">
+						<div className="min-w-0">
 							<h1 className="app-title">{t("settings.title")}</h1>
+							{/* Caption under the title, styled like the inbox's sync caption. */}
 							{developerMode ? (
-								<span className="shrink-0 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
-									Developer Mode
-								</span>
+								<p className="mt-0.5 text-[11px] font-medium text-[var(--accent-readable)]">Developer Mode</p>
 							) : null}
 						</div>
 						<div className="-my-2 flex shrink-0 items-center gap-0.5">
