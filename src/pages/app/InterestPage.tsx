@@ -1,5 +1,5 @@
-import { RefreshCw, Eye, Flame } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type TouchEvent } from "react";
+import { RefreshCw, Eye, Flame, Send, type LucideIcon } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useInterestData } from "../../hooks/queries/useInterestQueries";
@@ -24,6 +24,8 @@ import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { usePreferences } from "../../contexts/PreferencesContext";
 
 const ONBOARDING_KEY = "fg-interest-onboarding-seen";
+
+const TAB_ICONS: Record<InterestTab, LucideIcon> = { views: Eye, taps: Flame, sent: Send };
 
 function loadStoredLimit(tab: InterestTab, fallback: number): number {
 	const saved = sessionStorage.getItem(`interest-scroll-${tab}`);
@@ -506,13 +508,21 @@ export function InterestPage() {
 		[newViewsCount, newTapsCount],
 	);
 
+	const isRefreshingTotal = (isFetching && !isQueryLoading) || isDemoLoading;
 	const tabConfigs: InterestTabConfig[] = useMemo(
 		() => tabOrder.map((tab) => ({
 			key: tab,
 			label: t(`interest_page.tabs.${tab}`),
-			count: tabCounts[tab],
+			icon: TAB_ICONS[tab],
+			unread: tabCounts[tab],
+			// Only the active tab shows its total; activeItems belongs to it.
+			total: tab === activeTab ? (tab === "views" ? viewedCount : activeItems.length) : undefined,
+			isRefreshing: tab === activeTab && isRefreshingTotal,
+			totalTitle: tab === "views"
+				? t("interest_page.total_viewed_count")
+				: tab === "taps" ? t("interest_page.total_taps_count") : undefined,
 		})),
-		[tabOrder, tabCounts, t],
+		[tabOrder, tabCounts, t, activeTab, viewedCount, activeItems.length, isRefreshingTotal],
 	);
 
 	const handleTouchEnd = useCallback(
@@ -576,33 +586,6 @@ export function InterestPage() {
 								tabs={tabConfigs}
 								onTabClick={handleSetActiveTab}
 							/>
-
-							{activeTab !== "sent" && (
-								<div
-									className="glass-pill flex h-8 shrink-0 items-center gap-1.5 px-3"
-									style={{ "--pill-color": "var(--text-muted)" } as CSSProperties}
-									title={t(activeTab === "views" ? "interest_page.total_viewed_count" : "interest_page.total_taps_count")}
-								>
-									{activeTab === "views" ? (
-										<Eye className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									) : (
-										<Flame className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									)}
-									<div className="relative flex min-w-[1.25rem] items-center justify-center">
-										<p className={cn(
-											"text-xs font-bold text-[var(--text-muted)] leading-none tabular-nums shrink-0 transition-opacity duration-300",
-											(isFetching && !isQueryLoading) || isDemoLoading ? "opacity-0" : "opacity-100"
-										)}>
-											{activeTab === "views" ? viewedCount : activeItems.length}
-										</p>
-										{((isFetching && !isQueryLoading) || isDemoLoading) && (
-											<div className="absolute inset-0 flex items-center justify-center">
-												<RefreshCw className="h-3 w-3 animate-spin text-[var(--text-muted)]" />
-											</div>
-										)}
-									</div>
-								</div>
-							)}
 						</div>
 					</div>
 				</div>

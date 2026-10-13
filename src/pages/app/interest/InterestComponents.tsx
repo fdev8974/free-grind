@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, memo, type CSSProperties } from "react";
-import { Eye, Lock, Ban, History, MoveHorizontal, Home, Zap, Check } from "lucide-react";
+import { Eye, Lock, Ban, History, MoveHorizontal, Home, Zap, Check, RefreshCw, type LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { getThumbImageUrl } from "../../../utils/media";
 import { ProfileImage } from "../../../components/ui/profile-image";
@@ -10,9 +10,19 @@ import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
 export type InterestTabConfig = {
 	key: InterestTab;
 	label: string;
-	count?: number;
+	icon: LucideIcon;
+	/** Total shown next to the label while the tab is active; omitted = no count. */
+	total?: number;
+	/** New items since last seen — a dot on the icon while the tab is inactive. */
+	unread?: number;
+	/** Shows a spinner in place of the total while it refreshes. */
+	isRefreshing?: boolean;
+	/** Tooltip for the total. */
+	totalTitle?: string;
 };
 
+/** Segmented control: the active tab expands into an accent pill with icon,
+ * label and total; inactive tabs collapse to just their icon. */
 export const InterestTabs = memo(function InterestTabs({
 	activeTab,
 	tabs,
@@ -26,7 +36,7 @@ export const InterestTabs = memo(function InterestTabs({
 	const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
 	const [isReady, setIsReady] = useState(false);
 
-	const countsKey = tabs.map((tab) => tab.count ?? 0).join(",");
+	const totalsKey = tabs.map((tab) => `${tab.total ?? ""}:${tab.isRefreshing ? 1 : 0}`).join(",");
 
 	// Index of the currently active tab in the visual array
 	const activeIndex = Math.max(tabs.findIndex((tab) => tab.key === activeTab), 0);
@@ -46,12 +56,14 @@ export const InterestTabs = memo(function InterestTabs({
 		// Initial measurement
 		updateIndicator();
 
-		// Use ResizeObserver to catch width changes during the badge transition
+		// The active tab grows/shrinks as its label and total animate in, and
+		// neighbouring tabs shift with it — keep the pill glued to it throughout.
 		const resizeObserver = new ResizeObserver(() => {
 			updateIndicator();
 		});
 
-		resizeObserver.observe(activeEl);
+		// border-box: padding changes must count too, not just the content box.
+		resizeObserver.observe(activeEl, { box: "border-box" });
 
 		if (!isReady) {
 			requestAnimationFrame(() => {
@@ -60,10 +72,10 @@ export const InterestTabs = memo(function InterestTabs({
 		}
 
 		return () => resizeObserver.disconnect();
-	}, [activeIndex, isReady, countsKey]);
+	}, [activeIndex, isReady, totalsKey]);
 
 	return (
-		<div className="glass-pill relative inline-flex items-center p-1">
+		<div className="glass-pill relative inline-flex items-center gap-0.5 p-1">
 			{/*
 				The Sliding Pill:
 				- Transitions width and position based on the measured active tab.
@@ -80,35 +92,55 @@ export const InterestTabs = memo(function InterestTabs({
 				}}
 			/>
 
-			{tabs.map((tab, i) => (
-				<button
-					key={tab.key}
-					ref={(el) => { tabsRef.current[i] = el; }}
-					type="button"
-					onClick={() => onTabClick(tab.key)}
-					className={cn(
-						"relative z-10 flex h-8 items-center justify-center rounded-full px-5 transition-all duration-300 ease-out active:scale-95",
-						activeIndex === i
-							? "text-[var(--accent-contrast)] text-base font-black tracking-tight"
-							: "text-[var(--accent)] hover:opacity-80 text-sm font-bold"
-					)}
-				>
-					<span>{tab.label}</span>
-					<span
+			{tabs.map((tab, i) => {
+				const isActive = activeIndex === i;
+				const Icon = tab.icon;
+				const hasUnread = !isActive && (tab.unread ?? 0) > 0;
+				return (
+					<button
+						key={tab.key}
+						ref={(el) => { tabsRef.current[i] = el; }}
+						type="button"
+						onClick={() => onTabClick(tab.key)}
+						aria-label={tab.label}
+						aria-pressed={isActive}
 						className={cn(
-							"flex h-4.5 items-center justify-center rounded-full text-[10px] font-black transition-all duration-300 ease-out overflow-hidden",
-							(tab.count ?? 0) > 0
-								? "ml-2 min-w-[1.125rem] px-1 opacity-100 scale-100"
-								: "ml-0 min-w-0 w-0 px-0 opacity-0 scale-50 pointer-events-none",
-							activeIndex === i
-								? "bg-[var(--accent-contrast)] text-[var(--accent)]"
-								: "bg-[var(--accent)] text-[var(--accent-contrast)]"
+							// Only colour/scale animate: an animated padding would leave the pill measuring a
+							// mid-transition width. The sliding pill itself carries the motion.
+							"relative z-10 flex h-9 items-center justify-center rounded-full transition-[color,transform] duration-300 ease-out active:scale-95",
+							isActive
+								? "gap-2 pl-3.5 pr-1.5 text-[var(--accent-contrast)]"
+								: "w-10 text-[var(--text-muted)] hover:text-[var(--text)]",
 						)}
 					>
-						{(tab.count ?? 0) > 0 ? ((tab.count ?? 0) > 99 ? "99+" : tab.count) : ""}
-					</span>
-				</button>
-			))}
+						<span className="relative flex shrink-0">
+							<Icon className="h-[1.15rem] w-[1.15rem]" />
+							{hasUnread && (
+								<span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[var(--accent)] ring-2 ring-[var(--surface)]" />
+							)}
+						</span>
+						{isActive && (
+							<>
+								<span className="whitespace-nowrap text-sm font-bold">{tab.label}</span>
+								{tab.total != null && (
+									<span
+										className="relative flex h-6 min-w-[1.75rem] items-center justify-center rounded-full bg-white/20 px-2 text-xs font-bold tabular-nums"
+										title={tab.totalTitle}
+									>
+										<span className={cn("transition-opacity duration-300", tab.isRefreshing ? "opacity-0" : "opacity-100")}>
+											{tab.total}
+										</span>
+										{tab.isRefreshing && (
+											<RefreshCw className="absolute h-3 w-3 animate-spin" />
+										)}
+									</span>
+								)}
+							</>
+						)}
+						{!isActive && hasUnread && <span className="sr-only">{tab.unread}</span>}
+					</button>
+				);
+			})}
 		</div>
 	);
 });
