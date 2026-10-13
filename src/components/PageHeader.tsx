@@ -54,8 +54,14 @@ export function PageHeader({
 				{/* Full-bleed (100vw, centred) so the bar spans the window on desktop rather than
 				    stopping at the page's max-width; the overshoot is clipped by html's overflow-x. */}
 				<div
-					className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 border-b border-[var(--border)] bg-[var(--bg)] backdrop-blur-xl"
-					style={{ opacity: progress }}
+					className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 border-b border-[var(--border)]"
+					// Same frosted glass as the bottom NavBar.
+					style={{
+						opacity: progress,
+						background: "color-mix(in srgb, var(--surface) 90%, transparent)",
+						backdropFilter: "blur(16px)",
+						WebkitBackdropFilter: "blur(16px)",
+					}}
 					aria-hidden="true"
 				/>
 				<div className="relative flex min-h-10 items-center gap-2">
