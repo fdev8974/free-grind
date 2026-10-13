@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Check, ChevronRight, Clock, Flame, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
@@ -99,7 +100,9 @@ function SelectRow({
 				<span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-[var(--text-muted)]">{selectedLabel}</span>
 				<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 			</button>
-			{isOpen && (
+			{/* Portaled out of the card: as a child of its divide-y list the fullscreen
+			    overlay would pick up the divider border (a stray line while it fades in). */}
+			{isOpen && createPortal(
 				<BottomSheet onClose={() => setIsOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
 					<div className="flex items-center justify-between px-4 pb-3">
 						<p className="text-sm font-semibold text-[var(--text)]">{label}</p>
@@ -121,7 +124,8 @@ function SelectRow({
 							</SheetClose>
 						))}
 					</div>
-				</BottomSheet>
+				</BottomSheet>,
+				document.body,
 			)}
 		</>
 	);
