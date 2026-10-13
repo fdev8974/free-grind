@@ -34,6 +34,8 @@ export type PhotoViewerProps = {
 		/** Online/distance line shown under the name, e.g. "Online · 3 km" — omitted when not available. */
 		subtitle?: string | null;
 		isOnline?: boolean;
+		/** Online with only a few minutes left — avatar ring turns amber. */
+		isOnlineEndingSoon?: boolean;
 		/** Tapping the avatar/name opens the profile — omitted (non-interactive) when not provided. */
 		onClick?: () => void;
 	};
@@ -716,7 +718,9 @@ export function PhotoViewer({
 								>
 									<div
 										className={`h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-white/10 ${
-											albumHeader.isOnline ? "border-emerald-500" : "border-white/30"
+											albumHeader.isOnline
+												? albumHeader.isOnlineEndingSoon ? "border-amber-500" : "border-emerald-500"
+												: "border-white/30"
 										}`}
 									>
 										<ProfileImage src={albumHeader.avatarUrl} alt={albumHeader.name} />

@@ -5,6 +5,7 @@ import { getThumbImageUrl } from "../../../utils/media";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { type InterestItem, type InterestTab, formatTimestamp, getTapEmoji, PREVIEW_ID_PREFIX } from "./interestUtils";
 import { cn } from "../../../utils/cn";
+import { isOnlineEndingSoon } from "../gridpage/utils";
 import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
 
 export type InterestTabConfig = {
@@ -172,6 +173,7 @@ export const InterestRow = memo(function InterestRow({
 	const isLocked = isPrivate || isBlocked;
 	const isRecovered = !!item.isFromCache && !isPrivate && !item.profileId.startsWith(PREVIEW_ID_PREFIX);
 	const isOnline = typeof item.onlineUntil === "number" && item.onlineUntil > now;
+	const isEndingSoon = isOnline && isOnlineEndingSoon(item.onlineUntil, now);
 
 	const displayName = item.displayName
 		? item.displayName
@@ -202,7 +204,7 @@ export const InterestRow = memo(function InterestRow({
 					/>
 				</div>
 				{isOnline && (
-					<span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] bg-green-500 shadow-sm z-10" />
+					<span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm z-10 ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 				)}
 				{isLocked && (
 					<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-1 ring-[var(--surface)] z-10">

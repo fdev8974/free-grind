@@ -14,7 +14,7 @@ import {
 import { useRightNowFeed } from "../../hooks/queries/useRightNowQueries";
 import type { RightNowFeedItem } from "../../services/apiFunctions";
 import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
-import { formatDistance } from "./gridpage/utils";
+import { formatDistance, isOnlineEndingSoon } from "./gridpage/utils";
 import { formatRelativeTime } from "../../utils/relativeTime";
 import { cn } from "../../utils/cn";
 import { getRightNowLastSeen, markRightNowSeen } from "../../services/seenStore";
@@ -225,6 +225,7 @@ function RightNowRow({
 			? formatDistance(item.distanceMeters, t, unitsPreset)
 			: null;
 	const isOnline = isItemOnline(item);
+	const isEndingSoon = isOnline && isOnlineEndingSoon(item.onlineUntil);
 
 	const photos = useMemo(() => {
 		return (item.media || [])
@@ -249,7 +250,7 @@ function RightNowRow({
 					<ProfileImage src={imageUrl} alt={name || ""} />
 				</div>
 				{isOnline ? (
-					<span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] bg-green-500 shadow-sm z-10" />
+					<span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm z-10 ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 				) : null}
 			</button>
 

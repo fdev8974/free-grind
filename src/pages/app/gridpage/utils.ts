@@ -172,8 +172,23 @@ export function isCurrentlyOnline(
 	return onlineUntil > Date.now();
 }
 
+/** Online indicators turn amber once a profile's online window has this many minutes or fewer left. */
+export const ONLINE_ENDING_SOON_MINUTES = 5;
+
+export function isOnlineEndingSoon(
+	onlineUntil: number | null | undefined,
+	nowTimestamp: number = Date.now(),
+): boolean {
+	if (typeof onlineUntil !== "number" || !Number.isFinite(onlineUntil) || onlineUntil <= nowTimestamp) {
+		return false;
+	}
+	return Math.ceil((onlineUntil - nowTimestamp) / (60 * 1000)) <= ONLINE_ENDING_SOON_MINUTES;
+}
+
 export type OnlineStatusMeta = {
 	isOnline: boolean;
+	/** Online, but with ONLINE_ENDING_SOON_MINUTES or fewer left. */
+	isEndingSoon?: boolean;
 	labelKey: string;
 	count?: number;
 	/** @deprecated Use labelKey and t() instead */
@@ -208,6 +223,7 @@ export function getOnlineStatusMeta(
 		);
 		return {
 			isOnline: true,
+			isEndingSoon: minsLeft <= ONLINE_ENDING_SOON_MINUTES,
 			labelKey: "browse_page.status_online_left",
 			count: minsLeft,
 			label: `Online (${minsLeft}m left)`,

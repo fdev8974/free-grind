@@ -5984,6 +5984,7 @@ export function ChatPage() {
 			name: selectedConversation?.data.name?.trim() || t("shared_albums.name_fallback"),
 			subtitle: [onlineMeta.label, distanceLabel].filter(Boolean).join(" · ") || null,
 			isOnline: onlineMeta.isOnline,
+			isOnlineEndingSoon: onlineMeta.isEndingSoon,
 			onClick: otherParticipant?.profileId != null
 				? () => {
 					const profileId = otherParticipant.profileId;

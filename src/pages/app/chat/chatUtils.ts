@@ -8,6 +8,7 @@ import {
 } from "../../../utils/media";
 import { formatRelativeTime } from "../../../utils/relativeTime";
 import { hourCycleOptions } from "../../../utils/timeFormat";
+import { ONLINE_ENDING_SOON_MINUTES } from "../gridpage/utils";
 
 export type ChatFiltersDraft = {
 	unreadOnly: boolean;
@@ -1213,7 +1214,7 @@ export function getParticipantOnlineMeta(
 	onlineUntil: number | null | undefined,
 	nowTimestamp: number,
 	t: TranslateFn,
-): { isOnline: boolean; label: string } {
+): { isOnline: boolean; isEndingSoon?: boolean; label: string } {
 	// lastOnline/onlineUntil of 0 is the server's "unknown/hidden" sentinel,
 	// not a real epoch timestamp — treat it the same as null/undefined,
 	// otherwise it renders as tens of thousands of days ago.
@@ -1236,6 +1237,7 @@ export function getParticipantOnlineMeta(
 		);
 		return {
 			isOnline: true,
+			isEndingSoon: minsLeft <= ONLINE_ENDING_SOON_MINUTES,
 			label: t("browse_page.status_online_left", { count: minsLeft }),
 		};
 	}

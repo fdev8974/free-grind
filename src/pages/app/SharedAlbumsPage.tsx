@@ -853,6 +853,7 @@ export function SharedAlbumsPage() {
 			name: viewer.profileName,
 			subtitle: [statusLabel, distanceLabel].filter(Boolean).join(" · ") || null,
 			isOnline: statusMeta.isOnline,
+			isOnlineEndingSoon: statusMeta.isEndingSoon,
 			onClick: () => handleViewProfile(viewer.profileId),
 		};
 	}, [viewer, t, unitsPreset, handleViewProfile]);

@@ -43,7 +43,7 @@ export function BrowseCardTile({
 	const name = localNickname?.trim() || getDisplayName(card);
 	const onlineStatus = getOnlineStatusMeta(card.lastOnline, card.onlineUntil);
 	// Online but about to expire (<= 5 minutes left) — show the indicator in amber instead of green.
-	const isOnlineEndingSoon = onlineStatus.isOnline && (onlineStatus.count ?? Infinity) <= 5;
+	const isOnlineEndingSoon = !!onlineStatus.isEndingSoon;
 	const onlineTextColor = isOnlineEndingSoon ? "text-amber-500" : "text-green-500";
 	const age = typeof card.age === "number" && card.age > 0 ? card.age : null;
 	const isDemoCard = card.profileId.toString().startsWith("demo-");

@@ -282,8 +282,8 @@ export function ProfileDetailsModal({
 						count: profileStatusMeta.count,
 					}),
 				});
-	const profileStatusLevel: "online" | "recent" | "offline" =
-		profileStatusMeta.isOnline ? "online"
+	const profileStatusLevel: "online" | "ending_soon" | "recent" | "offline" =
+		profileStatusMeta.isOnline ? (profileStatusMeta.isEndingSoon ? "ending_soon" : "online")
 		: profileStatusMeta.labelKey === "browse_page.status_minutes_ago" && (profileStatusMeta.count ?? 99) <= 10 ? "recent"
 		: "offline";
 	const estimatedCreatedAt = formatEstimatedAccountCreation(activeProfile?.profileId, t);
@@ -1216,8 +1216,9 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				.filter(Boolean)
 				.join(" · ") || null,
 			isOnline: profileStatusMeta.isOnline,
+			isOnlineEndingSoon: profileStatusMeta.isEndingSoon,
 		};
-	}, [albumViewer, profileStatusLabel, profileDistance, profileStatusMeta.isOnline, t, unitsPreset]);
+	}, [albumViewer, profileStatusLabel, profileDistance, profileStatusMeta.isOnline, profileStatusMeta.isEndingSoon, t, unitsPreset]);
 
 	const handleAlbumSlideClick = useCallback(async () => {
 		if (!albumStatus.hasSharedWithMe || albumStatus.albumId == null || isOpeningAlbum || messageProfileId == null) {

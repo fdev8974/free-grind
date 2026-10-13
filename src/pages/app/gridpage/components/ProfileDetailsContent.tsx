@@ -133,7 +133,7 @@ type ProfileDetailsContentProps = {
 	estimatedCreatedAt: string;
 	travelPlans?: TravelPlan[];
 	profileStatusLabel: string;
-	profileStatusLevel: "online" | "recent" | "offline";
+	profileStatusLevel: "online" | "ending_soon" | "recent" | "offline";
 	ownTags?: string[];
 	profileDistance: number | null;
 	chatContactStatus: ChatContactIndexRecord | null;
@@ -510,6 +510,7 @@ export function ProfileDetailsContent({
 								<span className="flex items-center gap-1.5">
 									<span className={`h-2 w-2 rounded-full ${
 										profileStatusLevel === "online" ? "bg-emerald-400"
+										: profileStatusLevel === "ending_soon" ? "bg-amber-400"
 										: "bg-[var(--text-muted)]/40"
 									}`} />
 									{profileStatusLabel}

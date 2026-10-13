@@ -461,7 +461,7 @@ function ChatConversationRow({
 							</span>
 						) : (
 							isOtherParticipantOnline && (
-								<span className="absolute -bottom-0.5 -right-0.5 z-10 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] bg-green-500 shadow-sm" />
+								<span className={`absolute -bottom-0.5 -right-0.5 z-10 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm ${otherParticipantOnlineMeta.isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 							)
 						)}
 						{conversation.data.pinned ? (
