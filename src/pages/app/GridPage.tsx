@@ -1,5 +1,5 @@
 import { useAuth } from "../../contexts/useAuth";
-import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X, Check } from "lucide-react";
+import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X, Check, UserSearch } from "lucide-react";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -316,6 +316,7 @@ export function GridPage() {
 		hasActiveBrowseFilters,
 		clearBrowseFilters,
 		nicknameFilter,
+		setNicknameFilter,
 		applyDraft,
 	} = useBrowseFilters(getCachedBrowseFiltersDraft() ?? getDefaultBrowseFiltersDraft());
 
@@ -365,6 +366,11 @@ export function GridPage() {
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const [isLocationOpen, setIsLocationOpen] = useState(false);
 	const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+	// Quick access to the local displayname filter (same state as the one in
+	// the filters overlay). Stays visible while a name is set so it's obvious
+	// why the grid is narrowed down.
+	const [isNameSearchOpen, setIsNameSearchOpen] = useState(false);
+	const showNameSearch = isNameSearchOpen || Boolean(nicknameFilter);
 
 	// Fade the right edge of the quick-filter row while more chips are
 	// scrolled out of view — otherwise nothing hints that the row scrolls.
@@ -1560,7 +1566,75 @@ export function GridPage() {
 										}
 									</button>
 								</div>
+								<button
+									type="button"
+									// Don't steal focus from the name input: its onBlur would close
+									// the field and this click would immediately reopen it.
+									onMouseDown={(e) => e.preventDefault()}
+									onClick={() => {
+										if (showNameSearch && !nicknameFilter) {
+											setIsNameSearchOpen(false);
+										} else {
+											setIsNameSearchOpen(true);
+										}
+									}}
+									title={t("browse_filters.local_filters.name_title")}
+									aria-label={t("browse_filters.local_filters.name_title")}
+									className={cn(
+										"inline-flex h-12 w-12 shrink-0 items-center justify-center transition-all active:scale-95",
+										nicknameFilter
+											? exploreLocation
+												? "rounded-full border border-[var(--explore)] bg-[var(--explore)] text-white shadow-lg shadow-[var(--explore)]/40"
+												: "rounded-full border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/40"
+											: exploreLocation
+												? "glass-pill text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
+												: "glass-pill text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
+									)}
+									style={
+										!nicknameFilter
+											? ({ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties)
+											: undefined
+									}
+								>
+									<UserSearch className="h-4 w-4" />
+								</button>
 							</div>
+
+							{showNameSearch && (
+								<div className="pt-2">
+									<div
+										className="glass-pill relative flex h-10 items-center"
+										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
+									>
+										<UserSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+										<input
+											type="text"
+											autoFocus={isNameSearchOpen && !nicknameFilter}
+											value={nicknameFilter}
+											onChange={(e) => setNicknameFilter(e.target.value)}
+											onBlur={() => { if (!nicknameFilter) setIsNameSearchOpen(false); }}
+											placeholder={t("browse_filters.local_filters.nickname_placeholder")}
+											className="h-full w-full bg-transparent pl-9 pr-8 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
+											onKeyDown={(e) => {
+												if (e.key === "Escape" || e.key === "Enter") {
+													e.currentTarget.blur();
+												}
+											}}
+										/>
+										<button
+											type="button"
+											// Keep focus off the input so its onBlur doesn't close the
+											// field before this click lands.
+											onMouseDown={(e) => e.preventDefault()}
+											onClick={() => { setNicknameFilter(""); setIsNameSearchOpen(false); }}
+											aria-label={t("browse_filters.clear_all")}
+											className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] hover:text-[var(--text)]"
+										>
+											<X className="h-3.5 w-3.5" />
+										</button>
+									</div>
+								</div>
+							)}
 
 							<div
 								ref={chipRowRef}
