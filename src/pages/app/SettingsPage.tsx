@@ -1070,7 +1070,7 @@ export function SettingsPage() {
 															</p>
 														)}
 													</div>
-													{hotswapProgress.phase !== "checking" && (
+													{hotswapProgress.phase === "downloading" && (
 														<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
 															<div
 																className={
