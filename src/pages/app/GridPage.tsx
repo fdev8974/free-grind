@@ -37,6 +37,7 @@ import { FilterPill } from "../../components/ui/FilterPill";
 import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
+import { GridGesturesIntro, hasSeenGridGesturesIntro, markGridGesturesIntroSeen } from "./gridpage/components/GridGesturesIntro";
 import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile, useMyOwnProfile } from "../../hooks/queries/useProfileQueries";
@@ -270,6 +271,7 @@ export function GridPage() {
 	const [isTogglingDistance, setIsTogglingDistance] = useState(false);
 
 	const isDesktop = useDesktopBreakpoint();
+	const [hasSeenGesturesIntro, setHasSeenGesturesIntro] = useState(hasSeenGridGesturesIntro);
 
 	const handleFetchNotes = useCallback(async () => {
 		if (isFetchingNotes || hasAttemptedFetchNotes) return;
@@ -1778,6 +1780,18 @@ export function GridPage() {
 					</div>
 				</FeedScrollContainer>
 			</PullToRefreshContainer>
+
+			{/* First run: introduce the tile gestures once a location is set and
+				there are real profiles on screen to try them on. */}
+			{!hasSeenGesturesIntro && geohash && !isLocationMissing && !isLoadingCards && cards.length > 0 && (
+				<GridGesturesIntro
+					isDesktop={isDesktop}
+					onConfirm={() => {
+						markGridGesturesIntroSeen();
+						setHasSeenGesturesIntro(true);
+					}}
+				/>
+			)}
 
 			{tileContextMenu && (
 				<GridTileContextMenu

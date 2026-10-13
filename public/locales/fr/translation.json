@@ -538,7 +538,24 @@
             "tap_failed": "Erreur lors de l'envoi du Tap",
             "tag_filter_applied": "Filtré par tag « {{tag}} »"
         },
-        "chatted": "Déjà discuté"
+        "chatted": "Déjà discuté",
+        "gestures_intro": {
+            "title": "",
+            "description": "",
+            "button": "",
+            "open_title": "",
+            "open_title_desktop": "",
+            "open_desc": "",
+            "double_tap_title": "",
+            "double_tap_title_desktop": "",
+            "double_tap_desc": "",
+            "long_press_title": "",
+            "long_press_title_desktop": "",
+            "long_press_desc": "",
+            "pull_title": "",
+            "pull_desc": "",
+            "settings_hint": ""
+        }
     },
     "chat_filters": {
         "title": "Filtres de messagerie",

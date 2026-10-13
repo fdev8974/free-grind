@@ -533,7 +533,24 @@
       "tap_failed": "Failed to send tap",
       "tag_filter_applied": "Filtered by tag \"{{tag}}\""
     },
-    "chatted": "Chatted"
+    "chatted": "Chatted",
+    "gestures_intro": {
+      "title": "Grid Gestures",
+      "description": "A few shortcuts to get around the grid faster.",
+      "button": "Got it!",
+      "open_title": "Tap",
+      "open_title_desktop": "Click",
+      "open_desc": "Open the profile.",
+      "double_tap_title": "Double tap",
+      "double_tap_title_desktop": "Double-click",
+      "double_tap_desc": "Send a tap without opening the profile.",
+      "long_press_title": "Long press",
+      "long_press_title_desktop": "Right-click",
+      "long_press_desc": "Quick actions: message, favorite, set a nickname, hide or block.",
+      "pull_title": "Pull down",
+      "pull_desc": "Refresh the grid.",
+      "settings_hint": "Choose the double tap type in Settings → Behavior."
+    }
   },
   "chat_filters": {
     "title": "Chat Filters",

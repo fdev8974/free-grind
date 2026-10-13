@@ -543,7 +543,24 @@
             "tap_failed": "Pošiljanje tapa ni uspelo",
             "tag_filter_applied": "Filtrirano po oznaki \"{{tag}}\""
         },
-        "chatted": "Chatted"
+        "chatted": "Chatted",
+        "gestures_intro": {
+            "title": "",
+            "description": "",
+            "button": "",
+            "open_title": "",
+            "open_title_desktop": "",
+            "open_desc": "",
+            "double_tap_title": "",
+            "double_tap_title_desktop": "",
+            "double_tap_desc": "",
+            "long_press_title": "",
+            "long_press_title_desktop": "",
+            "long_press_desc": "",
+            "pull_title": "",
+            "pull_desc": "",
+            "settings_hint": ""
+        }
     },
     "chat_filters": {
         "title": "Filtri klepetov",
