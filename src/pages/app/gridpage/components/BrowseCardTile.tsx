@@ -12,6 +12,10 @@ import { ProfileImage } from "../../../../components/ui/profile-image";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { useRevealOnScroll } from "../../../../hooks/useRevealOnScroll";
+import { useRef } from "react";
+
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
 
 type BrowseCardTileProps = {
 	card: BrowseCard;
@@ -19,6 +23,7 @@ type BrowseCardTileProps = {
 	localNickname?: string;
 	onSelectProfile: (profileId: string) => void;
 	onMessageProfile: (profileId: string) => void;
+	onOpenContextMenu?: (card: BrowseCard, x: number, y: number) => void;
 	isDesktop?: boolean;
 };
 
@@ -28,6 +33,7 @@ export function BrowseCardTile({
 	localNickname,
 	onSelectProfile,
 	onMessageProfile: _onMessageProfile,
+	onOpenContextMenu,
 	isDesktop = false,
 }: BrowseCardTileProps) {
 	const { t } = useTranslation();
@@ -48,15 +54,78 @@ export function BrowseCardTile({
 	const hasChatted = Boolean(chatContactStatus?.hasChatted) || card.chatted === true || unreadCount > 0;
 	const isFavorite = card.favorite === true;
 
+	// Long press on touch, right-click on mouse. The press is cancelled as
+	// soon as the finger drifts (i.e. the user is scrolling the grid), and
+	// the click that follows a fired long press is swallowed so the profile
+	// doesn't open underneath the menu.
+	const pressRef = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
+	const longPressTriggeredRef = useRef(false);
+	const canOpenMenu = Boolean(onOpenContextMenu) && !isDemoCard;
+
+	const cancelPress = () => {
+		if (pressRef.current) {
+			clearTimeout(pressRef.current.timer);
+			pressRef.current = null;
+		}
+	};
+
+	const handlePointerDown = (event: React.PointerEvent) => {
+		longPressTriggeredRef.current = false;
+		cancelPress();
+		if (!canOpenMenu || event.pointerType === "mouse") return;
+		const { clientX: x, clientY: y } = event;
+		pressRef.current = {
+			x,
+			y,
+			timer: setTimeout(() => {
+				pressRef.current = null;
+				longPressTriggeredRef.current = true;
+				(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge
+					?.vibrate?.(15) ?? navigator.vibrate?.(15);
+				onOpenContextMenu?.(card, x, y);
+			}, LONG_PRESS_MS),
+		};
+	};
+
+	const handlePointerMove = (event: React.PointerEvent) => {
+		const press = pressRef.current;
+		if (!press) return;
+		if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > LONG_PRESS_MOVE_TOLERANCE_PX) {
+			cancelPress();
+		}
+	};
+
+	const handleContextMenu = (event: React.MouseEvent) => {
+		event.preventDefault();
+		// Android WebViews also fire contextmenu on a touch long press — the
+		// timer above owns that case.
+		if (!canOpenMenu || pressRef.current || longPressTriggeredRef.current) return;
+		onOpenContextMenu?.(card, event.clientX, event.clientY);
+	};
+
+	const handleClick = () => {
+		if (longPressTriggeredRef.current) {
+			longPressTriggeredRef.current = false;
+			return;
+		}
+		if (!isDemoCard) onSelectProfile(card.profileId);
+	};
+
 
 	return (
 		<div ref={ref} className={cn(!isDesktop && "bg-black rounded-[4px] overflow-hidden", revealClass)}>
 			<button
 				type="button"
 				key={card.profileId}
-				onClick={() => !isDemoCard && onSelectProfile(card.profileId)}
+				onClick={handleClick}
+				onPointerDown={handlePointerDown}
+				onPointerMove={handlePointerMove}
+				onPointerUp={cancelPress}
+				onPointerCancel={cancelPress}
+				onPointerLeave={cancelPress}
+				onContextMenu={handleContextMenu}
 				className={cn(
-					"surface-card-grid overflow-hidden text-left transition-transform w-full block relative",
+					"no-touch-callout surface-card-grid overflow-hidden text-left transition-transform w-full block relative",
 					!isDemoCard && "active:scale-95",
 					isDesktop
 						? "rounded-xl shadow-sm"

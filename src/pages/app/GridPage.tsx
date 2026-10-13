@@ -13,7 +13,8 @@ import { usePreferences } from "../../contexts/PreferencesContext";
 import { useExploreMode } from "../../contexts/ExploreModeContext";
 import { type BrowseCard, type ProfileDetail } from "./GridPage.types";
 import { BrowseGrid } from "./gridpage/components/BrowseGrid";
-import { mergeBrowseCardImages } from "./gridpage/utils";
+import { GridTileContextMenu } from "./gridpage/components/GridTileContextMenu";
+import { getDisplayName, mergeBrowseCardImages } from "./gridpage/utils";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { ProfileDetailsModal } from "./gridpage/components/ProfileDetailsModal";
 import {
@@ -45,6 +46,7 @@ import {
 	getChatContactIndexForProfiles,
 	getLocalNicknamesForProfiles,
 	indexChatContactRecordsByProfileId,
+	setLocalNicknameForProfile,
 	upsertChatContactIndexFromGrid,
 } from "../../services/chatContactIndex";
 import type { ChatContactIndexRecord } from "../../types/chat-contact-index";
@@ -53,6 +55,7 @@ import { getIncognitoMode } from "../../utils/privacy";
 import { setGridPageActive } from "./gridpage/activeState";
 import { GRID_REFRESH_INTERVAL_MS } from "../../components/gridRefreshInterval";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
+import { PromptDialog } from "../../components/ui/prompt-dialog";
 import { cn } from "../../utils/cn";
 import { DEMO_CARDS, DEMO_CHAT_STATUS, SHOW_DEMO_DATA } from "./gridpage/demoData";
 import { BrowseFiltersOverlay } from "./BrowseFiltersOverlay";
@@ -1298,7 +1301,7 @@ export function GridPage() {
 						}
 						return {
 							...card,
-							isFavorite: !currentlyFavorite,
+							favorite: !currentlyFavorite,
 						};
 					}),
 				);
@@ -1329,6 +1332,46 @@ export function GridPage() {
 			}
 		},
 		[apiFunctions, mutatingFavoriteProfileId, t],
+	);
+
+	const [tileContextMenu, setTileContextMenu] = useState<{ card: BrowseCard; x: number; y: number } | null>(null);
+	const handleOpenTileContextMenu = useCallback((card: BrowseCard, x: number, y: number) => {
+		setTileContextMenu({ card, x, y });
+	}, []);
+	const handleCloseTileContextMenu = useCallback(() => setTileContextMenu(null), []);
+
+	const handleLocalNicknameChange = useCallback((profileId: string, nickname: string | null) => {
+		setLocalNicknamesByProfileId((previous) => {
+			const next = { ...previous };
+			if (nickname) next[profileId] = nickname;
+			else delete next[profileId];
+			return next;
+		});
+	}, []);
+
+	// The tile menu's "Set nickname" — same local nickname (and prompt) as the
+	// profile modal's actions menu; an empty value clears it.
+	const [nicknamePromptCard, setNicknamePromptCard] = useState<BrowseCard | null>(null);
+	const [isSavingNickname, setIsSavingNickname] = useState(false);
+
+	const handleSaveTileNickname = useCallback(
+		async (value: string) => {
+			if (!nicknamePromptCard) return;
+			const profileId = nicknamePromptCard.profileId;
+			const normalized = value.trim() || null;
+			setIsSavingNickname(true);
+			try {
+				await setLocalNicknameForProfile(profileId, normalized);
+				handleLocalNicknameChange(profileId, normalized);
+				toast.success(normalized ? t("chat.nicknames.saved") : t("chat.nicknames.cleared"));
+				setNicknamePromptCard(null);
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : t("chat.nicknames.save_failed"));
+			} finally {
+				setIsSavingNickname(false);
+			}
+		},
+		[handleLocalNicknameChange, nicknamePromptCard, t],
 	);
 
 	const handleCancelProfileConfirm = useCallback(() => {
@@ -1791,6 +1834,7 @@ export function GridPage() {
 							localNicknamesByProfileId={localNicknamesByProfileId}
 							onSelectProfile={handleSelectProfile}
 							onMessageProfile={handleMessageProfile}
+							onOpenContextMenu={handleOpenTileContextMenu}
 							hasMore={nextPage !== null && !(nicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}
 							isLoadingMore={isLoadingMoreCards}
 							onLoadMore={() => {
@@ -1805,6 +1849,39 @@ export function GridPage() {
 					</div>
 				</FeedScrollContainer>
 			</PullToRefreshContainer>
+
+			{tileContextMenu && (
+				<GridTileContextMenu
+					x={tileContextMenu.x}
+					y={tileContextMenu.y}
+					isFavorite={tileContextMenu.card.favorite === true}
+					hasNickname={Boolean(localNicknamesByProfileId[tileContextMenu.card.profileId])}
+					onClose={handleCloseTileContextMenu}
+					onMessage={() => {
+						setTileContextMenu(null);
+						handleMessageProfile(tileContextMenu.card.profileId);
+					}}
+					onToggleFavorite={() => {
+						setTileContextMenu(null);
+						void handleToggleFavoriteProfile(
+							tileContextMenu.card.profileId,
+							tileContextMenu.card.favorite === true,
+						);
+					}}
+					onEditNickname={() => {
+						setTileContextMenu(null);
+						setNicknamePromptCard(tileContextMenu.card);
+					}}
+					onHide={() => {
+						setTileContextMenu(null);
+						handleHideProfile(tileContextMenu.card.profileId);
+					}}
+					onBlock={() => {
+						setTileContextMenu(null);
+						void handleBlockProfile(tileContextMenu.card.profileId);
+					}}
+				/>
+			)}
 
 			<ProfileDetailsModal
 				isOpen={Boolean(activeProfileId)}
@@ -1837,19 +1914,34 @@ export function GridPage() {
 				activeProfilePhotoHashes={activeProfilePhotoHashes}
 				chatContactStatus={selectedProfileChatContact}
 				localNickname={selectedProfileLocalNickname}
-				onLocalNicknameChange={(profileId, nickname) => {
-					setLocalNicknamesByProfileId((previous) => {
-						const next = { ...previous };
-						if (nickname) next[profileId] = nickname;
-						else delete next[profileId];
-						return next;
-					});
-				}}
+				onLocalNicknameChange={handleLocalNicknameChange}
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>
 
 			{locateSheet}
+
+			{(() => {
+				const nicknameCardProfileId = nicknamePromptCard?.profileId;
+				const existingNickname = nicknameCardProfileId ? localNicknamesByProfileId[nicknameCardProfileId] : undefined;
+				const actualName = nicknamePromptCard ? getDisplayName(nicknamePromptCard) : "";
+				return (
+					<PromptDialog
+						isOpen={nicknamePromptCard !== null}
+						title={existingNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+						message={t("chat.nicknames.prompt")}
+						defaultValue={existingNickname || actualName}
+						placeholder={actualName || undefined}
+						confirmLabel={t("common.save", { defaultValue: "Save" })}
+						cancelLabel={t("chat.actions.cancel")}
+						onConfirm={handleSaveTileNickname}
+						onCancel={() => setNicknamePromptCard(null)}
+						isProcessing={isSavingNickname}
+						allowEmpty
+						rows={1}
+					/>
+				);
+			})()}
 
 			<ConfirmDialog
 				isOpen={pendingProfileConfirm !== null}

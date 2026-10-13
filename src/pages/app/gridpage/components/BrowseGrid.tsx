@@ -62,6 +62,7 @@ type BrowseGridProps = {
 	localNicknamesByProfileId?: Record<string, string>;
 	onSelectProfile: (profileId: string) => void;
 	onMessageProfile: (profileId: string) => void;
+	onOpenContextMenu?: (card: BrowseCard, x: number, y: number) => void;
 	hasMore?: boolean;
 	isLoadingMore?: boolean;
 	onLoadMore?: () => void;
@@ -90,6 +91,7 @@ export function BrowseGrid({
 	localNicknamesByProfileId,
 	onSelectProfile,
 	onMessageProfile,
+	onOpenContextMenu,
 	hasMore,
 	isLoadingMore,
 	onLoadMore,
@@ -381,6 +383,7 @@ export function BrowseGrid({
 									localNickname={localNicknamesByProfileId?.[card.profileId]}
 									onSelectProfile={onSelectProfile}
 									onMessageProfile={onMessageProfile}
+									onOpenContextMenu={onOpenContextMenu}
 									isDesktop={isDesktop}
 								/>
 							))}
