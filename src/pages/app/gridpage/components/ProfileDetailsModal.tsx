@@ -1532,9 +1532,10 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		<>
 			{/* Floating header — transparent over carousel, opaque after scrolling */}
 			<div
-				className="pointer-events-none absolute inset-x-0 top-0 z-40 px-4 sm:px-5"
+				className="pointer-events-none absolute inset-x-0 top-0 z-40 px-[var(--app-px)]"
 				style={{
-					paddingTop: variant === "page" ? "calc(env(safe-area-inset-top,0px) + 10px)" : "0.75rem",
+					// 40px button row centred on the shared header line (see --header-icon-center).
+					paddingTop: variant === "page" ? "calc(var(--header-icon-center) - 1.25rem)" : "0.75rem",
 					paddingBottom: "0.75rem",
 				}}
 			>

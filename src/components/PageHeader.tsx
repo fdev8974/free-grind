@@ -50,12 +50,9 @@ export function PageHeader({
 
 	return (
 		<>
-			{/* With a back button the row uses the profile header's gutter (px-4 sm:px-5) so
-			    the icons sit where they do on the profile page and in the photo viewer. */}
 			<header
 				className={cn(
-					"page-header sticky top-0 z-30 -mx-[var(--app-px)] pb-2.5",
-					handleBack || actions ? "px-4 sm:px-5" : "px-[var(--app-px)]",
+					"page-header sticky top-0 z-30 -mx-[var(--app-px)] px-[var(--app-px)] pb-4",
 					!subtitle && "mb-4",
 					className,
 				)}
@@ -73,7 +70,9 @@ export function PageHeader({
 					}}
 					aria-hidden="true"
 				/>
-				<div className="relative flex min-h-10 items-center gap-2">
+				{/* Row is exactly one tab-header title line tall; the taller buttons overflow it
+				    symmetrically, so their centres land on --header-icon-center like the Inbox icons. */}
+				<div className="relative flex h-[var(--header-row-h)] items-center gap-2">
 					{handleBack && <HeaderBackButton onClick={handleBack} label={backLabel} />}
 					<div className="flex min-w-0 flex-1 items-center gap-2">
 						<h1 className="min-w-0 truncate text-lg font-semibold">{title}</h1>

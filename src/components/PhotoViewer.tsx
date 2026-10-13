@@ -101,10 +101,9 @@ export function PhotoViewer({
 	// gate, default chrome, album header) so switching between them never
 	// shifts the back button. The position indicator sits below this, it
 	// never pushes the header itself down.
-	// Mirrors the profile page's floating header (ProfileDetailsModal inline
-	// layout: px-4 sm:px-5, safe-area + 10px) so the back/menu buttons stay on
-	// the same pixel when the viewer opens on top of a profile.
-	const chromeTopOffset = "calc(env(safe-area-inset-top, 0px) + 10px)";
+	// Same top-bar line as every other header (Inbox, PageHeader, profile): the
+	// 40px button row is centred on --header-icon-center, with the app gutter.
+	const chromeTopOffset = "calc(var(--header-icon-center) - 1.25rem)";
 	// Standalone buttons (gate screen, non-album chrome) sit in no row, so they
 	// get the row's top directly — the album row is button/avatar height anyway.
 	const chromeButtonTop = chromeTopOffset;
@@ -615,7 +614,7 @@ export function PhotoViewer({
 				<button
 					type="button"
 					onClick={(e) => { e.stopPropagation(); onClose(); }}
-					className="header-icon-btn header-icon-btn--back absolute left-4 inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5"
+					className="header-icon-btn header-icon-btn--back absolute left-[var(--app-px)] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 					style={{ top: chromeButtonTop }}
 					aria-label={t("profile_details.close_photo_viewer")}
 				>
@@ -689,7 +688,7 @@ export function PhotoViewer({
 						aria-hidden="true"
 					/>
 					<div
-						className={`pointer-events-none absolute inset-x-0 top-0 z-[83] px-4 sm:px-5 ${chromeFadeClass}`}
+						className={`pointer-events-none absolute inset-x-0 top-0 z-[83] px-[var(--app-px)] ${chromeFadeClass}`}
 						style={{ paddingTop: chromeTopOffset }}
 					>
 						<div
@@ -780,7 +779,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); onClose(); }}
 						onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
-						className={`header-icon-btn header-icon-btn--back absolute left-4 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5 ${chromeFadeClass}`}
+						className={`header-icon-btn header-icon-btn--back absolute left-[var(--app-px)] z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.close_photo_viewer")}
 					>
@@ -792,7 +791,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); void handleSave(); }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, () => void handleSave())}
 						disabled={isSaving}
-						className={`header-icon-btn absolute right-4 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 disabled:opacity-50 sm:right-5 ${chromeFadeClass}`}
+						className={`header-icon-btn absolute right-[var(--app-px)] z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 disabled:opacity-50 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.save")}
 					>

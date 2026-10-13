@@ -320,6 +320,12 @@
 		--explore: #3b82f6;
 		--content-max: 1200px;
 		--app-px: clamp(12px, 2.6vw, 28px);
+		/* Shared top-bar geometry, taken from the main tab headers (Inbox, Right Now,
+		   Interest: .app-screen top padding + one .app-title line). Every other top
+		   bar centres its icons on --header-icon-center so they all line up. */
+		--header-top: calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px));
+		--header-row-h: calc(clamp(1.6rem, 4.2vw, 2.05rem) * 1.1);
+		--header-icon-center: calc(var(--header-top) + var(--header-row-h) / 2);
 		--radius-sm: 12px;
 		--radius-md: 16px;
 		--radius-lg: 18px;
@@ -785,11 +791,11 @@
 	}
 
 	/* Sticky page header (PageHeader): pulls itself up over .app-screen's top
-	   padding so its scrolled backdrop also covers the status-bar area, and
-	   lines its row up with the profile page's floating header. */
+	   padding so its scrolled backdrop also covers the status-bar area; its row
+	   then starts exactly where a tab header's title row does. */
 	.page-header {
-		margin-top: calc(-1 * (env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px)));
-		padding-top: calc(env(safe-area-inset-top, 0px) + 10px);
+		margin-top: calc(-1 * var(--header-top));
+		padding-top: var(--header-top);
 	}
 
 	@media (min-width: 1024px) {
