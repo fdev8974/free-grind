@@ -598,7 +598,7 @@ export function InterestPage() {
 			>
 				<div className="mx-auto w-full max-w-4xl pb-[calc(env(safe-area-inset-bottom,0px)+120px)] px-0">
 					{(isLoading && (activeItems.length === 0 || isDemoLoading)) ? (
-						<div className="border-t border-[var(--border)]/10">
+						<div>
 							{Array.from({ length: 8 }).map((_, i) => (
 								<InterestSkeleton key={i} mode={activeTab} />
 							))}
@@ -626,14 +626,13 @@ export function InterestPage() {
 
 							{activeItems.length > 0 && (
 								<div className="flex flex-col">
-									{displayedItems.map((item, index) => (
+									{displayedItems.map((item) => (
 										<InterestRow
 											key={`${activeTab}-${item.profileId}-${item.timestamp ?? "na"}`}
 											item={item}
 											mode={activeTab}
 											onOpenProfile={handleOpenProfile}
 											now={nowTimestamp}
-											isFirst={index === 0}
 											isBlocked={isProfileBlocked(item.profileId)}
 										/>
 									))}

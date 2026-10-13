@@ -156,14 +156,12 @@ export const InterestRow = memo(function InterestRow({
 	mode,
 	onOpenProfile,
 	now,
-	isFirst,
 	isBlocked = false,
 }: {
 	item: InterestItem;
 	mode: InterestTab;
 	onOpenProfile: (profileId: string) => void;
 	now: number;
-	isFirst?: boolean;
 	isBlocked?: boolean;
 }) {
 	const { t } = useTranslation();
@@ -185,7 +183,7 @@ export const InterestRow = memo(function InterestRow({
 		<div
 			ref={ref}
 			className={cn(
-				"relative flex items-center gap-4 pl-4 pr-4 py-3 transition-colors",
+				"relative flex items-center gap-4 border-b border-[var(--surface-2)] pl-4 pr-4 py-3 transition-colors",
 				isLocked ? "opacity-75 grayscale-[0.3]" : "hover:bg-[var(--surface-2)]/40",
 				revealClass
 			)}
@@ -296,10 +294,6 @@ export const InterestRow = memo(function InterestRow({
 					)}
 				</div>
 			)}
-
-			{isFirst && <div className="absolute top-0 right-0 left-0 h-px bg-[var(--surface-2)]" />}
-			{/* Full-width Divider */}
-			<div className="absolute bottom-0 right-0 left-0 h-px bg-[var(--surface-2)]" />
 		</div>
 	);
 });

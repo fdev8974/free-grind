@@ -206,13 +206,11 @@ function RightNowRow({
 	onMessage,
 	onSelect,
 	onOpenPhoto,
-	isFirst,
 }: {
 	item: RightNowFeedItem;
 	onMessage: (profileId: string) => void;
 	onSelect: (profileId: string) => void;
 	onOpenPhoto: (photos: string[], index: number, profileId: string) => void;
-	isFirst?: boolean;
 }) {
 	const { t } = useTranslation();
 	const { unitsPreset } = usePreferences();
@@ -239,7 +237,6 @@ function RightNowRow({
 			ref={ref}
 			className={cn(
 				"flex items-center gap-4 pl-4 pr-4 py-3 border-b border-[var(--surface-2)]",
-				isFirst && "border-t",
 				revealClass
 			)}
 		>
@@ -263,7 +260,7 @@ function RightNowRow({
 					onClick={() => onSelect(item.profileId)}
 				>
 					{item.text && (
-						<p className="line-clamp-3 text-sm font-bold text-[var(--text)] leading-relaxed mb-1">
+						<p className="line-clamp-3 text-sm font-bold text-[var(--text)] mb-0.5">
 							{item.text}
 						</p>
 					)}
@@ -288,7 +285,7 @@ function RightNowRow({
 						)}
 					</div>
 
-					<div className="mt-1 flex items-center justify-between gap-2">
+					<div className="mt-0.5 flex items-center justify-between gap-2">
 						<div className="flex min-w-0 items-center gap-1">
 							<p className="truncate text-xs text-[var(--text-muted)] font-medium">
 								{name}
@@ -701,7 +698,7 @@ export function RightNowPage() {
 				{isLoading ? (
 					<div className="mx-auto max-w-4xl divide-y divide-[var(--surface-2)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)]">
 						{Array.from({ length: 6 }).map((_, i) => (
-							<div key={i} className={cn(i === 0 && "border-t border-[var(--surface-2)]")}>
+							<div key={i}>
 								<RightNowSkeleton />
 							</div>
 						))}
@@ -724,14 +721,13 @@ export function RightNowPage() {
 					</div>
 				) : (
 					<div className="mx-auto max-w-4xl pb-[calc(env(safe-area-inset-bottom,0px)+120px)]">
-						{items.map((item, index) => (
+						{items.map((item) => (
 							<div key={`${item.id}-${item.profileId}`} className="px-0">
 								<RightNowRow
 									item={item}
 									onMessage={handleMessage}
 									onSelect={handleSelect}
 									onOpenPhoto={openPhotoViewer}
-									isFirst={index === 0}
 								/>
 							</div>
 						))}
