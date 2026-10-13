@@ -60,6 +60,7 @@ import {
 	stripReplyQuotePrefix,
 } from "./chatUtils";
 import type { MessageTranslations } from "../../../hooks/useMessageTranslations";
+import { haptic } from "../../../utils/haptics";
 
 type ChatThreadMessagesProps = {
 	isDesktop: boolean;
@@ -628,7 +629,7 @@ export function ChatThreadMessages({
 			if (isArmed !== state.armed) {
 				state.armed = isArmed;
 				if (isArmed) {
-					(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(40) ?? navigator.vibrate?.(40);
+					haptic(40);
 				}
 			}
 		},

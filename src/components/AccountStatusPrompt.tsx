@@ -21,6 +21,7 @@ import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButt
 import { useAuth } from "../contexts/useAuth";
 import type { AccountStatus } from "../contexts/auth-context";
 import type { AppError } from "../types/api";
+import { hourCycleOptions } from "../utils/timeFormat";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -59,7 +60,7 @@ function expiryMs(expiresAt: number): number {
 }
 
 function formatExpiry(expiresAt: number, language: string): string {
-	return new Date(expiryMs(expiresAt)).toLocaleString(language, { dateStyle: "medium", timeStyle: "short" });
+	return new Date(expiryMs(expiresAt)).toLocaleString(language, { dateStyle: "medium", timeStyle: "short", ...hourCycleOptions() });
 }
 
 /**

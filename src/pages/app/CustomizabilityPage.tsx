@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clapperboard, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Star, Sun, Triangle, Type } from "lucide-react";
+import { Clapperboard, Clock, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Triangle, Type, Vibrate } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { BackToSettings } from "../../components/BackToSettings";
+import { RightNowIcon } from "../../components/icons/RightNowIcon";
+import { HAPTICS_ENABLED_KEY, isHapticsEnabled } from "../../utils/haptics";
+import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/timeFormat";
 import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
 import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
@@ -131,6 +134,8 @@ export function CustomizabilityPage() {
 	const [showRightNow, setShowRightNow] = useState(() => window.localStorage.getItem("fg-show-right-now") !== "false");
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
 	const [showNavLabels, setShowNavLabels] = useState(() => window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true");
+	const [hapticsEnabled, setHapticsEnabled] = useState(isHapticsEnabled);
+	const [timeFormat, setTimeFormat] = useState<TimeFormat>(getTimeFormat);
 	const [floatingNav, setFloatingNav] = useState(() => window.localStorage.getItem(NAV_FLOATING_KEY) === "true");
 	const [showInterest, setShowInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
 	const [showVideoGallery, setShowVideoGallery] = useState(isVideoGalleryEnabled);
@@ -417,15 +422,11 @@ export function CustomizabilityPage() {
 					</div>
 				</div>
 
-				{/* LAYOUT */}
-				<div>
-					<SectionLabel>{t("customizability.layout")}</SectionLabel>
-					<div className="grid gap-3">
-
-						{/* Browse Grid + Reveal Effect combined */}
+				{/* GRID PAGE (column count only affects the mobile app) */}
+				{isMobilePlatform && (
+					<div>
+						<SectionLabel>{t("customizability.grid_page")}</SectionLabel>
 						<div className="surface-card overflow-hidden">
-
-							{/* Browse Grid */}
 							<div
 								id="cust-browse-grid"
 								className={`p-4 ${highlightId === "cust-browse-grid" ? "animate-settings-highlight" : ""}`}
@@ -435,7 +436,7 @@ export function CustomizabilityPage() {
 										<LayoutGrid className="h-5 w-5" />
 									</div>
 									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">{t("customizability.browse_grid_mobile")}</p>
+										<p className="text-sm font-semibold leading-snug">{t("customizability.grid_layout")}</p>
 										<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
 											{t("customizability.browse_grid_mobile_desc")}
 										</p>
@@ -459,50 +460,11 @@ export function CustomizabilityPage() {
 											))}
 										</div>
 									</div>
-									{/* spacer matching toggle width so buttons align with reveal effect */}
-									<div className="w-12 shrink-0" />
 								</div>
 							</div>
-
-							{/* Reveal Effect */}
-							<div className="border-t border-[var(--border)]">
-								<ToggleRow
-									id="cust-reveal-effect"
-									highlighted={highlightId === "cust-reveal-effect"}
-									icon={<Sparkles className="h-5 w-5" />}
-									iconClass="bg-violet-500/15 text-violet-400"
-									label={t("customizability.reveal_effect.enable")}
-									description={t("customizability.reveal_effect.enable_desc")}
-									checked={revealEffectEnabled}
-									onChange={(checked) => void setPreferences({ revealEffectEnabled: checked })}
-								/>
-								{revealEffectEnabled && (
-									<div className="grid grid-cols-2 gap-2 pb-4 pl-[68px] pr-[76px]">
-										{(["subtle", "pronounced"] as const).map((s) => (
-											<button
-												key={s}
-												type="button"
-												onClick={() => void setPreferences({ revealEffectStrength: s })}
-												className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
-												style={{
-													borderColor: revealEffectStrength === s ? "var(--accent)" : "var(--border)",
-													background: revealEffectStrength === s
-														? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-														: "var(--surface-2)",
-													color: revealEffectStrength === s ? "var(--accent-readable)" : "var(--text)",
-												}}
-											>
-												{t(`customizability.reveal_effect.strengths.${s}`)}
-											</button>
-										))}
-									</div>
-								)}
-							</div>
-
 						</div>
-
 					</div>
-				</div>
+				)}
 
 				{/* NAVIGATION */}
 				<div>
@@ -544,8 +506,8 @@ export function CustomizabilityPage() {
 						<ToggleRow
 							id="cust-show-right-now"
 							highlighted={highlightId === "cust-show-right-now"}
-							icon={<Flame className="h-5 w-5" />}
-							iconClass="bg-orange-500/15 text-orange-400"
+							icon={<RightNowIcon className="h-5 w-5" />}
+							iconClass="bg-[var(--right-now-soft)] text-[var(--right-now)]"
 							label={t("customizability.show_right_now")}
 							description={t("customizability.show_right_now_desc")}
 							checked={showRightNow}
@@ -558,7 +520,7 @@ export function CustomizabilityPage() {
 						<ToggleRow
 							id="cust-show-interest"
 							highlighted={highlightId === "cust-show-interest"}
-							icon={<Star className="h-5 w-5" />}
+							icon={<Flame className="h-5 w-5" />}
 							iconClass="bg-yellow-500/15 text-yellow-400"
 							label={t("customizability.show_interest")}
 							description={t("customizability.show_interest_desc")}
@@ -572,15 +534,15 @@ export function CustomizabilityPage() {
 					</div>
 				</div>
 
-				{/* INTEREST VIEW */}
+				{/* INTEREST PAGE */}
 				{showInterest && (
 					<div>
-						<SectionLabel>{t("customizability.interest_view")}</SectionLabel>
+						<SectionLabel>{t("customizability.interest_page")}</SectionLabel>
 						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 							<SelectRow
-								icon={<Star className="h-5 w-5 opacity-50" />}
+								icon={<Flame className="h-5 w-5 opacity-50" />}
 								iconClass="bg-yellow-500/10 text-yellow-400"
-								label={t("customizability.default_interest_view")}
+								label={t("customizability.default_view")}
 								value={defaultInterestTab}
 								onChange={(val) => {
 									setDefaultInterestTab(val);
@@ -595,6 +557,62 @@ export function CustomizabilityPage() {
 						</div>
 					</div>
 				)}
+
+				{/* VISUAL EFFECTS */}
+				<div>
+					<SectionLabel>{t("customizability.visual_effects")}</SectionLabel>
+					<div className="surface-card overflow-hidden">
+						<ToggleRow
+							id="cust-reveal-effect"
+							highlighted={highlightId === "cust-reveal-effect"}
+							icon={<Sparkles className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("customizability.reveal_effect.title")}
+							description={t("customizability.reveal_effect.enable_desc")}
+							checked={revealEffectEnabled}
+							onChange={(checked) => void setPreferences({ revealEffectEnabled: checked })}
+						/>
+						{revealEffectEnabled && (
+							<div className="grid grid-cols-2 gap-2 pb-4 pl-[68px] pr-[76px]">
+								{(["subtle", "pronounced"] as const).map((s) => (
+									<button
+										key={s}
+										type="button"
+										onClick={() => void setPreferences({ revealEffectStrength: s })}
+										className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
+										style={{
+											borderColor: revealEffectStrength === s ? "var(--accent)" : "var(--border)",
+											background: revealEffectStrength === s
+												? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
+												: "var(--surface-2)",
+											color: revealEffectStrength === s ? "var(--accent-readable)" : "var(--text)",
+										}}
+									>
+										{t(`customizability.reveal_effect.strengths.${s}`)}
+									</button>
+								))}
+							</div>
+						)}
+						{/* Haptics (mobile app only) */}
+						{isMobilePlatform && (
+							<div className="border-t border-[var(--border)]">
+								<ToggleRow
+									id="cust-haptics"
+									highlighted={highlightId === "cust-haptics"}
+									icon={<Vibrate className="h-5 w-5" />}
+									iconClass="bg-rose-500/15 text-rose-400"
+									label={t("customizability.haptic_feedback")}
+									description={t("customizability.haptic_feedback_desc")}
+									checked={hapticsEnabled}
+									onChange={(checked) => {
+										setHapticsEnabled(checked);
+										window.localStorage.setItem(HAPTICS_ENABLED_KEY, String(checked));
+									}}
+								/>
+							</div>
+						)}
+					</div>
+				</div>
 
 				{/* OPTIONAL FEATURES */}
 				<div>
@@ -677,6 +695,23 @@ export function CustomizabilityPage() {
 								{ value: "world", label: t("customizability.units_world") },
 								{ value: "uk", label: t("customizability.units_uk") },
 								{ value: "american", label: t("customizability.units_american") },
+							]}
+						/>
+						<SelectRow
+							id="cust-time-format"
+							highlighted={highlightId === "cust-time-format"}
+							icon={<Clock className="h-5 w-5" />}
+							iconClass="bg-indigo-500/15 text-indigo-400"
+							label={t("customizability.time_format")}
+							value={timeFormat}
+							onChange={(val) => {
+								setTimeFormat(val as TimeFormat);
+								window.localStorage.setItem(TIME_FORMAT_KEY, val);
+							}}
+							options={[
+								{ value: "system", label: t("customizability.time_format_system") },
+								{ value: "12h", label: t("customizability.time_format_12h") },
+								{ value: "24h", label: t("customizability.time_format_24h") },
 							]}
 						/>
 					</div>

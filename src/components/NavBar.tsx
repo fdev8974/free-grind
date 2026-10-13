@@ -21,6 +21,7 @@ import { messageSchema, type Message } from "../types/messages";
 import type { RealtimeEnvelope } from "../types/chat-realtime";
 import { useInterestData } from "../hooks/queries/useInterestQueries";
 import { isAndroid, isIos } from "../services/saveMedia";
+import { haptic } from "../utils/haptics";
 
 // Bottom-nav style options; only offered (and only honoured) in the mobile app.
 export const NAV_SHOW_LABELS_KEY = "fg-nav-show-labels";
@@ -405,6 +406,7 @@ export function NavBar() {
 										if (item.value === "browse" && activeTab === "browse") {
 											window.dispatchEvent(new CustomEvent("browse-scroll-top"));
 										}
+										if (item.value !== activeTab) haptic(10);
 										setActiveTab(item.value);
 										navigate(item.path, { replace: true });
 									}}

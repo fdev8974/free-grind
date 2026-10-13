@@ -13,6 +13,7 @@ import { usePreferences } from "../../../../contexts/PreferencesContext";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { useRevealOnScroll } from "../../../../hooks/useRevealOnScroll";
 import { useRef } from "react";
+import { haptic } from "../../../../utils/haptics";
 
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
@@ -80,8 +81,7 @@ export function BrowseCardTile({
 			timer: setTimeout(() => {
 				pressRef.current = null;
 				longPressTriggeredRef.current = true;
-				(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge
-					?.vibrate?.(15) ?? navigator.vibrate?.(15);
+				haptic(15);
 				onOpenContextMenu?.(card, x, y);
 			}, LONG_PRESS_MS),
 		};

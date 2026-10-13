@@ -16,6 +16,8 @@ const RESETTABLE_LOCAL_STORAGE_KEYS = [
 	"fg-show-interest",
 	"fg-nav-show-labels",
 	"fg-nav-floating",
+	"fg-haptics-enabled",
+	"fg-time-format",
 	SHOW_VIDEO_GALLERY_KEY,
 	SHOW_SEXUAL_HEALTH_KEY,
 	SHOW_LOCATE_KEY,

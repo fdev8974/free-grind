@@ -7,6 +7,7 @@ import {
 	type UnitsPreset,
 } from "../../../utils/units";
 import { formatRelativeTime } from "../../../utils/relativeTime";
+import { hourCycleOptions } from "../../../utils/timeFormat";
 
 type AccountCreationAnchor = {
 	time: number;
@@ -132,6 +133,7 @@ export function formatProfilePhotoCreatedAt(
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
+		...hourCycleOptions(),
 	});
 
 	return formatter.format(new Date(timestamp));

@@ -2,6 +2,7 @@ import { Flame } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
+import { haptic } from "../../../../utils/haptics";
 
 type TapSelectorProps = {
 	profileId: string;
@@ -108,9 +109,7 @@ export function TapSelector({
 		setIsRippling(true);
 		setPreviewId(id);
 
-		// Vibrate (FreeGrindBridge for iOS, navigator.vibrate fallback for Android)
-		const bridge = (window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge;
-		bridge?.vibrate?.(30) ?? navigator.vibrate?.([15, 10, 25]);
+		haptic(30, [15, 10, 25]);
 
 		if (onTapProfile) {
 			onTapProfile(profileId, id);
@@ -146,8 +145,7 @@ export function TapSelector({
 
 		longPressTimer.current = setTimeout(() => {
 			setShowTapPicker(true);
-			const bridge = (window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge;
-			bridge?.vibrate?.(10) ?? navigator.vibrate?.(10);
+			haptic(10);
 		}, 300);
 
 		const btn = e.currentTarget as HTMLButtonElement;

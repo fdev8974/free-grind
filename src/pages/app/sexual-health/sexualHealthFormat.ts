@@ -1,3 +1,5 @@
+import { hourCycleOptions } from "../../../utils/timeFormat";
+
 // Matches the timestamp format used elsewhere in Settings (see
 // formatEventTimestamp in SettingsBlockHistoryPage.tsx) — browser-default
 // locale, not tied to the app's i18n language, for consistency app-wide.
@@ -8,6 +10,7 @@ export function formatDateTime(ms: number): string {
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
+		...hourCycleOptions(),
 	});
 }
 

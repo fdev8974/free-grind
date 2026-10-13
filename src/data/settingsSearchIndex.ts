@@ -29,7 +29,6 @@ import {
 	Shield,
 	SlidersHorizontal,
 	Sparkles,
-	Star,
 	Tag,
 	Timer,
 	ToggleRight,
@@ -41,10 +40,13 @@ import {
 	UserCircle,
 	UserX,
 	Workflow,
+	Clock,
+	Vibrate,
 	type LucideIcon,
 } from "lucide-react";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL } from "../utils/githubIssues";
 import { useMemo } from "react";
+import { RightNowIcon } from "../components/icons/RightNowIcon";
 import { isSexualHealthEnabled } from "../utils/optionalFeatures";
 import { isAndroid, isIos } from "../services/saveMedia";
 import { useTranslation } from "react-i18next";
@@ -60,7 +62,7 @@ export type SettingsSearchEntry = {
 	description?: string;
 	/** Breadcrumb shown under the label in search results, e.g. "Customizability". */
 	section: string;
-	icon: LucideIcon;
+	icon: LucideIcon | typeof RightNowIcon;
 	iconClass: string;
 };
 
@@ -120,7 +122,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			id: "cust-browse-grid",
 			route: "/settings/customizability",
 			anchor: "cust-browse-grid",
-			label: t("customizability.browse_grid_mobile"),
+			label: t("customizability.grid_layout"),
 			description: t("customizability.browse_grid_mobile_desc"),
 			section: "Customizability",
 			icon: LayoutGrid,
@@ -130,7 +132,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			id: "cust-reveal-effect",
 			route: "/settings/customizability",
 			anchor: "cust-reveal-effect",
-			label: t("customizability.reveal_effect.enable"),
+			label: t("customizability.reveal_effect.title"),
 			description: t("customizability.reveal_effect.enable_desc"),
 			section: "Customizability",
 			icon: Sparkles,
@@ -163,8 +165,8 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			label: t("customizability.show_right_now"),
 			description: t("customizability.show_right_now_desc"),
 			section: "Customizability",
-			icon: Flame,
-			iconClass: "bg-orange-500/15 text-orange-400",
+			icon: RightNowIcon,
+			iconClass: "bg-[var(--right-now-soft)] text-[var(--right-now)]",
 		},
 		{
 			id: "cust-show-interest",
@@ -173,7 +175,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			label: t("customizability.show_interest"),
 			description: t("customizability.show_interest_desc"),
 			section: "Customizability",
-			icon: Star,
+			icon: Flame,
 			iconClass: "bg-yellow-500/15 text-yellow-400",
 		},
 		{
@@ -231,6 +233,25 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			section: "Customizability",
 			icon: Ruler,
 			iconClass: "bg-cyan-500/15 text-cyan-400",
+		},
+		{
+			id: "cust-time-format",
+			route: "/settings/customizability",
+			anchor: "cust-time-format",
+			label: t("customizability.time_format"),
+			section: "Customizability",
+			icon: Clock,
+			iconClass: "bg-indigo-500/15 text-indigo-400",
+		},
+		{
+			id: "cust-haptics",
+			route: "/settings/customizability",
+			anchor: "cust-haptics",
+			label: t("customizability.haptic_feedback"),
+			description: t("customizability.haptic_feedback_desc"),
+			section: "Customizability",
+			icon: Vibrate,
+			iconClass: "bg-rose-500/15 text-rose-400",
 		},
 		{
 			id: "nav-behavior",
@@ -612,7 +633,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 	].filter(
 		(entry) =>
 			(showSexualHealth || entry.id !== "nav-sexual-health") &&
-			// Bottom-nav style options only exist in the mobile app.
-			(isMobilePlatform || (entry.id !== "cust-nav-floating" && entry.id !== "cust-nav-show-labels")),
+			// Bottom-nav style, grid layout and haptics options only exist in the mobile app.
+			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-haptics"].includes(entry.id)),
 	), [t, showSexualHealth, isMobilePlatform]);
 }

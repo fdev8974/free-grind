@@ -312,6 +312,10 @@
 		--accent: #7c3aed;
 		--accent-contrast: #ffffff;
 		--right-now: #9333ea;
+		/* 15% tint of --right-now for icon chips; precomputed because the
+		   color-mix() Tailwind emits for var()/opacity isn't supported by
+		   older Android WebViews, which then fall back to the opaque color. */
+		--right-now-soft: rgb(147 51 234 / 0.15);
 		/* Keep in sync with EXPLORE_COLOR in LocationOverlay.tsx */
 		--explore: #3b82f6;
 		--content-max: 1200px;

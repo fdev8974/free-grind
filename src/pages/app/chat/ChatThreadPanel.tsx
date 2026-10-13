@@ -151,6 +151,7 @@ import {
 
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
+import { haptic } from "../../../utils/haptics";
 
 type ChatThreadPanelProps = {
 	navigate: NavigateFunction;
@@ -453,7 +454,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			mediaRecorderRef.current = recorder;
 			recordingStartRef.current = Date.now();
 			setIsRecording(true);
-			(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(30) ?? navigator.vibrate?.(30);
+			haptic(30);
 			setRecordingMs(0);
 			recordingTimerRef.current = setInterval(() => {
 				const elapsed = Date.now() - recordingStartRef.current;
@@ -514,7 +515,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			void fixWebmDuration(rawBlob, durationMs).then((blob) => {
 				if (durationMs >= 500) {
 					if (autoSend) {
-						(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(30) ?? navigator.vibrate?.(30);
+						haptic(30);
 					}
 					setRecordedWaveform(capturedBars);
 					props.onAudioRecorded(blob, durationMs, autoSend);
@@ -2358,7 +2359,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											isCapturingRef.current = false;
 											e.currentTarget.releasePointerCapture(e.pointerId);
 											if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
-											(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(80) ?? navigator.vibrate?.(80);
+											haptic(80);
 											setTrashBounce(true);
 											setTimeout(() => {
 												setTrashBounce(false);

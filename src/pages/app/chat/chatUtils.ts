@@ -7,6 +7,7 @@ import {
 	validateMediaHash,
 } from "../../../utils/media";
 import { formatRelativeTime } from "../../../utils/relativeTime";
+import { hourCycleOptions } from "../../../utils/timeFormat";
 
 export type ChatFiltersDraft = {
 	unreadOnly: boolean;
@@ -194,6 +195,7 @@ export function formatMessageTime(
 	return new Date(timestamp).toLocaleTimeString([], {
 		hour: "2-digit",
 		minute: "2-digit",
+		...hourCycleOptions(),
 	});
 }
 
@@ -201,6 +203,7 @@ export function formatFullDateTime(timestamp: number): string {
 	return new Date(timestamp).toLocaleString([], {
 		dateStyle: "medium",
 		timeStyle: "short",
+		...hourCycleOptions(),
 	});
 }
 

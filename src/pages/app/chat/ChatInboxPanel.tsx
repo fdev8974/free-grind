@@ -28,6 +28,7 @@ import { useAvatarCache } from "../../../hooks/useAvatarCache";
 import { resolveAvatarSrc } from "../../../services/avatarStore";
 import { useInboxSyncStatus } from "../../../hooks/useInboxSyncStatus";
 import { FEED_HEADER_OFFSET, FEED_MASK_GRADIENT_STOP } from "../../../config/design-config";
+import { haptic } from "../../../utils/haptics";
 
 /** Footer bar below the chat list's scroll area (not inside it) — reads as
  * part of the list (same border/background as a conversation row) rather
@@ -338,8 +339,7 @@ function ChatConversationRow({
 		if (isArmed !== state.armed) {
 			state.armed = isArmed;
 			if (isArmed) {
-				(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge
-					?.vibrate?.(15) ?? navigator.vibrate?.(15);
+				haptic(15);
 			}
 		}
 	};

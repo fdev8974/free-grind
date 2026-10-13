@@ -10,6 +10,7 @@ import { listBlockEvents } from "../../services/chatDb";
 import type { StoredBlockEvent } from "../../types/chat-db";
 import { resolveAvatarSrc } from "../../services/avatarStore";
 import { getParticipantAvatarUrl } from "./chat/chatUtils";
+import { hourCycleOptions } from "../../utils/timeFormat";
 
 function formatEventTimestamp(timestamp: number): string {
 	return new Date(timestamp).toLocaleString(undefined, {
@@ -18,6 +19,7 @@ function formatEventTimestamp(timestamp: number): string {
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
+		...hourCycleOptions(),
 	});
 }
 
