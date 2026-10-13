@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { PageHeader } from "../../components/PageHeader";
+import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import {
 	AlertCircle,
 	Bell,
@@ -619,30 +619,29 @@ export function SettingsPage() {
 
 	return (
 		<section className="app-screen">
-			<PageHeader
-				onBack={() => navigate("/", { replace: true })}
-				backLabel={t("settings.back_to_browse")}
-				title={t("settings.title")}
-				titleAccessory={developerMode ? (
-					<span className="shrink-0 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
-						Developer Mode
-					</span>
-				) : null}
-				subtitle={isSearchOpen ? undefined : t("settings.subtitle")}
-				actions={
-					<button
-						type="button"
-						onClick={() => {
-							if (isSearchOpen) setSearchQuery("");
-							setIsSearchOpen(!isSearchOpen);
-						}}
-						className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-						aria-label={isSearchOpen ? t("common.close", { defaultValue: "Close" }) : t("settings.search_placeholder")}
-					>
-						{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
-					</button>
-				}
-			/>
+			{/* Main-page header (like Interest / Right Now): reached from the bottom nav, so no back button. */}
+			<header className="relative z-20 mb-6 flex items-center justify-between gap-2 pointer-events-none">
+				<PageHeaderBackground color="var(--accent)" />
+				<div className="pointer-events-auto flex min-w-0 items-center gap-2">
+					<h1 className="app-title truncate">{t("settings.title")}</h1>
+					{developerMode ? (
+						<span className="shrink-0 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
+							Developer Mode
+						</span>
+					) : null}
+				</div>
+				<button
+					type="button"
+					onClick={() => {
+						if (isSearchOpen) setSearchQuery("");
+						setIsSearchOpen(!isSearchOpen);
+					}}
+					className="header-icon-btn pointer-events-auto -my-2 shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+					aria-label={isSearchOpen ? t("common.close", { defaultValue: "Close" }) : t("settings.search_placeholder")}
+				>
+					{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+				</button>
+			</header>
 
 			{isSearchOpen && (
 				<div className="settings-search-bar mb-6 flex items-center gap-2.5 px-4 py-0.5">

@@ -772,6 +772,18 @@ fn frontend_restriction(session: Option<&grindr::Session>) -> Option<Restriction
     Some(restriction)
 }
 
+/// Registers a freshly signed-in session in the account switcher before the
+/// command returns. The session-watch task in `spawn_persistence_tasks` does
+/// the same, but asynchronously — the frontend lists the saved accounts right
+/// after `login` resolves and would otherwise miss the account it just added.
+async fn persist_current_session(client: &grindr::GrindrClient) {
+    let session = client.session_receiver().borrow().clone();
+    if let Some(session) = session {
+        let device = client.current_device().await;
+        persist(&session, &device);
+    }
+}
+
 /// A sign-in/refresh result with the restriction taken from the session it
 /// produced, so it carries the details `frontend_restriction` adds.
 fn login_result(client: &grindr::GrindrClient, result: grindr::SignInResult) -> LoginResult {
@@ -914,6 +926,7 @@ pub async fn login(
 
     // A key stored for this account belongs to its previous device.
     SigningKeyStorage::delete(&result.profile_id);
+    persist_current_session(&client).await;
     Ok(login_result(&client, result))
 }
 
@@ -1095,6 +1108,7 @@ pub async fn login_with_google(
         .map_err(|e| AppError::from_client_error(e, &client))?;
 
     SigningKeyStorage::delete(&result.profile_id);
+    persist_current_session(&client).await;
     Ok(login_result(&client, result))
 }
 
