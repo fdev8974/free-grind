@@ -171,6 +171,13 @@ const EXPORT_TABLES: &[TableSpec] = &[
         blob_columns: &["data_base64"],
     },
     TableSpec {
+        name: "local_drawer_albums",
+        primary_key: "id",
+        category: "media_albums",
+        columns: &["id", "name", "media_ids_json", "created_at", "updated_at"],
+        blob_columns: &[],
+    },
+    TableSpec {
         name: "settings",
         primary_key: "key",
         category: "settings",

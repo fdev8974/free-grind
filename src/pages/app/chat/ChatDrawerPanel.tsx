@@ -2,6 +2,9 @@ import {
 	Album,
 	Camera,
 	Check,
+	FolderPlus,
+	Images,
+	Pencil,
 	SquareCenterlineDashedHorizontal,
 	Image as ImageIcon,
 	Loader2,
@@ -12,6 +15,7 @@ import {
 	RefreshCw,
 	Send,
 	Share2,
+	Trash2,
 	Upload,
 	Video,
 	X,
@@ -25,12 +29,16 @@ import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { useModalClose } from "../../../hooks/useModalClose";
 import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import * as chatDb from "../../../services/chatDb";
+import type { StoredLocalDrawerAlbum } from "../../../services/chatDb";
+import { appLog } from "../../../utils/logger";
 
 export interface DrawerMedia {
 	id: number;
@@ -98,7 +106,10 @@ export function ChatDrawerPanel({
 	// media cache, so it can swap in the cached copy without waiting for a DB read.
 	useLocalMediaCache();
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-	const [pendingAddFile, setPendingAddFile] = useState<File | null>(null);
+	// Files waiting for the add-to-drawer preview, one at a time — more than
+	// one only when picking several at once in the album editor.
+	const [pendingAddQueue, setPendingAddQueue] = useState<File[]>([]);
+	const pendingAddFile = pendingAddQueue[0] ?? null;
 	const [pendingTakenOnGrindr, setPendingTakenOnGrindr] = useState(false);
 	const [pendingLooping, setPendingLooping] = useState(false);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -109,6 +120,17 @@ export function ChatDrawerPanel({
 	const [confirmDeleteMediaId, setConfirmDeleteMediaId] = useState<number | null>(null);
 	const [selectAfterUpload, setSelectAfterUpload] = useState(false);
 	const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<number>>(new Set());
+	// Local-only albums: named, ordered lists of drawer media ids. Sending one
+	// goes through the regular onSendMedia path, which already sends each
+	// item as its own message, one after another.
+	const [localAlbums, setLocalAlbums] = useState<StoredLocalDrawerAlbum[]>([]);
+	const [selectedLocalAlbumId, setSelectedLocalAlbumId] = useState<string | null>(null);
+	// Non-null while creating/editing a local album — the media grid then
+	// picks the album's contents (in tap order) instead of what to send.
+	const [albumEditor, setAlbumEditor] = useState<{ id: string | null; name: string } | null>(null);
+	const [isAlbumNamePromptOpen, setIsAlbumNamePromptOpen] = useState(false);
+	const [isSavingLocalAlbum, setIsSavingLocalAlbum] = useState(false);
+	const [confirmDeleteLocalAlbumId, setConfirmDeleteLocalAlbumId] = useState<string | null>(null);
 	const EXPIRY_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"];
 	const [albumExpirationType, setAlbumExpirationType] = useState<string>(defaultAlbumExpirationType);
 	const EXPIRY_LABELS: Record<string, string> = {
@@ -122,6 +144,19 @@ export function ChatDrawerPanel({
 	const uploadInputRef = useRef<HTMLInputElement | null>(null);
 	const cameraInputRef = useRef<HTMLInputElement | null>(null);
 	const cameraVideoInputRef = useRef<HTMLInputElement | null>(null);
+
+	useEffect(() => {
+		let cancelled = false;
+		chatDb
+			.getLocalDrawerAlbums()
+			.then((albums) => {
+				if (!cancelled) setLocalAlbums(albums);
+			})
+			.catch((error) => appLog.warn("[ChatDrawerPanel] failed to load local albums", error));
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 	useEffect(() => {
 		if (!pendingAddFile) {
 			setPreviewUrl(null);
@@ -180,6 +215,7 @@ export function ChatDrawerPanel({
 
 	const toggleSelection = useCallback((id: number, isVideo: boolean) => {
 		setSelectedAlbumIds(new Set());
+		setSelectedLocalAlbumId(null);
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
 			if (next.has(id)) {
@@ -199,43 +235,138 @@ export function ChatDrawerPanel({
 		});
 	}, [media, defaultImageMaxViews]);
 
+	const isVideoMediaId = useCallback(
+		(id: number) => media.find((m) => m.id === id)?.contentType.startsWith("video") ?? false,
+		[media],
+	);
+	// An album can outlive some of its media (deleted from the drawer since) —
+	// those ids are skipped rather than pruned, so a failed/partial drawer
+	// load never silently shrinks an album.
+	const getPresentAlbumMediaIds = useCallback(
+		(album: StoredLocalDrawerAlbum) => album.mediaIds.filter((id) => media.some((m) => m.id === id)),
+		[media],
+	);
+	const selectedLocalAlbum = albumEditor ? null : localAlbums.find((a) => a.id === selectedLocalAlbumId) ?? null;
+	const sendIds = selectedLocalAlbum ? getPresentAlbumMediaIds(selectedLocalAlbum) : Array.from(selectedIds);
+
 	const handleSendSelected = useCallback(async () => {
-		if (selectedIds.size === 0) {
-			toast.error(t("chat_drawer.error_no_selection"));
+		if (sendIds.length === 0) {
+			toast.error(
+				selectedLocalAlbum ? t("chat_drawer.local_album_empty_send") : t("chat_drawer.error_no_selection"),
+			);
 			return;
 		}
 		try {
-			await onSendMedia(Array.from(selectedIds), mediaMaxViews);
+			await onSendMedia(sendIds, mediaMaxViews);
 			setSelectedIds(new Set());
+			setSelectedLocalAlbumId(null);
 			setMediaMaxViews(defaultImageMaxViews);
 			onBack();
 		} catch (err) {
 			const message = err instanceof Error ? err.message : t("chat_drawer.error_send_failed");
 			toast.error(message);
 		}
-	}, [selectedIds, onSendMedia, onBack, t, mediaMaxViews, defaultImageMaxViews]);
+	}, [sendIds, selectedLocalAlbum, onSendMedia, onBack, t, mediaMaxViews, defaultImageMaxViews]);
 	const hasSelection = selectedIds.size > 0;
 	const hasAlbumSelection = selectedAlbumIds.size > 0;
-	const hasAnyVideo = hasSelection && [...selectedIds].some(
-		(id) => media.find((m) => m.id === id)?.contentType.startsWith("video") ?? false,
+	const hasLocalAlbumSelection = selectedLocalAlbum != null;
+	// The add-media tiles stay usable in the album editor: new uploads land
+	// in the drawer and get appended to the album being built.
+	const actionsLocked = !albumEditor && (hasSelection || hasAlbumSelection || hasLocalAlbumSelection || noConversation);
+	const hasAnyVideo = sendIds.some((id) => isVideoMediaId(id));
+	const hasAnyImage = sendIds.some((id) => !isVideoMediaId(id));
+
+	const toggleLocalAlbumSelection = useCallback(
+		(album: StoredLocalDrawerAlbum) => {
+			setSelectedIds(new Set());
+			setSelectedAlbumIds(new Set());
+			if (selectedLocalAlbumId === album.id) {
+				setSelectedLocalAlbumId(null);
+				setMediaMaxViews(defaultImageMaxViews);
+				return;
+			}
+			setSelectedLocalAlbumId(album.id);
+			const firstId = getPresentAlbumMediaIds(album)[0];
+			setMediaMaxViews(firstId != null && isVideoMediaId(firstId) ? 1 : defaultImageMaxViews);
+		},
+		[selectedLocalAlbumId, getPresentAlbumMediaIds, isVideoMediaId, defaultImageMaxViews],
 	);
-	const hasAnyImage = hasSelection && [...selectedIds].some(
-		(id) => !(media.find((m) => m.id === id)?.contentType.startsWith("video") ?? false),
+
+	const startNewLocalAlbum = useCallback(() => {
+		setSelectedIds(new Set());
+		setSelectedAlbumIds(new Set());
+		setSelectedLocalAlbumId(null);
+		setAlbumEditor({ id: null, name: "" });
+	}, []);
+
+	const startEditLocalAlbum = useCallback(
+		(album: StoredLocalDrawerAlbum) => {
+			setSelectedAlbumIds(new Set());
+			setSelectedIds(new Set(getPresentAlbumMediaIds(album)));
+			setAlbumEditor({ id: album.id, name: album.name });
+		},
+		[getPresentAlbumMediaIds],
 	);
+
+	const cancelAlbumEditor = useCallback(() => {
+		setAlbumEditor(null);
+		setIsAlbumNamePromptOpen(false);
+		setSelectedIds(new Set());
+		setMediaMaxViews(defaultImageMaxViews);
+	}, [defaultImageMaxViews]);
+
+	const saveLocalAlbum = useCallback(
+		async (name: string) => {
+			if (!albumEditor || selectedIds.size === 0) return;
+			const id = albumEditor.id ?? crypto.randomUUID();
+			setIsSavingLocalAlbum(true);
+			try {
+				const albums = await chatDb.upsertLocalDrawerAlbum({ id, name, mediaIds: Array.from(selectedIds) });
+				setLocalAlbums(albums);
+				setAlbumEditor(null);
+				setIsAlbumNamePromptOpen(false);
+				setSelectedIds(new Set());
+				// Leave the saved album selected so it can be sent right away.
+				setSelectedLocalAlbumId(id);
+				const firstId = selectedIds.values().next().value;
+				setMediaMaxViews(firstId != null && isVideoMediaId(firstId) ? 1 : defaultImageMaxViews);
+			} catch (error) {
+				appLog.error("[ChatDrawerPanel] failed to save local album", error);
+				toast.error(t("chat_drawer.local_album_save_failed"));
+			} finally {
+				setIsSavingLocalAlbum(false);
+			}
+		},
+		[albumEditor, selectedIds, isVideoMediaId, defaultImageMaxViews, t],
+	);
+
+	const confirmDeleteLocalAlbum = useCallback(async () => {
+		if (confirmDeleteLocalAlbumId == null) return;
+		try {
+			setLocalAlbums(await chatDb.deleteLocalDrawerAlbum(confirmDeleteLocalAlbumId));
+			if (selectedLocalAlbumId === confirmDeleteLocalAlbumId) setSelectedLocalAlbumId(null);
+		} catch (error) {
+			appLog.error("[ChatDrawerPanel] failed to delete local album", error);
+			toast.error(t("chat_drawer.local_album_delete_failed"));
+		} finally {
+			setConfirmDeleteLocalAlbumId(null);
+		}
+	}, [confirmDeleteLocalAlbumId, selectedLocalAlbumId, t]);
 
 	const onPickDrawerPhoto = useCallback(
 		(event: React.ChangeEvent<HTMLInputElement>) => {
-			const file = event.target.files?.[0] ?? null;
+			const files = Array.from(event.target.files ?? []);
 			event.target.value = "";
-			if (!file) return;
-			if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
+			if (files.length === 0) return;
+			const valid = files.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"));
+			if (valid.length < files.length) {
 				toast.error(t("chat_drawer.invalid_file_type"));
-				return;
 			}
-			setPendingAddFile(file);
+			if (valid.length === 0) return;
+			setPendingAddQueue(valid);
 			setPendingTakenOnGrindr(false);
 		},
-		[],
+		[t],
 	);
 
 	const confirmAddPhoto = useCallback(async () => {
@@ -275,24 +406,36 @@ export function ChatDrawerPanel({
 
 		prevMediaIdsRef.current = new Set(media.map((m) => m.id));
 		await onAddMedia(fileToUpload, pendingTakenOnGrindr, pendingLooping);
-		setSelectedIds(new Set());
+		// In the album editor the upload is appended to the album being built
+		// instead of replacing the selection.
+		if (!albumEditor) setSelectedIds(new Set());
 		setSelectAfterUpload(true);
-		setPendingAddFile(null);
+		setPendingAddQueue((queue) => queue.slice(1));
 		setPendingTakenOnGrindr(false);
 		setPendingLooping(false);
-	}, [onAddMedia, pendingAddFile, pendingTakenOnGrindr, pendingLooping, media, completedCrop]);
+	}, [onAddMedia, pendingAddFile, pendingTakenOnGrindr, pendingLooping, media, completedCrop, albumEditor]);
 
 	useEffect(() => {
 		if (!selectAfterUpload) return;
 		const newItem = media.find((m) => !prevMediaIdsRef.current.has(m.id));
-		if (newItem) {
+		if (!newItem) return;
+		setSelectAfterUpload(false);
+		if (!albumEditor) {
 			setSelectedIds(new Set([newItem.id]));
-			setSelectAfterUpload(false);
+			return;
 		}
-	}, [media, selectAfterUpload]);
+		const isNewVideo = newItem.contentType.startsWith("video");
+		// Same image/video exclusivity as toggleSelection — an album is sent
+		// with a single expiry setting.
+		if ([...selectedIds].some((id) => isVideoMediaId(id) !== isNewVideo)) {
+			toast.error(t("chat_drawer.local_album_mixed_types"));
+			return;
+		}
+		setSelectedIds(new Set([...selectedIds, newItem.id]));
+	}, [media, selectAfterUpload, albumEditor, selectedIds, isVideoMediaId, t]);
 
 	const cancelAddPhoto = useCallback(() => {
-		setPendingAddFile(null);
+		setPendingAddQueue((queue) => queue.slice(1));
 		setPendingTakenOnGrindr(false);
 		setPendingLooping(false);
 	}, []);
@@ -336,10 +479,19 @@ export function ChatDrawerPanel({
 							? pendingAddFile.type.startsWith("video/")
 								? t("chat_drawer.add_video", { defaultValue: "Add video" })
 								: t("chat_drawer.add_photo")
-							: t("chat_drawer.title", { defaultValue: "Drawer" })}
+							: albumEditor
+								? albumEditor.id
+									? albumEditor.name
+									: t("chat_drawer.local_album_new")
+								: t("chat_drawer.title", { defaultValue: "Drawer" })}
+						{pendingAddQueue.length > 1 ? (
+							<span className="ml-1.5 text-xs font-medium text-[var(--text-muted)]">
+								{t("chat_drawer.upload_queue_remaining", { count: pendingAddQueue.length - 1 })}
+							</span>
+						) : null}
 					</h3>
-					{pendingAddFile ? (
-						<button type="button" onClick={cancelAddPhoto} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+					{pendingAddFile || albumEditor ? (
+						<button type="button" onClick={pendingAddFile ? cancelAddPhoto : cancelAlbumEditor} disabled={isAdding} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
 							<X className="h-4 w-4" />
 						</button>
 					) : (
@@ -349,7 +501,7 @@ export function ChatDrawerPanel({
 					)}
 				</div>
 
-				<input type="file" ref={uploadInputRef} onChange={onPickDrawerPhoto} accept="image/*,video/*" className="hidden" />
+				<input type="file" ref={uploadInputRef} onChange={onPickDrawerPhoto} accept="image/*,video/*" multiple={albumEditor != null} className="hidden" />
 				<input type="file" ref={cameraInputRef} onChange={onPickDrawerPhoto} accept="image/*" capture="environment" className="hidden" />
 				<input type="file" ref={cameraVideoInputRef} onChange={onPickDrawerPhoto} accept="video/*" capture="environment" className="hidden" />
 
@@ -533,7 +685,7 @@ export function ChatDrawerPanel({
 									<button
 										type="button"
 										onClick={() => cameraInputRef.current?.click()}
-										disabled={isAdding || hasSelection || hasAlbumSelection || noConversation}
+										disabled={isAdding || actionsLocked}
 										className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
 										aria-label={t("chat_drawer.take_photo")}
 										title={t("chat_drawer.take_photo")}
@@ -544,7 +696,7 @@ export function ChatDrawerPanel({
 											) : (
 												<span className="relative inline-flex">
 													<Camera className="h-5 w-5" />
-													{!hasSelection && !hasAlbumSelection && !noConversation && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
+													{!actionsLocked && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
 														<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
 													</span>}
 												</span>
@@ -555,7 +707,7 @@ export function ChatDrawerPanel({
 									<button
 										type="button"
 										onClick={() => cameraVideoInputRef.current?.click()}
-										disabled={isAdding || hasSelection || hasAlbumSelection || noConversation}
+										disabled={isAdding || actionsLocked}
 										className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
 										aria-label={t("chat_drawer.record_video", { defaultValue: "Record video" })}
 										title={t("chat_drawer.record_video", { defaultValue: "Record video" })}
@@ -563,7 +715,7 @@ export function ChatDrawerPanel({
 										<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
 											<span className="relative inline-flex">
 												<Video className="h-5 w-5" />
-												{!hasSelection && !hasAlbumSelection && !noConversation && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
+												{!actionsLocked && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
 													<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
 												</span>}
 											</span>
@@ -573,7 +725,7 @@ export function ChatDrawerPanel({
 									<button
 										type="button"
 										onClick={() => uploadInputRef.current?.click()}
-										disabled={isAdding || hasSelection || hasAlbumSelection || noConversation}
+										disabled={isAdding || actionsLocked}
 										className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
 										aria-label={t("chat_drawer.upload_photo")}
 										title={t("chat_drawer.upload_photo")}
@@ -581,18 +733,34 @@ export function ChatDrawerPanel({
 										<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
 											<span className="relative inline-flex">
 												<Upload className="h-5 w-5" />
-												{!hasSelection && !hasAlbumSelection && !noConversation && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
+												{!actionsLocked && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
 													<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
 												</span>}
 											</span>
 										</div>
 									</button>
+									{/* New local album button */}
+									{!albumEditor && (
+										<button
+											type="button"
+											onClick={startNewLocalAlbum}
+											disabled={isAdding || hasSelection || hasAlbumSelection || hasLocalAlbumSelection}
+											className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
+											aria-label={t("chat_drawer.local_album_new")}
+											title={t("chat_drawer.local_album_new")}
+										>
+											<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+												<FolderPlus className="h-5 w-5" />
+												<span className="px-1 text-[10px] font-medium leading-tight">{t("chat_drawer.local_album_new")}</span>
+											</div>
+										</button>
+									)}
 									{/* Albums */}
-									{albums.map((album) => {
+									{!albumEditor && albums.map((album) => {
 										const cover = albumCoverMap.get(album.albumId);
 										const isShared = sharedAlbumIds.has(album.albumId);
 										const isSelected = selectedAlbumIds.has(album.albumId);
-										const dimmed = hasSelection && !isSelected;
+										const dimmed = (hasSelection || hasLocalAlbumSelection) && !isSelected;
 										return (
 											<div
 												key={`album-${album.albumId}`}
@@ -617,6 +785,46 @@ export function ChatDrawerPanel({
 											</div>
 										);
 									})}
+									{/* Local albums */}
+									{!albumEditor && localAlbums.map((album) => {
+										const presentIds = getPresentAlbumMediaIds(album);
+										const coverItem = media.find((m) => m.id === presentIds[0]);
+										const coverSrc = coverItem
+											? getCachedMediaUri(getDrawerMediaKey(coverItem.id)) ?? coverItem.url
+											: null;
+										const isSelected = selectedLocalAlbumId === album.id;
+										const dimmed = (hasSelection || hasAlbumSelection || hasLocalAlbumSelection || noConversation) && !isSelected;
+										return (
+											<div
+												key={`local-album-${album.id}`}
+												role="button"
+												tabIndex={0}
+												onClick={() => { if (!dimmed) toggleLocalAlbumSelection(album); }}
+												onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleLocalAlbumSelection(album); }}
+												className={`relative aspect-square overflow-hidden cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+											>
+												{coverSrc && coverItem?.contentType.startsWith("image/") ? (
+													<img src={coverSrc} alt="" className="h-full w-full object-cover" />
+												) : coverSrc ? (
+													<video src={coverSrc} preload="metadata" muted className="h-full w-full object-cover" />
+												) : (
+													<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Images className="h-6 w-6 opacity-50" /></div>
+												)}
+												<div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-1.5 pb-1.5 pt-6">
+													<p className="truncate text-[11px] font-semibold leading-tight text-white drop-shadow">{album.name}</p>
+													<p className="flex items-center gap-1 text-[10px] text-white/80">
+														<Images className="h-3 w-3" />
+														{presentIds.length}
+													</p>
+												</div>
+												<span className="pointer-events-none absolute right-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90">
+													{t("chat_drawer.local_album_badge")}
+												</span>
+												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
+												{isSelected && <div className="absolute inset-0 pointer-events-none" style={{ border: "2px solid var(--accent)" }} />}
+											</div>
+										);
+									})}
 									{media.length === 0 && (
 										<div className={`col-span-${isDesktop ? "3" : "1"} flex flex-col items-center justify-center gap-2 py-8 text-[var(--text-muted)]`} style={{ gridColumn: "1 / -1" }}>
 											<ImageIcon className="h-8 w-8 opacity-30" />
@@ -631,15 +839,26 @@ export function ChatDrawerPanel({
 											(isItemVideo && hasAnyImage) || (!isItemVideo && hasAnyVideo)
 										);
 										const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+										// 1-based send position: in the album editor (tap order) or as a
+										// preview of a selected local album's contents.
+										const albumPosition = albumEditor
+											? (isSelected ? [...selectedIds].indexOf(item.id) + 1 : 0)
+											: selectedLocalAlbum
+												? sendIds.indexOf(item.id) + 1
+												: 0;
+										const isBlocked = albumEditor
+											? isDisabledByType
+											: hasAlbumSelection || noConversation || isDisabledByType || (hasLocalAlbumSelection && albumPosition === 0);
+										const isClickable = !isBlocked && !hasLocalAlbumSelection;
 
 										return (
 											<div
 												key={item.id}
 												role="button"
 												tabIndex={0}
-												onClick={() => { if (!hasAlbumSelection && !noConversation && !isDisabledByType) toggleSelection(item.id, isItemVideo); }}
-												onKeyDown={(e) => e.key === "Enter" && !hasAlbumSelection && !noConversation && !isDisabledByType && toggleSelection(item.id, isItemVideo)}
-												className={`relative aspect-square overflow-hidden transition cursor-pointer ${hasAlbumSelection || noConversation || isDisabledByType ? "opacity-30 pointer-events-none" : ""}`}
+												onClick={() => { if (isClickable) toggleSelection(item.id, isItemVideo); }}
+												onKeyDown={(e) => e.key === "Enter" && isClickable && toggleSelection(item.id, isItemVideo)}
+												className={`relative aspect-square overflow-hidden transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
 												style={{
 													outline: isSelected ? "2px solid var(--accent)" : "none",
 													outlineOffset: "-2px",
@@ -678,8 +897,16 @@ export function ChatDrawerPanel({
 
 												{isSelected ? (
 													<div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
-														<Check className="h-5 w-5 text-white drop-shadow" />
+														{albumPosition > 0 ? (
+															<span className="text-lg font-bold text-white drop-shadow">{albumPosition}</span>
+														) : (
+															<Check className="h-5 w-5 text-white drop-shadow" />
+														)}
 													</div>
+												) : albumPosition > 0 ? (
+													<span className="pointer-events-none absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[11px] font-bold text-[var(--accent-contrast)]">
+														{albumPosition}
+													</span>
 												) : null}
 
 												{item.takenOnGrindr ? (
@@ -690,7 +917,7 @@ export function ChatDrawerPanel({
 													/>
 												) : null}
 
-																					<button
+												{!albumEditor && !hasLocalAlbumSelection && <button
 													type="button"
 													onClick={(event) => void handleDeleteMedia(event, item.id)}
 													disabled={deletingMediaId === item.id}
@@ -703,7 +930,7 @@ export function ChatDrawerPanel({
 													) : (
 														<X className="h-3 w-3" />
 													)}
-												</button>
+												</button>}
 											</div>
 										);
 									})}
@@ -764,13 +991,35 @@ export function ChatDrawerPanel({
 								</div>
 							);
 						})() : null}
-						{/* Footer - Send button */}
-						{hasSelection ? (
+						{/* Footer - Local album editor */}
+						{albumEditor ? (
+							<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4">
+								<p className="mb-2 text-center text-xs text-[var(--text-muted)]">{t("chat_drawer.local_album_editor_hint")}</p>
+								<div className="flex gap-2">
+									<button
+										type="button"
+										onClick={cancelAlbumEditor}
+										disabled={isAdding || isSavingLocalAlbum}
+										className="min-w-0 flex-1 inline-flex h-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+									>
+										{t("chat.actions.cancel")}
+									</button>
+									<button
+										type="button"
+										onClick={() => setIsAlbumNamePromptOpen(true)}
+										disabled={isAdding || isSavingLocalAlbum || selectedIds.size === 0}
+										className="min-w-0 flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+									>
+										{isSavingLocalAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+										<span className="truncate">{t("chat_drawer.local_album_save", { count: selectedIds.size })}</span>
+									</button>
+								</div>
+							</div>
+						) : null}
+						{/* Footer - Send button (selected media or a local album) */}
+						{!albumEditor && (hasSelection || hasLocalAlbumSelection) ? (
 							<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4 flex gap-2">
-								<div
-									className="relative inline-flex h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
-									style={{ flex: "0 0 50%" }}
-								>
+								<div className="relative inline-flex h-11 min-w-0 flex-1 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]">
 									<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
 									<select
 										value={mediaMaxViews}
@@ -791,12 +1040,46 @@ export function ChatDrawerPanel({
 										)}
 									</select>
 								</div>
+								{selectedLocalAlbum ? (
+									<>
+										<button
+											type="button"
+											onClick={() => startEditLocalAlbum(selectedLocalAlbum)}
+											disabled={isSending}
+											className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+											aria-label={t("chat_drawer.local_album_edit")}
+											title={t("chat_drawer.local_album_edit")}
+										>
+											<Pencil className="h-4 w-4" />
+										</button>
+										<button
+											type="button"
+											onClick={() => setConfirmDeleteLocalAlbumId(selectedLocalAlbum.id)}
+											disabled={isSending}
+											className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-red-500/60 hover:text-red-400 disabled:opacity-60"
+											aria-label={t("chat_drawer.local_album_delete")}
+											title={t("chat_drawer.local_album_delete")}
+										>
+											<Trash2 className="h-4 w-4" />
+										</button>
+									</>
+								) : (
+									<button
+										type="button"
+										onClick={() => setAlbumEditor({ id: null, name: "" })}
+										disabled={isSending}
+										className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+										aria-label={t("chat_drawer.local_album_from_selection")}
+										title={t("chat_drawer.local_album_from_selection")}
+									>
+										<FolderPlus className="h-4 w-4" />
+									</button>
+								)}
 								<button
 									type="button"
 									onClick={handleSendSelected}
-									disabled={isSending}
-									className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-									style={{ flex: "0 0 50%" }}
+									disabled={isSending || sendIds.length === 0}
+									className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
 								>
 									{isSending ? (
 										<Loader2 className="h-4 w-4 animate-spin" />
@@ -807,14 +1090,39 @@ export function ChatDrawerPanel({
 										{isSending
 											? t("chat_drawer.sending")
 											: mediaMaxViews !== 2147483647
-												? t("chat_drawer.is_expiring_send", { count: selectedIds.size })
-												: t("chat_drawer.send", { count: selectedIds.size })}
+												? t("chat_drawer.is_expiring_send", { count: sendIds.length })
+												: t("chat_drawer.send", { count: sendIds.length })}
 									</span>
 								</button>
 							</div>
 						) : null}
 					</>
 				)}
+
+				<PromptDialog
+					isOpen={isAlbumNamePromptOpen}
+					title={t("chat_drawer.local_album_name_title")}
+					message={t("chat_drawer.local_album_name_message")}
+					defaultValue={albumEditor?.name ?? ""}
+					placeholder={t("chat_drawer.local_album_name_placeholder")}
+					confirmLabel={t("common.save")}
+					cancelLabel={t("chat.actions.cancel")}
+					onConfirm={saveLocalAlbum}
+					onCancel={() => setIsAlbumNamePromptOpen(false)}
+					isProcessing={isSavingLocalAlbum}
+					rows={1}
+				/>
+
+				<ConfirmDialog
+					isOpen={confirmDeleteLocalAlbumId != null}
+					title={t("chat_drawer.local_album_delete_confirm_title")}
+					message={t("chat_drawer.local_album_delete_confirm_message")}
+					confirmLabel={t("chat_drawer.delete_confirm_label")}
+					cancelLabel={t("chat.actions.cancel")}
+					onConfirm={() => void confirmDeleteLocalAlbum()}
+					onCancel={() => setConfirmDeleteLocalAlbumId(null)}
+					confirmTone="danger"
+				/>
 
 				<ConfirmDialog
 					isOpen={confirmDeleteMediaId != null}

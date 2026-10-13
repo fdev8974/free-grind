@@ -465,6 +465,20 @@ async function getDb(): Promise<Database> {
 					)
 				`);
 
+				// Local-only albums built from drawer media — the server has no
+				// such concept. media_ids_json keeps the drawer media ids in send
+				// order; ids that have since been deleted from the drawer are just
+				// skipped at send time, not pruned here.
+				await db.execute(`
+					CREATE TABLE IF NOT EXISTS local_drawer_albums (
+						id TEXT PRIMARY KEY,
+						name TEXT NOT NULL,
+						media_ids_json TEXT NOT NULL DEFAULT '[]',
+						created_at INTEGER NOT NULL,
+						updated_at INTEGER NOT NULL
+					)
+				`);
+
 				await db.execute(`
 					CREATE TABLE IF NOT EXISTS block_events (
 						id TEXT PRIMARY KEY,
@@ -994,6 +1008,66 @@ export async function incrementDrawerMediaSendCount(mediaId: number): Promise<vo
 			[mediaId, Date.now()],
 		);
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Local drawer albums
+// ---------------------------------------------------------------------------
+
+export interface StoredLocalDrawerAlbum {
+	id: string;
+	name: string;
+	/** Drawer media ids, in the order they get sent. */
+	mediaIds: number[];
+}
+
+type LocalDrawerAlbumRow = { id: string; name: string; media_ids_json: string };
+
+function parseMediaIds(json: string): number[] {
+	try {
+		const parsed: unknown = JSON.parse(json);
+		return Array.isArray(parsed) ? parsed.filter((id): id is number => typeof id === "number") : [];
+	} catch {
+		return [];
+	}
+}
+
+export async function getLocalDrawerAlbums(): Promise<StoredLocalDrawerAlbum[]> {
+	const db = await getDb();
+	const rows = await db.select<LocalDrawerAlbumRow[]>(
+		"SELECT id, name, media_ids_json FROM local_drawer_albums ORDER BY created_at ASC",
+	);
+	return rows.map((row) => ({ id: row.id, name: row.name, mediaIds: parseMediaIds(row.media_ids_json) }));
+}
+
+export async function upsertLocalDrawerAlbum(
+	input: StoredLocalDrawerAlbum,
+): Promise<StoredLocalDrawerAlbum[]> {
+	const db = await getDb();
+	const now = Date.now();
+
+	await executeWithLockRetry(db, "upsert-local-drawer-album", async () => {
+		await db.execute(
+			`
+			INSERT INTO local_drawer_albums (id, name, media_ids_json, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $4)
+			ON CONFLICT(id) DO UPDATE SET name = $2, media_ids_json = $3, updated_at = $4
+			`,
+			[input.id, input.name, JSON.stringify(input.mediaIds), now],
+		);
+	});
+
+	return getLocalDrawerAlbums();
+}
+
+export async function deleteLocalDrawerAlbum(id: string): Promise<StoredLocalDrawerAlbum[]> {
+	const db = await getDb();
+
+	await executeWithLockRetry(db, "delete-local-drawer-album", async () => {
+		await db.execute("DELETE FROM local_drawer_albums WHERE id = $1", [id]);
+	});
+
+	return getLocalDrawerAlbums();
 }
 
 /** Unhides a conversation only if it's currently hidden, reporting whether it
