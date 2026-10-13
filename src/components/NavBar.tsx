@@ -1,4 +1,4 @@
-import { Grid as GridIcon, Flame, MessageCircle, CircleUser } from "lucide-react";
+import { Grid as GridIcon, Flame, MessageCircle, Settings } from "lucide-react";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -454,8 +454,8 @@ export function NavBar() {
 										{Icon ? (
 											<Icon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										) : !profilePhotoUrl ? (
-											// No profile photo: a plain glyph that takes the tab's (active) color like the other icons.
-											<CircleUser className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+											// No profile photo: the settings gear that takes the tab's (active) color like the other icons.
+											<Settings className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										) : (
 											<Avatar
 												src={profilePhotoUrl}
