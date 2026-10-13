@@ -1,5 +1,5 @@
 import { useAuth } from "../../contexts/useAuth";
-import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X } from "lucide-react";
+import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X, ChevronDown, Check } from "lucide-react";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -34,6 +34,7 @@ import {
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FilterPill } from "../../components/ui/FilterPill";
+import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
@@ -359,6 +360,46 @@ export function GridPage() {
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const [isLocationOpen, setIsLocationOpen] = useState(false);
+	const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+
+	// Fade the right edge of the quick-filter row while more chips are
+	// scrolled out of view — otherwise nothing hints that the row scrolls.
+	const chipRowRef = useRef<HTMLDivElement | null>(null);
+	const [chipRowHasMore, setChipRowHasMore] = useState(false);
+	const updateChipRowFade = useCallback(() => {
+		const el = chipRowRef.current;
+		if (!el) return;
+		setChipRowHasMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+	}, []);
+	useEffect(() => {
+		const el = chipRowRef.current;
+		if (!el) return;
+		updateChipRowFade();
+		// Observe the inner row too: chips appear/disappear (clear-all, explore
+		// mode) without the scroll container itself changing size.
+		const observer = new ResizeObserver(updateChipRowFade);
+		observer.observe(el);
+		if (el.firstElementChild) observer.observe(el.firstElementChild);
+		return () => observer.disconnect();
+	}, [updateChipRowFade]);
+
+	// Distance/age/popularity sorts need the viewer's own position, so explore
+	// mode only offers the ones that still make sense (see the reset effect above).
+	const sortOptions = useMemo<{ value: BrowseSortOption; label: string }[]>(
+		() => [
+			{ value: "default", label: t("browse_filters.sort.default") },
+			...(exploreLocation
+				? []
+				: [
+					{ value: "distance" as const, label: t("browse_filters.sort.distance") },
+					{ value: "age-asc" as const, label: t("browse_filters.sort.youngest") },
+					{ value: "age-desc" as const, label: t("browse_filters.sort.oldest") },
+					{ value: "popular" as const, label: t("browse_filters.sort.popular") },
+				]),
+			{ value: "name", label: t("browse_filters.sort.name_az") },
+		],
+		[exploreLocation, t],
+	);
 
 	const {
 		tappingProfileId,
@@ -1469,34 +1510,35 @@ export function GridPage() {
 										onClick={(e) => { e.stopPropagation(); void handleToggleDistance(); }}
 										disabled={isTogglingDistance}
 										title={showDistance ? t("browse_page.distance_visible", { defaultValue: "Distance visible to others" }) : t("browse_page.distance_hidden", { defaultValue: "Distance hidden from others" })}
-										className="group flex h-12 shrink-0 flex-col items-center justify-center gap-[3px] pl-3 pr-4 transition active:scale-90 disabled:opacity-50"
+										aria-label={showDistance ? t("browse_page.distance_visible", { defaultValue: "Distance visible to others" }) : t("browse_page.distance_hidden", { defaultValue: "Distance hidden from others" })}
+										className="group flex h-12 shrink-0 items-center justify-center pl-3 pr-4 transition active:scale-90 disabled:opacity-50"
 									>
 										{showDistance
-											? <Eye className={`h-3.5 w-3.5 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
+											? <Eye className={`h-4 w-4 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
 											: <EyeOff
 													className={cn(
-														"h-3.5 w-3.5 transition-colors text-[var(--text-muted)]",
+														"h-4 w-4 transition-colors text-[var(--text-muted)]",
 														exploreLocation ? "group-hover:text-[var(--explore)]" : "group-hover:text-[var(--accent)]",
 													)}
 												/>
 										}
-										<span
-											className={cn(
-												"block text-center text-[7px] font-bold uppercase leading-none transition-colors",
-												showDistance
-													? exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"
-													: exploreLocation
-														? "text-[var(--text-muted)] group-hover:text-[var(--explore)]"
-														: "text-[var(--text-muted)] group-hover:text-[var(--accent)]",
-											)}
-										>
-											dist
-										</span>
 									</button>
 								</div>
 							</div>
 
-							<div className="-mx-[var(--app-px)] overflow-x-auto pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+							<div
+								ref={chipRowRef}
+								onScroll={updateChipRowFade}
+								className="-mx-[var(--app-px)] overflow-x-auto pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+								style={
+									chipRowHasMore
+										? {
+											maskImage: "linear-gradient(to right, black calc(100% - 48px), transparent)",
+											WebkitMaskImage: "linear-gradient(to right, black calc(100% - 48px), transparent)",
+										}
+										: undefined
+								}
+							>
 								<div className="flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">
 									<button
 										type="button"
@@ -1531,29 +1573,21 @@ export function GridPage() {
 										) : null}
 									</button>
 
-									<div
+									<button
+										type="button"
+										onClick={() => setIsSortSheetOpen(true)}
 										className={cn(
-											"glass-pill relative inline-flex items-center justify-center py-2 pl-4 pr-2 text-sm font-bold transition-colors",
+											"glass-pill inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all active:scale-95",
 											exploreLocation
 												? "text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
 												: "text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
 										)}
 										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
 									>
-										<ListFilter className="mr-1.5 h-4 w-4 shrink-0" />
-										<select
-											value={sortBy}
-											onChange={(e) => setSortBy(e.target.value as BrowseSortOption)}
-											className="appearance-none bg-transparent cursor-pointer outline-none w-full h-full pr-3 pl-2"
-										>
-											<option value="default">{t("browse_filters.sort.default")}</option>
-											{!exploreLocation && <option value="distance">{t("browse_filters.sort.distance")}</option>}
-											{!exploreLocation && <option value="age-asc">{t("browse_filters.sort.youngest")}</option>}
-											{!exploreLocation && <option value="age-desc">{t("browse_filters.sort.oldest")}</option>}
-											{!exploreLocation && <option value="popular">{t("browse_filters.sort.popular")}</option>}
-											<option value="name">{t("browse_filters.sort.name_az")}</option>
-										</select>
-									</div>
+										<ListFilter className="h-3.5 w-3.5 shrink-0" />
+										{sortOptions.find((option) => option.value === sortBy)?.label ?? sortOptions[0].label}
+										<ChevronDown className="-mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
+									</button>
 
 									{!exploreLocation && (
 										<FilterPill
@@ -1840,6 +1874,33 @@ export function GridPage() {
 					exploreLocation={exploreLocation}
 					onSetExploreLocation={setExploreLocation}
 				/>
+			)}
+
+			{isSortSheetOpen && (
+				<BottomSheet onClose={() => setIsSortSheetOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
+					<div className="flex items-center justify-between px-4 pb-3">
+						<p className="text-sm font-semibold text-[var(--text)]">{t("browse_page.sort")}</p>
+						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+							<X className="h-4 w-4" />
+						</SheetClose>
+					</div>
+					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
+						{sortOptions.map((option) => (
+							<SheetClose
+								key={option.value}
+								onClick={() => {
+									if (option.value !== sortBy) setSortBy(option.value);
+								}}
+								className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+							>
+								<p className="min-w-0 flex-1 text-sm font-semibold leading-snug">{option.label}</p>
+								{option.value === sortBy && (
+									<Check className={cn("h-5 w-5 shrink-0", exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]")} />
+								)}
+							</SheetClose>
+						))}
+					</div>
+				</BottomSheet>
 			)}
 
 			{isFiltersOpen && (
