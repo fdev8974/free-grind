@@ -1074,23 +1074,23 @@ export function GridPage() {
 			results = allCards.map((card) => card.distanceMeters == null ? card : withDistance[nextWithDistance++]);
 		} else {
 			results = [...allCards].sort((a, b) => {
-				if (sortBy === "age-asc") {
-					const ageA = a.age ?? Infinity;
-					const ageB = b.age ?? Infinity;
-					return ageA - ageB;
-				}
-				if (sortBy === "age-desc") {
-					const ageA = a.age ?? -Infinity;
-					const ageB = b.age ?? -Infinity;
-					return ageB - ageA;
+				if (sortBy === "age-asc" || sortBy === "age-desc") {
+					// Profiles without an age always go last. Never subtract
+					// Infinity from Infinity here: NaN breaks the comparator
+					// and leaves the whole list partially unsorted.
+					if (a.age == null || b.age == null) {
+						return (a.age == null ? 1 : 0) - (b.age == null ? 1 : 0);
+					}
+					return sortBy === "age-asc" ? a.age - b.age : b.age - a.age;
 				}
 				if (sortBy === "popular") {
 					const popA = a.isPopular ? 1 : 0;
 					const popB = b.isPopular ? 1 : 0;
 					if (popA !== popB) return popB - popA;
-					const distA = a.distanceMeters ?? Infinity;
-					const distB = b.distanceMeters ?? Infinity;
-					return distA - distB;
+					if (a.distanceMeters == null || b.distanceMeters == null) {
+						return (a.distanceMeters == null ? 1 : 0) - (b.distanceMeters == null ? 1 : 0);
+					}
+					return a.distanceMeters - b.distanceMeters;
 				}
 				if (sortBy === "name") {
 					const nameA = a.displayName ?? "";
