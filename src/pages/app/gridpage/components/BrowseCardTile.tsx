@@ -280,9 +280,10 @@ export function BrowseCardTile({
 					</div>
 
 					{/* Bottom-right: Interaction cluster */}
-					<div className="absolute bottom-2 right-2 z-10 flex items-center gap-1">
-						{/* Tap status: outlined flame = you tapped, filled = they tapped
-							you, double flame = both (mutual). */}
+					<div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1">
+						{/* Tap status sits above the row so it doesn't crowd favorite + chat
+							next to the distance. Outlined flame = you tapped, filled = they
+							tapped you, double flame = both (mutual). */}
 						{(hasSentTap || hasReceivedTap) && (
 							<div
 								className="flex h-5 min-w-5 items-center justify-center rounded-full bg-black/50 px-0.5 text-orange-400 shadow-lg backdrop-blur-sm"
@@ -302,27 +303,28 @@ export function BrowseCardTile({
 								)}
 							</div>
 						)}
+						<div className="flex items-center gap-1">
+							{isFavorite && (
+								<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-yellow-500 shadow-lg backdrop-blur-sm">
+									<Star className="h-3.5 w-3.5 fill-current" />
+								</div>
+							)}
 
-						{isFavorite && (
-							<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-yellow-500 shadow-lg backdrop-blur-sm">
-								<Star className="h-3.5 w-3.5 fill-current" />
-							</div>
-						)}
-
-						{unreadCount > 0 ? (
-							<span className="flex h-5 min-w-5 flex-col items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-[var(--accent-contrast)] shadow-lg ring-1 ring-black/20">
-								<span>{unreadCount}</span>
-								{showDebugInfo && !isDemoCard && (
-									<span className="text-[7px] leading-tight opacity-80">
-										db:{databaseUnread} a:{apiUnread}
-									</span>
-								)}
-							</span>
-						) : hasChatted ? (
-							<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white shadow-lg backdrop-blur-sm">
-								<MessageCircle className="h-3.5 w-3.5" />
-							</div>
-						) : null}
+							{unreadCount > 0 ? (
+								<span className="flex h-5 min-w-5 flex-col items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[10px] font-bold text-[var(--accent-contrast)] shadow-lg ring-1 ring-black/20">
+									<span>{unreadCount}</span>
+									{showDebugInfo && !isDemoCard && (
+										<span className="text-[7px] leading-tight opacity-80">
+											db:{databaseUnread} a:{apiUnread}
+										</span>
+									)}
+								</span>
+							) : hasChatted ? (
+								<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white shadow-lg backdrop-blur-sm">
+									<MessageCircle className="h-3.5 w-3.5" />
+								</div>
+							) : null}
+						</div>
 					</div>
 
 					{/* Bottom-left: Distance */}
