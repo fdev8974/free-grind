@@ -1,5 +1,6 @@
 import type { BrowseCard } from "../../GridPage.types";
 import { BrowseCardTile } from "./BrowseCardTile";
+import type { GridTapStatus } from "../hooks/useGridTapStatus";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { cn } from "../../../../utils/cn";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
@@ -60,6 +61,7 @@ type BrowseGridProps = {
 	cards: BrowseCard[];
 	chatContactIndexByProfileId?: Record<string, ChatContactIndexRecord>;
 	localNicknamesByProfileId?: Record<string, string>;
+	tapStatusByProfileId?: Record<string, GridTapStatus>;
 	onSelectProfile: (profileId: string) => void;
 	onDoubleTapProfile?: (profileId: string, tapId: number) => boolean;
 	onMessageProfile: (profileId: string) => void;
@@ -90,6 +92,7 @@ export function BrowseGrid({
 	cards,
 	chatContactIndexByProfileId,
 	localNicknamesByProfileId,
+	tapStatusByProfileId,
 	onSelectProfile,
 	onDoubleTapProfile,
 	onMessageProfile,
@@ -383,6 +386,7 @@ export function BrowseGrid({
 									card={card}
 									chatContactStatus={chatContactIndexByProfileId?.[card.profileId] ?? null}
 									localNickname={localNicknamesByProfileId?.[card.profileId]}
+									tapStatus={tapStatusByProfileId?.[card.profileId]}
 									onSelectProfile={onSelectProfile}
 									onDoubleTapProfile={onDoubleTapProfile}
 									onMessageProfile={onMessageProfile}

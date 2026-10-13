@@ -550,6 +550,11 @@
       "pull_title": "Pull down",
       "pull_desc": "Refresh the grid.",
       "settings_hint": "Choose the double tap type in Settings → Behavior."
+    },
+    "tile_tap": {
+      "sent": "You tapped them",
+      "received": "They tapped you",
+      "mutual": "You tapped each other"
     }
   },
   "chat_filters": {

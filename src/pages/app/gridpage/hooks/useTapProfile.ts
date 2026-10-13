@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { ProfileDetail } from "../../GridPage.types";
@@ -40,6 +41,7 @@ export function useTapProfile({
 }: UseTapProfileParams) {
 	const { t } = useTranslation();
 	const { setPreferences } = usePreferences();
+	const queryClient = useQueryClient();
 	const [tappingProfileId, setTappingProfileId] = useState<string | null>(null);
 	const [tapVisualStates, setTapVisualStates] = useState<
 		Record<string, TapVisualState>
@@ -133,6 +135,8 @@ export function useTapProfile({
 						tapId,
 					},
 				}));
+				// Sent-taps list backs the Interest "sent" tab and the grid tile badges.
+				void queryClient.invalidateQueries({ queryKey: ["interest", "list"] });
 				toast.success(
 					result.isMutual
 						? t("browse_page.toasts.tap_mutual")
@@ -155,7 +159,7 @@ export function useTapProfile({
 				);
 			}
 		},
-		[canTapProfile, tap, tappingProfileId, setActiveProfile, t, setPreferences],
+		[canTapProfile, tap, tappingProfileId, setActiveProfile, queryClient, t, setPreferences],
 	);
 
 	return {

@@ -550,6 +550,11 @@
             "pull_title": "",
             "pull_desc": "",
             "settings_hint": ""
+        },
+        "tile_tap": {
+            "sent": "",
+            "received": "",
+            "mutual": ""
         }
     },
     "chat_filters": {

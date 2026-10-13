@@ -1,5 +1,5 @@
 import type { BrowseCard } from "../../GridPage.types";
-import { MapPin, MapPinOff, MessageCircle, Plane, Satellite, Star, Zap } from "lucide-react";
+import { Flame, MapPin, MapPinOff, MessageCircle, Plane, Satellite, Star, Zap } from "lucide-react";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { useTranslation } from "react-i18next";
 import {
@@ -15,6 +15,7 @@ import { useRevealOnScroll } from "../../../../hooks/useRevealOnScroll";
 import { useEffect, useRef, useState } from "react";
 import { haptic } from "../../../../utils/haptics";
 import { TileFlameBurst } from "./TileFlameBurst";
+import type { GridTapStatus } from "../hooks/useGridTapStatus";
 
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
@@ -27,6 +28,7 @@ type BrowseCardTileProps = {
 	card: BrowseCard;
 	chatContactStatus?: ChatContactIndexRecord | null;
 	localNickname?: string;
+	tapStatus?: GridTapStatus;
 	onSelectProfile: (profileId: string) => void;
 	/** Returns whether the tap was actually sent, which gates the fire animation. */
 	onDoubleTapProfile?: (profileId: string, tapId: number) => boolean;
@@ -39,6 +41,7 @@ export function BrowseCardTile({
 	card,
 	chatContactStatus,
 	localNickname,
+	tapStatus,
 	onSelectProfile,
 	onDoubleTapProfile,
 	onMessageProfile: _onMessageProfile,
@@ -65,6 +68,8 @@ export function BrowseCardTile({
 	const unreadCount = Math.max(databaseUnread, apiUnread);
 	const hasChatted = Boolean(chatContactStatus?.hasChatted) || card.chatted === true || unreadCount > 0;
 	const isFavorite = card.favorite === true;
+	const hasSentTap = tapStatus?.sent != null;
+	const hasReceivedTap = tapStatus?.received != null;
 
 	// Long press on touch, right-click on mouse. The press is cancelled as
 	// soon as the finger drifts (i.e. the user is scrolling the grid), and
@@ -276,6 +281,28 @@ export function BrowseCardTile({
 
 					{/* Bottom-right: Interaction cluster */}
 					<div className="absolute bottom-2 right-2 z-10 flex items-center gap-1">
+						{/* Tap status: outlined flame = you tapped, filled = they tapped
+							you, double flame = both (mutual). */}
+						{(hasSentTap || hasReceivedTap) && (
+							<div
+								className="flex h-5 min-w-5 items-center justify-center rounded-full bg-black/50 px-0.5 text-orange-400 shadow-lg backdrop-blur-sm"
+								title={hasSentTap && hasReceivedTap
+									? t("browse_page.tile_tap.mutual", { defaultValue: "You tapped each other" })
+									: hasSentTap
+										? t("browse_page.tile_tap.sent", { defaultValue: "You tapped them" })
+										: t("browse_page.tile_tap.received", { defaultValue: "They tapped you" })}
+							>
+								{hasSentTap && hasReceivedTap ? (
+									<>
+										<Flame className="h-3.5 w-3.5 fill-current" />
+										<Flame className="-ml-1.5 h-3.5 w-3.5 fill-current text-amber-300" />
+									</>
+								) : (
+									<Flame className={cn("h-3.5 w-3.5", hasReceivedTap && "fill-current")} strokeWidth={hasSentTap ? 2.5 : 2} />
+								)}
+							</div>
+						)}
+
 						{isFavorite && (
 							<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-yellow-500 shadow-lg backdrop-blur-sm">
 								<Star className="h-3.5 w-3.5 fill-current" />

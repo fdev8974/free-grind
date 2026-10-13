@@ -1,5 +1,5 @@
 import { useAuth } from "../../contexts/useAuth";
-import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X, ChevronDown, Check } from "lucide-react";
+import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X, Check } from "lucide-react";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -37,6 +37,7 @@ import { FilterPill } from "../../components/ui/FilterPill";
 import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
+import { useGridTapStatus } from "./gridpage/hooks/useGridTapStatus";
 import { GridGesturesIntro, hasSeenGridGesturesIntro, markGridGesturesIntroSeen } from "./gridpage/components/GridGesturesIntro";
 import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
@@ -423,6 +424,7 @@ export function GridPage() {
 		hasSentTapRecently,
 		canTapProfile,
 		handleTapProfile,
+		tapVisualStates,
 	} = useTapProfile({
 		activeProfile,
 		setActiveProfile,
@@ -430,6 +432,7 @@ export function GridPage() {
 		tap: apiFunctions.tap,
 		TAP_WINDOW_MS,
 	});
+	const tapStatusByProfileId = useGridTapStatus(TAP_WINDOW_MS, tapVisualStates);
 
 	useEffect(() => {
 		isMountedRef.current = true;
@@ -1191,6 +1194,11 @@ export function GridPage() {
 	// animation when it actually does; a blocked tap still runs through
 	// handleTapProfile for the "already tapped" toast.
 	const handleDoubleTapProfile = (profileId: string, tapId: number) => {
+		// The sent-taps list also knows about taps from earlier sessions/devices.
+		if (tapStatusByProfileId[profileId]?.sent != null) {
+			toast(t("browse_page.toasts.tap_limit"));
+			return false;
+		}
 		const willSend = canTapProfile(profileId);
 		void handleTapProfile(profileId, tapId);
 		return willSend;
@@ -1605,7 +1613,6 @@ export function GridPage() {
 									>
 										<ListFilter className="h-3.5 w-3.5 shrink-0" />
 										{sortOptions.find((option) => option.value === sortBy)?.label ?? sortOptions[0].label}
-										<ChevronDown className="-mr-1 h-3.5 w-3.5 shrink-0 opacity-70" />
 									</button>
 
 									{!exploreLocation && (
@@ -1768,6 +1775,7 @@ export function GridPage() {
 									: chatContactIndexByProfileId
 							}
 							localNicknamesByProfileId={localNicknamesByProfileId}
+							tapStatusByProfileId={tapStatusByProfileId}
 							onSelectProfile={handleSelectProfile}
 							onDoubleTapProfile={handleDoubleTapProfile}
 							onMessageProfile={handleMessageProfile}
