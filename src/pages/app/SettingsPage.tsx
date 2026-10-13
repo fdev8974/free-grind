@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
+import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import {
 	AlertCircle,
 	Bell,
@@ -626,7 +627,7 @@ export function SettingsPage() {
 				<div className="pointer-events-auto mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--app-px)]">
 					<div className="flex items-center justify-between gap-2">
 						<div className="flex min-w-0 items-center gap-2">
-							<h1 className="app-title truncate">{t("settings.title")}</h1>
+							<h1 className="app-title">{t("settings.title")}</h1>
 							{developerMode ? (
 								<span className="shrink-0 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
 									Developer Mode
@@ -679,7 +680,8 @@ export function SettingsPage() {
 				</div>
 			</header>
 
-			<div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto">
+			{/* Same scroll container as Interest / Right Now: fades content out under the header. */}
+			<FeedScrollContainer>
 				<div className="mx-auto w-full max-w-[var(--content-max)] px-[var(--app-px)] pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px))]">
 					{searchQuery.trim() ? (
 						<div className="grid gap-6">
@@ -1322,7 +1324,7 @@ export function SettingsPage() {
 					</div>
 					)}
 				</div>
-			</div>
+			</FeedScrollContainer>
 
 			<ConfirmDialog
 				isOpen={logoutConfirmTarget != null}
