@@ -10,6 +10,7 @@ import {
 	HardDrive,
 	Images,
 	Inbox,
+	Loader2,
 	Pencil,
 	Play,
 	Plus,
@@ -249,6 +250,7 @@ export function SettingsAlbumsPage() {
 	const [unsharingAllAlbumId, setUnsharingAllAlbumId] = useState<string | null>(null);
 	const [confirmUnshareAllAlbumId, setConfirmUnshareAllAlbumId] = useState<string | null>(null);
 	const [sharesSheetAlbumId, setSharesSheetAlbumId] = useState<string | null>(null);
+	const [addSheetAlbumId, setAddSheetAlbumId] = useState<string | null>(null);
 	const pendingShareNavigationRef = useRef<(() => void) | null>(null);
 
 	// DnD sensors
@@ -1066,20 +1068,23 @@ export function SettingsAlbumsPage() {
 															onChange={(e) => void handleUploadInputChange(album.albumId, e)}
 															className="hidden"
 														/>
-														<label
-															htmlFor={uploadInputId}
-															className="inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-														>
-															<Upload className="h-3.5 w-3.5" />
-															{uploadingAlbumId === album.albumId ? t("settings_albums.uploading") : t("settings_albums.upload")}
-														</label>
 														<button
 															type="button"
-															onClick={() => openDrawerPicker(album.albumId)}
-															className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+															onClick={() => setAddSheetAlbumId(album.albumId)}
+															disabled={uploadingAlbumId === album.albumId}
+															className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-60"
 														>
-															<Inbox className="h-3.5 w-3.5" />
-															{t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" })}
+															{uploadingAlbumId === album.albumId ? (
+																<>
+																	<Loader2 className="h-3.5 w-3.5 animate-spin" />
+																	{t("settings_albums.uploading")}
+																</>
+															) : (
+																<>
+																	<Plus className="h-3.5 w-3.5" />
+																	{t("settings_albums.add", { defaultValue: "Add" })}
+																</>
+															)}
 														</button>
 														<button
 															type="button"
@@ -1128,29 +1133,26 @@ export function SettingsAlbumsPage() {
 													</DndContext>
 												)}
 
-												{/* Shared with — compact row; the list itself lives in a bottom sheet. */}
+												{/* Shared with — a subheading like "Content"; the list itself lives in a bottom sheet. */}
 												<button
 													type="button"
 													onClick={() => {
 														setSharesSheetAlbumId(album.albumId);
 														void loadAlbumShares(album.albumId);
 													}}
-													className="mt-4 flex w-full items-center gap-3 rounded-xl border border-[var(--border)] px-3 py-2.5 text-left transition hover:border-[var(--accent)]"
+													className="mt-5 flex w-full items-center justify-between gap-2 text-left text-[var(--text-muted)] transition hover:text-[var(--text)]"
 												>
-													<div className="shrink-0 rounded-xl bg-[var(--surface-2)] p-2 text-[var(--text-muted)]">
-														<Share2 className="h-4 w-4" />
-													</div>
-													<p className="min-w-0 flex-1 truncate text-sm font-semibold">
+													<p className="min-w-0 truncate text-xs font-semibold uppercase tracking-widest">
 														{t("settings_albums.shared_with", { defaultValue: "Shared With" })}
 													</p>
-													{isLoadingShares ? (
-														<div className="h-4 w-6 shrink-0 animate-pulse rounded-full bg-[var(--surface-2)]" />
-													) : (
-														<span className="shrink-0 text-sm font-medium tabular-nums text-[var(--text-muted)]">
-															{shareProfiles?.length ?? 0}
-														</span>
-													)}
-													<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+													<span className="flex shrink-0 items-center gap-1 text-xs font-semibold tabular-nums">
+														{isLoadingShares ? (
+															<span className="h-3 w-4 animate-pulse rounded-full bg-[var(--surface-2)]" />
+														) : (
+															shareProfiles?.length ?? 0
+														)}
+														<ChevronRight className="h-4 w-4" />
+													</span>
 												</button>
 											</div>
 										)}
@@ -1169,6 +1171,56 @@ export function SettingsAlbumsPage() {
 					isDesktop={isDesktop}
 				/>
 			</div>
+
+			{addSheetAlbumId && (
+				<BottomSheet onClose={() => setAddSheetAlbumId(null)} isDesktop={isDesktop}>
+					<div className="flex items-center justify-between px-4 pb-3">
+						<p className="text-sm font-semibold text-[var(--text)]">{t("settings_albums.upload")}</p>
+						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+							<X className="h-4 w-4" />
+						</SheetClose>
+					</div>
+					<div className="divide-y divide-[var(--border)] pb-2">
+						<SheetClose
+							// The album's hidden file input; clicked synchronously so it still counts as a user gesture.
+							onClick={() => document.getElementById(`album-upload-${addSheetAlbumId}`)?.click()}
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+						>
+							<div className="shrink-0 rounded-2xl bg-sky-500/15 p-2.5 text-sky-400">
+								<Upload className="h-5 w-5" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<p className="text-sm font-semibold leading-snug">
+									{t("settings_albums.add_upload", { defaultValue: "Upload from device" })}
+								</p>
+								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+									{t("settings_albums.add_upload_desc", { defaultValue: "Photos and videos stored on this device" })}
+								</p>
+							</div>
+						</SheetClose>
+						<SheetClose
+							onClick={() => {
+								const albumId = addSheetAlbumId;
+								// Let this sheet pop its history entry before the picker sheet pushes its own.
+								window.setTimeout(() => openDrawerPicker(albumId), 340);
+							}}
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+						>
+							<div className="shrink-0 rounded-2xl bg-violet-500/15 p-2.5 text-violet-400">
+								<Inbox className="h-5 w-5" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<p className="text-sm font-semibold leading-snug">
+									{t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" })}
+								</p>
+								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+									{t("settings_albums.add_drawer_desc", { defaultValue: "Media saved in your chat drawer" })}
+								</p>
+							</div>
+						</SheetClose>
+					</div>
+				</BottomSheet>
+			)}
 
 			{sharesSheetAlbumId && (() => {
 				const albumId = sharesSheetAlbumId;
