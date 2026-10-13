@@ -450,7 +450,9 @@ export function NavBar() {
 													: "focus-visible:ring-[var(--accent)] data-[state=active]:bg-[var(--accent)] data-[state=active]:text-[var(--accent-contrast)]"
 									)}
 								>
-									<div className="relative">
+									{/* Fixed icon-sized slot so the slightly larger avatar overflows evenly
+									    instead of pushing its label below the other tabs' labels. */}
+									<div className="relative flex h-5 w-5 items-center justify-center md:h-[1.2rem] md:w-[1.2rem]">
 										{Icon ? (
 											<Icon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										) : !profilePhotoUrl ? (
@@ -461,7 +463,7 @@ export function NavBar() {
 												src={profilePhotoUrl}
 												alt={t("browse_page.your_profile_photo")}
 												className={cn(
-													"h-6 w-6 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
+													"h-6 w-6 shrink-0 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
 													activeTab !== "settings"
 														? "ring-transparent"
 														: // The floating bar fills the active tab with the accent, so the ring flips to its contrast color there.
