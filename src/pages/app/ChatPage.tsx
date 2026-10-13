@@ -4,7 +4,6 @@ import {
 	type FormEvent,
 	useCallback,
 	useEffect,
-	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -128,8 +127,7 @@ import {
 	upsertChatContactIndexFromInbox,
 } from "../../services/chatContactIndex";
 import type { ChatContactIndexRecord } from "../../types/chat-contact-index";
-import { markInboxSeen, getInboxLastSeen } from "../../services/seenStore";
-import { SCROLL_RESTORATION_TIMEOUT_MS } from "../../config/ui-constants";
+import { markInboxSeen } from "../../services/seenStore";
 import { clearAutomationSeenHistoryForSender, runAutomationRulesForSender } from "../../utils/automationRules";
 import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
 import { isReadReceiptsHidden } from "../../utils/privacy";
@@ -757,10 +755,6 @@ export function ChatPage() {
 	useEffect(() => {
 		markInboxSeen(Math.max(Date.now(), maxActivityTimestamp));
 	}, [location.pathname, maxActivityTimestamp]);
-
-	// Scroll memory state (effects are placed after filteredConversations declaration)
-	const [hasRestoredInboxScroll, setHasRestoredInboxScroll] = useState(false);
-	const initialLastSeenInbox = useRef(getInboxLastSeen());
 
 	const targetProfileId = useMemo(() => {
 		const raw = searchParams.get("targetProfileId");
@@ -3903,52 +3897,6 @@ export function ChatPage() {
 		needsReplyOnly,
 		userId,
 	]);
-
-	// Scroll memory: save position on scroll (re-attaches when list mounts/unmounts)
-	useEffect(() => {
-		const container = inboxListRef.current;
-		if (!container) return;
-		const handleScroll = () => {
-			sessionStorage.setItem("chat-inbox-scroll", JSON.stringify({
-				top: container.scrollTop,
-				timestamp: Date.now(),
-			}));
-		};
-		container.addEventListener("scroll", handleScroll, { passive: true });
-		return () => container.removeEventListener("scroll", handleScroll);
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filteredConversations.length]);
-
-	// Scroll memory: restore position once on first load
-	useLayoutEffect(() => {
-		if (filteredConversations.length === 0 || isLoadingInbox || hasRestoredInboxScroll || !inboxListRef.current) return;
-		const storageKey = "chat-inbox-scroll";
-		if (maxActivityTimestamp > initialLastSeenInbox.current) {
-			sessionStorage.removeItem(storageKey);
-			inboxListRef.current.scrollTop = 0;
-			setHasRestoredInboxScroll(true);
-			return;
-		}
-		const saved = sessionStorage.getItem(storageKey);
-		if (saved) {
-			try {
-				const parsed = JSON.parse(saved);
-				if (parsed && typeof parsed === "object" && "top" in parsed) {
-					const { top, timestamp } = parsed as { top: number; timestamp: number };
-					if (Date.now() - timestamp < SCROLL_RESTORATION_TIMEOUT_MS) {
-						inboxListRef.current.scrollTop = top;
-					} else {
-						sessionStorage.removeItem(storageKey);
-					}
-				} else {
-					sessionStorage.removeItem(storageKey);
-				}
-			} catch {
-				sessionStorage.removeItem(storageKey);
-			}
-		}
-		setHasRestoredInboxScroll(true);
-	}, [filteredConversations.length, isLoadingInbox, hasRestoredInboxScroll, maxActivityTimestamp]);
 
 	const handleSelectConversation = (conversation: ConversationEntry) => {
 		const nextId = conversation.data.conversationId;
