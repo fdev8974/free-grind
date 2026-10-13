@@ -1305,7 +1305,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                                     <button
                                         type="button"
                                         onClick={() => navigate("/chat")}
-                                        className="shrink-0 rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
+                                        className="header-icon-btn header-icon-btn--back shrink-0 rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
                                         aria-label={t("browse_location.back_aria")}
                                     >
                                         <ChevronLeft className="h-4 w-4" />
@@ -1448,7 +1448,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										onClick={() =>
 											setIsHeaderActionsMenuOpen((current) => !current)
 										}
-										className="rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
+										className="header-icon-btn rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
 										aria-label="Open conversation actions"
 										aria-expanded={isHeaderActionsMenuOpen}
 									>

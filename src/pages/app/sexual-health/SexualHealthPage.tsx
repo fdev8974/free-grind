@@ -94,7 +94,7 @@ export function SexualHealthPage() {
 						<button
 							type="button"
 							onClick={() => setIsSettingsOpen(true)}
-							className="shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+							className="header-icon-btn shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 							aria-label={t("sexualHealth.info.settings_button", { defaultValue: "PrEP settings" })}
 						>
 							<Settings className="h-5 w-5" />

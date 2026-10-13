@@ -898,7 +898,7 @@ export function SharedAlbumsPage() {
 								type="button"
 								onClick={handleRefresh}
 								disabled={isRefreshing || isLoading}
-								className="shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
+								className="header-icon-btn shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
 								aria-label={t("shared_albums.refresh")}
 							>
 								<RefreshCw className={`h-5 w-5 ${isRefreshing || isLoading ? "animate-spin" : ""}`} />

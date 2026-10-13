@@ -132,7 +132,7 @@ export function ChatInboxHeader({
 								<button
 									type="button"
 									onClick={() => navigate("/settings/sexual-health", { state: { from: "inbox" } })}
-									className="rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("sexualHealth.title", { defaultValue: "Sexual Health" })}
 								>
 									<Pill className="h-5 w-5" />
@@ -142,7 +142,7 @@ export function ChatInboxHeader({
 								<button
 									type="button"
 									onClick={() => navigate("/chat/videos")}
-									className="rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("video_gallery.open", { defaultValue: "Videos" })}
 								>
 									<Clapperboard className="h-5 w-5" />
@@ -152,7 +152,7 @@ export function ChatInboxHeader({
 								<button
 									type="button"
 									onClick={() => navigate("/chat/albums")}
-									className="-mr-1 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="header-icon-btn -mr-1 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("chat.tabs.albums")}
 								>
 									<Images className="h-5 w-5" />
@@ -164,7 +164,7 @@ export function ChatInboxHeader({
 									if (isSearchOpen) { onSetIsSearchOpen(false); onSetSearchQuery(""); }
 									else onSetIsSearchOpen(true);
 								}}
-								className="rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+								className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 								aria-label={isSearchOpen ? t("common.close") : t("chat.open_search")}
 							>
 								{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}

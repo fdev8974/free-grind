@@ -141,7 +141,7 @@ export function ChatFiltersPage() {
 						<button
 							type="button"
 							onClick={() => navigate(-1)}
-							className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
+							className="header-icon-btn header-icon-btn--back shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
 							aria-label={t("chat_filters.back")}
 						>
 							<ChevronLeft className="h-4 w-4" />

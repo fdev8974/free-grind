@@ -1549,7 +1549,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					<button
 						type="button"
 						onClick={onClose}
-						className={`shrink-0 rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md"}`}
+						className={`header-icon-btn header-icon-btn--back shrink-0 rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"}`}
 						aria-label={t(variant === "page" ? "settings.back_to_browse" : "profile_details.close_profile_details")}
 					>
 						<ChevronLeft className="h-4 w-4" />
@@ -1569,7 +1569,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 						<button
 							type="button"
 							onClick={() => navigate("/settings/profile-editor")}
-							className={`inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md"}`}
+							className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"}`}
 							aria-label={t("profile_editor.edit_profile")}
 						>
 							<Pencil className="h-4 w-4" />
@@ -1582,10 +1582,10 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									type="button"
 									onClick={() => onToggleFavoriteProfile(String(messageProfileId), isFavorite)}
 									disabled={isTogglingFavorite}
-									className={`inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
+									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
 										isFavorite
-											? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
-											: inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md"
+											? "header-icon-btn--active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
+											: inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
 									}`}
 									aria-label={isFavorite ? t("chat.unfavorite") : t("chat.favorite")}
 								>
@@ -1597,10 +1597,10 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									type="button"
 									onClick={() => isBlocked ? onUnblockProfile?.(String(messageProfileId)) : (messageProfileId && onBlockProfile?.(String(messageProfileId)))}
 									disabled={isBlockingProfile}
-									className={`inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
+									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
 										isBlocked
-											? inlineScrolled ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-emerald-400/60 bg-emerald-500/20 text-emerald-300 backdrop-blur-md"
-											: inlineScrolled ? "border-red-500/40 bg-red-500/8 text-red-400 hover:border-red-500/70 hover:bg-red-500/15" : "border-red-400/50 bg-red-500/15 text-red-300 backdrop-blur-md hover:border-red-400/80"
+											? inlineScrolled ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-emerald-400/60 bg-emerald-500/20 text-emerald-300 backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+											: inlineScrolled ? "border-red-500/40 bg-red-500/8 text-red-400 hover:border-red-500/70 hover:bg-red-500/15" : "border-red-400/50 bg-red-500/15 text-red-300 backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] hover:border-red-400/80"
 									}`}
 									aria-label={isBlocked ? t("profile_details.unblock") : t("profile_details.block")}
 								>
@@ -1611,7 +1611,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								<button
 									type="button"
 									onClick={() => setIsActionsMenuOpen((v) => !v)}
-									className={`inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md"}`}
+									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"}`}
 									aria-label="More actions"
 									aria-expanded={isActionsMenuOpen}
 								>

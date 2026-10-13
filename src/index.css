@@ -1243,3 +1243,31 @@ dialog::backdrop {
 	-webkit-backdrop-filter: blur(6px);
 	backdrop-filter: blur(6px);
 }
+
+/* Header icon buttons: bordered "chips" on desktop, but bare, larger glyphs on
+   touch devices to match native mobile nav bars. Deliberately unlayered so it
+   wins over the Tailwind border/bg utilities the buttons carry for desktop. */
+@media (hover: none) and (pointer: coarse) {
+	.header-icon-btn {
+		border-color: transparent !important;
+		background-color: transparent !important;
+		box-shadow: none !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+	}
+
+	.header-icon-btn > svg {
+		width: 1.5rem;
+		height: 1.5rem;
+	}
+
+	/* Pull the back chevron toward the screen edge like a native back button. */
+	.header-icon-btn--back {
+		margin-inline-start: -0.5rem;
+	}
+
+	/* Toggled states (favorite) lose their filled chip, so carry it in the glyph. */
+	.header-icon-btn--active {
+		color: var(--accent) !important;
+	}
+}
