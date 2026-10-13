@@ -33,6 +33,7 @@ import {
 	Tag,
 	Timer,
 	ToggleRight,
+	PanelBottom,
 	Triangle,
 	Type,
 	Trash2,
@@ -45,6 +46,7 @@ import {
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL } from "../utils/githubIssues";
 import { useMemo } from "react";
 import { isSexualHealthEnabled } from "../utils/optionalFeatures";
+import { isAndroid, isIos } from "../services/saveMedia";
 import { useTranslation } from "react-i18next";
 
 export type SettingsSearchEntry = {
@@ -72,6 +74,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 	const { t } = useTranslation();
 
 	const showSexualHealth = isSexualHealthEnabled();
+	const isMobilePlatform = isAndroid() || isIos();
 
 	return useMemo<SettingsSearchEntry[]>(() => [
 		// Profile
@@ -134,11 +137,21 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-violet-500/15 text-violet-400",
 		},
 		{
-			id: "cust-nav-hide-labels",
+			id: "cust-nav-floating",
 			route: "/settings/customizability",
-			anchor: "cust-nav-hide-labels",
-			label: t("customizability.nav_hide_labels"),
-			description: t("customizability.nav_hide_labels_desc"),
+			anchor: "cust-nav-floating",
+			label: t("customizability.nav_floating"),
+			description: t("customizability.nav_floating_desc"),
+			section: "Customizability",
+			icon: PanelBottom,
+			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
+			id: "cust-nav-show-labels",
+			route: "/settings/customizability",
+			anchor: "cust-nav-show-labels",
+			label: t("customizability.nav_show_labels"),
+			description: t("customizability.nav_show_labels_desc"),
 			section: "Customizability",
 			icon: Type,
 			iconClass: "bg-sky-500/15 text-sky-400",
@@ -596,5 +609,10 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			icon: MessageSquareWarning,
 			iconClass: "bg-rose-500/15 text-rose-400",
 		},
-	].filter((entry) => showSexualHealth || entry.id !== "nav-sexual-health"), [t, showSexualHealth]);
+	].filter(
+		(entry) =>
+			(showSexualHealth || entry.id !== "nav-sexual-health") &&
+			// Bottom-nav style options only exist in the mobile app.
+			(isMobilePlatform || (entry.id !== "cust-nav-floating" && entry.id !== "cust-nav-show-labels")),
+	), [t, showSexualHealth, isMobilePlatform]);
 }

@@ -22,8 +22,15 @@ import type { RealtimeEnvelope } from "../types/chat-realtime";
 import { useInterestData } from "../hooks/queries/useInterestQueries";
 import { isAndroid, isIos } from "../services/saveMedia";
 
-export const NAV_HIDE_LABELS_KEY = "fg-nav-hide-labels";
-export const NAV_HIDE_LABELS_EVENT = "fg-nav-hide-labels-changed";
+// Bottom-nav style options; only offered (and only honoured) in the mobile app.
+export const NAV_SHOW_LABELS_KEY = "fg-nav-show-labels";
+export const NAV_FLOATING_KEY = "fg-nav-floating";
+export const NAV_STYLE_EVENT = "fg-nav-style-changed";
+
+const readNavStyle = () => ({
+	showLabels: window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true",
+	floating: window.localStorage.getItem(NAV_FLOATING_KEY) === "true",
+});
 
 /**
  * Extracts and validates chat messages from a variety of possible realtime envelope formats.
@@ -75,12 +82,17 @@ export function NavBar() {
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
-	const [hideLabels, setHideLabels] = useState(() => window.localStorage.getItem(NAV_HIDE_LABELS_KEY) === "true");
+	const [navStyle, setNavStyle] = useState(readNavStyle);
 	useEffect(() => {
-		const onChange = () => setHideLabels(window.localStorage.getItem(NAV_HIDE_LABELS_KEY) === "true");
-		window.addEventListener(NAV_HIDE_LABELS_EVENT, onChange);
-		return () => window.removeEventListener(NAV_HIDE_LABELS_EVENT, onChange);
+		const onChange = () => setNavStyle(readNavStyle());
+		window.addEventListener(NAV_STYLE_EVENT, onChange);
+		return () => window.removeEventListener(NAV_STYLE_EVENT, onChange);
 	}, []);
+	// Mobile app hides labels by default; desktop/web always shows them.
+	const hideLabels = isMobilePlatform && !navStyle.showLabels;
+	// Full-width edge-to-edge bar in the mobile app, unless the user opted
+	// into the floating card that desktop/web always use.
+	const fullWidth = isMobilePlatform && !navStyle.floating;
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
@@ -350,7 +362,7 @@ export function NavBar() {
 		<nav
 			className={cn(
 				"fixed inset-x-0 bottom-0 z-50",
-				!isMobilePlatform && "px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:px-4 md:pb-[calc(env(safe-area-inset-bottom,0px)+14px)]",
+				!fullWidth && "px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:px-4 md:pb-[calc(env(safe-area-inset-bottom,0px)+14px)]",
 			)}
 		>
 			{/* Mobile app: full-width bar that extends under the system navigation
@@ -358,7 +370,7 @@ export function NavBar() {
 			    Desktop/web: floating rounded card. */}
 			<div
 				className={cn(
-					isMobilePlatform
+					fullWidth
 						? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
 						: "mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5",
 				)}
@@ -373,14 +385,14 @@ export function NavBar() {
 					onValueChange={handleTabChange}
 					// Keep the tabs at their previous centered width; only the
 					// background spans the full screen on mobile.
-					className={cn(isMobilePlatform && "mx-auto w-full max-w-4xl px-[calc(0.75rem+1px+0.375rem)]")}
+					className={cn(fullWidth && "mx-auto w-full max-w-4xl px-[calc(0.75rem+1px+0.375rem)]")}
 				>
 					<TabsList
 						className={cn(
 							"grid w-full bg-transparent p-0",
 							gridColsClass,
 							// Mobile app without labels: keep icon size, shrink the bar instead.
-							isMobilePlatform && hideLabels ? "h-12" : "h-16 md:h-[4.1rem]",
+							hideLabels ? "h-12" : "h-16 md:h-[4.1rem]",
 						)}
 					>
 						{navItems.map((item) => {
@@ -398,7 +410,7 @@ export function NavBar() {
 									}}
 									className={cn(
 										"flex h-full flex-col items-center justify-center gap-1 rounded-xl text-[var(--text-muted)] transition-colors duration-150 hover:text-[var(--text)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] md:gap-1.5",
-										isMobilePlatform
+										fullWidth
 											? // Mobile app: no filled pill on the full-width bar, highlight via text color only.
 												cn(
 													"data-[state=active]:bg-transparent data-[state=active]:shadow-none",
@@ -416,7 +428,7 @@ export function NavBar() {
 									)}
 								>
 									<div className="relative">
-										<Icon className={hideLabels && !isMobilePlatform ? "h-7 w-7" : "h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]"} />
+										<Icon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										{(item.value === "inbox" && inboxUnseen) ||
 										(item.value === "interest" && interestUnseen) ? (
 											<span className="absolute -right-1 -top-1 flex h-2 w-2">

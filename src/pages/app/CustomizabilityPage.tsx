@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clapperboard, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, Ruler, Sparkles, Star, Sun, Triangle, Type } from "lucide-react";
+import { Clapperboard, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Star, Sun, Triangle, Type } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { BackToSettings } from "../../components/BackToSettings";
-import { NAV_HIDE_LABELS_EVENT, NAV_HIDE_LABELS_KEY } from "../../components/NavBar";
+import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
+import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
@@ -128,7 +129,9 @@ export function CustomizabilityPage() {
 	const [customHex, setCustomHex] = useState(accentColor);
 	const [hexError, setHexError] = useState<string | null>(null);
 	const [showRightNow, setShowRightNow] = useState(() => window.localStorage.getItem("fg-show-right-now") !== "false");
-	const [hideNavLabels, setHideNavLabels] = useState(() => window.localStorage.getItem(NAV_HIDE_LABELS_KEY) === "true");
+	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
+	const [showNavLabels, setShowNavLabels] = useState(() => window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true");
+	const [floatingNav, setFloatingNav] = useState(() => window.localStorage.getItem(NAV_FLOATING_KEY) === "true");
 	const [showInterest, setShowInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
 	const [showVideoGallery, setShowVideoGallery] = useState(isVideoGalleryEnabled);
 	const [showSexualHealth, setShowSexualHealth] = useState(isSexualHealthEnabled);
@@ -461,24 +464,6 @@ export function CustomizabilityPage() {
 								</div>
 							</div>
 
-							{/* Nav labels */}
-							<div className="border-t border-[var(--border)]">
-								<ToggleRow
-									id="cust-nav-hide-labels"
-									highlighted={highlightId === "cust-nav-hide-labels"}
-									icon={<Type className="h-5 w-5" />}
-									iconClass="bg-sky-500/15 text-sky-400"
-									label={t("customizability.nav_hide_labels")}
-									description={t("customizability.nav_hide_labels_desc")}
-									checked={hideNavLabels}
-									onChange={(checked) => {
-										setHideNavLabels(checked);
-										window.localStorage.setItem(NAV_HIDE_LABELS_KEY, String(checked));
-										window.dispatchEvent(new Event(NAV_HIDE_LABELS_EVENT));
-									}}
-								/>
-							</div>
-
 							{/* Reveal Effect */}
 							<div className="border-t border-[var(--border)]">
 								<ToggleRow
@@ -521,8 +506,41 @@ export function CustomizabilityPage() {
 
 				{/* NAVIGATION */}
 				<div>
-					<SectionLabel>{t("customizability.navigation_tabs")}</SectionLabel>
+					<SectionLabel>{t("customizability.navigation_bar")}</SectionLabel>
 					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						{/* Bar style options only exist in the mobile app. */}
+						{isMobilePlatform && (
+							<>
+								<ToggleRow
+									id="cust-nav-floating"
+									highlighted={highlightId === "cust-nav-floating"}
+									icon={<PanelBottom className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("customizability.nav_floating")}
+									description={t("customizability.nav_floating_desc")}
+									checked={floatingNav}
+									onChange={(checked) => {
+										setFloatingNav(checked);
+										window.localStorage.setItem(NAV_FLOATING_KEY, String(checked));
+										window.dispatchEvent(new Event(NAV_STYLE_EVENT));
+									}}
+								/>
+								<ToggleRow
+									id="cust-nav-show-labels"
+									highlighted={highlightId === "cust-nav-show-labels"}
+									icon={<Type className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("customizability.nav_show_labels")}
+									description={t("customizability.nav_show_labels_desc")}
+									checked={showNavLabels}
+									onChange={(checked) => {
+										setShowNavLabels(checked);
+										window.localStorage.setItem(NAV_SHOW_LABELS_KEY, String(checked));
+										window.dispatchEvent(new Event(NAV_STYLE_EVENT));
+									}}
+								/>
+							</>
+						)}
 						<ToggleRow
 							id="cust-show-right-now"
 							highlighted={highlightId === "cust-show-right-now"}
@@ -551,7 +569,14 @@ export function CustomizabilityPage() {
 								window.location.reload();
 							}}
 						/>
-						{showInterest && (
+					</div>
+				</div>
+
+				{/* INTEREST VIEW */}
+				{showInterest && (
+					<div>
+						<SectionLabel>{t("customizability.interest_view")}</SectionLabel>
+						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 							<SelectRow
 								icon={<Star className="h-5 w-5 opacity-50" />}
 								iconClass="bg-yellow-500/10 text-yellow-400"
@@ -567,9 +592,9 @@ export function CustomizabilityPage() {
 									{ value: "views", label: t("customizability.interest_show_views") },
 								]}
 							/>
-						)}
+						</div>
 					</div>
-				</div>
+				)}
 
 				{/* OPTIONAL FEATURES */}
 				<div>
