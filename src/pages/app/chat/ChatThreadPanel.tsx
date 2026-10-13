@@ -1288,12 +1288,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				return (
 					<>
 						<div
-							className={`flex items-center justify-between gap-3 border-b border-[var(--border)] ${!isDesktop ? "shrink-0 bg-[var(--surface)] px-[var(--app-px)] pb-3" : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4"}`}
+							className={`flex items-center justify-between gap-3 border-b border-[var(--border)] ${!isDesktop ? "shrink-0 bg-[var(--surface)] px-4 pb-3 sm:px-5" : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4"}`}
 							style={
 								!isDesktop
 									? {
-										paddingTop:
-											"calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))",
+										// Same offset/gutter as the profile header and photo viewer.
+										paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)",
 									}
 									: undefined
 							}

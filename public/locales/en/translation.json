@@ -881,6 +881,7 @@
     "show_locate": "Locate",
     "show_locate_desc": "Show \"Locate\" in the profile menu to estimate a profile's position by triangulation.",
     "optional_features": "Optional Features",
+    "optional_features_desc": "Turn extra features on or off to keep the app as simple as you like.",
     "default_view": "Default View",
     "default_interest_view": "Default Interest View",
     "interest_show_taps": "Taps First",

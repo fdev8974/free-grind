@@ -867,6 +867,7 @@
         "show_locate": "",
         "show_locate_desc": "",
         "optional_features": "",
+        "optional_features_desc": "",
         "default_view": "",
         "default_interest_view": "اظهرالاهتمامات الافتراضي",
         "interest_show_taps": "نقرات أولاً",

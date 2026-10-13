@@ -78,10 +78,10 @@ export function SexualHealthPage() {
 	];
 
 	return (
-		<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
+		<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}>
 			<header className="relative z-20 flex shrink-0 flex-col pb-3 pointer-events-none">
 				<PageHeaderBackground color="var(--accent)" />
-				<div className="pointer-events-auto mx-auto grid w-full max-w-4xl gap-3 px-[var(--app-px)]">
+				<div className="pointer-events-auto mx-auto grid w-full max-w-4xl gap-3 px-4 sm:px-5">
 					<div className="flex items-center justify-between gap-2">
 						<div className="flex min-w-0 items-center gap-2">
 							<HeaderBackButton

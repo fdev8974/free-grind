@@ -253,7 +253,7 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 			{
 				icon: SlidersHorizontal,
 				title: "Optional Features",
-				description: "Turn the Video Gallery, Sexual Health and Locate on or off in Appearance settings to keep the app as simple as you like.",
+				description: "Turn the Video Gallery, Sexual Health and Locate on or off under Customizability → Optional Features to keep the app as simple as you like.",
 			},
 			{
 				icon: FlaskConical,

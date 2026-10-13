@@ -483,11 +483,11 @@ export function VideoGalleryPage() {
 
 	return (
 		<>
-			<div className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
+			<div className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}>
 				<header className="pointer-events-none relative z-20 shrink-0">
 					<PageHeaderBackground color="var(--accent)" />
-					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-[var(--app-px)]">
-						<div className="mt-3 flex items-center justify-between gap-2">
+					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 sm:px-5">
+						<div className="flex items-center justify-between gap-2">
 							<div className="flex min-w-0 items-center gap-2">
 								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
 								<div className="min-w-0">

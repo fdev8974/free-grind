@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clapperboard, Clock, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Triangle, Type, Vibrate } from "lucide-react";
+import { ChevronRight, Clock, Flame, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, ToggleRight, Type, Vibrate } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -16,15 +17,6 @@ import {
 	resolveSupportedLocale,
 } from "../../utils/locales";
 import { type UnitsPreset } from "../../utils/units";
-import {
-	SHOW_LOCATE_KEY,
-	SHOW_SEXUAL_HEALTH_KEY,
-	SHOW_VIDEO_GALLERY_KEY,
-	isLocateEnabled,
-	isSexualHealthEnabled,
-	isVideoGalleryEnabled,
-	setOptionalFeatureEnabled,
-} from "../../utils/optionalFeatures";
 
 function normalizeHex(value: string): string {
 	const cleaned = value.trim().replace(/^#/, "");
@@ -119,6 +111,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function CustomizabilityPage() {
 	const { i18n, t } = useTranslation();
+	const navigate = useNavigate();
 	const highlightId = useSettingsHighlight();
 	const {
 		colorScheme,
@@ -138,9 +131,6 @@ export function CustomizabilityPage() {
 	const [timeFormat, setTimeFormat] = useState<TimeFormat>(getTimeFormat);
 	const [floatingNav, setFloatingNav] = useState(() => window.localStorage.getItem(NAV_FLOATING_KEY) === "true");
 	const [showInterest, setShowInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
-	const [showVideoGallery, setShowVideoGallery] = useState(isVideoGalleryEnabled);
-	const [showSexualHealth, setShowSexualHealth] = useState(isSexualHealthEnabled);
-	const [showLocate, setShowLocate] = useState(isLocateEnabled);
 	const [defaultInterestTab, setDefaultInterestTab] = useState(() => window.localStorage.getItem("fg-interest-default-tab") || "taps");
 	const schemeOptions: {
 		value: ColorScheme;
@@ -617,55 +607,28 @@ export function CustomizabilityPage() {
 				{/* OPTIONAL FEATURES */}
 				<div>
 					<SectionLabel>{t("customizability.optional_features", { defaultValue: "Optional Features" })}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						<ToggleRow
-							id="cust-show-video-gallery"
-							highlighted={highlightId === "cust-show-video-gallery"}
-							icon={<Clapperboard className="h-5 w-5" />}
-							iconClass="bg-sky-500/15 text-sky-400"
-							label={t("customizability.show_video_gallery", { defaultValue: "Video Gallery" })}
-							description={t("customizability.show_video_gallery_desc", {
-								defaultValue: "Show a button in the inbox header that opens a gallery of all locally stored videos from chats and albums.",
-							})}
-							checked={showVideoGallery}
-							onChange={(checked) => {
-								setShowVideoGallery(checked);
-								setOptionalFeatureEnabled(SHOW_VIDEO_GALLERY_KEY, checked);
-								window.location.reload();
-							}}
-						/>
-						<ToggleRow
-							id="cust-show-sexual-health"
-							highlighted={highlightId === "cust-show-sexual-health"}
-							icon={<HeartPulse className="h-5 w-5" />}
-							iconClass="bg-rose-500/15 text-rose-400"
-							label={t("customizability.show_sexual_health", { defaultValue: "Sexual Health" })}
-							description={t("customizability.show_sexual_health_desc", {
-								defaultValue: "Show the Sexual Health section, its inbox header button and \"I met this person now\" in the chat menu.",
-							})}
-							checked={showSexualHealth}
-							onChange={(checked) => {
-								setShowSexualHealth(checked);
-								setOptionalFeatureEnabled(SHOW_SEXUAL_HEALTH_KEY, checked);
-								window.location.reload();
-							}}
-						/>
-						<ToggleRow
-							id="cust-show-locate"
-							highlighted={highlightId === "cust-show-locate"}
-							icon={<Triangle className="h-5 w-5" />}
-							iconClass="bg-emerald-500/15 text-emerald-400"
-							label={t("customizability.show_locate", { defaultValue: "Locate" })}
-							description={t("customizability.show_locate_desc", {
-								defaultValue: "Show \"Locate\" in the profile menu to estimate a profile's position by triangulation.",
-							})}
-							checked={showLocate}
-							onChange={(checked) => {
-								setShowLocate(checked);
-								setOptionalFeatureEnabled(SHOW_LOCATE_KEY, checked);
-								window.location.reload();
-							}}
-						/>
+					<div className="surface-card overflow-hidden">
+						<button
+							id="cust-optional-features"
+							type="button"
+							onClick={() => navigate("/settings/customizability/optional-features")}
+							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] ${highlightId === "cust-optional-features" ? "animate-settings-highlight" : ""}`}
+						>
+							<div className="rounded-2xl p-2.5 shrink-0 bg-slate-500/15 text-slate-400">
+								<ToggleRight className="h-5 w-5" />
+							</div>
+							<div className="min-w-0 flex-1">
+								<p className="text-sm font-semibold leading-snug">
+									{t("customizability.optional_features", { defaultValue: "Optional Features" })}
+								</p>
+								<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+									{t("customizability.optional_features_desc", {
+										defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
+									})}
+								</p>
+							</div>
+							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+						</button>
 					</div>
 				</div>
 

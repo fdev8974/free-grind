@@ -50,7 +50,16 @@ export function PageHeader({
 
 	return (
 		<>
-			<header className={cn("page-header sticky top-0 z-30 -mx-[var(--app-px)] px-[var(--app-px)] pb-2.5", !subtitle && "mb-4", className)}>
+			{/* With a back button the row uses the profile header's gutter (px-4 sm:px-5) so
+			    the icons sit where they do on the profile page and in the photo viewer. */}
+			<header
+				className={cn(
+					"page-header sticky top-0 z-30 -mx-[var(--app-px)] pb-2.5",
+					handleBack || actions ? "px-4 sm:px-5" : "px-[var(--app-px)]",
+					!subtitle && "mb-4",
+					className,
+				)}
+			>
 				{/* Full-bleed (100vw, centred) so the bar spans the window on desktop rather than
 				    stopping at the page's max-width; the overshoot is clipped by html's overflow-x. */}
 				<div

@@ -31,6 +31,7 @@ import { ApiInspectorPage } from "./pages/app/ApiInspectorPage.tsx";
 import { AssignmentsPage } from "./pages/app/AssignmentsPage.tsx";
 import { CustomizabilityPage } from "./pages/app/CustomizabilityPage.tsx";
 import { BehaviorPage } from "./pages/app/BehaviorPage.tsx";
+import { OptionalFeaturesPage } from "./pages/app/OptionalFeaturesPage.tsx";
 import { NotificationsPage } from "./pages/app/NotificationsPage.tsx";
 import { SettingsAutomationPage } from "./pages/app/SettingsAutomationPage.tsx";
 import { SettingsTranslationPage } from "./pages/app/SettingsTranslationPage.tsx";
@@ -279,6 +280,10 @@ export default function App() {
 								<Route
 									path="/settings/customizability"
 									element={<CustomizabilityPage />}
+								/>
+								<Route
+									path="/settings/customizability/optional-features"
+									element={<OptionalFeaturesPage />}
 								/>
 								<Route
 									path="/settings/behavior"

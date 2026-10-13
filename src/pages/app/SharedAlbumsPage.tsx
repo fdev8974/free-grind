@@ -862,7 +862,7 @@ export function SharedAlbumsPage() {
 			<PullToRefreshContainer
 				className="app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
 				contentClassName="flex flex-1 flex-col min-h-0"
-				style={{ overflow: "visible", overflowX: "hidden" }}
+				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}
 				onRefresh={handleRefresh}
 				isDisabled={isLoading || isRefreshing}
 				isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
@@ -872,9 +872,9 @@ export function SharedAlbumsPage() {
 				{/* Header */}
 				<header className="relative z-20 shrink-0 pointer-events-none">
 					<PageHeaderBackground color="var(--accent)" />
-					<div className="pointer-events-auto flex flex-col gap-3 mx-auto w-full max-w-6xl px-[var(--app-px)]">
+					<div className="pointer-events-auto flex flex-col gap-3 mx-auto w-full max-w-6xl px-4 sm:px-5">
 						{/* Row 1: title + count subtitle + refresh */}
-						<div className="mt-3 flex items-center justify-between gap-2">
+						<div className="flex items-center justify-between gap-2">
 							<div className="flex min-w-0 items-center gap-2">
 								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
 								<div className="min-w-0">
