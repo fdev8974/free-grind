@@ -656,8 +656,7 @@
     "collections_save_failed": "Couldn't save the collection.",
     "collections_delete_failed": "Couldn't delete the collection.",
     "collections_delete_confirm_title": "Delete collection?",
-    "collections_delete_confirm_message": "Only the collection is deleted. Its media stays in your drawer.",
-    "collections_mixed_types": "A collection can contain either photos or videos, not both."
+    "collections_delete_confirm_message": "Only the collection is deleted. Its media stays in your drawer."
   },
   "profile_editor": {
     "title": "Profile Editor",

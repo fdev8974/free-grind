@@ -3,6 +3,7 @@ import {
 	Camera,
 	Check,
 	Images,
+	Layers,
 	Pencil,
 	SquareCenterlineDashedHorizontal,
 	Image as ImageIcon,
@@ -212,18 +213,12 @@ export function ChatDrawerPanel({
 				next.delete(id);
 				if (next.size === 0) setMediaMaxViews(defaultImageMaxViews);
 			} else {
-				// Enforce image/video exclusivity: clear opposite type
-				const hasOppositeType = [...next].some((existingId) => {
-					const item = media.find((m) => m.id === existingId);
-					return item ? item.contentType.startsWith("video") !== isVideo : false;
-				});
-				if (hasOppositeType) return prev;
 				if (prev.size === 0) setMediaMaxViews(isVideo ? 1 : defaultImageMaxViews);
 				next.add(id);
 			}
 			return next;
 		});
-	}, [media, defaultImageMaxViews]);
+	}, [defaultImageMaxViews]);
 
 	const isVideoMediaId = useCallback(
 		(id: number) => media.find((m) => m.id === id)?.contentType.startsWith("video") ?? false,
@@ -262,6 +257,14 @@ export function ChatDrawerPanel({
 	const hasCollectionSelection = selectedCollection != null;
 	const hasAnyVideo = sendIds.some((id) => isVideoMediaId(id));
 	const hasAnyImage = sendIds.some((id) => !isVideoMediaId(id));
+	// Photos and videos can be sent together; the single expiry choice then
+	// maps per item in onSendMedia (1 = photos 10s / videos once). "Repeat"
+	// (2) only means something for videos, so it's not offered once photos
+	// are in the mix.
+	const isMixedSelection = hasAnyVideo && hasAnyImage;
+	useEffect(() => {
+		if (mediaMaxViews === 2 && hasAnyImage) setMediaMaxViews(1);
+	}, [mediaMaxViews, hasAnyImage]);
 
 	const toggleCollectionSelection = useCallback(
 		(collection: StoredDrawerCollection) => {
@@ -273,8 +276,9 @@ export function ChatDrawerPanel({
 				return;
 			}
 			setSelectedCollectionId(collection.id);
-			const firstId = getPresentCollectionMediaIds(collection)[0];
-			setMediaMaxViews(firstId != null && isVideoMediaId(firstId) ? 1 : defaultImageMaxViews);
+			const presentIds = getPresentCollectionMediaIds(collection);
+			const onlyVideos = presentIds.length > 0 && presentIds.every((id) => isVideoMediaId(id));
+			setMediaMaxViews(onlyVideos ? 1 : defaultImageMaxViews);
 		},
 		[selectedCollectionId, getPresentCollectionMediaIds, isVideoMediaId, defaultImageMaxViews],
 	);
@@ -676,10 +680,15 @@ export function ChatDrawerPanel({
 									{/* Collections */}
 									{collections.map((collection) => {
 										const presentIds = getPresentCollectionMediaIds(collection);
-										const coverItem = media.find((m) => m.id === presentIds[0]);
-										const coverSrc = coverItem
-											? getCachedMediaUri(getDrawerMediaKey(coverItem.id)) ?? coverItem.url
-											: null;
+										// Up to four items as a mosaic cover, so a collection reads as
+										// "several photos" at a glance.
+										const coverItems = presentIds
+											.slice(0, 4)
+											.map((id) => media.find((m) => m.id === id))
+											.filter((m): m is DrawerMedia => m != null);
+										const mosaicClass =
+											coverItems.length >= 2 ? "grid-cols-2" : "grid-cols-1";
+										const mosaicRows = coverItems.length >= 3 ? "grid-rows-2" : "grid-rows-1";
 										const isSelected = selectedCollectionId === collection.id;
 										const dimmed = (hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation) && !isSelected;
 										return (
@@ -687,27 +696,48 @@ export function ChatDrawerPanel({
 												key={`collection-${collection.id}`}
 												role="button"
 												tabIndex={0}
+												title={t("chat_drawer.collection_badge")}
 												onClick={() => { if (!dimmed) toggleCollectionSelection(collection); }}
 												onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
 												className={`relative aspect-square overflow-hidden cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 											>
-												{coverSrc && coverItem?.contentType.startsWith("image/") ? (
-													<img src={coverSrc} alt="" className="h-full w-full object-cover" />
-												) : coverSrc ? (
-													<video src={coverSrc} preload="metadata" muted className="h-full w-full object-cover" />
+												{coverItems.length > 0 ? (
+													<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
+														{coverItems.map((item, index) => {
+															const src = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+															// With three items the first spans the full left column.
+															const span = coverItems.length === 3 && index === 0 ? "row-span-2" : "";
+															return item.contentType.startsWith("video/") ? (
+																<video
+																	key={item.id}
+																	src={src}
+																	preload="metadata"
+																	muted
+																	onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
+																	className={`h-full w-full min-h-0 object-cover ${span}`}
+																/>
+															) : (
+																<img key={item.id} src={src} alt="" className={`h-full w-full min-h-0 object-cover ${span}`} />
+															);
+														})}
+													</div>
 												) : (
-													<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Images className="h-6 w-6 opacity-50" /></div>
+													<div className="absolute inset-0 bg-[var(--surface)]" />
 												)}
-												<div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-1.5 pb-1.5 pt-6">
-													<p className="truncate text-[11px] font-semibold leading-tight text-white drop-shadow">{collection.name}</p>
-													<p className="flex items-center gap-1 text-[10px] text-white/80">
+												<div className="absolute inset-0 bg-black/35" />
+												<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
+													<div
+														className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 ring-2 ring-white/60 backdrop-blur-sm"
+														style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
+													>
+														<Layers className="h-5 w-5 text-white" />
+													</div>
+													<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{collection.name}</p>
+													<span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white/90">
 														<Images className="h-3 w-3" />
 														{presentIds.length}
-													</p>
+													</span>
 												</div>
-												<span className="pointer-events-none absolute right-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/90">
-													{t("chat_drawer.collection_badge")}
-												</span>
 												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 												{isSelected && <div className="absolute inset-0 pointer-events-none" style={{ border: "2px solid var(--accent)" }} />}
 											</div>
@@ -723,13 +753,10 @@ export function ChatDrawerPanel({
 										const isSelected = selectedIds.has(item.id);
 										const isImage = item.contentType.startsWith("image/");
 										const isItemVideo = item.contentType.startsWith("video/");
-										const isDisabledByType = hasSelection && (
-											(isItemVideo && hasAnyImage) || (!isItemVideo && hasAnyVideo)
-										);
 										const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
 										// 1-based send position, previewing a selected collection's contents.
 										const collectionPosition = selectedCollection ? sendIds.indexOf(item.id) + 1 : 0;
-										const isBlocked = hasAlbumSelection || noConversation || isDisabledByType || (hasCollectionSelection && collectionPosition === 0);
+										const isBlocked = hasAlbumSelection || noConversation || (hasCollectionSelection && collectionPosition === 0);
 										const isClickable = !isBlocked && !hasCollectionSelection;
 
 										return (
@@ -878,7 +905,12 @@ export function ChatDrawerPanel({
 										onChange={(e) => setMediaMaxViews(Number(e.target.value))}
 										className="h-full w-full appearance-none rounded-xl bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
 									>
-										{hasAnyVideo ? (
+										{isMixedSelection ? (
+											<>
+												<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
+												<option value={1}>{t("chat_drawer.expiry.ten_seconds_or_once", { defaultValue: "10s / once" })}</option>
+											</>
+										) : hasAnyVideo ? (
 											<>
 												<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
 												<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>

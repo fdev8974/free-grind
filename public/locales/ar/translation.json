@@ -684,8 +684,7 @@
         "collections_save_failed": "",
         "collections_delete_failed": "",
         "collections_delete_confirm_title": "",
-        "collections_delete_confirm_message": "",
-        "collections_mixed_types": ""
+        "collections_delete_confirm_message": ""
     },
     "profile_editor": {
         "title": "محرر البروفايلات الشخصية",

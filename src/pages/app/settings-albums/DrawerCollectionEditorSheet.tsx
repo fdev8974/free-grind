@@ -48,15 +48,8 @@ export function DrawerCollectionEditorSheet({
 	const isUploading = uploadProgress != null;
 	const isBusy = isUploading || isSaving;
 
-	const isVideoMediaId = useCallback(
-		(id: number) => media.find((m) => m.id === id)?.contentType.startsWith("video") ?? false,
-		[media],
-	);
-	// Same image/video exclusivity as the chat drawer's multi-select — a
-	// collection is sent with a single expiry setting.
 	// Only ids still in the drawer — a collection can outlive some of its media.
 	const orderedSelection = Array.from(selectedIds).filter((id) => media.some((m) => m.id === id));
-	const selectionIsVideo = orderedSelection.length > 0 ? isVideoMediaId(orderedSelection[0]) : null;
 
 	const toggleSelection = useCallback((id: number) => {
 		setSelectedIds((prev) => {
@@ -79,16 +72,10 @@ export function DrawerCollectionEditorSheet({
 			}
 			if (valid.length === 0) return;
 
-			let expectVideo = selectionIsVideo;
 			const uploadedIds: number[] = [];
 			setUploadProgress({ done: 0, total: valid.length });
 			for (const [index, file] of valid.entries()) {
 				const isVideo = file.type.startsWith("video/");
-				if (expectVideo != null && isVideo !== expectVideo) {
-					toast.error(t("settings_albums.collections_mixed_types"));
-					setUploadProgress({ done: index + 1, total: valid.length });
-					continue;
-				}
 				if (file.size > MAX_UPLOAD_BYTES) {
 					toast.error(t("chat.attachments.too_large"));
 					setUploadProgress({ done: index + 1, total: valid.length });
@@ -106,7 +93,6 @@ export function DrawerCollectionEditorSheet({
 					});
 					await service.addMediaToDrawer(uploaded.mediaId);
 					uploadedIds.push(uploaded.mediaId);
-					expectVideo = isVideo;
 				} catch (uploadError) {
 					appLog.error("[DrawerCollectionEditorSheet] upload failed", uploadError);
 					toast.error(
@@ -123,7 +109,7 @@ export function DrawerCollectionEditorSheet({
 				setUploadProgress(null);
 			}
 		},
-		[selectionIsVideo, service, onReloadMedia, t],
+		[service, onReloadMedia, t],
 	);
 
 	const handleSave = useCallback(async () => {
@@ -232,7 +218,6 @@ export function DrawerCollectionEditorSheet({
 							const isVideo = item.contentType.startsWith("video/");
 							const position = orderedSelection.indexOf(item.id) + 1;
 							const isSelected = position > 0;
-							const isDisabledByType = !isSelected && selectionIsVideo != null && isVideo !== selectionIsVideo;
 							const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
 
 							return (
@@ -240,9 +225,9 @@ export function DrawerCollectionEditorSheet({
 									key={item.id}
 									role="button"
 									tabIndex={0}
-									onClick={() => { if (!isDisabledByType && !isBusy) toggleSelection(item.id); }}
-									onKeyDown={(e) => e.key === "Enter" && !isDisabledByType && !isBusy && toggleSelection(item.id)}
-									className={`relative aspect-square overflow-hidden transition cursor-pointer ${isDisabledByType ? "opacity-30 pointer-events-none" : ""}`}
+									onClick={() => { if (!isBusy) toggleSelection(item.id); }}
+									onKeyDown={(e) => e.key === "Enter" && !isBusy && toggleSelection(item.id)}
+									className="relative aspect-square overflow-hidden transition cursor-pointer"
 									style={{
 										outline: isSelected ? "2px solid var(--accent)" : "none",
 										outlineOffset: "-2px",

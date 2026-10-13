@@ -136,24 +136,26 @@ export function DrawerCollectionsSection({
 											{t("settings_albums.collections_item_count", { count })}
 										</p>
 									</div>
-									<button
-										type="button"
-										onClick={() => openEditor(collection)}
-										className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-										aria-label={t("settings_albums.collections_edit")}
-										title={t("settings_albums.collections_edit")}
-									>
-										<Pencil className="h-4 w-4" />
-									</button>
-									<button
-										type="button"
-										onClick={() => setConfirmDeleteId(collection.id)}
-										className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
-										aria-label={t("settings_albums.collections_delete")}
-										title={t("settings_albums.collections_delete")}
-									>
-										<Trash2 className="h-4 w-4" />
-									</button>
+									<div className="flex shrink-0 items-center gap-1.5">
+										<button
+											type="button"
+											onClick={() => openEditor(collection)}
+											className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+											aria-label={t("settings_albums.collections_edit")}
+											title={t("settings_albums.collections_edit")}
+										>
+											<Pencil className="h-3.5 w-3.5" />
+										</button>
+										<button
+											type="button"
+											onClick={() => setConfirmDeleteId(collection.id)}
+											className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-red-400 hover:text-red-400"
+											aria-label={t("settings_albums.collections_delete")}
+											title={t("settings_albums.collections_delete")}
+										>
+											<Trash2 className="h-3.5 w-3.5" />
+										</button>
+									</div>
 								</div>
 							);
 						})}
