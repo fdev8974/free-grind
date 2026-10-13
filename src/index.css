@@ -1252,8 +1252,10 @@ dialog::backdrop {
 		border-color: transparent !important;
 		background-color: transparent !important;
 		box-shadow: none !important;
-		backdrop-filter: none !important;
-		-webkit-backdrop-filter: none !important;
+		/* The build's CSS minifier collapses a plain `backdrop-filter: none`
+		   into only the -webkit- variant, so neutralise Tailwind's blur via
+		   its variable instead — that survives into the unprefixed property. */
+		--tw-backdrop-blur: blur(0) !important;
 	}
 
 	.header-icon-btn > svg {

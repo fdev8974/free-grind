@@ -616,7 +616,7 @@ export function PhotoViewer({
 				<button
 					type="button"
 					onClick={(e) => { e.stopPropagation(); onClose(); }}
-					className="absolute left-3 inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90 sm:left-5"
+					className="header-icon-btn header-icon-btn--back absolute left-3 inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5"
 					style={{ top: chromeButtonTop }}
 					aria-label={t("profile_details.close_photo_viewer")}
 				>
@@ -703,7 +703,7 @@ export function PhotoViewer({
 								onClick={onClose}
 								onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
 								onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
-								className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90"
+								className="header-icon-btn header-icon-btn--back inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 								aria-label={t("profile_details.close_photo_viewer")}
 							>
 								<ChevronLeft className="h-4 w-4" />
@@ -741,7 +741,7 @@ export function PhotoViewer({
 								onTouchEnd={(e) => handleButtonTouchEnd(e, () => setIsMenuOpen((v) => !v))}
 								aria-label="More options"
 								aria-expanded={isMenuOpen}
-								className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90"
+								className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 							>
 								<EllipsisVertical className="h-4 w-4" />
 							</button>
@@ -781,7 +781,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); onClose(); }}
 						onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
-						className={`absolute left-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90 sm:left-5 ${chromeFadeClass}`}
+						className={`header-icon-btn header-icon-btn--back absolute left-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.close_photo_viewer")}
 					>
@@ -793,7 +793,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); void handleSave(); }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, () => void handleSave())}
 						disabled={isSaving}
-						className={`absolute right-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90 disabled:opacity-50 sm:right-5 ${chromeFadeClass}`}
+						className={`header-icon-btn absolute right-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 disabled:opacity-50 sm:right-5 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.save")}
 					>
