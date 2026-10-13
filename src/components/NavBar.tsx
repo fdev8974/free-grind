@@ -513,7 +513,12 @@ export function NavBar() {
 												alt={t("browse_page.your_profile_photo")}
 												className={cn(
 													"h-6 w-6 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
-													activeTab === "account" || isAccountSwitcherOpen ? "ring-current" : "ring-transparent",
+													activeTab === "account" || isAccountSwitcherOpen
+														? // The floating bar fills the active tab with the accent, so the ring flips to its contrast color there.
+															fullWidth || activeTab !== "account"
+															? "ring-[var(--accent)]"
+															: "ring-[var(--accent-contrast)]"
+														: "ring-transparent",
 												)}
 											/>
 										)}
