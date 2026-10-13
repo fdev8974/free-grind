@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, Flame, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
+import { Check, ChevronRight, Clock, Flame, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -9,6 +9,8 @@ import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/tim
 import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
 import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
+import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -59,6 +61,8 @@ function getContrastForHex(hexColor: string): "#1a1a1a" | "#ffffff" {
 }
 
 
+/** Settings row that picks one of several options from a bottom sheet — same
+ * pattern as the translation provider picker, instead of a native <select>. */
 function SelectRow({
 	icon,
 	iconClass,
@@ -78,25 +82,48 @@ function SelectRow({
 	id?: string;
 	highlighted?: boolean;
 }) {
+	const isDesktop = useDesktopBreakpoint();
+	const [isOpen, setIsOpen] = useState(false);
+	const selectedLabel = options.find((o) => o.value === value)?.label ?? value;
+
 	return (
-		<div
-			id={id}
-			className={`flex items-center gap-3 px-4 py-3.5 ${highlighted ? "animate-settings-highlight" : ""}`}
-		>
-			<div className={`rounded-2xl p-2.5 shrink-0 ${iconClass}`}>{icon}</div>
-			<p className="min-w-0 flex-1 text-sm font-semibold">{label}</p>
-			<select
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				className="h-9 w-40 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 pr-7 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
+		<>
+			<button
+				id={id}
+				type="button"
+				onClick={() => setIsOpen(true)}
+				className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] ${highlighted ? "animate-settings-highlight" : ""}`}
 			>
-				{options.map((o) => (
-					<option key={o.value} value={o.value}>
-						{o.label}
-					</option>
-				))}
-			</select>
-		</div>
+				<div className={`rounded-2xl p-2.5 shrink-0 ${iconClass}`}>{icon}</div>
+				<p className="min-w-0 flex-1 text-sm font-semibold">{label}</p>
+				<span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-[var(--text-muted)]">{selectedLabel}</span>
+				<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+			</button>
+			{isOpen && (
+				<BottomSheet onClose={() => setIsOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
+					<div className="flex items-center justify-between px-4 pb-3">
+						<p className="text-sm font-semibold text-[var(--text)]">{label}</p>
+						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+							<X className="h-4 w-4" />
+						</SheetClose>
+					</div>
+					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
+						{options.map((option) => (
+							<SheetClose
+								key={option.value}
+								onClick={() => {
+									if (option.value !== value) onChange(option.value);
+								}}
+								className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+							>
+								<p className="min-w-0 flex-1 text-sm font-semibold leading-snug">{option.label}</p>
+								{option.value === value && <Check className="h-5 w-5 shrink-0 text-[var(--accent)]" />}
+							</SheetClose>
+						))}
+					</div>
+				</BottomSheet>
+			)}
+		</>
 	);
 }
 

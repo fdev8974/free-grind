@@ -52,6 +52,7 @@
         "ota_available_only_tauri": "Posodobitve OTA so na voljo samo v aplikaciji Tauri.",
         "latest_version": "Že imaš najnovejšo različico.",
         "update_installed": "Posodobitev nameščena. Ponovno nalagam…",
+        "updated_to_version": "",
         "failed_update_check": "Preverjanje ali namestitev posodobitve ni uspela.",
         "switched_and_updated": "Preklopljeno na {{channel}} in uporabljena posodobitev. Ponovno nalagam…",
         "switched_channel": "Preklopljeno na {{channel}} . Ponovno nalagam…",

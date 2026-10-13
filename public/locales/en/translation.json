@@ -52,6 +52,7 @@
     "ota_available_only_tauri": "OTA updates are only available in the Tauri app.",
     "latest_version": "You already have the latest version.",
     "update_installed": "Update installed. Reloading now…",
+    "updated_to_version": "Updated to version {{version}}",
     "failed_update_check": "Failed to check or apply update.",
     "switched_and_updated": "Switched to {{channel}} and applied update. Reloading…",
     "switched_channel": "Switched to {{channel}}. Reloading…",

@@ -24,6 +24,9 @@ if (typeof window !== "undefined") {
 
 let startupReadyNotified = false;
 const HOTSWAP_CHANNEL_STORAGE_KEY = "hotswap-channel";
+// Version of a just-applied OTA bundle, written before the reload and read
+// once by HotswapUpdatedToastBridge on the next startup.
+const HOTSWAP_JUST_UPDATED_STORAGE_KEY = "hotswap-just-updated-version";
 const HOTSWAP_CHANNELS = ["main", "development"] as const;
 
 /** A contributor channel is always prefixed with "contrib-" */
@@ -183,5 +186,23 @@ export async function installHotswapUpdate(): Promise<void> {
 		return;
 	}
 
-	await applyUpdate();
+	const version = await applyUpdate();
+	try {
+		window.localStorage.setItem(HOTSWAP_JUST_UPDATED_STORAGE_KEY, version);
+	} catch {
+		// Storage unavailable — skip the post-reload toast.
+	}
+}
+
+/** Returns the version of an OTA update applied before the last reload (once), else null. */
+export function consumeHotswapJustUpdatedVersion(): string | null {
+	try {
+		const version = window.localStorage.getItem(HOTSWAP_JUST_UPDATED_STORAGE_KEY);
+		if (version !== null) {
+			window.localStorage.removeItem(HOTSWAP_JUST_UPDATED_STORAGE_KEY);
+		}
+		return version;
+	} catch {
+		return null;
+	}
 }

@@ -52,6 +52,7 @@
         "ota_available_only_tauri": "تحديثات OTA متاحة بس في تطبيق Tauri.",
         "latest_version": "إنت بالفعل على أحدث نسخة.",
         "update_installed": "التحديث اتنصّب. بيعيد التحميل دلوقتي…",
+        "updated_to_version": "",
         "failed_update_check": "فشل التحقق أو تطبيق التحديث.",
         "switched_and_updated": "اتحوّل لـ {{channel}} واتطبق التحديث. بيعيد التحميل…",
         "switched_channel": "اتحوّل لـ {{channel}}. بيعيد التحميل…",

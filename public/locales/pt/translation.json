@@ -51,6 +51,7 @@
         "ota_available_only_tauri": "",
         "latest_version": "",
         "update_installed": "",
+        "updated_to_version": "",
         "failed_update_check": "",
         "switched_and_updated": "",
         "switched_channel": "",

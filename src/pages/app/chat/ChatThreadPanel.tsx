@@ -1345,11 +1345,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								</button>
 								<div className="min-w-0">
 									<div className="flex items-center gap-1.5 min-w-0">
-										<p className="truncate text-lg font-semibold">
+										<p className="truncate text-lg font-semibold leading-tight">
 											{displayName}
 										</p>
 									</div>
-									<p className="text-sm text-[var(--text-muted)]">
+									{/* leading-tight keeps this block at the 40px button/avatar height, so the
+									    header row (and its icons) sits exactly like the profile / photo viewer. */}
+									<p className="text-sm leading-tight text-[var(--text-muted)]">
 										{[
 											onlineMeta.label,
 											distanceLabel,

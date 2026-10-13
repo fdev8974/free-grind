@@ -55,6 +55,7 @@ import { EntitlementsBridge } from "./components/EntitlementsBridge";
 import { HondurasRecoveryBridge } from "./components/HondurasRecoveryBridge";
 import { ManagedOptionsCacheBridge } from "./components/ManagedOptionsCacheBridge";
 import { SplashReadyBridge } from "./components/SplashReadyBridge";
+import { HotswapUpdatedToastBridge } from "./components/HotswapUpdatedToastBridge";
 import { SmoothScroll } from "./components/SmoothScroll";
 import { SinModeUnlockOverlay } from "./components/SinModeUnlockOverlay";
 import { usePreferences } from "./contexts/PreferencesContext";
@@ -186,6 +187,7 @@ export default function App() {
 	return (
 		<AuthProvider>
 			<SplashReadyBridge />
+			<HotswapUpdatedToastBridge />
 			<PreferencesProvider>
 			<ExploreModeProvider>
 				<SinModeUnlockOverlay />
