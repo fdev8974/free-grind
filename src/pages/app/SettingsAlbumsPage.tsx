@@ -52,6 +52,7 @@ import {
 	getVideoDurationMs,
 } from "./settings-albums/settingsAlbumsUtils";
 import { AlbumDrawerPickerSheet } from "./settings-albums/AlbumDrawerPickerSheet";
+import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSection";
 import type { DrawerMedia } from "./chat/ChatDrawerPanel";
 import { sortDrawerMediaByUsage } from "./chat/chatUtils";
 import * as chatDb from "../../services/chatDb";
@@ -1206,6 +1207,14 @@ export function SettingsAlbumsPage() {
 						</div>
 					)}
 				</div>
+
+				<DrawerCollectionsSection
+					drawerMedia={drawerMedia}
+					isLoadingDrawerMedia={isLoadingDrawerMedia}
+					drawerMediaError={drawerMediaError}
+					loadDrawerMedia={loadDrawerMedia}
+					isDesktop={isDesktop}
+				/>
 			</div>
 
 			<ConfirmDialog

@@ -465,12 +465,12 @@ async function getDb(): Promise<Database> {
 					)
 				`);
 
-				// Local-only albums built from drawer media — the server has no
-				// such concept. media_ids_json keeps the drawer media ids in send
-				// order; ids that have since been deleted from the drawer are just
-				// skipped at send time, not pruned here.
+				// Collections: local-only, named groups of drawer media — the
+				// server has no such concept. media_ids_json keeps the drawer media
+				// ids in send order; ids that have since been deleted from the
+				// drawer are just skipped at send time, not pruned here.
 				await db.execute(`
-					CREATE TABLE IF NOT EXISTS local_drawer_albums (
+					CREATE TABLE IF NOT EXISTS drawer_collections (
 						id TEXT PRIMARY KEY,
 						name TEXT NOT NULL,
 						media_ids_json TEXT NOT NULL DEFAULT '[]',
@@ -478,6 +478,17 @@ async function getDb(): Promise<Database> {
 						updated_at INTEGER NOT NULL
 					)
 				`);
+				// Briefly shipped as local_drawer_albums in a test build — carry
+				// any rows over once, then drop the old table.
+				try {
+					await db.execute(`
+						INSERT OR IGNORE INTO drawer_collections (id, name, media_ids_json, created_at, updated_at)
+						SELECT id, name, media_ids_json, created_at, updated_at FROM local_drawer_albums
+					`);
+					await db.execute("DROP TABLE local_drawer_albums");
+				} catch {
+					// never existed / already migrated
+				}
 
 				await db.execute(`
 					CREATE TABLE IF NOT EXISTS block_events (
@@ -1011,17 +1022,17 @@ export async function incrementDrawerMediaSendCount(mediaId: number): Promise<vo
 }
 
 // ---------------------------------------------------------------------------
-// Local drawer albums
+// Drawer collections
 // ---------------------------------------------------------------------------
 
-export interface StoredLocalDrawerAlbum {
+export interface StoredDrawerCollection {
 	id: string;
 	name: string;
 	/** Drawer media ids, in the order they get sent. */
 	mediaIds: number[];
 }
 
-type LocalDrawerAlbumRow = { id: string; name: string; media_ids_json: string };
+type DrawerCollectionRow = { id: string; name: string; media_ids_json: string };
 
 function parseMediaIds(json: string): number[] {
 	try {
@@ -1032,24 +1043,24 @@ function parseMediaIds(json: string): number[] {
 	}
 }
 
-export async function getLocalDrawerAlbums(): Promise<StoredLocalDrawerAlbum[]> {
+export async function getDrawerCollections(): Promise<StoredDrawerCollection[]> {
 	const db = await getDb();
-	const rows = await db.select<LocalDrawerAlbumRow[]>(
-		"SELECT id, name, media_ids_json FROM local_drawer_albums ORDER BY created_at ASC",
+	const rows = await db.select<DrawerCollectionRow[]>(
+		"SELECT id, name, media_ids_json FROM drawer_collections ORDER BY created_at ASC",
 	);
 	return rows.map((row) => ({ id: row.id, name: row.name, mediaIds: parseMediaIds(row.media_ids_json) }));
 }
 
-export async function upsertLocalDrawerAlbum(
-	input: StoredLocalDrawerAlbum,
-): Promise<StoredLocalDrawerAlbum[]> {
+export async function upsertDrawerCollection(
+	input: StoredDrawerCollection,
+): Promise<StoredDrawerCollection[]> {
 	const db = await getDb();
 	const now = Date.now();
 
-	await executeWithLockRetry(db, "upsert-local-drawer-album", async () => {
+	await executeWithLockRetry(db, "upsert-drawer-collection", async () => {
 		await db.execute(
 			`
-			INSERT INTO local_drawer_albums (id, name, media_ids_json, created_at, updated_at)
+			INSERT INTO drawer_collections (id, name, media_ids_json, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $4)
 			ON CONFLICT(id) DO UPDATE SET name = $2, media_ids_json = $3, updated_at = $4
 			`,
@@ -1057,17 +1068,17 @@ export async function upsertLocalDrawerAlbum(
 		);
 	});
 
-	return getLocalDrawerAlbums();
+	return getDrawerCollections();
 }
 
-export async function deleteLocalDrawerAlbum(id: string): Promise<StoredLocalDrawerAlbum[]> {
+export async function deleteDrawerCollection(id: string): Promise<StoredDrawerCollection[]> {
 	const db = await getDb();
 
-	await executeWithLockRetry(db, "delete-local-drawer-album", async () => {
-		await db.execute("DELETE FROM local_drawer_albums WHERE id = $1", [id]);
+	await executeWithLockRetry(db, "delete-drawer-collection", async () => {
+		await db.execute("DELETE FROM drawer_collections WHERE id = $1", [id]);
 	});
 
-	return getLocalDrawerAlbums();
+	return getDrawerCollections();
 }
 
 /** Unhides a conversation only if it's currently hidden, reporting whether it

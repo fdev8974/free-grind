@@ -159,6 +159,20 @@ export async function buildBinaryUpload(file: File): Promise<{
 	};
 }
 
+/** Whole seconds, or 0 when the browser can't read the duration. */
+export function getVideoDurationSeconds(file: File): Promise<number> {
+	return new Promise<number>((resolve) => {
+		const vid = document.createElement("video");
+		vid.preload = "metadata";
+		vid.onloadedmetadata = () => {
+			resolve(isFinite(vid.duration) ? Math.round(vid.duration) : 0);
+			URL.revokeObjectURL(vid.src);
+		};
+		vid.onerror = () => { resolve(0); URL.revokeObjectURL(vid.src); };
+		vid.src = URL.createObjectURL(file);
+	});
+}
+
 const dateTimeFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
 function getDateTimeFormatter(lng: string, options: Intl.DateTimeFormatOptions) {

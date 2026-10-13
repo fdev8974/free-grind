@@ -85,6 +85,7 @@ import { ChatMediaSheet } from "./chat/ChatMediaSheet";
 import * as chatLog from "../../services/chatLog";
 import {
 	buildBinaryUpload,
+	getVideoDurationSeconds,
 	buildChatFiltersDraft,
 	buildPreviewFromMessage,
 	conversationNeedsReply,
@@ -6195,19 +6196,7 @@ export function ChatPage() {
 
 			setIsAddingDrawerMedia(true);
 			try {
-				let durationSeconds: number | undefined;
-				if (isVideo) {
-					durationSeconds = await new Promise<number>((resolve) => {
-						const vid = document.createElement("video");
-						vid.preload = "metadata";
-						vid.onloadedmetadata = () => {
-							resolve(isFinite(vid.duration) ? Math.round(vid.duration) : 0);
-							URL.revokeObjectURL(vid.src);
-						};
-						vid.onerror = () => { resolve(0); URL.revokeObjectURL(vid.src); };
-						vid.src = URL.createObjectURL(file);
-					});
-				}
+				const durationSeconds = isVideo ? await getVideoDurationSeconds(file) : undefined;
 
 				const binaryUpload = await buildBinaryUpload(file);
 				const uploaded = await service.uploadChatMedia({
