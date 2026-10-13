@@ -1040,7 +1040,7 @@ export function SettingsPage() {
 											</div>
 											<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("settings.check_updates_desc")}</p>
 										</div>
-										{hotswapProgress.phase !== "idle" && (() => {
+										{hotswapProgress.phase !== "idle" && hotswapProgress.phase !== "checking" && (() => {
 											const percent =
 												hotswapProgress.phase === "downloading" && hotswapProgress.total
 													? Math.min(100, Math.round((hotswapProgress.downloaded / hotswapProgress.total) * 100))
@@ -1048,18 +1048,16 @@ export function SettingsPage() {
 														? 100
 														: null;
 											const label =
-												hotswapProgress.phase === "checking"
-													? t("settings.ota_progress_checking", { defaultValue: "Checking for updates…" })
-													: hotswapProgress.phase === "downloading"
-														? t("settings.ota_progress_downloading", {
-																defaultValue: "Downloading update… {{size}}",
-																size: hotswapProgress.total
-																	? `${formatMegabytes(hotswapProgress.downloaded)} / ${formatMegabytes(hotswapProgress.total)}`
-																	: formatMegabytes(hotswapProgress.downloaded),
-															})
-														: hotswapProgress.phase === "installing"
-															? t("settings.ota_progress_installing", { defaultValue: "Installing update…" })
-															: t("settings.ota_progress_done", { defaultValue: "Update installed. Reloading…" });
+												hotswapProgress.phase === "downloading"
+													? t("settings.ota_progress_downloading", {
+															defaultValue: "Downloading update… {{size}}",
+															size: hotswapProgress.total
+																? `${formatMegabytes(hotswapProgress.downloaded)} / ${formatMegabytes(hotswapProgress.total)}`
+																: formatMegabytes(hotswapProgress.downloaded),
+														})
+													: hotswapProgress.phase === "installing"
+														? t("settings.ota_progress_installing", { defaultValue: "Installing update…" })
+														: t("settings.ota_progress_done", { defaultValue: "Update installed. Reloading…" });
 											return (
 												<div className="mt-3">
 													<div className="flex items-center justify-between gap-2">

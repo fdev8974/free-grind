@@ -59,7 +59,6 @@
         "failed_switch_env": "Fehler beim Wechseln der Update-Umgebung.",
         "translation": "Übersetzung",
         "translation_desc": "Übersetze Chatnachrichten in deine App-Sprache, einzeln oder automatisch pro Chat.",
-        "ota_progress_checking": "Suche nach Updates…",
         "ota_progress_downloading": "Update wird heruntergeladen… {{size}}",
         "ota_progress_installing": "Update wird installiert…",
         "ota_progress_done": "Update installiert. Wird neu geladen…"

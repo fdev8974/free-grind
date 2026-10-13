@@ -59,7 +59,6 @@
         "failed_switch_env": "Échec du changement d'environnement de mise à jour.",
         "translation": "Traduction",
         "translation_desc": "Traduisez les messages du chat dans la langue de l'application, un par un ou automatiquement par chat.",
-        "ota_progress_checking": "Recherche de mises à jour…",
         "ota_progress_downloading": "Téléchargement de la mise à jour… {{size}}",
         "ota_progress_installing": "Installation de la mise à jour…",
         "ota_progress_done": "Mise à jour installée. Rechargement…",

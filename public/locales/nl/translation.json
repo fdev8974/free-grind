@@ -59,7 +59,6 @@
         "failed_switch_env": "Wisselen van update-omgeving mislukt.",
         "translation": "Vertaling",
         "translation_desc": "Vertaal chatberichten naar je app-taal, één voor één of automatisch per chat.",
-        "ota_progress_checking": "Controleren op updates…",
         "ota_progress_downloading": "Update downloaden… {{size}}",
         "ota_progress_installing": "Update installeren…",
         "ota_progress_done": "Update geïnstalleerd. Herladen…"

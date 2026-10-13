@@ -59,7 +59,6 @@
         "failed_switch_env": "فشل تحويل بيئة التحديث.",
         "translation": "الترجمة",
         "translation_desc": "ترجم رسائل الدردشة إلى لغة التطبيق، رسالةً تلو الأخرى أو تلقائيًا لكل محادثة.",
-        "ota_progress_checking": "جارٍ البحث عن تحديثات…",
         "ota_progress_downloading": "جارٍ تنزيل التحديث… {{size}}",
         "ota_progress_installing": "جارٍ تثبيت التحديث…",
         "ota_progress_done": "تم تثبيت التحديث. جارٍ إعادة التحميل…",

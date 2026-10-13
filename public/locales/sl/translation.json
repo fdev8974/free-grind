@@ -59,7 +59,6 @@
         "failed_switch_env": "Preklop okolja za posodobitve ni uspel.",
         "translation": "Prevajanje",
         "translation_desc": "Prevajaj sporočila klepeta v jezik aplikacije, eno za drugim ali samodejno za posamezen klepet.",
-        "ota_progress_checking": "Iskanje posodobitev…",
         "ota_progress_downloading": "Prenašanje posodobitve… {{size}}",
         "ota_progress_installing": "Nameščanje posodobitve…",
         "ota_progress_done": "Posodobitev nameščena. Ponovno nalaganje…",
