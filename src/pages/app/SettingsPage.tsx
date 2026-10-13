@@ -1070,16 +1070,18 @@ export function SettingsPage() {
 															</p>
 														)}
 													</div>
-													<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
-														<div
-															className={
-																percent == null
-																	? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
-																	: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
-															}
-															style={percent != null ? { width: `${percent}%` } : undefined}
-														/>
-													</div>
+													{hotswapProgress.phase !== "checking" && (
+														<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+															<div
+																className={
+																	percent == null
+																		? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
+																		: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+																}
+																style={percent != null ? { width: `${percent}%` } : undefined}
+															/>
+														</div>
+													)}
 												</div>
 											);
 										})()}
