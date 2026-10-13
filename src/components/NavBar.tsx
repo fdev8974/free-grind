@@ -382,11 +382,21 @@ export function NavBar() {
 									}}
 									className={cn(
 										"flex h-full flex-col items-center justify-center gap-1 rounded-xl text-[var(--text-muted)] transition-colors duration-150 hover:text-[var(--text)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] md:gap-1.5",
-										item.value === "right-now"
-											? "focus-visible:ring-[var(--right-now)] data-[state=active]:bg-[var(--right-now)] data-[state=active]:text-white"
-											: item.value === "browse" && isExploreActive
-												? "focus-visible:ring-[var(--explore)] data-[state=active]:bg-[var(--explore)] data-[state=active]:text-white"
-												: "focus-visible:ring-[var(--accent)] data-[state=active]:bg-[var(--accent)] data-[state=active]:text-[var(--accent-contrast)]"
+										isMobilePlatform
+											? // Mobile app: no filled pill on the full-width bar, highlight via text color only.
+												cn(
+													"data-[state=active]:bg-transparent data-[state=active]:shadow-none",
+													item.value === "right-now"
+														? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
+														: item.value === "browse" && isExploreActive
+															? "focus-visible:ring-[var(--explore)] data-[state=active]:text-[var(--explore)]"
+															: "focus-visible:ring-[var(--accent)] data-[state=active]:text-[var(--accent)]",
+												)
+											: item.value === "right-now"
+												? "focus-visible:ring-[var(--right-now)] data-[state=active]:bg-[var(--right-now)] data-[state=active]:text-white"
+												: item.value === "browse" && isExploreActive
+													? "focus-visible:ring-[var(--explore)] data-[state=active]:bg-[var(--explore)] data-[state=active]:text-white"
+													: "focus-visible:ring-[var(--accent)] data-[state=active]:bg-[var(--accent)] data-[state=active]:text-[var(--accent-contrast)]"
 									)}
 								>
 									<div className="relative">
