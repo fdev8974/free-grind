@@ -42,6 +42,9 @@ export function BrowseCardTile({
 	const { ref, revealClass } = useRevealOnScroll();
 	const name = localNickname?.trim() || getDisplayName(card);
 	const onlineStatus = getOnlineStatusMeta(card.lastOnline, card.onlineUntil);
+	// Online but about to expire (<= 5 minutes left) — show the indicator in amber instead of green.
+	const isOnlineEndingSoon = onlineStatus.isOnline && (onlineStatus.count ?? Infinity) <= 5;
+	const onlineTextColor = isOnlineEndingSoon ? "text-amber-500" : "text-green-500";
 	const age = typeof card.age === "number" && card.age > 0 ? card.age : null;
 	const isDemoCard = card.profileId.toString().startsWith("demo-");
 	const isVisiting = card.isVisiting === true;
@@ -207,19 +210,19 @@ export function BrowseCardTile({
 								isVisiting ? (
 									<span className="inline-flex" title={t("profile_details.visiting")}>
 										<Plane
-											className="h-4 w-4 text-green-500 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]"
+											className={cn("h-4 w-4 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]", onlineTextColor)}
 											strokeWidth={2.5}
 										/>
 									</span>
 								) : isRoaming ? (
 									<span className="inline-flex" title={t("profile_details.roaming")}>
 										<Satellite
-											className="h-4 w-4 text-green-500 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]"
+											className={cn("h-4 w-4 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]", onlineTextColor)}
 											strokeWidth={2.5}
 										/>
 									</span>
 								) : (
-									<span className="block h-3 w-3 rounded-full bg-green-500 shadow-lg ring-2 ring-black/30" />
+									<span className={cn("block h-3 w-3 rounded-full shadow-lg ring-2 ring-black/30", isOnlineEndingSoon ? "bg-amber-500" : "bg-green-500")} />
 								)
 							) : null}
 							{!onlineStatus.isOnline && (
