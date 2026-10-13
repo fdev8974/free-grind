@@ -713,7 +713,7 @@ export function PhotoViewer({
 									type="button"
 									onClick={albumHeader.onClick}
 									disabled={!albumHeader.onClick}
-									className="flex min-w-0 items-center gap-3 text-left disabled:cursor-default"
+									className="header-back-adjacent flex min-w-0 items-center gap-3 text-left disabled:cursor-default"
 								>
 									<div
 										className={`h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-white/10 ${

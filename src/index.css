@@ -1278,6 +1278,12 @@ dialog::backdrop {
 		margin-inline-start: -0.5rem;
 	}
 
+	/* The borderless chevron's own padding already reads as spacing, so pull
+	   the avatar + name that follow it in by the same amount. */
+	.header-icon-btn--back + .header-back-adjacent {
+		margin-inline-start: -0.5rem;
+	}
+
 	/* Toggled states (favorite) lose their filled chip, so carry it in the glyph. */
 	.header-icon-btn--active {
 		color: var(--accent) !important;

@@ -1328,7 +1328,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									disabled={profileId == null}
 									aria-label="Open profile"
 									title={onlineMeta.label}
-									className={`h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-[var(--surface-2)] transition disabled:cursor-default disabled:opacity-80 ${
+									className={`header-back-adjacent h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-[var(--surface-2)] transition disabled:cursor-default disabled:opacity-80 ${
 										isOnline
 											? "border-emerald-500 shadow-[0_0_0_2px_color-mix(in_srgb,var(--surface)_70%,transparent)] hover:border-emerald-400"
 											: "border-[var(--border)] hover:border-[var(--accent)]"
