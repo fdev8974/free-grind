@@ -101,14 +101,13 @@ export function PhotoViewer({
 	// gate, default chrome, album header) so switching between them never
 	// shifts the back button. The position indicator sits below this, it
 	// never pushes the header itself down.
-	const chromeTopOffset = "calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))";
-	// The real chat header vertically centers its back button (items-center)
-	// against a taller h-10 avatar, which visually shifts the button ~4px
-	// below the row's own top edge. The album header here reproduces that
-	// centering naturally; buttons rendered standalone (gate screen,
-	// non-album chrome) need this offset added explicitly to land on the
-	// exact same pixel as the chat header's back button.
-	const chromeButtonTop = `calc(${chromeTopOffset} + 7px)`;
+	// Mirrors the profile page's floating header (ProfileDetailsModal inline
+	// layout: px-4 sm:px-5, safe-area + 10px) so the back/menu buttons stay on
+	// the same pixel when the viewer opens on top of a profile.
+	const chromeTopOffset = "calc(env(safe-area-inset-top, 0px) + 10px)";
+	// Standalone buttons (gate screen, non-album chrome) sit in no row, so they
+	// get the row's top directly — the album row is button/avatar height anyway.
+	const chromeButtonTop = chromeTopOffset;
 
 	const [centerIdx, setCenterIdx] = useState(initialIndex);
 	const [trackPos, setTrackPos] = useState(1);
@@ -616,7 +615,7 @@ export function PhotoViewer({
 				<button
 					type="button"
 					onClick={(e) => { e.stopPropagation(); onClose(); }}
-					className="header-icon-btn header-icon-btn--back absolute left-3 inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5"
+					className="header-icon-btn header-icon-btn--back absolute left-4 inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5"
 					style={{ top: chromeButtonTop }}
 					aria-label={t("profile_details.close_photo_viewer")}
 				>
@@ -690,7 +689,7 @@ export function PhotoViewer({
 						aria-hidden="true"
 					/>
 					<div
-						className={`pointer-events-none absolute inset-x-0 top-0 z-[83] px-3 sm:px-5 ${chromeFadeClass}`}
+						className={`pointer-events-none absolute inset-x-0 top-0 z-[83] px-4 sm:px-5 ${chromeFadeClass}`}
 						style={{ paddingTop: chromeTopOffset }}
 					>
 						<div
@@ -781,7 +780,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); onClose(); }}
 						onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
-						className={`header-icon-btn header-icon-btn--back absolute left-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5 ${chromeFadeClass}`}
+						className={`header-icon-btn header-icon-btn--back absolute left-4 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 sm:left-5 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.close_photo_viewer")}
 					>
@@ -793,7 +792,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); void handleSave(); }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, () => void handleSave())}
 						disabled={isSaving}
-						className={`header-icon-btn absolute right-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 disabled:opacity-50 sm:right-5 ${chromeFadeClass}`}
+						className={`header-icon-btn absolute right-4 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 disabled:opacity-50 sm:right-5 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.save")}
 					>
@@ -1106,7 +1105,7 @@ export function PhotoViewer({
 				// width and was forcing the text to wrap.
 				<div
 					className={`absolute left-1/2 z-[83] flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 ${chromeFadeClass}`}
-					style={{ top: `calc(${chromeButtonTop} + 1rem)` }}
+					style={{ top: `calc(${chromeButtonTop} + 1.25rem)` }}
 					onClick={(e) => e.stopPropagation()}
 				>
 					{renderExtraInfo(centerIdx)}
