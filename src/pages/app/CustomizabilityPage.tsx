@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Clock, Flame, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, ToggleRight, Type, Vibrate } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Clock, Flame, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -111,7 +110,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export function CustomizabilityPage() {
 	const { i18n, t } = useTranslation();
-	const navigate = useNavigate();
 	const highlightId = useSettingsHighlight();
 	const {
 		colorScheme,
@@ -601,34 +599,6 @@ export function CustomizabilityPage() {
 								/>
 							</div>
 						)}
-					</div>
-				</div>
-
-				{/* OPTIONAL FEATURES */}
-				<div>
-					<SectionLabel>{t("customizability.optional_features", { defaultValue: "Optional Features" })}</SectionLabel>
-					<div className="surface-card overflow-hidden">
-						<button
-							id="cust-optional-features"
-							type="button"
-							onClick={() => navigate("/settings/customizability/optional-features")}
-							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] ${highlightId === "cust-optional-features" ? "animate-settings-highlight" : ""}`}
-						>
-							<div className="rounded-2xl p-2.5 shrink-0 bg-slate-500/15 text-slate-400">
-								<ToggleRight className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold leading-snug">
-									{t("customizability.optional_features", { defaultValue: "Optional Features" })}
-								</p>
-								<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-									{t("customizability.optional_features_desc", {
-										defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
-									})}
-								</p>
-							</div>
-							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-						</button>
 					</div>
 				</div>
 

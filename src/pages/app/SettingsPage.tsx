@@ -29,6 +29,7 @@ import {
 	Search,
 	Shield,
 	SlidersHorizontal,
+	ToggleRight,
 	Terminal,
 	FlaskConical,
     Workflow,
@@ -956,6 +957,15 @@ export function SettingsPage() {
 							"bg-slate-500/15 text-slate-400",
 							t("settings.behavior"),
 							t("settings.behavior_desc"),
+						)}
+						{navRow(
+							() => navigate("/settings/optional-features"),
+							<ToggleRight className="h-5 w-5" />,
+							"bg-emerald-500/15 text-emerald-400",
+							t("customizability.optional_features", { defaultValue: "Optional Features" }),
+							t("customizability.optional_features_desc", {
+								defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
+							}),
 						)}
 						{navRow(
 							() => navigate("/settings/notifications"),

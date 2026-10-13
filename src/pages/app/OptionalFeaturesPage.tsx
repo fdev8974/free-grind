@@ -24,7 +24,7 @@ export function OptionalFeaturesPage() {
 	return (
 		<section className="app-screen">
 			<PageHeader
-				backTo="/settings/customizability"
+				backTo="/settings"
 				title={t("customizability.optional_features", { defaultValue: "Optional Features" })}
 				subtitle={t("customizability.optional_features_desc", {
 					defaultValue: "Turn extra features on or off to keep the app as simple as you like.",

@@ -180,18 +180,18 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		},
 		{
 			id: "nav-optional-features",
-			route: "/settings/customizability/optional-features",
+			route: "/settings/optional-features",
 			label: t("customizability.optional_features", { defaultValue: "Optional Features" }),
 			description: t("customizability.optional_features_desc", {
 				defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
 			}),
 			section: "Customizability",
 			icon: ToggleRight,
-			iconClass: "bg-slate-500/15 text-slate-400",
+			iconClass: "bg-emerald-500/15 text-emerald-400",
 		},
 		{
 			id: "cust-show-video-gallery",
-			route: "/settings/customizability/optional-features",
+			route: "/settings/optional-features",
 			anchor: "cust-show-video-gallery",
 			label: t("customizability.show_video_gallery", { defaultValue: "Video Gallery" }),
 			description: t("customizability.show_video_gallery_desc", {
@@ -203,7 +203,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		},
 		{
 			id: "cust-show-sexual-health",
-			route: "/settings/customizability/optional-features",
+			route: "/settings/optional-features",
 			anchor: "cust-show-sexual-health",
 			label: t("customizability.show_sexual_health", { defaultValue: "Sexual Health" }),
 			description: t("customizability.show_sexual_health_desc", {
@@ -215,7 +215,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		},
 		{
 			id: "cust-show-locate",
-			route: "/settings/customizability/optional-features",
+			route: "/settings/optional-features",
 			anchor: "cust-show-locate",
 			label: t("customizability.show_locate", { defaultValue: "Locate" }),
 			description: t("customizability.show_locate_desc", {

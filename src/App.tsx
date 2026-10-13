@@ -282,7 +282,7 @@ export default function App() {
 									element={<CustomizabilityPage />}
 								/>
 								<Route
-									path="/settings/customizability/optional-features"
+									path="/settings/optional-features"
 									element={<OptionalFeaturesPage />}
 								/>
 								<Route
