@@ -619,8 +619,16 @@ export function SettingsPage() {
 
 	return (
 		<section className="app-screen">
-			{/* Main-page header (like Interest / Right Now): reached from the bottom nav, so no back button. */}
-			<header className="relative z-20 mb-6 flex items-center justify-between gap-2 pointer-events-none">
+			{/* Main-page header (like Interest / Right Now): reached from the bottom nav, so no back button.
+			    Sticky like the inbox header — pulled up over .app-screen's top padding (and
+			    re-adding it inside) so it pins at the very top with the title where it was. */}
+			<header
+				className="sticky top-0 z-20 mb-3 flex items-center justify-between gap-2 pb-3 pointer-events-none"
+				style={{
+					marginTop: "calc(-1 * (env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px)))",
+					paddingTop: "calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))",
+				}}
+			>
 				<PageHeaderBackground color="var(--accent)" />
 				<div className="pointer-events-auto flex min-w-0 items-center gap-2">
 					<h1 className="app-title truncate">{t("settings.title")}</h1>
