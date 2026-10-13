@@ -733,11 +733,11 @@ export function ChatDrawerPanel({
 														<Layers className="h-5 w-5 text-white" />
 													</div>
 													<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{collection.name}</p>
-													<span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white/90">
-														<Images className="h-3 w-3" />
-														{presentIds.length}
-													</span>
 												</div>
+												<span className="pointer-events-none absolute bottom-1 left-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+													<Images className="h-3 w-3" />
+													{presentIds.length}
+												</span>
 												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 												{isSelected && <div className="absolute inset-0 pointer-events-none" style={{ border: "2px solid var(--accent)" }} />}
 											</div>
