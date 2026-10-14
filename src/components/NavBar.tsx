@@ -528,6 +528,11 @@ export function NavBar() {
 										// release) navigates instead, unless the press was a long press.
 										if (isSwitcherTab) e.preventDefault();
 									}}
+									onFocus={(e) => {
+										// Radix also activates on focus (automatic mode), which on touch
+										// happens at press time too; navigation is left to onClick.
+										if (isSwitcherTab) e.preventDefault();
+									}}
 									onClick={() => {
 										if (isSwitcherTab && settingsLongPressFiredRef.current) {
 											settingsLongPressFiredRef.current = false;
