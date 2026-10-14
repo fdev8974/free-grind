@@ -127,7 +127,7 @@ jobs:
             artifact_suffix: macos-universal
             bundle_dir: src-tauri/target/universal-apple-darwin/release/bundle
           - platform: windows-latest
-            args: --bundles nsis,msi
+            args: --bundles nsis
             rust_targets: ""
             artifact_suffix: windows-x64
             bundle_dir: src-tauri/target/release/bundle
@@ -205,8 +205,6 @@ jobs:
               '.sig':         'text/plain',
               '.exe':         'application/vnd.microsoft.portable-executable',
               '.exe.sig':     'text/plain',
-              '.msi':         'application/x-msi',
-              '.msi.sig':     'text/plain',
               '.deb':         'application/vnd.debian.binary-package',
               '.deb.sig':     'text/plain',
               '.rpm':         'application/x-rpm',
@@ -218,14 +216,14 @@ jobs:
             // Collect installable bundles
             const searchDirs = {
               'macos-universal': ['dmg', 'macos'],
-              'windows-x64':     ['nsis', 'msi'],
+              'windows-x64':     ['nsis'],
               'linux-x64':       ['deb', 'rpm', 'appimage'],
             };
 
             const subDirs = searchDirs[suffix] ?? [];
             const uploads = [];
             // Ordered longest-first so multi-part extensions are matched before shorter ones
-            const allowedExts = ['.tar.gz.sig', '.tar.gz', '.exe.sig', '.msi.sig', '.AppImage.sig', '.deb.sig', '.rpm.sig', '.dmg', '.exe', '.msi', '.deb', '.rpm', '.AppImage'];
+            const allowedExts = ['.tar.gz.sig', '.tar.gz', '.exe.sig', '.AppImage.sig', '.deb.sig', '.rpm.sig', '.dmg', '.exe', '.deb', '.rpm', '.AppImage'];
 
             function addUpload(src, assetName, mime) {
               uploads.push({ src, name: assetName, mime });
