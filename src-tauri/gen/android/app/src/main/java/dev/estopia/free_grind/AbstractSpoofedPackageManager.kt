@@ -26,7 +26,7 @@ import android.os.Build
 import android.os.UserHandle
 import androidx.annotation.RequiresApi
 
-abstract class AbstractSpoofedPackageManager(private val base: PackageManager) : PackageManager() {
+abstract class AbstractSpoofedPackageManager(protected val base: PackageManager) : PackageManager() {
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION", "ACTUAL_WITHOUT_EXPECT")
     override fun addPackageToPreferred(p0: String): Unit = base.addPackageToPreferred(p0)
     @Suppress("OVERRIDE_DEPRECATION", "DEPRECATION", "ACTUAL_WITHOUT_EXPECT")

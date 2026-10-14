@@ -1657,6 +1657,15 @@ export async function listBlockEvents(): Promise<StoredBlockEvent[]> {
 	return rows.map(rowToStoredBlockEvent);
 }
 
+export async function hasMessage(messageId: string): Promise<boolean> {
+	const db = await getDb();
+	const rows = await db.select<{ found: number }[]>(
+		"SELECT 1 AS found FROM messages WHERE message_id = $1 LIMIT 1",
+		[messageId],
+	);
+	return rows.length > 0;
+}
+
 export async function getMessages(conversationId: string): Promise<StoredMessage[]> {
 	const db = await getDb();
 	const rows = await db.select<MessageRow[]>(

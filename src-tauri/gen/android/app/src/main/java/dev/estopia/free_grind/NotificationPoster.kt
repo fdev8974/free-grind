@@ -11,6 +11,8 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.net.Uri
+import android.os.Bundle
+import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
@@ -36,8 +38,20 @@ object NotificationPoster {
     // cancel using the same (tag, id) pair this class posts with.
     const val NOTIFICATION_INSTANCE_ID = 1
     private const val DEDUP_WINDOW_MS = 45_000L
+    private const val SEEN_PUSH_IDS_MAX = 200
+
+    // Stored on each posted notification so withdrawal pushes
+    // (grindr://unsend, grindr://clear) can find what to cancel.
+    private const val EXTRA_PUSH_NOTIFICATION_ID = "dev.estopia.free_grind.extra.PUSH_NOTIFICATION_ID"
+    private const val EXTRA_SENDER_ID = "dev.estopia.free_grind.extra.SENDER_ID"
 
     private val recentlyNotifiedKeys = mutableMapOf<String, Long>()
+    // Grindr has no server-side dedupe and can deliver the same push more
+    // than once; its notificationId is the dedupe key.
+    private val seenPushNotificationIds = object : LinkedHashMap<String, Unit>() {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Unit>?): Boolean =
+            size > SEEN_PUSH_IDS_MAX
+    }
     // Caches decoded sender avatars so repeated notifications from the same
     // person don't re-download the same bitmap (keyed by CDN URL).
     private val avatarCache = android.util.LruCache<String, Bitmap>(10)
@@ -53,6 +67,42 @@ object NotificationPoster {
         val alreadyNotified = recentlyNotifiedKeys.containsKey(key)
         recentlyNotifiedKeys[key] = now
         return alreadyNotified
+    }
+
+    /** True if a push with this notificationId was already handled. */
+    @Synchronized
+    fun isDuplicatePush(notificationId: String): Boolean =
+        seenPushNotificationIds.put(notificationId, Unit) != null
+
+    /** grindr://unsend — withdraw the notification currently showing this push. */
+    fun withdrawPushNotification(context: Context, notificationId: String) {
+        val cancelled = cancelActive(context) {
+            it.notification.extras.getString(EXTRA_PUSH_NOTIFICATION_ID) == notificationId
+        }
+        Log.d("FCM", "Withdrew $cancelled notification(s) for notificationId=$notificationId")
+    }
+
+    /** grindr://clear?conversationId= — withdraw a conversation's notification. */
+    fun withdrawConversation(context: Context, conversationId: String) {
+        val tag = chatNotificationTag(conversationId)
+        val cancelled = cancelActive(context) { it.tag == tag }
+        Log.d("FCM", "Withdrew $cancelled notification(s) for conversation=$conversationId")
+    }
+
+    /** grindr://clear?profileIds= — withdraw every notification from these senders. */
+    fun withdrawSenders(context: Context, senderIds: Set<String>) {
+        val cancelled = cancelActive(context) { posted ->
+            posted.notification.extras.getString(EXTRA_SENDER_ID) in senderIds ||
+                senderIds.any { posted.tag == "tap:$it" || posted.tag == "chat:sender:$it" }
+        }
+        Log.d("FCM", "Withdrew $cancelled notification(s) for senders=$senderIds")
+    }
+
+    private fun cancelActive(context: Context, matches: (StatusBarNotification) -> Boolean): Int {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val targets = notificationManager.activeNotifications.filter(matches)
+        targets.forEach { notificationManager.cancel(it.tag, it.id) }
+        return targets.size
     }
 
     fun postNotification(context: Context, payload: JSONObject) {
@@ -136,7 +186,11 @@ object NotificationPoster {
         val actionStr = payload.optString("action").ifBlank { null }
 
         val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            // Not CLEAR_TASK: that destroys and recreates the running
+            // MainActivity (and Tauri's WebView) in the same process, which
+            // crashes or leaves a blank app. singleTask + these flags reuse
+            // the existing instance via onNewIntent instead.
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             if (actionStr != null) {
                 putExtra("action", actionStr)
             }
@@ -191,6 +245,10 @@ object NotificationPoster {
             .setTicker(text)
             .setSound(soundUri)
             .setStyle(style)
+            .addExtras(Bundle().apply {
+                putString(EXTRA_PUSH_NOTIFICATION_ID, normalizeNullableString(rawData?.optString("notificationId")))
+                putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
+            })
 
         if (previewBitmap != null) {
             // BigPictureStyle doesn't infer the collapsed title/text from a
@@ -446,6 +504,14 @@ object NotificationPoster {
         }
         return trimmed
     }
+
+    fun queryParameter(action: String, name: String): String? =
+        action.substringAfter('?', "")
+            .split('&')
+            .firstOrNull { it.substringBefore('=') == name }
+            ?.substringAfter('=', "")
+            ?.let { runCatching { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }.getOrDefault(it) }
+            ?.let(::normalizeNullableString)
 
     fun parseConversationAndSenderFromAction(action: String?): Pair<String?, String?> {
         val normalized = normalizeNullableString(action) ?: return null to null

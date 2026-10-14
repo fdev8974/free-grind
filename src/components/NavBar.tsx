@@ -26,6 +26,7 @@ import { Avatar } from "./ui/avatar";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import { getProfilePhotoHash } from "../pages/app/profile-editor/profileEditorUtils";
 import { getThumbImageUrl } from "../utils/media";
+import { looksLikeMessageUpdate } from "../utils/messageUpdates";
 
 // Bottom-nav style options; only offered (and only honoured) in the mobile app.
 export const NAV_SHOW_LABELS_KEY = "fg-nav-show-labels";
@@ -273,6 +274,7 @@ export function NavBar() {
 					(m) =>
 						userId != null &&
 						Number(m.senderId) !== Number(userId) &&
+						!looksLikeMessageUpdate(m, userId) &&
 						!mutedConversationIdsRef.current.has(m.conversationId)
 				);
 

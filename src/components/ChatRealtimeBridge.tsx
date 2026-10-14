@@ -59,8 +59,9 @@ import { fetchAndStoreMedia } from "../services/mediaStore";
 import { captureAlbumsForMessages } from "../services/albumStore";
 import { captureReplyPreviewsForMessages } from "../services/replyMediaStore";
 import { getConversation, getDisplayName } from "../services/conversationDirectory";
-import { saveProfileSnapshot } from "../services/chatDb";
+import { hasMessage, saveProfileSnapshot } from "../services/chatDb";
 import { runAutomationRulesForSender } from "../utils/automationRules";
+import { looksLikeMessageUpdate } from "../utils/messageUpdates";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useBlockedProfileIds } from "../hooks/queries/useProfileQueries";
 import { isReadReceiptsHidden } from "../utils/privacy";
@@ -302,6 +303,13 @@ function extractMessages(envelope: RealtimeEnvelope): Message[] {
 		seen.add(m.messageId);
 		return true;
 	});
+}
+
+// The chatDb lookup also catches updates the payload alone can't (e.g. us
+// removing our reaction) — anything already stored isn't new.
+async function isMessageUpdate(m: Message, userId: string | number | null | undefined): Promise<boolean> {
+	if (looksLikeMessageUpdate(m, userId)) return true;
+	return hasMessage(m.messageId).catch(() => false);
 }
 
 export function ChatRealtimeBridge() {
@@ -860,7 +868,13 @@ export function ChatRealtimeBridge() {
 							messageText = msgBody.text;
 						}
 
-						const isIncoming = userIdRef.current != null && Number(m.senderId) !== Number(userIdRef.current);
+						const fromOther = userIdRef.current != null && Number(m.senderId) !== Number(userIdRef.current);
+						// chat.v1.message_sent also fires when a message is unsent or
+						// reacted to, re-delivering the original message (same
+						// messageId). Reacting to their message would otherwise look
+						// like a new incoming one — notification + unread bump.
+						const isIncoming =
+							fromOther && !(await isMessageUpdate(m, userIdRef.current));
 
 						// --- CUSTOM AUTOMATION RULES ---
 						if (isIncoming && m.senderId) {

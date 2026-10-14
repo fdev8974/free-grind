@@ -6,6 +6,33 @@ import com.google.firebase.messaging.RemoteMessage
 import org.json.JSONObject
 
 class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
+    private companion object {
+        const val PUSH_VERSION = "2"
+        const val UNSEND_DEEPLINK = "grindr://unsend"
+        const val CLEAR_DEEPLINK = "grindr://clear"
+        const val DIRECT_CAMPAIGN = "_DIRECT"
+        const val TAPS_DEEPLINK = "grindr://taps-inbox"
+        const val TAP_BODY_KEY = "TAP_NOTIFICATION_BODY"
+
+        // v2 text keys → (display text, FreeGrind messageType). Same set as
+        // open-grind's PushStrings, plus message reactions which it misses.
+        val BODY_TEXTS = mapOf(
+            TAP_BODY_KEY to ("Tapped you" to null),
+            "CHAT_IMAGE_NOTIFICATION_BODY" to ("Sent you a picture" to "Image"),
+            "CHAT_EXPIRING_IMAGE_NOTIFICATION_BODY" to ("Sent you an expiring picture" to "ExpiringImage"),
+            "CHAT_GIF_NOTIFICATION_BODY" to ("Sent you a gif" to "Giphy"),
+            "CHAT_GAYMOJI_NOTIFICATION_BODY" to ("Sent you a gaymoji" to "Gaymoji"),
+            "CHAT_LOCATION_NOTIFICATION_BODY" to ("Sent you their location" to "Location"),
+            "CHAT_AUDIO_NOTIFICATION_BODY" to ("Sent you a voice message" to "Audio"),
+            "CHAT_VIDEO_NOTIFICATION_BODY" to ("Sent you a video" to "Video"),
+            "CHAT_ALBUM_NOTIFICATION_BODY" to ("Shared an album with you" to "Album"),
+            "CHAT_ALBUM_CONTENT_REACTION_NOTIFICATION_BODY" to ("Liked your album picture" to "AlbumContentReaction"),
+            "CHAT_MESSAGE_REACTION_NOTIFICATION_BODY" to ("Reacted to your message" to "MessageReaction"),
+        )
+        val TRACKING_KEYS = listOf("_ab", "af-uinstall-tracking")
+        val CAMPAIGN_KEYS = listOf("campaignId", "pinpoint.campaign.campaign_id")
+    }
+
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
         Log.d("FCM", "Received message from: ${message.from}")
@@ -22,6 +49,45 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun handleDataPayload(data: Map<String, String>) {
+        if (isTrackingOrCampaign(data)) {
+            Log.d("FCM", "Ignoring tracking/campaign push")
+            return
+        }
+        if (data["version"] != PUSH_VERSION) {
+            Log.d("FCM", "Ignoring push with unsupported version=${data["version"]}")
+            return
+        }
+
+        val action = data["action"].orEmpty()
+        when (action.substringBefore('?').trimEnd('/').lowercase()) {
+            UNSEND_DEEPLINK -> {
+                NotificationPoster.queryParameter(action, "notificationId")
+                    ?.let { NotificationPoster.withdrawPushNotification(this, it) }
+                return
+            }
+            CLEAR_DEEPLINK -> {
+                val conversationId = NotificationPoster.queryParameter(action, "conversationId")
+                if (conversationId != null) {
+                    NotificationPoster.withdrawConversation(this, conversationId)
+                } else {
+                    val senderIds = NotificationPoster.queryParameter(action, "profileIds")
+                        .orEmpty()
+                        .split(',')
+                        .map(String::trim)
+                        .filter(String::isNotEmpty)
+                        .toSet()
+                    if (senderIds.isNotEmpty()) NotificationPoster.withdrawSenders(this, senderIds)
+                }
+                return
+            }
+        }
+
+        val notificationId = NotificationPoster.normalizeNullableString(data["notificationId"])
+        if (notificationId != null && NotificationPoster.isDuplicatePush(notificationId)) {
+            Log.d("FCM", "Ignoring duplicate push notificationId=$notificationId")
+            return
+        }
+
         try {
             val payload = buildPushPayload(data)
             val payloadJson = payload.toString()
@@ -36,6 +102,13 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
+    // Braze (_ab) and AppsFlyer uninstall probes are never rendered. Campaign
+    // keys are also present on ordinary messages with the value "_DIRECT", so
+    // only another value marks marketing.
+    private fun isTrackingOrCampaign(data: Map<String, String>): Boolean =
+        TRACKING_KEYS.any(data::containsKey) ||
+            CAMPAIGN_KEYS.any { key -> data[key]?.let { it != DIRECT_CAMPAIGN } == true }
+
     private fun buildPushPayload(data: Map<String, String>): JSONObject {
         val titleStr = data["title"] ?: data["senderDisplayName"]
         val senderName = NotificationPoster.normalizeSenderName(titleStr)
@@ -43,7 +116,6 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         val topBody = data["body"]
         val deeplinkAction = data["action"]
 
-        var isTap = false
         var messageText = "Sent you a message"
         var conversationId: String? = null
         var senderId: String? = NotificationPoster.normalizeNullableString(data["senderId"])
@@ -54,13 +126,20 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         // it shouldn't linger visible in the notification shade.
         var previewImageUrl: String? = null
 
-        if (topBody == "TAP_NOTIFICATION_BODY") {
-            isTap = true
-            messageText = "Tapped you"
-        } else if (topBody != null && topBody.startsWith("CHAT_")) {
-            messageText = "Sent you a message"
-        } else if (!topBody.isNullOrBlank()) {
-            messageText = topBody
+        val actionTarget = deeplinkAction.orEmpty().substringBefore('?').trimEnd('/').lowercase()
+        val isTap = topBody == TAP_BODY_KEY || actionTarget == TAPS_DEEPLINK
+
+        // Media and system pushes send a text key (translateBody=true) instead
+        // of text; only direct text messages carry plaintext.
+        val translated = topBody?.let(BODY_TEXTS::get)
+        when {
+            translated != null -> {
+                messageText = translated.first
+                messageType = translated.second
+            }
+            // Unknown key — keep the generic text rather than showing the raw key.
+            data["translateBody"].toBoolean() || topBody?.startsWith("CHAT_") == true -> Unit
+            !topBody.isNullOrBlank() -> messageText = topBody
         }
 
         val messageJsonStr = data["message"]

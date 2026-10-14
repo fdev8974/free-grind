@@ -28,9 +28,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.google.firebase.FirebaseApp
-import com.google.firebase.FirebaseOptions
-import com.google.firebase.messaging.FirebaseMessaging
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.net.URLDecoder
@@ -600,37 +597,13 @@ class MainActivity : TauriActivity() {
   }
 
   private fun initFirebase() {
-    try {
-      val spoofedContext = SpoofedContext(applicationContext)
-      val options = FirebaseOptions.Builder()
-        .setApplicationId(getString(R.string.fcm_google_app_id))
-        .setProjectId(getString(R.string.fcm_project_id))
-        .setApiKey(getString(R.string.fcm_google_api_key))
-        .setGcmSenderId(getString(R.string.fcm_gcm_defaultSenderId))
-        .build()
-
-      if (FirebaseApp.getApps(spoofedContext).isEmpty()) {
-        FirebaseApp.initializeApp(spoofedContext, options)
-      }
-      Log.d("FCM", "Firebase initialized with spoofed context")
-
-      try {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-          if (task.isSuccessful) {
-            val token = task.result
-            latestFcmToken = token
-            Log.d("FCM", "Push token fetched successfully (len=${token.length})")
-            Log.v("FCM", "Push token value: $token")
-            dispatchFcmTokenToWebview(token, 0)
-          } else {
-            Log.w("FCM", "Failed to get push token", task.exception)
-          }
-        }
-      } catch (t: Throwable) {
-        Log.e("FCM", "Firebase Messaging unavailable; continuing without push token", t)
-      }
-    } catch (t: Throwable) {
-      Log.e("FCM", "Firebase initialization failed; continuing without push", t)
+    // Already initialized by FreeGrindApplication; this is a no-op unless that failed.
+    PushFirebase.initialize(applicationContext)
+    PushFirebase.token { token ->
+      latestFcmToken = token
+      Log.d("FCM", "Push token fetched successfully (len=${token.length})")
+      Log.v("FCM", "Push token value: $token")
+      dispatchFcmTokenToWebview(token, 0)
     }
   }
 
@@ -923,7 +896,10 @@ class MainActivity : TauriActivity() {
       webView.evaluateJavascript(script) { result ->
         Log.d("FCM", "WebView push payload dispatch callback result=$result")
         val shouldRetry = result.contains("retry")
-        if (shouldRetry && attempt < 12) {
+        // ~20s: on a cold start from a notification tap the frontend can
+        // take longer than a few seconds to load, and a payload that runs
+        // out of retries is dropped (the tap then does nothing).
+        if (shouldRetry && attempt < 50) {
           mainHandler.postDelayed({
             dispatchPushNotificationToWebview(payloadJson, attempt + 1)
           }, 400)
