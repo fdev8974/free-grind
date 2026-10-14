@@ -267,6 +267,8 @@ pub fn run() {
             .manage(AppState::default())
             .setup(|app| {
                 use tauri::Manager;
+                // Native binary version, which can lag behind an OTA-updated frontend.
+                eprintln!("Free Grind binary {} starting", app.package_info().version);
                 let app_handle = app.handle().clone();
                 init_client(&app_handle);
                 Ok(())
