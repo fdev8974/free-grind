@@ -120,6 +120,9 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         var conversationId: String? = null
         var senderId: String? = NotificationPoster.normalizeNullableString(data["senderId"])
         var messageType: String? = null
+        // Same id the realtime bridge sends, so NotificationPoster can dedupe
+        // per message between the two channels.
+        var messageId: String? = null
         // Inline preview shown in the notification (e.g. the actual picture/gif),
         // not just a "Sent you a picture" placeholder. Deliberately not populated
         // for ExpiringImage — that's a view-once/self-destruct message type, so
@@ -152,6 +155,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
                 if (json.has("conversationId")) {
                     conversationId = NotificationPoster.normalizeNullableString(json.optString("conversationId"))
                 }
+                messageId = NotificationPoster.normalizeNullableString(json.optString("messageId"))
 
                 val type = json.optString("type")
                 if (type.isNotEmpty()) {
@@ -199,6 +203,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
             put("conversationId", conversationId ?: JSONObject.NULL)
             put("senderId", senderId ?: JSONObject.NULL)
             put("messageType", messageType ?: JSONObject.NULL)
+            put("messageId", messageId ?: JSONObject.NULL)
             put("previewImageUrl", previewImageUrl ?: JSONObject.NULL)
             put("rawData", JSONObject(data))
         }

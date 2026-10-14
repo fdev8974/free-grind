@@ -627,6 +627,7 @@ export function ChatRealtimeBridge() {
 					conversationId: m.conversationId,
 					senderId: String(m.senderId),
 					messageType: m.type,
+					messageId: m.messageId,
 					previewImageUrl,
 					rawData: {
 						senderProfileImageMediaHash: other?.primaryMediaHash ?? null,

@@ -44,6 +44,20 @@ object NotificationPoster {
     // (grindr://unsend, grindr://clear) can find what to cancel.
     private const val EXTRA_PUSH_NOTIFICATION_ID = "dev.estopia.free_grind.extra.PUSH_NOTIFICATION_ID"
     private const val EXTRA_SENDER_ID = "dev.estopia.free_grind.extra.SENDER_ID"
+    // Per-line extras on each MessagingStyle.Message of a chat notification,
+    // so the shown lines can be read back, deduped and withdrawn one by one.
+    private const val EXTRA_LINE_KEY = "dev.estopia.free_grind.extra.LINE_KEY"
+    private const val EXTRA_LINE_PUSH_ID = "dev.estopia.free_grind.extra.LINE_PUSH_ID"
+
+    // Messages kept in one conversation's notification (newest win).
+    private const val CONVERSATION_LINES_MAX = 8
+    private const val PREVIEW_DIR = "notification_previews"
+    private const val PREVIEW_FILES_MAX = 30
+    private const val SYSTEM_UI_PACKAGE = "com.android.systemui"
+
+    // Serializes the read-active → merge → notify cycle; FCM and the JS bridge
+    // (two executor threads) can post into the same conversation at once.
+    private val postLock = Any()
 
     private val recentlyNotifiedKeys = mutableMapOf<String, Long>()
     // Grindr has no server-side dedupe and can deliver the same push more
@@ -74,12 +88,40 @@ object NotificationPoster {
     fun isDuplicatePush(notificationId: String): Boolean =
         seenPushNotificationIds.put(notificationId, Unit) != null
 
-    /** grindr://unsend — withdraw the notification currently showing this push. */
-    fun withdrawPushNotification(context: Context, notificationId: String) {
-        val cancelled = cancelActive(context) {
-            it.notification.extras.getString(EXTRA_PUSH_NOTIFICATION_ID) == notificationId
+    /**
+     * grindr://unsend — withdraw this push. In a multi-message chat
+     * notification only its own line is removed; the card goes away once
+     * no line is left.
+     */
+    fun withdrawPushNotification(context: Context, notificationId: String) = synchronized(postLock) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        var withdrawn = 0
+        for (posted in notificationManager.activeNotifications) {
+            val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
+            val lines = style?.messages.orEmpty()
+            val remaining = lines.filterNot { it.extras.getString(EXTRA_LINE_PUSH_ID) == notificationId }
+            if (style != null && remaining.size != lines.size) {
+                withdrawn++
+                if (remaining.isEmpty()) {
+                    notificationManager.cancel(posted.tag, posted.id)
+                } else {
+                    val rebuilt = NotificationCompat.MessagingStyle(style.user)
+                        .setConversationTitle(style.conversationTitle)
+                        .setGroupConversation(false)
+                    remaining.forEach { rebuilt.addMessage(it) }
+                    val notification = NotificationCompat.Builder(context, posted.notification)
+                        .setStyle(rebuilt)
+                        .setWhen(remaining.last().timestamp)
+                        .setOnlyAlertOnce(true)
+                        .build()
+                    notificationManager.notify(posted.tag, posted.id, notification)
+                }
+            } else if (posted.notification.extras.getString(EXTRA_PUSH_NOTIFICATION_ID) == notificationId) {
+                withdrawn++
+                notificationManager.cancel(posted.tag, posted.id)
+            }
         }
-        Log.d("FCM", "Withdrew $cancelled notification(s) for notificationId=$notificationId")
+        Log.d("FCM", "Withdrew $withdrawn notification(s) for notificationId=$notificationId")
     }
 
     /** grindr://clear?conversationId= — withdraw a conversation's notification. */
@@ -120,8 +162,16 @@ object NotificationPoster {
             rawData = rawData,
         )
 
-        if (shouldSuppressAsDuplicate(notificationKey)) {
+        // Chat messages dedupe per message, so several messages from the same
+        // person all land in the notification; without a messageId (and for
+        // taps) it falls back to one notification per conversation/sender.
+        val messageId = if (isTap) null else normalizeNullableString(payload.optString("messageId"))
+        val pushId = normalizeNullableString(rawData?.optString("notificationId"))
+        if (shouldSuppressAsDuplicate(messageId?.let { "msg:$it" } ?: notificationKey)) {
             Log.d("FCM", "Suppressing notification (already shown via other channel) key=$notificationKey")
+            // The realtime copy has no push id; adopt it from the FCM copy so
+            // a later grindr://unsend can still find this line.
+            if (messageId != null && pushId != null) attachPushId(context, notificationKey, messageId, pushId)
             return
         }
 
@@ -202,7 +252,11 @@ object NotificationPoster {
 
         val senderAvatarBitmap = getNotificationAvatarBitmap(context, rawData)
         val previewImageUrl = payload.optString("previewImageUrl").trim().ifBlank { null }
-        val previewBitmap = loadMessagePreviewBitmap(previewImageUrl)
+        // Inline preview (picture/gif/gaymoji) rides on its own message line
+        // via setData, so it survives later messages being appended — unlike
+        // a BigPictureStyle, which could only ever show one message.
+        val previewUri = loadMessagePreviewBitmap(previewImageUrl)
+            ?.let { sharePreviewWithSystemUi(context, previewImageUrl!!, it) }
 
         val me = Person.Builder().setName("Me").build()
         val senderIcon = IconCompat.createWithBitmap(senderAvatarBitmap)
@@ -212,21 +266,11 @@ object NotificationPoster {
             .setImportant(true)
             .build()
 
-        // With an image/gif preview available, an expandable BigPictureStyle
-        // shows the actual content instead of a "Sent you a picture"
-        // placeholder. Without one (text, audio, location, video, taps —
-        // or the download simply failed), keep the existing MessagingStyle
-        // conversation bubble.
-        val style: NotificationCompat.Style = if (previewBitmap != null) {
-            NotificationCompat.BigPictureStyle()
-                .bigPicture(previewBitmap)
-                .bigLargeIcon(null as Bitmap?)
-                .setBigContentTitle(title)
-                .setSummaryText(text)
-        } else {
-            NotificationCompat.MessagingStyle(me)
-                .addMessage(text, System.currentTimeMillis(), sender)
-                .setConversationTitle(if (isTap) "Taps" else null)
+        val now = System.currentTimeMillis()
+        val line = NotificationCompat.MessagingStyle.Message(text, now, sender).apply {
+            extras.putString(EXTRA_LINE_KEY, messageId ?: pushId ?: "t:$now")
+            pushId?.let { extras.putString(EXTRA_LINE_PUSH_ID, it) }
+            previewUri?.let { setData("image/jpeg", it) }
         }
 
         val builder = NotificationCompat.Builder(context, channelId)
@@ -244,20 +288,103 @@ object NotificationPoster {
             .setContentIntent(pendingIntent)
             .setTicker(text)
             .setSound(soundUri)
-            .setStyle(style)
+            .setWhen(now)
             .addExtras(Bundle().apply {
-                putString(EXTRA_PUSH_NOTIFICATION_ID, normalizeNullableString(rawData?.optString("notificationId")))
+                // Chat lines carry their own push id (EXTRA_LINE_PUSH_ID);
+                // a card-level one would make unsend drop the whole card.
+                if (isTap) putString(EXTRA_PUSH_NOTIFICATION_ID, pushId)
                 putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
             })
 
-        if (previewBitmap != null) {
-            // BigPictureStyle doesn't infer the collapsed title/text from a
-            // Person the way MessagingStyle does — set them explicitly.
-            builder.setContentTitle(title).setContentText(text)
+        synchronized(postLock) {
+            // Taps stay one line per sender; chat appends to the lines the
+            // conversation's notification is already showing.
+            val shown = if (isTap) emptyList() else shownLines(notificationManager, notificationKey)
+            val lineKey = line.extras.getString(EXTRA_LINE_KEY)
+            if (shown.any { it.extras.getString(EXTRA_LINE_KEY) == lineKey }) {
+                Log.d("FCM", "Suppressing notification (line already shown) key=$notificationKey")
+                if (messageId != null && pushId != null) attachPushId(context, notificationKey, messageId, pushId)
+                return
+            }
+            val style = NotificationCompat.MessagingStyle(me)
+                .setConversationTitle(if (isTap) "Taps" else null)
+                .setGroupConversation(false)
+            // Re-attribute older lines to the fresh sender Person so a
+            // changed name/avatar applies to the whole card.
+            (shown.map { it.withSender(sender) } + line)
+                .sortedBy { it.timestamp }
+                .takeLast(CONVERSATION_LINES_MAX)
+                .forEach { style.addMessage(it) }
+            builder.setStyle(style)
+            notificationManager.notify(notificationKey, NOTIFICATION_INSTANCE_ID, builder.build())
+        }
+        Log.d("FCM", "Local notification posted successfully")
+    }
+
+    private fun shownLines(
+        notificationManager: NotificationManager,
+        tag: String,
+    ): List<NotificationCompat.MessagingStyle.Message> {
+        val posted = notificationManager.activeNotifications
+            .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID } ?: return emptyList()
+        val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
+            ?: return emptyList()
+        return style.messages.map { message ->
+            // Lines posted before per-line keys existed get a stable stand-in.
+            if (message.extras.getString(EXTRA_LINE_KEY) == null) {
+                message.extras.putString(EXTRA_LINE_KEY, "t:${message.timestamp}")
+            }
+            message
+        }
+    }
+
+    private fun NotificationCompat.MessagingStyle.Message.withSender(
+        sender: Person,
+    ): NotificationCompat.MessagingStyle.Message {
+        val copy = NotificationCompat.MessagingStyle.Message(text, timestamp, sender)
+        copy.extras.putAll(extras)
+        if (dataMimeType != null && dataUri != null) copy.setData(dataMimeType, dataUri)
+        return copy
+    }
+
+    /** Stamps [pushId] onto an already-shown line, without re-alerting. */
+    private fun attachPushId(context: Context, tag: String, messageId: String, pushId: String) =
+        synchronized(postLock) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val posted = notificationManager.activeNotifications
+                .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID } ?: return@synchronized
+            val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
+                ?: return@synchronized
+            val line = style.messages.firstOrNull { it.extras.getString(EXTRA_LINE_KEY) == messageId }
+            if (line == null || line.extras.getString(EXTRA_LINE_PUSH_ID) != null) return@synchronized
+            line.extras.putString(EXTRA_LINE_PUSH_ID, pushId)
+            val notification = NotificationCompat.Builder(context, posted.notification)
+                .setStyle(style)
+                .setOnlyAlertOnce(true)
+                .build()
+            notificationManager.notify(posted.tag, posted.id, notification)
         }
 
-        notificationManager.notify(notificationKey, NOTIFICATION_INSTANCE_ID, builder.build())
-        Log.d("FCM", "Local notification posted successfully")
+    // MessagingStyle image lines are rendered by System UI, which can't read
+    // a remote URL or our private files — write the bitmap to cache and grant
+    // System UI read access through the existing FileProvider. Null on any
+    // failure (the line then just shows its "Sent you a picture" text).
+    private fun sharePreviewWithSystemUi(context: Context, url: String, bitmap: Bitmap): Uri? = try {
+        val dir = java.io.File(context.cacheDir, PREVIEW_DIR).apply { mkdirs() }
+        val file = java.io.File(dir, "${Integer.toHexString(url.hashCode())}.jpg")
+        if (!file.exists()) {
+            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+            dir.listFiles()
+                ?.sortedByDescending { it.lastModified() }
+                ?.drop(PREVIEW_FILES_MAX)
+                ?.forEach { it.delete() }
+        }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        context.grantUriPermission(SYSTEM_UI_PACKAGE, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        uri
+    } catch (error: Exception) {
+        Log.w("FCM", "Failed to share message preview with System UI", error)
+        null
     }
 
     private fun getNotificationAvatarBitmap(context: Context, rawData: JSONObject?): Bitmap {
