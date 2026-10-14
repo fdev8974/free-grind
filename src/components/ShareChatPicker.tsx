@@ -29,7 +29,7 @@ type PickerChat = {
 
 function Avatar({ chat }: { chat: PickerChat }) {
 	return (
-		<div className="h-11 w-11 shrink-0 squircle bg-[var(--surface-2)]">
+		<div className="h-15 w-15 shrink-0 squircle bg-[var(--surface-2)] drop-shadow-sm">
 			<ProfileImage
 				src={resolveAvatarSrc(chat.mediaHash, getParticipantAvatarUrl(chat.mediaHash))}
 				alt={chat.name}
@@ -237,50 +237,48 @@ export function ShareChatPicker({
 					</div>
 				</header>
 
-				{/* The card itself is the scroll container: it ends at the page bottom
-				    (shrinking to fit when there are few chats) and scrolls inside. */}
+				{/* Rows styled and spaced exactly like the inbox (ChatInboxPanel), no card
+				    around them; only this list scrolls, ending at the page bottom. */}
 				<div
-					className="mx-auto flex min-h-0 w-full max-w-[var(--content-max)] flex-1 flex-col px-[var(--app-px)] pt-1"
-					style={{ paddingBottom: "max(16px, calc(env(safe-area-inset-bottom) + 12px))" }}
+					className="min-h-0 flex-1 overflow-y-auto"
+					style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+					data-lenis-prevent
 				>
-					<div className="flex min-h-0 flex-col">
-						<div
-							className="surface-card min-h-0 divide-y divide-[var(--border)] overflow-y-auto"
-							data-lenis-prevent
-						>
-							{visibleChats === null ? (
-								<p className="px-4 py-8 text-center text-sm text-[var(--text-muted)]">{t("chat.loading_inbox")}</p>
-							) : visibleChats.length === 0 ? (
-								<p className="px-4 py-8 text-center text-sm text-[var(--text-muted)]">
-									{t("chat.share_target.no_chats", { defaultValue: "No chats found" })}
-								</p>
-							) : (
-								visibleChats.map((chat) => (
-									<button
-										key={chat.conversationId}
-										type="button"
-										onClick={() => onSelect(chat.conversationId)}
-										className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-[var(--surface-2)]"
-									>
-										<Avatar chat={chat} />
-										<div className="min-w-0 flex-1">
-											<div className="flex items-center justify-between gap-2">
-												<p className="flex min-w-0 items-center gap-1.5">
-													<span className="truncate text-sm font-semibold text-[var(--text)]">{chat.name}</span>
-													{chat.favorite ? (
-														<Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />
-													) : null}
-												</p>
-												<span className="shrink-0 text-xs text-[var(--text-muted)]">
-													{formatConversationTime(chat.entry.data.lastActivityTimestamp)}
-												</span>
+					<div className="mx-auto w-full max-w-[var(--content-max)]">
+						{visibleChats === null ? (
+							<p className="px-4 py-8 text-center text-sm text-[var(--text-muted)]">{t("chat.loading_inbox")}</p>
+						) : visibleChats.length === 0 ? (
+							<p className="px-4 py-8 text-center text-sm text-[var(--text-muted)]">
+								{t("chat.share_target.no_chats", { defaultValue: "No chats found" })}
+							</p>
+						) : (
+							visibleChats.map((chat) => (
+								<button
+									key={chat.conversationId}
+									type="button"
+									onClick={() => onSelect(chat.conversationId)}
+									className="flex w-full items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 text-left transition hover:bg-[var(--surface-2)]"
+								>
+									<Avatar chat={chat} />
+									<div className="min-w-0 flex-1">
+										<div className="flex items-center justify-between gap-2">
+											<div className="flex min-w-0 items-center gap-1.5">
+												<p className="truncate text-sm font-semibold text-[var(--text)]">{chat.name}</p>
+												{chat.favorite ? (
+													<Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />
+												) : null}
 											</div>
-											<p className="truncate text-xs text-[var(--text-muted)]">{getPreviewText(chat.entry, t)}</p>
+											<span className="shrink-0 text-xs text-[var(--text-muted)]">
+												{formatConversationTime(chat.entry.data.lastActivityTimestamp)}
+											</span>
 										</div>
-									</button>
-								))
-							)}
-						</div>
+										<p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
+											{getPreviewText(chat.entry, t)}
+										</p>
+									</div>
+								</button>
+							))
+						)}
 					</div>
 				</div>
 			</section>
