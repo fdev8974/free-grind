@@ -430,11 +430,15 @@ export function NavBar() {
 								<TabsTrigger
 									key={item.value}
 									value={item.value}
+									// Radix already switches the tab on mousedown, so by onClick
+									// activeTab equals this item; pointerdown still sees the old tab.
+									onPointerDown={() => {
+										if (item.value !== activeTab) haptic(10);
+									}}
 									onClick={() => {
 										if (item.value === "browse" && activeTab === "browse") {
 											window.dispatchEvent(new CustomEvent("browse-scroll-top"));
 										}
-										if (item.value !== activeTab) haptic(10);
 										setActiveTab(item.value);
 										navigate(item.path, { replace: true });
 									}}
