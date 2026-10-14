@@ -162,8 +162,24 @@ export async function markHotswapStartupReady(): Promise<void> {
 	startupReadyNotified = true;
 }
 
+let settleStartupCheck: () => void = () => {};
+const startupCheckSettled = new Promise<void>((resolve) => {
+	settleStartupCheck = resolve;
+});
+
+/**
+ * Resolves once the startup OTA check is done without reloading the page. When
+ * it installs an update the page reloads instead and this never resolves, so
+ * anything judging the frontend version (e.g. the outdated-APK prompt) doesn't
+ * act on the version that's about to be replaced.
+ */
+export function whenStartupHotswapSettled(): Promise<void> {
+	return startupCheckSettled;
+}
+
 export async function autoCheckAndInstallUpdate(): Promise<void> {
 	if (!isHotswapAvailable()) {
+		settleStartupCheck();
 		return;
 	}
 
@@ -176,6 +192,7 @@ export async function autoCheckAndInstallUpdate(): Promise<void> {
 				"[hotswap] Binary update required, skipping auto-install:",
 				result.notes,
 			);
+			settleStartupCheck();
 			return;
 		}
 
@@ -185,10 +202,12 @@ export async function autoCheckAndInstallUpdate(): Promise<void> {
 
 			appLog.debug("[hotswap] Applying update immediately...");
 			window.location.reload();
+			return;
 		}
 	} catch (error) {
 		appLog.error("[hotswap] Auto-update check failed:", error);
 	}
+	settleStartupCheck();
 }
 
 export async function setHotswapChannel(channel: HotswapChannel): Promise<void> {

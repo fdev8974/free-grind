@@ -16,8 +16,9 @@ concurrency:
 
 jobs:
   # main releases on every push. development only releases when a push changes
-  # the version to a pre-release (`bun run set-version beta`), so ordinary
-  # development pushes stay OTA-only (ota-branches.yml).
+  # the version to a pre-release (`bun run set-version beta`) AND native code
+  # changed since the last binary. Frontend-only versions reach every installed
+  # app over OTA (ota-branches.yml), so a new APK would add nothing.
   check:
     runs-on: ubuntu-latest
     outputs:
@@ -46,7 +47,16 @@ jobs:
               should_release=false
             else
               echo "Version changed ${previous:-none} -> $version"
-              should_release=true
+              # Same rule as the OTA manifest: if the oldest compatible binary is
+              # older than this version, existing apps get it over OTA.
+              min_binary=$(node scripts/min-binary-version.mjs)
+              if [[ "$min_binary" == "$version" ]]; then
+                echo "Native code changed since the last binary, releasing"
+                should_release=true
+              else
+                echo "Frontend-only since $min_binary, OTA covers it, skipping the APK release"
+                should_release=false
+              fi
             fi
           fi
           echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
@@ -192,6 +202,10 @@ jobs:
             artifact_suffix: linux-x64
             bundle_dir: src-tauri/target/release/bundle
     runs-on: ${{ matrix.platform }}
+    env:
+      # Default update channel baked into the frontend: builds from main ship
+      # on Stable, every other branch (beta builds) on Development.
+      VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -431,6 +445,10 @@ jobs:
   build-android:
     needs: create-release
     runs-on: ubuntu-latest
+    env:
+      # Default update channel baked into the frontend: builds from main ship
+      # on Stable, every other branch (beta builds) on Development.
+      VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
     steps:
       - uses: actions/checkout@v4
         with:

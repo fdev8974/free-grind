@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
+import { resolveAutoMinBinaryVersion } from "./min-binary-version.mjs";
 
 // Publishes the frontend as a signed OTA bundle to surge.sh.
 //
@@ -110,79 +111,6 @@ function run(command, args) {
   execFileSync(command, args, { stdio: "inherit" });
 }
 
-function git(args) {
-  return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
-}
-
-// Diff lines that only move the app version (bump commits touch these files too).
-const VERSION_ONLY_LINE = /^[+-]\s*(version\s*=\s*"|"version"\s*:)/;
-
-/** Does `commit` change native code (src-tauri) beyond the version fields? */
-function changesNativeCode(commit) {
-  const diff = git(["diff", "-U0", `${commit}^1`, commit, "--", "src-tauri"]);
-  return diff
-    .split("\n")
-    .filter((line) => /^[+-]/.test(line) && !/^(\+\+\+|---) /.test(line))
-    .some((line) => !VERSION_ONLY_LINE.test(line));
-}
-
-function packageVersionAt(commit) {
-  try {
-    return JSON.parse(git(["show", `${commit}:package.json`])).version ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Oldest binary version that already contains the latest native change, so
- * frontend-only releases keep reaching older binaries over OTA instead of
- * forcing an APK reinstall for every version bump.
- *
- * Walks first-parent history to the newest commit that changed native code; a
- * binary contains it if it was built from that commit's version (when the
- * commit itself bumped it) or from the first version bump after it. Falls back
- * to the current version whenever history can't answer that.
- */
-function resolveAutoMinBinaryVersion(appVersion) {
-  try {
-    if (git(["rev-parse", "--is-shallow-repository"]) === "true") {
-      console.warn("Shallow clone, using the app version as min_binary_version");
-      return appVersion;
-    }
-
-    const nativeCommit = git(["log", "--first-parent", "--format=%H", "--", "src-tauri"])
-      .split("\n")
-      .filter(Boolean)
-      .find((commit) => {
-        try {
-          return changesNativeCode(commit);
-        } catch {
-          return true; // root commit or unreadable diff: treat as native
-        }
-      });
-    if (!nativeCommit) return appVersion;
-
-    const isBump = (commit) => {
-      const version = packageVersionAt(commit);
-      return version !== null && version !== packageVersionAt(`${commit}^1`);
-    };
-
-    if (isBump(nativeCommit)) return packageVersionAt(nativeCommit) ?? appVersion;
-
-    // Bumps after the native change, newest first: the last one is the first bump.
-    const laterBumps = git(["log", "--first-parent", "--format=%H", `${nativeCommit}..HEAD`, "--", "package.json"])
-      .split("\n")
-      .filter(Boolean)
-      .filter(isBump);
-    const firstBump = laterBumps.at(-1);
-    return (firstBump && packageVersionAt(firstBump)) || appVersion;
-  } catch (error) {
-    console.warn(`Could not derive min_binary_version from git (${error.message}), using the app version`);
-    return appVersion;
-  }
-}
-
 const otaChannel = channelOverride || process.env.OTA_CHANNEL || "development";
 if (!/^[a-z0-9-]{1,40}$/.test(otaChannel)) {
   throw new Error(`Invalid OTA channel "${otaChannel}" (must be a valid hostname label)`);
@@ -220,6 +148,9 @@ const keyPassword = process.env.HOTSWAP_PRIVATE_KEY_PASSWORD ?? "";
 console.log(`Publishing OTA channel=${otaChannel} version=${otaVersion} -> https://${domain}`);
 
 if (process.env.OTA_SKIP_BUILD !== "true") {
+  // The bundle's default channel (used until the user picks one) must be the
+  // channel it's served from, or loading it would move the app back to "main".
+  process.env.VITE_HOTSWAP_CHANNEL = otaChannel;
   run("bun", ["run", "build"]);
 }
 run("tar", ["-czf", "frontend.tar.gz", "-C", "dist", "."]);

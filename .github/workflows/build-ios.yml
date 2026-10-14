@@ -12,6 +12,10 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      # Default update channel baked into the frontend: builds from main ship
+      # on Stable, every other branch (beta builds) on Development.
+      VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
     steps:
       - uses: actions/checkout@v4
         with:

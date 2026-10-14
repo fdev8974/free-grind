@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import semver from "semver";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
 import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
-import { getCurrentHotswapChannel } from "../services/hotswap";
+import { getCurrentHotswapChannel, isHotswapAvailable, whenStartupHotswapSettled } from "../services/hotswap";
 
 const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
 // Used when the release lookup fails: assume the running version is current,
@@ -11,6 +11,21 @@ const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
 const DEFAULT_LATEST_VERSION = normalizeVersion(import.meta.env.VITE_APP_VERSION ?? "0.0.0");
 const TARGET_OUTDATED_VERSIONS = new Set(["0.5.0", "0.5.1", "0.5.2", "0.5.3", "0.5.4", "5.0.0", "5.1.0", "5.2.0", "5.3.0", "5.4.0"]);
 const OUTDATED_VERSION_REOPEN_COUNT = 5;
+// Upper bound for waiting on the startup OTA check before judging the version.
+const STARTUP_OTA_WAIT_MS = 30_000;
+
+/**
+ * Waits for the startup OTA check (main.tsx runs it in production builds). An
+ * OTA update can bring the frontend up to the latest release, so judging the
+ * version before that would flash the prompt right before the reload.
+ */
+function waitForStartupOta(): Promise<void> {
+    if (!import.meta.env.PROD || !isHotswapAvailable()) return Promise.resolve();
+    return Promise.race([
+        whenStartupHotswapSettled(),
+        new Promise<void>((resolve) => setTimeout(resolve, STARTUP_OTA_WAIT_MS)),
+    ]);
+}
 
 export type ReleaseInfo = {
     latestVersion: string;
@@ -297,18 +312,18 @@ export function OutdatedVersionGate({ children }: { children: ReactNode }) {
         }
 
         const controller = new AbortController();
-        void fetchLatestRelease(controller.signal, getCurrentHotswapChannel() !== "main")
-            .then((latest) => {
-                setReleaseInfo(latest);
-            })
-            .catch(() => {
-                setReleaseInfo({
-                    latestVersion: DEFAULT_LATEST_VERSION,
-                    releasesUrl: DEFAULT_RELEASES_URL,
-                });
-            });
+        let cancelled = false;
+        const latestRelease = fetchLatestRelease(controller.signal, getCurrentHotswapChannel() !== "main")
+            .catch((): ReleaseInfo => ({
+                latestVersion: DEFAULT_LATEST_VERSION,
+                releasesUrl: DEFAULT_RELEASES_URL,
+            }));
+        void Promise.all([latestRelease, waitForStartupOta()]).then(([latest]) => {
+            if (!cancelled) setReleaseInfo(latest);
+        });
 
         return () => {
+            cancelled = true;
             controller.abort();
         };
     }, [isDismissed]);
