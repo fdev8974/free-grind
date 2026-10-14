@@ -1,4 +1,5 @@
-import { Grid as GridIcon, Flame, MessageCircle, Settings } from "lucide-react";
+import { Grid as GridIcon, Flame, MessageCircle, User, Check, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
@@ -26,6 +27,7 @@ import { Avatar } from "./ui/avatar";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import { getProfilePhotoHash } from "../pages/app/profile-editor/profileEditorUtils";
 import { getThumbImageUrl } from "../utils/media";
+import { getSavedAccountProfile } from "../services/savedAccountProfiles";
 import { looksLikeMessageUpdate } from "../utils/messageUpdates";
 
 // Bottom-nav style options; only offered (and only honoured) in the mobile app.
@@ -84,7 +86,7 @@ export function NavBar() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const apiFunctions = useApiFunctions();
-	const { userId } = useAuth();
+	const { userId, savedAccounts, switchAccount } = useAuth();
 	const { data: myProfile } = useMyOwnProfile();
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
@@ -121,6 +123,60 @@ export function NavBar() {
 
 	const profileImageHash = getProfilePhotoHash(myProfile);
 	const profilePhotoUrl = profileImageHash ? getThumbImageUrl(profileImageHash, "75x75") : null;
+
+	// Quick account switcher: opened by long-pressing the settings tab when more
+	// than one account is saved. A plain tap still just opens settings.
+	const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
+	const [switchingProfileId, setSwitchingProfileId] = useState<string | null>(null);
+	const accountSwitcherRef = useRef<HTMLDivElement>(null);
+	const hasAccountSwitcher = savedAccounts.length > 1;
+	const settingsLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Set once the long press has opened the switcher, so the trailing
+	// mousedown/click of that same press doesn't also navigate to settings.
+	const settingsLongPressFiredRef = useRef(false);
+
+	const cancelSettingsLongPress = () => {
+		if (settingsLongPressTimerRef.current) {
+			clearTimeout(settingsLongPressTimerRef.current);
+			settingsLongPressTimerRef.current = null;
+		}
+	};
+
+	useEffect(() => cancelSettingsLongPress, []);
+
+	useEffect(() => {
+		if (!isAccountSwitcherOpen) return;
+		const handler = (e: MouseEvent | TouchEvent) => {
+			const target = e.target as Element | null;
+			if (accountSwitcherRef.current?.contains(target)) return;
+			// The settings tab handles its own presses (long press reopens, tap navigates).
+			if (target?.closest?.("[data-nav-account-tab]")) return;
+			setIsAccountSwitcherOpen(false);
+		};
+		document.addEventListener("mousedown", handler);
+		document.addEventListener("touchstart", handler);
+		return () => {
+			document.removeEventListener("mousedown", handler);
+			document.removeEventListener("touchstart", handler);
+		};
+	}, [isAccountSwitcherOpen]);
+
+	useEffect(() => {
+		setIsAccountSwitcherOpen(false);
+	}, [location.pathname]);
+
+	const handleSwitchAccount = async (profileId: string) => {
+		setSwitchingProfileId(profileId);
+		try {
+			await switchAccount(profileId);
+			setIsAccountSwitcherOpen(false);
+			navigate("/");
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to switch account.");
+		} finally {
+			setSwitchingProfileId(null);
+		}
+	};
 
 	const navItems = [
 		{
@@ -390,7 +446,10 @@ export function NavBar() {
 	return (
 		<nav
 			className={cn(
-				"fixed inset-x-0 bottom-0 z-50",
+				"fixed inset-x-0 bottom-0",
+				// While the account switcher is open, lift the bar (and the switcher
+				// inside it) above the pages' floating action buttons (z-[60]).
+				isAccountSwitcherOpen ? "z-[65]" : "z-50",
 				!fullWidth && "px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:px-4 md:pb-[calc(env(safe-area-inset-bottom,0px)+14px)]",
 			)}
 		>
@@ -399,6 +458,7 @@ export function NavBar() {
 			    Desktop/web: floating rounded card. */}
 			<div
 				className={cn(
+					"relative",
 					fullWidth
 						? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
 						: "mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5",
@@ -426,16 +486,54 @@ export function NavBar() {
 					>
 						{navItems.map((item) => {
 							const Icon = item.icon;
+							const isSwitcherTab = item.value === "settings" && hasAccountSwitcher;
 							return (
 								<TabsTrigger
 									key={item.value}
 									value={item.value}
+									data-nav-account-tab={isSwitcherTab ? "" : undefined}
+									aria-expanded={isSwitcherTab ? isAccountSwitcherOpen : undefined}
 									// Radix already switches the tab on mousedown, so by onClick
 									// activeTab equals this item; pointerdown still sees the old tab.
-									onPointerDown={() => {
-										if (item.value !== activeTab) haptic(10);
+									onPointerDown={(e) => {
+										if (e.button === 0 && item.value !== activeTab) haptic(10);
+										// Touch/pen: long press opens the switcher. Mouse uses right-click instead.
+										if (!isSwitcherTab || e.pointerType === "mouse") return;
+										settingsLongPressFiredRef.current = false;
+										cancelSettingsLongPress();
+										settingsLongPressTimerRef.current = setTimeout(() => {
+											settingsLongPressTimerRef.current = null;
+											settingsLongPressFiredRef.current = true;
+											haptic(30);
+											setIsAccountSwitcherOpen(true);
+										}, 450);
+									}}
+									onPointerUp={isSwitcherTab ? cancelSettingsLongPress : undefined}
+									onPointerLeave={isSwitcherTab ? cancelSettingsLongPress : undefined}
+									onPointerCancel={isSwitcherTab ? cancelSettingsLongPress : undefined}
+									onContextMenu={
+										isSwitcherTab
+											? (e) => {
+													// Suppress the system/browser menu; on desktop right-click opens the switcher.
+													e.preventDefault();
+													if (e.nativeEvent instanceof PointerEvent ? e.nativeEvent.pointerType === "mouse" : e.button === 2) {
+														setIsAccountSwitcherOpen(true);
+													}
+												}
+											: undefined
+									}
+									onMouseDown={(e) => {
+										// Radix activates tabs on mousedown, i.e. before a touch long press
+										// is detected. Default-preventing makes Radix skip it; onClick (on
+										// release) navigates instead, unless the press was a long press.
+										if (isSwitcherTab) e.preventDefault();
 									}}
 									onClick={() => {
+										if (isSwitcherTab && settingsLongPressFiredRef.current) {
+											settingsLongPressFiredRef.current = false;
+											return;
+										}
+										if (isSwitcherTab) setIsAccountSwitcherOpen(false);
 										if (item.value === "browse" && activeTab === "browse") {
 											window.dispatchEvent(new CustomEvent("browse-scroll-top"));
 										}
@@ -443,6 +541,7 @@ export function NavBar() {
 										navigate(item.path, { replace: true });
 									}}
 									className={cn(
+										isSwitcherTab && "select-none [-webkit-touch-callout:none]",
 										"flex h-full flex-col items-center justify-center gap-1 rounded-xl text-[var(--text-muted)] transition-colors duration-150 hover:text-[var(--text)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] md:gap-1.5",
 										fullWidth
 											? // Mobile app: no filled pill on the full-width bar, highlight via text color only.
@@ -467,18 +566,18 @@ export function NavBar() {
 										{Icon ? (
 											<Icon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										) : !profilePhotoUrl ? (
-											// No profile photo: the settings gear that takes the tab's (active) color like the other icons.
-											<Settings className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+											// No profile photo: a user icon that takes the tab's (active) color like the other icons.
+											<User className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										) : (
 											<Avatar
 												src={profilePhotoUrl}
 												alt={t("browse_page.your_profile_photo")}
 												className={cn(
 													"h-6 w-6 shrink-0 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
-													activeTab !== "settings"
+													activeTab !== "settings" && !isAccountSwitcherOpen
 														? "ring-transparent"
 														: // The floating bar fills the active tab with the accent, so the ring flips to its contrast color there.
-															fullWidth
+															fullWidth || activeTab !== "settings"
 															? "ring-[var(--accent)]"
 															: "ring-[var(--accent-contrast)]",
 												)}
@@ -522,6 +621,61 @@ export function NavBar() {
 						})}
 					</TabsList>
 				</Tabs>
+
+				{isAccountSwitcherOpen && (
+					<div
+						ref={accountSwitcherRef}
+						className={cn(
+							"absolute bottom-full z-50 mb-2 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-150",
+							fullWidth ? "right-3" : "right-0",
+						)}
+					>
+						<div className="flex flex-col gap-1">
+							{savedAccounts.map((account) => {
+								const isActive = userId != null && String(userId) === account.profileId;
+								const isSwitching = switchingProfileId === account.profileId;
+								const savedProfile = getSavedAccountProfile(account.profileId);
+								return (
+									<button
+										key={account.profileId}
+										type="button"
+										onClick={() => void handleSwitchAccount(account.profileId)}
+										disabled={isActive || isSwitching}
+										className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default"
+									>
+										<div className="relative h-10 w-10 shrink-0">
+											<Avatar
+												src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
+												alt=""
+												className="h-full w-full rounded-full border-0"
+											/>
+											{isSwitching && (
+												<div className="absolute inset-0 flex items-center justify-center rounded-full bg-[var(--surface)]/80">
+													<Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
+												</div>
+											)}
+											{isActive && (
+												<div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-white ring-2 ring-[var(--surface)]">
+													<Check className="h-2.5 w-2.5" strokeWidth={3} />
+												</div>
+											)}
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="truncate text-sm font-semibold leading-snug text-[var(--text)]">
+												{savedProfile.displayName || t("settings.account_unnamed", { defaultValue: "Someone" })}
+											</p>
+											{account.email && (
+												<p className="truncate text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+													{account.email}
+												</p>
+											)}
+										</div>
+									</button>
+								);
+							})}
+						</div>
+					</div>
+				)}
 			</div>
 		</nav>
 	);
