@@ -109,8 +109,14 @@ export function ShareTargetBridge() {
 			lastPublishedAt = now;
 			try {
 				const conversations = await chatDb.listConversations();
+				// listConversations sorts pinned chats first; Direct Share wants
+				// the most recently active ones, pinned or not.
 				const chats = conversations
 					.filter((c) => !c.hidden && !c.blockState)
+					.sort(
+						(a, b) =>
+							(b.entry.data.lastActivityTimestamp ?? 0) - (a.entry.data.lastActivityTimestamp ?? 0),
+					)
 					.slice(0, 8)
 					.map((c) => {
 						const hash = getOtherParticipant(c.entry, userId)?.primaryMediaHash;
