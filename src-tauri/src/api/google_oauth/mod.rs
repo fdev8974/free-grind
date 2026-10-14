@@ -13,18 +13,23 @@
 #[cfg(desktop)]
 mod web;
 
+#[cfg(desktop)]
 use crate::api::oauth::{OauthBridge, OauthProvider};
 use crate::error::AppError;
 
 /// Matched verbatim by the frontend, which stays silent for it.
+#[cfg(desktop)]
 pub const CANCELED: &str = "google-canceled";
 
+#[cfg(desktop)]
 pub struct Google;
 
+#[cfg(desktop)]
 impl OauthProvider for Google {
     const NAME: &'static str = "Google";
 }
 
+#[cfg(desktop)]
 pub type GoogleOauthBridge = OauthBridge<Google>;
 
 pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {

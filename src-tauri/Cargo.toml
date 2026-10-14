@@ -59,8 +59,8 @@ base64 = "0.22"
 windows-native-keyring-store = "0.5.1"
 # Same webview2-com/windows versions wry (our Tauri version's webview backend) already
 # pulls in, so the ICoreWebView2 types in lib.rs line up with what's actually loaded.
-webview2-com = "0.38"
-windows = { version = "0.61", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading"] }
+webview2-com = "0.39"
+windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android-native-keyring-store = "0.5.0"
