@@ -42,6 +42,8 @@
         "export_chat_desc": "حمّل كل الرسائل المخزنة محليًا كملف JSON.",
         "check_updates": "تحقق من التحديثات",
         "check_updates_desc": "حمّل وثبّت أحدث نسخة من Free Grind.",
+        "installed_version": "",
+        "installed_versions": "",
         "check_now": "تحقق دلوقتي",
         "environment": "البيئة",
         "switching": "بيحوّل…",

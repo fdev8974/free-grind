@@ -42,6 +42,8 @@
         "export_chat_desc": "Preuzmi sve lokalno sačuvane poruke kao JSON datoteku.",
         "check_updates": "Provjeri ažuriranja",
         "check_updates_desc": "Preuzmi i instaliraj najnoviju verziju Free Grinda.",
+        "installed_version": "",
+        "installed_versions": "",
         "check_now": "Provjeri sada",
         "environment": "Okruženje",
         "switching": "Prebacivanje…",

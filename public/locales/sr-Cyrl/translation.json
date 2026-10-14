@@ -43,6 +43,8 @@
         "export_chat_desc": "Преузмите све локално сачуване поруке као JSON датотеку.",
         "check_updates": "Провери ажурирања",
         "check_updates_desc": "Преузмите и инсталирајте најновију верзију апликације Free Grind.",
+        "installed_version": "",
+        "installed_versions": "",
         "check_now": "Провери сада",
         "environment": "Окружење",
         "switching": "Пребацивање…",

@@ -42,6 +42,8 @@
         "export_chat_desc": "Téléchargez tous les messages stockés localement au format JSON.",
         "check_updates": "Vérifier les mises à jour",
         "check_updates_desc": "Télécharger et installer la dernière version de Free Grindr.",
+        "installed_version": "",
+        "installed_versions": "",
         "check_now": "Vérifier maintenant",
         "environment": "Environnement",
         "switching": "Changement en cours…",

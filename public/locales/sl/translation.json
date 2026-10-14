@@ -42,6 +42,8 @@
         "export_chat_desc": "Prenesi vsa lokalno shranjena sporočila kot datoteko JSON.",
         "check_updates": "Preveri posodobitve",
         "check_updates_desc": "Prenesi in namesti najnovejšo različico Free Grind.",
+        "installed_version": "",
+        "installed_versions": "",
         "check_now": "Preveri zdaj",
         "environment": "Okolje",
         "switching": "Preklapljanje…",

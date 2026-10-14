@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getVersion } from "@tauri-apps/api/app";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import {
@@ -378,6 +379,16 @@ export function SettingsPage() {
 	const [updateChannel, setUpdateChannel] =
 		useState<HotswapChannel>(getCurrentHotswapChannel());
 	const visibleChannels = getHotswapChannels();
+	const frontendVersion = import.meta.env.VITE_APP_VERSION;
+	// The installed app (APK / desktop binary) can lag behind the frontend when an
+	// OTA bundle was applied on top of it, so show both when they differ.
+	const [nativeVersion, setNativeVersion] = useState<string | null>(null);
+	useEffect(() => {
+		if (!isHotswapAvailable()) return;
+		void getVersion()
+			.then(setNativeVersion)
+			.catch(() => {});
+	}, []);
 	const [contributorCodeInput, setContributorCodeInput] = useState("");
 	const [isActivatingContributor, setIsActivatingContributor] = useState(false);
 	const [isContributorDialogOpen, setIsContributorDialogOpen] = useState(false);
@@ -1042,6 +1053,18 @@ export function SettingsPage() {
 											</div>
 											<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("settings.check_updates_desc")}</p>
 										</div>
+										<p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+											{nativeVersion && nativeVersion !== frontendVersion
+												? t("settings.installed_versions", {
+														defaultValue: "Frontend {{frontend}} · App {{app}}",
+														frontend: frontendVersion,
+														app: nativeVersion,
+													})
+												: t("settings.installed_version", {
+														defaultValue: "Version {{version}}",
+														version: frontendVersion,
+													})}
+										</p>
 										{hotswapProgress.phase !== "idle" && hotswapProgress.phase !== "checking" && (() => {
 											const percent =
 												hotswapProgress.phase === "downloading" && hotswapProgress.total

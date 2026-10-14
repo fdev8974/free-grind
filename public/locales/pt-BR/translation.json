@@ -42,6 +42,8 @@
         "export_chat_desc": "Baixe todas as mensagens armazenadas localmente como um arquivo JSON.",
         "check_updates": "Verifique se há atualizações",
         "check_updates_desc": "Baixe e instale a versão mais recente do Free Grind.",
+        "installed_version": "",
+        "installed_versions": "",
         "check_now": "Confira agora",
         "environment": "Ambiente",
         "switching": "Alternando…",
