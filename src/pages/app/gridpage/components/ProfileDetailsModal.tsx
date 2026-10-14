@@ -1172,12 +1172,21 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	const closeAlbumViewer = useCallback(() => {
 		const state = window.history.state as Record<string, unknown> | null;
 		if (state?.profileAlbumViewer) {
-			const { profileAlbumViewer: _omit, ...rest } = state;
-			window.history.replaceState(rest, "");
+			if (variant === "page") {
+				// Pop the entry instead of leaving a stale duplicate behind,
+				// which made the next system back appear to do nothing. The
+				// popstate handler above just re-applies the close below.
+				window.history.back();
+			} else {
+				// Modal over the grid (desktop): popping would make the router
+				// re-render the grid route, so just drop the flag in place.
+				const { profileAlbumViewer: _omit, ...rest } = state;
+				window.history.replaceState(rest, "");
+			}
 		}
 		setAlbumViewer(null);
 		setAlbumViewerIndex(0);
-	}, []);
+	}, [variant]);
 
 	const handleAlbumViewerIndexChange = useCallback((index: number) => {
 		setAlbumViewerIndex((prev) => (prev === index ? prev : index));
