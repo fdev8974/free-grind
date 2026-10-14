@@ -68,7 +68,7 @@ export function SpotifyFavoritesSection({ profileId }: SpotifyFavoritesSectionPr
 	};
 
 	return (
-		<div className="surface-card p-4 sm:p-5">
+		<div className="surface-card min-w-0 p-4 sm:p-5">
 			<CategoryHeader
 				title={t("profile_editor.spotify.title")}
 				description={t("profile_editor.spotify.description")}

@@ -2442,5 +2442,36 @@
     "accept": "Accept",
     "accept_failed": "Couldn't confirm the agreements. Please try again.",
     "accepted_on": "Accepted on {{date}}"
+  },
+  "update_prompt": {
+    "title": "Update Available",
+    "outdated": "You're using Free Grind {{version}}, which is outdated.",
+    "latest": "The latest version is {{version}}.",
+    "downloading": "Downloading…",
+    "downloading_percent": "Downloading… {{percent}}%",
+    "needs_permission_hint": "Allow Free Grind to install apps, then come back here — the update continues automatically.",
+    "verifying": "Verifying…",
+    "installing": "Installing…",
+    "installed": "Installed",
+    "allow_installs": "Allow installs",
+    "try_again": "Try again",
+    "download_install": "Download & install",
+    "open_github": "Open on GitHub",
+    "dismiss": "Dismiss",
+    "get_version": "Get {{version}}"
+  },
+  "apk_update": {
+    "errors": {
+      "canceled": "The installation was canceled.",
+      "download": "The download failed. Check your connection and try again.",
+      "foreign_signer": "This APK is signed differently from the installed app, so Android can't update it in place.",
+      "downgrade": "The downloaded version is older than the installed one.",
+      "storage": "Not enough storage to install the update.",
+      "blocked": "Android blocked the installation.",
+      "start_failed": "Couldn't start the download.",
+      "no_asset": "There's no download for this device's processor.",
+      "conflict": "A differently signed version is already installed. Uninstall it first, then try again.",
+      "generic": "The update couldn't be installed."
+    }
   }
 }

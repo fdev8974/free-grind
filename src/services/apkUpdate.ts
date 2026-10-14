@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import i18n from "i18next";
 
 /**
  * In-app APK installs on Android — the native side lives in ApkUpdater.kt
@@ -49,32 +50,24 @@ export function isRecaptchaHelperInstallSupported(): boolean {
 	return typeof getBridge()?.downloadRecaptchaHelper === "function";
 }
 
+const APK_UPDATE_ERRORS: Record<string, [key: string, english: string]> = {
+	canceled: ["canceled", "The installation was canceled."],
+	network: ["download", "The download failed. Check your connection and try again."],
+	http: ["download", "The download failed. Check your connection and try again."],
+	incomplete: ["download", "The download failed. Check your connection and try again."],
+	"foreign-signer": ["foreign_signer", "This APK is signed differently from the installed app, so Android can't update it in place."],
+	incompatible: ["foreign_signer", "This APK is signed differently from the installed app, so Android can't update it in place."],
+	downgrade: ["downgrade", "The downloaded version is older than the installed one."],
+	storage: ["storage", "Not enough storage to install the update."],
+	blocked: ["blocked", "Android blocked the installation."],
+	"start-failed": ["start_failed", "Couldn't start the download."],
+	"no-asset": ["no_asset", "There's no download for this device's processor."],
+	conflict: ["conflict", "A differently signed version is already installed. Uninstall it first, then try again."],
+};
+
 export function describeApkUpdateError(code: string): string {
-	switch (code) {
-		case "canceled":
-			return "The installation was canceled.";
-		case "network":
-		case "http":
-		case "incomplete":
-			return "The download failed. Check your connection and try again.";
-		case "foreign-signer":
-		case "incompatible":
-			return "This APK is signed differently from the installed app, so Android can't update it in place.";
-		case "downgrade":
-			return "The downloaded version is older than the installed one.";
-		case "storage":
-			return "Not enough storage to install the update.";
-		case "blocked":
-			return "Android blocked the installation.";
-		case "start-failed":
-			return "Couldn't start the download.";
-		case "no-asset":
-			return "There's no download for this device's processor.";
-		case "conflict":
-			return "A differently signed version is already installed. Uninstall it first, then try again.";
-		default:
-			return "The update couldn't be installed.";
-	}
+	const [key, english] = APK_UPDATE_ERRORS[code] ?? ["generic", "The update couldn't be installed."];
+	return i18n.t(`apk_update.errors.${key}`, { defaultValue: english });
 }
 
 /**

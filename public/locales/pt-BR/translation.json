@@ -42,8 +42,8 @@
         "export_chat_desc": "Baixe todas as mensagens armazenadas localmente como um arquivo JSON.",
         "check_updates": "Verifique se há atualizações",
         "check_updates_desc": "Baixe e instale a versão mais recente do Free Grind.",
-        "installed_version": "",
-        "installed_versions": "",
+        "installed_version": "Versão {{version}}",
+        "installed_versions": "Frontend {{frontend}} · App {{app}}",
         "check_now": "Confira agora",
         "environment": "Ambiente",
         "switching": "Alternando…",
@@ -541,26 +541,26 @@
         },
         "chatted": "Conversamos",
         "gestures_intro": {
-            "title": "",
-            "description": "",
-            "button": "",
-            "open_title": "",
-            "open_title_desktop": "",
-            "open_desc": "",
-            "double_tap_title": "",
-            "double_tap_title_desktop": "",
-            "double_tap_desc": "",
-            "long_press_title": "",
-            "long_press_title_desktop": "",
-            "long_press_desc": "",
-            "pull_title": "",
-            "pull_desc": "",
-            "settings_hint": ""
+            "title": "Gestos da grade",
+            "description": "Alguns atalhos para navegar pela grade mais rápido.",
+            "button": "Entendi!",
+            "open_title": "Tocar",
+            "open_title_desktop": "Clique",
+            "open_desc": "Abre o perfil.",
+            "double_tap_title": "Toque duplo",
+            "double_tap_title_desktop": "Clique duplo",
+            "double_tap_desc": "Envia um toque sem abrir o perfil.",
+            "long_press_title": "Pressionar e segurar",
+            "long_press_title_desktop": "Clique direito",
+            "long_press_desc": "Ações rápidas: mensagem, favorito, apelido, ocultar ou bloquear.",
+            "pull_title": "Puxar para baixo",
+            "pull_desc": "Atualiza a grade.",
+            "settings_hint": "Escolha o tipo de toque do toque duplo em Configurações → Comportamento."
         },
         "tile_tap": {
-            "sent": "",
-            "received": "",
-            "mutual": ""
+            "sent": "Você enviou um toque",
+            "received": "Enviou um toque para você",
+            "mutual": "Vocês trocaram toques"
         }
     },
     "chat_filters": {
@@ -668,7 +668,7 @@
         "toast_picture_added_other": "Images adicionadas",
         "toast_picture_removed": "Imagem removida",
         "toast_added_from_drawer_one": "Mídia adicionada",
-        "toast_added_from_drawer_other": "Mídia adicionada",
+        "toast_added_from_drawer_other": "{{count}} mídias adicionadas",
         "error_load_fallback": "Falha ao carregar os álbuns",
         "error_create_fallback": "Falha ao criar o álbum",
         "error_rename_fallback": "Falha ao renomear o álbum",
@@ -694,7 +694,7 @@
         "collections_delete_confirm_title": "Excluir coleção?",
         "collections_delete_confirm_message": "Apenas a coleção é excluída. As mídias continuam na sua pasta.",
         "toast_picture_added_many": "Fotos adicionadas",
-        "toast_added_from_drawer_many": "Mídias adicionadas"
+        "toast_added_from_drawer_many": "{{count}} mídias adicionadas"
     },
     "profile_editor": {
         "title": "Editor de perfil",
@@ -1007,8 +1007,8 @@
             "current": "Atual",
             "not_selected": "Ainda não selecionado"
         },
-        "show_grid_tap_status": "",
-        "show_grid_tap_status_desc": ""
+        "show_grid_tap_status": "Mostrar toques na grade",
+        "show_grid_tap_status_desc": "Mostra uma pequena chama nos perfis da grade para os quais você enviou um toque ou que enviaram um para você nas últimas 24 horas."
     },
     "behavior": {
         "subtitle": "Gerencie os avisos de confirmação antes de bloquear perfis ou excluir conversas.",
@@ -1029,10 +1029,10 @@
         "display": "Exibição",
         "keep_screen_on": "Manter tela ligada",
         "keep_screen_on_desc": "Impede que a tela escureça ou bloqueie enquanto o aplicativo estiver aberto. Desativa-se automaticamente ao sair do aplicativo.",
-        "grid": "",
-        "double_tap_tap_type": "",
-        "double_tap_tap_type_desc": "",
-        "double_tap_off": ""
+        "grid": "Grade",
+        "double_tap_tap_type": "Toque duplo para enviar um toque",
+        "double_tap_tap_type_desc": "Toque duas vezes em um perfil na grade para enviar este toque. Desative para abrir os perfis na hora com um toque simples.",
+        "double_tap_off": "Desativado"
     },
     "notifications_page": {
         "subtitle": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicativo está aberto.",
@@ -1112,19 +1112,19 @@
             "method_password": "E-mail",
             "token_help": "Como obter seu token de autenticação",
             "method_google": "Google",
-            "google_window_sign_in": "",
-            "google_window_waiting": "",
-            "google_step_open": "",
-            "google_step_open_hint": "",
-            "google_step_done": "",
-            "google_step_done_hint": "",
-            "method_facebook": "",
-            "facebook_step_open": "",
-            "facebook_step_open_hint": "",
-            "facebook_step_done": "",
-            "facebook_step_done_hint": "",
-            "facebook_sign_in": "",
-            "facebook_waiting": "",
+            "google_window_sign_in": "Entrar com o Google",
+            "google_window_waiting": "Aguardando o Google…",
+            "google_step_open": "Entre no Google",
+            "google_step_open_hint": "Uma janela do Google será aberta. Sua senha vai apenas para o Google, nunca para o Free Grind.",
+            "google_step_done": "Escolha sua conta",
+            "google_step_done_hint": "Escolha a conta do Google do seu perfil do Grindr. A janela fecha sozinha e você estará conectado.",
+            "method_facebook": "Facebook",
+            "facebook_step_open": "Entre no Facebook",
+            "facebook_step_open_hint": "Uma janela do Facebook será aberta. Sua senha vai apenas para o Facebook, nunca para o Free Grind.",
+            "facebook_step_done": "Confirme o acesso",
+            "facebook_step_done_hint": "Permita que o Grindr use sua conta do Facebook. A janela fecha sozinha e você estará conectado.",
+            "facebook_sign_in": "Entrar com o Facebook",
+            "facebook_waiting": "Aguardando o Facebook…",
             "google_help": "Para contas criadas com o Google.",
             "google_app_link": "App Google OAuth",
             "recaptcha_helper_link": "Assistente de reCAPTCHA",
@@ -1206,16 +1206,18 @@
     },
     "chat": {
         "share_target": {
-            "title": "",
-            "description_one": "",
-            "description_other": "",
-            "search": "",
-            "no_chats": "",
-            "remove_image": "",
-            "sending": "",
-            "sent_one": "",
-            "sent_other": "",
-            "send_failed": ""
+            "title": "Enviar para…",
+            "description_one": "Escolha uma conversa para enviar a imagem",
+            "description_other": "Escolha uma conversa para enviar {{count}} imagens",
+            "description_many": "Escolha uma conversa para enviar {{count}} imagens",
+            "search": "Pesquisar conversas",
+            "no_chats": "Nenhuma conversa encontrada",
+            "remove_image": "Remover imagem",
+            "sending": "Enviando {{done}}/{{total}}",
+            "sent_one": "Enviado",
+            "sent_other": "Enviado para {{count}} conversas",
+            "sent_many": "Enviado para {{count}} conversas",
+            "send_failed": "Não foi possível enviar {{failed}} de {{total}}"
         },
         "tabs": {
             "inbox": "Caixa de entrada",
@@ -1710,7 +1712,7 @@
         "profile_id": "ID do perfil",
         "profile_id_copied": "ID do perfil copiado para a área de transferência",
         "estimated_joined": "Entrou em {{date}} (estimado)",
-        "last_updated": "",
+        "last_updated": "Perfil atualizado: {{date}}",
         "snapshot_banner": {
             "title": "Mostrando perfil salvo",
             "subtitle": "O perfil ao vivo desta pessoa não está disponível agora, então você está vendo as últimas informações salvas no seu dispositivo."
@@ -2002,11 +2004,11 @@
             "media_timestamp_drift": "Envio rejeitado: o relógio do seu dispositivo está fora de sincronia. Verifique as configurações de data e hora.",
             "media_nonce_replayed": "Envio rejeitado por ser uma solicitação duplicada. Tente novamente.",
             "media_rejected": "O servidor rejeitou o envio",
-            "media_not_media": "",
-            "media_unreadable": "",
-            "media_too_large": "",
-            "media_heic_unsupported": "",
-            "media_video_unstrippable": "",
+            "media_not_media": "Só é possível enviar fotos e vídeos.",
+            "media_unreadable": "Não é possível ler esta foto. Ela pode estar danificada ou em um formato não suportado.",
+            "media_too_large": "Esta foto é grande demais para enviar (máx. 64 MB).",
+            "media_heic_unsupported": "Fotos HEIC não são suportadas neste dispositivo. Converta-a para JPEG primeiro.",
+            "media_video_unstrippable": "Os metadados deste vídeo não podem ser removidos com segurança, por isso ele não foi enviado.",
             "invalid_upload_profile_response": "Resposta inválida ao enviar o perfil",
             "age_verification_options": "Não foi possível obter as opções de verificação de idade",
             "age_verification_session": "Falha ao criar sessão de verificação de idade",
@@ -2460,5 +2462,36 @@
         "accept": "Aceitar",
         "accept_failed": "Não foi possível confirmar os acordos. Tente novamente.",
         "accepted_on": "Aceito em {{date}}"
+    },
+    "update_prompt": {
+        "title": "Atualização disponível",
+        "outdated": "Você está usando o Free Grind {{version}}, que está desatualizado.",
+        "latest": "A versão mais recente é {{version}}.",
+        "downloading": "Baixando…",
+        "downloading_percent": "Baixando… {{percent}}%",
+        "needs_permission_hint": "Permita que o Free Grind instale apps e volte aqui: a atualização continua automaticamente.",
+        "verifying": "Verificando…",
+        "installing": "Instalando…",
+        "installed": "Instalado",
+        "allow_installs": "Permitir instalações",
+        "try_again": "Tentar novamente",
+        "download_install": "Baixar e instalar",
+        "open_github": "Abrir no GitHub",
+        "dismiss": "Dispensar",
+        "get_version": "Obter {{version}}"
+    },
+    "apk_update": {
+        "errors": {
+            "canceled": "A instalação foi cancelada.",
+            "download": "O download falhou. Verifique sua conexão e tente novamente.",
+            "foreign_signer": "Este APK foi assinado de forma diferente do app instalado, então o Android não consegue atualizá-lo diretamente.",
+            "downgrade": "A versão baixada é mais antiga que a instalada.",
+            "storage": "Não há espaço suficiente para instalar a atualização.",
+            "blocked": "O Android bloqueou a instalação.",
+            "start_failed": "Não foi possível iniciar o download.",
+            "no_asset": "Não há download para o processador deste dispositivo.",
+            "conflict": "Uma versão com outra assinatura já está instalada. Desinstale-a primeiro e tente novamente.",
+            "generic": "Não foi possível instalar a atualização."
+        }
     }
 }

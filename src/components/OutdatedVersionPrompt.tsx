@@ -1,5 +1,6 @@
 import { ChevronRight, Download, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import semver from "semver";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
 import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
@@ -156,6 +157,7 @@ export function OutdatedVersionPromptView({
 	releaseInfo: ReleaseInfo;
 	onDismiss: () => void;
 }) {
+	const { t } = useTranslation();
 	const apkUpdate = useApkUpdate(releaseInfo.apkUrl);
 	const { phase } = apkUpdate.state;
 	const isBusy = phase === "downloading" || phase === "verifying" || phase === "installing";
@@ -173,13 +175,19 @@ export function OutdatedVersionPromptView({
 					<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
 						<Download className="h-9 w-9 text-[var(--accent)]" />
 					</div>
-					<h1 className="text-2xl font-bold text-[var(--text)]">Update Available</h1>
+					<h1 className="text-2xl font-bold text-[var(--text)]">{t("update_prompt.title", { defaultValue: "Update Available" })}</h1>
 					<div className="flex flex-col items-center overflow-hidden">
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							You're using Free Grind {appVersion}, which is outdated.
+							{t("update_prompt.outdated", {
+								defaultValue: "You're using Free Grind {{version}}, which is outdated.",
+								version: appVersion,
+							})}
 						</p>
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							The latest version is {releaseInfo.latestVersion}.
+							{t("update_prompt.latest", {
+								defaultValue: "The latest version is {{version}}.",
+								version: releaseInfo.latestVersion,
+							})}
 						</p>
 					</div>
 				</div>
@@ -200,14 +208,19 @@ export function OutdatedVersionPromptView({
 									</div>
 									<p className="text-center text-xs text-[var(--text-muted)]">
 										{apkUpdate.state.progress === null
-											? "Downloading…"
-											: `Downloading… ${Math.round(apkUpdate.state.progress * 100)}%`}
+											? t("update_prompt.downloading", { defaultValue: "Downloading…" })
+											: t("update_prompt.downloading_percent", {
+													defaultValue: "Downloading… {{percent}}%",
+													percent: Math.round(apkUpdate.state.progress * 100),
+												})}
 									</p>
 								</div>
 							)}
 							{phase === "needs-permission" && (
 								<p className="mb-1 text-center text-xs leading-relaxed text-[var(--text-muted)]">
-									Allow Free Grind to install apps, then come back here — the update continues automatically.
+									{t("update_prompt.needs_permission_hint", {
+										defaultValue: "Allow Free Grind to install apps, then come back here — the update continues automatically.",
+									})}
 								</p>
 							)}
 							{apkUpdate.state.phase === "error" && (
@@ -227,18 +240,18 @@ export function OutdatedVersionPromptView({
 							>
 								{isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
 								{phase === "downloading"
-									? "Downloading…"
+									? t("update_prompt.downloading", { defaultValue: "Downloading…" })
 									: phase === "verifying"
-										? "Verifying…"
+										? t("update_prompt.verifying", { defaultValue: "Verifying…" })
 										: phase === "installing"
-											? "Installing…"
+											? t("update_prompt.installing", { defaultValue: "Installing…" })
 											: phase === "installed"
-												? "Installed"
+												? t("update_prompt.installed", { defaultValue: "Installed" })
 												: phase === "needs-permission"
-													? "Allow installs"
+													? t("update_prompt.allow_installs", { defaultValue: "Allow installs" })
 													: phase === "error"
-														? "Try again"
-														: <>Download & install {releaseInfo.latestVersion}<Download className="h-4 w-4" /></>}
+														? t("update_prompt.try_again", { defaultValue: "Try again" })
+														: <>{t("update_prompt.download_install", { defaultValue: "Download & install" })}<Download className="h-4 w-4" /></>}
 							</button>
 							<div className="flex gap-2">
 								<a
@@ -247,7 +260,7 @@ export function OutdatedVersionPromptView({
 									rel="noreferrer"
 									className="flex-1 rounded-xl py-3 text-center text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
 								>
-									Open on GitHub
+									{t("update_prompt.open_github", { defaultValue: "Open on GitHub" })}
 								</a>
 								<button
 									type="button"
@@ -255,7 +268,7 @@ export function OutdatedVersionPromptView({
 									disabled={isBusy}
 									className="flex-1 rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
 								>
-									Dismiss
+									{t("update_prompt.dismiss", { defaultValue: "Dismiss" })}
 								</button>
 							</div>
 						</>
@@ -267,7 +280,10 @@ export function OutdatedVersionPromptView({
 								rel="noreferrer"
 								className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
 							>
-								Get {releaseInfo.latestVersion}
+								{t("update_prompt.get_version", {
+									defaultValue: "Get {{version}}",
+									version: releaseInfo.latestVersion,
+								})}
 								<ChevronRight className="h-4 w-4" />
 							</a>
 							<button
@@ -275,7 +291,7 @@ export function OutdatedVersionPromptView({
 								onClick={onDismiss}
 								className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
 							>
-								Dismiss
+								{t("update_prompt.dismiss", { defaultValue: "Dismiss" })}
 							</button>
 						</>
 					)}
