@@ -1055,13 +1055,52 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		[carouselHashes, onSendProfilePhotoReply, messageProfileId, isOwnProfile],
 	);
 
+	// The photo viewer gets its own history entry so system back closes it
+	// instead of leaving the profile. The flag is merged into the existing
+	// state so the router still sees the same location underneath.
+	const photoViewerHistoryPushedRef = useRef(false);
+
 	const openPhotoViewer = (index: number) => {
 		setSelectedPhotoIndex(index);
+		if (!photoViewerHistoryPushedRef.current) {
+			window.history.pushState({ ...(window.history.state as object | null), profilePhotoViewer: true }, "");
+			photoViewerHistoryPushedRef.current = true;
+		}
 	};
 
 	const closePhotoViewer = () => {
 		setSelectedPhotoIndex(null);
+		if (!photoViewerHistoryPushedRef.current) return;
+		// Cleared first so our own popstate handler ignores this pop.
+		photoViewerHistoryPushedRef.current = false;
+		if (variant === "page") {
+			window.history.back();
+		} else {
+			// Modal over the grid (desktop): popping would make the router
+			// re-render the grid route, so just drop the flag in place.
+			const state = window.history.state as Record<string, unknown> | null;
+			if (state?.profilePhotoViewer) {
+				const { profilePhotoViewer: _omit, ...rest } = state;
+				window.history.replaceState(rest, "");
+			}
+		}
 	};
+
+	useEffect(() => {
+		const onPopState = () => {
+			if (!photoViewerHistoryPushedRef.current) return;
+			if ((window.history.state as { profilePhotoViewer?: boolean } | null)?.profilePhotoViewer) return;
+			photoViewerHistoryPushedRef.current = false;
+			setSelectedPhotoIndex(null);
+		};
+		window.addEventListener("popstate", onPopState);
+		return () => window.removeEventListener("popstate", onPopState);
+	}, []);
+
+	useEffect(() => {
+		// Profile closed underneath an open viewer — forget the entry.
+		if (!isOpen) photoViewerHistoryPushedRef.current = false;
+	}, [isOpen]);
 
 	// Own profile pictures aren't worth their own subfolder — there's only
 	// ever one "me" to organize by. Someone else's photos get filed under
