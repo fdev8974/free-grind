@@ -2,6 +2,7 @@ mod api;
 mod commands;
 mod error;
 mod instance_lock;
+mod media;
 mod state;
 mod storage;
 mod windows_instance;
@@ -203,6 +204,7 @@ pub fn run() {
                 commands::backup::inspect_backup_file,
                 commands::media_upload::upload_profile_image,
                 commands::media_upload::upload_chat_media,
+                commands::media_sanitize::sanitize_upload_media,
             ])
             .build(context)
             .expect("error while running tauri application");
@@ -257,7 +259,9 @@ pub fn run() {
             .plugin(tauri_plugin_ios_app_disguise::init());
 
         #[cfg(target_os = "android")]
-        let builder = builder.plugin(tauri_plugin_android_fs::init());
+        let builder = builder
+            .plugin(tauri_plugin_android_fs::init())
+            .plugin(media::photo::plugin());
 
         builder
             .manage(AppState::default())
@@ -310,6 +314,7 @@ pub fn run() {
                 commands::backup::inspect_backup_file,
                 commands::media_upload::upload_profile_image,
                 commands::media_upload::upload_chat_media,
+                commands::media_sanitize::sanitize_upload_media,
             ])
             .run(context)
             .expect("error while running tauri application");

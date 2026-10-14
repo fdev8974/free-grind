@@ -1,4 +1,5 @@
 import type { AlbumDetail } from "../../../types/albums";
+import { sanitizeUploadFile } from "../../../services/uploadSanitize";
 
 export function countAlbumMedia(detail: AlbumDetail | undefined): {
 	total: number;
@@ -67,10 +68,12 @@ export function getVideoDurationMs(file: File): Promise<number | null> {
 	});
 }
 
-export async function buildMultipartBody(file: File): Promise<{
+/** Normalizes the photo/video first (metadata stripped, see uploadSanitize). */
+export async function buildMultipartBody(original: File): Promise<{
 	body: Uint8Array;
 	contentType: string;
 }> {
+	const file = await sanitizeUploadFile(original);
 	const encoder = new TextEncoder();
 	const boundary = `----opengrind-${crypto.randomUUID?.() ?? Date.now().toString(16)}`;
 	const header =

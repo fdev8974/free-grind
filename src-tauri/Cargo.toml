@@ -53,6 +53,10 @@ tauri-plugin-hotswap = { path = "hotswap-patched" }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 base64 = "0.22"
+# Upload normalization (media/photo): decode, orient, downscale, sRGB, re-encode
+# as metadata-free JPEG — same pipeline as open-grind.
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp", "tiff"] }
+moxcms = "0.8"
 
 # Platform-specific dependencies
 [target.'cfg(target_os = "windows")'.dependencies]

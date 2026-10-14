@@ -255,6 +255,21 @@ export async function buildSquareThumbCoords(file: File): Promise<string> {
 	return `${bottom},${left},${right},${top}`;
 }
 
+/** A crop as fractions (0–1) of the image's width/height. */
+export type FractionalCrop = { top: number; left: number; right: number; bottom: number };
+
+/**
+ * thumbCoords for a crop picked on the original photo, in pixels of `file` —
+ * the normalized upload, which is usually downscaled from what was shown.
+ */
+export async function buildThumbCoordsFromFraction(file: File, crop: FractionalCrop): Promise<string> {
+	const bitmap = await createImageBitmap(file);
+	const { width, height } = bitmap;
+	bitmap.close();
+	const px = (fraction: number, size: number) => Math.min(size, Math.max(0, Math.round(fraction * size)));
+	return `${px(crop.bottom, height)},${px(crop.left, width)},${px(crop.right, width)},${px(crop.top, height)}`;
+}
+
 export function profileToDraft(
 	profile: z.infer<typeof profileSchema> | null,
 	unitsPreset: UnitsPreset = "world",

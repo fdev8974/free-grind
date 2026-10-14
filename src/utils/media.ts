@@ -63,7 +63,8 @@ export async function calculateSquareCrop(file: File): Promise<SquareCrop> {
 }
 
 /**
- * Resizes and crops an image file to a 1024x1024 square Blob.
+ * Resizes and crops an image file to a 1024x1024 square PNG Blob (lossless;
+ * the upload normalization does the one JPEG encode).
  * This ensures compatibility with legacy endpoints and prevents server-side cropping issues.
  */
 export async function prepare1024SquareImage(file: File): Promise<Blob> {
@@ -102,8 +103,7 @@ export async function prepare1024SquareImage(file: File): Promise<Blob> {
 				if (blob) resolve(blob);
 				else reject(new Error("Canvas to Blob failed"));
 			},
-			"image/jpeg",
-			0.88,
+			"image/png",
 		);
 	});
 }

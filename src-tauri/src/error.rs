@@ -46,6 +46,9 @@ pub enum AppError {
     /// (`banned_image` / `banned_video`, 422 problem body) or the device-key
     /// signature (`timestamp_drift` / `nonce_replayed`).
     MediaRejected { status: u16, reason: String },
+    /// Upload normalization refused a file before it was sent; the message
+    /// is one of `media::codes`.
+    Media(String),
     Unauthorized { code: i32, message: String },
     /// Sign-in refused until the account verifies a phone number by SMS
     /// (Grindr code 30); `profile_id` comes from the response body.
@@ -79,6 +82,7 @@ impl fmt::Display for AppError {
             AppError::MediaRejected { status, reason } => {
                 write!(f, "Media rejected ({status}): {reason}")
             }
+            AppError::Media(code) => write!(f, "Media error: {code}"),
             AppError::Unauthorized { code, message } => {
                 write!(f, "Unauthorized ({code}): {message}")
             }

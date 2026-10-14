@@ -9,6 +9,7 @@ import { PageHeaderBackground } from "../../../components/ui/PageHeaderBackgroun
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { prepare1024SquareImage } from "../../../utils/media";
+import { sanitizeUploadFile } from "../../../services/uploadSanitize";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import type { RightNowCreatePostRequest, RightNowUpdatePostRequest } from "../../../services/apiFunctions";
 import { getRightNowSessionDuration } from "./rightnow-constants";
@@ -203,8 +204,9 @@ export function RightNowPostPage({ onClose, onPost }: RightNowPostPageProps) {
 			} else {
 				// 1. Resize locally to 1024px to prevent 500 error and corner-crop
 				const resizedBlob = await prepare1024SquareImage(file);
-				const body = new Uint8Array(await resizedBlob.arrayBuffer());
-				const contentType = "image/jpeg";
+				const sanitized = await sanitizeUploadFile(new File([resizedBlob], "right-now.png", { type: "image/png" }));
+				const body = new Uint8Array(await sanitized.arrayBuffer());
+				const contentType = sanitized.type;
 				const coords = { top: 0, left: 0, right: 1024, bottom: 1024 };
 
 				const result = await apiFunctions.uploadRightNowMedia({

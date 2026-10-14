@@ -15,6 +15,7 @@ import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { validateMediaHash } from "../../utils/media";
+import { sanitizeUploadFile } from "../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../utils/tags";
 import { PageHeader } from "../../components/PageHeader";
 import { BottomDrawer } from "../../components/ui/bottom-drawer";
@@ -42,6 +43,8 @@ import {
 	MEDIA_MODERATION_STATE,
 	type ProfileDraft,
 	buildSquareThumbCoords,
+	buildThumbCoordsFromFraction,
+	type FractionalCrop,
 	emptyDraft,
 	parseMonthInput,
 	parseNullableInteger,
@@ -699,13 +702,18 @@ export function ProfileEditorPage() {
 		setPendingPhotoFile(null);
 	};
 
-	const uploadPhotoFile = async (file: File, thumbCoordsOverride?: string) => {
+	const uploadPhotoFile = async (file: File, crop?: FractionalCrop) => {
 		setIsUploadingPhoto(true);
 
 		try {
-			const body = new Uint8Array(await file.arrayBuffer());
-			const thumbCoords = thumbCoordsOverride ?? (await buildSquareThumbCoords(file));
-			const contentType = file.type || "application/octet-stream";
+			// Metadata stripped and downscaled (see uploadSanitize); thumbCoords
+			// are in the normalized photo's pixels.
+			const upload = await sanitizeUploadFile(file);
+			const body = new Uint8Array(await upload.arrayBuffer());
+			const thumbCoords = crop
+				? await buildThumbCoordsFromFraction(upload, crop)
+				: await buildSquareThumbCoords(upload);
+			const contentType = upload.type;
 
 			// Primary: the media upload (signed /v5 for in-app captures, unsigned
 			// /v4 otherwise — picked Rust-side). Fallback: the older, unsigned
@@ -782,23 +790,22 @@ export function ProfileEditorPage() {
 
 	// The crop selection is only used to tell the server which square region
 	// to render the thumbnail from (thumbCoords) — the uploaded file itself is
-	// always the original, unmodified image, never client-side cropped.
+	// the whole (normalized) image, never client-side cropped.
 	const confirmPendingPhotoUpload = async () => {
 		if (!pendingPhotoFile) return;
 
-		let thumbCoords: string | undefined;
+		let crop: FractionalCrop | undefined;
 		if (photoCompletedCrop?.width && photoCompletedCrop.height && photoImgRef.current) {
 			const img = photoImgRef.current;
-			const scaleX = img.naturalWidth / img.width;
-			const scaleY = img.naturalHeight / img.height;
-			const left = Math.round(photoCompletedCrop.x * scaleX);
-			const top = Math.round(photoCompletedCrop.y * scaleY);
-			const right = Math.round((photoCompletedCrop.x + photoCompletedCrop.width) * scaleX);
-			const bottom = Math.round((photoCompletedCrop.y + photoCompletedCrop.height) * scaleY);
-			thumbCoords = `${bottom},${left},${right},${top}`;
+			crop = {
+				left: photoCompletedCrop.x / img.width,
+				top: photoCompletedCrop.y / img.height,
+				right: (photoCompletedCrop.x + photoCompletedCrop.width) / img.width,
+				bottom: (photoCompletedCrop.y + photoCompletedCrop.height) / img.height,
+			};
 		}
 
-		await uploadPhotoFile(pendingPhotoFile, thumbCoords);
+		await uploadPhotoFile(pendingPhotoFile, crop);
 	};
 
 	// Removing a photo here only unlinks it from the profile's active slots

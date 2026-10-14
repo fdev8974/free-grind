@@ -9,6 +9,7 @@ import {
 import { formatRelativeTime } from "../../../utils/relativeTime";
 import { hourCycleOptions } from "../../../utils/timeFormat";
 import { ONLINE_ENDING_SOON_MINUTES } from "../gridpage/utils";
+import { sanitizeUploadFile } from "../../../services/uploadSanitize";
 
 export type ChatFiltersDraft = {
 	unreadOnly: boolean;
@@ -149,14 +150,15 @@ export function parseChatFiltersFromLocationState(state: unknown): InboxFilters 
 	};
 }
 
+/** Normalizes the photo/video first (metadata stripped, see uploadSanitize). */
 export async function buildBinaryUpload(file: File): Promise<{
 	body: Uint8Array;
 	contentType: string;
 }> {
-	const fileBytes = new Uint8Array(await file.arrayBuffer());
+	const sanitized = await sanitizeUploadFile(file);
 	return {
-		body: fileBytes,
-		contentType: file.type || "application/octet-stream",
+		body: new Uint8Array(await sanitized.arrayBuffer()),
+		contentType: sanitized.type,
 	};
 }
 
