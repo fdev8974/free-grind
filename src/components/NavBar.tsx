@@ -370,7 +370,12 @@ export function NavBar() {
 	const handleTabChange = (value: string) => {
 		setActiveTab(value);
 		const item = navItems.find((i) => i.value === value);
-		if (item) {
+		// Radix fires onValueChange from both mousedown and focus, and
+		// depending on render timing a single tap can hit both — pushing the
+		// same tab twice, so the first system back appeared to do nothing.
+		// BrowserRouter pushes synchronously, so the second call sees the
+		// already-updated pathname and skips.
+		if (item && window.location.pathname !== item.path) {
 			navigate(item.path);
 		}
 	};
