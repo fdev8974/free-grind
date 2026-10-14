@@ -8,6 +8,9 @@ type NativePushNotificationDetail = {
 	action?: string | null;
 	conversationId?: string | null;
 	senderId?: string | null;
+	// Set by a notification action button ("profile" = Open profile);
+	// absent for a plain tap on the notification.
+	openTarget?: string | null;
 };
 
 declare global {
@@ -26,7 +29,8 @@ function detailKey(detail: NativePushNotificationDetail): string {
 	const conversationId =
 		typeof detail.conversationId === "string" ? detail.conversationId : "";
 	const senderId = typeof detail.senderId === "string" ? detail.senderId : "";
-	return `${event}|${action}|${conversationId}|${senderId}`;
+	const openTarget = typeof detail.openTarget === "string" ? detail.openTarget : "";
+	return `${event}|${action}|${conversationId}|${senderId}|${openTarget}`;
 }
 
 function removeQueuedPushNotification(detail: NativePushNotificationDetail) {
@@ -79,6 +83,14 @@ function getConversationId(detail: NativePushNotificationDetail): string | null 
 }
 
 function getNotificationRoute(detail: NativePushNotificationDetail): string | null {
+	if (
+		detail.openTarget === "profile" &&
+		typeof detail.senderId === "string" &&
+		detail.senderId.trim()
+	) {
+		return `/profile/${encodeURIComponent(detail.senderId.trim())}`;
+	}
+
 	const conversationId = getConversationId(detail);
 	if (conversationId) {
 		return `/chat/${encodeURIComponent(conversationId)}`;

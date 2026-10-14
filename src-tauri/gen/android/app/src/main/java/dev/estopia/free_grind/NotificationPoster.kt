@@ -289,20 +289,31 @@ object NotificationPoster {
 
         val actionStr = payload.optString("action").ifBlank { null }
 
-        val intent = Intent(context, MainActivity::class.java).apply {
-            // Not CLEAR_TASK: that destroys and recreates the running
-            // MainActivity (and Tauri's WebView) in the same process, which
-            // crashes or leaves a blank app. singleTask + these flags reuse
-            // the existing instance via onNewIntent instead.
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            if (actionStr != null) {
-                putExtra("action", actionStr)
+        // openTarget tells PushNotificationBridge where to go: null is the
+        // default (chat, or the sender's profile for taps), "profile" the
+        // "Open profile" action button.
+        fun openIntent(openTarget: String?): PendingIntent {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                // Not CLEAR_TASK: that destroys and recreates the running
+                // MainActivity (and Tauri's WebView) in the same process, which
+                // crashes or leaves a blank app. singleTask + these flags reuse
+                // the existing instance via onNewIntent instead.
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                // PendingIntents differing only in extras are the same one;
+                // a per-notification, per-target data URI keeps each action's
+                // own payload instead of FLAG_UPDATE_CURRENT overwriting it.
+                data = Uri.parse("freegrind-notification://open/${Uri.encode(notificationKey)}/${openTarget ?: "default"}")
+                if (actionStr != null) {
+                    putExtra("action", actionStr)
+                }
+                val opened = if (openTarget == null) payload else JSONObject(payload.toString()).put("openTarget", openTarget)
+                putExtra("push_payload", opened.toString())
             }
-            putExtra("push_payload", payload.toString())
+            return PendingIntent.getActivity(
+                context, notificationId, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
         }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(
-            context, notificationId, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val pendingIntent = openIntent(null)
 
         val senderAvatarBitmap = getNotificationAvatarBitmap(context, rawData)
         val previewImageUrl = payload.optString("previewImageUrl").trim().ifBlank { null }
@@ -343,6 +354,14 @@ object NotificationPoster {
                 if (isTap) putString(EXTRA_PUSH_NOTIFICATION_ID, normalizeNullableString(rawData?.optString("notificationId")))
                 putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
             })
+
+        // WhatsApp-style action buttons on chat notifications. Taps already
+        // open the sender's profile and have no conversation to open.
+        if (!isTap && normalizeNullableString(payload.optString("senderId")) != null) {
+            builder
+                .addAction(NotificationCompat.Action.Builder(0, "Open chat", pendingIntent).build())
+                .addAction(NotificationCompat.Action.Builder(0, "Open profile", openIntent("profile")).build())
+        }
 
         val added = Line(lineKey, text, timestamp, previewUri?.let { "image/jpeg" }, previewUri)
         synchronized(postLock) {
