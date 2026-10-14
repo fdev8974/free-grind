@@ -117,6 +117,27 @@ export async function notifyLocal(options: LocalNotifyOptions): Promise<void> {
 }
 
 /**
+ * A message was unsent: drop its line from the conversation's notification
+ * (Android only — the native side falls back to the whole notification when
+ * it can't tell which line it was). Other platforms post one notification
+ * per message with nothing to match it by, so they leave it.
+ */
+export function withdrawMessageNotification(conversationId: string, messageId: string): void {
+	const bridge = (
+		window as unknown as {
+			FreeGrindBridge?: {
+				withdrawMessageNotification?: (conversationId: string, messageId: string) => void;
+			};
+		}
+	).FreeGrindBridge;
+	try {
+		bridge?.withdrawMessageNotification?.(conversationId, messageId);
+	} catch (error) {
+		appLog.warn("[notify] withdrawMessageNotification (native) failed", error);
+	}
+}
+
+/**
  * Dismisses any already-shown system notification for a conversation once
  * its messages have been read, instead of leaving it in the shade until the
  * user taps it. Android goes through its native FreeGrindBridge pipeline

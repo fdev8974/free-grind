@@ -71,7 +71,11 @@ import {
 	isForegroundNotificationsEnabled,
 	isTapNotificationsEnabled,
 } from "../utils/notificationSettings";
-import { notifyLocal, clearChatNotifications } from "../services/localNotify";
+import {
+	notifyLocal,
+	clearChatNotifications,
+	withdrawMessageNotification,
+} from "../services/localNotify";
 
 let cachedIsAndroid: boolean | null = null;
 function isAndroidRuntime(): boolean {
@@ -839,6 +843,9 @@ export function ChatRealtimeBridge() {
 							)
 						: [];
 					if (ids.length > 0) {
+						// Like open-grind: a deleted conversation takes its
+						// notification with it.
+						for (const id of ids) void clearChatNotifications(id).catch(() => {});
 						const notificationId =
 							typeof envelope.notificationId === "string" ? envelope.notificationId : null;
 						const { systemMessages } = await toggleArchiveOnConversationDelete(
@@ -870,6 +877,7 @@ export function ChatRealtimeBridge() {
 						}
 
 						const fromOther = userIdRef.current != null && Number(m.senderId) !== Number(userIdRef.current);
+						if (fromOther && m.unsent) withdrawMessageNotification(m.conversationId, m.messageId);
 						// chat.v1.message_sent also fires when a message is unsent or
 						// reacted to, re-delivering the original message (same
 						// messageId). Reacting to their message would otherwise look
@@ -922,8 +930,8 @@ export function ChatRealtimeBridge() {
 							// actually see.
 							const isViewingThisChat =
 								isAppForeground() &&
-								(path === `/app/chat/${m.conversationId}` ||
-									path.startsWith(`/app/chat/${m.conversationId}/`));
+								(path === `/chat/${m.conversationId}` ||
+									path.startsWith(`/chat/${m.conversationId}/`));
 							if (!isViewingThisChat) {
 								await incrementUnreadCountForProfile(
 									String(m.senderId),

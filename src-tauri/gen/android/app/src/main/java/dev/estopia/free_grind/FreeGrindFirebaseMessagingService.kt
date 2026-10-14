@@ -40,7 +40,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
 
         if (message.data.isNotEmpty()) {
             Log.d("FCM", "Message data payload: ${message.data}")
-            handleDataPayload(message.data)
+            handleDataPayload(message.data, message.sentTime)
         }
 
         message.notification?.let {
@@ -48,7 +48,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    private fun handleDataPayload(data: Map<String, String>) {
+    private fun handleDataPayload(data: Map<String, String>, sentTime: Long) {
         if (isTrackingOrCampaign(data)) {
             Log.d("FCM", "Ignoring tracking/campaign push")
             return
@@ -89,7 +89,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         }
 
         try {
-            val payload = buildPushPayload(data)
+            val payload = buildPushPayload(data, sentTime)
             val payloadJson = payload.toString()
             Log.d(
                 "FCM",
@@ -109,7 +109,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         TRACKING_KEYS.any(data::containsKey) ||
             CAMPAIGN_KEYS.any { key -> data[key]?.let { it != DIRECT_CAMPAIGN } == true }
 
-    private fun buildPushPayload(data: Map<String, String>): JSONObject {
+    private fun buildPushPayload(data: Map<String, String>, sentTime: Long): JSONObject {
         val titleStr = data["title"] ?: data["senderDisplayName"]
         val senderName = NotificationPoster.normalizeSenderName(titleStr)
 
@@ -196,6 +196,8 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
             put("event", "received")
             put("source", "fcm")
             put("receivedAt", System.currentTimeMillis())
+            // Line order in the conversation notification, as open-grind does.
+            put("sentAt", data["timestamp"]?.toLongOrNull() ?: sentTime)
             put("senderName", senderName)
             put("bodyText", messageText)
             put("isTap", isTap)

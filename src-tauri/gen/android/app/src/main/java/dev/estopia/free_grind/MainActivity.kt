@@ -383,6 +383,14 @@ class MainActivity : TauriActivity() {
       cancelChatNotification(id)
     }
 
+    /** A message was unsent — drop its line from the conversation's notification. */
+    @JavascriptInterface
+    fun withdrawMessageNotification(conversationId: String?, messageId: String?) {
+      val conversation = NotificationPoster.normalizeNullableString(conversationId) ?: return
+      val message = NotificationPoster.normalizeNullableString(messageId) ?: return
+      NotificationPoster.withdrawConversationLine(this@MainActivity, conversation, message)
+    }
+
     @JavascriptInterface
     fun checkMicrophonePermission(): Boolean {
       return checkSelfPermission(Manifest.permission.RECORD_AUDIO) ==
