@@ -1201,7 +1201,11 @@
       "description_other": "Choose a chat to send {{count}} images to",
       "search": "Search chats",
       "no_chats": "No chats found",
-      "remove_image": "Remove image"
+      "remove_image": "Remove image",
+      "sending": "Sending {{done}}/{{total}}",
+      "sent_one": "Sent",
+      "sent_other": "Sent to {{count}} chats",
+      "send_failed": "{{failed}} of {{total}} couldn't be sent"
     },
     "tabs": {
       "inbox": "Inbox",

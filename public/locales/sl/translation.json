@@ -1217,7 +1217,11 @@
             "description_other": "",
             "search": "",
             "no_chats": "",
-            "remove_image": ""
+            "remove_image": "",
+            "sending": "",
+            "sent_one": "",
+            "sent_other": "",
+            "send_failed": ""
         },
         "tabs": {
             "inbox": "Prejeto",

@@ -90,7 +90,6 @@ import {
 	buildPreviewFromMessage,
 	conversationNeedsReply,
 	draftToFilters,
-	extractImageHashFromSignedUrl,
 	getMediaCaptureTarget,
 	isPreviewUnhelpful,
 	getMessageAlbumId,
@@ -133,6 +132,7 @@ import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
 import { isReadReceiptsHidden } from "../../utils/privacy";
 import { clearChatNotifications } from "../../services/localNotify";
 import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
+import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatMediaSend";
 import freegrindLogo from "../../images/freegrind-logo.webp";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
@@ -5107,25 +5107,9 @@ export function ChatPage() {
 			}, 260);
 
 			try {
-				const binaryUpload = await buildBinaryUpload(file);
-				let durationSeconds: number | undefined;
-				if (isVideo) {
-					durationSeconds = await new Promise<number>((resolve) => {
-						const vid = document.createElement("video");
-						vid.preload = "metadata";
-						const objUrl = URL.createObjectURL(file);
-						vid.onloadedmetadata = () => { URL.revokeObjectURL(objUrl); resolve(Math.ceil(vid.duration)); };
-						vid.onerror = () => { URL.revokeObjectURL(objUrl); resolve(0); };
-						vid.src = objUrl;
-					});
-				}
-				const uploaded = await service.uploadChatMedia({
-					multipart: binaryUpload,
-					options: {
-						looping: options.looping,
-						takenOnGrindr: options.takenOnGrindr,
-						durationSeconds,
-					},
+				const uploaded = await uploadChatMediaFile(service, file, {
+					looping: options.looping,
+					takenOnGrindr: options.takenOnGrindr,
 				});
 				setUploadProgress(96);
 
@@ -5140,37 +5124,11 @@ export function ChatPage() {
 					}
 				}
 
-				const imageUrl = uploaded.url;
-				const imageHash = imageUrl
-					? uploaded.mediaHash || extractImageHashFromSignedUrl(imageUrl)
-					: uploaded.mediaHash;
-				const isOnceImage = isImage && options.maxViews === 1;
-				const isUnlimitedVideo = isVideo && options.maxViews > 2;
-				const messageType = isVideo ? (isUnlimitedVideo ? "NonExpiringVideo" : "Video") : isOnceImage ? "ExpiringImage" : "Image";
-				const sentMessage = await service.sendMessage({
-					type: messageType,
-					target: {
-						type: "Direct",
-						targetId: targetProfileIdValue,
-					},
-					body: {
-						mediaId: uploaded.mediaId,
-						width: null,
-						height: null,
-						...(isVideo ? { viewsRemaining: options.maxViews, maxViews: options.maxViews } : {}),
-						...(isOnceImage ? { viewsRemaining: 1, maxViews: 1, duration: 10 } : {}),
-						...(imageUrl ? { url: imageUrl } : {}),
-						...(isImage && imageHash ? { imageHash } : {}),
-					},
+				// Also captures the sent media into chatDb (see chatMediaSend).
+				const sentMessage = await sendUploadedChatMedia(service, uploaded, targetProfileIdValue, {
+					maxViews: options.maxViews,
 					replyToMessageId: replyTargetMessageId,
 				});
-
-				// Capture into chatDb right away — otherwise this send's own
-				// media has no media_files row until the next reload/pagination
-				// pass, which made a just-sent image invisible in the "Sent"
-				// media tab and unable to find itself in the full-screen
-				// carousel (both source from that table) until then.
-				captureMediaForMessages([sentMessage], sentMessage.conversationId);
 
 				setReplyTargetMessageId(null);
 				setThreadMessages((previous) => {

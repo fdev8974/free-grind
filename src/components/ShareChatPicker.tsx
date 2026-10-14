@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { Search, Star, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Hourglass, Loader2, Search, Star, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { HeaderBackButton } from "./HeaderBackButton";
 import { PageHeaderBackground } from "./ui/PageHeaderBackground";
 import { ProfileImage } from "./ui/profile-image";
 import * as chatDb from "../services/chatDb";
+import { sendChatMediaBatch, UNLIMITED_VIEWS, type BatchSendResult } from "../services/chatMediaSend";
+import { useApiFunctions } from "../hooks/useApiFunctions";
+import { usePreferences } from "../contexts/PreferencesContext";
 import { getLocalNicknamesForProfiles } from "../services/chatContactIndex";
 import { resolveAvatarSrc } from "../services/avatarStore";
 import { useAvatarCache } from "../hooks/useAvatarCache";
@@ -21,19 +24,27 @@ const PREVIEW_COUNT = 6;
 
 type PickerChat = {
 	conversationId: string;
+	profileId: number | string;
 	name: string;
 	mediaHash: string | null;
 	entry: ConversationEntry;
 	favorite: boolean;
 };
 
-function Avatar({ chat }: { chat: PickerChat }) {
+function Avatar({ chat, selected, small }: { chat: PickerChat; selected: boolean; small?: boolean }) {
 	return (
-		<div className="h-15 w-15 shrink-0 squircle bg-[var(--surface-2)] drop-shadow-sm">
-			<ProfileImage
-				src={resolveAvatarSrc(chat.mediaHash, getParticipantAvatarUrl(chat.mediaHash))}
-				alt={chat.name}
-			/>
+		<div className="relative shrink-0">
+			<div className={`${small ? "h-11 w-11" : "h-15 w-15"} squircle bg-[var(--surface-2)] drop-shadow-sm`}>
+				<ProfileImage
+					src={resolveAvatarSrc(chat.mediaHash, getParticipantAvatarUrl(chat.mediaHash))}
+					alt={chat.name}
+				/>
+			</div>
+			{selected ? (
+				<span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--bg)] bg-[var(--accent)] text-[var(--accent-contrast)]">
+					<Check className="h-3 w-3" strokeWidth={3} />
+				</span>
+			) : null}
 		</div>
 	);
 }
@@ -41,20 +52,24 @@ function Avatar({ chat }: { chat: PickerChat }) {
 /**
  * "Send to…" chooser for images shared in from Android's share sheet without
  * a Direct Share target (see ShareTargetBridge): the shared images (each can
- * be dropped again) and a list of chats, most recently active first.
+ * be dropped again) and a list of chats, most recently active first. Any
+ * number of chats can be selected; Send uploads each image once and sends
+ * all of them to every selected chat (see chatMediaSend), with one shared
+ * "View once" choice instead of the per-image attachment dialog.
  * Laid out like a settings subpage: back arrow to cancel, search toggle in
  * the header; only the chat list scrolls.
  */
 export function ShareChatPicker({
 	files,
 	userId,
-	onSelect,
+	onSent,
 	onChangeFiles,
 	onCancel,
 }: {
 	files: File[];
 	userId: number;
-	onSelect: (conversationId: string) => void;
+	/** After a send, successful or not; the picker has done nothing else yet. */
+	onSent: (conversationIds: string[], result: BatchSendResult) => void;
 	onChangeFiles: (files: File[]) => void;
 	onCancel: () => void;
 }) {
@@ -64,6 +79,15 @@ export function ShareChatPicker({
 	const [query, setQuery] = useState("");
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [favoritesOnly, setFavoritesOnly] = useState(false);
+	const [selectedIds, setSelectedIds] = useState<string[]>([]);
+	const { defaultExpiringPhotos } = usePreferences();
+	const [viewOnce, setViewOnce] = useState(Boolean(defaultExpiringPhotos));
+	const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+	const api = useApiFunctions();
+	const isSending = progress !== null;
+	// The glass send bar floats over the list; the list reserves its height.
+	const sendBarRef = useRef<HTMLDivElement>(null);
+	const [sendBarHeight, setSendBarHeight] = useState(0);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -82,11 +106,14 @@ export function ShareChatPicker({
 				).catch(() => ({}) as Record<string, string>);
 				if (cancelled) return;
 				setChats(
-					conversations.map((c, index) => {
+					conversations.flatMap((c, index) => {
 						const other = others[index];
-						const nickname = other?.profileId != null ? nicknames[String(other.profileId)] : undefined;
+						// No one to send to (e.g. a stub row without participants).
+						if (other?.profileId == null) return [];
+						const nickname = nicknames[String(other.profileId)];
 						return {
 							conversationId: c.conversationId,
+							profileId: other.profileId,
 							name: nickname || c.entry.data.name || t("common.unknown_display_name"),
 							mediaHash: other?.primaryMediaHash ?? null,
 							entry: c.entry,
@@ -106,7 +133,7 @@ export function ShareChatPicker({
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key !== "Escape") return;
+			if (event.key !== "Escape" || isSending) return;
 			// Escape first closes an open search, then the picker.
 			if (isSearchOpen) {
 				setQuery("");
@@ -117,7 +144,7 @@ export function ShareChatPicker({
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [isSearchOpen, onCancel]);
+	}, [isSearchOpen, isSending, onCancel]);
 
 	const previews = useMemo(
 		() => files.slice(0, PREVIEW_COUNT).map((file) => ({ file, url: URL.createObjectURL(file) })),
@@ -135,6 +162,48 @@ export function ShareChatPicker({
 		);
 	}, [chats, query, favoritesOnly]);
 
+	const selectedChats = useMemo(
+		() => selectedIds.flatMap((id) => chats?.find((chat) => chat.conversationId === id) ?? []),
+		[chats, selectedIds],
+	);
+
+	const hasSelection = selectedChats.length > 0;
+	useEffect(() => {
+		const bar = sendBarRef.current;
+		if (!bar) {
+			setSendBarHeight(0);
+			return;
+		}
+		const observer = new ResizeObserver(() => setSendBarHeight(bar.offsetHeight));
+		observer.observe(bar);
+		return () => observer.disconnect();
+	}, [hasSelection]);
+
+	const toggleSelected = (conversationId: string) => {
+		setSelectedIds((previous) =>
+			previous.includes(conversationId)
+				? previous.filter((id) => id !== conversationId)
+				: [...previous, conversationId],
+		);
+	};
+
+	const send = async () => {
+		if (isSending || selectedChats.length === 0) return;
+		setProgress({ done: 0, total: files.length * selectedChats.length });
+		const result = await sendChatMediaBatch(
+			api,
+			files,
+			selectedChats.map((chat) => chat.profileId),
+			{ maxViews: viewOnce ? 1 : UNLIMITED_VIEWS },
+			(done, total) => setProgress({ done, total }),
+		);
+		setProgress(null);
+		onSent(
+			selectedChats.map((chat) => chat.conversationId),
+			result,
+		);
+	};
+
 	const removeFile = (file: File) => {
 		const remaining = files.filter((candidate) => candidate !== file);
 		if (remaining.length === 0) onCancel();
@@ -143,13 +212,13 @@ export function ShareChatPicker({
 
 	return (
 		<div className="fixed inset-0 z-[110] flex flex-col overflow-hidden bg-[var(--bg)] no-touch-callout">
-			<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
+			<section className="app-screen relative flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
 				{/* Same header as SettingsPage (accent glow, search toggle), with a back arrow like its subpages. */}
 				<header className="relative z-20 flex shrink-0 flex-col gap-3 pb-3 pointer-events-none">
 					<PageHeaderBackground color="var(--accent)" />
 					<div className="pointer-events-auto mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--app-px)]">
 						<div className="flex h-[var(--header-row-h)] items-center gap-2">
-							<HeaderBackButton onClick={onCancel} label={t("common.cancel")} />
+							<HeaderBackButton onClick={() => !isSending && onCancel()} label={t("common.cancel")} />
 							<h1 className="min-w-0 flex-1 truncate text-lg font-semibold">
 								{t("chat.share_target.title", { defaultValue: "Send to…" })}
 							</h1>
@@ -241,7 +310,9 @@ export function ShareChatPicker({
 				    around them; only this list scrolls, ending at the page bottom. */}
 				<div
 					className="min-h-0 flex-1 overflow-y-auto"
-					style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+					style={{
+						paddingBottom: hasSelection ? sendBarHeight : "env(safe-area-inset-bottom, 0px)",
+					}}
 					data-lenis-prevent
 				>
 					<div className="mx-auto w-full max-w-[var(--content-max)]">
@@ -256,10 +327,12 @@ export function ShareChatPicker({
 								<button
 									key={chat.conversationId}
 									type="button"
-									onClick={() => onSelect(chat.conversationId)}
+									onClick={() => toggleSelected(chat.conversationId)}
+									disabled={isSending}
+									aria-pressed={selectedIds.includes(chat.conversationId)}
 									className="flex w-full items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 text-left transition hover:bg-[var(--surface-2)]"
 								>
-									<Avatar chat={chat} />
+									<Avatar chat={chat} selected={selectedIds.includes(chat.conversationId)} />
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center justify-between gap-2">
 											<div className="flex min-w-0 items-center gap-1.5">
@@ -281,6 +354,83 @@ export function ShareChatPicker({
 						)}
 					</div>
 				</div>
+
+				{hasSelection ? (
+					<div
+						ref={sendBarRef}
+						className="absolute inset-x-0 bottom-0 z-20 border-t border-[var(--border)]"
+						// Same frosted glass as the bottom NavBar.
+						style={{
+							background: "color-mix(in srgb, var(--surface) 90%, transparent)",
+							backdropFilter: "blur(16px)",
+							WebkitBackdropFilter: "blur(16px)",
+							paddingBottom: "max(12px, calc(env(safe-area-inset-bottom) + 8px))",
+						}}
+					>
+						<div className="mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-2.5 pt-3">
+							{/* Selected chats, WhatsApp-style: avatar + name, tap to deselect. */}
+							<div className="flex gap-3 overflow-x-auto px-4" data-lenis-prevent>
+								{selectedChats.map((chat) => (
+									<button
+										key={chat.conversationId}
+										type="button"
+										onClick={() => toggleSelected(chat.conversationId)}
+										disabled={isSending}
+										aria-label={chat.name}
+										className="flex w-14 shrink-0 flex-col items-center gap-1 disabled:opacity-60"
+									>
+										<div className="relative">
+											<Avatar chat={chat} selected={false} small />
+											<span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--surface)] bg-[var(--surface-2)] text-[var(--text-muted)]">
+												<X className="h-3 w-3" strokeWidth={3} />
+											</span>
+										</div>
+										<span className="w-full truncate text-center text-[11px] text-[var(--text-muted)]">
+											{chat.name}
+										</span>
+									</button>
+								))}
+							</div>
+							{/* Same footer as the chat's attachment dialog (BottomDrawer): expiry box + Send. */}
+							<div className="flex gap-2 px-3">
+								<button
+									type="button"
+									onClick={() => setViewOnce((value) => !value)}
+									disabled={isSending}
+									aria-pressed={viewOnce}
+									title={t("chat.attachments.view_once_description")}
+									className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-sm font-semibold transition hover:border-[var(--accent)] disabled:opacity-60 ${viewOnce ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--text)]"}`}
+								>
+									<Hourglass className={`h-4 w-4 shrink-0 ${viewOnce ? "" : "text-[var(--text-muted)]"}`} />
+									{viewOnce
+										? t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })
+										: t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}
+								</button>
+								<button
+									type="button"
+									onClick={() => void send()}
+									disabled={isSending}
+									className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+								>
+									{isSending ? (
+										<>
+											<Loader2 className="h-4 w-4 animate-spin" />
+											{t("chat.share_target.sending", {
+												defaultValue: "Sending {{done}}/{{total}}",
+												done: progress.done,
+												total: progress.total,
+											})}
+										</>
+									) : viewOnce ? (
+										t("chat.attachments.send_expiring")
+									) : (
+										t("chat.attachments.send")
+									)}
+								</button>
+							</div>
+						</div>
+					</div>
+				) : null}
 			</section>
 		</div>
 	);

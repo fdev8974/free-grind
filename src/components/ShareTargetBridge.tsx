@@ -6,7 +6,8 @@
  * on window.__FG_SHARE_INTENTS for a WebView that wasn't listening yet) with
  * ids of the shared images it cached. Each image is pulled once through
  * FreeGrindBridge.takeSharedImage, handed to the sharedImages store, and the
- * app opens the target chat — or, without one, ShareChatPicker asks which.
+ * app opens the target chat — or, without one, ShareChatPicker lets the user
+ * pick any number of chats and sends everything from there.
  *
  * Outgoing: keeps the share sheet's Direct Share row in step with the most
  * recent chats. The native side drops them again while a disguise is active.
@@ -14,6 +15,8 @@
 
 import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
 import * as chatDb from "../services/chatDb";
 import {
@@ -72,6 +75,7 @@ function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
 
 export function ShareTargetBridge() {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	const { userId, settingsReady } = useAuth();
 	const pendingSharedImages = usePendingSharedImages();
 
@@ -164,9 +168,27 @@ export function ShareTargetBridge() {
 		<ShareChatPicker
 			files={pendingSharedImages.files}
 			userId={userId}
-			onSelect={(conversationId) => {
-				setPendingSharedImages({ files: pendingSharedImages.files, conversationId });
-				openChat(conversationId);
+			onSent={(conversationIds, { sent, failed }) => {
+				clearPendingSharedImages();
+				if (failed > 0) {
+					toast.error(
+						t("chat.share_target.send_failed", {
+							defaultValue: "{{failed}} of {{total}} couldn't be sent",
+							failed,
+							total: sent + failed,
+						}),
+					);
+				} else {
+					toast.success(
+						t("chat.share_target.sent", {
+							count: conversationIds.length,
+							defaultValue_one: "Sent",
+							defaultValue_other: "Sent to {{count}} chats",
+						}),
+					);
+				}
+				// One chat: go there, like WhatsApp does. Several: stay put.
+				if (conversationIds.length === 1 && sent > 0) openChat(conversationIds[0]);
 			}}
 			onChangeFiles={(files) => setPendingSharedImages({ files, conversationId: null })}
 			onCancel={clearPendingSharedImages}
