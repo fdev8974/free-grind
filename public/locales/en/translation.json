@@ -990,6 +990,10 @@
       "light": "Light",
       "dark": "Dark"
     },
+    "amoled": {
+      "title": "Pure black (AMOLED)",
+      "desc": "Uses true black backgrounds in dark mode. Saves battery on OLED screens."
+    },
     "analytics": {
       "title": "Analytics & Discovery",
       "description": "This controls anonymous analytics and FreeGrind user discovery. If disabled, the app will not use the API to find other FreeGrind users.",

@@ -1006,6 +1006,10 @@
             "light": "Svetla",
             "dark": "Temna"
         },
+        "amoled": {
+            "title": "",
+            "desc": ""
+        },
         "analytics": {
             "title": "Analitika in odkrivanje",
             "description": "To upravlja anonimno analitiko in odkrivanje uporabnikov FreeGrind. Če je izklopljeno, aplikacija ne bo uporabljala API-ja za iskanje drugih uporabnikov FreeGrind.",

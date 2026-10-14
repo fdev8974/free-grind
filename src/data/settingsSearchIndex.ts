@@ -23,6 +23,7 @@ import {
 	MessageSquareQuote,
 	MessageSquareWarning,
 	Monitor,
+	Moon,
 	Palette,
 	RotateCcw,
 	Ruler,
@@ -107,6 +108,15 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			label: t("customizability.color_scheme"),
 			section: "Look & Feel",
 			icon: Monitor,
+			iconClass: "bg-violet-500/15 text-violet-400",
+		},
+		{
+			id: "cust-amoled",
+			route: "/settings/customizability",
+			anchor: "cust-amoled",
+			label: t("customizability.amoled.title"),
+			section: "Look & Feel",
+			icon: Moon,
 			iconClass: "bg-violet-500/15 text-violet-400",
 		},
 		{

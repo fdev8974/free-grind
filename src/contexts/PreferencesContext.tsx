@@ -153,6 +153,8 @@ const preferencesSchema = z.object({
 	geohash: geohashSchema.nullable().default(null),
 	locationName: z.string().nullable().optional(),
 	colorScheme: z.enum(["system", "light", "dark"]).default("dark"),
+	// Pure-black dark palette; only takes effect while the dark scheme is active.
+	amoledMode: z.boolean().default(false),
 	accentColor: z.string().default("#7c3aed"),
 	accentContrast: z.string().default("#ffffff"),
 	mobileGridColumns: z.enum(["2", "3"]).default("3"),
@@ -199,6 +201,7 @@ type PreferencesAction =
 	| { type: "SET_LOCATION_NAME"; payload: string | null }
 	| { type: "SET_LOADING"; payload: boolean }
 	| { type: "SET_COLOR_SCHEME"; payload: ColorScheme }
+	| { type: "SET_AMOLED_MODE"; payload: boolean }
 	| { type: "SET_MOBILE_GRID_COLUMNS"; payload: "2" | "3" }
 	| { type: "SET_UNITS_PRESET"; payload: UnitsPreset }
 	| { type: "SET_BLUR_INCOMING_MEDIA"; payload: boolean }
@@ -236,6 +239,8 @@ function preferencesReducer(
 			return { ...state, isLoading: action.payload };
 		case "SET_COLOR_SCHEME":
 			return { ...state, colorScheme: action.payload };
+		case "SET_AMOLED_MODE":
+			return { ...state, amoledMode: action.payload };
 		case "SET_MOBILE_GRID_COLUMNS":
 			return { ...state, mobileGridColumns: action.payload };
 		case "SET_UNITS_PRESET":
@@ -295,9 +300,14 @@ function preferencesReducer(
 	}
 }
 
-function applyTheme(colorScheme: ColorScheme, accentColor: string, accentContrast: string, revealStrength: RevealStrength) {
+function applyTheme(colorScheme: ColorScheme, amoledMode: boolean, accentColor: string, accentContrast: string, revealStrength: RevealStrength) {
 	const root = document.documentElement;
 	root.setAttribute("data-scheme", colorScheme);
+	if (amoledMode) {
+		root.setAttribute("data-amoled", "true");
+	} else {
+		root.removeAttribute("data-amoled");
+	}
 	root.style.setProperty("--accent", accentColor);
 	root.style.setProperty("--accent-contrast", accentContrast);
 
@@ -338,6 +348,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		geohash: null,
 		locationName: null,
 		colorScheme: "dark",
+		amoledMode: false,
 		accentColor: "#7c3aed",
 		accentContrast: "#ffffff",
 		mobileGridColumns: "3",
@@ -386,6 +397,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					// dispatched here — they're per-profile and loaded by the
 					// settingsReady-gated effect below instead.
 					dispatch({ type: "SET_COLOR_SCHEME", payload: parsed.colorScheme });
+					dispatch({ type: "SET_AMOLED_MODE", payload: parsed.amoledMode });
 					dispatch({ type: "SET_MOBILE_GRID_COLUMNS", payload: parsed.mobileGridColumns });
 					dispatch({ type: "SET_UNITS_PRESET", payload: parsed.unitsPreset });
 					dispatch({ type: "SET_BLUR_INCOMING_MEDIA", payload: parsed.blurIncomingMedia });
@@ -417,12 +429,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 						type: "SET_ACCENT",
 						payload: { color: parsed.accentColor, contrast: parsed.accentContrast },
 					});
-					applyTheme(parsed.colorScheme, parsed.accentColor, parsed.accentContrast, parsed.revealEffectStrength);
+					applyTheme(parsed.colorScheme, parsed.amoledMode, parsed.accentColor, parsed.accentContrast, parsed.revealEffectStrength);
 				} else {
 					// No stored preferences at all, apply device defaults immediately
 					dispatch({ type: "SET_REVEAL_EFFECT_STRENGTH", payload: deviceDefaultStrength });
 					// We also need to apply the theme with these defaults
-					applyTheme("dark", "#7c3aed", "#ffffff", deviceDefaultStrength);
+					applyTheme("dark", false, "#7c3aed", "#ffffff", deviceDefaultStrength);
 				}
 			} catch (error) {
 				appLog.error("Failed to load preferences:", error);
@@ -474,6 +486,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				geohash: currentState.geohash,
 				locationName: currentState.locationName,
 				colorScheme: currentState.colorScheme,
+				amoledMode: currentState.amoledMode,
 				accentColor: currentState.accentColor,
 				accentContrast: currentState.accentContrast,
 				mobileGridColumns: currentState.mobileGridColumns,
@@ -519,6 +532,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.colorScheme !== undefined) {
 				dispatch({ type: "SET_COLOR_SCHEME", payload: newValues.colorScheme });
+			}
+			if (newValues.amoledMode !== undefined) {
+				dispatch({ type: "SET_AMOLED_MODE", payload: newValues.amoledMode });
 			}
 			if (newValues.mobileGridColumns !== undefined) {
 				dispatch({ type: "SET_MOBILE_GRID_COLUMNS", payload: newValues.mobileGridColumns });
@@ -614,6 +630,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			// Apply theme immediately
 			applyTheme(
 				preferences.colorScheme,
+				preferences.amoledMode,
 				preferences.accentColor,
 				preferences.accentContrast,
 				preferences.revealEffectStrength,
@@ -638,6 +655,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				PREFERENCES_STORAGE_KEY,
 				JSON.stringify({
 					colorScheme: preferences.colorScheme,
+					amoledMode: preferences.amoledMode,
 					accentColor: preferences.accentColor,
 					accentContrast: preferences.accentContrast,
 					mobileGridColumns: preferences.mobileGridColumns,
@@ -672,6 +690,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		geohash: state.geohash,
 		locationName: state.locationName,
 		colorScheme: state.colorScheme,
+		amoledMode: state.amoledMode,
 		accentColor: state.accentColor,
 		accentContrast: state.accentContrast,
 		mobileGridColumns: state.mobileGridColumns,

@@ -998,6 +998,10 @@
             "light": "Clair",
             "dark": "Sombre"
         },
+        "amoled": {
+            "title": "",
+            "desc": ""
+        },
         "analytics": {
             "title": "Analyses et Découverte",
             "description": "Ceci contrôle l'analyse anonyme et la détection des utilisateurs de Free Grind. Si désactivé, l'application n'utilisera pas l'API pour trouver d'autres utilisateurs de Free Grind.",

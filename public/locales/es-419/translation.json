@@ -998,6 +998,10 @@
             "light": "Claro",
             "dark": "Oscuro"
         },
+        "amoled": {
+            "title": "",
+            "desc": ""
+        },
         "analytics": {
             "title": "Analíticas y Descubrimiento",
             "description": "Esto controla el análisis anónimo y la detección de usuarios de FreeGrind. Si se desactiva, la aplicación no utilizará la API para encontrar otros usuarios de FreeGrind.",

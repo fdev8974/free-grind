@@ -377,6 +377,16 @@
 		background-color: var(--bg);
 	}
 
+	/* AMOLED: swap the dark palette for pure black. Overriding the --dark-*
+	   tokens means every dark rule (forced or via prefers-color-scheme) picks
+	   it up, while light mode stays untouched. */
+	:root[data-amoled="true"] {
+		--dark-bg: #000000;
+		--dark-surface: #0b0d11;
+		--dark-surface-2: #15191f;
+		--dark-border: #242a33;
+	}
+
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-scheme="light"]) {
 			--bg: var(--dark-bg);

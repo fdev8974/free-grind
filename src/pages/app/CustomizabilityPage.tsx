@@ -144,6 +144,7 @@ export function CustomizabilityPage() {
 	const highlightId = useSettingsHighlight();
 	const {
 		colorScheme,
+		amoledMode,
 		accentColor,
 		mobileGridColumns,
 		unitsPreset,
@@ -262,9 +263,10 @@ export function CustomizabilityPage() {
 					<div className="grid gap-3">
 
 						{/* Color Scheme */}
+						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 						<div
 							id="cust-color-scheme"
-							className={`surface-card p-4 ${highlightId === "cust-color-scheme" ? "animate-settings-highlight" : ""}`}
+							className={`p-4 ${highlightId === "cust-color-scheme" ? "animate-settings-highlight" : ""}`}
 						>
 							<p className="mb-3 text-sm font-semibold">{t("customizability.color_scheme")}</p>
 							<div className="grid grid-cols-3 gap-2">
@@ -290,6 +292,20 @@ export function CustomizabilityPage() {
 									);
 								})}
 							</div>
+						</div>
+						{/* Only meaningful when dark can be active ("system" may resolve to dark). */}
+						{colorScheme !== "light" && (
+							<ToggleRow
+								id="cust-amoled"
+								highlighted={highlightId === "cust-amoled"}
+								icon={<Moon className="h-5 w-5" />}
+								iconClass="bg-violet-500/15 text-violet-400"
+								label={t("customizability.amoled.title")}
+								description={t("customizability.amoled.desc")}
+								checked={amoledMode}
+								onChange={(checked) => void setPreferences({ amoledMode: checked })}
+							/>
+						)}
 						</div>
 
 						{/* Accent Color + Preview combined */}

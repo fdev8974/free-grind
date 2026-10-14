@@ -990,6 +990,10 @@
             "light": "Licht",
             "dark": "Donker"
         },
+        "amoled": {
+            "title": "",
+            "desc": ""
+        },
         "analytics": {
             "title": "Analyse & ontdekking",
             "description": "Dit regelt anonieme analyse en het ontdekken van FreeGrind-gebruikers. Als het is uitgeschakeld, gebruikt de app de API niet om andere FreeGrind-gebruikers te vinden.",

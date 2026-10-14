@@ -990,6 +990,10 @@
             "light": "Hell",
             "dark": "Dunkel"
         },
+        "amoled": {
+            "title": "",
+            "desc": ""
+        },
         "analytics": {
             "title": "Analytics & Entdeckung",
             "description": "Dies steuert anonyme Analytics und die Entdeckung von FreeGrind-Nutzern. Wenn deaktiviert, nutzt die App die API nicht, um andere FreeGrind-Nutzer zu finden.",
