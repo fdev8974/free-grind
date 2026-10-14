@@ -693,6 +693,7 @@ export function ChatPage() {
 	const [isSavingAlbumAll, setIsSavingAlbumAll] = useState(false);
 	const [isChatMediaSheetOpen, setIsChatMediaSheetOpen] = useState(false);
 	const albumViewerCancelledRef = useRef(false);
+	const albumHistoryDepthRef = useRef(0);
 	type ThreadMediaItem = PhotoViewerMedia & { meta?: { takenOnGrindr: boolean; createdAtLabel: string | null; timestamp: number } };
 	const [fullScreenMediaList, setFullScreenMediaList] = useState<ThreadMediaItem[]>([]);
 	const [fullScreenMediaIndex, setFullScreenMediaIndex] = useState(0);
@@ -5833,7 +5834,7 @@ export function ChatPage() {
 		setAlbumViewerMediaIndex(index);
 	}, []);
 
-	const closeAlbumMediaSheet = useCallback(() => {
+	const resetAlbumViewerState = useCallback(() => {
 		albumViewerCancelledRef.current = true;
 		setIsAlbumMediaSheetOpen(false);
 		setAlbumViewer(null);
@@ -5841,18 +5842,71 @@ export function ChatPage() {
 		setIsAlbumViewerLoading(false);
 	}, []);
 
+	// Pops the history entries the album overlay pushed (see the effects
+	// below) after the UI has already been closed by a button — depth is
+	// zeroed first so the resulting popstate is a no-op for our handler.
+	const popAlbumHistory = useCallback((targetDepth: number) => {
+		const steps = albumHistoryDepthRef.current - targetDepth;
+		if (steps <= 0) return;
+		albumHistoryDepthRef.current = targetDepth;
+		window.history.go(-steps);
+	}, []);
+
+	const closeAlbumMediaSheet = useCallback(() => {
+		resetAlbumViewerState();
+		popAlbumHistory(0);
+	}, [resetAlbumViewerState, popAlbumHistory]);
+
 	const closeAlbumMediaViewer = useCallback(() => {
 		if (isAlbumMediaSheetOpen) {
 			// Came from the browse-first sheet — go back to it rather than
 			// exiting the album entirely.
 			setAlbumViewerMediaIndex(null);
+			popAlbumHistory(1);
 			return;
 		}
-		albumViewerCancelledRef.current = true;
-		setAlbumViewer(null);
-		setAlbumViewerMediaIndex(null);
-		setIsAlbumViewerLoading(false);
-	}, [isAlbumMediaSheetOpen]);
+		resetAlbumViewerState();
+		popAlbumHistory(0);
+	}, [isAlbumMediaSheetOpen, resetAlbumViewerState, popAlbumHistory]);
+
+	// System back support for albums opened from the thread: one history entry
+	// for the album itself (sheet or directly-opened viewer), plus a second one
+	// while the full-screen viewer sits on top of the browse-first sheet.
+	// Without these, hardware back popped the chat route itself and dumped the
+	// user into the inbox.
+	const isAlbumOverlayOpen = isAlbumViewerLoading || albumViewer !== null || isAlbumMediaSheetOpen;
+	const isAlbumViewerOverSheet = isAlbumMediaSheetOpen && albumViewer !== null && albumViewerMediaIndex !== null;
+
+	useEffect(() => {
+		if (!isAlbumOverlayOpen) {
+			// Closed without going through history (load error, conversation
+			// switch) — just forget the entries rather than navigating.
+			albumHistoryDepthRef.current = 0;
+			return;
+		}
+		if (albumHistoryDepthRef.current === 0) {
+			window.history.pushState({ ...window.history.state, chatAlbum: 1 }, "");
+			albumHistoryDepthRef.current = 1;
+		}
+		if (isAlbumViewerOverSheet && albumHistoryDepthRef.current === 1) {
+			window.history.pushState({ ...window.history.state, chatAlbum: 2 }, "");
+			albumHistoryDepthRef.current = 2;
+		}
+	}, [isAlbumOverlayOpen, isAlbumViewerOverSheet]);
+
+	useEffect(() => {
+		const handlePopState = () => {
+			if (albumHistoryDepthRef.current === 2) {
+				albumHistoryDepthRef.current = 1;
+				setAlbumViewerMediaIndex(null);
+			} else if (albumHistoryDepthRef.current === 1) {
+				albumHistoryDepthRef.current = 0;
+				resetAlbumViewerState();
+			}
+		};
+		window.addEventListener("popstate", handlePopState);
+		return () => window.removeEventListener("popstate", handlePopState);
+	}, [resetAlbumViewerState]);
 
 	const handleSaveAllAlbumMedia = useCallback(async () => {
 		if (!albumViewer || isSavingAlbumAll) return;
