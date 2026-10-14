@@ -1196,8 +1196,11 @@
   },
   "chat": {
     "share_target": {
-      "choose_chat_one": "Choose a chat to send the image to",
-      "choose_chat_other": "Choose a chat to send {{count}} images to"
+      "title": "Send to…",
+      "description_one": "Choose a chat to send the image to",
+      "description_other": "Choose a chat to send {{count}} images to",
+      "search": "Search chats",
+      "no_chats": "No chats found"
     },
     "tabs": {
       "inbox": "Inbox",

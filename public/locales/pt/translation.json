@@ -1204,8 +1204,11 @@
     },
     "chat": {
         "share_target": {
-            "choose_chat_one": "",
-            "choose_chat_other": ""
+            "title": "",
+            "description_one": "",
+            "description_other": "",
+            "search": "",
+            "no_chats": ""
         },
         "tabs": {
             "inbox": "Caixa de entrada",

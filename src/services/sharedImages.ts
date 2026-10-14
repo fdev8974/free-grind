@@ -1,9 +1,9 @@
 /**
  * sharedImages.ts — images shared into the app from Android's share sheet
  * (see ShareTargetBridge and the native ShareTarget.kt), held until a chat
- * picks them up. `conversationId` is set when the share came through a
- * Direct Share shortcut for one specific chat; null means "let the user
- * choose", which ChatPage does by showing a banner over the inbox.
+ * picks them up. `conversationId` is the chat they go to — set right away
+ * for a Direct Share target, or once the user picked one in
+ * ShareChatPicker; null while that choice is still open.
  */
 
 import { useSyncExternalStore } from "react";
@@ -30,12 +30,12 @@ export function clearPendingSharedImages(): void {
 }
 
 /**
- * Hands the pending images to `conversationId` and clears them — unless
- * they were shared to a different chat, in which case they stay put.
+ * Hands the pending images to `conversationId` and clears them — only if
+ * they're addressed to that chat. Images with no chosen chat yet stay put,
+ * even while some other chat happens to be open.
  */
 export function takePendingSharedImages(conversationId: string): File[] | null {
-	if (!pending) return null;
-	if (pending.conversationId && pending.conversationId !== conversationId) return null;
+	if (!pending || pending.conversationId !== conversationId) return null;
 	const { files } = pending;
 	setPendingSharedImages(null);
 	return files;

@@ -132,11 +132,7 @@ import { clearAutomationSeenHistoryForSender, runAutomationRulesForSender } from
 import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
 import { isReadReceiptsHidden } from "../../utils/privacy";
 import { clearChatNotifications } from "../../services/localNotify";
-import {
-	clearPendingSharedImages,
-	takePendingSharedImages,
-	usePendingSharedImages,
-} from "../../services/sharedImages";
+import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
 import freegrindLogo from "../../images/freegrind-logo.webp";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
@@ -6676,26 +6672,6 @@ export function ChatPage() {
 					</div>
 				)}
 
-			{pendingSharedImages && !pendingSharedImages.conversationId && !selectedConversationId && (
-				<div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] z-50 flex justify-center px-4 pointer-events-none">
-					<div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-[var(--text)] shadow-lg">
-						<span className="text-sm">
-							{t("chat.share_target.choose_chat", {
-								count: pendingSharedImages.files.length,
-								defaultValue_one: "Choose a chat to send the image to",
-								defaultValue_other: "Choose a chat to send {{count}} images to",
-							})}
-						</span>
-						<button
-							type="button"
-							className="shrink-0 text-sm font-semibold text-[var(--accent)]"
-							onClick={clearPendingSharedImages}
-						>
-							{t("common.cancel")}
-						</button>
-					</div>
-				</div>
-			)}
 
 			{chatIsFiltersOpen && (
 				<ChatFiltersOverlay

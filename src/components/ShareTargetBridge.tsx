@@ -6,17 +6,22 @@
  * on window.__FG_SHARE_INTENTS for a WebView that wasn't listening yet) with
  * ids of the shared images it cached. Each image is pulled once through
  * FreeGrindBridge.takeSharedImage, handed to the sharedImages store, and the
- * app opens the target chat — or the inbox, where ChatPage asks which chat.
+ * app opens the target chat — or, without one, ShareChatPicker asks which.
  *
  * Outgoing: keeps the share sheet's Direct Share row in step with the most
  * recent chats. The native side drops them again while a disguise is active.
  */
 
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
 import * as chatDb from "../services/chatDb";
-import { setPendingSharedImages } from "../services/sharedImages";
+import {
+	clearPendingSharedImages,
+	setPendingSharedImages,
+	usePendingSharedImages,
+} from "../services/sharedImages";
+import { ShareChatPicker } from "./ShareChatPicker";
 import { getOtherParticipant } from "../pages/app/chat/chatUtils";
 import { getThumbImageUrl } from "../utils/media";
 import { appLog } from "../utils/logger";
@@ -68,6 +73,14 @@ function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
 export function ShareTargetBridge() {
 	const navigate = useNavigate();
 	const { userId, settingsReady } = useAuth();
+	const pendingSharedImages = usePendingSharedImages();
+
+	const openChat = useCallback(
+		(conversationId: string) => {
+			navigate(`/chat/${encodeURIComponent(conversationId)}`, { state: { sharedAt: Date.now() } });
+		},
+		[navigate],
+	);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -81,9 +94,8 @@ export function ShareTargetBridge() {
 					if (cancelled || files.length === 0) continue;
 					const conversationId = payload.conversationId?.trim() || null;
 					setPendingSharedImages({ files, conversationId });
-					navigate(conversationId ? `/chat/${encodeURIComponent(conversationId)}` : "/chat", {
-						state: { sharedAt: Date.now() },
-					});
+					// Without a target, ShareChatPicker (rendered below) asks.
+					if (conversationId) openChat(conversationId);
 				} catch (error) {
 					appLog.warn("[share] Failed to import shared images", error);
 				}
@@ -97,7 +109,7 @@ export function ShareTargetBridge() {
 			cancelled = true;
 			window.removeEventListener("fg:share-intent", onShareIntent);
 		};
-	}, [navigate]);
+	}, [openChat]);
 
 	useEffect(() => {
 		if (!settingsReady || userId == null || !shareBridge()?.publishShareShortcuts) return;
@@ -145,5 +157,18 @@ export function ShareTargetBridge() {
 		};
 	}, [settingsReady, userId]);
 
-	return null;
+	if (!pendingSharedImages || pendingSharedImages.conversationId || !settingsReady || userId == null) {
+		return null;
+	}
+	return (
+		<ShareChatPicker
+			files={pendingSharedImages.files}
+			userId={userId}
+			onSelect={(conversationId) => {
+				setPendingSharedImages({ files: pendingSharedImages.files, conversationId });
+				openChat(conversationId);
+			}}
+			onCancel={clearPendingSharedImages}
+		/>
+	);
 }
