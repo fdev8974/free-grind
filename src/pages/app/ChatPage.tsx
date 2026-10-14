@@ -6626,7 +6626,14 @@ export function ChatPage() {
 					</>
 				) : (
 					<div className="w-full">
-						{selectedConversation ?? targetProfileId ? renderThread : renderInbox}
+						{selectedConversation ?? targetProfileId
+							? renderThread
+							: selectedConversationId && isLoadingInbox
+								? // Remounting on /chat/:id (e.g. back from a profile): the
+									// conversation list is still empty until the cache/inbox load
+									// lands, so don't flash the inbox before the thread appears.
+									<div className="min-h-dvh" />
+								: renderInbox}
 					</div>
 				)}
 
