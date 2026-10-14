@@ -811,6 +811,18 @@ fn spawn_persistence_tasks(app: &tauri::AppHandle, client: grindr::GrindrClient)
         let mut session_rx = client.session_receiver();
         let mut restriction = session_restriction(session_rx.borrow().as_ref());
         let handle = tauri::async_runtime::spawn(async move {
+            // The loop below only sees *changes*, so a session resumed at
+            // startup would never reach the switcher — e.g. one signed in
+            // before multi-account existed, which then vanished from the
+            // list as soon as another account was added.
+            let initial = session_rx.borrow().clone();
+            if let Some(session) = initial {
+                let device = client.current_device().await;
+                if let Err(e) = AuthStorage::save_account(&session, &device) {
+                    eprintln!("[auth] failed to register account in switcher: {e}");
+                }
+            }
+
             while session_rx.changed().await.is_ok() {
                 // Cloned out before any `.await` below: the `watch::Ref` guard
                 // isn't `Send` and must not live across one.
