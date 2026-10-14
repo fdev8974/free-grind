@@ -1,5 +1,6 @@
 import { ChevronRight, Download, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import semver from "semver";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
 import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
 
@@ -19,21 +20,17 @@ function normalizeVersion(value: string): string {
     return value.trim().replace(/^v/i, "");
 }
 
+/**
+ * Semver precedence (`1.0.0-beta.1 < 1.0.0-beta.2 < 1.0.0-rc.1 < 1.0.0`).
+ * Coercion tolerates loose release names like `1.0`; unparseable versions
+ * never count as outdated.
+ */
 function isOlderVersion(currentVersion: string, latestVersion: string): boolean {
-    const currentParts = currentVersion.split(".").map(Number);
-    const latestParts = latestVersion.split(".").map(Number);
+    const current = semver.coerce(currentVersion, { includePrerelease: true });
+    const latest = semver.coerce(latestVersion, { includePrerelease: true });
+    if (!current || !latest) return false;
 
-    const maxLength = Math.max(currentParts.length, latestParts.length);
-
-    for (let i = 0; i < maxLength; i++) {
-        const a = currentParts[i] || 0;
-        const b = latestParts[i] || 0;
-
-        if (a < b) return true;
-        if (a > b) return false;
-    }
-
-    return false;
+    return semver.lt(current, latest);
 }
 
 function isTargetOutdatedVersion(value: string, releaseInfo: ReleaseInfo): boolean {
@@ -52,7 +49,7 @@ function buildDismissStorageKey(appVersion: string): string {
 
 /**
  * The main app's APK is published as `free-grind-v<version>.apk`. Prefers the
- * exact name for this release, then any `free-grind-v<x.y.z>.apk` — never some
+ * exact name for this release, then any `free-grind-v<x.y.z[-pre]>.apk` — never some
  * other `.apk` that might get attached to a release later.
  */
 function pickApkAsset(
@@ -65,7 +62,8 @@ function pickApkAsset(
     );
     const exact = usable.find((asset) => asset.name === `free-grind-v${version}.apk`);
     if (exact) return exact.browser_download_url;
-    return usable.find((asset) => /^free-grind-v\d+(\.\d+)*\.apk$/.test(asset.name))?.browser_download_url;
+    return usable.find((asset) => /^free-grind-v\d+(\.\d+)*(-[0-9A-Za-z.-]+)?\.apk$/.test(asset.name))
+        ?.browser_download_url;
 }
 
 async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
