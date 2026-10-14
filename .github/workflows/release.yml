@@ -1,20 +1,59 @@
-name: Release Main
+name: Release
 
 on:
   push:
     branches:
       - main
+      - development
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-main
+  group: release-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
+  # main releases on every push. development only releases when a push changes
+  # the version to a pre-release (`bun run set-version beta`), so ordinary
+  # development pushes stay OTA-only (ota-branches.yml).
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.decide.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether to release
+        id: decide
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          version=$(jq -r '.version' package.json)
+          if [[ "$GITHUB_EVENT_NAME" != "push" || "$GITHUB_REF_NAME" == "main" ]]; then
+            should_release=true
+          elif [[ "$version" != *-* ]]; then
+            echo "$version is not a pre-release, skipping"
+            should_release=false
+          else
+            # A new branch has no previous commit (all zeros): treat as changed.
+            previous=$(git show "$BEFORE:package.json" 2>/dev/null | jq -r '.version' || true)
+            if [[ "$previous" == "$version" ]]; then
+              echo "Version unchanged ($version), skipping"
+              should_release=false
+            else
+              echo "Version changed ${previous:-none} -> $version"
+              should_release=true
+            fi
+          fi
+          echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
+
   create-release:
+    needs: check
+    if: needs.check.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     outputs:
       release_id: ${{ steps.create-release.outputs.release_id }}
@@ -28,7 +67,14 @@ jobs:
         run: |
           echo "package_version=$(jq -r '.version' package.json)" >> "$GITHUB_OUTPUT"
           echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-          echo "tag_name=main-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${GITHUB_REF_NAME//\//-}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          # Versions like 1.0.0-beta.0 become GitHub pre-releases. The in-app
+          # update prompt only offers those on non-stable update channels.
+          if [[ "$(jq -r '.version' package.json)" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "release_name=Free Grind v$(jq -r '.version' package.json) (${GITHUB_SHA::7})" >> "$GITHUB_OUTPUT"
 
       - name: Create draft release
@@ -40,25 +86,34 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: '${{ steps.vars.outputs.tag_name }}',
+              // Without this the tag lands on the default branch's HEAD, which
+              // is wrong for manual runs from another branch (e.g. development).
+              target_commitish: context.sha,
               name: '${{ steps.vars.outputs.release_name }}',
               body: [
-                'Automated release generated from a push to `main`.',
+                'Automated release generated from `${{ github.ref_name }}`.',
                 '',
                 `Commit: ${context.sha}`
               ].join('\n'),
               draft: true,
-              prerelease: false,
+              prerelease: ${{ steps.vars.outputs.prerelease }},
               generate_release_notes: true
             });
             core.setOutput('release_id', String(data.id));
 
   publish-ota:
     needs: create-release
+    # Pushes to other branches already publish their OTA via ota-branches.yml;
+    # a second deploy of the same commit would just race it.
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # History lets publish-ota.mjs find the oldest compatible binary.
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

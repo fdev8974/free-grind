@@ -59,6 +59,12 @@ pub struct HotswapMeta {
     /// gate when the requested channel differs from this one.
     #[serde(default)]
     pub channel: Option<String>,
+    /// Binary version that installed this bundle. Lets
+    /// [`BinaryCachePolicy`](crate::policy::BinaryCachePolicy) detect an actual
+    /// binary change instead of guessing from `min_binary_version`. `None` for
+    /// bundles written before this field existed.
+    #[serde(default)]
+    pub installed_with_binary: Option<String>,
 }
 
 /// Result returned to the frontend from `hotswap_check`.

@@ -165,6 +165,7 @@ pub async fn hotswap_apply<R: Runtime>(app: AppHandle<R>) -> Result<String> {
         .clone();
     let opts = updater::DownloadOptions {
         channel,
+        binary_version: &state.binary_version,
         pubkey: &state.pubkey,
         base_dir: &state.base_dir,
         max_bundle_size: state.max_bundle_size,
@@ -226,6 +227,7 @@ pub async fn hotswap_download<R: Runtime>(app: AppHandle<R>) -> Result<String> {
         .clone();
     let opts = updater::DownloadOptions {
         channel,
+        binary_version: &state.binary_version,
         pubkey: &state.pubkey,
         base_dir: &state.base_dir,
         max_bundle_size: state.max_bundle_size,

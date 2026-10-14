@@ -3,9 +3,12 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import semver from "semver";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
 import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
+import { getCurrentHotswapChannel } from "../services/hotswap";
 
 const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
-const DEFAULT_LATEST_VERSION = "1.0.0";
+// Used when the release lookup fails: assume the running version is current,
+// so being offline never flags a build (e.g. a pre-release) as outdated.
+const DEFAULT_LATEST_VERSION = normalizeVersion(import.meta.env.VITE_APP_VERSION ?? "0.0.0");
 const TARGET_OUTDATED_VERSIONS = new Set(["0.5.0", "0.5.1", "0.5.2", "0.5.3", "0.5.4", "5.0.0", "5.1.0", "5.2.0", "5.3.0", "5.4.0"]);
 const OUTDATED_VERSION_REOPEN_COUNT = 5;
 
@@ -66,9 +69,30 @@ function pickApkAsset(
         ?.browser_download_url;
 }
 
-async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
+type GitHubRelease = {
+    name?: string;
+    html_url?: string;
+    draft?: boolean;
+    prerelease?: boolean;
+    assets?: { name?: string; browser_download_url?: string }[];
+};
+
+/** Release names look like `Free Grind v1.0.0-beta.0 (abc1234)`. */
+function parseReleaseVersion(release: GitHubRelease): string | null {
+    const raw = release.name?.split(" ")[2];
+    if (!raw) return null;
+    const version = normalizeVersion(raw);
+    return semver.valid(version) ? version : null;
+}
+
+/**
+ * Highest published release by semver. GitHub's `releases/latest` skips
+ * pre-releases entirely, so this walks the release list instead and only lets
+ * pre-releases through when `includePrerelease` is set (non-stable channels).
+ */
+async function fetchLatestRelease(signal: AbortSignal, includePrerelease: boolean): Promise<ReleaseInfo> {
     const response = await fetch(
-        "https://api.github.com/repos/fdev8974/free-grind/releases/latest",
+        "https://api.github.com/repos/fdev8974/free-grind/releases?per_page=30",
         {
             headers: {
                 Accept: "application/vnd.github+json",
@@ -81,27 +105,30 @@ async function fetchLatestRelease(signal: AbortSignal): Promise<ReleaseInfo> {
         throw new Error(`GitHub release lookup failed (${response.status})`);
     }
 
-    const payload = (await response.json()) as {
-        name?: string;
-        html_url?: string;
-        assets?: { name?: string; browser_download_url?: string }[];
-    };
+    const releases = (await response.json()) as GitHubRelease[];
 
-    const parts = payload.name?.split(" ") ?? [];
-    const version = parts[2]?.replace("v", "") ?? "";
+    let latest: { release: GitHubRelease; version: string } | null = null;
+    for (const release of releases) {
+        if (release.draft || (release.prerelease && !includePrerelease)) continue;
+        const version = parseReleaseVersion(release);
+        // Strictly greater keeps the newest of several releases sharing a version
+        // (the list is ordered newest first).
+        if (version && (!latest || semver.gt(version, latest.version))) {
+            latest = { release, version };
+        }
+    }
 
-    const apkUrl = pickApkAsset(payload.assets ?? [], normalizeVersion(version));
+    if (!latest) {
+        return { latestVersion: DEFAULT_LATEST_VERSION, releasesUrl: DEFAULT_RELEASES_URL };
+    }
 
     return {
-        latestVersion:
-            typeof version === "string" && version.length > 0
-                ? normalizeVersion(version)
-                : DEFAULT_LATEST_VERSION,
+        latestVersion: latest.version,
         releasesUrl:
-            typeof payload.html_url === "string" && payload.html_url.length > 0
-                ? payload.html_url
+            typeof latest.release.html_url === "string" && latest.release.html_url.length > 0
+                ? latest.release.html_url
                 : DEFAULT_RELEASES_URL,
-        apkUrl,
+        apkUrl: pickApkAsset(latest.release.assets ?? [], latest.version),
     };
 }
 
@@ -270,7 +297,7 @@ export function OutdatedVersionGate({ children }: { children: ReactNode }) {
         }
 
         const controller = new AbortController();
-        void fetchLatestRelease(controller.signal)
+        void fetchLatestRelease(controller.signal, getCurrentHotswapChannel() !== "main")
             .then((latest) => {
                 setReleaseInfo(latest);
             })

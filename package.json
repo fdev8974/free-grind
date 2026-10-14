@@ -1,6 +1,6 @@
 {
     "name": "free-grind",
-    "version": "1.0.0",
+    "version": "1.0.0-beta.0",
     "license": "MIT",
     "author": "Jay Brammeld <jay@imaoreo.dev> (https://imaoreo.dev)",
     "type": "module",
@@ -24,7 +24,8 @@
         "logs:clear": "adb logcat -c",
         "preview": "vite preview",
         "tauri": "sh scripts/tauri.sh",
-        "type-check": "tsc --noEmit"
+        "type-check": "tsc --noEmit",
+        "set-version": "bun run scripts/set-version.mjs"
     },
     "dependencies": {
         "@anthropic-ai/sdk": "^0.133.0",

@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useState } from "react";
+import semver from "semver";
 import type { VersionAnnouncement as VersionAnnouncementData } from "../data/versionAnnouncements";
 import logo from "../images/freegrind-logo.webp";
 
@@ -29,15 +30,33 @@ function Dots({ total, current }: { total: number; current: number }) {
 	);
 }
 
+const PRERELEASE_LABELS: Record<string, string> = {
+	alpha: "Alpha",
+	beta: "Beta",
+	rc: "Release Candidate",
+};
+
+/** `1.0.0-beta.2` → "Beta", `1.0.0-rc.1` → "Release Candidate"; null for releases. */
+function getPrereleaseLabel(version: string): string | null {
+	const tag = semver.prerelease(version)?.[0];
+	if (tag === undefined) return null;
+	return (typeof tag === "string" && PRERELEASE_LABELS[tag.toLowerCase()]) || "Pre-release";
+}
+
 export function VersionAnnouncement({
 	announcement,
+	appVersion,
 	onClose,
 	buttonLabel = "Got it",
 }: {
 	announcement: VersionAnnouncementData;
+	/** Running app version; may be a pre-release of `announcement.version`. */
+	appVersion?: string;
 	onClose: () => void;
 	buttonLabel?: string;
 }) {
+	const displayVersion = appVersion ?? announcement.version;
+	const prereleaseLabel = getPrereleaseLabel(displayVersion);
 	// -1 = intro page (headline/version), 0..items.length-1 = one item per page
 	const [step, setStep] = useState(-1);
 
@@ -79,10 +98,20 @@ export function VersionAnnouncement({
 						}}
 					>
 						<img src={logo} alt="" className="mb-6 h-16 w-16 rounded-2xl object-cover" />
+						{prereleaseLabel && (
+							<span className="mb-3 rounded-full border border-[var(--accent)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+								{prereleaseLabel}
+							</span>
+						)}
 						<h1 className="text-2xl font-bold text-[var(--text)]">{announcement.headline}</h1>
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							Version {announcement.version}
+							Version {displayVersion}
 						</p>
+						{prereleaseLabel && (
+							<p className="mt-3 max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
+								This is a test build ahead of the final release, so expect some rough edges. Bugs reported now are fixed before everyone gets it.
+							</p>
+						)}
 					</div>
 				) : (
 					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">

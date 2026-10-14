@@ -17,11 +17,28 @@ jobs:
         with:
           # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
           submodules: true
+          # Full history so the commit count below can serve as the build number.
+          fetch-depth: 0
 
       - name: Extract metadata
         id: meta
         run: |
-          echo "version=$(jq -r '.version' src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
+          VERSION=$(jq -r '.version' package.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # Apple only accepts dot-separated integers in the bundle versions, so
+          # `1.0.0-beta.2` is split: CFBundleShortVersionString gets the plain
+          # `1.0.0`, and CFBundleVersion a build number that grows with every
+          # commit, which keeps successive betas of one version ordered. The app
+          # itself (hotswap, update prompt) still reads the full semver from
+          # package.json.
+          SHORT_VERSION="${VERSION%%[-+]*}"
+          BUILD_NUMBER=$(git rev-list --count HEAD)
+          if ! [[ "$SHORT_VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+            echo "Cannot derive an iOS bundle version from '$VERSION'"
+            exit 1
+          fi
+          echo "bundle_short_version=$SHORT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "bundle_version=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -53,11 +70,12 @@ jobs:
           git checkout -- src-tauri/gen/apple
 
           # Keep the bundle version in sync with tauri.conf.json instead of the
-          # value hardcoded in project.yml.
-          VERSION='${{ steps.meta.outputs.version }}'
+          # value hardcoded in project.yml (see "Extract metadata" for the split).
+          SHORT_VERSION='${{ steps.meta.outputs.bundle_short_version }}'
+          BUILD_NUMBER='${{ steps.meta.outputs.bundle_version }}'
           sed -i '' \
-            -e "s/CFBundleShortVersionString: .*/CFBundleShortVersionString: $VERSION/" \
-            -e "s/CFBundleVersion: .*/CFBundleVersion: \"$VERSION\"/" \
+            -e "s/CFBundleShortVersionString: .*/CFBundleShortVersionString: \"$SHORT_VERSION\"/" \
+            -e "s/CFBundleVersion: .*/CFBundleVersion: \"$BUILD_NUMBER\"/" \
             src-tauri/gen/apple/project.yml
 
           # xcodegen fails on source paths that don't exist yet; Externals is

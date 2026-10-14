@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Link, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import semver from "semver";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PreferencesProvider } from "./contexts/PreferencesContext";
 import { ExploreModeProvider } from "./contexts/ExploreModeContext";
@@ -153,12 +154,21 @@ function ManagerRoutePage() {
 }
 
 const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION;
-const PENDING_ANNOUNCEMENT = VERSION_ANNOUNCEMENTS.find((a) => a.version === CURRENT_APP_VERSION) ?? null;
+// Pre-releases share their final version's announcement (1.0.0-beta.x shows
+// "1.0.0"), unless an entry targets that pre-release exactly. It's marked seen
+// under the announcement's version, so later betas and the final release don't
+// show it again.
+const CURRENT_RELEASE_VERSION = semver.coerce(CURRENT_APP_VERSION)?.version;
+const PENDING_ANNOUNCEMENT =
+	VERSION_ANNOUNCEMENTS.find((a) => a.version === CURRENT_APP_VERSION) ??
+	VERSION_ANNOUNCEMENTS.find((a) => a.version === CURRENT_RELEASE_VERSION) ??
+	null;
+const ANNOUNCEMENT_VERSION = PENDING_ANNOUNCEMENT?.version ?? CURRENT_APP_VERSION;
 
 export default function App() {
 	const [showOnboarding, setShowOnboarding] = useState(() => !hasCompletedOnboarding());
 	const [showAnnouncement, setShowAnnouncement] = useState(
-		() => !showOnboarding && !!PENDING_ANNOUNCEMENT && getLastSeenAnnouncementVersion() !== CURRENT_APP_VERSION,
+		() => !showOnboarding && !!PENDING_ANNOUNCEMENT && getLastSeenAnnouncementVersion() !== ANNOUNCEMENT_VERSION,
 	);
 	// The routed page itself (below) always mounts on the first frame — only
 	// these non-visual startup bridges are staggered one per frame, so their
@@ -176,12 +186,12 @@ export default function App() {
 	const handleOnboardingComplete = () => {
 		// A fresh install is already on the current version — it shouldn't
 		// immediately see a "what's new" screen for the version it just installed.
-		markAnnouncementSeen(CURRENT_APP_VERSION);
+		markAnnouncementSeen(ANNOUNCEMENT_VERSION);
 		setShowOnboarding(false);
 	};
 
 	const handleAnnouncementClose = () => {
-		markAnnouncementSeen(CURRENT_APP_VERSION);
+		markAnnouncementSeen(ANNOUNCEMENT_VERSION);
 		setShowAnnouncement(false);
 	};
 
@@ -200,7 +210,11 @@ export default function App() {
 						</div>
 					) : showAnnouncement && PENDING_ANNOUNCEMENT ? (
 						<div className="app-shell">
-							<VersionAnnouncement announcement={PENDING_ANNOUNCEMENT} onClose={handleAnnouncementClose} />
+							<VersionAnnouncement
+								announcement={PENDING_ANNOUNCEMENT}
+								appVersion={CURRENT_APP_VERSION}
+								onClose={handleAnnouncementClose}
+							/>
 						</div>
 					) : (<AccountStatusGate><TokenExpiredGate><OutdatedVersionGate><TestReminderGate>
 					{renderPhase >= 1 && <ManagerModeRedirect />}
