@@ -1708,6 +1708,7 @@
         "profile_id": "ID de Perfil",
         "profile_id_copied": "ID del perfil copiado en portapapeles",
         "estimated_joined": "Se unió el {{date}} (estimado)",
+        "last_updated": "",
         "snapshot_banner": {
             "title": "Mostrando perfil guardado",
             "subtitle": "El perfil en directo de esta persona no está disponible ahora mismo, así que ves la última información guardada en tu dispositivo."

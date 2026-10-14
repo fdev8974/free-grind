@@ -4,6 +4,7 @@ import {
 	ArrowUp,
 	ArrowUpDown,
 	Calendar,
+	Pencil,
 	ChevronsDown,
 	ChevronsUp,
 	Compass,
@@ -221,7 +222,7 @@ export function ProfileDetailsContent({
 	onDragDeltaChange,
 	isChatLinkedProfile = false,
 }: ProfileDetailsContentProps) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	// Only chat partners get their photos locally cached (see avatarStore.ts) —
 	// ordinary Grid/Browse viewing stays uncached to avoid storing every photo
 	// of every profile a user swipes past.
@@ -990,6 +991,14 @@ export function ProfileDetailsContent({
 						<Calendar className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 						<p className="text-sm text-[var(--text-muted)]">{t("profile_details.estimated_joined", { date: estimatedCreatedAt })}</p>
 					</div>
+					{typeof activeProfile.lastUpdatedTime === "number" && activeProfile.lastUpdatedTime > 0 && (
+						<div className="flex items-center gap-2.5">
+							<Pencil className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+							<p className="text-sm text-[var(--text-muted)]">
+								{t("profile_details.last_updated", { date: new Date(activeProfile.lastUpdatedTime).toLocaleString(i18n.language) })}
+							</p>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

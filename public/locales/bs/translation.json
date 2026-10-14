@@ -1708,6 +1708,7 @@
         "profile_id": "ID profila",
         "profile_id_copied": "ID profila kopiran u međuspremnik",
         "estimated_joined": "Pridružio se {{date}} (procjena)",
+        "last_updated": "",
         "snapshot_banner": {
             "title": "Prikazuje se sačuvani profil",
             "subtitle": "Profil ove osobe uživo trenutno nije dostupan, pa vidiš posljednje podatke sačuvane na tvom uređaju."

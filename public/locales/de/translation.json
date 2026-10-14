@@ -1695,6 +1695,7 @@
         "profile_id": "Profil-ID",
         "profile_id_copied": "Profil-ID in die Zwischenablage kopiert",
         "estimated_joined": "Beigetreten {{date}} (geschätzt)",
+        "last_updated": "",
         "snapshot_banner": {
             "title": "Gespeichertes Profil wird angezeigt",
             "subtitle": "Das Live-Profil dieser Person ist gerade nicht verfügbar, daher siehst du die zuletzt auf deinem Gerät gespeicherten Infos."

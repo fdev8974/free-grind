@@ -1721,6 +1721,7 @@
         "profile_id": "ID profila",
         "profile_id_copied": "ID profila kopiran v odložišče",
         "estimated_joined": "Pridružen {{date}} (ocena)",
+        "last_updated": "",
         "snapshot_banner": {
             "title": "Prikazan je shranjen profil",
             "subtitle": "Profil te osebe v živo trenutno ni na voljo, zato vidiš zadnje podatke, shranjene v tvoji napravi."

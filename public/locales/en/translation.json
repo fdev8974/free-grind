@@ -1695,6 +1695,7 @@
     "profile_id": "Profile ID",
     "profile_id_copied": "Profile ID copied to clipboard",
     "estimated_joined": "Joined {{date}} (estimated)",
+    "last_updated": "Profile updated {{date}}",
     "snapshot_banner": {
       "title": "Showing saved profile",
       "subtitle": "This person's live profile isn't available right now, so you're seeing the last info saved from your device."

@@ -1708,6 +1708,7 @@
         "profile_id": "ID de profil",
         "profile_id_copied": "ID de profil copié dans le presse-papiers",
         "estimated_joined": "A rejoint le {{date}} (estimation)",
+        "last_updated": "",
         "snapshot_banner": {
             "title": "Profil enregistré affiché",
             "subtitle": "Le profil en direct de cette personne n'est pas disponible pour le moment, vous voyez donc les dernières infos enregistrées sur votre appareil."

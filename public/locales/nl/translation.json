@@ -1695,6 +1695,7 @@
         "profile_id": "Profiel-ID",
         "profile_id_copied": "Profiel-ID gekopieerd naar klembord",
         "estimated_joined": "Lid sinds {{date}} (geschat)",
+        "last_updated": "",
         "snapshot_banner": {
             "title": "Opgeslagen profiel wordt getoond",
             "subtitle": "Het live profiel van deze persoon is nu niet beschikbaar, dus je ziet de laatste gegevens die op je apparaat zijn opgeslagen."

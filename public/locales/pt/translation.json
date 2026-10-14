@@ -1708,6 +1708,7 @@
         "profile_id": "ID do perfil",
         "profile_id_copied": "ID do perfil copiado para a área de transferência",
         "estimated_joined": "Entrou em {{date}} (estimado)",
+        "last_updated": "",
         "snapshot_banner": {
             "title": "A mostrar perfil guardado",
             "subtitle": "O perfil ao vivo desta pessoa não está disponível agora, então você está a ver as últimas informações guardadas no seu dispositivo."
