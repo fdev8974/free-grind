@@ -44,10 +44,11 @@ object NotificationPoster {
     // (grindr://unsend, grindr://clear) can find what to cancel.
     private const val EXTRA_PUSH_NOTIFICATION_ID = "dev.estopia.free_grind.extra.PUSH_NOTIFICATION_ID"
     private const val EXTRA_SENDER_ID = "dev.estopia.free_grind.extra.SENDER_ID"
-    // Per-line extras on each MessagingStyle.Message of a chat notification,
-    // so the shown lines can be read back, deduped and withdrawn one by one.
-    private const val EXTRA_LINE_KEY = "dev.estopia.free_grind.extra.LINE_KEY"
-    private const val EXTRA_LINE_PUSH_ID = "dev.estopia.free_grind.extra.LINE_PUSH_ID"
+    // Per-line ids of a chat notification (JSON strings, matched to its
+    // MessagingStyle lines by timestamp). Kept on the notification's own
+    // extras: per-Message extras don't reliably survive the round trip
+    // through the platform MessagingStyle.
+    private const val EXTRA_LINES = "dev.estopia.free_grind.extra.LINES"
 
     // Messages kept in one conversation's notification (newest win).
     private const val CONVERSATION_LINES_MAX = 8
@@ -58,6 +59,15 @@ object NotificationPoster {
     // Serializes the read-active → merge → notify cycle; FCM and the JS bridge
     // (two executor threads) can post into the same conversation at once.
     private val postLock = Any()
+
+    private data class LineIds(val timestamp: Long, val messageId: String?, val pushId: String?)
+
+    // A chat message seen on one channel (realtime WebSocket or FCM), still
+    // waiting for its copy from the other. The two share no id — v2 pushes
+    // carry no messageId — so copies are paired up per conversation, first
+    // come first served, within DEDUP_WINDOW_MS.
+    private data class Unpaired(val at: Long, val fromRealtime: Boolean, val messageId: String?)
+    private val unpaired = mutableMapOf<String, MutableList<Unpaired>>()
 
     private val recentlyNotifiedKeys = mutableMapOf<String, Long>()
     // Grindr has no server-side dedupe and can deliver the same push more
@@ -78,9 +88,46 @@ object NotificationPoster {
     private fun shouldSuppressAsDuplicate(key: String): Boolean {
         val now = System.currentTimeMillis()
         recentlyNotifiedKeys.entries.removeAll { now - it.value >= DEDUP_WINDOW_MS }
-        val alreadyNotified = recentlyNotifiedKeys.containsKey(key)
+        // Not refreshed on a hit: a sliding window would swallow every
+        // follow-up as long as they keep arriving less than a window apart.
+        if (recentlyNotifiedKeys.containsKey(key)) return true
         recentlyNotifiedKeys[key] = now
-        return alreadyNotified
+        return false
+    }
+
+    /**
+     * True if this chat message is the second copy of one already handled
+     * via the other channel. Otherwise records it for that copy to find.
+     */
+    private fun pairWithOtherChannel(
+        context: Context,
+        tag: String,
+        fromRealtime: Boolean,
+        messageId: String?,
+        pushId: String?,
+    ): Boolean {
+        synchronized(postLock) {
+            val now = System.currentTimeMillis()
+            unpaired.values.forEach { list -> list.removeAll { now - it.at >= DEDUP_WINDOW_MS } }
+            unpaired.values.removeAll { it.isEmpty() }
+            val pending = unpaired.getOrPut(tag) { mutableListOf() }
+            if (fromRealtime && messageId != null && pending.any { it.messageId == messageId }) return true
+            val match = pending.firstOrNull { it.fromRealtime != fromRealtime }
+            if (match == null) {
+                pending += Unpaired(now, fromRealtime, messageId)
+                return false
+            }
+            pending.remove(match)
+            // The realtime line has no push id; adopt the FCM copy's so a later
+            // grindr://unsend can still find it.
+            val realtimeMessageId = if (fromRealtime) messageId else match.messageId
+            if (pushId != null && realtimeMessageId != null) {
+                updateLines(context, tag) { lines ->
+                    lines.map { if (it.messageId == realtimeMessageId) it.copy(pushId = pushId) else it }
+                }
+            }
+            return true
+        }
     }
 
     /** True if a push with this notificationId was already handled. */
@@ -97,31 +144,84 @@ object NotificationPoster {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         var withdrawn = 0
         for (posted in notificationManager.activeNotifications) {
-            val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
-            val lines = style?.messages.orEmpty()
-            val remaining = lines.filterNot { it.extras.getString(EXTRA_LINE_PUSH_ID) == notificationId }
-            if (style != null && remaining.size != lines.size) {
+            val lines = readLines(posted)
+            if (lines.any { it.second.pushId == notificationId }) {
                 withdrawn++
-                if (remaining.isEmpty()) {
-                    notificationManager.cancel(posted.tag, posted.id)
-                } else {
-                    val rebuilt = NotificationCompat.MessagingStyle(style.user)
-                        .setConversationTitle(style.conversationTitle)
-                        .setGroupConversation(false)
-                    remaining.forEach { rebuilt.addMessage(it) }
-                    val notification = NotificationCompat.Builder(context, posted.notification)
-                        .setStyle(rebuilt)
-                        .setWhen(remaining.last().timestamp)
-                        .setOnlyAlertOnce(true)
-                        .build()
-                    notificationManager.notify(posted.tag, posted.id, notification)
-                }
+                rewriteCard(context, posted, lines.filterNot { it.second.pushId == notificationId })
             } else if (posted.notification.extras.getString(EXTRA_PUSH_NOTIFICATION_ID) == notificationId) {
                 withdrawn++
                 notificationManager.cancel(posted.tag, posted.id)
             }
         }
         Log.d("FCM", "Withdrew $withdrawn notification(s) for notificationId=$notificationId")
+    }
+
+    private fun activeCard(context: Context, tag: String): StatusBarNotification? =
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+            .activeNotifications
+            .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID }
+
+    /** The card's MessagingStyle lines, each with its ids (empty for non-chat cards). */
+    private fun readLines(
+        posted: StatusBarNotification,
+    ): List<Pair<NotificationCompat.MessagingStyle.Message, LineIds>> {
+        val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
+            ?: return emptyList()
+        val ids = posted.notification.extras.getStringArrayList(EXTRA_LINES).orEmpty()
+            .mapNotNull { encoded ->
+                runCatching {
+                    val json = JSONObject(encoded)
+                    LineIds(
+                        json.getLong("ts"),
+                        normalizeNullableString(json.optString("msg")),
+                        normalizeNullableString(json.optString("push")),
+                    )
+                }.getOrNull()
+            }
+            .associateBy { it.timestamp }
+        // Lines without stored ids (e.g. posted by an older build) still
+        // carry over, just without anything to dedupe or withdraw by.
+        return style.messages.map { it to (ids[it.timestamp] ?: LineIds(it.timestamp, null, null)) }
+    }
+
+    private fun linesExtras(lines: List<LineIds>): Bundle = Bundle().apply {
+        putStringArrayList(
+            EXTRA_LINES,
+            ArrayList(lines.map { JSONObject().put("ts", it.timestamp).put("msg", it.messageId).put("push", it.pushId).toString() }),
+        )
+    }
+
+    /** Re-posts [posted] with just [lines], silently; cancels it if none are left. */
+    private fun rewriteCard(
+        context: Context,
+        posted: StatusBarNotification,
+        lines: List<Pair<NotificationCompat.MessagingStyle.Message, LineIds>>,
+    ) {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
+        if (lines.isEmpty() || style == null) {
+            notificationManager.cancel(posted.tag, posted.id)
+            return
+        }
+        val rebuilt = NotificationCompat.MessagingStyle(style.user)
+            .setConversationTitle(style.conversationTitle)
+            .setGroupConversation(false)
+        lines.forEach { rebuilt.addMessage(it.first) }
+        val notification = NotificationCompat.Builder(context, posted.notification)
+            .setStyle(rebuilt)
+            .setWhen(lines.last().first.timestamp)
+            .addExtras(linesExtras(lines.map { it.second }))
+            .setOnlyAlertOnce(true)
+            .build()
+        notificationManager.notify(posted.tag, posted.id, notification)
+    }
+
+    private fun updateLines(context: Context, tag: String, transform: (List<LineIds>) -> List<LineIds>) {
+        val posted = activeCard(context, tag) ?: return
+        val lines = readLines(posted)
+        val updated = transform(lines.map { it.second })
+        if (updated == lines.map { it.second }) return
+        rewriteCard(context, posted, lines.zip(updated) { line, ids -> line.first to ids })
     }
 
     /** grindr://clear?conversationId= — withdraw a conversation's notification. */
@@ -162,16 +262,18 @@ object NotificationPoster {
             rawData = rawData,
         )
 
-        // Chat messages dedupe per message, so several messages from the same
-        // person all land in the notification; without a messageId (and for
-        // taps) it falls back to one notification per conversation/sender.
+        // Chat messages dedupe per message (so several from the same person
+        // all land in the notification); taps per sender.
         val messageId = if (isTap) null else normalizeNullableString(payload.optString("messageId"))
         val pushId = normalizeNullableString(rawData?.optString("notificationId"))
-        if (shouldSuppressAsDuplicate(messageId?.let { "msg:$it" } ?: notificationKey)) {
+        val duplicate = if (isTap) {
+            shouldSuppressAsDuplicate(notificationKey)
+        } else {
+            val fromRealtime = payload.optString("source") == "realtime"
+            pairWithOtherChannel(context, notificationKey, fromRealtime, messageId, pushId)
+        }
+        if (duplicate) {
             Log.d("FCM", "Suppressing notification (already shown via other channel) key=$notificationKey")
-            // The realtime copy has no push id; adopt it from the FCM copy so
-            // a later grindr://unsend can still find this line.
-            if (messageId != null && pushId != null) attachPushId(context, notificationKey, messageId, pushId)
             return
         }
 
@@ -266,13 +368,6 @@ object NotificationPoster {
             .setImportant(true)
             .build()
 
-        val now = System.currentTimeMillis()
-        val line = NotificationCompat.MessagingStyle.Message(text, now, sender).apply {
-            extras.putString(EXTRA_LINE_KEY, messageId ?: pushId ?: "t:$now")
-            pushId?.let { extras.putString(EXTRA_LINE_PUSH_ID, it) }
-            previewUri?.let { setData("image/jpeg", it) }
-        }
-
         val builder = NotificationCompat.Builder(context, channelId)
             // Status-bar icon: monochrome stencil with transparent background only.
             .setSmallIcon(R.drawable.ic_notification_silhouette)
@@ -288,10 +383,9 @@ object NotificationPoster {
             .setContentIntent(pendingIntent)
             .setTicker(text)
             .setSound(soundUri)
-            .setWhen(now)
             .addExtras(Bundle().apply {
-                // Chat lines carry their own push id (EXTRA_LINE_PUSH_ID);
-                // a card-level one would make unsend drop the whole card.
+                // Chat lines carry their own push id (EXTRA_LINES); a
+                // card-level one would make unsend drop the whole card.
                 if (isTap) putString(EXTRA_PUSH_NOTIFICATION_ID, pushId)
                 putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
             })
@@ -299,71 +393,35 @@ object NotificationPoster {
         synchronized(postLock) {
             // Taps stay one line per sender; chat appends to the lines the
             // conversation's notification is already showing.
-            val shown = if (isTap) emptyList() else shownLines(notificationManager, notificationKey)
-            val lineKey = line.extras.getString(EXTRA_LINE_KEY)
-            if (shown.any { it.extras.getString(EXTRA_LINE_KEY) == lineKey }) {
-                Log.d("FCM", "Suppressing notification (line already shown) key=$notificationKey")
-                if (messageId != null && pushId != null) attachPushId(context, notificationKey, messageId, pushId)
-                return
+            val shown = if (isTap) emptyList() else activeCard(context, notificationKey)?.let(::readLines).orEmpty()
+            // Lines are matched to their ids by timestamp, so keep them unique.
+            val now = maxOf(System.currentTimeMillis(), (shown.maxOfOrNull { it.first.timestamp } ?: 0L) + 1)
+            val line = NotificationCompat.MessagingStyle.Message(text, now, sender).apply {
+                previewUri?.let { setData("image/jpeg", it) }
             }
+            // Re-attribute older lines to the fresh sender Person so a
+            // changed name/avatar applies to the whole card.
+            val lines = (shown.map { it.first.withSender(sender) to it.second } + (line to LineIds(now, messageId, pushId)))
+                .takeLast(CONVERSATION_LINES_MAX)
             val style = NotificationCompat.MessagingStyle(me)
                 .setConversationTitle(if (isTap) "Taps" else null)
                 .setGroupConversation(false)
-            // Re-attribute older lines to the fresh sender Person so a
-            // changed name/avatar applies to the whole card.
-            (shown.map { it.withSender(sender) } + line)
-                .sortedBy { it.timestamp }
-                .takeLast(CONVERSATION_LINES_MAX)
-                .forEach { style.addMessage(it) }
+            lines.forEach { style.addMessage(it.first) }
             builder.setStyle(style)
+                .setWhen(now)
+                .addExtras(linesExtras(lines.map { it.second }))
             notificationManager.notify(notificationKey, NOTIFICATION_INSTANCE_ID, builder.build())
         }
-        Log.d("FCM", "Local notification posted successfully")
-    }
-
-    private fun shownLines(
-        notificationManager: NotificationManager,
-        tag: String,
-    ): List<NotificationCompat.MessagingStyle.Message> {
-        val posted = notificationManager.activeNotifications
-            .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID } ?: return emptyList()
-        val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
-            ?: return emptyList()
-        return style.messages.map { message ->
-            // Lines posted before per-line keys existed get a stable stand-in.
-            if (message.extras.getString(EXTRA_LINE_KEY) == null) {
-                message.extras.putString(EXTRA_LINE_KEY, "t:${message.timestamp}")
-            }
-            message
-        }
+        Log.d("FCM", "Local notification posted successfully (${if (isTap) "tap" else "chat"} key=$notificationKey)")
     }
 
     private fun NotificationCompat.MessagingStyle.Message.withSender(
         sender: Person,
     ): NotificationCompat.MessagingStyle.Message {
         val copy = NotificationCompat.MessagingStyle.Message(text, timestamp, sender)
-        copy.extras.putAll(extras)
         if (dataMimeType != null && dataUri != null) copy.setData(dataMimeType, dataUri)
         return copy
     }
-
-    /** Stamps [pushId] onto an already-shown line, without re-alerting. */
-    private fun attachPushId(context: Context, tag: String, messageId: String, pushId: String) =
-        synchronized(postLock) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val posted = notificationManager.activeNotifications
-                .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID } ?: return@synchronized
-            val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
-                ?: return@synchronized
-            val line = style.messages.firstOrNull { it.extras.getString(EXTRA_LINE_KEY) == messageId }
-            if (line == null || line.extras.getString(EXTRA_LINE_PUSH_ID) != null) return@synchronized
-            line.extras.putString(EXTRA_LINE_PUSH_ID, pushId)
-            val notification = NotificationCompat.Builder(context, posted.notification)
-                .setStyle(style)
-                .setOnlyAlertOnce(true)
-                .build()
-            notificationManager.notify(posted.tag, posted.id, notification)
-        }
 
     // MessagingStyle image lines are rendered by System UI, which can't read
     // a remote URL or our private files — write the bitmap to cache and grant
