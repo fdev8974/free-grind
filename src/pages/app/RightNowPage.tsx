@@ -374,11 +374,38 @@ export function RightNowPage() {
 	const [isViewerOpen, setIsViewerOpen] = useState(false);
 	const [viewerProfileId, setViewerProfileId] = useState<string | null>(null);
 
+	// The viewer gets its own history entry so system back closes it instead
+	// of leaving the Right Now page.
+	const viewerHistoryPushedRef = useRef(false);
+
 	const openPhotoViewer = useCallback((photos: string[], index: number, profileId: string) => {
 		setViewerPhotos(photos);
 		setViewerIndex(index);
 		setViewerProfileId(profileId);
 		setIsViewerOpen(true);
+		if (!viewerHistoryPushedRef.current) {
+			window.history.pushState({ ...window.history.state, rightNowViewer: true }, "");
+			viewerHistoryPushedRef.current = true;
+		}
+	}, []);
+
+	const closePhotoViewer = useCallback(() => {
+		setIsViewerOpen(false);
+		if (viewerHistoryPushedRef.current) {
+			// Cleared first so our own popstate handler ignores this pop.
+			viewerHistoryPushedRef.current = false;
+			window.history.back();
+		}
+	}, []);
+
+	useEffect(() => {
+		const handlePopState = () => {
+			if (!viewerHistoryPushedRef.current) return;
+			viewerHistoryPushedRef.current = false;
+			setIsViewerOpen(false);
+		};
+		window.addEventListener("popstate", handlePopState);
+		return () => window.removeEventListener("popstate", handlePopState);
 	}, []);
 
 	const [isPosting, setIsPosting] = useState(false);
@@ -799,7 +826,7 @@ export function RightNowPage() {
 		{isViewerOpen && (
 			<PhotoViewer
 				isOpen={true}
-				onClose={() => setIsViewerOpen(false)}
+				onClose={closePhotoViewer}
 				photos={viewerPhotos}
 				initialIndex={viewerIndex}
 				conversationId={viewerProfileId}
