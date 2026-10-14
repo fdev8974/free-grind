@@ -786,6 +786,11 @@ class MainActivity : TauriActivity() {
     val payloadJson = intent.getStringExtra("push_payload")
     if (!payloadJson.isNullOrBlank()) {
       intent.removeExtra("push_payload")
+      // The same intent also carries the plain "action" fallback. This runs
+      // again from onResume/onWebViewCreate, and that leftover would then
+      // re-dispatch a bare chat open — overriding e.g. the "Open profile"
+      // action button's openTarget.
+      intent.removeExtra("action")
       val openedPayload = toOpenedPushPayload(payloadJson)
       cancelNotificationForAction(extractActionFromPayload(openedPayload))
       dispatchPushNotificationToWebview(openedPayload, 0)
