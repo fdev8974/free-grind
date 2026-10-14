@@ -38,6 +38,8 @@ class MainActivity : TauriActivity() {
   companion object {
     private var activityRef: WeakReference<MainActivity>? = null
     private val pendingPushPayloads = mutableListOf<String>()
+    // Share-sheet payloads (ShareTarget.readShareIntent) waiting for the WebView.
+    private val pendingSharePayloads = mutableListOf<String>()
 
     /**
      * Active in-app route plus foreground flag, kept up to date by the
@@ -278,6 +280,11 @@ class MainActivity : TauriActivity() {
       pendingFcmToken = null
     }
     dispatchPendingPushNotifications()
+    synchronized(pendingSharePayloads) {
+      val pending = pendingSharePayloads.toList()
+      pendingSharePayloads.clear()
+      pending
+    }.forEach { dispatchShareToWebview(it, 0) }
     pendingGoogleToken?.let {
       pendingGoogleToken = null
       dispatchGoogleTokenToWebview(it, 0)
@@ -431,6 +438,11 @@ class MainActivity : TauriActivity() {
     fun setAppDisguise(id: String): Boolean {
       val identity = AppDisguise.Identity.fromId(id) ?: return false
       val success = AppDisguise.applyDisguise(this@MainActivity, identity)
+      if (success && identity != AppDisguise.Identity.DEFAULT) {
+        // Direct Share shortcuts carry chat names/avatars into the system
+        // share sheet — they must not outlive switching to a disguise.
+        localNotifExecutor.execute { ShareTarget.clearShortcuts(this@MainActivity) }
+      }
       if (success) {
         // Updates the currently open Recents card immediately — the splash
         // icon only needs to change on the *next* cold start, so that's
@@ -438,6 +450,16 @@ class MainActivity : TauriActivity() {
         AppDisguise.applyTaskDescription(this@MainActivity, identity)
       }
       return success
+    }
+
+    /** Base64 of an image shared into the app (see ShareTarget), consumed on read. */
+    @JavascriptInterface
+    fun takeSharedImage(id: String): String? = ShareTarget.takeSharedImage(this@MainActivity, id)
+
+    /** Recent chats for the share sheet's Direct Share row: `[{ conversationId, name, avatarUrl }]`. */
+    @JavascriptInterface
+    fun publishShareShortcuts(chatsJson: String) {
+      localNotifExecutor.execute { ShareTarget.publishShortcuts(this@MainActivity, chatsJson) }
     }
 
     @JavascriptInterface
@@ -750,6 +772,17 @@ class MainActivity : TauriActivity() {
       return
     }
 
+    if (ShareTarget.isShareIntent(intent)) {
+      // Consumed right here: this runs again from onWebViewCreate/onResume
+      // with the same intent, which must not re-import the images.
+      val shared = Intent(intent)
+      intent.action = null
+      localNotifExecutor.execute {
+        ShareTarget.readShareIntent(this, shared)?.let { dispatchShareToWebview(it.toString(), 0) }
+      }
+      return
+    }
+
     val payloadJson = intent.getStringExtra("push_payload")
     if (!payloadJson.isNullOrBlank()) {
       intent.removeExtra("push_payload")
@@ -911,6 +944,36 @@ class MainActivity : TauriActivity() {
           mainHandler.postDelayed({
             dispatchPushNotificationToWebview(payloadJson, attempt + 1)
           }, 400)
+        }
+      }
+    }
+  }
+
+  private fun dispatchShareToWebview(payloadJson: String, attempt: Int) {
+    val script =
+      "(function(){" +
+      "var payload = ${JSONObject.quote(payloadJson)};" +
+      "var href = String(location && location.href || '');" +
+      "if (href.indexOf('tauri.localhost') === -1) { return 'retry:not-ready:' + href; }" +
+      "try { payload = JSON.parse(payload); } catch (e) { return 'retry:json'; }" +
+      "var queue = Array.isArray(window.__FG_SHARE_INTENTS) ? window.__FG_SHARE_INTENTS : [];" +
+      "queue.push(payload);" +
+      "window.__FG_SHARE_INTENTS = queue;" +
+      "window.dispatchEvent(new CustomEvent('fg:share-intent', { detail: payload }));" +
+      "return 'ok';" +
+      "})();"
+
+    runOnUiThread {
+      val webView = webViewRef
+      if (webView == null) {
+        synchronized(pendingSharePayloads) {
+          pendingSharePayloads.add(payloadJson)
+        }
+        return@runOnUiThread
+      }
+      webView.evaluateJavascript(script) { result ->
+        if (result.contains("retry") && attempt < 50) {
+          mainHandler.postDelayed({ dispatchShareToWebview(payloadJson, attempt + 1) }, 400)
         }
       }
     }

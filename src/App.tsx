@@ -46,6 +46,7 @@ import { TokenExpiredGate } from "./components/TokenExpiredPrompt";
 import { AccountStatusGate } from "./components/AccountStatusPrompt";
 import { EntitlementBypassPrompt } from "./components/EntitlementBypassPrompt";
 import { PushNotificationBridge } from "./components/PushNotificationBridge";
+import { ShareTargetBridge } from "./components/ShareTargetBridge";
 import { ChatRealtimeBridge } from "./components/ChatRealtimeBridge";
 import { GridAutoRefreshBridge } from "./components/GridAutoRefreshBridge";
 import { VideoCallManager } from "./components/VideoCallManager";
@@ -205,6 +206,7 @@ export default function App() {
 					{renderPhase >= 1 && <ManagerModeRedirect />}
 					{renderPhase >= 1 && <KeepScreenOnBridge />}
 					{renderPhase >= 2 && <PushNotificationBridge />}
+					{renderPhase >= 2 && <ShareTargetBridge />}
 					{renderPhase >= 2 && <ManagedOptionsCacheBridge />}
 					{renderPhase >= 3 && <ChatRealtimeBridge />}
 					{renderPhase >= 3 && <VideoCallManager />}

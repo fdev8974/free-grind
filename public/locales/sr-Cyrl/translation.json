@@ -1205,6 +1205,10 @@
         }
     },
     "chat": {
+        "share_target": {
+            "choose_chat_one": "",
+            "choose_chat_other": ""
+        },
         "tabs": {
             "inbox": "Сандуче",
             "albums": "Албуми"

@@ -1203,6 +1203,10 @@
         }
     },
     "chat": {
+        "share_target": {
+            "choose_chat_one": "",
+            "choose_chat_other": ""
+        },
         "tabs": {
             "inbox": "Messagerie",
             "albums": "Albums"

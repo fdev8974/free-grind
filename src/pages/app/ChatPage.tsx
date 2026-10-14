@@ -132,6 +132,11 @@ import { clearAutomationSeenHistoryForSender, runAutomationRulesForSender } from
 import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
 import { isReadReceiptsHidden } from "../../utils/privacy";
 import { clearChatNotifications } from "../../services/localNotify";
+import {
+	clearPendingSharedImages,
+	takePendingSharedImages,
+	usePendingSharedImages,
+} from "../../services/sharedImages";
 import freegrindLogo from "../../images/freegrind-logo.webp";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
@@ -6268,6 +6273,39 @@ export function ChatPage() {
 		setAttachmentMaxViews(file.type.startsWith("video/") ? 1 : defaultExpiringPhotos ? 1 : 2147483647);
 	};
 
+	// Images shared in from Android's share sheet (see ShareTargetBridge):
+	// the chosen chat takes them, then each goes through the normal
+	// attachment dialog in turn — the next one opens once the previous was
+	// sent or dismissed.
+	const pendingSharedImages = usePendingSharedImages();
+	const sharedImageQueueRef = useRef<{ conversationId: string; files: File[] } | null>(null);
+	const openAttachmentDialogForFileRef = useRef(openAttachmentDialogForFile);
+	openAttachmentDialogForFileRef.current = openAttachmentDialogForFile;
+	useEffect(() => {
+		if (!selectedConversationId || !pendingSharedImages) return;
+		const files = takePendingSharedImages(selectedConversationId);
+		if (!files || files.length === 0) return;
+		sharedImageQueueRef.current = { conversationId: selectedConversationId, files: files.slice(1) };
+		openAttachmentDialogForFileRef.current(files[0]);
+	}, [selectedConversationId, pendingSharedImages]);
+	const previousPendingAttachmentRef = useRef(pendingAttachmentFile);
+	useEffect(() => {
+		// Only advance when a dialog was open and just closed — on the render
+		// that queued the images, the first one's dialog isn't open *yet*.
+		const dialogJustClosed = previousPendingAttachmentRef.current != null && !pendingAttachmentFile;
+		previousPendingAttachmentRef.current = pendingAttachmentFile;
+		const queue = sharedImageQueueRef.current;
+		if (!queue) return;
+		if (queue.conversationId !== selectedConversationId) {
+			sharedImageQueueRef.current = null;
+			return;
+		}
+		if (!dialogJustClosed) return;
+		const next = queue.files.shift();
+		if (queue.files.length === 0) sharedImageQueueRef.current = null;
+		if (next) openAttachmentDialogForFileRef.current(next);
+	}, [pendingAttachmentFile, selectedConversationId]);
+
 	const onAttachmentInput = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
 		event.target.value = "";
@@ -6637,6 +6675,27 @@ export function ChatPage() {
 						{selectedConversation ?? targetProfileId ? renderThread : renderInbox}
 					</div>
 				)}
+
+			{pendingSharedImages && !pendingSharedImages.conversationId && !selectedConversationId && (
+				<div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] z-50 flex justify-center px-4 pointer-events-none">
+					<div className="pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-[var(--text)] shadow-lg">
+						<span className="text-sm">
+							{t("chat.share_target.choose_chat", {
+								count: pendingSharedImages.files.length,
+								defaultValue_one: "Choose a chat to send the image to",
+								defaultValue_other: "Choose a chat to send {{count}} images to",
+							})}
+						</span>
+						<button
+							type="button"
+							className="shrink-0 text-sm font-semibold text-[var(--accent)]"
+							onClick={clearPendingSharedImages}
+						>
+							{t("common.cancel")}
+						</button>
+					</div>
+				</div>
+			)}
 
 			{chatIsFiltersOpen && (
 				<ChatFiltersOverlay
