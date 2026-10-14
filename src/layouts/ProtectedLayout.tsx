@@ -1,9 +1,11 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { NavBar } from "../components/NavBar";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { useAndroidBackToGrid } from "../hooks/useAndroidBackToGrid";
 
 export function ProtectedLayout() {
 	const location = useLocation();
+	useAndroidBackToGrid();
     const isChatConversationRoute =
         (/^\/chat\/[^/]+$/.test(location.pathname) && location.pathname !== "/chat/albums" && location.pathname !== "/chat/videos") ||
         (location.pathname === "/chat" && new URLSearchParams(location.search).has("targetProfileId"));
