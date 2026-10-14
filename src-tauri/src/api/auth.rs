@@ -1095,6 +1095,37 @@ pub async fn login_with_google(
     state: tauri::State<'_, AppState>,
     token: String,
 ) -> Result<LoginResult, AppError> {
+    login_with_third_party(&state, grindr::SessionKind::Google, token.trim()).await
+}
+
+/// Desktop Google sign-in without the extension: opens a Google sign-in
+/// window (see `google_oauth`) and exchanges the resulting access token.
+#[tauri::command]
+pub async fn login_with_google_window(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<LoginResult, AppError> {
+    let token = super::google_oauth::fetch_access_token(&app).await?;
+    login_with_third_party(&state, grindr::SessionKind::Google, &token).await
+}
+
+/// Third-party sign-in with Facebook: opens Facebook's own OAuth dialog in a
+/// separate sign-in window (see `facebook_oauth`) and exchanges the resulting
+/// user access token for a session.
+#[tauri::command]
+pub async fn login_with_facebook(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<LoginResult, AppError> {
+    let token = super::facebook_oauth::fetch_access_token(&app).await?;
+    login_with_third_party(&state, grindr::SessionKind::Facebook, &token).await
+}
+
+async fn login_with_third_party(
+    state: &AppState,
+    kind: grindr::SessionKind,
+    token: &str,
+) -> Result<LoginResult, AppError> {
     let client = state.client()?;
 
     client
@@ -1102,10 +1133,11 @@ pub async fn login_with_google(
         .await
         .map_err(AppError::from)?;
 
-    let result = client
-        .sign_in_with_google(token.trim())
-        .await
-        .map_err(|e| AppError::from_client_error(e, &client))?;
+    let signed_in = match kind {
+        grindr::SessionKind::Facebook => client.sign_in_with_facebook(token).await,
+        _ => client.sign_in_with_google(token).await,
+    };
+    let result = signed_in.map_err(|e| AppError::from_client_error(e, &client))?;
 
     SigningKeyStorage::delete(&result.profile_id);
     persist_current_session(&client).await;
@@ -1127,6 +1159,7 @@ pub async fn refresh_token(state: tauri::State<'_, AppState>) -> Result<LoginRes
 #[tauri::command]
 pub async fn logout(app: tauri::AppHandle) -> Result<(), AppError> {
     AuthStorage::clear_session()?;
+    super::facebook_oauth::forget_sign_in_profile(&app).await;
 
     // Rotate the device identity so the next login on this "active" slot
     // can't be correlated with the one that just signed out.

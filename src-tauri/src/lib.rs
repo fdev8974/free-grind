@@ -81,6 +81,8 @@ pub fn run() {
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_sql::Builder::default().build())
             .plugin(tauri_plugin_opener::init())
+            .plugin(api::facebook_oauth::plugin())
+            .plugin(api::google_oauth::plugin())
             .manage(AppState::default())
             .setup(|app| {
                 let app_handle = app.handle().clone();
@@ -167,6 +169,8 @@ pub fn run() {
                 api::runtime::launch_child_instance,
                 api::auth::login,
                 api::auth::login_with_google,
+                api::auth::login_with_facebook,
+                api::auth::login_with_google_window,
                 api::auth::sign_up_quota,
                 api::auth::create_account,
                 api::auth::forgot_password,
@@ -242,7 +246,9 @@ pub fn run() {
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_sql::Builder::default().build())
-            .plugin(tauri_plugin_opener::init());
+            .plugin(tauri_plugin_opener::init())
+            .plugin(api::facebook_oauth::plugin())
+            .plugin(api::google_oauth::plugin());
 
         #[cfg(target_os = "ios")]
         let builder = builder
@@ -270,6 +276,8 @@ pub fn run() {
                 api::runtime::launch_child_instance,
                 api::auth::login,
                 api::auth::login_with_google,
+                api::auth::login_with_facebook,
+                api::auth::login_with_google_window,
                 api::auth::sign_up_quota,
                 api::auth::create_account,
                 api::auth::forgot_password,

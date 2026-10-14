@@ -59,6 +59,12 @@ function verificationRequiredProfileId(appError: AppError | null): string | null
 	return (typeof message === "object" && "profileId" in message && message.profileId) || null;
 }
 
+// Error markers from api/facebook_oauth and api/google_oauth (Rust), matched verbatim.
+const GOOGLE_CANCELED = "google-canceled";
+const FACEBOOK_CANCELED = "facebook-canceled";
+const FACEBOOK_DIALOG_ERROR = "facebook-dialog-error";
+const FACEBOOK_HANDOFF_REFUSED = "facebook-handoff-refused";
+
 function describeLoginError(
 	appError: AppError | null,
 	fallback: string,
@@ -317,6 +323,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				"This Google token is invalid or has expired. Please get a new one and try again.",
 			);
 			appLog.error("[Auth] loginWithGoogle failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			toast.error(message);
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+	};
+
+	const loginWithGoogleWindow = async () => {
+		try {
+			appLog.info("[Auth] loginWithGoogleWindow: opening Google sign-in window");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			const result = await callMethod("login_with_google_window");
+			appLog.info("[Auth] loginWithGoogleWindow: succeeded");
+			dispatch({ type: "SET_USER", payload: result.profileId });
+			void refreshSavedAccounts();
+			if (!showRestriction(result.restriction)) {
+				toast.success("Google login successful");
+			}
+		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
+			const appError = asAppError(error);
+			if (appError?.kind === "Auth" && appError.message === GOOGLE_CANCELED) {
+				// The user closed the window.
+				appLog.info("[Auth] loginWithGoogleWindow: canceled");
+				throw error;
+			}
+			const message = describeLoginError(appError, "Google login failed", "Google login failed. Please try again.");
+			appLog.error("[Auth] loginWithGoogleWindow failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			toast.error(message);
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+	};
+
+	const loginWithFacebook = async () => {
+		try {
+			appLog.info("[Auth] loginWithFacebook: opening Facebook sign-in window");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			const result = await callMethod("login_with_facebook");
+			appLog.info("[Auth] loginWithFacebook: succeeded");
+			dispatch({ type: "SET_USER", payload: result.profileId });
+			void refreshSavedAccounts();
+			if (!showRestriction(result.restriction)) {
+				toast.success("Facebook login successful");
+			}
+		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
+			const appError = asAppError(error);
+			if (appError?.kind === "Auth" && appError.message === FACEBOOK_CANCELED) {
+				// The user closed the window or declined the consent screen.
+				appLog.info("[Auth] loginWithFacebook: canceled");
+				throw error;
+			}
+			const message =
+				appError?.kind === "Auth" && appError.message === FACEBOOK_HANDOFF_REFUSED
+					? "Facebook tried to continue in another app. Please sign in on the Facebook page instead."
+					: appError?.kind === "Auth" && appError.message === FACEBOOK_DIALOG_ERROR
+						? "Facebook refused the sign-in. Please try again later."
+						: describeLoginError(appError, "Facebook login failed", "Facebook login failed. Please try again.");
+			appLog.error("[Auth] loginWithFacebook failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
 			toast.error(message);
 			throw error;
@@ -721,6 +798,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		...state,
 		login,
 		loginWithGoogle,
+		loginWithGoogleWindow,
+		loginWithFacebook,
 		signUp,
 		logout,
 		checkAuth,

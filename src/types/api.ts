@@ -97,6 +97,20 @@ export const methodSchemas = {
 			restriction: restrictionSchema.nullish(),
 		}),
 	},
+	login_with_google_window: {
+		request: z.undefined(),
+		response: z.object({
+			profileId: z.coerce.number().int().nonnegative(),
+			restriction: restrictionSchema.nullish(),
+		}),
+	},
+	login_with_facebook: {
+		request: z.undefined(),
+		response: z.object({
+			profileId: z.coerce.number().int().nonnegative(),
+			restriction: restrictionSchema.nullish(),
+		}),
+	},
 	recaptcha_first_party_enabled: {
 		request: z.undefined(),
 		response: z.boolean(),

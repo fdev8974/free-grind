@@ -12,7 +12,8 @@ import { describeApkUpdateError, useGoogleOAuthAppInstall, useRecaptchaHelperIns
 import { RecaptchaError } from "../../services/recaptcha";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
-import { isAndroid } from "../../services/saveMedia";
+import { isAndroid, isIos } from "../../services/saveMedia";
+import { isTauriRuntime } from "../../services/tauriWebSocket";
 import { cn } from "../../utils/cn";
 
 const GOOGLE_OAUTH_APP_RELEASES = "https://github.com/fdev8974/free-grind-oauth-app/releases";
@@ -55,6 +56,27 @@ function GoogleIcon({ className }: { className?: string }) {
 	);
 }
 
+// Path from Simple Icons (CC0).
+function FacebookIcon({ className }: { className?: string }) {
+	return (
+		<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+			<path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z" />
+		</svg>
+	);
+}
+
+// The sign-in window (api/facebook_oauth) needs a second webview, which the
+// iOS build doesn't set up.
+function isFacebookSignInSupported(): boolean {
+	return isTauriRuntime() && !isIos();
+}
+
+// Desktop opens its own Google sign-in window (api/google_oauth); Android
+// goes through the companion app instead.
+function isGoogleWindowSupported(): boolean {
+	return isTauriRuntime() && !isIos() && !isAndroid();
+}
+
 function AuthMethodTab({
 	active,
 	icon,
@@ -92,7 +114,7 @@ function Step({
 	title: string;
 	hint?: string;
 	last?: boolean;
-	children: ReactNode;
+	children?: ReactNode;
 }) {
 	return (
 		<div className="flex gap-3">
@@ -250,11 +272,15 @@ export function SignInPage() {
 	const [googleToken, setGoogleToken] = useState("");
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 	const [hasGoogleOAuthApp, setHasGoogleOAuthApp] = useState(isGoogleOAuthAppInstalled);
+	// Desktop signs in through its own window only; the token flow is mobile-only.
+	const [hasGoogleWindow] = useState(isGoogleWindowSupported);
 	const [googleAppError, setGoogleAppError] = useState<string | null>(null);
 	// With the companion app installed, the manual token flow stays folded away.
 	const [showManualToken, setShowManualToken] = useState(false);
 	const googleAppInstall = useGoogleOAuthAppInstall();
 	const [isAndroidDevice] = useState(isAndroid);
+	const [hasFacebookSignIn] = useState(isFacebookSignInSupported);
+	const [isFacebookLoading, setIsFacebookLoading] = useState(false);
 	// Set once a sign-in needed a reCAPTCHA token but the helper isn't installed.
 	const [needsRecaptchaHelper, setNeedsRecaptchaHelper] = useState(false);
 	const recaptchaHelperInstall = useRecaptchaHelperInstall();
@@ -262,7 +288,7 @@ export function SignInPage() {
 	// Set when an email sign-in is refused until the account verifies by SMS.
 	const [verification, setVerification] = useState<{ profileId: string } | null>(null);
 
-	const { login, loginWithGoogle, error } = useAuth();
+	const { login, loginWithGoogle, loginWithGoogleWindow, loginWithFacebook, error } = useAuth();
 	const navigate = useNavigate();
 
 	const isPasswordFormValid = email.trim().length > 0 && password.trim().length > 0;
@@ -310,6 +336,30 @@ export function SignInPage() {
 			// AuthContext updates `error`, which is rendered in the form.
 		} finally {
 			setIsGoogleLoading(false);
+		}
+	};
+
+	const handleGoogleWindowSignIn = async () => {
+		setIsGoogleLoading(true);
+		try {
+			await loginWithGoogleWindow();
+			navigate("/");
+		} catch {
+			// AuthContext updates `error`; a closed window stays silent.
+		} finally {
+			setIsGoogleLoading(false);
+		}
+	};
+
+	const handleFacebookSignIn = async () => {
+		setIsFacebookLoading(true);
+		try {
+			await loginWithFacebook();
+			navigate("/");
+		} catch {
+			// AuthContext updates `error`; a closed window stays silent.
+		} finally {
+			setIsFacebookLoading(false);
 		}
 	};
 
@@ -393,34 +443,22 @@ export function SignInPage() {
 		<AuthShell
 			title={addProfileMode ? t("auth.sign_in.add_profile_title", { defaultValue: "Add Profile" }) : t("auth.sign_in.title")}
 			subtitle={addProfileMode ? t("auth.sign_in.add_profile_subtitle", { defaultValue: "Sign in with the account you want to add." }) : t("auth.sign_in.subtitle", { defaultValue: "Use your Grindr email and password, or sign in with Google." })}
-			footer={
-				addProfileMode ? (
-					<div className="flex flex-col items-center gap-3">
-						<button
-							type="button"
-							onClick={() => navigate(-1)}
-							className="text-sm text-[var(--text-muted)] hover:text-[var(--text)]"
-						>
-							{t("common.cancel", { defaultValue: "Cancel" })}
-						</button>
-					</div>
-				) : (
-					<BugReportButton />
-				)
-			}
+			footer={addProfileMode ? undefined : <BugReportButton />}
 			toolbar={
 				<div className="relative flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
-					{/* Sliding active indicator: half the track minus the gap-1 between the tabs. */}
+					{/* Sliding active indicator: one tab's share of the track minus the p-1 padding and gap-1 between the tabs. */}
 					<span
 						aria-hidden="true"
 						className={cn(
-							"absolute inset-y-1 left-1 w-[calc(50%-6px)] rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+							"absolute inset-y-1 left-1 rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+							hasFacebookSignIn ? "w-[calc((100%-16px)/3)]" : "w-[calc(50%-6px)]",
 							method === "google" && "translate-x-[calc(100%+4px)]",
+							method === "facebook" && "translate-x-[calc(200%+8px)]",
 						)}
 					/>
 					<AuthMethodTab
 						active={method === "password"}
-						icon={<Lock className="h-3.5 w-3.5" />}
+						icon={<Mail className="h-3.5 w-3.5" />}
 						label={t("auth.sign_in.method_password")}
 						onClick={() => setMethod("password")}
 					/>
@@ -430,6 +468,14 @@ export function SignInPage() {
 						label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
 						onClick={() => setMethod("google")}
 					/>
+					{hasFacebookSignIn ? (
+						<AuthMethodTab
+							active={method === "facebook"}
+							icon={<FacebookIcon className="h-3.5 w-3.5" />}
+							label={t("auth.sign_in.method_facebook", { defaultValue: "Facebook" })}
+							onClick={() => setMethod("facebook")}
+						/>
+					) : null}
 				</div>
 			}
 		>
@@ -496,6 +542,74 @@ export function SignInPage() {
 							})}
 						/>
 					) : null}
+				</form>
+			) : method === "facebook" ? (
+				<form
+					key="facebook"
+					onSubmit={(e) => {
+						e.preventDefault();
+						void handleFacebookSignIn();
+					}}
+					className="animate-fade-in space-y-5"
+				>
+					<div>
+						<Step
+							step={1}
+							title={t("auth.sign_in.facebook_step_open", { defaultValue: "Sign in on Facebook" })}
+							hint={t("auth.sign_in.facebook_step_open_hint", {
+								defaultValue: "A Facebook window opens. Your password goes to Facebook only, never to Free Grind.",
+							})}
+						/>
+						<Step
+							step={2}
+							title={t("auth.sign_in.facebook_step_done", { defaultValue: "Confirm access" })}
+							hint={t("auth.sign_in.facebook_step_done_hint", {
+								defaultValue: "Allow Grindr to use your Facebook account. The window closes by itself and you're signed in.",
+							})}
+							last
+						/>
+					</div>
+					<AuthSubmitSection
+						error={error}
+						loading={isFacebookLoading}
+						disabled={false}
+						loadingLabel={t("auth.sign_in.facebook_waiting", { defaultValue: "Waiting for Facebook…" })}
+						label={t("auth.sign_in.facebook_sign_in", { defaultValue: "Sign in with Facebook" })}
+					/>
+				</form>
+			) : hasGoogleWindow ? (
+				<form
+					key="google-window"
+					onSubmit={(e) => {
+						e.preventDefault();
+						void handleGoogleWindowSignIn();
+					}}
+					className="animate-fade-in space-y-5"
+				>
+					<div>
+						<Step
+							step={1}
+							title={t("auth.sign_in.google_step_open", { defaultValue: "Sign in on Google" })}
+							hint={t("auth.sign_in.google_step_open_hint", {
+								defaultValue: "A Google window opens. Your password goes to Google only, never to Free Grind.",
+							})}
+						/>
+						<Step
+							step={2}
+							title={t("auth.sign_in.google_step_done", { defaultValue: "Choose your account" })}
+							hint={t("auth.sign_in.google_step_done_hint", {
+								defaultValue: "Pick the Google account of your Grindr profile. The window closes by itself and you're signed in.",
+							})}
+							last
+						/>
+					</div>
+					<AuthSubmitSection
+						error={error}
+						loading={isGoogleLoading}
+						disabled={false}
+						loadingLabel={t("auth.sign_in.google_window_waiting", { defaultValue: "Waiting for Google…" })}
+						label={t("auth.sign_in.google_window_sign_in", { defaultValue: "Sign in with Google" })}
+					/>
 				</form>
 			) : (
 				<form key="google" onSubmit={handleGoogleSubmit} className="animate-fade-in space-y-5">
@@ -590,7 +704,12 @@ export function SignInPage() {
 					)}
 				</form>
 			)}
-			{addProfileMode ? null : (
+			{addProfileMode ? (
+				<AuthAltAction
+					onClick={() => navigate(-1)}
+					label={t("common.cancel", { defaultValue: "Cancel" })}
+				/>
+			) : (
 				<AuthAltAction
 					to="/auth/sign-up"
 					icon={<UserPlus className="h-4 w-4" />}

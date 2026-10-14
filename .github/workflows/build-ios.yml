@@ -14,6 +14,9 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
+          submodules: true
 
       - name: Extract metadata
         id: meta

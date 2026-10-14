@@ -67,6 +67,10 @@ export interface LoginOptions {
 export interface AuthContextType extends AuthState {
 	login: (email: string, password: string, options?: LoginOptions) => Promise<void>;
 	loginWithGoogle: (token: string) => Promise<void>;
+	/** Desktop only: opens the Google sign-in window; resolves without signing in when the user closes it. */
+	loginWithGoogleWindow: () => Promise<void>;
+	/** Opens Facebook's sign-in window; resolves without signing in when the user closes it. */
+	loginWithFacebook: () => Promise<void>;
 	signUp: (account: SignUpData) => Promise<void>;
 	logout: () => Promise<void>;
 	checkAuth: () => Promise<void>;

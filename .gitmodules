@@ -1,0 +1,3 @@
+[submodule "src-tauri/vendor/freegrind-google-oauth-webextension"]
+	path = src-tauri/vendor/freegrind-google-oauth-webextension
+	url = https://github.com/fdev8974/freegrind-google-oauth-webextension.git

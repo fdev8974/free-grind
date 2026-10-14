@@ -34,6 +34,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
+          submodules: true
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-latest'
@@ -76,6 +79,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
+          submodules: true
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

@@ -118,6 +118,15 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Hosts the "Sign in with Facebook" webview window opened from Rust
+             (api/facebook_oauth); not reachable from outside the app. -->
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:label="@string/main_activity_title"
+            android:name=".FacebookOAuthActivity"
+            android:exported="false"
+            android:excludeFromRecents="true" />
+
         <!-- Receives a token from the Google OAuth app; the caller is checked
              against our own signature in TokenHandoffActivity. -->
         <activity
