@@ -1,6 +1,7 @@
 import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Eye, EyeOff, Flag, Flame, HeartPulse, Images, LockKeyhole, MessageCircle, Pencil, PencilLine, Phone, ShieldCheck, StickyNote, Star, Trash2, Triangle, X, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -411,12 +412,7 @@ export function ProfileDetailsModal({
 	);
 
 	const [mobileCarouselPhotoIndex, setMobileCarouselPhotoIndex] = useState(0);
-	const [isDesktopLike, setIsDesktopLike] = useState(() => {
-		if (typeof window === "undefined") {
-			return true;
-		}
-		return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-	});
+	const isDesktopLike = useDesktopBreakpoint();
 	const [isModalSplit, setIsModalSplit] = useState(() =>
 		typeof window !== "undefined" && window.innerWidth >= 900
 	);
@@ -882,14 +878,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		setSelectedPhotoIndex(null);
 		setMobileCarouselPhotoIndex(0);
 	}, [activeProfile?.profileId, activeProfilePhotoHashes.length]);
-
-	useEffect(() => {
-		const query = window.matchMedia("(hover: hover) and (pointer: fine)");
-		const update = () => setIsDesktopLike(query.matches);
-		update();
-		query.addEventListener("change", update);
-		return () => query.removeEventListener("change", update);
-	}, []);
 
 	useEffect(() => {
 		const update = () => setIsModalSplit(window.innerWidth >= 900);

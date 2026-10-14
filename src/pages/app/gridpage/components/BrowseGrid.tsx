@@ -4,6 +4,7 @@ import type { GridTapStatus } from "../hooks/useGridTapStatus";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { cn } from "../../../../utils/cn";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { useTranslation } from "react-i18next";
 import { Ghost, MapPin } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -108,25 +109,7 @@ export function BrowseGrid({
 }: BrowseGridProps) {
 	const { t } = useTranslation();
 	const { mobileGridColumns } = usePreferences();
-	const [isDesktop, setIsDesktop] = useState(() => {
-		if (typeof window === "undefined") {
-			return false;
-		}
-		return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-	});
-
-	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		const query = window.matchMedia("(hover: hover) and (pointer: fine)");
-		const update = () => setIsDesktop(query.matches);
-
-		update();
-		query.addEventListener("change", update);
-		return () => query.removeEventListener("change", update);
-	}, []);
+	const isDesktop = useDesktopBreakpoint();
 
 	const gridTemplateColumns = isDesktop
 		? "repeat(6, minmax(0, 1fr))"

@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import z from "zod";
 import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile } from "../../hooks/queries/useProfileQueries";
 import { validateMediaHash } from "../../utils/media";
 import { ProfileDetailsModal } from "./gridpage/components/ProfileDetailsModal";
@@ -129,15 +130,7 @@ export function GridProfilePage() {
 	const [isHidden, setIsHidden] = useState(false);
 	const [isBlockedByOther, setIsBlockedByOther] = useState(false);
 
-	const [isDesktopLike, setIsDesktopLike] = useState(() =>
-		window.matchMedia("(hover: hover) and (pointer: fine)").matches
-	);
-	useEffect(() => {
-		const query = window.matchMedia("(hover: hover) and (pointer: fine)");
-		const update = () => setIsDesktopLike(query.matches);
-		query.addEventListener("change", update);
-		return () => query.removeEventListener("change", update);
-	}, []);
+	const isDesktopLike = useDesktopBreakpoint();
 
 	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop: isDesktopLike });
 

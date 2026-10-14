@@ -1262,38 +1262,39 @@ dialog::backdrop {
 
 /* Header icon buttons: bordered "chips" on desktop, but bare, larger glyphs on
    touch devices to match native mobile nav bars. Deliberately unlayered so it
-   wins over the Tailwind border/bg utilities the buttons carry for desktop. */
-@media (hover: none) and (pointer: coarse) {
-	.header-icon-btn {
-		border-color: transparent !important;
-		background-color: transparent !important;
-		box-shadow: none !important;
-		/* The build's CSS minifier collapses a plain `backdrop-filter: none`
-		   into only the -webkit- variant, so neutralise Tailwind's blur via
-		   its variable instead — that survives into the unprefixed property. */
-		--tw-backdrop-blur: blur(0) !important;
-	}
+   wins over the Tailwind border/bg utilities the buttons carry for desktop.
+   `.touch-ui` is set on <html> by installTouchUiClass (useDesktopBreakpoint) —
+   a class rather than a pointer media query so Android with a mouse (WSA)
+   still counts as mobile. */
+.touch-ui .header-icon-btn {
+	border-color: transparent !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
+	/* The build's CSS minifier collapses a plain `backdrop-filter: none`
+	   into only the -webkit- variant, so neutralise Tailwind's blur via
+	   its variable instead — that survives into the unprefixed property. */
+	--tw-backdrop-blur: blur(0) !important;
+}
 
-	.header-icon-btn > svg {
-		width: 1.5rem;
-		height: 1.5rem;
-	}
+.touch-ui .header-icon-btn > svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
 
-	/* Pull the back chevron toward the screen edge like a native back button. */
-	.header-icon-btn--back {
-		margin-inline-start: -0.5rem;
-	}
+/* Pull the back chevron toward the screen edge like a native back button. */
+.touch-ui .header-icon-btn--back {
+	margin-inline-start: -0.5rem;
+}
 
-	/* The borderless chevron's own padding already reads as spacing, so pull
-	   the avatar + name that follow it in by the same amount. */
-	.header-icon-btn--back + .header-back-adjacent {
-		margin-inline-start: -0.5rem;
-	}
+/* The borderless chevron's own padding already reads as spacing, so pull
+   the avatar + name that follow it in by the same amount. */
+.touch-ui .header-icon-btn--back + .header-back-adjacent {
+	margin-inline-start: -0.5rem;
+}
 
-	/* Toggled states (favorite) lose their filled chip, so carry it in the glyph. */
-	.header-icon-btn--active {
-		color: var(--accent) !important;
-	}
+/* Toggled states (favorite) lose their filled chip, so carry it in the glyph. */
+.touch-ui .header-icon-btn--active {
+	color: var(--accent) !important;
 }
 
 /* Grid tile double-tap burst (tint via --burst-rgb, see TileFlameBurst) */

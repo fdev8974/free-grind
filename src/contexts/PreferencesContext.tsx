@@ -10,6 +10,7 @@ import {
 } from "react";
 import z from "zod";
 import { appLog } from "../utils/logger";
+import { isDesktopDevice } from "../hooks/useDesktopBreakpoint";
 import { geohashSchema } from "../utils/geohash";
 import { UNIT_PRESETS, type UnitsPreset } from "../utils/units";
 import { REVEAL_STRENGTH_SUBTLE, REVEAL_STRENGTH_PRONOUNCED, type RevealStrength } from "../config/ui-constants";
@@ -370,8 +371,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		const loadPreferences = async () => {
 			try {
 				const stored = localStorage.getItem(PREFERENCES_STORAGE_KEY);
-				const isDesktopDevice = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-				const deviceDefaultStrength = isDesktopDevice ? "pronounced" : "subtle";
+				const deviceDefaultStrength = isDesktopDevice() ? "pronounced" : "subtle";
 
 				if (stored) {
 					const decoded = JSON.parse(stored) as Record<string, unknown>;

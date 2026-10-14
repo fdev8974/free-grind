@@ -15,10 +15,12 @@ import { DEFAULT_GC_TIME_MS } from "./config/ui-constants";
 import { CrashBoundary } from "./components/CrashBoundary";
 import { AppToaster } from "./components/AppToaster";
 import { installGlobalCrashHandlers } from "./utils/crashOverlay";
+import { installTouchUiClass } from "./hooks/useDesktopBreakpoint";
 import { getRuntimeContext } from "./services/runtimeContext";
 import "./index.css";
 
 installGlobalCrashHandlers();
+installTouchUiClass();
 
 const queryClient = new QueryClient({
 	defaultOptions: {
