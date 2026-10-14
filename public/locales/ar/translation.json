@@ -1232,7 +1232,8 @@
             "description_one": "",
             "description_other": "",
             "search": "",
-            "no_chats": ""
+            "no_chats": "",
+            "remove_image": ""
         },
         "tabs": {
             "inbox": "الرسائل الواردة📩",

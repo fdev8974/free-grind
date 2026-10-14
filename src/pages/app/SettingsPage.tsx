@@ -39,6 +39,7 @@ import {
 	X,
 	FileUp,
 	ScrollText,
+	Share2,
 } from "lucide-react";
 import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
@@ -79,6 +80,7 @@ import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
 import { replayOnboarding } from "../../utils/onboardingStorage";
 import { replayRestoreOffer } from "../../utils/restoreOfferStorage";
 import { showLegalAgreementsPrompt } from "../../utils/legalAgreementsDebug";
+import { showSharePickerDebug } from "../../utils/sharePickerDebug";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
 
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
@@ -1178,6 +1180,13 @@ export function SettingsPage() {
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
 										"Show Legal Agreements",
 										"Opens the Terms of Service / Privacy Policy dialog, even if already accepted.",
+									)}
+									{navRow(
+										() => void showSharePickerDebug(),
+										<Share2 className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"Show Share Picker",
+										"Opens the \"Send to…\" chat picker with sample images, as if shared from another app.",
 									)}
 									{isAndroid() && (
 									<div className="p-4 sm:p-5">

@@ -1200,7 +1200,8 @@
       "description_one": "Choose a chat to send the image to",
       "description_other": "Choose a chat to send {{count}} images to",
       "search": "Search chats",
-      "no_chats": "No chats found"
+      "no_chats": "No chats found",
+      "remove_image": "Remove image"
     },
     "tabs": {
       "inbox": "Inbox",

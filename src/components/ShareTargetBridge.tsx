@@ -168,6 +168,7 @@ export function ShareTargetBridge() {
 				setPendingSharedImages({ files: pendingSharedImages.files, conversationId });
 				openChat(conversationId);
 			}}
+			onChangeFiles={(files) => setPendingSharedImages({ files, conversationId: null })}
 			onCancel={clearPendingSharedImages}
 		/>
 	);
