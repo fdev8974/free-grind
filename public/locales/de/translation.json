@@ -681,6 +681,7 @@
         "collections_delete": "Sammlung löschen",
         "collections_name_placeholder": "Name der Sammlung",
         "collections_editor_hint": "Tippe die Medien in der Reihenfolge an, in der sie gesendet werden sollen. Neue Uploads werden zu deiner Galerie hinzugefügt.",
+        "collections_editor_empty_hint": "",
         "collections_save": "Sammlung speichern ({{count}})",
         "collections_item_count_one": "{{count}} Element",
         "collections_item_count_other": "{{count}} Elemente",

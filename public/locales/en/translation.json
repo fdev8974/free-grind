@@ -681,6 +681,7 @@
     "collections_delete": "Delete collection",
     "collections_name_placeholder": "Collection name",
     "collections_editor_hint": "Tap media in the order it should be sent. New uploads are added to your drawer.",
+    "collections_editor_empty_hint": "Upload photos or videos from your device to add them to this collection.",
     "collections_save": "Save collection ({{count}})",
     "collections_item_count_one": "{{count}} item",
     "collections_item_count_other": "{{count}} items",

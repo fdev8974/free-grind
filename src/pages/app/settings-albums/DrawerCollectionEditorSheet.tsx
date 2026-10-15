@@ -1,9 +1,11 @@
 import { Check, Loader2 } from "lucide-react";
-import { CameraPlusFilled } from "../../../components/icons/FilledIcons";
+import { CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
+	DrawerActionButton,
 	DrawerActionTile,
 	DrawerBody,
+	DrawerEmptyState,
 	DrawerFooter,
 	DrawerGrid,
 	DrawerHeader,
@@ -176,6 +178,22 @@ export function DrawerCollectionEditorSheet({
 				isLoading={isLoading && media.length === 0}
 				error={media.length === 0 ? error : null}
 				onRetry={() => void onReloadMedia()}
+				empty={media.length === 0 ? (
+					<DrawerEmptyState
+						icon={<ImagesFilled className="h-5 w-5" />}
+						title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
+						hint={t("settings_albums.collections_editor_empty_hint", { defaultValue: "Upload photos or videos from your device to add them to this collection." })}
+					>
+						<DrawerActionButton
+							icon={uploadProgress ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraPlusFilled className="h-4 w-4" />}
+							label={uploadProgress
+								? `${uploadProgress.done}/${uploadProgress.total}`
+								: t("chat_drawer.upload_photo")}
+							onClick={() => uploadInputRef.current?.click()}
+							disabled={isBusy}
+						/>
+					</DrawerEmptyState>
+				) : undefined}
 			>
 				<DrawerGrid isDesktop={isDesktop}>
 					{/* Upload as the first tile, like the chat drawer. */}

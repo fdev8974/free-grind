@@ -72,12 +72,14 @@ export function DrawerEmptyState({
 }) {
 	const tileClass = "absolute inset-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-sm";
 	return (
-		<div className="flex flex-col items-center gap-5 px-2 py-8 text-center">
+		<div className="flex flex-col items-center gap-5 px-2 pb-8 pt-10 text-center">
 			<div className="relative h-24 w-32">
+				{/* Soft glow from the gradient alone (no blur filter), kept inside the
+				    empty state's padding so the scroll container doesn't clip it. */}
 				<div
 					aria-hidden="true"
-					className="absolute -inset-6 rounded-full blur-2xl"
-					style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%)" }}
+					className="pointer-events-none absolute -inset-x-10 -inset-y-6"
+					style={{ background: "radial-gradient(closest-side, color-mix(in srgb, var(--accent) 24%, transparent), transparent)" }}
 				/>
 				<div className="absolute inset-y-2 left-1/2 aspect-square -translate-x-1/2">
 					<div className={`${tileClass} -translate-x-7 -rotate-12 opacity-60`} />
