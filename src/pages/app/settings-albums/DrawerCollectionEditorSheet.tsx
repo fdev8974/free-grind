@@ -1,6 +1,6 @@
 import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, X } from "lucide-react";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
-import { DRAWER_TILE_CLASS, DrawerActionButton, drawerGridClass } from "../chat/drawerUi";
+import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "../chat/drawerUi";
 import { useCallback, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -39,6 +39,7 @@ export function DrawerCollectionEditorSheet({
 	isDesktop,
 }: DrawerCollectionEditorSheetProps) {
 	const { t } = useTranslation();
+	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const service = useApiFunctions();
 	const [name, setName] = useState(collection?.name ?? "");
 	// Insertion order of the Set is the send order. Not filtered against the
@@ -213,9 +214,10 @@ export function DrawerCollectionEditorSheet({
 									key={item.id}
 									role="button"
 									tabIndex={0}
-									onClick={() => { if (!isBusy) toggleSelection(item.id); }}
+									{...bindPreview({ src: mediaSrc, isVideo })}
+									onClick={() => { if (consumePreviewClick()) return; if (!isBusy) toggleSelection(item.id); }}
 									onKeyDown={(e) => e.key === "Enter" && !isBusy && toggleSelection(item.id)}
-									className={`${DRAWER_TILE_CLASS} transition cursor-pointer`}
+									className={`${DRAWER_TILE_CLASS} no-touch-callout transition cursor-pointer`}
 									style={{
 										outline: isSelected ? "2px solid var(--accent)" : "none",
 										outlineOffset: "-2px",
@@ -231,7 +233,7 @@ export function DrawerCollectionEditorSheet({
 											</div>
 										</>
 									) : (
-										<img src={mediaSrc} alt={t("chat_drawer.media_alt")} className="h-full w-full object-cover" />
+										<img src={mediaSrc} alt={t("chat_drawer.media_alt")} draggable={false} className="h-full w-full object-cover" />
 									)}
 									{isSelected ? (
 										<div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
@@ -256,6 +258,7 @@ export function DrawerCollectionEditorSheet({
 					<span>{t("settings_albums.collections_save", { count: orderedSelection.length })}</span>
 				</button>
 			</div>
+			<DrawerMediaPreview media={drawerPreview} />
 		</BottomSheet>
 	);
 }

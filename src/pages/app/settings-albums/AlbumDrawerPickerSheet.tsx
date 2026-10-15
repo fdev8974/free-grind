@@ -1,5 +1,5 @@
 import { Check, Image as ImageIcon, Loader2, Plus, RefreshCw, X } from "lucide-react";
-import { DRAWER_TILE_CLASS, drawerGridClass } from "../chat/drawerUi";
+import { DRAWER_TILE_CLASS, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "../chat/drawerUi";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -30,6 +30,7 @@ export function AlbumDrawerPickerSheet({
 	isDesktop,
 }: AlbumDrawerPickerSheetProps) {
 	const { t } = useTranslation();
+	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
 	// The album-content-by-id endpoint only accepts images — adding a
@@ -117,9 +118,10 @@ export function AlbumDrawerPickerSheet({
 									key={item.id}
 									role="button"
 									tabIndex={0}
-									onClick={() => toggleSelection(item.id)}
+									{...bindPreview({ src: item.url, isVideo: false })}
+									onClick={() => { if (consumePreviewClick()) return; toggleSelection(item.id); }}
 									onKeyDown={(e) => e.key === "Enter" && toggleSelection(item.id)}
-									className={`${DRAWER_TILE_CLASS} cursor-pointer transition`}
+									className={`${DRAWER_TILE_CLASS} no-touch-callout cursor-pointer transition`}
 									style={{
 										outline: isSelected ? "2px solid var(--accent)" : "none",
 										outlineOffset: "-2px",
@@ -128,6 +130,7 @@ export function AlbumDrawerPickerSheet({
 									<img
 										src={item.url}
 										alt={t("chat_drawer.media_alt")}
+										draggable={false}
 										className="h-full w-full object-cover"
 									/>
 
@@ -164,6 +167,7 @@ export function AlbumDrawerPickerSheet({
 					</button>
 				</div>
 			) : null}
+			<DrawerMediaPreview media={drawerPreview} />
 		</BottomSheet>
 	);
 }
