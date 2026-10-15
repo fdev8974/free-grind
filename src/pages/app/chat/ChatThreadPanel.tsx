@@ -19,7 +19,6 @@ import {
 	Square,
 	Plus,
 	Settings2,
-	BookMarked,
 	MessageCircleOff,
 	Flag,
 	MessageSquarePlus,
@@ -2767,7 +2766,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									{savedPhrases.length === 0 ? (
 										<div className="flex flex-col items-center justify-center gap-2.5 text-center text-[var(--text-muted)]" style={{ minHeight: "40dvh" }}>
 											<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
-												<BookMarked className="h-5 w-5 opacity-60" />
+												<MessageSquareQuoteFilled className="h-5 w-5 opacity-60" />
 											</div>
 											<p className="text-sm font-medium">
 												{t("settings_saved_phrases.empty", { defaultValue: "No saved phrases yet." })}

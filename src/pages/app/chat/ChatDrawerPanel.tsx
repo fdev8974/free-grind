@@ -1,6 +1,5 @@
 import {
 	Album,
-	Camera,
 	Check,
 	Images,
 	Layers,
@@ -15,11 +14,11 @@ import {
 	RefreshCw,
 	Send,
 	Share2,
-	Upload,
 	Video,
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CameraFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
@@ -587,6 +586,49 @@ export function ChatDrawerPanel({
 					</>
 				) : (
 					<>
+						{/* Capture / upload actions, kept out of the media grid. */}
+						{(() => {
+							const actionsDisabled = isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
+							const actions = [
+								{
+									key: "photo",
+									label: t("chat_drawer.take_photo"),
+									icon: isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : <CameraFilled className="h-5 w-5" />,
+									onClick: () => cameraInputRef.current?.click(),
+								},
+								{
+									key: "video",
+									label: t("chat_drawer.record_video", { defaultValue: "Record video" }),
+									icon: <Video className="h-5 w-5 fill-current" />,
+									onClick: () => cameraVideoInputRef.current?.click(),
+								},
+								{
+									key: "upload",
+									label: t("chat_drawer.upload_photo"),
+									icon: <ImagesFilled className="h-5 w-5" />,
+									onClick: () => uploadInputRef.current?.click(),
+								},
+							];
+							return (
+								<div className="mb-2 grid shrink-0 grid-cols-3 gap-2">
+									{actions.map((action) => (
+										<button
+											key={action.key}
+											type="button"
+											onClick={action.onClick}
+											disabled={actionsDisabled}
+											className="flex flex-col items-center gap-1.5 rounded-2xl bg-[var(--surface-2)] px-2 py-3 text-[var(--text)] transition active:scale-95 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] disabled:pointer-events-none disabled:opacity-40"
+										>
+											<span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]">
+												{action.icon}
+											</span>
+											<span className="text-xs font-semibold leading-tight">{action.label}</span>
+										</button>
+									))}
+								</div>
+							);
+						})()}
+
 						{/* Content Grid */}
 						<div
 							data-lenis-prevent
@@ -611,64 +653,6 @@ export function ChatDrawerPanel({
 								</div>
 							) : (
 								<div className={`grid gap-px bg-[var(--border)] ${isDesktop ? "grid-cols-5" : "grid-cols-3"}`}>
-									{/* Camera photo button */}
-									<button
-										type="button"
-										onClick={() => cameraInputRef.current?.click()}
-										disabled={isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation}
-										className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
-										aria-label={t("chat_drawer.take_photo")}
-										title={t("chat_drawer.take_photo")}
-									>
-										<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-											{isAdding ? (
-												<Loader2 className="h-5 w-5 animate-spin" />
-											) : (
-												<span className="relative inline-flex">
-													<Camera className="h-5 w-5" />
-													{!hasSelection && !hasAlbumSelection && !hasCollectionSelection && !noConversation && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
-														<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
-													</span>}
-												</span>
-											)}
-										</div>
-									</button>
-									{/* Camera video button */}
-									<button
-										type="button"
-										onClick={() => cameraVideoInputRef.current?.click()}
-										disabled={isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation}
-										className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
-										aria-label={t("chat_drawer.record_video", { defaultValue: "Record video" })}
-										title={t("chat_drawer.record_video", { defaultValue: "Record video" })}
-									>
-										<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-											<span className="relative inline-flex">
-												<Video className="h-5 w-5" />
-												{!hasSelection && !hasAlbumSelection && !hasCollectionSelection && !noConversation && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
-													<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
-												</span>}
-											</span>
-										</div>
-									</button>
-									{/* Upload button */}
-									<button
-										type="button"
-										onClick={() => uploadInputRef.current?.click()}
-										disabled={isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation}
-										className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
-										aria-label={t("chat_drawer.upload_photo")}
-										title={t("chat_drawer.upload_photo")}
-									>
-										<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-											<span className="relative inline-flex">
-												<Upload className="h-5 w-5" />
-												{!hasSelection && !hasAlbumSelection && !hasCollectionSelection && !noConversation && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
-													<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
-												</span>}
-											</span>
-										</div>
-									</button>
 									{/* Albums */}
 									{albums.map((album) => {
 										const cover = albumCoverMap.get(album.albumId);
@@ -765,7 +749,8 @@ export function ChatDrawerPanel({
 											</div>
 										);
 									})}
-									{media.length === 0 && (
+									{/* Only when there's nothing at all — albums and collections count too. */}
+									{media.length === 0 && albums.length === 0 && collections.length === 0 && (
 										<div className={`col-span-${isDesktop ? "3" : "1"} flex flex-col items-center justify-center gap-2 py-8 text-[var(--text-muted)]`} style={{ gridColumn: "1 / -1" }}>
 											<ImageIcon className="h-8 w-8 opacity-30" />
 											<p className="text-xs">{t("chat_drawer.empty", { defaultValue: "No photos yet" })}</p>

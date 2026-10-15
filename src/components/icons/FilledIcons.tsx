@@ -609,3 +609,19 @@ export function StickyNoteFilled(props: IconProps) {
 		</FilledSvg>
 	);
 }
+
+export function CameraFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<circle cx="12" cy="13" r="4.25" stroke="none" />
+			</CutoutMask>
+			<path
+				mask={`url(#${id})`}
+				d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"
+			/>
+			<circle cx="12" cy="13" r="2.5" stroke="none" />
+		</FilledSvg>
+	);
+}
