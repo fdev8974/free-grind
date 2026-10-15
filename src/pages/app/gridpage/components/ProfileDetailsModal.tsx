@@ -1580,7 +1580,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				}}
 			>
 				<div
-					className={`absolute inset-0 ${variant === "page" ? "bg-[var(--bg)]" : "bg-[var(--surface-2)]"} backdrop-blur-xl${inlineScrolled ? " border-b border-[var(--border)]" : ""}`}
+					// Frosted like the other headers (86% + blur) instead of turning fully solid.
+					className={`absolute inset-0 backdrop-blur-xl ${variant === "page" ? "bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "bg-[color-mix(in_srgb,var(--surface-2)_86%,transparent)]"}${inlineScrolled ? " border-b border-[var(--border)]/60" : ""}`}
 					style={{ opacity: headerOpacity, transition: `opacity ${headerFadeDuration}ms ease-out` }}
 					aria-hidden="true"
 				/>
@@ -1638,8 +1639,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									disabled={isBlockingProfile}
 									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
 										isBlocked
-											? inlineScrolled ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-emerald-500 bg-transparent text-emerald-500 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-											: inlineScrolled ? "border-red-500/40 bg-red-500/8 text-red-400 hover:border-red-500/70 hover:bg-red-500/15" : "border-red-500 bg-transparent text-red-500 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+											? inlineScrolled ? "border-emerald-500 bg-transparent text-emerald-500" : "border-emerald-500 bg-transparent text-emerald-500 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+											: inlineScrolled ? "border-red-500 bg-transparent text-red-500" : "border-red-500 bg-transparent text-red-500 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
 									}`}
 									aria-label={isBlocked ? t("profile_details.unblock") : t("profile_details.block")}
 								>
