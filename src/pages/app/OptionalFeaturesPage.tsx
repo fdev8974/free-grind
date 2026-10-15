@@ -47,7 +47,6 @@ export function OptionalFeaturesPage() {
 						onChange={(checked) => {
 							setShowVideoGallery(checked);
 							setOptionalFeatureEnabled(SHOW_VIDEO_GALLERY_KEY, checked);
-							window.location.reload();
 						}}
 					/>
 					<ToggleRow
@@ -63,7 +62,6 @@ export function OptionalFeaturesPage() {
 						onChange={(checked) => {
 							setShowSexualHealth(checked);
 							setOptionalFeatureEnabled(SHOW_SEXUAL_HEALTH_KEY, checked);
-							window.location.reload();
 						}}
 					/>
 					<ToggleRow
@@ -79,7 +77,6 @@ export function OptionalFeaturesPage() {
 						onChange={(checked) => {
 							setShowLocate(checked);
 							setOptionalFeatureEnabled(SHOW_LOCATE_KEY, checked);
-							window.location.reload();
 						}}
 					/>
 				</div>
