@@ -632,7 +632,7 @@ export function ChatDrawerPanel({
 						{/* Content Grid */}
 						<div
 							data-lenis-prevent
-							className="flex-1 overflow-y-auto max-h-[60vh] rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
+							className="flex-1 overflow-y-auto max-h-[60vh]"
 						>
 							{isLoading ? (
 								<div className="flex h-full items-center justify-center py-8">
@@ -652,7 +652,10 @@ export function ChatDrawerPanel({
 									</button>
 								</div>
 							) : (
-								<div className={`grid gap-px bg-[var(--border)] ${isDesktop ? "grid-cols-5" : "grid-cols-3"}`}>
+								<div className="flex flex-col gap-3">
+								{/* Albums & collections: their own horizontal row above the photos. */}
+								{(albums.length > 0 || collections.length > 0) && (
+									<div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 									{/* Albums */}
 									{albums.map((album) => {
 										const cover = albumCoverMap.get(album.albumId);
@@ -667,7 +670,7 @@ export function ChatDrawerPanel({
 												tabIndex={0}
 												onClick={() => { if (hasSelection) return; setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); }}
 												onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
-												className={`relative aspect-square overflow-hidden cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+												className={`relative aspect-square shrink-0 overflow-hidden rounded-xl cursor-pointer transition ${isDesktop ? "w-32" : "w-28"} ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 											>
 												{cover ? <img src={cover} alt="" className="h-full w-full object-cover scale-110" style={{ filter: "blur(3px)" }} /> : (
 													<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Album className="h-6 w-6 opacity-50" /></div>
@@ -681,7 +684,7 @@ export function ChatDrawerPanel({
 												</div>
 												{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
 												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-												{isSelected && <div className="absolute inset-0 pointer-events-none" style={{ border: "2px solid var(--accent)" }} />}
+												{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
 											</div>
 										);
 									})}
@@ -708,7 +711,7 @@ export function ChatDrawerPanel({
 												title={t("chat_drawer.collection_badge")}
 												onClick={() => { if (!dimmed) toggleCollectionSelection(collection); }}
 												onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
-												className={`relative aspect-square overflow-hidden cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+												className={`relative aspect-square shrink-0 overflow-hidden rounded-xl cursor-pointer transition ${isDesktop ? "w-32" : "w-28"} ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 											>
 												{coverItems.length > 0 ? (
 													<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
@@ -745,17 +748,21 @@ export function ChatDrawerPanel({
 												</div>
 												<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
 												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-												{isSelected && <div className="absolute inset-0 pointer-events-none" style={{ border: "2px solid var(--accent)" }} />}
+												{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
 											</div>
 										);
 									})}
-									{/* Only when there's nothing at all — albums and collections count too. */}
-									{media.length === 0 && albums.length === 0 && collections.length === 0 && (
-										<div className={`col-span-${isDesktop ? "3" : "1"} flex flex-col items-center justify-center gap-2 py-8 text-[var(--text-muted)]`} style={{ gridColumn: "1 / -1" }}>
-											<ImageIcon className="h-8 w-8 opacity-30" />
-											<p className="text-xs">{t("chat_drawer.empty", { defaultValue: "No photos yet" })}</p>
-										</div>
-									)}
+									</div>
+								)}
+								{/* Only when there's nothing at all — albums and collections count too. */}
+								{media.length === 0 && albums.length === 0 && collections.length === 0 && (
+									<div className="flex flex-col items-center justify-center gap-2 py-8 text-[var(--text-muted)]">
+										<ImageIcon className="h-8 w-8 opacity-30" />
+										<p className="text-xs">{t("chat_drawer.empty", { defaultValue: "No photos yet" })}</p>
+									</div>
+								)}
+								{media.length > 0 && (
+								<div className={`grid gap-0.5 ${isDesktop ? "grid-cols-5" : "grid-cols-4"}`}>
 									{media.map((item) => {
 										const isSelected = selectedIds.has(item.id);
 										const isImage = item.contentType.startsWith("image/");
@@ -773,7 +780,7 @@ export function ChatDrawerPanel({
 												tabIndex={0}
 												onClick={() => { if (isClickable) toggleSelection(item.id, isItemVideo); }}
 												onKeyDown={(e) => e.key === "Enter" && isClickable && toggleSelection(item.id, isItemVideo)}
-												className={`relative aspect-square overflow-hidden transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
+												className={`relative aspect-square overflow-hidden rounded-md transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
 												style={{
 													outline: isSelected ? "2px solid var(--accent)" : "none",
 													outlineOffset: "-2px",
@@ -845,6 +852,8 @@ export function ChatDrawerPanel({
 											</div>
 										);
 									})}
+								</div>
+								)}
 								</div>
 							)}
 						</div>
