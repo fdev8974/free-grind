@@ -478,7 +478,7 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 		 * picture drawer to let a user pick from previously-uploaded images
 		 * without re-uploading them.
 		 */
-		async getProfileImages(): Promise<{ mediaHash: string; type: number; state: number | null; takenOnGrindr: boolean }[]> {
+		async getProfileImages(): Promise<{ mediaHash: string; type: number; state: number | null }[]> {
 			const response = await fetchRest("/v3.1/me/profile/images");
 			await assertSuccess(response, t("api.errors.load_photos"));
 			const payload = await parseJsonSafe(response);
@@ -501,11 +501,9 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 						mediaHash: hashRaw,
 						type: typeof typeRaw === "number" ? typeRaw : 0,
 						state: typeof stateRaw === "number" ? stateRaw : null,
-						// Not confirmed to be part of this response; false when absent.
-						takenOnGrindr: (item as { takenOnGrindr?: unknown }).takenOnGrindr === true,
 					};
 				})
-				.filter((item): item is { mediaHash: string; type: number; state: number | null; takenOnGrindr: boolean } => item !== null);
+				.filter((item): item is { mediaHash: string; type: number; state: number | null } => item !== null);
 		},
 
 		async deleteMyProfileImages(mediaHashes: string[]): Promise<{ ok: true }> {

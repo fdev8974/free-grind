@@ -467,8 +467,8 @@ export function SettingsAlbumsPage() {
 		}
 	};
 
-	// Photos go in by drawer id. Videos try the same; if the server refuses
-	// them there, they're downloaded and uploaded to the album directly.
+	// Photos go in by drawer id. Videos can't (the by-id endpoint doesn't add
+	// them), so they're downloaded from the drawer and uploaded directly.
 	const handleAddFromDrawer = async (mediaIds: number[]) => {
 		if (!drawerPickerAlbumId || mediaIds.length === 0) return;
 		const albumId = drawerPickerAlbumId;
@@ -483,22 +483,16 @@ export function SettingsAlbumsPage() {
 				added += imageIds.length;
 			}
 			if (videoIds.length > 0) {
-				try {
-					await apiFunctions.addOwnAlbumContentByIds({ albumId, ids: videoIds });
-					added += videoIds.length;
-				} catch (byIdError) {
-					appLog.warn("[SettingsAlbumsPage] adding drawer videos by id failed, uploading them directly", byIdError);
-					const downloaded: File[] = [];
-					for (const id of videoIds) {
-						const item = drawerById.get(id);
-						const file = item ? await downloadDrawerMedia(item) : null;
-						if (file) downloaded.push(file);
-						else toast.error(t("settings_albums.error_drawer_video_download", { defaultValue: "Couldn't load a video from your drawer." }));
-					}
-					const valid = await filterAlbumUploads(albumId, downloaded);
-					await uploadFilesToAlbum(albumId, valid);
-					added += valid.length;
+				const downloaded: File[] = [];
+				for (const id of videoIds) {
+					const item = drawerById.get(id);
+					const file = item ? await downloadDrawerMedia(item) : null;
+					if (file) downloaded.push(file);
+					else toast.error(t("settings_albums.error_drawer_video_download", { defaultValue: "Couldn't load a video from your drawer." }));
 				}
+				const valid = await filterAlbumUploads(albumId, downloaded);
+				await uploadFilesToAlbum(albumId, valid);
+				added += valid.length;
 			}
 			if (added > 0) toast.success(t("settings_albums.toast_added_from_drawer", { count: added }));
 			await loadAlbumDetails(albumId, true);

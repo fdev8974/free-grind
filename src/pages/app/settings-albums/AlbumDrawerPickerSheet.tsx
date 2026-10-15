@@ -82,8 +82,8 @@ export function AlbumDrawerPickerSheet({
 			return next;
 		});
 	}, [remainingSlots]);
-	// Videos too: if the server refuses them by drawer id, the page uploads
-	// them to the album directly (see SettingsAlbumsPage handleAddFromDrawer).
+	// Videos too: the page uploads those to the album directly, since the
+	// by-id endpoint doesn't add them (see SettingsAlbumsPage handleAddFromDrawer).
 	const upload = useDrawerUploadQueue({ onReloadMedia: reloadMedia, onUploaded: selectUploaded });
 	const isBusy = upload.isUploading || isSubmitting;
 

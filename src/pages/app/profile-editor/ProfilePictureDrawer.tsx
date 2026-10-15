@@ -22,7 +22,6 @@ export type ProfilePoolImage = {
 	mediaHash: string;
 	type: number;
 	state: number | null;
-	takenOnGrindr?: boolean;
 };
 
 interface ProfilePictureDrawerProps {
@@ -192,7 +191,6 @@ export function ProfilePictureDrawer({
 								src={getThumbImageUrl(image.mediaHash, "320x320")}
 								alt={t("profile_photo_drawer.image_alt")}
 								mediaClassName={isRejected ? "opacity-50 grayscale" : ""}
-								takenOnGrindr={image.takenOnGrindr}
 								selected={isSelected}
 								muted={isMutedByCapacity}
 								busy={isSelecting || isDeleting}
