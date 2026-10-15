@@ -625,3 +625,29 @@ export function CameraFilled(props: IconProps) {
 		</FilledSvg>
 	);
 }
+
+export function PillFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="m8.5 8.5 7 7" fill="none" strokeWidth={1.75} />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+		</FilledSvg>
+	);
+}
+
+export function ClapperboardFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			{/* Stripes on the clapper, and a gap between clapper and slate. */}
+			<CutoutMask id={id}>
+				<path d="m12.296 3.464 3.02 3.956M6.18 5.276l3.1 3.899" fill="none" strokeWidth={1.75} />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z" />
+			<path d="M3 12.5h18V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+		</FilledSvg>
+	);
+}

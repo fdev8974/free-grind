@@ -1,7 +1,7 @@
-import { Clapperboard, Images, Loader2, Pill, Search, Star, X } from "lucide-react";
+import { Loader2, Search, Star, X } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
-import { MailFilled } from "../../../components/icons/FilledIcons";
+import { ClapperboardFilled, ImagesFilled, MailFilled, PillFilled } from "../../../components/icons/FilledIcons";
 import { type CSSProperties, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -137,7 +137,7 @@ export function ChatInboxHeader({
 									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("sexualHealth.title", { defaultValue: "Sexual Health" })}
 								>
-									<Pill className="h-5 w-5" />
+									<PillFilled className="h-5 w-5" />
 								</button>
 							)}
 							{!isSearchOpen && showVideoGallery && (
@@ -147,7 +147,7 @@ export function ChatInboxHeader({
 									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("video_gallery.open", { defaultValue: "Videos" })}
 								>
-									<Clapperboard className="h-5 w-5" />
+									<ClapperboardFilled className="h-5 w-5" />
 								</button>
 							)}
 							{!isSearchOpen && (
@@ -157,7 +157,7 @@ export function ChatInboxHeader({
 									className="header-icon-btn -mr-1 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("chat.tabs.albums")}
 								>
-									<Images className="h-5 w-5" />
+									<ImagesFilled className="h-5 w-5" />
 								</button>
 							)}
 							<button
