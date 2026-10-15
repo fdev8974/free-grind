@@ -340,10 +340,11 @@ export const InterestViewTile = memo(function InterestViewTile({
 	const age = !isPrivate && typeof browseCard?.age === "number" && browseCard.age > 0 ? browseCard.age : null;
 	const isFavorite = !isPrivate && browseCard?.favorite === true;
 
+	// Private viewers stay nameless — the blurred photo and lock say enough.
 	const displayName = item.displayName
 		? item.displayName
 		: isPrivate
-			? t("interest_page.unknown_profile")
+			? null
 			: t("common.unknown_display_name");
 
 	return (
@@ -369,20 +370,21 @@ export const InterestViewTile = memo(function InterestViewTile({
 				{/* h-0 pb-[100%] instead of aspect-ratio — see BrowseCardTile for why. */}
 				<div className="relative z-10 h-0 w-full overflow-hidden rounded-[inherit] bg-[var(--surface-2)] pb-[100%] ring-1 ring-inset ring-white/10">
 					<div className="absolute inset-0">
-						{isLocked ? (
-							/* Locked tiles show the lock/ban icon in place of the photo. */
+						<ProfileImage
+							src={imageSrc}
+							alt={displayName ?? ""}
+							className={cn((isLocked || blurGridProfilePictures) && "blur-md scale-110")}
+						/>
+
+						{/* Locked tiles: blurred photo, darkened, with the lock/ban icon on top.
+							The opaque-ish backdrop also hides the inset ring when there's no photo. */}
+						{isLocked && (
 							<div
-								className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)]"
+								className="absolute inset-0 flex items-center justify-center bg-black/45 text-white/50"
 								title={isPrivate ? undefined : t("interest_page.blocked_profile")}
 							>
-								{isPrivate ? <LockFilled className="h-1/3 w-1/3 opacity-60" /> : <Ban className="h-1/3 w-1/3 opacity-60" />}
+								{isPrivate ? <LockFilled className="h-1/3 w-1/3" /> : <Ban className="h-1/3 w-1/3" />}
 							</div>
-						) : (
-							<ProfileImage
-								src={imageSrc}
-								alt={displayName}
-								className={cn(blurGridProfilePictures && "blur-md scale-110")}
-							/>
 						)}
 
 						<div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/70 via-black/25 to-transparent" />
@@ -414,11 +416,13 @@ export const InterestViewTile = memo(function InterestViewTile({
 						<div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
 						<div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-1 p-2 text-white">
 							<div className="min-w-0 flex-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-								<p className="truncate text-sm font-bold leading-tight">
-									{displayName}
-									{age && <span className="ml-1 font-semibold text-white/90">{age}</span>}
-								</p>
-								<p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-white/80">
+								{displayName && (
+									<p className="truncate text-sm font-bold leading-tight">
+										{displayName}
+										{age && <span className="ml-1 font-semibold text-white/90">{age}</span>}
+									</p>
+								)}
+								<p className={cn("flex items-center gap-1 text-[11px] font-semibold text-white/80", displayName && "mt-0.5")}>
 									<ClockFilled className="h-3 w-3 shrink-0" />
 									<span className="truncate">{formatTimestamp(item.timestamp, t, now)}</span>
 								</p>
@@ -432,7 +436,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 									)}
 									{isRecovered && (
 										<div className="flex h-5 w-5 items-center justify-center" title={t("interest_page.recovered_tooltip")}>
-											<History className={cn("h-3.5 w-3.5 text-white", TILE_ICON_SHADOW)} />
+											<History className={cn("h-3.5 w-3.5 text-[var(--accent)]", TILE_ICON_SHADOW)} strokeWidth={2.5} />
 										</div>
 									)}
 								</div>
