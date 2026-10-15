@@ -19,7 +19,6 @@ import {
 	ImagePlus,
 	Images,
 	Loader2,
-	MapPin,
 	Mic,
 	Square,
 	Plus,
@@ -38,8 +37,6 @@ import {
 	SendHorizontal,
 	ShieldCheck,
 	SquareCenterlineDashedHorizontal,
-	SquareStack,
-	Sticker,
 	Trash2,
 	Video,
 	VideoOff,
@@ -48,6 +45,7 @@ import {
 	Volume2,
 	X,
 } from "lucide-react";
+import { ImagePlusFilled, MapPinFilled, MessageSquareQuoteFilled, SquareStackFilled, StickerFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
@@ -2440,7 +2438,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								aria-label={t("chat.giphy.button_label")}
 								title={t("chat.giphy.button_label")}
 							>
-								<Sticker className="h-5 w-5" />
+								<StickerFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
@@ -2454,7 +2452,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								aria-label={t("chat.attach_media")}
 								title={t("chat.attach_media")}
 							>
-								<ImagePlus className="h-5 w-5" />
+								<ImagePlusFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
@@ -2467,7 +2465,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								aria-label={t("chat.drawer_label")}
 								title={t("chat.drawer_label")}
 							>
-								<SquareStack className="h-5 w-5" />
+								<SquareStackFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
@@ -2479,7 +2477,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								aria-label={t("chat.share_location_label", { defaultValue: "Share Location" })}
 								title={t("chat.share_location_label", { defaultValue: "Share Location" })}
 							>
-								<MapPin className="h-5 w-5" />
+								<MapPinFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
@@ -2488,7 +2486,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								aria-label={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 								title={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 							>
-								<BookMarked className="h-5 w-5" />
+								<MessageSquareQuoteFilled className="h-5 w-5" />
 							</button>
 
 							<input

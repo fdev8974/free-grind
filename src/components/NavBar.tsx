@@ -1,4 +1,4 @@
-import { Grid as GridIcon, Flame, MessageCircle, User, Check, Loader2 } from "lucide-react";
+import { LayoutGrid as GridIcon, Flame, MessageCircle, User, Check, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -569,10 +569,10 @@ export function NavBar() {
 									    instead of pushing its label below the other tabs' labels. */}
 									<div className="relative flex h-5 w-5 items-center justify-center md:h-[1.2rem] md:w-[1.2rem]">
 										{Icon ? (
-											<Icon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+											<Icon className="h-5 w-5 fill-current md:h-[1.2rem] md:w-[1.2rem]" />
 										) : !profilePhotoUrl ? (
 											// No profile photo: a user icon that takes the tab's (active) color like the other icons.
-											<User className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+											<User className="h-5 w-5 fill-current md:h-[1.2rem] md:w-[1.2rem]" />
 										) : (
 											<Avatar
 												src={profilePhotoUrl}
