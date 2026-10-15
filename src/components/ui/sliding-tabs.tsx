@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
+import { haptic } from "../../utils/haptics";
 
 export interface SlidingTab<T extends string> {
 	value: T;
@@ -47,7 +48,11 @@ export function SlidingTabs<T extends string>({
 						type="button"
 						role="tab"
 						aria-selected={active}
-						onClick={() => onChange(tab.value)}
+						onClick={() => {
+							if (active) return;
+							haptic(10);
+							onChange(tab.value);
+						}}
 						className={cn(
 							"relative z-10 flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-medium transition-colors duration-300 active:scale-[0.97]",
 							active ? "text-[var(--accent-contrast)]" : "text-[var(--text-muted)] hover:text-[var(--text)]",
