@@ -1,9 +1,10 @@
 import type { BrowseCard } from "../../GridPage.types";
 import { BrowseCardTile } from "./BrowseCardTile";
 import type { GridTapStatus } from "../hooks/useGridTapStatus";
+import { useGridRowMetrics } from "../hooks/useGridRowMetrics";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { cn } from "../../../../utils/cn";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { useTranslation } from "react-i18next";
 import { Ghost, MapPin } from "lucide-react";
@@ -57,8 +58,6 @@ function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; 
 		</div>
 	);
 }
-
-type RowMetrics = { columnCount: number; rowSizePx: number };
 
 type BrowseGridProps = {
 	isLoadingCards: boolean;
@@ -122,57 +121,11 @@ export function BrowseGrid({
 	const gridTemplateColumns = isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileGridColumns);
 	const gridClassName = cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px");
 
-	// Column count and row height (tiles are always square, see BrowseCardTile)
-	// aren't knowable from JS in advance — the mobile template uses
-	// auto-fill/clamp() percentages the browser resolves at layout time. So
-	// we read them back off a live, always-mounted (but invisible) probe grid
-	// that shares the exact same template/className as a real row, rather
-	// than re-deriving the CSS math (which would drift from actual layout on
-	// odd viewport widths).
-	const probeElRef = useRef<HTMLDivElement | null>(null);
-	const probeObserverRef = useRef<ResizeObserver | null>(null);
-	const [rowMetrics, setRowMetrics] = useState<RowMetrics>(() => ({
-		columnCount: isDesktop ? 6 : Number(mobileGridColumns),
-		rowSizePx: 140,
-	}));
-
-	const measureProbe = useCallback((el: HTMLDivElement) => {
-		const style = window.getComputedStyle(el);
-		const tracks = style.gridTemplateColumns.split(" ").filter(Boolean);
-		const columnCount = tracks.length;
-		const columnWidthPx = parseFloat(tracks[0] ?? "0");
-		const rowGapPx = parseFloat(style.rowGap || "0");
-		if (columnCount > 0 && columnWidthPx > 0) {
-			const rowSizePx = columnWidthPx + rowGapPx;
-			setRowMetrics((prev) =>
-				prev.columnCount === columnCount && prev.rowSizePx === rowSizePx
-					? prev
-					: { columnCount, rowSizePx },
-			);
-		}
-	}, []);
-
-	const probeRefCallback = useCallback(
-		(el: HTMLDivElement | null) => {
-			probeObserverRef.current?.disconnect();
-			probeObserverRef.current = null;
-			probeElRef.current = el;
-			if (!el) {
-				return;
-			}
-			measureProbe(el);
-			const observer = new ResizeObserver(() => measureProbe(el));
-			observer.observe(el);
-			probeObserverRef.current = observer;
-		},
-		[measureProbe],
+	const { rowMetrics, probeRef: probeRefCallback } = useGridRowMetrics(
+		gridTemplateColumns,
+		gridClassName,
+		isDesktop ? 6 : Number(mobileGridColumns),
 	);
-
-	useEffect(() => {
-		if (probeElRef.current) {
-			measureProbe(probeElRef.current);
-		}
-	}, [gridTemplateColumns, gridClassName, measureProbe]);
 
 	const rows = useMemo(() => {
 		const columnCount = rowMetrics.columnCount;

@@ -14,10 +14,9 @@ import {
 	type InterestItem,
 	PREVIEW_ID_PREFIX,
 } from "./interest/interestUtils";
-import { InterestTabs, InterestRow, InterestViewTile, type InterestTabConfig } from "./interest/InterestComponents";
-import { mobileGridTemplate } from "./gridpage/components/BrowseGrid";
+import { InterestTabs, InterestRow, type InterestTabConfig } from "./interest/InterestComponents";
+import { InterestViewsGrid, useViewsGridLayout } from "./interest/InterestViewsGrid";
 import { getAllCachedBrowseCardsById } from "./gridpage/cache";
-import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { InterestOnboardingModal } from "./interest/InterestOnboardingModal";
 import {
 	SCROLL_RESTORATION_TIMEOUT_MS,
@@ -44,9 +43,10 @@ function loadStoredLimit(tab: InterestTab, fallback: number): number {
 	return fallback;
 }
 
-function InterestViewsGridSkeleton({ isDesktop, gridStyle }: { isDesktop: boolean; gridStyle: React.CSSProperties }) {
+function InterestViewsGridSkeleton() {
+	const { isDesktop, gridTemplateColumns, gridClassName } = useViewsGridLayout();
 	return (
-		<div className={cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px")} style={gridStyle}>
+		<div className={gridClassName} style={{ gridTemplateColumns }}>
 			{Array.from({ length: 12 }).map((_, i) => (
 				<div
 					key={i}
@@ -106,12 +106,7 @@ export function InterestPage() {
 	const [isDemoLoading, setIsDemoLoading] = useState(false);
 	const isLoading = isQueryLoading || isDemoLoading;
 
-	const { developerMode, showDebugInfo, mobileGridColumns } = usePreferences();
-	const isDesktop = useDesktopBreakpoint();
-	const viewsGridStyle = useMemo(
-		() => ({ gridTemplateColumns: isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileGridColumns) }),
-		[isDesktop, mobileGridColumns],
-	);
+	const { developerMode, showDebugInfo } = usePreferences();
 	const [demoMode, setDemoMode] = useState(() => {
 		const saved = window.localStorage.getItem("fg-interest-demo-mode");
 		return saved ? Number.parseInt(saved, 10) : 0;
@@ -358,7 +353,9 @@ export function InterestPage() {
 	const activeItems = itemsByTab[activeTab];
 
 	const displayedItems = useMemo(
-		() => activeItems.slice(0, limits[activeTab]),
+		// The views grid is virtualized, so it takes the whole list at once;
+		// only the plain lists page through it.
+		() => (activeTab === "views" ? activeItems : activeItems.slice(0, limits[activeTab])),
 		[activeItems, limits, activeTab],
 	);
 
@@ -634,7 +631,7 @@ export function InterestPage() {
 				<div className="mx-auto w-full max-w-4xl pb-[calc(env(safe-area-inset-bottom,0px)+120px)] px-0">
 					{(isLoading && (activeItems.length === 0 || isDemoLoading)) ? (
 						activeTab === "views" ? (
-							<InterestViewsGridSkeleton isDesktop={isDesktop} gridStyle={viewsGridStyle} />
+							<InterestViewsGridSkeleton />
 						) : <div>
 							{Array.from({ length: 8 }).map((_, i) => (
 								<InterestSkeleton key={i} mode={activeTab} />
@@ -664,22 +661,14 @@ export function InterestPage() {
 							{activeItems.length > 0 && (
 								<div className="flex flex-col">
 									{activeTab === "views" ? (
-										<div
-											className={cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px")}
-											style={viewsGridStyle}
-										>
-											{displayedItems.map((item) => (
-												<InterestViewTile
-													key={`views-${item.profileId}-${item.timestamp ?? "na"}`}
-													item={item}
-													browseCard={browseCardsById.get(item.profileId)}
-													onOpenProfile={handleOpenProfile}
-													now={nowTimestamp}
-													isBlocked={isProfileBlocked(item.profileId)}
-													isDesktop={isDesktop}
-												/>
-											))}
-										</div>
+										<InterestViewsGrid
+											items={displayedItems}
+											browseCardsById={browseCardsById}
+											onOpenProfile={handleOpenProfile}
+											now={nowTimestamp}
+											isProfileBlocked={isProfileBlocked}
+											scrollContainerRef={feedContainerRef}
+										/>
 									) : displayedItems.map((item) => (
 										<InterestRow
 											key={`${activeTab}-${item.profileId}-${item.timestamp ?? "na"}`}
