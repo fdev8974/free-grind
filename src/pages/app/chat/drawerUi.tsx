@@ -103,6 +103,12 @@ export function DrawerEmptyState({
 }
 
 export type DrawerPreviewMedia = { src: string; isVideo: boolean };
+/** A group peek (a collection): all its media at once, in order. */
+export type DrawerPreviewGroup = { title: string; items: DrawerPreviewMedia[] };
+export type DrawerPreviewContent = DrawerPreviewMedia | DrawerPreviewGroup;
+
+/** Most media shown in a group peek; the rest is summed up as "+N". */
+const GROUP_PREVIEW_MAX = 9;
 
 const LONG_PRESS_MS = 400;
 const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
@@ -113,7 +119,7 @@ const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
  * `consumeClick()` so the release after a peek doesn't also select the tile.
  */
 export function useDrawerMediaPreview() {
-	const [preview, setPreview] = useState<DrawerPreviewMedia | null>(null);
+	const [preview, setPreview] = useState<DrawerPreviewContent | null>(null);
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const startRef = useRef<{ x: number; y: number } | null>(null);
 	const suppressClickRef = useRef(false);
@@ -134,7 +140,7 @@ export function useDrawerMediaPreview() {
 	useEffect(() => cancelTimer, [cancelTimer]);
 
 	const bind = useCallback(
-		(media: DrawerPreviewMedia) => ({
+		(media: DrawerPreviewContent) => ({
 			onPointerDown: (event: PointerEvent<HTMLElement>) => {
 				if (event.pointerType === "mouse" && event.button !== 0) return;
 				suppressClickRef.current = false;
@@ -178,9 +184,9 @@ export function useDrawerMediaPreview() {
 
 const PREVIEW_ANIMATION_MS = 180;
 
-export function DrawerMediaPreview({ media }: { media: DrawerPreviewMedia | null }) {
+export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | null }) {
 	// Keep the last media mounted while it animates out, then drop it.
-	const [shown, setShown] = useState<DrawerPreviewMedia | null>(media);
+	const [shown, setShown] = useState<DrawerPreviewContent | null>(media);
 	const [isVisible, setIsVisible] = useState(false);
 
 	useEffect(() => {
@@ -212,7 +218,9 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewMedia | null
 				className="max-h-full max-w-full overflow-hidden rounded-2xl shadow-2xl"
 				style={{ opacity: isVisible ? 1 : 0, transform: `scale(${isVisible ? 1 : 0.88})`, transition }}
 			>
-				{shown.isVideo ? (
+				{"items" in shown ? (
+					<DrawerPreviewGroupGrid group={shown} />
+				) : shown.isVideo ? (
 					<video src={shown.src} autoPlay muted loop playsInline className="max-h-[80dvh] max-w-full object-contain" />
 				) : (
 					<img src={shown.src} alt="" className="max-h-[80dvh] max-w-full object-contain" />
@@ -443,6 +451,8 @@ export function DrawerTileCornerButton({
 			type="button"
 			onClick={(event) => { event.stopPropagation(); onClick(event); }}
 			onKeyDown={(event) => event.stopPropagation()}
+			// Keeps a press on the button from starting the tile's hold-to-peek.
+			onPointerDown={(event) => event.stopPropagation()}
 			disabled={disabled}
 			className={`absolute top-0.5 z-[1] inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60 ${corner === "left" ? "left-0.5" : "right-0.5"}`}
 			aria-label={label}
@@ -528,4 +538,45 @@ export function useDrawerAddActions({
 	);
 
 	return { actions, inputs };
+}
+
+function DrawerPreviewGroupGrid({ group }: { group: DrawerPreviewGroup }) {
+	const visible = group.items.slice(0, GROUP_PREVIEW_MAX);
+	const hidden = group.items.length - visible.length;
+	const columns = visible.length <= 1 ? 1 : visible.length <= 4 ? 2 : 3;
+	return (
+		<div className="w-[min(85vw,380px)] bg-[var(--surface)] p-2">
+			<p className="truncate px-1 pb-2 text-sm font-semibold text-[var(--text)]">{group.title}</p>
+			<div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
+				{visible.map((item, index) => (
+					<div key={`${item.src}-${index}`} className="relative aspect-square overflow-hidden rounded-md bg-black">
+						{item.isVideo ? (
+							<video
+								src={item.src}
+								preload="metadata"
+								muted
+								playsInline
+								onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+								className="h-full w-full object-cover"
+							/>
+						) : (
+							<img src={item.src} alt="" className="h-full w-full object-cover" />
+						)}
+						{/* Send order, like the numbers in the collection editor. */}
+						<span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[11px] font-bold text-[var(--accent-contrast)]">
+							{index + 1}
+						</span>
+						{item.isVideo ? (
+							<Play className="absolute bottom-1 left-1 h-3.5 w-3.5 fill-white text-white drop-shadow" />
+						) : null}
+						{hidden > 0 && index === visible.length - 1 ? (
+							<div className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-bold text-white">
+								+{hidden}
+							</div>
+						) : null}
+					</div>
+				))}
+			</div>
+		</div>
+	);
 }

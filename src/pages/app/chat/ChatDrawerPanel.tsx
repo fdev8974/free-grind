@@ -435,9 +435,20 @@ export function ChatDrawerPanel({
 				role="button"
 				tabIndex={0}
 				title={t("chat_drawer.collection_badge")}
-				onClick={() => { if (!dimmed) toggleCollectionSelection(collection); }}
+				// Hold to peek at everything in the collection, in send order.
+				{...bindPreview({
+					title: collection.name,
+					items: presentIds
+						.map((id) => media.find((m) => m.id === id))
+						.filter((m): m is DrawerMedia => m != null)
+						.map((item) => ({
+							src: getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url,
+							isVideo: item.contentType.startsWith("video/"),
+						})),
+				})}
+				onClick={() => { if (consumePreviewClick()) return; if (!dimmed) toggleCollectionSelection(collection); }}
 				onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
-				className={`${DRAWER_TILE_CLASS} cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+				className={`${DRAWER_TILE_CLASS} no-touch-callout cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
 				{coverItems.length > 0 ? (
 					<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
