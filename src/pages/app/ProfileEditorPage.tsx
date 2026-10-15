@@ -913,6 +913,7 @@ export function ProfileEditorPage() {
 								backgroundColor: "rgba(22, 29, 39, 0.9)",
 								background: "color-mix(in srgb, var(--surface) 92%, transparent)",
 								backdropFilter: "blur(16px)",
+								WebkitBackdropFilter: "blur(16px)",
 							}}
 						>
 							<button

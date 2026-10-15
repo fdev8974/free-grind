@@ -468,6 +468,7 @@ export function NavBar() {
 					backgroundColor: "rgba(22, 29, 39, 0.8)",
 					background: "color-mix(in srgb, var(--surface) 80%, transparent)",
 					backdropFilter: "blur(24px)",
+					WebkitBackdropFilter: "blur(24px)",
 				}}
 			>
 				<Tabs
