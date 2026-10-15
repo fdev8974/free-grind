@@ -460,7 +460,7 @@ export function formatTimestamp(
 	t: TFunction,
 	now: number = Date.now(),
 ): string {
-	const formatted = formatRelativeTime(timestamp, now);
+	const formatted = formatRelativeTime(timestamp, now, "short");
 	return formatted || t("interest_page.unknown_time");
 }
 

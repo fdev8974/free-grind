@@ -3,17 +3,27 @@ import i18n from "../i18n";
 // Optimization: Cache the formatter to avoid expensive re-instantiation in long lists
 const formatterCache = new Map<string, Intl.RelativeTimeFormat>();
 
-function getRelativeFormatter(lang: string) {
-	if (!formatterCache.has(lang)) {
+type RelativeTimeStyle = "long" | "short";
+
+function getRelativeFormatter(lang: string, style: RelativeTimeStyle) {
+	const key = `${lang}:${style}`;
+	if (!formatterCache.has(key)) {
 		formatterCache.set(
-			lang,
+			key,
 			new Intl.RelativeTimeFormat(lang, {
 				numeric: "auto",
-				style: "long",
+				style,
 			}),
 		);
 	}
-	return formatterCache.get(lang)!;
+	return formatterCache.get(key)!;
+}
+
+// Intl's short English form reads "2 min. ago" / "3 hr. ago" — turn that into
+// the more natural "2 mins ago" / "3 hrs ago". Other locales keep Intl's output.
+function polishShortEnglish(text: string, value: number): string {
+	const suffix = value === 1 ? "" : "s";
+	return text.replace(/\bmin\./, `min${suffix}`).replace(/\bhr\./, `hr${suffix}`);
 }
 
 /**
@@ -23,6 +33,7 @@ function getRelativeFormatter(lang: string) {
 export function formatRelativeTime(
 	timestamp: number | null | undefined,
 	now: number = Date.now(),
+	style: RelativeTimeStyle = "long",
 ): string {
 	if (!timestamp || !Number.isFinite(timestamp)) {
 		return "";
@@ -37,7 +48,11 @@ export function formatRelativeTime(
 		return i18n.t("browse_page.status_just_now");
 	}
 
-	const formatter = getRelativeFormatter(lang);
+	const formatter = getRelativeFormatter(lang, style);
+	const format = (value: number, unit: Intl.RelativeTimeFormatUnit) => {
+		const text = formatter.format(-value, unit);
+		return style === "short" && lang.startsWith("en") ? polishShortEnglish(text, value) : text;
+	};
 
 	const seconds = Math.floor(diffMs / 1000);
 	const minutes = Math.floor(seconds / 60);
@@ -45,13 +60,13 @@ export function formatRelativeTime(
 	const days = Math.floor(hours / 24);
 
 	if (minutes < 60) {
-		return formatter.format(-minutes, "minute");
+		return format(minutes, "minute");
 	}
 	if (hours < 24) {
-		return formatter.format(-hours, "hour");
+		return format(hours, "hour");
 	}
 	if (days < 7) {
-		return formatter.format(-days, "day");
+		return format(days, "day");
 	}
 
 	// For older dates, use the browser's default locale date format

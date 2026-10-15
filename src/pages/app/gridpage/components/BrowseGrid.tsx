@@ -24,7 +24,7 @@ const MOBILE_MIN_TRACK: Record<"2" | "3" | "4", string> = {
 	"4": "20.1%",
 };
 
-function mobileGridTemplate(columns: "2" | "3" | "4") {
+export function mobileGridTemplate(columns: "2" | "3" | "4") {
 	return `repeat(auto-fill, minmax(clamp(${MOBILE_MIN_TRACK[columns]}, 15vw, 250px), 1fr))`;
 }
 

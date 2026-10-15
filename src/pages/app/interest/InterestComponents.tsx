@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, memo, type ComponentType } from "react";
-import { Ban, History, MoveHorizontal, Zap, Check, RefreshCw } from "lucide-react";
+import { Ban, History, MoveHorizontal, Zap, Check, RefreshCw, Star } from "lucide-react";
 import { ClockFilled, EyeFilled, HomeFilled, LockFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { getThumbImageUrl } from "../../../utils/media";
@@ -8,6 +8,9 @@ import { type InterestItem, type InterestTab, formatTimestamp, getTapEmoji, PREV
 import { cn } from "../../../utils/cn";
 import { isOnlineEndingSoon } from "../gridpage/utils";
 import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
+import { RightNowIcon } from "../../../components/icons/RightNowIcon";
+import { usePreferences } from "../../../contexts/PreferencesContext";
+import type { BrowseCard } from "../GridPage.types";
 
 export type InterestTabConfig = {
 	key: InterestTab;
@@ -295,6 +298,149 @@ export const InterestRow = memo(function InterestRow({
 					</div>
 				</div>
 			)}
+		</div>
+	);
+});
+
+const TILE_ICON_SHADOW = "drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]";
+
+/** Grid-style tile for the views tab, modelled on the browse grid's
+ * BrowseCardTile: view count top-left, presence top-right, name and
+ * time bottom-left, favorite bottom-right. `browseCard` is the profile as last
+ * seen in the browse grid (if ever), which is the only source for age and
+ * favorite since the views endpoint doesn't carry them. */
+export const InterestViewTile = memo(function InterestViewTile({
+	item,
+	browseCard,
+	onOpenProfile,
+	now,
+	isBlocked = false,
+	isDesktop = false,
+}: {
+	item: InterestItem;
+	browseCard?: BrowseCard;
+	onOpenProfile: (profileId: string) => void;
+	now: number;
+	isBlocked?: boolean;
+	isDesktop?: boolean;
+}) {
+	const { t } = useTranslation();
+	const { blurGridProfilePictures } = usePreferences();
+	const { ref, revealClass } = useRevealOnScroll();
+	const imageSrc = item.imageHash ? getThumbImageUrl(item.imageHash, "320x320") : null;
+
+	const isPrivate = !item.canOpenProfile;
+	const isLocked = isPrivate || isBlocked;
+	const isRecovered = !!item.isFromCache && !isPrivate && !item.profileId.startsWith(PREVIEW_ID_PREFIX);
+	const onlineUntil = item.onlineUntil ?? browseCard?.onlineUntil ?? null;
+	const isOnline = typeof onlineUntil === "number" && onlineUntil > now;
+	const isEndingSoon = isOnline && isOnlineEndingSoon(onlineUntil, now);
+	const rightNow = item.rightNow ?? browseCard?.rightNow ?? null;
+	const isRightNow = rightNow === "HOSTING" || rightNow === "NOT_HOSTING";
+	const age = !isPrivate && typeof browseCard?.age === "number" && browseCard.age > 0 ? browseCard.age : null;
+	const isFavorite = !isPrivate && browseCard?.favorite === true;
+
+	const displayName = item.displayName
+		? item.displayName
+		: isPrivate
+			? t("interest_page.unknown_profile")
+			: t("common.unknown_display_name");
+
+	return (
+		<div ref={ref} className={cn(!isDesktop && "bg-black rounded-[4px] overflow-hidden", revealClass)}>
+			<button
+				type="button"
+				onClick={() => !isLocked && onOpenProfile(item.profileId)}
+				disabled={isLocked}
+				className={cn(
+					"no-touch-callout touch-manipulation surface-card-grid relative block w-full overflow-hidden text-left transition-transform",
+					!isLocked && "active:scale-95",
+					isRightNow ? "p-[2px]" : "p-0",
+					isDesktop ? "rounded-xl shadow-sm" : "rounded-[4px]",
+				)}
+			>
+				{isRightNow && (
+					<div
+						className="absolute inset-0 z-0 rounded-[inherit] animate-pulse"
+						style={{ background: "var(--right-now)", boxShadow: "0 0 8px 1px var(--right-now)" }}
+					/>
+				)}
+
+				{/* h-0 pb-[100%] instead of aspect-ratio — see BrowseCardTile for why. */}
+				<div className="relative z-10 h-0 w-full overflow-hidden rounded-[inherit] bg-[var(--surface-2)] pb-[100%] ring-1 ring-inset ring-white/10">
+					<div className="absolute inset-0">
+						{isLocked ? (
+							/* Locked tiles show the lock/ban icon in place of the photo. */
+							<div
+								className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)]"
+								title={isPrivate ? undefined : t("interest_page.blocked_profile")}
+							>
+								{isPrivate ? <LockFilled className="h-1/3 w-1/3 opacity-60" /> : <Ban className="h-1/3 w-1/3 opacity-60" />}
+							</div>
+						) : (
+							<ProfileImage
+								src={imageSrc}
+								alt={displayName}
+								className={cn(blurGridProfilePictures && "blur-md scale-110")}
+							/>
+						)}
+
+						<div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/70 via-black/25 to-transparent" />
+
+						{/* Top-left: view count */}
+						{!isPrivate && (
+							<span
+								className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm"
+								title={t("interest_page.total_viewed_count")}
+							>
+								<EyeFilled className="h-3 w-3" />
+								<span className="tabular-nums">{item.viewCount || 1}</span>
+							</span>
+						)}
+
+						{/* Top-right: presence */}
+						<div className="absolute right-2 top-2 z-10 flex h-5 items-center gap-1">
+							{isRightNow && (
+								<span className="inline-flex" title={rightNow === "HOSTING" ? t("right_now.hosting") : t("right_now.not_hosting", { defaultValue: "Right Now" })}>
+									<RightNowIcon className={cn("h-4 w-4 text-[var(--right-now)]", TILE_ICON_SHADOW)} />
+								</span>
+							)}
+							{isOnline && (
+								<span className={cn("block h-3 w-3 rounded-full shadow-lg ring-2 ring-black/30", isEndingSoon ? "bg-amber-500" : "bg-green-500")} />
+							)}
+						</div>
+
+						{/* Bottom: name + time on the left, favorite/recovered on the right */}
+						<div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+						<div className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-1 p-2 text-white">
+							<div className="min-w-0 flex-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+								<p className="truncate text-sm font-bold leading-tight">
+									{displayName}
+									{age && <span className="ml-1 font-semibold text-white/90">{age}</span>}
+								</p>
+								<p className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-white/80">
+									<ClockFilled className="h-3 w-3 shrink-0" />
+									<span className="truncate">{formatTimestamp(item.timestamp, t, now)}</span>
+								</p>
+							</div>
+							{(isFavorite || isRecovered) && (
+								<div className="flex shrink-0 items-center gap-1">
+									{isFavorite && (
+										<div className="flex h-5 w-5 items-center justify-center">
+											<Star className={cn("h-3.5 w-3.5 fill-current text-yellow-500", TILE_ICON_SHADOW)} />
+										</div>
+									)}
+									{isRecovered && (
+										<div className="flex h-5 w-5 items-center justify-center" title={t("interest_page.recovered_tooltip")}>
+											<History className={cn("h-3.5 w-3.5 text-white", TILE_ICON_SHADOW)} />
+										</div>
+									)}
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			</button>
 		</div>
 	);
 });
