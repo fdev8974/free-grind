@@ -178,7 +178,7 @@ export function AboutPage() {
 					</Card>
 				</header>
 
-				<div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+				<div className="grid gap-4">
 					<Card className="p-5 sm:p-6">
 						<h2 className="text-lg font-semibold">
 							{t("about_page.principles_title")}
@@ -226,30 +226,6 @@ export function AboutPage() {
 						</div>
 					</Card>
 
-					<Card className="p-5 sm:p-6">
-						<h2 className="text-lg font-semibold">
-							{t("about_page.support_title")}
-						</h2>
-						<div className="mt-4 grid gap-3 text-sm text-[var(--text-muted)]">
-							<p>{t("about_page.support_text")}</p>
-							<a
-								href="https://imaoreo.dev/donate"
-								target="_blank"
-								rel="noreferrer"
-								className="rounded-2xl bg-[var(--surface-2)] px-4 py-3 font-medium text-[var(--text)] transition hover:bg-[color-mix(in_srgb,var(--surface-2)_70%,var(--accent)_30%)]"
-							>
-								imaoreo.dev/donate
-							</a>
-							<a
-								href="https://hloth.dev/donate"
-								target="_blank"
-								rel="noreferrer"
-								className="rounded-2xl bg-[var(--surface-2)] px-4 py-3 font-medium text-[var(--text)] transition hover:bg-[color-mix(in_srgb,var(--surface-2)_70%,var(--accent)_30%)]"
-							>
-								hloth.dev/donate
-							</a>
-						</div>
-					</Card>
 				</div>
 
 				<section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

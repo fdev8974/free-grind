@@ -148,7 +148,7 @@ function StatusBadge({ status, isRequesting }: { status: PermissionStatus; isReq
 }
 
 export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }) {
-	const { colorScheme, accentColor, setPreferences } = usePreferences();
+	const { colorScheme, amoledMode, accentColor, setPreferences } = usePreferences();
 	const [step, setStep] = useState<Step>("loading");
 
 	const [notificationStatus, setNotificationStatus] = useState<PermissionStatus>("idle");
@@ -380,10 +380,12 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 
 	// ── Theme ────────────────────────────────────────────────────────────────
 	if (step === "theme") {
-		const options: { value: ColorScheme; label: string; sub: string; icon: typeof Sun; previewBg: string; previewFg: string }[] = [
-			{ value: "system", label: "System", sub: "Follows your device", icon: Monitor, previewBg: "linear-gradient(135deg, #eceff4 50%, #1f2835 50%)", previewFg: "#96a2b6" },
-			{ value: "light",  label: "Light",  sub: "Always light",        icon: Sun,     previewBg: "#eceff4",  previewFg: "#6d28d9" },
-			{ value: "dark",   label: "Dark",   sub: "Always dark",         icon: Moon,    previewBg: "#1f2835",  previewFg: "#96a2b6" },
+		// AMOLED isn't a color scheme of its own: it's dark plus the pure-black flag.
+		const options: { key: string; value: ColorScheme; amoled: boolean; label: string; sub: string; icon: typeof Sun; previewBg: string; previewFg: string }[] = [
+			{ key: "system", value: "system", amoled: false, label: "System", sub: "Follows your device", icon: Monitor, previewBg: "linear-gradient(135deg, #eceff4 50%, #1f2835 50%)", previewFg: "#96a2b6" },
+			{ key: "light",  value: "light",  amoled: false, label: "Light",  sub: "Always light",        icon: Sun,     previewBg: "#eceff4",  previewFg: "#6d28d9" },
+			{ key: "dark",   value: "dark",   amoled: false, label: "Dark",   sub: "Always dark",         icon: Moon,    previewBg: "#1f2835",  previewFg: "#96a2b6" },
+			{ key: "amoled", value: "dark",   amoled: true,  label: "AMOLED", sub: "Pure black for OLED screens", icon: Moon, previewBg: "#000000", previewFg: "#96a2b6" },
 		];
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
@@ -397,13 +399,13 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						</div>
 
 						<div className="flex flex-col gap-2.5">
-							{options.map(({ value, label, sub, icon: Icon, previewBg, previewFg }) => {
-								const active = colorScheme === value;
+							{options.map(({ key, value, amoled, label, sub, icon: Icon, previewBg, previewFg }) => {
+								const active = colorScheme === value && (value !== "dark" || amoledMode === amoled);
 								return (
 									<button
-										key={value}
+										key={key}
 										type="button"
-										onClick={() => setPreferences({ colorScheme: value })}
+										onClick={() => setPreferences({ colorScheme: value, amoledMode: amoled })}
 										className="flex items-center gap-4 rounded-xl border p-4 text-left transition-all"
 										style={{
 											borderColor: active ? "var(--accent)" : "var(--border)",
@@ -470,9 +472,9 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
 						</div>
 
-						{/* Same height as the theme step's three option rows, so the
+						{/* Same height as the theme step's four option rows, so the
 						    title doesn't jump between the two steps. */}
-						<div className="mx-auto grid h-[266px] grid-cols-4 content-start gap-4 pt-16">
+						<div className="mx-auto grid h-[358px] grid-cols-4 content-start gap-4 pt-16">
 							{ACCENT_PRESETS.map((preset) => {
 								const active = accentColor === preset.color;
 								return (
