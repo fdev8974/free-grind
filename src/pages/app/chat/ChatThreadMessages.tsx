@@ -1,4 +1,5 @@
 import { Album, Ban, Copy, Download, Eye, History, Hourglass, Languages, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
+import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { createPortal } from "react-dom";
 import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -15,7 +16,6 @@ import { loadSavedPhrases, saveSavedPhrases } from "../../../services/savedPhras
 import type { ConversationEntry, Message } from "../../../types/messages";
 import type { UiMessage } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
-import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getMessageFallbackMediaKey } from "../../../services/mediaStore";
@@ -1565,18 +1565,10 @@ export function ChatThreadMessages({
                                                         @keyframes logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
                                                         .logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
                                                     `}</style>
-                                                    {/* Same look as the badge in the upload preview: free-standing logo, time in its own pill. */}
-                                                    <div className="pointer-events-none absolute bottom-3 left-3 inline-flex items-center gap-1.5">
-                                                        <img
-                                                            src={freegrindLogo}
-                                                            alt={t("chat.thread.taken_on_grindr")}
-                                                            className="h-5 w-5 rounded-full logo-shine"
+                                                    <div className="absolute bottom-3 left-3">
+                                                        <TakenOnGrindrBadge
+                                                            label={imageCreatedAt != null ? formatTakenOnGrindrTime(imageCreatedAt, nowTimestamp, t) : null}
                                                         />
-                                                        {imageCreatedAt != null ? (
-                                                            <span className="inline-flex items-center rounded-full bg-black/65 px-2 py-1 text-[10px] font-semibold text-white">
-                                                                {formatTakenOnGrindrTime(imageCreatedAt, nowTimestamp, t)}
-                                                            </span>
-                                                        ) : null}
                                                     </div>
                                                 </>
                                             ) : null}

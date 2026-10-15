@@ -36,6 +36,7 @@ import {
 	X,
 	BellOff,
 } from "lucide-react";
+import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -61,7 +62,6 @@ import { isSexualHealthEnabled } from "../../../utils/optionalFeatures";
 import { decodeGeohash } from "../../../utils/geohash";
 import { ShareLocationSheet } from "./ShareLocationSheet";
 import { loadSavedLocations } from "../../../services/savedLocations";
-import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useEffectiveColorScheme } from "../../../hooks/useEffectiveColorScheme";
 import {
@@ -2648,10 +2648,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														transform: "translateY(-100%)",
 													}}
 												>
-													<img src={freegrindLogo} alt="" className="h-5 w-5 rounded-full attach-logo-shine" />
-													<span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-semibold text-white">
-														<span>{t("chat.time.just_now", { defaultValue: "just now" })}</span>
-													</span>
+													<TakenOnGrindrBadge label={t("chat.time.just_now", { defaultValue: "just now" })} shineClassName="attach-logo-shine" />
 												</div>
 											)}
 											</div>

@@ -18,6 +18,7 @@ import {
 	X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { CameraFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
 import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
@@ -514,10 +515,7 @@ export function ChatDrawerPanel({
 											transform: "translateY(-100%)",
 										}}
 									>
-										<img src={freegrindLogo} alt={t("chat.thread.taken_on_grindr")} className="h-5 w-5 rounded-full logo-shine" />
-										<span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-semibold text-white">
-											<span>{t("chat.time.just_now", { defaultValue: "just now" })}</span>
-										</span>
+										<TakenOnGrindrBadge label={t("chat.time.just_now", { defaultValue: "just now" })} />
 									</div>
 								)}
 							</div>
