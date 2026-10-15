@@ -725,10 +725,12 @@ export function PhotoViewer({
 									>
 										<ProfileImage src={albumHeader.avatarUrl} alt={albumHeader.name} />
 									</div>
+									{/* leading-tight keeps the text block at the 40px avatar height, so the
+									    icons sit on the same line as without the album header. */}
 									<div className="min-w-0">
-										<p className="truncate text-lg font-semibold text-white">{albumHeader.name}</p>
+										<p className="truncate text-lg font-semibold leading-tight text-white">{albumHeader.name}</p>
 										{albumHeader.subtitle && (
-											<p className="truncate text-sm text-white/70">{albumHeader.subtitle}</p>
+											<p className="truncate text-sm leading-tight text-white/70">{albumHeader.subtitle}</p>
 										)}
 									</div>
 								</button>
