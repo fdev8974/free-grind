@@ -366,10 +366,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const composerActionHaptic = (event: React.PointerEvent) => {
 		if (event.pointerType !== "mouse") haptic(10);
 	};
-	const mobileComposerBg =
-		!props.isDesktop && amoledMode && effectiveColorScheme === "dark"
-			? "bg-[var(--bg)]"
-			: "bg-[var(--surface)]";
+	const isMobileAmoled = !props.isDesktop && amoledMode && effectiveColorScheme === "dark";
+	const mobileComposerBg = isMobileAmoled
+		? "bg-[var(--bg)]"
+		: "border-t border-[var(--border)]/60 bg-[var(--surface)]";
 	// Feature-detected once (doesn't change during the app's lifetime) —
 	// hides every video-call entry point entirely on WebView builds without
 	// RTCPeerConnection (confirmed missing on some Linux WebKitGTK builds)
@@ -1300,7 +1300,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				return (
 					<>
 						<div
-							className={`flex items-center justify-between gap-3 border-b border-[var(--border)] ${!isDesktop ? "shrink-0 bg-[var(--surface)] px-[var(--app-px)] pb-3" : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4"}`}
+							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `shrink-0 bg-[var(--surface)] px-[var(--app-px)] pb-3 ${isMobileAmoled ? "border-transparent" : "border-[var(--border)]/60"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? {
