@@ -398,6 +398,14 @@ async fn run_blocking<T: Send + 'static>(
         .map_err(|e| AppError::Backup(format!("backup worker failed: {e}")))?
 }
 
+/// Profile dbs that haven't been opened since a table was added lack it until
+/// the app's migrations run again; skip it instead of failing the whole backup.
+fn table_exists(conn: &Connection, name: &str) -> Result<bool, AppError> {
+    Ok(conn
+        .prepare_cached("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1")?
+        .exists([name])?)
+}
+
 fn selected_tables(categories: &[String]) -> Vec<&'static TableSpec> {
     EXPORT_TABLES
         .iter()
@@ -523,6 +531,9 @@ fn write_export_archive(
     let mut row_counts = Map::new();
 
     for (table_index, table) in tables.into_iter().enumerate() {
+        if !table_exists(&conn, table.name)? {
+            continue;
+        }
         let rows_total = conn
             .query_row(&format!("SELECT COUNT(*) FROM {}", table.name), [], |r| r.get::<_, i64>(0))
             .map_err(|e| AppError::Backup(format!("failed to count {}: {e}", table.name)))?
@@ -735,6 +746,9 @@ fn import_tables(
         let rows_total = row_counts.get(table.name).copied();
         progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done: 0, rows_total });
 
+        if !table_exists(conn, table.name)? {
+            continue;
+        }
         let entry_name = format!("tables/{}.jsonl", table.name);
         let entry = match archive.by_name(&entry_name) {
             Ok(entry) => entry,
@@ -985,7 +999,9 @@ mod tests {
         std::fs::copy(&src_db, &dst_db).unwrap();
         let dst = Connection::open(&dst_db).unwrap();
         for table in EXPORT_TABLES {
-            dst.execute(&format!("DELETE FROM {}", table.name), []).unwrap();
+            if table_exists(&dst, table.name).unwrap() {
+                dst.execute(&format!("DELETE FROM {}", table.name), []).unwrap();
+            }
         }
         drop(dst);
 
@@ -1007,7 +1023,9 @@ mod tests {
         let src = Connection::open(&src_db).unwrap();
         let dst = Connection::open(&dst_db).unwrap();
         for table in EXPORT_TABLES {
-            assert_eq!(dump(&src, table), dump(&dst, table), "table {} differs after round trip", table.name);
+            if table_exists(&src, table.name).unwrap() {
+                assert_eq!(dump(&src, table), dump(&dst, table), "table {} differs after round trip", table.name);
+            }
         }
 
         let _ = std::fs::remove_dir_all(&dir);
