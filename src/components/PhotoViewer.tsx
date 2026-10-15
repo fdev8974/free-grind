@@ -140,6 +140,8 @@ export function PhotoViewer({
 	const dismissStartTimeRef = useRef(0);
 	// Fade-out before handing control back to the parent, for every close path.
 	const [isClosing, setIsClosing] = useState(false);
+	// False for the first painted frame after opening, so the fade/zoom-in can transition.
+	const [isEntered, setIsEntered] = useState(false);
 	const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const onCloseRef = useRef(onClose);
 	onCloseRef.current = onClose;
@@ -219,7 +221,20 @@ export function PhotoViewer({
 		setDismissY(0);
 		setIsDismissDragging(false);
 		setIsClosing(false);
+		setIsEntered(false);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isOpen]);
+
+	useEffect(() => {
+		if (!isOpen) return;
+		let inner = 0;
+		const outer = requestAnimationFrame(() => {
+			inner = requestAnimationFrame(() => setIsEntered(true));
+		});
+		return () => {
+			cancelAnimationFrame(outer);
+			cancelAnimationFrame(inner);
+		};
 	}, [isOpen]);
 
 	useEffect(() => {
@@ -722,12 +737,12 @@ export function PhotoViewer({
 
 	return createPortal(
 		<div
-			className="fixed inset-0 z-[80] animate-in fade-in duration-200"
+			className="fixed inset-0 z-[80]"
 			onClick={closeAnimated}
 			style={{
 				backgroundColor: `rgba(0, 0, 0, ${1 - dismissProgress * 0.85})`,
-				opacity: isClosing ? 0 : 1,
-				transition: isDismissDragging ? "none" : "opacity 180ms ease-out, background-color 220ms ease-out",
+				opacity: isClosing || !isEntered ? 0 : 1,
+				transition: isDismissDragging ? "none" : "opacity 200ms ease-out, background-color 220ms ease-out",
 			}}
 		>
 			{isCurrentVideo && !(menuActions && menuActions.length > 0) && (
@@ -985,10 +1000,10 @@ export function PhotoViewer({
 
 			<div
 				ref={trackContainerRef}
-				className="h-full w-full overflow-hidden animate-in zoom-in-95 duration-200"
+				className="h-full w-full overflow-hidden"
 				style={{
-					transform: dismissY !== 0 || isClosing
-						? `translateY(${dismissY}px) scale(${isClosing && dismissY === 0 ? 0.94 : 1 - dismissProgress * 0.15})`
+					transform: dismissY !== 0 || isClosing || !isEntered
+						? `translateY(${dismissY}px) scale(${(isClosing || !isEntered) && dismissY === 0 ? 0.94 : 1 - dismissProgress * 0.15})`
 						: undefined,
 					transition: isDismissDragging ? "none" : "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
 				}}
