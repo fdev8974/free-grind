@@ -59,6 +59,8 @@ import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSec
 import type { DrawerMedia } from "./chat/ChatDrawerPanel";
 import { sortDrawerMediaByUsage } from "./chat/chatUtils";
 import * as chatDb from "../../services/chatDb";
+import { getCachedMediaUri, getDrawerMediaKey } from "../../services/mediaStore";
+import { appLog } from "../../utils/logger";
 import {
 	DndContext,
 	PointerSensor,
@@ -451,13 +453,54 @@ export function SettingsAlbumsPage() {
 		void loadDrawerMedia(true);
 	}, [albumDetails, limits, loadDrawerMedia, t]);
 
-	const handleAddFromDrawer = useCallback(async (mediaIds: number[]) => {
+	// Drawer item as a File, for uploading it to an album directly.
+	const downloadDrawerMedia = async (item: DrawerMedia): Promise<File | null> => {
+		try {
+			const response = await fetch(getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url);
+			if (!response.ok) throw new Error(`Download failed (${response.status})`);
+			const blob = await response.blob();
+			const extension = item.contentType.split("/")[1]?.split(";")[0] || "mp4";
+			return new File([blob], `drawer-${item.id}.${extension}`, { type: item.contentType });
+		} catch (downloadError) {
+			appLog.warn(`[SettingsAlbumsPage] failed to download drawer media ${item.id}`, downloadError);
+			return null;
+		}
+	};
+
+	// Photos go in by drawer id. Videos try the same; if the server refuses
+	// them there, they're downloaded and uploaded to the album directly.
+	const handleAddFromDrawer = async (mediaIds: number[]) => {
 		if (!drawerPickerAlbumId || mediaIds.length === 0) return;
 		const albumId = drawerPickerAlbumId;
+		const drawerById = new Map(drawerMedia.map((item) => [item.id, item]));
+		const videoIds = mediaIds.filter((id) => drawerById.get(id)?.contentType.startsWith("video/"));
+		const imageIds = mediaIds.filter((id) => !videoIds.includes(id));
 		setIsAddingFromDrawer(true);
 		try {
-			await apiFunctions.addOwnAlbumContentByIds({ albumId, ids: mediaIds });
-			toast.success(t("settings_albums.toast_added_from_drawer", { count: mediaIds.length }));
+			let added = 0;
+			if (imageIds.length > 0) {
+				await apiFunctions.addOwnAlbumContentByIds({ albumId, ids: imageIds });
+				added += imageIds.length;
+			}
+			if (videoIds.length > 0) {
+				try {
+					await apiFunctions.addOwnAlbumContentByIds({ albumId, ids: videoIds });
+					added += videoIds.length;
+				} catch (byIdError) {
+					appLog.warn("[SettingsAlbumsPage] adding drawer videos by id failed, uploading them directly", byIdError);
+					const downloaded: File[] = [];
+					for (const id of videoIds) {
+						const item = drawerById.get(id);
+						const file = item ? await downloadDrawerMedia(item) : null;
+						if (file) downloaded.push(file);
+						else toast.error(t("settings_albums.error_drawer_video_download", { defaultValue: "Couldn't load a video from your drawer." }));
+					}
+					const valid = await filterAlbumUploads(albumId, downloaded);
+					await uploadFilesToAlbum(albumId, valid);
+					added += valid.length;
+				}
+			}
+			if (added > 0) toast.success(t("settings_albums.toast_added_from_drawer", { count: added }));
 			await loadAlbumDetails(albumId, true);
 			setDrawerPickerAlbumId(null);
 		} catch (addError) {
@@ -465,7 +508,7 @@ export function SettingsAlbumsPage() {
 		} finally {
 			setIsAddingFromDrawer(false);
 		}
-	}, [apiFunctions, drawerPickerAlbumId, loadAlbumDetails, t]);
+	};
 
 	const loadAlbumShares = useCallback(async (albumId: string, forceRefresh = false) => {
 		if (!forceRefresh && albumShareProfiles[albumId]) return;
@@ -614,9 +657,9 @@ export function SettingsAlbumsPage() {
 		void loadAlbumShares(albumId);
 	};
 
-	const uploadPictures = async (albumId: string, files: File[]) => {
-		if (!files.length || uploadingAlbumId) return;
-
+	// Applies the album's limits (free slots, size, video count and length)
+	// to files about to be uploaded; toasts and drops the ones that don't fit.
+	const filterAlbumUploads = async (albumId: string, files: File[]): Promise<File[]> => {
 		const detail = albumDetails[albumId];
 		const currentTotal = detail?.content.length ?? 0;
 		const currentVideos = detail?.content.filter(
@@ -632,7 +675,7 @@ export function SettingsAlbumsPage() {
 					defaultValue: "Album is full (max {{max}} items).",
 					max: limits.maxContentItemsPerAlbum,
 				}));
-				return;
+				return [];
 			}
 			if (candidates.length > remaining) {
 				toast(t("settings_albums.warning_truncated", {
@@ -697,16 +740,27 @@ export function SettingsAlbumsPage() {
 			valid.push(file);
 		}
 
+		return valid;
+	};
+
+	const uploadFilesToAlbum = async (albumId: string, files: File[]) => {
+		for (const file of files) {
+			const multipart = await buildMultipartBody(file);
+			const isVideo = file.type.startsWith("video/");
+			const dims = isVideo ? await getVideodimensions(file) : undefined;
+			await apiFunctions.uploadOwnAlbumContent({ albumId, multipart, ...dims });
+		}
+	};
+
+	const uploadPictures = async (albumId: string, files: File[]) => {
+		if (!files.length || uploadingAlbumId) return;
+
+		const valid = await filterAlbumUploads(albumId, files);
 		if (valid.length === 0) return;
 
 		setUploadingAlbumId(albumId);
 		try {
-			for (const file of valid) {
-				const multipart = await buildMultipartBody(file);
-				const isVideo = file.type.startsWith("video/");
-				const dims = isVideo ? await getVideodimensions(file) : undefined;
-				await apiFunctions.uploadOwnAlbumContent({ albumId, multipart, ...dims });
-			}
+			await uploadFilesToAlbum(albumId, valid);
 			toast.success(t("settings_albums.toast_picture_added", { count: valid.length }));
 			await loadAlbumDetails(albumId, true);
 		} catch (uploadError) {

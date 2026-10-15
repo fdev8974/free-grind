@@ -84,8 +84,6 @@ import { parseSlashCommand } from "./chat/slashCommands";
 import { ChatMediaSheet } from "./chat/ChatMediaSheet";
 import * as chatLog from "../../services/chatLog";
 import {
-	buildBinaryUpload,
-	getVideoDurationSeconds,
 	buildChatFiltersDraft,
 	buildPreviewFromMessage,
 	conversationNeedsReply,
@@ -722,8 +720,6 @@ export function ChatPage() {
 	const [drawerError, setDrawerError] = useState<string | null>(null);
 	const [drawerMedia, setDrawerMedia] = useState<DrawerMedia[]>([]);
 	const [isSendingDrawerMedia, setIsSendingDrawerMedia] = useState(false);
-	const [isAddingDrawerMedia, setIsAddingDrawerMedia] = useState(false);
-	const [deletingDrawerMediaId, setDeletingDrawerMediaId] = useState<number | null>(null);
 	const [nowTimestamp, setNowTimestamp] = useState(() => Date.now());
 	const searchQuery = "";
 	const imageViewerHistoryPushedRef = useRef(false);
@@ -6207,59 +6203,12 @@ export function ChatPage() {
 		],
 	);
 
-	const addDrawerMedia = useCallback(
-		async (file: File, takenOnGrindr: boolean, looping?: boolean) => {
-			const isVideo = file.type.startsWith("video/");
-
-			if (file.size > 100 * 1024 * 1024) {
-				toast.error(t("chat.attachments.too_large"));
-				return;
-			}
-
-			setIsAddingDrawerMedia(true);
-			try {
-				const durationSeconds = isVideo ? await getVideoDurationSeconds(file) : undefined;
-
-				const binaryUpload = await buildBinaryUpload(file);
-				const uploaded = await service.uploadChatMedia({
-					multipart: binaryUpload,
-					options: {
-						looping: isVideo ? (looping ?? false) : false,
-						takenOnGrindr: isVideo ? false : takenOnGrindr,
-						...(durationSeconds != null ? { durationSeconds } : {}),
-					},
-				});
-				await service.addMediaToDrawer(uploaded.mediaId);
-
-				await loadDrawerMedia();
-			} catch (error) {
-				toast.error(
-					error instanceof Error ? error.message : t("chat.errors.upload_media_failed"),
-				);
-			} finally {
-				setIsAddingDrawerMedia(false);
-			}
-		},
-		[loadDrawerMedia, service, t],
-	);
-
-	const deleteDrawerMedia = useCallback(
-		async (mediaId: number) => {
-			setDeletingDrawerMediaId(mediaId);
-			try {
-				await service.deleteDrawerMedia(mediaId);
-				setDrawerMedia((previous) => previous.filter((item) => item.id !== mediaId));
-				void chatDb.deleteMediaFile(getDrawerMediaKey(mediaId));
-			} catch (error) {
-				toast.error(
-					error instanceof Error ? error.message : t("chat.errors.delete_failed"),
-				);
-			} finally {
-				setDeletingDrawerMediaId(null);
-			}
-		},
-		[service, t],
-	);
+	// Adding to and deleting from the drawer happen inside ChatDrawerPanel
+	// (shared with the album/collection sheets); this only drops a deleted
+	// item from the list.
+	const removeDrawerMediaFromList = useCallback((mediaId: number) => {
+		setDrawerMedia((previous) => previous.filter((item) => item.id !== mediaId));
+	}, []);
 
 	const openAttachmentDialogForFile = (file: File) => {
 		if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
@@ -6631,12 +6580,9 @@ export function ChatPage() {
 			drawerError={drawerError}
 			drawerMedia={drawerMedia}
 			isSendingDrawerMedia={isSendingDrawerMedia}
-			isAddingDrawerMedia={isAddingDrawerMedia}
-			deletingDrawerMediaId={deletingDrawerMediaId}
 			onLoadDrawerMedia={loadDrawerMedia}
 			onSendDrawerMedia={sendDrawerMedia}
-			onAddDrawerMedia={addDrawerMedia}
-			onDeleteDrawerMedia={deleteDrawerMedia}
+			onDrawerMediaDeleted={removeDrawerMediaFromList}
 			onShareAlbumFromDrawer={handleShareAlbumFromDrawer}
 			onStopAlbumShareFromDrawer={handleStopAlbumShare}
 			onSendLocation={sendLocationMessage}

@@ -250,12 +250,9 @@ type ChatThreadPanelProps = {
 	drawerError: string | null;
 	drawerMedia: DrawerMedia[];
 	isSendingDrawerMedia: boolean;
-	isAddingDrawerMedia: boolean;
-	deletingDrawerMediaId: number | null;
 	onLoadDrawerMedia: () => void | Promise<void>;
 	onSendDrawerMedia: (mediaIds: number[], maxViews?: number) => Promise<void>;
-	onAddDrawerMedia: (file: File, takenOnGrindr: boolean) => Promise<void>;
-	onDeleteDrawerMedia: (mediaId: number) => Promise<void>;
+	onDrawerMediaDeleted: (mediaId: number) => void;
 	onShareAlbumFromDrawer: (albumId: number, expirationType: string) => Promise<void>;
 	onStopAlbumShareFromDrawer: (albumId: number) => Promise<void>;
 	onSendLocation: (lat: number, lon: number) => void | Promise<void>;
@@ -713,12 +710,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		drawerError,
 		drawerMedia,
 		isSendingDrawerMedia,
-		isAddingDrawerMedia,
-		deletingDrawerMediaId,
 		onLoadDrawerMedia,
 		onSendDrawerMedia,
-		onAddDrawerMedia,
-		onDeleteDrawerMedia,
+		onDrawerMediaDeleted,
 		onShareAlbumFromDrawer,
 		onStopAlbumShareFromDrawer,
 		onSendLocation,
@@ -2707,13 +2701,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							isLoading={isLoadingDrawer}
 							error={drawerError}
 							isSending={isSendingDrawerMedia}
-							isAdding={isAddingDrawerMedia}
-							deletingMediaId={deletingDrawerMediaId}
 							onBack={toggleDrawer}
 							onLoadMedia={onLoadDrawerMedia}
 							onSendMedia={onSendDrawerMedia}
-							onAddMedia={onAddDrawerMedia}
-							onDeleteMedia={onDeleteDrawerMedia}
+							onMediaDeleted={onDrawerMediaDeleted}
 							onShareAlbum={onShareAlbumFromDrawer}
 							onStopAlbumShare={onStopAlbumShareFromDrawer}
 							albums={shareableAlbums}

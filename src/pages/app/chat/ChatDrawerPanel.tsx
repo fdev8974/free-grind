@@ -13,8 +13,9 @@ import {
 	Share2,
 	Video,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { DrawerAddMediaStep } from "./DrawerAddMediaStep";
+import { useCallback, useEffect, useState } from "react";
+import { useDrawerMediaDelete } from "./useDrawerMediaDelete";
+import { useDrawerUploadQueue } from "./useDrawerUploadQueue";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
 import { SlidingTabs } from "../../../components/ui/sliding-tabs";
 import {
@@ -30,7 +31,6 @@ import {
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
-	useDrawerAddActions,
 	useDrawerMediaPreview,
 } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
@@ -39,7 +39,6 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { useModalClose } from "../../../hooks/useModalClose";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
@@ -89,13 +88,11 @@ interface ChatDrawerPanelProps {
 	error: string | null;
 	media: DrawerMedia[];
 	onBack: () => void;
-	onLoadMedia: () => void;
+	onLoadMedia: () => void | Promise<void>;
 	onSendMedia: (mediaIds: number[], maxViews?: number) => void | Promise<void>;
 	isSending: boolean;
-	isAdding: boolean;
-	onAddMedia: (file: File, takenOnGrindr: boolean, looping?: boolean) => void | Promise<void>;
-	deletingMediaId: number | null;
-	onDeleteMedia: (mediaId: number) => void | Promise<void>;
+	/** Called after media was deleted from the drawer here, to drop it from the list. */
+	onMediaDeleted: (mediaId: number) => void;
 	isDesktop: boolean;
 	albums?: AlbumListItem[];
 	isLoadingAlbums?: boolean;
@@ -117,10 +114,7 @@ export function ChatDrawerPanel({
 	onLoadMedia,
 	onSendMedia,
 	isSending,
-	isAdding,
-	onAddMedia,
-	deletingMediaId,
-	onDeleteMedia,
+	onMediaDeleted,
 	isDesktop,
 	albums = [],
 	isLoadingAlbums = false,
@@ -141,9 +135,6 @@ export function ChatDrawerPanel({
 	useLocalMediaCache();
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
-	const [pendingAddFile, setPendingAddFile] = useState<File | null>(null);
-	const [confirmDeleteMediaId, setConfirmDeleteMediaId] = useState<number | null>(null);
-	const [selectAfterUpload, setSelectAfterUpload] = useState(false);
 	const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<number>>(new Set());
 	// Collections: local-only, named groups of drawer media, managed on the
 	// albums settings page. Sending one goes through the regular onSendMedia
@@ -166,7 +157,6 @@ export function ChatDrawerPanel({
 		ONE_HOUR: t("chat_drawer.expiry.one_hour", { defaultValue: "1 hour" }),
 		ONE_DAY: t("chat_drawer.expiry.one_day", { defaultValue: "1 day" }),
 	};
-	const prevMediaIdsRef = useRef<Set<number>>(new Set());
 
 	useEffect(() => {
 		let cancelled = false;
@@ -183,18 +173,40 @@ export function ChatDrawerPanel({
 			cancelled = true;
 		};
 	}, []);
-	useModalClose({
-		isOpen: true,
-		onClose: onBack,
-		escapeKey: !isSending && !isAdding,
-	});
-
 	// The 10-second disappearing timer default only applies to photos — videos
 	// keep their own existing default (maxViews=1, meaning a normal single-play
 	// video rather than the unrelated "NonExpiringVideo" type), unaffected by
 	// this preference.
 	const defaultImageMaxViews = defaultExpiringPhotos ? 1 : 2147483647;
 	const [mediaMaxViews, setMediaMaxViews] = useState(defaultImageMaxViews);
+
+	// New uploads (same add step and upload as every other drawer sheet)
+	// come back selected, ready to send — same expiry default as picking them.
+	const selectUploaded = useCallback((uploaded: { mediaId: number; isVideo: boolean }[]) => {
+		setSelectedAlbumIds(new Set());
+		setSelectedCollectionId(null);
+		setSelectedIds(new Set(uploaded.map((item) => item.mediaId)));
+		setMediaMaxViews(uploaded.every((item) => item.isVideo) ? 1 : defaultImageMaxViews);
+	}, [defaultImageMaxViews]);
+	const reloadMedia = useCallback(async () => { await onLoadMedia(); }, [onLoadMedia]);
+	const upload = useDrawerUploadQueue({ onReloadMedia: reloadMedia, onUploaded: selectUploaded });
+
+	const removeDeleted = useCallback((mediaId: number) => {
+		setSelectedIds((previous) => {
+			if (!previous.has(mediaId)) return previous;
+			const next = new Set(previous);
+			next.delete(mediaId);
+			return next;
+		});
+		onMediaDeleted(mediaId);
+	}, [onMediaDeleted]);
+	const deletion = useDrawerMediaDelete({ onDeleted: removeDeleted });
+
+	useModalClose({
+		isOpen: true,
+		onClose: onBack,
+		escapeKey: !isSending && !upload.isUploading,
+	});
 
 	const toggleSelection = useCallback((id: number, isVideo: boolean) => {
 		setSelectedAlbumIds(new Set());
@@ -275,64 +287,6 @@ export function ChatDrawerPanel({
 		[selectedCollectionId, getPresentCollectionMediaIds, isVideoMediaId, defaultImageMaxViews],
 	);
 
-	const onPickDrawerFiles = useCallback(
-		(files: File[]) => {
-			const file = files[0];
-			if (!file) return;
-			if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-				toast.error(t("chat_drawer.invalid_file_type"));
-				return;
-			}
-			setPendingAddFile(file);
-		},
-		[],
-	);
-
-	const confirmAddPhoto = useCallback(async (file: File, takenOnGrindr: boolean, looping: boolean) => {
-		prevMediaIdsRef.current = new Set(media.map((m) => m.id));
-		await onAddMedia(file, takenOnGrindr, looping);
-		setSelectedIds(new Set());
-		setSelectAfterUpload(true);
-		setPendingAddFile(null);
-	}, [onAddMedia, media]);
-
-	useEffect(() => {
-		if (!selectAfterUpload) return;
-		const newItem = media.find((m) => !prevMediaIdsRef.current.has(m.id));
-		if (newItem) {
-			setSelectedIds(new Set([newItem.id]));
-			setSelectAfterUpload(false);
-		}
-	}, [media, selectAfterUpload]);
-
-	const cancelAddPhoto = useCallback(() => {
-		setPendingAddFile(null);
-	}, []);
-
-	const handleDeleteMedia = useCallback(
-		(event: React.MouseEvent<HTMLButtonElement>, mediaId: number) => {
-			event.stopPropagation();
-			setConfirmDeleteMediaId(mediaId);
-		},
-		[],
-	);
-
-	const confirmDeleteMedia = useCallback(async () => {
-		if (confirmDeleteMediaId == null) return;
-		await onDeleteMedia(confirmDeleteMediaId);
-		setSelectedIds((previous) => {
-			if (!previous.has(confirmDeleteMediaId)) return previous;
-			const next = new Set(previous);
-			next.delete(confirmDeleteMediaId);
-			return next;
-		});
-		setConfirmDeleteMediaId(null);
-	}, [confirmDeleteMediaId, onDeleteMedia]);
-
-	const cancelDeleteMedia = useCallback(() => {
-		if (deletingMediaId != null) return;
-		setConfirmDeleteMediaId(null);
-	}, [deletingMediaId]);
 
 	// Albums and collections are both created on the albums settings page.
 	const openAlbumsPage = () => {
@@ -448,29 +402,22 @@ export function ChatDrawerPanel({
 	});
 
 	// Capture / upload actions, shown as the first tiles of the media grid.
-	const actionsDisabled = isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
-	const { actions: drawerActions, inputs: drawerAddInputs } = useDrawerAddActions({
-		onFiles: onPickDrawerFiles,
-		busy: isAdding,
-	});
+	const actionsDisabled = upload.isUploading || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
+	const drawerActions = upload.actions;
 
 	return (
 		<BottomSheet
-			onClose={isSending || isAdding ? () => {} : onBack}
-			isProcessing={isSending || isAdding}
+			onClose={isSending || upload.isUploading ? () => {} : onBack}
+			isProcessing={isSending || upload.isUploading}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"
 		>
 			<DrawerHeader
-				title={pendingAddFile
-					? pendingAddFile.type.startsWith("video/")
-						? t("chat_drawer.add_video", { defaultValue: "Add video" })
-						: t("chat_drawer.add_photo")
-					: t("chat_drawer.title", { defaultValue: "Drawer" })}
-				// While adding a file, X goes back to the drawer instead of closing it.
-				onClose={pendingAddFile ? cancelAddPhoto : undefined}
-				actions={pendingAddFile ? undefined : (() => {
+				title={upload.stepTitle ?? t("chat_drawer.title", { defaultValue: "Drawer" })}
+				// While adding files, X goes back to the drawer instead of closing it.
+				onClose={upload.step ? upload.stop : undefined}
+				actions={upload.step ? undefined : (() => {
 					// Same switch as the appearance setting, flipped right here. The icon shows the view it switches to.
 					const label = splitDrawerCategories
 						? t("chat_drawer.view_combined", { defaultValue: "Show all on one page" })
@@ -489,16 +436,9 @@ export function ChatDrawerPanel({
 				})()}
 			/>
 
-				{drawerAddInputs}
+				{upload.inputs}
 
-				{pendingAddFile ? (
-					<DrawerAddMediaStep
-						file={pendingAddFile}
-						isAdding={isAdding}
-						onCancel={cancelAddPhoto}
-						onConfirm={confirmAddPhoto}
-					/>
-				) : (
+				{upload.step ?? (
 					<>
 						{/* Media / albums / collections switcher. Empty album/collection tabs link to the albums page to create one. */}
 						{!combined && (() => {
@@ -582,8 +522,9 @@ export function ChatDrawerPanel({
 												onSelect={isClickable ? () => toggleSelection(item.id, isItemVideo) : undefined}
 												previewProps={bindPreview({ src: mediaSrc, isVideo: isItemVideo })}
 												consumePreviewClick={consumePreviewClick}
-												onDelete={hasCollectionSelection ? undefined : (event) => void handleDeleteMedia(event, item.id)}
-												isDeleting={deletingMediaId === item.id}
+												busy={deletion.deletingId === item.id}
+												onDelete={hasCollectionSelection ? undefined : () => deletion.requestDelete(item.id)}
+												isDeleting={deletion.deletingId === item.id}
 												deleteLabel={t("chat_drawer.delete_media")}
 											>
 												{item.used && !isSelected ? (
@@ -780,17 +721,7 @@ export function ChatDrawerPanel({
 				)}
 
 				<DrawerMediaPreview media={drawerPreview} />
-				<ConfirmDialog
-					isOpen={confirmDeleteMediaId != null}
-					title={t("chat_drawer.delete_confirm_title")}
-					message={t("chat_drawer.delete_confirm_message")}
-					confirmLabel={t("chat_drawer.delete_confirm_label")}
-					cancelLabel={t("chat.actions.cancel")}
-					onConfirm={confirmDeleteMedia}
-					onCancel={cancelDeleteMedia}
-					isProcessing={confirmDeleteMediaId != null && deletingMediaId === confirmDeleteMediaId}
-					confirmTone="danger"
-				/>
+				{deletion.dialog}
 		</BottomSheet>
 	);
 }

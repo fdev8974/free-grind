@@ -17,13 +17,12 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
-import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
+import { useDrawerMediaDelete } from "../chat/useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "../chat/useDrawerUploadQueue";
 
 interface DrawerCollectionEditorSheetProps {
@@ -51,14 +50,11 @@ export function DrawerCollectionEditorSheet({
 }: DrawerCollectionEditorSheetProps) {
 	const { t } = useTranslation();
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
-	const service = useApiFunctions();
 	const [name, setName] = useState(collection?.name ?? "");
 	// Insertion order of the Set is the send order. Not filtered against the
 	// drawer here — it may still be loading; missing ids are pruned on save.
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set(collection?.mediaIds ?? []));
 	const [isSaving, setIsSaving] = useState(false);
-	const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
-	const [deletingId, setDeletingId] = useState<number | null>(null);
 
 	// Only ids still in the drawer — a collection can outlive some of its media.
 	const orderedSelection = Array.from(selectedIds).filter((id) => media.some((m) => m.id === id));
@@ -74,36 +70,24 @@ export function DrawerCollectionEditorSheet({
 
 	// New uploads land in the drawer (collections only reference drawer
 	// media) and get appended to the collection being edited.
-	const appendUploaded = useCallback((ids: number[]) => {
-		setSelectedIds((prev) => new Set([...prev, ...ids]));
+	const appendUploaded = useCallback((uploaded: { mediaId: number }[]) => {
+		setSelectedIds((prev) => new Set([...prev, ...uploaded.map((item) => item.mediaId)]));
 	}, []);
 	const upload = useDrawerUploadQueue({ onReloadMedia, onUploaded: appendUploaded });
 	const isBusy = upload.isUploading || isSaving;
 
 	// Deleting removes the media from the drawer itself, so every collection
 	// using it loses it too (collections skip missing ids).
-	const confirmDeleteMedia = useCallback(async () => {
-		if (confirmDeleteId == null) return;
-		const mediaId = confirmDeleteId;
-		setDeletingId(mediaId);
-		try {
-			await service.deleteDrawerMedia(mediaId);
-			void chatDb.deleteMediaFile(getDrawerMediaKey(mediaId));
-			setSelectedIds((prev) => {
-				if (!prev.has(mediaId)) return prev;
-				const next = new Set(prev);
-				next.delete(mediaId);
-				return next;
-			});
-			await onReloadMedia();
-		} catch (deleteError) {
-			appLog.error("[DrawerCollectionEditorSheet] failed to delete drawer media", deleteError);
-			toast.error(deleteError instanceof Error ? deleteError.message : t("chat.errors.delete_failed"));
-		} finally {
-			setDeletingId(null);
-			setConfirmDeleteId(null);
-		}
-	}, [confirmDeleteId, service, onReloadMedia, t]);
+	const removeDeleted = useCallback(async (mediaId: number) => {
+		setSelectedIds((prev) => {
+			if (!prev.has(mediaId)) return prev;
+			const next = new Set(prev);
+			next.delete(mediaId);
+			return next;
+		});
+		await onReloadMedia();
+	}, [onReloadMedia]);
+	const deletion = useDrawerMediaDelete({ onDeleted: removeDeleted });
 
 	const handleSave = useCallback(async () => {
 		const trimmed = name.trim();
@@ -195,10 +179,10 @@ export function DrawerCollectionEditorSheet({
 								onSelect={isBusy ? undefined : () => toggleSelection(item.id)}
 								previewProps={bindPreview({ src: mediaSrc, isVideo })}
 								consumePreviewClick={consumePreviewClick}
-								busy={deletingId === item.id}
+								busy={deletion.deletingId === item.id}
 								// Hidden on selected tiles, so it can't be hit while setting the order.
-								onDelete={position > 0 || isBusy ? undefined : () => setConfirmDeleteId(item.id)}
-								isDeleting={deletingId === item.id}
+								onDelete={position > 0 || isBusy ? undefined : () => deletion.requestDelete(item.id)}
+								isDeleting={deletion.deletingId === item.id}
 								deleteLabel={t("chat_drawer.delete_media")}
 							/>
 						);
@@ -220,17 +204,7 @@ export function DrawerCollectionEditorSheet({
 			</>
 			)}
 			<DrawerMediaPreview media={drawerPreview} />
-			<ConfirmDialog
-				isOpen={confirmDeleteId != null}
-				title={t("chat_drawer.delete_confirm_title")}
-				message={t("settings_albums.collections_delete_media_message", { defaultValue: "This removes it from your drawer and from every collection that uses it." })}
-				confirmLabel={t("chat_drawer.delete_confirm_label")}
-				cancelLabel={t("chat.actions.cancel")}
-				onConfirm={() => void confirmDeleteMedia()}
-				onCancel={() => { if (deletingId == null) setConfirmDeleteId(null); }}
-				isProcessing={deletingId != null}
-				confirmTone="danger"
-			/>
+			{deletion.dialog}
 		</BottomSheet>
 	);
 }

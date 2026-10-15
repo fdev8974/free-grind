@@ -13,11 +13,13 @@ import {
 	DrawerMediaTile,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
+import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
+import { useDrawerMediaDelete } from "../chat/useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "../chat/useDrawerUploadQueue";
 
 interface AlbumDrawerPickerSheetProps {
@@ -47,13 +49,6 @@ export function AlbumDrawerPickerSheet({
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-	// The album-content-by-id endpoint only accepts images — adding a
-	// drawer video fails server-side, so videos aren't offered here at all.
-	const imageMedia = useMemo(
-		() => media.filter((item) => item.contentType.startsWith("image/")),
-		[media],
-	);
-
 	const toggleSelection = useCallback((id: number) => {
 		setSelectedIds((prev) => {
 			if (prev.has(id)) {
@@ -77,19 +72,31 @@ export function AlbumDrawerPickerSheet({
 	// New uploads land in the drawer and get picked right away, as far as
 	// the album still has room.
 	const reloadMedia = useCallback(async () => { await onLoadMedia(); }, [onLoadMedia]);
-	const selectUploaded = useCallback((ids: number[]) => {
+	const selectUploaded = useCallback((uploaded: { mediaId: number }[]) => {
 		setSelectedIds((prev) => {
 			const next = new Set(prev);
-			for (const id of ids) {
+			for (const { mediaId } of uploaded) {
 				if (next.size >= remainingSlots) break;
-				next.add(id);
+				next.add(mediaId);
 			}
 			return next;
 		});
 	}, [remainingSlots]);
-	// Albums only take photos (see imageMedia), so no video here.
-	const upload = useDrawerUploadQueue({ onReloadMedia: reloadMedia, onUploaded: selectUploaded, allowVideo: false });
+	// Videos too: if the server refuses them by drawer id, the page uploads
+	// them to the album directly (see SettingsAlbumsPage handleAddFromDrawer).
+	const upload = useDrawerUploadQueue({ onReloadMedia: reloadMedia, onUploaded: selectUploaded });
 	const isBusy = upload.isUploading || isSubmitting;
+
+	const removeDeleted = useCallback(async (mediaId: number) => {
+		setSelectedIds((prev) => {
+			if (!prev.has(mediaId)) return prev;
+			const next = new Set(prev);
+			next.delete(mediaId);
+			return next;
+		});
+		await onLoadMedia();
+	}, [onLoadMedia]);
+	const deletion = useDrawerMediaDelete({ onDeleted: removeDeleted });
 
 	const handleConfirm = useCallback(async () => {
 		if (selectedIds.size === 0) return;
@@ -114,16 +121,16 @@ export function AlbumDrawerPickerSheet({
 			{upload.step ?? (
 			<>
 			<DrawerBody
-				isLoading={isLoading && imageMedia.length === 0}
-				error={imageMedia.length === 0 ? error : null}
+				isLoading={isLoading && media.length === 0}
+				error={media.length === 0 ? error : null}
 				onRetry={() => void onLoadMedia()}
-				empty={imageMedia.length === 0 ? (
+				empty={media.length === 0 ? (
 					<DrawerEmptyState
 						icon={<ImagesFilled className="h-5 w-5" />}
 						title={t("settings_albums.drawer_empty", { defaultValue: "No media in your drawer yet." })}
-						hint={t("settings_albums.drawer_empty_hint", { defaultValue: "Take a photo or upload one from your device. Albums only hold photos." })}
+						hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
 					>
-						<div className="grid w-full max-w-xs grid-cols-2 gap-2">
+						<div className="grid w-full max-w-sm grid-cols-3 gap-2">
 							{upload.actions.map((action) => (
 								<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
 							))}
@@ -136,17 +143,27 @@ export function AlbumDrawerPickerSheet({
 					{upload.actions.map((action) => (
 						<DrawerActionTile key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
 					))}
-					{imageMedia.map((item) => (
-						<DrawerMediaTile
-							key={item.id}
-							src={item.url}
-							alt={t("chat_drawer.media_alt")}
-							selected={selectedIds.has(item.id)}
-							onSelect={() => toggleSelection(item.id)}
-							previewProps={bindPreview({ src: item.url, isVideo: false })}
-							consumePreviewClick={consumePreviewClick}
-						/>
-					))}
+					{media.map((item) => {
+						const isVideo = item.contentType.startsWith("video/");
+						const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+						return (
+							<DrawerMediaTile
+								key={item.id}
+								src={mediaSrc}
+								isVideo={isVideo}
+								alt={t("chat_drawer.media_alt")}
+								selected={selectedIds.has(item.id)}
+								onSelect={() => toggleSelection(item.id)}
+								previewProps={bindPreview({ src: mediaSrc, isVideo })}
+								consumePreviewClick={consumePreviewClick}
+								busy={deletion.deletingId === item.id}
+								// Hidden on selected tiles, like in the collection editor.
+								onDelete={selectedIds.has(item.id) || isBusy ? undefined : () => deletion.requestDelete(item.id)}
+								isDeleting={deletion.deletingId === item.id}
+								deleteLabel={t("chat_drawer.delete_media")}
+							/>
+						);
+					})}
 				</DrawerGrid>
 			</DrawerBody>
 
@@ -174,6 +191,7 @@ export function AlbumDrawerPickerSheet({
 			</>
 			)}
 			<DrawerMediaPreview media={drawerPreview} />
+			{deletion.dialog}
 		</BottomSheet>
 	);
 }

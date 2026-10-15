@@ -16,7 +16,7 @@ type PreparedUpload = { file: File; takenOnGrindr: boolean; looping: boolean };
  * (collection editor, album "add from drawer"): the add actions, then each
  * picked file through the same add step as the chat drawer (crop, taken on
  * Grindr, looping), then one upload round. `onUploaded` gets the new drawer
- * ids after `onReloadMedia` has run.
+ * media after `onReloadMedia` has run.
  *
  * Render `inputs` once, `actions` as tiles/buttons, and `step` (when set)
  * in place of the sheet's content, with `stepTitle` and `stop` in its header.
@@ -27,7 +27,7 @@ export function useDrawerUploadQueue({
 	allowVideo = true,
 }: {
 	onReloadMedia: () => Promise<void>;
-	onUploaded: (mediaIds: number[]) => void;
+	onUploaded: (uploaded: { mediaId: number; isVideo: boolean }[]) => void;
 	allowVideo?: boolean;
 }) {
 	const { t } = useTranslation();
@@ -42,7 +42,7 @@ export function useDrawerUploadQueue({
 
 	const uploadPrepared = useCallback(
 		async (batch: PreparedUpload[]) => {
-			const uploadedIds: number[] = [];
+			const uploadedMedia: { mediaId: number; isVideo: boolean }[] = [];
 			setUploadProgress({ done: 0, total: batch.length });
 			for (const [index, { file, takenOnGrindr, looping }] of batch.entries()) {
 				const isVideo = file.type.startsWith("video/");
@@ -62,7 +62,7 @@ export function useDrawerUploadQueue({
 						},
 					});
 					await service.addMediaToDrawer(uploaded.mediaId);
-					uploadedIds.push(uploaded.mediaId);
+					uploadedMedia.push({ mediaId: uploaded.mediaId, isVideo });
 				} catch (uploadError) {
 					appLog.error("[useDrawerUploadQueue] upload failed", uploadError);
 					toast.error(
@@ -73,9 +73,9 @@ export function useDrawerUploadQueue({
 			}
 
 			try {
-				if (uploadedIds.length > 0) await onReloadMedia();
+				if (uploadedMedia.length > 0) await onReloadMedia();
 			} finally {
-				if (uploadedIds.length > 0) onUploaded(uploadedIds);
+				if (uploadedMedia.length > 0) onUploaded(uploadedMedia);
 				setUploadProgress(null);
 			}
 		},
