@@ -465,9 +465,9 @@ export function NavBar() {
 						: "mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5",
 				)}
 				style={{
-					backgroundColor: "rgba(22, 29, 39, 0.9)",
-					background: "color-mix(in srgb, var(--surface) 90%, transparent)",
-					backdropFilter: "blur(16px)",
+					backgroundColor: "rgba(22, 29, 39, 0.8)",
+					background: "color-mix(in srgb, var(--surface) 80%, transparent)",
+					backdropFilter: "blur(24px)",
 				}}
 			>
 				<Tabs

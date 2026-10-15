@@ -20,8 +20,8 @@ export function PageHeaderBackground({ color }: PageHeaderBackgroundProps) {
 					transparent 100%)`,
 				maskImage: `radial-gradient(ellipse 80% 100% at 50% 0%, black 0%, black var(--header-mask-stop-1, ${HEADER_GLOW_MASK_STOP_1}), transparent var(--header-mask-stop-2, ${HEADER_GLOW_MASK_STOP_2}))`,
 				WebkitMaskImage: `radial-gradient(ellipse 80% 100% at 50% 0%, black 0%, black var(--header-mask-stop-1, ${HEADER_GLOW_MASK_STOP_1}), transparent var(--header-mask-stop-2, ${HEADER_GLOW_MASK_STOP_2}))`,
-				backdropFilter: "blur(12px)",
-				WebkitBackdropFilter: "blur(12px)",
+				backdropFilter: "blur(24px)",
+				WebkitBackdropFilter: "blur(24px)",
 			}}
 		>
 			<div
