@@ -424,11 +424,18 @@ export const InterestViewTile = memo(function InterestViewTile({
 									<span className="truncate">{formatTimestamp(item.timestamp, t, now)}</span>
 								</p>
 							</div>
-							{(isFavorite || isRecovered) && (
+							{(isFavorite || isRecovered || isPrivate) && (
 								<div className="flex shrink-0 items-center gap-1">
 									{isFavorite && (
 										<div className="flex h-5 w-5 items-center justify-center">
 											<Star className={cn("h-3.5 w-3.5 fill-current text-yellow-500", TILE_ICON_SHADOW)} />
+										</div>
+									)}
+									{/* Still-locked preview: neither the free unlocked viewer nor
+										recovered via a browse-grid photo match. */}
+									{isPrivate && (
+										<div className="flex h-5 w-5 items-center justify-center">
+											<LockFilled className={cn("h-3.5 w-3.5 text-white", TILE_ICON_SHADOW)} />
 										</div>
 									)}
 									{isRecovered && (
