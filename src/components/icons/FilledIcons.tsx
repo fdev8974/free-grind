@@ -584,3 +584,28 @@ export function StickerFilled(props: IconProps) {
 		</FilledSvg>
 	);
 }
+
+export function LocateFixedFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M2 12h3M19 12h3M12 2v3M12 19v3" fill="none" />
+			<circle cx="12" cy="12" r="7" fill="none" />
+			<circle cx="12" cy="12" r="3.5" stroke="none" />
+		</FilledSvg>
+	);
+}
+
+export function StickyNoteFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M15 3v5a1 1 0 0 0 1 1h5" fill="none" />
+			</CutoutMask>
+			<path
+				mask={`url(#${id})`}
+				d="M21 9a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"
+			/>
+		</FilledSvg>
+	);
+}

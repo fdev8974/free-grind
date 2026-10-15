@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState, memo, type ComponentType, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, useState, memo, type ComponentType } from "react";
 import { Ban, History, MoveHorizontal, Zap, Check, RefreshCw } from "lucide-react";
-import { EyeFilled, HomeFilled, LockFilled } from "../../../components/icons/FilledIcons";
+import { ClockFilled, EyeFilled, HomeFilled, LockFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { getThumbImageUrl } from "../../../utils/media";
 import { ProfileImage } from "../../../components/ui/profile-image";
@@ -246,55 +246,53 @@ export const InterestRow = memo(function InterestRow({
 							</span>
 						)}
 					</div>
-					<p className="mt-0.5 truncate text-xs text-[var(--text-muted)] font-medium">
-						{formatTimestamp(item.timestamp, t, now)}
-					</p>
+					{/* Meta row styled like the Right Now list: time, then view count. */}
+					<div className="mt-0.5 flex items-center gap-3 text-xs font-medium text-[var(--text-muted)]">
+						<span className="flex min-w-0 items-center gap-1">
+							<ClockFilled className="h-3 w-3 shrink-0" />
+							<span className="truncate">{formatTimestamp(item.timestamp, t, now)}</span>
+						</span>
+						{mode === "views" && !isPrivate && (
+							<span className="flex shrink-0 items-center gap-1">
+								<EyeFilled className="h-3 w-3" />
+								<span className="tabular-nums">{item.viewCount || 1}</span>
+							</span>
+						)}
+					</div>
 				</button>
 			</div>
 
-			{/* Action Area (Views, Taps, or Sent Taps) */}
-			{!isPrivate && (
+			{/* Action Area (Taps or Sent Taps); views show their count in the meta row. */}
+			{!isPrivate && (mode === "taps" || mode === "sent") && (
 				<div className="shrink-0 flex items-center justify-end h-12 w-12">
-					{mode === "taps" || mode === "sent" ? (
-						<div className="relative flex h-12 w-12 items-center justify-center">
-							<span
-								className="text-2xl leading-none select-none"
-								style={{
-									filter: `drop-shadow(0 0 3px rgba(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"}, 0.55)) drop-shadow(0 0 7px rgba(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"}, 0.3))`,
-								}}
-							>
-								{getTapEmoji(item.tapType)}
-							</span>
-							{mode === "taps" && item.isMutual && (
-								<span
-									className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full text-white shadow-md"
-									style={{ backgroundColor: `rgb(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"})` }}
-									title={t("interest_page.mutual_tap_tooltip")}
-								>
-									<MoveHorizontal className="h-2.5 w-2.5" />
-								</span>
-							)}
-							{mode === "sent" && item.isRead && (
-								<span
-									className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full text-white shadow-md"
-									style={{ backgroundColor: `rgb(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"})` }}
-									title={t("interest_page.sent_read_tooltip")}
-								>
-									<Check className="h-2.5 w-2.5" />
-								</span>
-							)}
-						</div>
-					) : (
-						<div
-							className="glass-pill flex h-8 items-center gap-1.5 px-3"
-							style={{ "--pill-color": "var(--text-muted)" } as CSSProperties}
+					<div className="relative flex h-12 w-12 items-center justify-center">
+						<span
+							className="text-2xl leading-none select-none"
+							style={{
+								filter: `drop-shadow(0 0 3px rgba(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"}, 0.55)) drop-shadow(0 0 7px rgba(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"}, 0.3))`,
+							}}
 						>
-							<EyeFilled className="h-3.5 w-3.5 text-[var(--text-muted)]" />
-							<span className="text-xs font-bold leading-none tabular-nums text-[var(--text)]">
-								{item.viewCount || 1}
+							{getTapEmoji(item.tapType)}
+						</span>
+						{mode === "taps" && item.isMutual && (
+							<span
+								className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full text-white shadow-md"
+								style={{ backgroundColor: `rgb(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"})` }}
+								title={t("interest_page.mutual_tap_tooltip")}
+							>
+								<MoveHorizontal className="h-2.5 w-2.5" />
 							</span>
-						</div>
-					)}
+						)}
+						{mode === "sent" && item.isRead && (
+							<span
+								className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full text-white shadow-md"
+								style={{ backgroundColor: `rgb(${emojiColorMap[item.tapType ?? -1] || "255, 200, 0"})` }}
+								title={t("interest_page.sent_read_tooltip")}
+							>
+								<Check className="h-2.5 w-2.5" />
+							</span>
+						)}
+					</div>
 				</div>
 			)}
 		</div>

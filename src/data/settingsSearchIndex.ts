@@ -33,7 +33,7 @@ import {
 	Timer,
 	ToggleRight,
 	PanelBottom,
-	Triangle,
+	LocateFixed,
 	Type,
 	Trash2,
 	Upload,
@@ -247,7 +247,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 				defaultValue: "Show \"Locate\" in the profile menu to estimate a profile's position by triangulation.",
 			}),
 			section: "Optional Features",
-			icon: Triangle,
+			icon: LocateFixed,
 			iconClass: "bg-emerald-500/15 text-emerald-400",
 		},
 

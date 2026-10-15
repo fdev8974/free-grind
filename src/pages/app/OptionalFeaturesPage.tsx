@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Clapperboard, HeartPulse, Triangle } from "lucide-react";
+import { Clapperboard, HeartPulse } from "lucide-react";
+import { LocateFixedFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { useTranslation } from "react-i18next";
@@ -68,7 +69,7 @@ export function OptionalFeaturesPage() {
 					<ToggleRow
 						id="cust-show-locate"
 						highlighted={highlightId === "cust-show-locate"}
-						icon={<Triangle className="h-5 w-5" />}
+						icon={<LocateFixedFilled className="h-5 w-5" />}
 						iconClass="bg-emerald-500/15 text-emerald-400"
 						label={t("customizability.show_locate", { defaultValue: "Locate" })}
 						description={t("customizability.show_locate_desc", {

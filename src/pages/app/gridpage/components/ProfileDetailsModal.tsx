@@ -1,4 +1,5 @@
-import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Eye, EyeOff, Flag, Flame, HeartPulse, Images, LockKeyhole, MessageCircle, Pencil, PencilLine, Phone, ShieldCheck, StickyNote, Star, Trash2, Triangle, X, Zap } from "lucide-react";
+import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X, Zap } from "lucide-react";
+import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled } from "../../../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
@@ -584,7 +585,7 @@ export function ProfileDetailsModal({
 				<div className="space-y-2">
 					<div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] transition-colors focus-within:border-[var(--accent)]">
 						<div className="flex items-start gap-2.5 px-3 pt-3 pb-2">
-							<StickyNote className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+							<StickyNoteFilled className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 							<textarea
 								autoFocus
 								value={noteDraft}
@@ -595,7 +596,7 @@ export function ProfileDetailsModal({
 							/>
 						</div>
 						<div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-2.5">
-							<Phone className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+							<Phone className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)] fill-current" />
 							<input
 								type="tel"
 								value={phoneNumberDraft}
@@ -626,7 +627,7 @@ export function ProfileDetailsModal({
 					</div>
 					{profilePhoneNumber && (
 						<div className="flex min-h-10 items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3">
-							<Phone className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+							<Phone className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)] fill-current" />
 							<span className="text-sm text-[var(--text)] select-text">{profilePhoneNumber}</span>
 						</div>
 					)}
@@ -638,7 +639,7 @@ export function ProfileDetailsModal({
 					disabled={isLoadingNote}
 					className="flex w-full items-center gap-2.5 rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-left transition hover:border-[var(--accent)]/60 hover:bg-[var(--surface-2)]"
 				>
-					<StickyNote className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+					<StickyNoteFilled className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 					<span className="text-sm text-[var(--text-muted)]">{t("favorites.note_empty")}</span>
 				</button>
 			)}
@@ -1387,7 +1388,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				onClick={handleEditNickname}
 				className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 			>
-				<PencilLine className="mr-2 h-4 w-4 opacity-70" />
+				<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
 				{localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
 			</button>
 		) : null;
@@ -1398,7 +1399,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			onClick={() => void handleLogEncounter()}
 			className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 		>
-			<HeartPulse className="mr-2 h-4 w-4 opacity-70" />
+			<BananaFilled className="mr-2 h-4 w-4 opacity-70" />
 			{t("chat.log_encounter", { defaultValue: "I met this person now" })}
 		</button>
 	) : null;
@@ -1416,7 +1417,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				onClick={() => { setIsActionsMenuOpen(false); setIsReportDialogOpen(true); }}
 				className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-red-400 transition hover:bg-[var(--surface-2)]"
 			>
-				<Flag className="mr-2 h-4 w-4 opacity-70" />
+				<Flag className="mr-2 h-4 w-4 fill-current opacity-70" />
 				{t("profile_details.report.menu_item")}
 			</button>
 			</div>
@@ -1635,8 +1636,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									disabled={isBlockingProfile}
 									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
 										isBlocked
-											? inlineScrolled ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-emerald-400/60 bg-emerald-500/20 text-emerald-300 backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-											: inlineScrolled ? "border-red-500/40 bg-red-500/8 text-red-400 hover:border-red-500/70 hover:bg-red-500/15" : "border-red-400/50 bg-red-500/15 text-red-300 backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] hover:border-red-400/80"
+											? inlineScrolled ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-emerald-500 bg-transparent text-emerald-500 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+											: inlineScrolled ? "border-red-500/40 bg-red-500/8 text-red-400 hover:border-red-500/70 hover:bg-red-500/15" : "border-red-500 bg-transparent text-red-500 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
 									}`}
 									aria-label={isBlocked ? t("profile_details.unblock") : t("profile_details.block")}
 								>
@@ -1663,7 +1664,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
 											className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
 										>
-											<Triangle className="mr-2 h-4 w-4 opacity-70" />
+											<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
 											{isLocatingProfile ? t("profile_details.locating") : t("profile_details.locate")}
 										</button>
 										)}
@@ -1674,7 +1675,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											onClick={() => { setIsActionsMenuOpen(false); if (!messageProfileId || isProfileUnavailable) return; isHidden ? onUnhideProfile?.(String(messageProfileId)) : onHideProfile?.(String(messageProfileId)); }}
 											className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
 										>
-											{isHidden ? <Eye className="mr-2 h-4 w-4 opacity-70" /> : <EyeOff className="mr-2 h-4 w-4 opacity-70" />}
+											{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 											{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
 										</button>
 										)}
@@ -2273,7 +2274,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 														<button type="button" disabled={isTriangleDisabled}
 															onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
 															className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50">
-															<Triangle className="mr-2 h-4 w-4 opacity-70" />
+															<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
 															{isLocatingProfile ? t("profile_details.locating") : t("profile_details.locate")}
 														</button>
 														)}
@@ -2284,7 +2285,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															onClick={() => { setIsActionsMenuOpen(false); if (!messageProfileId || isProfileUnavailable) return; isHidden ? onUnhideProfile?.(String(messageProfileId)) : onHideProfile?.(String(messageProfileId)); }}
 															className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
 														>
-															{isHidden ? <Eye className="mr-2 h-4 w-4 opacity-70" /> : <EyeOff className="mr-2 h-4 w-4 opacity-70" />}
+															{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 															{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
 														</button>
 														)}

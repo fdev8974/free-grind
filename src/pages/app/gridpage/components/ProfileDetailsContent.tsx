@@ -3,17 +3,14 @@ import {
 	ArrowLeftRight,
 	ArrowUp,
 	ArrowUpDown,
-	Calendar,
 	Pencil,
 	ChevronsDown,
 	ChevronsUp,
 	Compass,
 	ExternalLink,
-	Flame,
 	Globe,
 	Hash,
 	Heart,
-	MapPin,
 	MessageCircle,
 	MessageSquare,
 	type LucideIcon,
@@ -23,12 +20,15 @@ import {
 	Scale,
 	Search,
 	Shield,
-	ShieldCheck,
 	Sparkles,
 	Syringe,
+	MapPin,
 	User,
+	ShieldCheck,
+	Flame,
+	Calendar,
 } from "lucide-react";
-import { HomeFilled } from "../../../../components/icons/FilledIcons";
+import { HomeFilled, MapPinFilled } from "../../../../components/icons/FilledIcons";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
@@ -534,13 +534,13 @@ export function ProfileDetailsContent({
 							)}
 							{profileDistance !== undefined && profileDistance !== null && (
 								<span className="flex items-center gap-1">
-									<MapPin className="h-3.5 w-3.5" />
+									<MapPinFilled className="h-3.5 w-3.5" />
 									{formatDistance(profileDistance, t, unitsPreset)}
 								</span>
 							)}
 							{activeProfile.isNew && (
 								<span className="flex items-center gap-1 font-semibold text-[var(--accent)]">
-									<Sparkles className="h-3.5 w-3.5" />
+									<Sparkles className="h-3.5 w-3.5 fill-current" />
 									{t("profile_details.recently_joined")}
 								</span>
 							)}
@@ -995,7 +995,7 @@ export function ProfileDetailsContent({
 						<div className="flex items-center gap-2.5">
 							<Pencil className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 							<p className="text-sm text-[var(--text-muted)]">
-								{t("profile_details.last_updated", { date: new Date(activeProfile.lastUpdatedTime).toLocaleString(i18n.language) })}
+								{t("profile_details.last_updated", { date: new Date(activeProfile.lastUpdatedTime).toLocaleDateString(i18n.language) })}
 							</p>
 						</div>
 					)}
