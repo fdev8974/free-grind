@@ -367,9 +367,26 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		if (event.pointerType !== "mouse") haptic(10);
 	};
 	const isMobileAmoled = !props.isDesktop && amoledMode && effectiveColorScheme === "dark";
+	// Frosted like the bottom nav: the thread scrolls on underneath it.
 	const mobileComposerBg = isMobileAmoled
-		? "bg-[var(--bg)]"
-		: "border-t border-[var(--border)]/60 bg-[var(--surface)]";
+		? "bg-[color-mix(in_srgb,var(--bg)_80%,transparent)] backdrop-blur-xl"
+		: "border-t border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] backdrop-blur-xl";
+	// Height of the floating mobile composer, reserved as bottom padding in the
+	// message list so the newest message isn't hidden behind it.
+	const [composerHeight, setComposerHeight] = useState(0);
+	const composerObserverRef = useRef<ResizeObserver | null>(null);
+	const composerRef = useCallback((node: HTMLFormElement | null) => {
+		composerObserverRef.current?.disconnect();
+		composerObserverRef.current = null;
+		if (!node) {
+			setComposerHeight(0);
+			return;
+		}
+		const observer = new ResizeObserver(() => setComposerHeight(node.offsetHeight));
+		observer.observe(node);
+		composerObserverRef.current = observer;
+		setComposerHeight(node.offsetHeight);
+	}, []);
 	// Feature-detected once (doesn't change during the app's lifetime) —
 	// hides every video-call entry point entirely on WebView builds without
 	// RTCPeerConnection (confirmed missing on some Linux WebKitGTK builds)
@@ -1915,6 +1932,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			) : (
 				<ChatThreadMessages
 						isDesktop={isDesktop}
+						bottomInset={!isDesktop ? composerHeight : 0}
 						selectedConversation={selectedConversation}
 						userId={userId}
 						nowTimestamp={nowTimestamp}
@@ -1999,8 +2017,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						</div>
 					) : (
 					<form
+						ref={!isDesktop ? composerRef : undefined}
 						onSubmit={onFormSubmit}
-						className={`relative ${!isDesktop ? `shrink-0 px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)] bg-[var(--surface)]"}`}
+						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-20 px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)] bg-[var(--surface)]"}
 					>
 						{(isUploadingAttachment || uploadProgress > 0) && (
 							<div

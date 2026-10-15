@@ -64,6 +64,8 @@ import { haptic } from "../../../utils/haptics";
 
 type ChatThreadMessagesProps = {
 	isDesktop: boolean;
+	/** Space covered by a floating composer at the bottom (mobile). */
+	bottomInset?: number;
 	selectedConversation: ConversationEntry;
 	userId: number | null;
 	nowTimestamp: number;
@@ -308,6 +310,7 @@ function MessageContextMenu({
 
 export function ChatThreadMessages({
 	isDesktop,
+	bottomInset = 0,
 	selectedConversation,
 	userId,
 	nowTimestamp,
@@ -891,12 +894,27 @@ export function ChatThreadMessages({
 		return groups;
 	}, [threadMessages, nowTimestamp, t]);
 
+	// Keep the newest message in view when the floating composer grows (reply
+	// preview, multi-line draft, phrase pills) — but only if already at the end.
+	const prevBottomInsetRef = useRef(bottomInset);
+	useLayoutEffect(() => {
+		const previous = prevBottomInsetRef.current;
+		prevBottomInsetRef.current = bottomInset;
+		const container = threadScrollContainerRef.current;
+		if (!container || previous === bottomInset) return;
+		const distanceFromEnd = container.scrollHeight - container.scrollTop - container.clientHeight;
+		if (distanceFromEnd - Math.max(0, bottomInset - previous) < 80) {
+			container.scrollTop = container.scrollHeight;
+		}
+	}, [bottomInset, threadScrollContainerRef]);
+
 	return (
 		<div
 			ref={threadScrollContainerRef}
 			onScroll={handleThreadScroll}
 			data-lenis-prevent
 			className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
+			style={bottomInset > 0 ? { paddingBottom: bottomInset } : undefined}
 		>
             {messagePageKey ? (
                 <button
