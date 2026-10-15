@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
-import { LocateFixedFilled, MapPinFilled } from "../../../components/icons/FilledIcons";
+import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../../components/icons/FilledIcons";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import { useHomeLocation } from "../../../hooks/queries/useProfileQueries";
 import { loadSavedLocations, type SavedLocation } from "../../../services/savedLocations";
 import { decodeGeohash, encodeGeohash } from "../../../utils/geohash";
 import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
@@ -109,6 +110,7 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 	const { t } = useTranslation();
 	const { geohash, locationName } = usePreferences();
 	const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
+	const { data: homeLocation } = useHomeLocation();
 
 	useEffect(() => {
 		void loadSavedLocations().then(setSavedLocations);
@@ -165,6 +167,15 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 						subtitle={locationName ?? null}
 						isActive={isCurrentActive}
 						onClick={() => onChange(currentLocation)}
+					/>
+				) : null}
+				{homeLocation ? (
+					<LocationChip
+						icon={<HomeFilled className="h-4 w-4" />}
+						title={t("browse_location.home_location_label")}
+						subtitle={homeLocation.name ?? null}
+						isActive={isSameSpot(location, homeLocation)}
+						onClick={() => onChange({ lat: homeLocation.lat, lon: homeLocation.lon })}
 					/>
 				) : null}
 				{savedLocations.map((saved) => (
