@@ -369,8 +369,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const isMobileAmoled = !props.isDesktop && amoledMode && effectiveColorScheme === "dark";
 	// Frosted like the bottom nav: the thread scrolls on underneath it.
 	const mobileComposerBg = isMobileAmoled
-		? "bg-[color-mix(in_srgb,var(--bg)_80%,transparent)] backdrop-blur-xl"
-		: "border-t border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] backdrop-blur-xl";
+		? "bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] backdrop-blur-xl"
+		: "border-t border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] backdrop-blur-xl";
 	// Height of the floating mobile composer, reserved as bottom padding in the
 	// message list so the newest message isn't hidden behind it.
 	const [composerHeight, setComposerHeight] = useState(0);
@@ -1332,7 +1332,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					<>
 						<div
 							ref={!isDesktop ? headerRef : undefined}
-							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-30 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_80%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_80%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
+							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-30 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? {

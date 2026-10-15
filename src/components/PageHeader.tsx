@@ -64,7 +64,7 @@ export function PageHeader({
 					// Same frosted glass as the bottom NavBar and the chat composer.
 					style={{
 						opacity: progress,
-						background: "color-mix(in srgb, var(--surface) 80%, transparent)",
+						background: "color-mix(in srgb, var(--surface) 86%, transparent)",
 						backdropFilter: "blur(24px)",
 						WebkitBackdropFilter: "blur(24px)",
 					}}
