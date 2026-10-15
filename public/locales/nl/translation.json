@@ -2318,6 +2318,7 @@
         "description": "Kies foto's om aan je profiel toe te voegen, of upload nieuwe.",
         "upload": "Foto uploaden",
         "empty": "Nog geen foto's",
+        "empty_hint": "",
         "retry": "Opnieuw proberen",
         "image_alt": "Geüploade foto",
         "delete_image": "Foto verwijderen",

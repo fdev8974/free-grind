@@ -2316,6 +2316,7 @@
     "description": "Select photos to add to your profile, or upload new ones.",
     "upload": "Upload photo",
     "empty": "No pictures yet",
+    "empty_hint": "Upload a photo from your device to add it to your profile.",
     "retry": "Try again",
     "image_alt": "Uploaded photo",
     "delete_image": "Delete photo",

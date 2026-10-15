@@ -7,23 +7,32 @@ import {
 	LayoutPanelTop,
 	Pencil,
 	SquareCenterlineDashedHorizontal,
-	Image as ImageIcon,
 	Loader2,
-	Play,
 	RotateCw,
 	Plus,
 	Hourglass,
-	RefreshCw,
 	Send,
 	Share2,
 	Video,
-	X,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { CameraFilled, CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
 import { SlidingTabs } from "../../../components/ui/sliding-tabs";
-import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerActionTile, DrawerEmptyState, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "./drawerUi";
+import {
+	DRAWER_ICON_BUTTON_CLASS,
+	DRAWER_PRIMARY_BUTTON_CLASS,
+	DrawerActionButton,
+	DrawerActionTile,
+	DrawerBody,
+	DrawerEmptyState,
+	DrawerFooter,
+	DrawerGrid,
+	DrawerHeader,
+	DrawerMediaPreview,
+	DrawerMediaTile,
+	useDrawerMediaPreview,
+} from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
@@ -35,7 +44,7 @@ import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { useModalClose } from "../../../hooks/useModalClose";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import { usePreferences } from "../../../contexts/PreferencesContext";
@@ -565,43 +574,32 @@ export function ChatDrawerPanel({
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"
 		>
-			<div className="mb-4 flex items-center justify-between">
-					<h3 className="text-sm font-semibold text-[var(--text)]">
-						{pendingAddFile
-							? pendingAddFile.type.startsWith("video/")
-								? t("chat_drawer.add_video", { defaultValue: "Add video" })
-								: t("chat_drawer.add_photo")
-							: t("chat_drawer.title", { defaultValue: "Drawer" })}
-					</h3>
-					{pendingAddFile ? (
-						<button type="button" onClick={cancelAddPhoto} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
+			<DrawerHeader
+				title={pendingAddFile
+					? pendingAddFile.type.startsWith("video/")
+						? t("chat_drawer.add_video", { defaultValue: "Add video" })
+						: t("chat_drawer.add_photo")
+					: t("chat_drawer.title", { defaultValue: "Drawer" })}
+				// While adding a file, X goes back to the drawer instead of closing it.
+				onClose={pendingAddFile ? cancelAddPhoto : undefined}
+				actions={pendingAddFile ? undefined : (() => {
+					// Same switch as the appearance setting, flipped right here. The icon shows the view it switches to.
+					const label = splitDrawerCategories
+						? t("chat_drawer.view_combined", { defaultValue: "Show all on one page" })
+						: t("chat_drawer.view_split", { defaultValue: "Split into categories" });
+					return (
+						<button
+							type="button"
+							onClick={() => void setPreferences({ splitDrawerCategories: !splitDrawerCategories })}
+							className={DRAWER_ICON_BUTTON_CLASS}
+							aria-label={label}
+							title={label}
+						>
+							{splitDrawerCategories ? <LayoutGrid className="h-4 w-4" /> : <LayoutPanelTop className="h-4 w-4" />}
 						</button>
-					) : (
-						<div className="flex items-center gap-1">
-							{/* Same switch as the appearance setting, flipped right here. The icon shows the view it switches to. */}
-							{(() => {
-								const label = splitDrawerCategories
-									? t("chat_drawer.view_combined", { defaultValue: "Show all on one page" })
-									: t("chat_drawer.view_split", { defaultValue: "Split into categories" });
-								return (
-									<button
-										type="button"
-										onClick={() => void setPreferences({ splitDrawerCategories: !splitDrawerCategories })}
-										className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-										aria-label={label}
-										title={label}
-									>
-										{splitDrawerCategories ? <LayoutGrid className="h-4 w-4" /> : <LayoutPanelTop className="h-4 w-4" />}
-									</button>
-								);
-							})()}
-							<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-								<X className="h-4 w-4" />
-							</SheetClose>
-						</div>
-					)}
-				</div>
+					);
+				})()}
+			/>
 
 				<input type="file" ref={uploadInputRef} onChange={onPickDrawerPhoto} accept="image/*,video/*" className="hidden" />
 				<input type="file" ref={cameraInputRef} onChange={onPickDrawerPhoto} accept="image/*" capture="environment" className="hidden" />
@@ -767,28 +765,7 @@ export function ChatDrawerPanel({
 						})()}
 
 						{/* Content Grid */}
-						<div
-							data-lenis-prevent
-							className="flex-1 overflow-y-auto max-h-[60vh]"
-						>
-							{isLoading ? (
-								<div className="flex h-full items-center justify-center py-8">
-									<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-								</div>
-							) : error ? (
-								<div className="flex flex-col items-center justify-center gap-3 p-6 text-center py-8">
-									<ImageIcon className="h-8 w-8 text-[var(--text-muted)]" />
-									<p className="text-xs text-[var(--text-muted)]">{error}</p>
-									<button
-										type="button"
-										onClick={onLoadMedia}
-										className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-readable)]"
-									>
-										<RefreshCw className="h-3 w-3" />
-										{t("chat_drawer.retry")}
-									</button>
-								</div>
-							) : (
+						<DrawerBody isLoading={isLoading} error={error} onRetry={onLoadMedia}>
 								<div className="flex flex-col gap-3">
 								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (
@@ -826,7 +803,7 @@ export function ChatDrawerPanel({
 									</div>
 								)}
 								{showSection("media") && (media.length > 0 || hasCombinedGroups) && (
-								<div className={drawerGridClass(isDesktop)}>
+								<DrawerGrid isDesktop={isDesktop}>
 									{drawerActions.map((action) => (
 										<DrawerActionTile
 											key={action.key}
@@ -841,7 +818,6 @@ export function ChatDrawerPanel({
 									{combined && collectionTiles}
 									{media.map((item) => {
 										const isSelected = selectedIds.has(item.id);
-										const isImage = item.contentType.startsWith("image/");
 										const isItemVideo = item.contentType.startsWith("video/");
 										const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
 										// 1-based send position, previewing a selected collection's contents.
@@ -850,43 +826,20 @@ export function ChatDrawerPanel({
 										const isClickable = !isBlocked && !hasCollectionSelection;
 
 										return (
-											<div
+											<DrawerMediaTile
 												key={item.id}
-												role="button"
-												tabIndex={0}
-												{...bindPreview({ src: mediaSrc, isVideo: isItemVideo })}
-												onClick={() => { if (consumePreviewClick()) return; if (isClickable) toggleSelection(item.id, isItemVideo); }}
-												onKeyDown={(e) => e.key === "Enter" && isClickable && toggleSelection(item.id, isItemVideo)}
-												className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
-												style={{
-													outline: isSelected ? "2px solid var(--accent)" : "none",
-													outlineOffset: "-2px",
-												}}
+												src={mediaSrc}
+												isVideo={isItemVideo}
+												alt={t("chat_drawer.media_alt")}
+												selected={isSelected}
+												muted={isBlocked}
+												onSelect={isClickable ? () => toggleSelection(item.id, isItemVideo) : undefined}
+												previewProps={bindPreview({ src: mediaSrc, isVideo: isItemVideo })}
+												consumePreviewClick={consumePreviewClick}
+												onDelete={hasCollectionSelection ? undefined : (event) => void handleDeleteMedia(event, item.id)}
+												isDeleting={deletingMediaId === item.id}
+												deleteLabel={t("chat_drawer.delete_media")}
 											>
-												{isImage ? (
-													<img
-														src={mediaSrc}
-														alt={t("chat_drawer.media_alt")}
-														draggable={false}
-														className="h-full w-full object-cover"
-													/>
-												) : (
-													<>
-														<video
-									src={mediaSrc}
-									preload="metadata"
-									muted
-									onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-									className="h-full w-full object-cover"
-								/>
-														<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
-															<div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
-																<Play className="h-4 w-4 fill-white text-white" />
-															</div>
-														</div>
-													</>
-												)}
-
 												{item.used && !isSelected ? (
 													<div className="absolute inset-0 flex items-center justify-center bg-black/40">
 														<span className="text-[11px] font-semibold uppercase tracking-widest text-white/90">
@@ -894,17 +847,11 @@ export function ChatDrawerPanel({
 														</span>
 													</div>
 												) : null}
-
-												{isSelected ? (
-													<div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
-														<Check className="h-5 w-5 text-white drop-shadow" />
-													</div>
-												) : collectionPosition > 0 ? (
+												{!isSelected && collectionPosition > 0 ? (
 													<span className="pointer-events-none absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[11px] font-bold text-[var(--accent-contrast)]">
 														{collectionPosition}
 													</span>
 												) : null}
-
 												{item.takenOnGrindr ? (
 													<img
 														src={freegrindLogo}
@@ -912,25 +859,10 @@ export function ChatDrawerPanel({
 														className="absolute bottom-1 left-1 h-4 w-4 rounded-full logo-shine"
 													/>
 												) : null}
-
-												{!hasCollectionSelection && <button
-													type="button"
-													onClick={(event) => void handleDeleteMedia(event, item.id)}
-													disabled={deletingMediaId === item.id}
-													className="absolute top-0.5 left-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60"
-													aria-label={t("chat_drawer.delete_media")}
-													title={t("chat_drawer.delete_media")}
-												>
-													{deletingMediaId === item.id ? (
-														<Loader2 className="h-3 w-3 animate-spin" />
-													) : (
-														<X className="h-3 w-3" />
-													)}
-												</button>}
-											</div>
+											</DrawerMediaTile>
 										);
 									})}
-								</div>
+								</DrawerGrid>
 								)}
 								{/* Empty drawer: the add actions on their own, as the way in. */}
 								{showSection("media") && media.length === 0 && !hasCombinedGroups && (
@@ -961,8 +893,7 @@ export function ChatDrawerPanel({
 									</DrawerEmptyState>
 								)}
 								</div>
-							)}
-						</div>
+						</DrawerBody>
 
 						{/* Footer - Album share button */}
 						{hasAlbumSelection ? (() => {
@@ -985,7 +916,7 @@ export function ChatDrawerPanel({
 								</button>
 							);
 							return (
-								<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4 flex gap-2">
+								<DrawerFooter>
 									{isSelectedShared ? (
 										<>
 											{editButton}
@@ -1024,19 +955,19 @@ export function ChatDrawerPanel({
 													void Promise.all([...selectedAlbumIds].map(id => onShareAlbum!(id, albumExpirationType))).then(() => { setSelectedAlbumIds(new Set()); onBack(); });
 												}}
 												disabled={isSharingAlbum}
-												className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+												className={DRAWER_PRIMARY_BUTTON_CLASS}
 											>
 												{isSharingAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
 												<span>{isSharingAlbum ? t("chat_drawer.sending") : `${t("chat.share")} (${selectedAlbumIds.size})`}</span>
 											</button>
 										</>
 									)}
-								</div>
+								</DrawerFooter>
 							);
 						})() : null}
 						{/* Footer - Send button */}
 						{hasSelection || hasCollectionSelection ? (
-							<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4 flex gap-2">
+							<DrawerFooter>
 								<div className="relative inline-flex h-11 min-w-0 flex-1 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]">
 									<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
 									<select
@@ -1082,7 +1013,7 @@ export function ChatDrawerPanel({
 									type="button"
 									onClick={handleSendSelected}
 									disabled={isSending || sendIds.length === 0}
-									className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+									className={DRAWER_PRIMARY_BUTTON_CLASS}
 								>
 									{isSending ? (
 										<Loader2 className="h-4 w-4 animate-spin" />
@@ -1097,7 +1028,7 @@ export function ChatDrawerPanel({
 												: t("chat_drawer.send", { count: sendIds.length })}
 									</span>
 								</button>
-							</div>
+							</DrawerFooter>
 						) : null}
 					</>
 				)}

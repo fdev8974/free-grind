@@ -2336,6 +2336,7 @@
         "description": "Selecione fotos para adicionar ao seu perfil ou envie novas.",
         "upload": "Enviar foto",
         "empty": "Nenhuma foto ainda",
+        "empty_hint": "",
         "retry": "Tentar novamente",
         "image_alt": "Foto enviada",
         "delete_image": "Excluir foto",

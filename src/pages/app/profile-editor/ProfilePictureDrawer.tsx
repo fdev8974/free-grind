@@ -1,7 +1,19 @@
-import { AlertTriangle, Check, ImageIcon, Loader2, Plus, RefreshCw, Upload, X } from "lucide-react";
+import { AlertTriangle, ImageIcon, Loader2, Plus } from "lucide-react";
+import { CameraPlusFilled } from "../../../components/icons/FilledIcons";
+import {
+	DRAWER_PRIMARY_BUTTON_CLASS,
+	DrawerActionButton,
+	DrawerActionTile,
+	DrawerBody,
+	DrawerEmptyState,
+	DrawerFooter,
+	DrawerGrid,
+	DrawerHeader,
+	DrawerMediaTile,
+} from "../chat/drawerUi";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { getThumbImageUrl } from "../../../utils/media";
 import { MEDIA_MODERATION_STATE } from "./profileEditorUtils";
@@ -80,8 +92,7 @@ export function ProfilePictureDrawer({
 		setSelectedHashes(new Set());
 	}, [selectedHashes, onAddSelectedImages]);
 
-	const handleDeleteClick = useCallback((event: React.MouseEvent<HTMLButtonElement>, hash: string) => {
-		event.stopPropagation();
+	const handleDeleteClick = useCallback((_event: React.MouseEvent<HTMLButtonElement>, hash: string) => {
 		setConfirmDeleteHash(hash);
 	}, []);
 
@@ -114,14 +125,7 @@ export function ProfilePictureDrawer({
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"
 		>
-			<div className="mb-1 flex items-center justify-between">
-				<h3 className="text-sm font-semibold text-[var(--text)]">
-					{t("profile_photo_drawer.title")}
-				</h3>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
-			</div>
+			<DrawerHeader title={t("profile_photo_drawer.title")} className="mb-1" />
 
 			<input type="file" ref={uploadInputRef} onChange={onPickFile} accept="image/*" className="hidden" />
 
@@ -136,134 +140,83 @@ export function ProfilePictureDrawer({
 				</p>
 			</div>
 
-			<div
-				data-lenis-prevent
-				className="flex-1 overflow-y-auto max-h-[60vh] rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
-			>
-				{isLoading ? (
-					<div className="flex h-full items-center justify-center py-8">
-						<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-					</div>
-				) : error ? (
-					<div className="flex flex-col items-center justify-center gap-3 p-6 text-center py-8">
-						<ImageIcon className="h-8 w-8 text-[var(--text-muted)]" />
-						<p className="text-xs text-[var(--text-muted)]">{error}</p>
-						<button
-							type="button"
-							onClick={onRetry}
-							className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-readable)]"
-						>
-							<RefreshCw className="h-3 w-3" />
-							{t("profile_photo_drawer.retry")}
-						</button>
-					</div>
-				) : (
-					<div className={`grid gap-px bg-[var(--border)] ${isDesktop ? "grid-cols-5" : "grid-cols-3"}`}>
-						<button
-							type="button"
+			<DrawerBody
+				isLoading={isLoading}
+				error={error}
+				onRetry={onRetry}
+				retryLabel={t("profile_photo_drawer.retry")}
+				empty={visibleImages.length === 0 ? (
+					<DrawerEmptyState
+						icon={<ImageIcon className="h-5 w-5" />}
+						title={t("profile_photo_drawer.empty")}
+						hint={t("profile_photo_drawer.empty_hint", { defaultValue: "Upload a photo from your device to add it to your profile." })}
+					>
+						<DrawerActionButton
+							icon={<CameraPlusFilled className="h-4 w-4" />}
+							label={t("profile_photo_drawer.upload")}
 							onClick={() => uploadInputRef.current?.click()}
-							disabled={isSelecting || hasSelection}
-							className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
-							aria-label={t("profile_photo_drawer.upload")}
-							title={t("profile_photo_drawer.upload")}
-						>
-							<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-								<span className="relative inline-flex">
-									<Upload className="h-5 w-5" />
-									{!hasSelection && <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
-										<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
-									</span>}
-								</span>
-							</div>
-						</button>
+							disabled={isSelecting}
+						/>
+					</DrawerEmptyState>
+				) : undefined}
+			>
+				<DrawerGrid isDesktop={isDesktop}>
+					{/* Upload as the first tile, like the chat drawer. */}
+					<DrawerActionTile
+						icon={<CameraPlusFilled />}
+						label={t("profile_photo_drawer.upload")}
+						onClick={() => uploadInputRef.current?.click()}
+						disabled={isSelecting || hasSelection}
+					/>
+					{visibleImages.map((image) => {
+						const isPending = image.state === MEDIA_MODERATION_STATE.PENDING;
+						const isRejected = image.state === MEDIA_MODERATION_STATE.REJECTED;
+						const isDeleting = deletingHash === image.mediaHash;
+						const isSelected = selectedHashes.has(image.mediaHash);
+						// Once the selection has hit the number of free profile slots,
+						// picking anything else would just be rejected by toggleSelection
+						// — mute those tiles the same way the chat drawer dims media that
+						// can't be added to the current selection (e.g. image/video mix).
+						const isMutedByCapacity = !isSelected && selectedHashes.size >= remainingSlots;
+						const isClickable = !isSelecting && !isDeleting && !isMutedByCapacity;
+						const statusLabel = isPending
+							? t("profile_editor.sections.pictures.pending_moderation")
+							: isRejected
+								? t("profile_editor.sections.pictures.rejected")
+								: null;
 
-						{visibleImages.length === 0 && (
-							<div
-								className="flex flex-col items-center justify-center gap-2 py-8 text-[var(--text-muted)]"
-								style={{ gridColumn: "2 / -1" }}
+						return (
+							<DrawerMediaTile
+								key={image.mediaHash}
+								src={getThumbImageUrl(image.mediaHash, "320x320")}
+								alt={t("profile_photo_drawer.image_alt")}
+								mediaClassName={isRejected ? "opacity-50 grayscale" : ""}
+								selected={isSelected}
+								muted={isMutedByCapacity}
+								busy={isSelecting || isDeleting}
+								onSelect={isClickable ? () => toggleSelection(image.mediaHash) : undefined}
+								onDelete={(event) => handleDeleteClick(event, image.mediaHash)}
+								isDeleting={isDeleting}
+								deleteLabel={t("profile_photo_drawer.delete_image")}
 							>
-								<ImageIcon className="h-8 w-8 opacity-30" />
-								<p className="text-xs">{t("profile_photo_drawer.empty")}</p>
-							</div>
-						)}
-
-						{visibleImages.map((image) => {
-							const isPending = image.state === MEDIA_MODERATION_STATE.PENDING;
-							const isRejected = image.state === MEDIA_MODERATION_STATE.REJECTED;
-							const isDeleting = deletingHash === image.mediaHash;
-							const isSelected = selectedHashes.has(image.mediaHash);
-							// Once the selection has hit the number of free profile slots,
-							// picking anything else would just be rejected by toggleSelection
-							// — mute those tiles the same way the chat drawer dims media that
-							// can't be added to the current selection (e.g. image/video mix).
-							const isMutedByCapacity = !isSelected && selectedHashes.size >= remainingSlots;
-							const isClickable = !isSelecting && !isDeleting && !isMutedByCapacity;
-
-							return (
-								<div
-									key={image.mediaHash}
-									role="button"
-									tabIndex={isClickable ? 0 : -1}
-									onClick={() => { if (isClickable) toggleSelection(image.mediaHash); }}
-									onKeyDown={(e) => {
-										if (e.key === "Enter" && isClickable) toggleSelection(image.mediaHash);
-									}}
-									className={`relative aspect-square overflow-hidden transition ${isClickable ? "cursor-pointer" : "cursor-default"} ${isSelecting || isDeleting ? "opacity-60" : ""} ${isMutedByCapacity ? "opacity-30 pointer-events-none" : ""}`}
-								>
-									<img
-										src={getThumbImageUrl(image.mediaHash, "320x320")}
-										alt={t("profile_photo_drawer.image_alt")}
-										className={`h-full w-full object-cover ${isRejected ? "opacity-50 grayscale" : ""}`}
-									/>
-
-									{isSelected ? (
-										<div
-											className="absolute inset-0 flex items-center justify-center"
-											style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}
-										>
-											<Check className="h-5 w-5 text-white drop-shadow" />
-										</div>
-									) : null}
-
-									{isPending ? (
-										<span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-											{t("profile_editor.sections.pictures.pending_moderation")}
-										</span>
-									) : null}
-									{isRejected ? (
-										<span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
-											{t("profile_editor.sections.pictures.rejected")}
-										</span>
-									) : null}
-
-									<button
-										type="button"
-										onClick={(event) => handleDeleteClick(event, image.mediaHash)}
-										disabled={isDeleting}
-										className="absolute top-0.5 left-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60"
-										aria-label={t("profile_photo_drawer.delete_image")}
-										title={t("profile_photo_drawer.delete_image")}
-									>
-										{isDeleting ? (
-											<Loader2 className="h-3 w-3 animate-spin" />
-										) : (
-											<X className="h-3 w-3" />
-										)}
-									</button>
-								</div>
-							);
-						})}
-					</div>
-				)}
-			</div>
+								{statusLabel ? (
+									<span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+										{statusLabel}
+									</span>
+								) : null}
+							</DrawerMediaTile>
+						);
+					})}
+				</DrawerGrid>
+			</DrawerBody>
 
 			{hasSelection ? (
-				<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4 flex gap-2">
+				<DrawerFooter>
 					<button
 						type="button"
 						onClick={() => void handleAddSelected()}
 						disabled={isSelecting}
-						className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+						className={DRAWER_PRIMARY_BUTTON_CLASS}
 					>
 						{isSelecting ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
@@ -276,7 +229,7 @@ export function ProfilePictureDrawer({
 								: t("profile_photo_drawer.add_selected", { count: selectedHashes.size })}
 						</span>
 					</button>
-				</div>
+				</DrawerFooter>
 			) : null}
 
 			<ConfirmDialog

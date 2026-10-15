@@ -2336,6 +2336,7 @@
         "description": "Odaberi fotografije za dodavanje na profil ili otpremi nove.",
         "upload": "Otpremi fotografiju",
         "empty": "Još nema slika",
+        "empty_hint": "",
         "retry": "Pokušaj ponovo",
         "image_alt": "Otpremljena fotografija",
         "delete_image": "Obriši fotografiju",

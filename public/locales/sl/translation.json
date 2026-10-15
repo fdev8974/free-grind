@@ -2354,6 +2354,7 @@
         "description": "Izberi fotografije za dodajanje v profil ali naloži nove.",
         "upload": "Naloži fotografijo",
         "empty": "Še ni slik",
+        "empty_hint": "",
         "retry": "Poskusi znova",
         "image_alt": "Naložena fotografija",
         "delete_image": "Izbriši fotografijo",

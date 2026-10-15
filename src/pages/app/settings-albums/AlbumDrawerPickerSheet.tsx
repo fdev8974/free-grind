@@ -1,9 +1,20 @@
-import { Check, Image as ImageIcon, Loader2, Plus, RefreshCw, X } from "lucide-react";
-import { DRAWER_TILE_CLASS, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "../chat/drawerUi";
+import { Loader2, Plus } from "lucide-react";
+import { ImagesFilled } from "../../../components/icons/FilledIcons";
+import {
+	DRAWER_PRIMARY_BUTTON_CLASS,
+	DrawerBody,
+	DrawerEmptyState,
+	DrawerFooter,
+	DrawerGrid,
+	DrawerHeader,
+	DrawerMediaPreview,
+	DrawerMediaTile,
+	useDrawerMediaPreview,
+} from "../chat/drawerUi";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 
 interface AlbumDrawerPickerSheetProps {
@@ -73,86 +84,42 @@ export function AlbumDrawerPickerSheet({
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"
 		>
-			<div className="mb-4 flex items-center justify-between">
-				<h3 className="text-sm font-semibold text-[var(--text)]">
-					{t("settings_albums.drawer_picker_title", { defaultValue: "Select media" })}
-				</h3>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
-			</div>
+			<DrawerHeader title={t("settings_albums.drawer_picker_title", { defaultValue: "Select media" })} />
 
-			<div
-				data-lenis-prevent
-				className="flex-1 overflow-y-auto max-h-[60vh]"
+			<DrawerBody
+				isLoading={isLoading}
+				error={error}
+				onRetry={onLoadMedia}
+				empty={imageMedia.length === 0 ? (
+					<DrawerEmptyState
+						icon={<ImagesFilled className="h-5 w-5" />}
+						title={t("settings_albums.drawer_empty", { defaultValue: "No media in your drawer yet." })}
+						hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
+					/>
+				) : undefined}
 			>
-				{isLoading ? (
-					<div className="flex h-full items-center justify-center py-8">
-						<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-					</div>
-				) : error ? (
-					<div className="flex flex-col items-center justify-center gap-3 p-6 text-center py-8">
-						<ImageIcon className="h-8 w-8 text-[var(--text-muted)]" />
-						<p className="text-xs text-[var(--text-muted)]">{error}</p>
-						<button
-							type="button"
-							onClick={onLoadMedia}
-							className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-readable)]"
-						>
-							<RefreshCw className="h-3 w-3" />
-							{t("chat_drawer.retry")}
-						</button>
-					</div>
-				) : imageMedia.length === 0 ? (
-					<div className="flex flex-col items-center justify-center gap-2 py-8 text-[var(--text-muted)]">
-						<ImageIcon className="h-8 w-8 opacity-30" />
-						<p className="text-xs">{t("settings_albums.drawer_empty", { defaultValue: "No media in your drawer yet." })}</p>
-					</div>
-				) : (
-					<div className={drawerGridClass(isDesktop)}>
-						{imageMedia.map((item) => {
-							const isSelected = selectedIds.has(item.id);
-
-							return (
-								<div
-									key={item.id}
-									role="button"
-									tabIndex={0}
-									{...bindPreview({ src: item.url, isVideo: false })}
-									onClick={() => { if (consumePreviewClick()) return; toggleSelection(item.id); }}
-									onKeyDown={(e) => e.key === "Enter" && toggleSelection(item.id)}
-									className={`${DRAWER_TILE_CLASS} no-touch-callout cursor-pointer transition`}
-									style={{
-										outline: isSelected ? "2px solid var(--accent)" : "none",
-										outlineOffset: "-2px",
-									}}
-								>
-									<img
-										src={item.url}
-										alt={t("chat_drawer.media_alt")}
-										draggable={false}
-										className="h-full w-full object-cover"
-									/>
-
-									{isSelected ? (
-										<div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
-											<Check className="h-5 w-5 text-white drop-shadow" />
-										</div>
-									) : null}
-								</div>
-							);
-						})}
-					</div>
-				)}
-			</div>
+				<DrawerGrid isDesktop={isDesktop}>
+					{imageMedia.map((item) => (
+						<DrawerMediaTile
+							key={item.id}
+							src={item.url}
+							alt={t("chat_drawer.media_alt")}
+							selected={selectedIds.has(item.id)}
+							onSelect={() => toggleSelection(item.id)}
+							previewProps={bindPreview({ src: item.url, isVideo: false })}
+							consumePreviewClick={consumePreviewClick}
+						/>
+					))}
+				</DrawerGrid>
+			</DrawerBody>
 
 			{selectedIds.size > 0 ? (
-				<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4">
+				<DrawerFooter>
 					<button
 						type="button"
 						onClick={() => void handleConfirm()}
 						disabled={isSubmitting}
-						className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+						className={DRAWER_PRIMARY_BUTTON_CLASS}
 					>
 						{isSubmitting ? (
 							<Loader2 className="h-4 w-4 animate-spin" />
@@ -165,7 +132,7 @@ export function AlbumDrawerPickerSheet({
 								: `${t("settings_albums.add_to_album_button", { defaultValue: "Add to Album" })} (${selectedIds.size})`}
 						</span>
 					</button>
-				</div>
+				</DrawerFooter>
 			) : null}
 			<DrawerMediaPreview media={drawerPreview} />
 		</BottomSheet>

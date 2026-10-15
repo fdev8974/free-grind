@@ -1,10 +1,20 @@
-import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, X } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { CameraPlusFilled } from "../../../components/icons/FilledIcons";
-import { DRAWER_TILE_CLASS, DrawerActionTile, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "../chat/drawerUi";
+import {
+	DRAWER_PRIMARY_BUTTON_CLASS,
+	DrawerActionTile,
+	DrawerBody,
+	DrawerFooter,
+	DrawerGrid,
+	DrawerHeader,
+	DrawerMediaPreview,
+	DrawerMediaTile,
+	useDrawerMediaPreview,
+} from "../chat/drawerUi";
 import { useCallback, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
@@ -146,14 +156,7 @@ export function DrawerCollectionEditorSheet({
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"
 		>
-			<div className="mb-4 flex items-center justify-between">
-				<h3 className="text-sm font-semibold text-[var(--text)]">
-					{collection ? t("settings_albums.collections_edit") : t("settings_albums.collections_new")}
-				</h3>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
-			</div>
+			<DrawerHeader title={collection ? t("settings_albums.collections_edit") : t("settings_albums.collections_new")} />
 
 			<input
 				type="text"
@@ -168,93 +171,54 @@ export function DrawerCollectionEditorSheet({
 
 			<input type="file" ref={uploadInputRef} onChange={(e) => void onPickFiles(e)} accept="image/*,video/*" multiple className="hidden" />
 
-			<div
-				data-lenis-prevent
-				className="min-h-0 flex-1 overflow-y-auto max-h-[50vh]"
+			<DrawerBody
+				className="max-h-[50vh]"
+				isLoading={isLoading && media.length === 0}
+				error={media.length === 0 ? error : null}
+				onRetry={() => void onReloadMedia()}
 			>
-				{isLoading && media.length === 0 ? (
-					<div className="flex h-full items-center justify-center py-8">
-						<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-					</div>
-				) : error && media.length === 0 ? (
-					<div className="flex flex-col items-center justify-center gap-3 p-6 text-center py-8">
-						<ImageIcon className="h-8 w-8 text-[var(--text-muted)]" />
-						<p className="text-xs text-[var(--text-muted)]">{error}</p>
-						<button
-							type="button"
-							onClick={() => void onReloadMedia()}
-							className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-readable)]"
-						>
-							<RefreshCw className="h-3 w-3" />
-							{t("chat_drawer.retry")}
-						</button>
-					</div>
-				) : (
-					<div className={drawerGridClass(isDesktop)}>
-						{/* Upload as the first tile, like the chat drawer. */}
-						<DrawerActionTile
-							icon={uploadProgress ? <Loader2 className="animate-spin" /> : <CameraPlusFilled />}
-							label={uploadProgress
-								? `${uploadProgress.done}/${uploadProgress.total}`
-								: t("chat_drawer.upload_photo")}
-							onClick={() => uploadInputRef.current?.click()}
-							disabled={isBusy}
-						/>
-						{media.map((item) => {
-							const isVideo = item.contentType.startsWith("video/");
-							const position = orderedSelection.indexOf(item.id) + 1;
-							const isSelected = position > 0;
-							const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+				<DrawerGrid isDesktop={isDesktop}>
+					{/* Upload as the first tile, like the chat drawer. */}
+					<DrawerActionTile
+						icon={uploadProgress ? <Loader2 className="animate-spin" /> : <CameraPlusFilled />}
+						label={uploadProgress
+							? `${uploadProgress.done}/${uploadProgress.total}`
+							: t("chat_drawer.upload_photo")}
+						onClick={() => uploadInputRef.current?.click()}
+						disabled={isBusy}
+					/>
+					{media.map((item) => {
+						const isVideo = item.contentType.startsWith("video/");
+						const position = orderedSelection.indexOf(item.id) + 1;
+						const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+						return (
+							<DrawerMediaTile
+								key={item.id}
+								src={mediaSrc}
+								isVideo={isVideo}
+								alt={t("chat_drawer.media_alt")}
+								selected={position > 0}
+								selectedContent={<span className="text-lg font-bold text-white drop-shadow">{position}</span>}
+								onSelect={isBusy ? undefined : () => toggleSelection(item.id)}
+								previewProps={bindPreview({ src: mediaSrc, isVideo })}
+								consumePreviewClick={consumePreviewClick}
+							/>
+						);
+					})}
+				</DrawerGrid>
+			</DrawerBody>
 
-							return (
-								<div
-									key={item.id}
-									role="button"
-									tabIndex={0}
-									{...bindPreview({ src: mediaSrc, isVideo })}
-									onClick={() => { if (consumePreviewClick()) return; if (!isBusy) toggleSelection(item.id); }}
-									onKeyDown={(e) => e.key === "Enter" && !isBusy && toggleSelection(item.id)}
-									className={`${DRAWER_TILE_CLASS} no-touch-callout transition cursor-pointer`}
-									style={{
-										outline: isSelected ? "2px solid var(--accent)" : "none",
-										outlineOffset: "-2px",
-									}}
-								>
-									{isVideo ? (
-										<>
-											<video src={mediaSrc} preload="metadata" muted className="h-full w-full object-cover" />
-											<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
-												<div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
-													<Play className="h-4 w-4 fill-white text-white" />
-												</div>
-											</div>
-										</>
-									) : (
-										<img src={mediaSrc} alt={t("chat_drawer.media_alt")} draggable={false} className="h-full w-full object-cover" />
-									)}
-									{isSelected ? (
-										<div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
-											<span className="text-lg font-bold text-white drop-shadow">{position}</span>
-										</div>
-									) : null}
-								</div>
-							);
-						})}
-					</div>
-				)}
-			</div>
-
-			<div className="mt-3 -mx-4 border-t border-[var(--border)] pt-3 px-4">
+			<DrawerFooter>
 				<button
 					type="button"
 					onClick={() => void handleSave()}
 					disabled={isBusy || !name.trim() || orderedSelection.length === 0}
-					className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+					className={DRAWER_PRIMARY_BUTTON_CLASS}
 				>
 					{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
 					<span>{t("settings_albums.collections_save", { count: orderedSelection.length })}</span>
 				</button>
-			</div>
+			</DrawerFooter>
 			<DrawerMediaPreview media={drawerPreview} />
 		</BottomSheet>
 	);

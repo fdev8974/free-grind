@@ -2318,6 +2318,7 @@
         "description": "Wähle Fotos aus, die du deinem Profil hinzufügen möchtest, oder lade neue hoch.",
         "upload": "Foto hochladen",
         "empty": "Noch keine Bilder",
+        "empty_hint": "",
         "retry": "Erneut versuchen",
         "image_alt": "Hochgeladenes Foto",
         "delete_image": "Foto löschen",

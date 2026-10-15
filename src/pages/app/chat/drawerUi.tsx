@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
+import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, X } from "lucide-react";
+import { SheetClose } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 
-// Shared look for the media drawer and the sheets that pick from it (collection
-// editor, album "add from drawer"), so they stay visually in sync.
+// Shared building blocks for every media drawer sheet (chat drawer, collection
+// editor, album "add from drawer", profile pictures), so they stay in sync:
+// change the look here, not in each sheet.
 
 export const drawerGridClass = (isDesktop: boolean) =>
 	`grid gap-0.5 ${isDesktop ? "grid-cols-4" : "grid-cols-3"}`;
@@ -214,3 +218,208 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewMedia | null
 		document.body,
 	);
 }
+
+export const DRAWER_ICON_BUTTON_CLASS =
+	"inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]";
+
+/** Sheet title row: title on the left, optional extra buttons, then close.
+ * Pass `onClose` to close through your own handler instead of the sheet's. */
+export function DrawerHeader({
+	title,
+	actions,
+	onClose,
+	className = "mb-4",
+}: {
+	title: ReactNode;
+	actions?: ReactNode;
+	onClose?: () => void;
+	className?: string;
+}) {
+	return (
+		<div className={`flex items-center justify-between ${className}`}>
+			<h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
+			<div className="flex items-center gap-1">
+				{actions}
+				{onClose ? (
+					<button type="button" onClick={onClose} className={DRAWER_ICON_BUTTON_CLASS}>
+						<X className="h-4 w-4" />
+					</button>
+				) : (
+					<SheetClose className={DRAWER_ICON_BUTTON_CLASS}>
+						<X className="h-4 w-4" />
+					</SheetClose>
+				)}
+			</div>
+		</div>
+	);
+}
+
+/** Scrollable drawer content with the shared loading, error (with retry) and
+ * empty states; renders `children` (usually a DrawerGrid) otherwise. */
+export function DrawerBody({
+	isLoading,
+	error,
+	onRetry,
+	retryLabel,
+	empty,
+	className = "max-h-[60vh]",
+	children,
+}: {
+	isLoading?: boolean;
+	error?: string | null;
+	onRetry?: () => void;
+	retryLabel?: string;
+	/** Shown instead of `children` when set. */
+	empty?: ReactNode;
+	className?: string;
+	children?: ReactNode;
+}) {
+	const { t } = useTranslation();
+	let content: ReactNode;
+	if (isLoading) {
+		content = (
+			<div className="flex h-full items-center justify-center py-8">
+				<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
+			</div>
+		);
+	} else if (error) {
+		content = (
+			<div className="flex flex-col items-center justify-center gap-3 p-6 py-8 text-center">
+				<ImageIcon className="h-8 w-8 text-[var(--text-muted)]" />
+				<p className="text-xs text-[var(--text-muted)]">{error}</p>
+				{onRetry ? (
+					<button
+						type="button"
+						onClick={onRetry}
+						className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--accent-readable)]"
+					>
+						<RefreshCw className="h-3 w-3" />
+						{retryLabel ?? t("chat_drawer.retry")}
+					</button>
+				) : null}
+			</div>
+		);
+	} else {
+		content = empty ?? children;
+	}
+	// min-h-0 + data-lenis-prevent: both are needed for the inner scroll to work in a sheet.
+	return (
+		<div data-lenis-prevent className={`min-h-0 flex-1 overflow-y-auto ${className}`}>
+			{content}
+		</div>
+	);
+}
+
+export function DrawerGrid({ isDesktop, children }: { isDesktop: boolean; children: ReactNode }) {
+	return <div className={drawerGridClass(isDesktop)}>{children}</div>;
+}
+
+/**
+ * One media tile: thumbnail (image or video), selection overlay, dimming, an
+ * optional delete button, and `children` for extra badges/overlays.
+ * Without `onSelect` the tile isn't selectable.
+ */
+export function DrawerMediaTile({
+	src,
+	isVideo = false,
+	alt,
+	selected = false,
+	selectedContent,
+	muted = false,
+	busy = false,
+	onSelect,
+	previewProps,
+	consumePreviewClick,
+	mediaClassName = "",
+	onDelete,
+	isDeleting = false,
+	deleteLabel,
+	children,
+}: {
+	src: string;
+	isVideo?: boolean;
+	alt?: string;
+	selected?: boolean;
+	/** What the selection overlay shows; a check mark by default. */
+	selectedContent?: ReactNode;
+	/** Can't be picked right now: faded out and not interactive. */
+	muted?: boolean;
+	/** Work in progress on this tile (e.g. adding, deleting). */
+	busy?: boolean;
+	onSelect?: () => void;
+	/** From useDrawerMediaPreview: `bind(...)` result and its `consumeClick`. */
+	previewProps?: Record<string, unknown>;
+	consumePreviewClick?: () => boolean;
+	mediaClassName?: string;
+	onDelete?: (event: MouseEvent<HTMLButtonElement>) => void;
+	isDeleting?: boolean;
+	deleteLabel?: string;
+	children?: ReactNode;
+}) {
+	const select = () => {
+		if (consumePreviewClick?.()) return;
+		onSelect?.();
+	};
+	return (
+		<div
+			role="button"
+			tabIndex={onSelect && !muted ? 0 : -1}
+			{...previewProps}
+			onClick={select}
+			onKeyDown={(e) => { if (e.key === "Enter") onSelect?.(); }}
+			className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${onSelect ? "cursor-pointer" : "cursor-default"} ${busy ? "opacity-60" : ""} ${muted ? "pointer-events-none opacity-30" : ""}`}
+			style={{ outline: selected ? "2px solid var(--accent)" : "none", outlineOffset: "-2px" }}
+		>
+			{isVideo ? (
+				<>
+					<video
+						src={src}
+						preload="metadata"
+						muted
+						onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+						className={`h-full w-full object-cover ${mediaClassName}`}
+					/>
+					<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
+						<div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
+							<Play className="h-4 w-4 fill-white text-white" />
+						</div>
+					</div>
+				</>
+			) : (
+				<img src={src} alt={alt ?? ""} draggable={false} className={`h-full w-full object-cover ${mediaClassName}`} />
+			)}
+
+			{children}
+
+			{selected ? (
+				<div
+					className="absolute inset-0 flex items-center justify-center"
+					style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}
+				>
+					{selectedContent ?? <Check className="h-5 w-5 text-white drop-shadow" />}
+				</div>
+			) : null}
+
+			{onDelete ? (
+				<button
+					type="button"
+					onClick={(event) => { event.stopPropagation(); onDelete(event); }}
+					disabled={isDeleting}
+					className="absolute left-0.5 top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60"
+					aria-label={deleteLabel}
+					title={deleteLabel}
+				>
+					{isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+				</button>
+			) : null}
+		</div>
+	);
+}
+
+/** Bottom bar for the sheet's main action(s), separated by a full-width rule. */
+export function DrawerFooter({ children }: { children: ReactNode }) {
+	return <div className="mt-3 -mx-4 flex gap-2 border-t border-[var(--border)] px-4 pt-3">{children}</div>;
+}
+
+export const DRAWER_PRIMARY_BUTTON_CLASS =
+	"inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60";

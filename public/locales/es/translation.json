@@ -2336,6 +2336,7 @@
         "description": "Selecciona fotos para añadir a tu perfil o sube otras nuevas.",
         "upload": "Subir foto",
         "empty": "Aún no hay fotos",
+        "empty_hint": "",
         "retry": "Inténtalo de nuevo",
         "image_alt": "Foto subida",
         "delete_image": "Eliminar foto",

@@ -2336,6 +2336,7 @@
         "description": "Sélectionnez des photos à ajouter à votre profil ou importez-en de nouvelles.",
         "upload": "Importez une photo",
         "empty": "Pas encore de photos",
+        "empty_hint": "",
         "retry": "Essayer à nouveau",
         "image_alt": "Photo importée",
         "delete_image": "Supprimer la photo",
