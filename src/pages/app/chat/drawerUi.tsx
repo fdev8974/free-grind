@@ -437,12 +437,15 @@ export type DrawerAddAction = { key: string; label: string; icon: ReactNode; onC
 export function useDrawerAddActions({
 	onFiles,
 	multiple = false,
+	allowVideo = true,
 	busy = false,
 	busyLabel,
 }: {
 	onFiles: (files: File[]) => void;
 	/** Allow picking several files at once from the device. */
 	multiple?: boolean;
+	/** False drops "record video" and limits uploads to photos. */
+	allowVideo?: boolean;
 	/** Shows a spinner on the action that was used, while its upload runs. */
 	busy?: boolean;
 	/** Replaces that action's label while busy, e.g. with upload progress. */
@@ -463,7 +466,9 @@ export function useDrawerAddActions({
 
 	const actions: DrawerAddAction[] = [
 		{ key: "photo", label: t("chat_drawer.take_photo"), icon: <CameraFilled className="h-4 w-4" />, input: cameraInputRef },
-		{ key: "video", label: t("chat_drawer.record_video", { defaultValue: "Record video" }), icon: <Video className="h-4 w-4 fill-current" />, input: cameraVideoInputRef },
+		...(allowVideo
+			? [{ key: "video", label: t("chat_drawer.record_video", { defaultValue: "Record video" }), icon: <Video className="h-4 w-4 fill-current" />, input: cameraVideoInputRef }]
+			: []),
 		{ key: "upload", label: t("chat_drawer.upload_photo"), icon: <CameraPlusFilled className="h-4 w-4" />, input: uploadInputRef },
 	].map(({ key, label, icon, input }) => {
 		const isBusyHere = busy && key === (usedKey ?? "upload");
@@ -480,9 +485,11 @@ export function useDrawerAddActions({
 
 	const inputs = (
 		<>
-			<input type="file" ref={uploadInputRef} onChange={onChange} accept="image/*,video/*" multiple={multiple} className="hidden" />
+			<input type="file" ref={uploadInputRef} onChange={onChange} accept={allowVideo ? "image/*,video/*" : "image/*"} multiple={multiple} className="hidden" />
 			<input type="file" ref={cameraInputRef} onChange={onChange} accept="image/*" capture="environment" className="hidden" />
-			<input type="file" ref={cameraVideoInputRef} onChange={onChange} accept="video/*" capture="environment" className="hidden" />
+			{allowVideo ? (
+				<input type="file" ref={cameraVideoInputRef} onChange={onChange} accept="video/*" capture="environment" className="hidden" />
+			) : null}
 		</>
 	);
 

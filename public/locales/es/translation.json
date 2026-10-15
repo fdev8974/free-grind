@@ -660,6 +660,7 @@
         "add_drawer_desc": "Contenido guardado en la galería del chat",
         "drawer_picker_title": "Seleccionar contenido",
         "drawer_empty": "Todavía no hay contenido en tu galería.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Añadir al álbum",
         "toast_created": "Álbum creado",
         "toast_renamed": "Álbum renombrado",

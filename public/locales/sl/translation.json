@@ -665,6 +665,7 @@
         "add_drawer_desc": "Mediji, shranjeni v galeriji klepeta",
         "drawer_picker_title": "Izberi medije",
         "drawer_empty": "V tvoji galeriji še ni medijev.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Dodaj v album",
         "toast_created": "Album ustvarjen",
         "toast_renamed": "Album preimenovan",

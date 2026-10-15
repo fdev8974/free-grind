@@ -660,6 +660,7 @@
         "add_drawer_desc": "Mediji sačuvani u galeriji razgovora",
         "drawer_picker_title": "Odaberi medije",
         "drawer_empty": "Još nema medija u tvojoj galeriji.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Dodaj u album",
         "toast_created": "Album napravljen",
         "toast_renamed": "Album preimenovan",

@@ -655,6 +655,7 @@
         "add_drawer_desc": "In deiner Chat-Galerie gespeicherte Medien",
         "drawer_picker_title": "Medien auswählen",
         "drawer_empty": "Noch keine Medien in deiner Ablage.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Zum Album hinzufügen",
         "toast_created": "Album erstellt",
         "toast_renamed": "Album umbenannt",

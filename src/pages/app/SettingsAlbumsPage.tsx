@@ -1378,7 +1378,7 @@ export function SettingsAlbumsPage() {
 						media={drawerMedia}
 						isLoading={isLoadingDrawerMedia}
 						error={drawerMediaError}
-						onLoadMedia={() => void loadDrawerMedia(true)}
+						onLoadMedia={() => loadDrawerMedia(true)}
 						onClose={() => setDrawerPickerAlbumId(null)}
 						onConfirm={handleAddFromDrawer}
 						isSubmitting={isAddingFromDrawer}

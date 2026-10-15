@@ -660,6 +660,7 @@
         "add_drawer_desc": "Contenido guardado en la galería del chat",
         "drawer_picker_title": "Seleccionar medios",
         "drawer_empty": "Todavía no tienes ningún dispositivo multimedia en tu cajón.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Añadir un álbum",
         "toast_created": "Álbum creado",
         "toast_renamed": "Álbum renombrado",

@@ -655,6 +655,7 @@
     "add_drawer_desc": "Media saved in your chat drawer",
     "drawer_picker_title": "Select media",
     "drawer_empty": "No media in your drawer yet.",
+    "drawer_empty_hint": "Take a photo or upload one from your device. Albums only hold photos.",
     "add_to_album_button": "Add to Album",
     "toast_created": "Album created",
     "toast_renamed": "Album renamed",

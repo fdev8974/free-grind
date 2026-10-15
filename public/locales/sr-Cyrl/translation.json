@@ -661,6 +661,7 @@
         "add_drawer_desc": "Медији сачувани у вашој фиоци за чет",
         "drawer_picker_title": "Изаберите медије",
         "drawer_empty": "У фиоци још нема медија.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Додај у албум",
         "toast_created": "Албум је направљен",
         "toast_renamed": "Албум је преименован",

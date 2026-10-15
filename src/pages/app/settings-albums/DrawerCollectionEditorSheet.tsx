@@ -11,10 +11,9 @@ import {
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
-	useDrawerAddActions,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
@@ -25,12 +24,7 @@ import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
-import { DrawerAddMediaStep } from "../chat/DrawerAddMediaStep";
-import { buildBinaryUpload, getVideoDurationSeconds } from "../chat/chatUtils";
-
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
-
-type PreparedUpload = { file: File; takenOnGrindr: boolean; looping: boolean };
+import { useDrawerUploadQueue } from "../chat/useDrawerUploadQueue";
 
 interface DrawerCollectionEditorSheetProps {
 	/** Null when creating a new collection. */
@@ -62,18 +56,9 @@ export function DrawerCollectionEditorSheet({
 	// Insertion order of the Set is the send order. Not filtered against the
 	// drawer here — it may still be loading; missing ids are pruned on save.
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set(collection?.mediaIds ?? []));
-	const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 	const [isSaving, setIsSaving] = useState(false);
-	// Files picked for upload still waiting for their add step, and the ones
-	// already confirmed in this round.
-	const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-	const [pendingTotal, setPendingTotal] = useState(0);
-	const preparedRef = useRef<PreparedUpload[]>([]);
-	const pendingFile = pendingFiles[0] ?? null;
 	const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 	const [deletingId, setDeletingId] = useState<number | null>(null);
-	const isUploading = uploadProgress != null;
-	const isBusy = isUploading || isSaving;
 
 	// Only ids still in the drawer — a collection can outlive some of its media.
 	const orderedSelection = Array.from(selectedIds).filter((id) => media.some((m) => m.id === id));
@@ -89,85 +74,11 @@ export function DrawerCollectionEditorSheet({
 
 	// New uploads land in the drawer (collections only reference drawer
 	// media) and get appended to the collection being edited.
-	const uploadPrepared = useCallback(
-		async (batch: PreparedUpload[]) => {
-			const uploadedIds: number[] = [];
-			setUploadProgress({ done: 0, total: batch.length });
-			for (const [index, { file, takenOnGrindr, looping }] of batch.entries()) {
-				const isVideo = file.type.startsWith("video/");
-				if (file.size > MAX_UPLOAD_BYTES) {
-					toast.error(t("chat.attachments.too_large"));
-					setUploadProgress({ done: index + 1, total: batch.length });
-					continue;
-				}
-				try {
-					const durationSeconds = isVideo ? await getVideoDurationSeconds(file) : undefined;
-					const uploaded = await service.uploadChatMedia({
-						multipart: await buildBinaryUpload(file),
-						options: {
-							looping: isVideo ? looping : false,
-							takenOnGrindr: isVideo ? false : takenOnGrindr,
-							...(durationSeconds != null ? { durationSeconds } : {}),
-						},
-					});
-					await service.addMediaToDrawer(uploaded.mediaId);
-					uploadedIds.push(uploaded.mediaId);
-				} catch (uploadError) {
-					appLog.error("[DrawerCollectionEditorSheet] upload failed", uploadError);
-					toast.error(
-						uploadError instanceof Error ? uploadError.message : t("chat.errors.upload_media_failed"),
-					);
-				}
-				setUploadProgress({ done: index + 1, total: batch.length });
-			}
-
-			try {
-				if (uploadedIds.length > 0) await onReloadMedia();
-			} finally {
-				setSelectedIds((prev) => new Set([...prev, ...uploadedIds]));
-				setUploadProgress(null);
-			}
-		},
-		[service, onReloadMedia, t],
-	);
-
-	// Picked files go through the same add step as the chat drawer (crop,
-	// taken on Grindr, looping), one after another, then upload together.
-	const onPickFiles = useCallback(
-		(files: File[]) => {
-			const valid = files.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"));
-			if (valid.length < files.length) {
-				toast.error(t("chat_drawer.invalid_file_type"));
-			}
-			if (valid.length === 0) return;
-			preparedRef.current = [];
-			setPendingFiles(valid);
-			setPendingTotal(valid.length);
-		},
-		[t],
-	);
-
-	const { actions: addActions, inputs: addInputs } = useDrawerAddActions({
-		onFiles: onPickFiles,
-		multiple: true,
-		busy: isUploading,
-		busyLabel: uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : undefined,
-	});
-
-	// Moves to the next picked file; `prepared` is null when this one was skipped.
-	// After the last one, everything confirmed so far is uploaded.
-	const finishAddStep = useCallback(
-		(prepared: PreparedUpload | null, stop = false) => {
-			if (prepared) preparedRef.current.push(prepared);
-			const rest = stop ? [] : pendingFiles.slice(1);
-			setPendingFiles(rest);
-			if (rest.length > 0) return;
-			const batch = preparedRef.current;
-			preparedRef.current = [];
-			if (batch.length > 0) void uploadPrepared(batch);
-		},
-		[pendingFiles, uploadPrepared],
-	);
+	const appendUploaded = useCallback((ids: number[]) => {
+		setSelectedIds((prev) => new Set([...prev, ...ids]));
+	}, []);
+	const upload = useDrawerUploadQueue({ onReloadMedia, onUploaded: appendUploaded });
+	const isBusy = upload.isUploading || isSaving;
 
 	// Deleting removes the media from the drawer itself, so every collection
 	// using it loses it too (collections skip missing ids).
@@ -226,26 +137,13 @@ export function DrawerCollectionEditorSheet({
 			panelClassName="px-4"
 		>
 			<DrawerHeader
-				title={pendingFile
-					? `${pendingFile.type.startsWith("video/")
-						? t("chat_drawer.add_video", { defaultValue: "Add video" })
-						: t("chat_drawer.add_photo")}${pendingTotal > 1 ? ` (${pendingTotal - pendingFiles.length + 1}/${pendingTotal})` : ""}`
-					: collection ? t("settings_albums.collections_edit") : t("settings_albums.collections_new")}
-				// While adding files, X stops there: the rest is skipped, the ones already confirmed still upload.
-				onClose={pendingFile ? () => finishAddStep(null, true) : undefined}
+				title={upload.stepTitle ?? (collection ? t("settings_albums.collections_edit") : t("settings_albums.collections_new"))}
+				onClose={upload.step ? upload.stop : undefined}
 			/>
 
-			{addInputs}
+			{upload.inputs}
 
-			{pendingFile ? (
-				<DrawerAddMediaStep
-					key={pendingTotal - pendingFiles.length}
-					file={pendingFile}
-					isAdding={false}
-					onCancel={() => finishAddStep(null)}
-					onConfirm={(file, takenOnGrindr, looping) => finishAddStep({ file, takenOnGrindr, looping })}
-				/>
-			) : (
+			{upload.step ?? (
 			<>
 			<input
 				type="text"
@@ -270,7 +168,7 @@ export function DrawerCollectionEditorSheet({
 						hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
 					>
 						<div className="grid w-full max-w-sm grid-cols-3 gap-2">
-							{addActions.map((action) => (
+							{upload.actions.map((action) => (
 								<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
 							))}
 						</div>
@@ -279,7 +177,7 @@ export function DrawerCollectionEditorSheet({
 			>
 				<DrawerGrid isDesktop={isDesktop}>
 					{/* Add actions as the first tiles, like the chat drawer. */}
-					{addActions.map((action) => (
+					{upload.actions.map((action) => (
 						<DrawerActionTile key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
 					))}
 					{media.map((item) => {

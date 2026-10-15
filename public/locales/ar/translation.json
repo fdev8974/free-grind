@@ -675,6 +675,7 @@
         "add_drawer_desc": "الوسائط المحفوظة في درج الدردشة",
         "drawer_picker_title": "اختار الوسائط",
         "drawer_empty": "مفيش وسائط في درجك حتى دلوقتي.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "اضافة الى الألبوم",
         "toast_created": "تم إنشاء الألبوم",
         "toast_renamed": "تغيير اسم الألبوم",

@@ -660,6 +660,7 @@
         "add_drawer_desc": "Médias enregistrés dans votre dossier multimédia",
         "drawer_picker_title": "Sélectionner un média",
         "drawer_empty": "Aucun média pour le moment.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Ajouter à l'album",
         "toast_created": "Album créé",
         "toast_renamed": "Album renommé",

@@ -655,6 +655,7 @@
         "add_drawer_desc": "Media opgeslagen in je chatgalerij",
         "drawer_picker_title": "Media selecteren",
         "drawer_empty": "Nog geen media in je galerij.",
+        "drawer_empty_hint": "",
         "add_to_album_button": "Toevoegen aan album",
         "toast_created": "Album gemaakt",
         "toast_renamed": "Album hernoemd",

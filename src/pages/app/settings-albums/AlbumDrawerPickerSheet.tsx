@@ -2,6 +2,8 @@ import { Loader2, Plus } from "lucide-react";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
+	DrawerActionButton,
+	DrawerActionTile,
 	DrawerBody,
 	DrawerEmptyState,
 	DrawerFooter,
@@ -16,12 +18,13 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
+import { useDrawerUploadQueue } from "../chat/useDrawerUploadQueue";
 
 interface AlbumDrawerPickerSheetProps {
 	media: DrawerMedia[];
 	isLoading: boolean;
 	error: string | null;
-	onLoadMedia: () => void;
+	onLoadMedia: () => void | Promise<void>;
 	onClose: () => void;
 	onConfirm: (mediaIds: number[]) => void | Promise<void>;
 	isSubmitting: boolean;
@@ -71,6 +74,23 @@ export function AlbumDrawerPickerSheet({
 		});
 	}, [remainingSlots, t]);
 
+	// New uploads land in the drawer and get picked right away, as far as
+	// the album still has room.
+	const reloadMedia = useCallback(async () => { await onLoadMedia(); }, [onLoadMedia]);
+	const selectUploaded = useCallback((ids: number[]) => {
+		setSelectedIds((prev) => {
+			const next = new Set(prev);
+			for (const id of ids) {
+				if (next.size >= remainingSlots) break;
+				next.add(id);
+			}
+			return next;
+		});
+	}, [remainingSlots]);
+	// Albums only take photos (see imageMedia), so no video here.
+	const upload = useDrawerUploadQueue({ onReloadMedia: reloadMedia, onUploaded: selectUploaded, allowVideo: false });
+	const isBusy = upload.isUploading || isSubmitting;
+
 	const handleConfirm = useCallback(async () => {
 		if (selectedIds.size === 0) return;
 		await onConfirm([...selectedIds]);
@@ -78,27 +98,44 @@ export function AlbumDrawerPickerSheet({
 
 	return (
 		<BottomSheet
-			onClose={isSubmitting ? () => {} : onClose}
-			isProcessing={isSubmitting}
+			onClose={isBusy ? () => {} : onClose}
+			isProcessing={isBusy}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"
 		>
-			<DrawerHeader title={t("settings_albums.drawer_picker_title", { defaultValue: "Select media" })} />
+			<DrawerHeader
+				title={upload.stepTitle ?? t("settings_albums.drawer_picker_title", { defaultValue: "Select media" })}
+				onClose={upload.step ? upload.stop : undefined}
+			/>
 
+			{upload.inputs}
+
+			{upload.step ?? (
+			<>
 			<DrawerBody
-				isLoading={isLoading}
-				error={error}
-				onRetry={onLoadMedia}
+				isLoading={isLoading && imageMedia.length === 0}
+				error={imageMedia.length === 0 ? error : null}
+				onRetry={() => void onLoadMedia()}
 				empty={imageMedia.length === 0 ? (
 					<DrawerEmptyState
 						icon={<ImagesFilled className="h-5 w-5" />}
 						title={t("settings_albums.drawer_empty", { defaultValue: "No media in your drawer yet." })}
-						hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
-					/>
+						hint={t("settings_albums.drawer_empty_hint", { defaultValue: "Take a photo or upload one from your device. Albums only hold photos." })}
+					>
+						<div className="grid w-full max-w-xs grid-cols-2 gap-2">
+							{upload.actions.map((action) => (
+								<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
+							))}
+						</div>
+					</DrawerEmptyState>
 				) : undefined}
 			>
 				<DrawerGrid isDesktop={isDesktop}>
+					{/* Add actions as the first tiles, like the chat drawer. */}
+					{upload.actions.map((action) => (
+						<DrawerActionTile key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
+					))}
 					{imageMedia.map((item) => (
 						<DrawerMediaTile
 							key={item.id}
@@ -134,6 +171,8 @@ export function AlbumDrawerPickerSheet({
 					</button>
 				</DrawerFooter>
 			) : null}
+			</>
+			)}
 			<DrawerMediaPreview media={drawerPreview} />
 		</BottomSheet>
 	);
