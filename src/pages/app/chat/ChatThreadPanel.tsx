@@ -362,6 +362,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const effectiveColorScheme = useEffectiveColorScheme();
 	// AMOLED on mobile: the bottom bar blends into the black page so the saved
 	// phrases and the input float instead of sitting on a surface strip.
+	// Same light tick as the bottom nav tabs.
+	const composerActionHaptic = (event: React.PointerEvent) => {
+		if (event.pointerType !== "mouse") haptic(10);
+	};
 	const mobileComposerBg =
 		!props.isDesktop && amoledMode && effectiveColorScheme === "dark"
 			? "bg-[var(--bg)]"
@@ -2437,6 +2441,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						<div className={!isDesktop ? "mx-auto grid h-12 w-full max-w-4xl grid-cols-5 px-[calc(0.75rem+1px+0.375rem)]" : "flex items-center justify-between gap-2"}>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									setIsGiphyPickerOpen((prev) => !prev);
 									if (isDrawerOpen) toggleDrawer();
@@ -2449,6 +2454,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									attachmentInputRef.current?.click();
 									if (isDrawerOpen) toggleDrawer();
@@ -2463,6 +2469,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									toggleDrawer();
 									if (pendingLocationShare) handleLocationShareRequest();
@@ -2476,6 +2483,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									handleLocationShareRequest();
 									if (isDrawerOpen) toggleDrawer();
@@ -2488,6 +2496,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => setIsSavedPhrasesOpen((prev) => !prev)}
 								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
