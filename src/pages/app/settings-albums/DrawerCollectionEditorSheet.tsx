@@ -77,7 +77,7 @@ export function DrawerCollectionEditorSheet({
 	const isBusy = upload.isUploading || isSaving;
 
 	// Deleting removes the media from the drawer itself, so every collection
-	// using it loses it too (collections skip missing ids).
+	// using it loses it too (removed from them by useDrawerMediaDelete).
 	const removeDeleted = useCallback(async (mediaId: number) => {
 		setSelectedIds((prev) => {
 			if (!prev.has(mediaId)) return prev;

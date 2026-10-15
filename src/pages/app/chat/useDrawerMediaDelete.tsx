@@ -30,6 +30,11 @@ export function useDrawerMediaDelete({
 		try {
 			await service.deleteDrawerMedia(mediaId);
 			void chatDb.deleteMediaFile(getDrawerMediaKey(mediaId));
+			// Collections only reference drawer media: drop it there too, and
+			// delete any collection that's left empty.
+			await chatDb.removeMediaFromDrawerCollections(mediaId).catch((error) =>
+				appLog.warn("[useDrawerMediaDelete] failed to update collections", error),
+			);
 			await onDeleted(mediaId);
 		} catch (deleteError) {
 			appLog.error("[useDrawerMediaDelete] failed to delete drawer media", deleteError);

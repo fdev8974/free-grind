@@ -1034,6 +1034,21 @@ export interface StoredDrawerCollection {
 
 type DrawerCollectionRow = { id: string; name: string; media_ids_json: string };
 
+// Lets open lists (chat drawer, settings) follow changes made elsewhere,
+// e.g. a collection emptied by deleting its last media from another sheet.
+const drawerCollectionListeners = new Set<() => void>();
+
+export function subscribeToDrawerCollections(listener: () => void): () => void {
+	drawerCollectionListeners.add(listener);
+	return () => {
+		drawerCollectionListeners.delete(listener);
+	};
+}
+
+function notifyDrawerCollectionsChanged(): void {
+	for (const listener of drawerCollectionListeners) listener();
+}
+
 function parseMediaIds(json: string): number[] {
 	try {
 		const parsed: unknown = JSON.parse(json);
@@ -1068,6 +1083,7 @@ export async function upsertDrawerCollection(
 		);
 	});
 
+	notifyDrawerCollectionsChanged();
 	return getDrawerCollections();
 }
 
@@ -1078,6 +1094,34 @@ export async function deleteDrawerCollection(id: string): Promise<StoredDrawerCo
 		await db.execute("DELETE FROM drawer_collections WHERE id = $1", [id]);
 	});
 
+	notifyDrawerCollectionsChanged();
+	return getDrawerCollections();
+}
+
+/** For media deleted from the drawer: drops it from every collection and
+ * deletes the collections it leaves empty. */
+export async function removeMediaFromDrawerCollections(mediaId: number): Promise<StoredDrawerCollection[]> {
+	const collections = await getDrawerCollections();
+	const affected = collections.filter((collection) => collection.mediaIds.includes(mediaId));
+	if (affected.length === 0) return collections;
+
+	const db = await getDb();
+	const now = Date.now();
+	await executeWithLockRetry(db, "remove-media-from-drawer-collections", async () => {
+		for (const collection of affected) {
+			const remaining = collection.mediaIds.filter((id) => id !== mediaId);
+			if (remaining.length === 0) {
+				await db.execute("DELETE FROM drawer_collections WHERE id = $1", [collection.id]);
+			} else {
+				await db.execute(
+					"UPDATE drawer_collections SET media_ids_json = $2, updated_at = $3 WHERE id = $1",
+					[collection.id, JSON.stringify(remaining), now],
+				);
+			}
+		}
+	});
+
+	notifyDrawerCollectionsChanged();
 	return getDrawerCollections();
 }
 

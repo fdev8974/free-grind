@@ -12,6 +12,7 @@ import {
 	Send,
 	Share2,
 	Video,
+	X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useDrawerMediaDelete } from "./useDrawerMediaDelete";
@@ -31,6 +32,7 @@ import {
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
+	DrawerTileCornerButton,
 	useDrawerMediaPreview,
 } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
@@ -40,6 +42,8 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useModalClose } from "../../../hooks/useModalClose";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
+import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import { usePreferences } from "../../../contexts/PreferencesContext";
@@ -92,6 +96,8 @@ interface ChatDrawerPanelProps {
 	isSending: boolean;
 	/** Called after media was deleted from the drawer here, to drop it from the list. */
 	onMediaDeleted: (mediaId: number) => void;
+	/** Called after an album was deleted from its drawer tile, to drop it from the list. */
+	onAlbumDeleted: (albumId: number) => void;
 	isDesktop: boolean;
 	albums?: AlbumListItem[];
 	isLoadingAlbums?: boolean;
@@ -114,6 +120,7 @@ export function ChatDrawerPanel({
 	onSendMedia,
 	isSending,
 	onMediaDeleted,
+	onAlbumDeleted,
 	isDesktop,
 	albums = [],
 	isLoadingAlbums = false,
@@ -157,19 +164,27 @@ export function ChatDrawerPanel({
 		ONE_DAY: t("chat_drawer.expiry.one_day", { defaultValue: "1 day" }),
 	};
 
+	// Reloads on changes too: deleting media here can empty (and so delete) a collection.
 	useEffect(() => {
 		let cancelled = false;
-		chatDb
-			.getDrawerCollections()
-			.then((items) => {
-				if (!cancelled) setCollections(items);
-			})
-			.catch((error) => appLog.warn("[ChatDrawerPanel] failed to load collections", error))
-			.finally(() => {
-				if (!cancelled) setCollectionsLoaded(true);
-			});
+		const load = () => {
+			chatDb
+				.getDrawerCollections()
+				.then((items) => {
+					if (cancelled) return;
+					setCollections(items);
+					setSelectedCollectionId((current) => (current && items.some((c) => c.id === current) ? current : null));
+				})
+				.catch((error) => appLog.warn("[ChatDrawerPanel] failed to load collections", error))
+				.finally(() => {
+					if (!cancelled) setCollectionsLoaded(true);
+				});
+		};
+		load();
+		const unsubscribe = chatDb.subscribeToDrawerCollections(load);
 		return () => {
 			cancelled = true;
+			unsubscribe();
 		};
 	}, []);
 	// The 10-second disappearing timer default only applies to photos — videos
@@ -200,6 +215,50 @@ export function ChatDrawerPanel({
 		onMediaDeleted(mediaId);
 	}, [onMediaDeleted]);
 	const deletion = useDrawerMediaDelete({ onDeleted: removeDeleted });
+
+	// Deleting albums and collections right from their tiles, after a confirm.
+	const apiFunctions = useApiFunctions();
+	const [confirmDeleteAlbumId, setConfirmDeleteAlbumId] = useState<number | null>(null);
+	const [deletingAlbumId, setDeletingAlbumId] = useState<number | null>(null);
+	const [confirmDeleteCollectionId, setConfirmDeleteCollectionId] = useState<string | null>(null);
+	const [isDeletingCollection, setIsDeletingCollection] = useState(false);
+
+	const confirmDeleteAlbum = useCallback(async () => {
+		if (confirmDeleteAlbumId == null) return;
+		const albumId = confirmDeleteAlbumId;
+		setDeletingAlbumId(albumId);
+		try {
+			await apiFunctions.deleteOwnAlbum({ albumId: String(albumId) });
+			setSelectedAlbumIds((previous) => {
+				if (!previous.has(albumId)) return previous;
+				const next = new Set(previous);
+				next.delete(albumId);
+				return next;
+			});
+			onAlbumDeleted(albumId);
+			toast.success(t("settings_albums.toast_deleted"));
+		} catch (deleteError) {
+			toast.error(deleteError instanceof Error ? deleteError.message : t("settings_albums.error_delete_fallback"));
+		} finally {
+			setDeletingAlbumId(null);
+			setConfirmDeleteAlbumId(null);
+		}
+	}, [confirmDeleteAlbumId, apiFunctions, onAlbumDeleted, t]);
+
+	const confirmDeleteCollection = useCallback(async () => {
+		if (confirmDeleteCollectionId == null) return;
+		setIsDeletingCollection(true);
+		try {
+			// The collections subscription reloads the list (and drops a selection of it).
+			await chatDb.deleteDrawerCollection(confirmDeleteCollectionId);
+		} catch (deleteError) {
+			appLog.error("[ChatDrawerPanel] failed to delete collection", deleteError);
+			toast.error(t("settings_albums.collections_delete_failed"));
+		} finally {
+			setIsDeletingCollection(false);
+			setConfirmDeleteCollectionId(null);
+		}
+	}, [confirmDeleteCollectionId, t]);
 
 	useModalClose({
 		isOpen: true,
@@ -332,6 +391,26 @@ export function ChatDrawerPanel({
 				{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-md" style={{ border: "2px solid var(--accent)" }} />}
+				{!isSelected && !dimmed && (
+					<>
+						<DrawerTileCornerButton
+							corner="left"
+							icon={deletingAlbumId === album.albumId ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+							label={t("chat_drawer.album_delete", { defaultValue: "Delete album" })}
+							onClick={() => setConfirmDeleteAlbumId(album.albumId)}
+							disabled={deletingAlbumId != null}
+						/>
+						<DrawerTileCornerButton
+							corner="right"
+							icon={<Pencil className="h-2.5 w-2.5" />}
+							label={t("chat_drawer.album_edit", { defaultValue: "Edit album" })}
+							onClick={() => {
+								onBack();
+								navigate("/settings/albums", { state: { openAlbumId: album.albumId } });
+							}}
+						/>
+					</>
+				)}
 			</div>
 		);
 	});
@@ -396,6 +475,25 @@ export function ChatDrawerPanel({
 				<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-md" style={{ border: "2px solid var(--accent)" }} />}
+				{!isSelected && !dimmed && (
+					<>
+						<DrawerTileCornerButton
+							corner="left"
+							icon={<X className="h-3 w-3" />}
+							label={t("chat_drawer.collection_delete", { defaultValue: "Delete collection" })}
+							onClick={() => setConfirmDeleteCollectionId(collection.id)}
+						/>
+						<DrawerTileCornerButton
+							corner="right"
+							icon={<Pencil className="h-2.5 w-2.5" />}
+							label={t("chat_drawer.collection_edit", { defaultValue: "Edit collection" })}
+							onClick={() => {
+								onBack();
+								navigate("/settings/albums", { state: { openCollectionId: collection.id } });
+							}}
+						/>
+					</>
+				)}
 			</div>
 		);
 	});
@@ -578,28 +676,10 @@ export function ChatDrawerPanel({
 						{/* Footer - Album share button */}
 						{hasAlbumSelection ? (() => {
 							const isSelectedShared = selectedAlbumIds.size > 0 && [...selectedAlbumIds].every(id => sharedAlbumIds.has(id));
-							const editButton = (
-								<button
-									type="button"
-									onClick={() => {
-										// With exactly one album selected, open it straight away there.
-										const [onlyAlbumId] = selectedAlbumIds.size === 1 ? [...selectedAlbumIds] : [];
-										onBack();
-										navigate("/settings/albums", onlyAlbumId != null ? { state: { openAlbumId: onlyAlbumId } } : undefined);
-									}}
-									disabled={isSharingAlbum}
-									className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
-									aria-label={t("chat_drawer.album_manage")}
-									title={t("chat_drawer.album_manage")}
-								>
-									<Pencil className="h-4 w-4" />
-								</button>
-							);
 							return (
 								<DrawerFooter>
 									{isSelectedShared ? (
 										<>
-											{editButton}
 											<button
 												type="button"
 												onClick={() => {
@@ -627,7 +707,6 @@ export function ChatDrawerPanel({
 													))}
 												</select>
 											</div>
-											{editButton}
 											<button
 												type="button"
 												onClick={() => {
@@ -674,21 +753,6 @@ export function ChatDrawerPanel({
 										)}
 									</select>
 								</div>
-								{selectedCollection ? (
-									<button
-										type="button"
-										onClick={() => {
-											onBack();
-											navigate("/settings/albums");
-										}}
-										disabled={isSending}
-										className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
-										aria-label={t("chat_drawer.collection_manage")}
-										title={t("chat_drawer.collection_manage")}
-									>
-										<Pencil className="h-4 w-4" />
-									</button>
-								) : null}
 								<button
 									type="button"
 									onClick={handleSendSelected}
@@ -715,6 +779,28 @@ export function ChatDrawerPanel({
 
 				<DrawerMediaPreview media={drawerPreview} />
 				{deletion.dialog}
+				<ConfirmDialog
+					isOpen={confirmDeleteAlbumId != null}
+					title={t("chat_drawer.album_delete_confirm_title", { defaultValue: "Delete album?" })}
+					message={t("chat_drawer.album_delete_confirm_message", { defaultValue: "This deletes the album and everything in it. Anyone you shared it with loses access." })}
+					confirmLabel={t("chat_drawer.delete_confirm_label")}
+					cancelLabel={t("chat.actions.cancel")}
+					onConfirm={() => void confirmDeleteAlbum()}
+					onCancel={() => { if (deletingAlbumId == null) setConfirmDeleteAlbumId(null); }}
+					isProcessing={deletingAlbumId != null}
+					confirmTone="danger"
+				/>
+				<ConfirmDialog
+					isOpen={confirmDeleteCollectionId != null}
+					title={t("settings_albums.collections_delete_confirm_title")}
+					message={t("settings_albums.collections_delete_confirm_message")}
+					confirmLabel={t("chat_drawer.delete_confirm_label")}
+					cancelLabel={t("chat.actions.cancel")}
+					onConfirm={() => void confirmDeleteCollection()}
+					onCancel={() => { if (!isDeletingCollection) setConfirmDeleteCollectionId(null); }}
+					isProcessing={isDeletingCollection}
+					confirmTone="danger"
+				/>
 		</BottomSheet>
 	);
 }

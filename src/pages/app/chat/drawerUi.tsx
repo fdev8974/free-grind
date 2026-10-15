@@ -412,18 +412,44 @@ export function DrawerMediaTile({
 			) : null}
 
 			{onDelete ? (
-				<button
-					type="button"
-					onClick={(event) => { event.stopPropagation(); onDelete(event); }}
+				<DrawerTileCornerButton
+					corner="left"
+					icon={isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+					label={deleteLabel ?? ""}
+					onClick={onDelete}
 					disabled={isDeleting}
-					className="absolute left-0.5 top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60"
-					aria-label={deleteLabel}
-					title={deleteLabel}
-				>
-					{isDeleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-				</button>
+				/>
 			) : null}
 		</div>
+	);
+}
+
+/** Small round button in a tile's top corner: delete (left) or edit (right). */
+export function DrawerTileCornerButton({
+	corner,
+	icon,
+	label,
+	onClick,
+	disabled,
+}: {
+	corner: "left" | "right";
+	icon: ReactNode;
+	label: string;
+	onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+	disabled?: boolean;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={(event) => { event.stopPropagation(); onClick(event); }}
+			onKeyDown={(event) => event.stopPropagation()}
+			disabled={disabled}
+			className={`absolute top-0.5 z-[1] inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60 ${corner === "left" ? "left-0.5" : "right-0.5"}`}
+			aria-label={label}
+			title={label}
+		>
+			{icon}
+		</button>
 	);
 }
 

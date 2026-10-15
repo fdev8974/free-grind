@@ -253,6 +253,7 @@ type ChatThreadPanelProps = {
 	onLoadDrawerMedia: () => void | Promise<void>;
 	onSendDrawerMedia: (mediaIds: number[], maxViews?: number) => Promise<void>;
 	onDrawerMediaDeleted: (mediaId: number) => void;
+	onDrawerAlbumDeleted: (albumId: number) => void;
 	onShareAlbumFromDrawer: (albumId: number, expirationType: string) => Promise<void>;
 	onStopAlbumShareFromDrawer: (albumId: number) => Promise<void>;
 	onSendLocation: (lat: number, lon: number) => void | Promise<void>;
@@ -713,6 +714,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		onLoadDrawerMedia,
 		onSendDrawerMedia,
 		onDrawerMediaDeleted,
+		onDrawerAlbumDeleted,
 		onShareAlbumFromDrawer,
 		onStopAlbumShareFromDrawer,
 		onSendLocation,
@@ -2705,6 +2707,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							onLoadMedia={onLoadDrawerMedia}
 							onSendMedia={onSendDrawerMedia}
 							onMediaDeleted={onDrawerMediaDeleted}
+							onAlbumDeleted={onDrawerAlbumDeleted}
 							onShareAlbum={onShareAlbumFromDrawer}
 							onStopAlbumShare={onStopAlbumShareFromDrawer}
 							albums={shareableAlbums}

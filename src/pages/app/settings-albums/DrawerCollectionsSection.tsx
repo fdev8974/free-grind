@@ -1,5 +1,6 @@
 import { FolderPlus, Images, Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -37,18 +38,40 @@ export function DrawerCollectionsSection({
 	const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
 
+	// Reloads on changes from elsewhere too, e.g. a collection emptied by
+	// deleting its last media in a drawer sheet.
 	useEffect(() => {
 		let cancelled = false;
-		chatDb
-			.getDrawerCollections()
-			.then((items) => {
-				if (!cancelled) setCollections(items);
-			})
-			.catch((error) => appLog.warn("[DrawerCollectionsSection] failed to load collections", error));
+		const load = () => {
+			chatDb
+				.getDrawerCollections()
+				.then((items) => {
+					if (!cancelled) setCollections(items);
+				})
+				.catch((error) => appLog.warn("[DrawerCollectionsSection] failed to load collections", error));
+		};
+		load();
+		const unsubscribe = chatDb.subscribeToDrawerCollections(load);
 		return () => {
 			cancelled = true;
+			unsubscribe();
 		};
 	}, []);
+
+	// A collection handed over via navigation state (the chat drawer's edit
+	// button on a collection tile) opens its editor once the list is there.
+	const location = useLocation();
+	const openedFromNavigationRef = useRef(false);
+	useEffect(() => {
+		if (openedFromNavigationRef.current) return;
+		const requestedId = (location.state as { openCollectionId?: unknown } | null)?.openCollectionId;
+		if (typeof requestedId !== "string") return;
+		const requested = collections.find((collection) => collection.id === requestedId);
+		if (!requested) return;
+		openedFromNavigationRef.current = true;
+		void loadDrawerMedia();
+		setEditing(requested);
+	}, [collections, location.state, loadDrawerMedia]);
 
 	// Covers and counts need the drawer; loadDrawerMedia is a no-op once loaded.
 	useEffect(() => {

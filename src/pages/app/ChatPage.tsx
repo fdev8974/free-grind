@@ -6209,6 +6209,9 @@ export function ChatPage() {
 	const removeDrawerMediaFromList = useCallback((mediaId: number) => {
 		setDrawerMedia((previous) => previous.filter((item) => item.id !== mediaId));
 	}, []);
+	const removeAlbumFromList = useCallback((albumId: number) => {
+		setShareableAlbums((previous) => previous.filter((album) => album.albumId !== albumId));
+	}, []);
 
 	const openAttachmentDialogForFile = (file: File) => {
 		if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
@@ -6583,6 +6586,7 @@ export function ChatPage() {
 			onLoadDrawerMedia={loadDrawerMedia}
 			onSendDrawerMedia={sendDrawerMedia}
 			onDrawerMediaDeleted={removeDrawerMediaFromList}
+			onDrawerAlbumDeleted={removeAlbumFromList}
 			onShareAlbumFromDrawer={handleShareAlbumFromDrawer}
 			onStopAlbumShareFromDrawer={handleStopAlbumShare}
 			onSendLocation={sendLocationMessage}
