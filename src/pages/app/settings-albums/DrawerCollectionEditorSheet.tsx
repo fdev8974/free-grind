@@ -151,7 +151,7 @@ export function DrawerCollectionEditorSheet({
 		onFiles: onPickFiles,
 		multiple: true,
 		busy: isUploading,
-		uploadLabel: uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : undefined,
+		busyLabel: uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : undefined,
 	});
 
 	// Moves to the next picked file; `prepared` is null when this one was skipped.

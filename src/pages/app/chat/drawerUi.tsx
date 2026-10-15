@@ -438,20 +438,22 @@ export function useDrawerAddActions({
 	onFiles,
 	multiple = false,
 	busy = false,
-	uploadLabel,
+	busyLabel,
 }: {
 	onFiles: (files: File[]) => void;
 	/** Allow picking several files at once from the device. */
 	multiple?: boolean;
-	/** Shows a spinner on the first action while an upload runs. */
+	/** Shows a spinner on the action that was used, while its upload runs. */
 	busy?: boolean;
-	/** Replaces the upload action's label, e.g. with upload progress. */
-	uploadLabel?: string;
+	/** Replaces that action's label while busy, e.g. with upload progress. */
+	busyLabel?: string;
 }) {
 	const { t } = useTranslation();
 	const uploadInputRef = useRef<HTMLInputElement | null>(null);
 	const cameraInputRef = useRef<HTMLInputElement | null>(null);
 	const cameraVideoInputRef = useRef<HTMLInputElement | null>(null);
+	// Which action the current upload came from, so its status shows there.
+	const [usedKey, setUsedKey] = useState<string | null>(null);
 
 	const onChange = (event: ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(event.target.files ?? []);
@@ -460,25 +462,21 @@ export function useDrawerAddActions({
 	};
 
 	const actions: DrawerAddAction[] = [
-		{
-			key: "photo",
-			label: t("chat_drawer.take_photo"),
-			icon: busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraFilled className="h-4 w-4" />,
-			onClick: () => cameraInputRef.current?.click(),
-		},
-		{
-			key: "video",
-			label: t("chat_drawer.record_video", { defaultValue: "Record video" }),
-			icon: <Video className="h-4 w-4 fill-current" />,
-			onClick: () => cameraVideoInputRef.current?.click(),
-		},
-		{
-			key: "upload",
-			label: uploadLabel ?? t("chat_drawer.upload_photo"),
-			icon: <CameraPlusFilled className="h-4 w-4" />,
-			onClick: () => uploadInputRef.current?.click(),
-		},
-	];
+		{ key: "photo", label: t("chat_drawer.take_photo"), icon: <CameraFilled className="h-4 w-4" />, input: cameraInputRef },
+		{ key: "video", label: t("chat_drawer.record_video", { defaultValue: "Record video" }), icon: <Video className="h-4 w-4 fill-current" />, input: cameraVideoInputRef },
+		{ key: "upload", label: t("chat_drawer.upload_photo"), icon: <CameraPlusFilled className="h-4 w-4" />, input: uploadInputRef },
+	].map(({ key, label, icon, input }) => {
+		const isBusyHere = busy && key === (usedKey ?? "upload");
+		return {
+			key,
+			label: isBusyHere && busyLabel ? busyLabel : label,
+			icon: isBusyHere ? <Loader2 className="h-4 w-4 animate-spin" /> : icon,
+			onClick: () => {
+				setUsedKey(key);
+				input.current?.click();
+			},
+		};
+	});
 
 	const inputs = (
 		<>
