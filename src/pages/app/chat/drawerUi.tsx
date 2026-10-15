@@ -37,6 +37,63 @@ export function DrawerActionButton({ icon, label, onClick, disabled, layout = "c
 	);
 }
 
+/** Capture/upload action as a tile at the start of a media grid, same size as the media tiles. */
+export function DrawerActionTile({ icon, label, onClick, disabled }: Omit<DrawerActionButtonProps, "layout">) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={disabled}
+			className={`${DRAWER_TILE_CLASS} flex flex-col items-center justify-center gap-2 border border-[var(--border)] bg-[var(--surface-2)] px-1.5 text-[var(--accent-readable)] transition active:scale-95 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] disabled:pointer-events-none disabled:opacity-40`}
+		>
+			{/* Icon sized here rather than by the caller, so the tile doesn't depend on the icon's own classes. */}
+			<span className="flex shrink-0 items-center justify-center [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
+			<span className="line-clamp-2 max-w-full text-center text-[10.5px] font-medium leading-snug text-[var(--text-muted)]">{label}</span>
+		</button>
+	);
+}
+
+/** Empty state for a drawer tab: a small fanned stack of tiles with the tab's
+ * icon, a title, a hint, and the tab's call to action below. */
+export function DrawerEmptyState({
+	icon,
+	title,
+	hint,
+	children,
+}: {
+	icon: ReactNode;
+	title: string;
+	hint: string;
+	children?: ReactNode;
+}) {
+	const tileClass = "absolute inset-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-sm";
+	return (
+		<div className="flex flex-col items-center gap-5 px-2 py-8 text-center">
+			<div className="relative h-24 w-32">
+				<div
+					aria-hidden="true"
+					className="absolute -inset-6 rounded-full blur-2xl"
+					style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%)" }}
+				/>
+				<div className="absolute inset-y-2 left-1/2 aspect-square -translate-x-1/2">
+					<div className={`${tileClass} -translate-x-7 -rotate-12 opacity-60`} />
+					<div className={`${tileClass} translate-x-7 rotate-12 opacity-60`} />
+					<div className={`${tileClass} flex items-center justify-center`}>
+						<span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md shadow-[var(--accent)]/30">
+							{icon}
+						</span>
+					</div>
+				</div>
+			</div>
+			<div className="space-y-1">
+				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
+				<p className="mx-auto max-w-[17rem] text-xs leading-relaxed text-[var(--text-muted)]">{hint}</p>
+			</div>
+			{children}
+		</div>
+	);
+}
+
 export type DrawerPreviewMedia = { src: string; isVideo: boolean };
 
 const LONG_PRESS_MS = 400;

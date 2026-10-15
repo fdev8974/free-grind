@@ -1631,7 +1631,17 @@
         "collection_badge": "مجموعة",
         "collection_empty_send": "لم تعد أي من وسائط المجموعة دي موجودة في درجك.",
         "collection_manage": "إدارة المجموعات",
-        "album_manage": "إدارة الألبومات"
+        "album_manage": "إدارة الألبومات",
+        "tab_media": "",
+        "tab_albums": "",
+        "tab_collections": "",
+        "albums_empty": "",
+        "albums_create": "",
+        "empty_hint": "",
+        "albums_empty_hint": "",
+        "collections_empty": "",
+        "collections_empty_hint": "",
+        "collections_create": ""
     },
     "favorites": {
         "added": "اضافات الي المفضلة",

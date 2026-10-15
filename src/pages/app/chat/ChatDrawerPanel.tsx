@@ -20,8 +20,8 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { CameraFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
-import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
-import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "./drawerUi";
+import { SlidingTabs } from "../../../components/ui/sliding-tabs";
+import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerActionTile, DrawerEmptyState, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
@@ -74,6 +74,8 @@ export interface DrawerMedia {
 	sendCount: number;
 }
 
+type DrawerTab = "media" | "albums" | "collections";
+
 interface ChatDrawerPanelProps {
 	isLoading: boolean;
 	error: string | null;
@@ -113,7 +115,7 @@ export function ChatDrawerPanel({
 	onDeleteMedia,
 	isDesktop,
 	albums = [],
-	isLoadingAlbums: _isLoadingAlbums = false,
+	isLoadingAlbums = false,
 	albumCoverMap = new Map(),
 	albumMediaCountMap = new Map(),
 	sharedAlbumIds = new Set(),
@@ -131,7 +133,6 @@ export function ChatDrawerPanel({
 	useLocalMediaCache();
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
-	const albumRowFade = useScrollRowFade();
 	const [pendingAddFile, setPendingAddFile] = useState<File | null>(null);
 	const [pendingTakenOnGrindr, setPendingTakenOnGrindr] = useState(false);
 	const [pendingLooping, setPendingLooping] = useState(false);
@@ -148,6 +149,8 @@ export function ChatDrawerPanel({
 	// path, which already sends each item as its own message, one after another.
 	const [collections, setCollections] = useState<StoredDrawerCollection[]>([]);
 	const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+	const [collectionsLoaded, setCollectionsLoaded] = useState(false);
+	const [activeTab, setActiveTab] = useState<DrawerTab>("media");
 	const EXPIRY_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"];
 	const [albumExpirationType, setAlbumExpirationType] = useState<string>(defaultAlbumExpirationType);
 	const EXPIRY_LABELS: Record<string, string> = {
@@ -169,7 +172,10 @@ export function ChatDrawerPanel({
 			.then((items) => {
 				if (!cancelled) setCollections(items);
 			})
-			.catch((error) => appLog.warn("[ChatDrawerPanel] failed to load collections", error));
+			.catch((error) => appLog.warn("[ChatDrawerPanel] failed to load collections", error))
+			.finally(() => {
+				if (!cancelled) setCollectionsLoaded(true);
+			});
 		return () => {
 			cancelled = true;
 		};
@@ -408,6 +414,44 @@ export function ChatDrawerPanel({
 		setConfirmDeleteMediaId(null);
 	}, [deletingMediaId]);
 
+	// Empty album/collection tabs: both are created on the albums settings page.
+	const renderCreateButton = (label: string) => (
+		<button
+			type="button"
+			onClick={() => {
+				onBack();
+				navigate("/settings/albums");
+			}}
+			className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+		>
+			<Plus className="h-4 w-4" />
+			{label}
+		</button>
+	);
+
+	// Capture / upload actions, shown as the first tiles of the media grid.
+	const actionsDisabled = isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
+	const drawerActions = [
+		{
+			key: "photo",
+			label: t("chat_drawer.take_photo"),
+			icon: isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraFilled className="h-4 w-4" />,
+			onClick: () => cameraInputRef.current?.click(),
+		},
+		{
+			key: "video",
+			label: t("chat_drawer.record_video", { defaultValue: "Record video" }),
+			icon: <Video className="h-4 w-4 fill-current" />,
+			onClick: () => cameraVideoInputRef.current?.click(),
+		},
+		{
+			key: "upload",
+			label: t("chat_drawer.upload_photo"),
+			icon: <ImagesFilled className="h-4 w-4" />,
+			onClick: () => uploadInputRef.current?.click(),
+		},
+	];
+
 	return (
 		<BottomSheet
 			onClose={isSending || isAdding ? () => {} : onBack}
@@ -588,42 +632,14 @@ export function ChatDrawerPanel({
 					</>
 				) : (
 					<>
-						{/* Capture / upload actions, kept out of the media grid. */}
+						{/* Media / albums / collections switcher. Empty album/collection tabs link to the albums page to create one. */}
 						{(() => {
-							const actionsDisabled = isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
-							const actions = [
-								{
-									key: "photo",
-									label: t("chat_drawer.take_photo"),
-									icon: isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : <CameraFilled className="h-5 w-5" />,
-									onClick: () => cameraInputRef.current?.click(),
-								},
-								{
-									key: "video",
-									label: t("chat_drawer.record_video", { defaultValue: "Record video" }),
-									icon: <Video className="h-5 w-5 fill-current" />,
-									onClick: () => cameraVideoInputRef.current?.click(),
-								},
-								{
-									key: "upload",
-									label: t("chat_drawer.upload_photo"),
-									icon: <ImagesFilled className="h-5 w-5" />,
-									onClick: () => uploadInputRef.current?.click(),
-								},
+							const tabs = [
+								{ value: "media" as const, label: t("chat_drawer.tab_media", { defaultValue: "Media" }) },
+								{ value: "albums" as const, label: t("chat_drawer.tab_albums", { defaultValue: "Albums" }) },
+								{ value: "collections" as const, label: t("chat_drawer.tab_collections", { defaultValue: "Collections" }) },
 							];
-							return (
-								<div className="mb-2 grid shrink-0 grid-cols-3 gap-2">
-									{actions.map((action) => (
-										<DrawerActionButton
-											key={action.key}
-											icon={action.icon}
-											label={action.label}
-											onClick={action.onClick}
-											disabled={actionsDisabled}
-										/>
-									))}
-								</div>
-							);
+							return <SlidingTabs<DrawerTab> tabs={tabs} value={activeTab} onChange={setActiveTab} className="mb-2 shrink-0" />;
 						})()}
 
 						{/* Content Grid */}
@@ -650,17 +666,40 @@ export function ChatDrawerPanel({
 								</div>
 							) : (
 								<div className="flex flex-col gap-3">
-								{/* Albums & collections: their own horizontal row above the photos. */}
-								{(albums.length > 0 || collections.length > 0) && (
-									<div
-										ref={albumRowFade.ref}
-										onScroll={albumRowFade.onScroll}
-										className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-									>
-									{/* Single inner row, as useScrollRowFade expects. */}
-									<div className="flex w-max gap-2">
+								{activeTab === "albums" && albums.length === 0 && (
+									isLoadingAlbums ? (
+										<div className="flex justify-center py-8">
+											<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
+										</div>
+									) : (
+										<DrawerEmptyState
+											icon={<Album className="h-5 w-5" />}
+											title={t("chat_drawer.albums_empty", { defaultValue: "You don't have any albums yet." })}
+											hint={t("chat_drawer.albums_empty_hint", { defaultValue: "Albums let you share several photos at once, and stop sharing any time." })}
+										>
+											{renderCreateButton(t("chat_drawer.albums_create", { defaultValue: "Create album" }))}
+										</DrawerEmptyState>
+									)
+								)}
+								{activeTab === "collections" && collections.length === 0 && (
+									collectionsLoaded ? (
+										<DrawerEmptyState
+											icon={<Layers className="h-5 w-5" />}
+											title={t("chat_drawer.collections_empty", { defaultValue: "You don't have any collections yet." })}
+											hint={t("chat_drawer.collections_empty_hint", { defaultValue: "Collections group drawer photos so you can send them together in one tap." })}
+										>
+											{renderCreateButton(t("chat_drawer.collections_create", { defaultValue: "Create collection" }))}
+										</DrawerEmptyState>
+									) : (
+										<div className="flex justify-center py-8">
+											<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
+										</div>
+									)
+								)}
+								{((activeTab === "albums" && albums.length > 0) || (activeTab === "collections" && collections.length > 0)) && (
+									<div className={`grid gap-2 ${isDesktop ? "grid-cols-4" : "grid-cols-3"}`}>
 									{/* Albums */}
-									{albums.map((album) => {
+									{activeTab === "albums" && albums.map((album) => {
 										const cover = albumCoverMap.get(album.albumId);
 										const isShared = sharedAlbumIds.has(album.albumId);
 										const mediaCount = albumMediaCountMap.get(album.albumId);
@@ -673,7 +712,7 @@ export function ChatDrawerPanel({
 												tabIndex={0}
 												onClick={() => { if (hasSelection) return; setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); }}
 												onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
-												className={`relative aspect-square shrink-0 overflow-hidden rounded-xl cursor-pointer transition ${isDesktop ? "w-32" : "w-28"} ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+												className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 											>
 												{cover ? <img src={cover} alt="" className="h-full w-full object-cover scale-110" style={{ filter: "blur(3px)" }} /> : (
 													<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Album className="h-6 w-6 opacity-50" /></div>
@@ -692,7 +731,7 @@ export function ChatDrawerPanel({
 										);
 									})}
 									{/* Collections */}
-									{collections.map((collection) => {
+									{activeTab === "collections" && collections.map((collection) => {
 										const presentIds = getPresentCollectionMediaIds(collection);
 										const presentVideoCount = presentIds.filter((id) => isVideoMediaId(id)).length;
 										// Up to four items as a mosaic cover, so a collection reads as
@@ -714,7 +753,7 @@ export function ChatDrawerPanel({
 												title={t("chat_drawer.collection_badge")}
 												onClick={() => { if (!dimmed) toggleCollectionSelection(collection); }}
 												onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
-												className={`relative aspect-square shrink-0 overflow-hidden rounded-xl cursor-pointer transition ${isDesktop ? "w-32" : "w-28"} ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+												className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 											>
 												{coverItems.length > 0 ? (
 													<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
@@ -756,17 +795,18 @@ export function ChatDrawerPanel({
 										);
 									})}
 									</div>
-									</div>
 								)}
-								{/* Only when there's nothing at all — albums and collections count too. */}
-								{media.length === 0 && albums.length === 0 && collections.length === 0 && (
-									<div className="flex flex-col items-center justify-center gap-2 py-8 text-[var(--text-muted)]">
-										<ImageIcon className="h-8 w-8 opacity-30" />
-										<p className="text-xs">{t("chat_drawer.empty", { defaultValue: "No photos yet" })}</p>
-									</div>
-								)}
-								{media.length > 0 && (
+								{activeTab === "media" && media.length > 0 && (
 								<div className={drawerGridClass(isDesktop)}>
+									{drawerActions.map((action) => (
+										<DrawerActionTile
+											key={action.key}
+											icon={action.icon}
+											label={action.label}
+											onClick={action.onClick}
+											disabled={actionsDisabled}
+										/>
+									))}
 									{media.map((item) => {
 										const isSelected = selectedIds.has(item.id);
 										const isImage = item.contentType.startsWith("image/");
@@ -859,6 +899,26 @@ export function ChatDrawerPanel({
 										);
 									})}
 								</div>
+								)}
+								{/* Empty drawer: the add actions on their own, as the way in. */}
+								{activeTab === "media" && media.length === 0 && (
+									<DrawerEmptyState
+										icon={<ImagesFilled className="h-5 w-5" />}
+										title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
+										hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
+									>
+										<div className="grid w-full max-w-sm grid-cols-3 gap-2">
+											{drawerActions.map((action) => (
+												<DrawerActionButton
+													key={action.key}
+													icon={action.icon}
+													label={action.label}
+													onClick={action.onClick}
+													disabled={actionsDisabled}
+												/>
+											))}
+										</div>
+									</DrawerEmptyState>
 								)}
 								</div>
 							)}

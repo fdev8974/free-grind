@@ -1613,7 +1613,17 @@
         "collection_badge": "Kolekcija",
         "collection_empty_send": "Nijedan medij iz ove kolekcije više nije u tvojoj galeriji.",
         "collection_manage": "Upravljaj kolekcijama",
-        "album_manage": "Upravljaj albumima"
+        "album_manage": "Upravljaj albumima",
+        "tab_media": "",
+        "tab_albums": "",
+        "tab_collections": "",
+        "albums_empty": "",
+        "albums_create": "",
+        "empty_hint": "",
+        "albums_empty_hint": "",
+        "collections_empty": "",
+        "collections_empty_hint": "",
+        "collections_create": ""
     },
     "favorites": {
         "added": "Dodano u favorite",

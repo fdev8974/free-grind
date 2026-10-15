@@ -1613,7 +1613,17 @@
         "collection_badge": "Coleção",
         "collection_empty_send": "Nenhuma mídia desta coleção está mais na sua pasta.",
         "collection_manage": "Gerenciar coleções",
-        "album_manage": "Gerenciar álbuns"
+        "album_manage": "Gerenciar álbuns",
+        "tab_media": "",
+        "tab_albums": "",
+        "tab_collections": "",
+        "albums_empty": "",
+        "albums_create": "",
+        "empty_hint": "",
+        "albums_empty_hint": "",
+        "collections_empty": "",
+        "collections_empty_hint": "",
+        "collections_create": ""
     },
     "favorites": {
         "added": "Adicionado aos favoritos",

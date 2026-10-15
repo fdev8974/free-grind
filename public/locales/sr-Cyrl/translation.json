@@ -1615,7 +1615,17 @@
         "collection_badge": "Колекција",
         "collection_empty_send": "Ниједан медиј из ове колекције више није у вашој фиоци.",
         "collection_manage": "Управљај колекцијама",
-        "album_manage": "Управљај албумима"
+        "album_manage": "Управљај албумима",
+        "tab_media": "",
+        "tab_albums": "",
+        "tab_collections": "",
+        "albums_empty": "",
+        "albums_create": "",
+        "empty_hint": "",
+        "albums_empty_hint": "",
+        "collections_empty": "",
+        "collections_empty_hint": "",
+        "collections_create": ""
     },
     "favorites": {
         "added": "Додато у омиљене",

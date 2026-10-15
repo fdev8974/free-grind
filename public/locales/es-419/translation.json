@@ -1613,7 +1613,17 @@
         "collection_badge": "Colección",
         "collection_empty_send": "Ya no queda en tu galería ningún contenido de esta colección.",
         "collection_manage": "Administrar colecciones",
-        "album_manage": "Administrar álbumes"
+        "album_manage": "Administrar álbumes",
+        "tab_media": "",
+        "tab_albums": "",
+        "tab_collections": "",
+        "albums_empty": "",
+        "albums_create": "",
+        "empty_hint": "",
+        "albums_empty_hint": "",
+        "collections_empty": "",
+        "collections_empty_hint": "",
+        "collections_create": ""
     },
     "favorites": {
         "added": "Añadido a favoritos",

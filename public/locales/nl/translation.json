@@ -1599,7 +1599,17 @@
         "collection_badge": "Collectie",
         "collection_empty_send": "Geen van de media uit deze collectie staat nog in je galerij.",
         "collection_manage": "Collecties beheren",
-        "album_manage": "Albums beheren"
+        "album_manage": "Albums beheren",
+        "tab_media": "",
+        "tab_albums": "",
+        "tab_collections": "",
+        "albums_empty": "",
+        "albums_create": "",
+        "empty_hint": "",
+        "albums_empty_hint": "",
+        "collections_empty": "",
+        "collections_empty_hint": "",
+        "collections_create": ""
     },
     "favorites": {
         "added": "Toegevoegd aan favorieten",

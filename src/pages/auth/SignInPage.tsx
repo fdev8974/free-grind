@@ -15,6 +15,7 @@ import { SmsVerificationPanel } from "./SmsVerificationPanel";
 import { isAndroid, isIos } from "../../services/saveMedia";
 import { isTauriRuntime } from "../../services/tauriWebSocket";
 import { cn } from "../../utils/cn";
+import { SlidingTabs } from "../../components/ui/sliding-tabs";
 
 const GOOGLE_OAUTH_APP_RELEASES = "https://github.com/fdev8974/free-grind-oauth-app/releases";
 
@@ -75,32 +76,6 @@ function isFacebookSignInSupported(): boolean {
 // goes through the companion app instead.
 function isGoogleWindowSupported(): boolean {
 	return isTauriRuntime() && !isIos() && !isAndroid();
-}
-
-function AuthMethodTab({
-	active,
-	icon,
-	label,
-	onClick,
-}: {
-	active: boolean;
-	icon: ReactNode;
-	label: string;
-	onClick: () => void;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={cn(
-				"relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-medium transition-colors duration-300 active:scale-[0.97]",
-				active ? "text-[var(--accent-contrast)]" : "text-[var(--text-muted)] hover:text-[var(--text)]",
-			)}
-		>
-			{icon}
-			{label}
-		</button>
-	);
 }
 
 function Step({
@@ -445,38 +420,17 @@ export function SignInPage() {
 			subtitle={addProfileMode ? t("auth.sign_in.add_profile_subtitle", { defaultValue: "Sign in with the account you want to add." }) : t("auth.sign_in.subtitle", { defaultValue: "Use your Grindr email and password, or sign in with Google." })}
 			footer={addProfileMode ? undefined : <BugReportButton />}
 			toolbar={
-				<div className="relative flex gap-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] p-1 shadow-sm">
-					{/* Sliding active indicator: one tab's share of the track minus the p-1 padding and gap-1 between the tabs. */}
-					<span
-						aria-hidden="true"
-						className={cn(
-							"absolute inset-y-1 left-1 rounded-[10px] bg-[var(--accent)] shadow-md shadow-[var(--accent)]/25 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-							hasFacebookSignIn ? "w-[calc((100%-16px)/3)]" : "w-[calc(50%-6px)]",
-							method === "google" && "translate-x-[calc(100%+4px)]",
-							method === "facebook" && "translate-x-[calc(200%+8px)]",
-						)}
-					/>
-					<AuthMethodTab
-						active={method === "password"}
-						icon={<Mail className="h-3.5 w-3.5" />}
-						label={t("auth.sign_in.method_password")}
-						onClick={() => setMethod("password")}
-					/>
-					<AuthMethodTab
-						active={method === "google"}
-						icon={<GoogleIcon className="h-3.5 w-3.5" />}
-						label={t("auth.sign_in.method_google", { defaultValue: "Google" })}
-						onClick={() => setMethod("google")}
-					/>
-					{hasFacebookSignIn ? (
-						<AuthMethodTab
-							active={method === "facebook"}
-							icon={<FacebookIcon className="h-3.5 w-3.5" />}
-							label={t("auth.sign_in.method_facebook", { defaultValue: "Facebook" })}
-							onClick={() => setMethod("facebook")}
-						/>
-					) : null}
-				</div>
+				<SlidingTabs<SignInMethod>
+					value={method}
+					onChange={setMethod}
+					tabs={[
+						{ value: "password", icon: <Mail className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_password") },
+						{ value: "google", icon: <GoogleIcon className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_google", { defaultValue: "Google" }) },
+						...(hasFacebookSignIn
+							? [{ value: "facebook" as const, icon: <FacebookIcon className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_facebook", { defaultValue: "Facebook" }) }]
+							: []),
+					]}
+				/>
 			}
 		>
 			{method === "password" ? (
