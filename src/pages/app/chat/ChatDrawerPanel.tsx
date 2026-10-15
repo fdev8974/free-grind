@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DrawerAddMediaStep } from "./DrawerAddMediaStep";
-import { CameraFilled, CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
+import { ImagesFilled } from "../../../components/icons/FilledIcons";
 import { SlidingTabs } from "../../../components/ui/sliding-tabs";
 import {
 	DRAWER_ICON_BUTTON_CLASS,
@@ -30,6 +30,7 @@ import {
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
+	useDrawerAddActions,
 	useDrawerMediaPreview,
 } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
@@ -166,9 +167,6 @@ export function ChatDrawerPanel({
 		ONE_DAY: t("chat_drawer.expiry.one_day", { defaultValue: "1 day" }),
 	};
 	const prevMediaIdsRef = useRef<Set<number>>(new Set());
-	const uploadInputRef = useRef<HTMLInputElement | null>(null);
-	const cameraInputRef = useRef<HTMLInputElement | null>(null);
-	const cameraVideoInputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -277,10 +275,9 @@ export function ChatDrawerPanel({
 		[selectedCollectionId, getPresentCollectionMediaIds, isVideoMediaId, defaultImageMaxViews],
 	);
 
-	const onPickDrawerPhoto = useCallback(
-		(event: React.ChangeEvent<HTMLInputElement>) => {
-			const file = event.target.files?.[0] ?? null;
-			event.target.value = "";
+	const onPickDrawerFiles = useCallback(
+		(files: File[]) => {
+			const file = files[0];
 			if (!file) return;
 			if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
 				toast.error(t("chat_drawer.invalid_file_type"));
@@ -452,26 +449,10 @@ export function ChatDrawerPanel({
 
 	// Capture / upload actions, shown as the first tiles of the media grid.
 	const actionsDisabled = isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
-	const drawerActions = [
-		{
-			key: "photo",
-			label: t("chat_drawer.take_photo"),
-			icon: isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraFilled className="h-4 w-4" />,
-			onClick: () => cameraInputRef.current?.click(),
-		},
-		{
-			key: "video",
-			label: t("chat_drawer.record_video", { defaultValue: "Record video" }),
-			icon: <Video className="h-4 w-4 fill-current" />,
-			onClick: () => cameraVideoInputRef.current?.click(),
-		},
-		{
-			key: "upload",
-			label: t("chat_drawer.upload_photo"),
-			icon: <CameraPlusFilled className="h-4 w-4" />,
-			onClick: () => uploadInputRef.current?.click(),
-		},
-	];
+	const { actions: drawerActions, inputs: drawerAddInputs } = useDrawerAddActions({
+		onFiles: onPickDrawerFiles,
+		busy: isAdding,
+	});
 
 	return (
 		<BottomSheet
@@ -508,9 +489,7 @@ export function ChatDrawerPanel({
 				})()}
 			/>
 
-				<input type="file" ref={uploadInputRef} onChange={onPickDrawerPhoto} accept="image/*,video/*" className="hidden" />
-				<input type="file" ref={cameraInputRef} onChange={onPickDrawerPhoto} accept="image/*" capture="environment" className="hidden" />
-				<input type="file" ref={cameraVideoInputRef} onChange={onPickDrawerPhoto} accept="video/*" capture="environment" className="hidden" />
+				{drawerAddInputs}
 
 				{pendingAddFile ? (
 					<DrawerAddMediaStep

@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, X } from "lucide-react";
+import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
+import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { SheetClose } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 
@@ -425,3 +426,67 @@ export function DrawerFooter({ children }: { children: ReactNode }) {
 
 export const DRAWER_PRIMARY_BUTTON_CLASS =
 	"inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60";
+
+export type DrawerAddAction = { key: string; label: string; icon: ReactNode; onClick: () => void };
+
+/**
+ * The drawer's add actions (take photo, record video, upload from device):
+ * render `inputs` once in the sheet and `actions` as DrawerActionTile /
+ * DrawerActionButton. `onFiles` gets whatever was picked.
+ */
+export function useDrawerAddActions({
+	onFiles,
+	multiple = false,
+	busy = false,
+	uploadLabel,
+}: {
+	onFiles: (files: File[]) => void;
+	/** Allow picking several files at once from the device. */
+	multiple?: boolean;
+	/** Shows a spinner on the first action while an upload runs. */
+	busy?: boolean;
+	/** Replaces the upload action's label, e.g. with upload progress. */
+	uploadLabel?: string;
+}) {
+	const { t } = useTranslation();
+	const uploadInputRef = useRef<HTMLInputElement | null>(null);
+	const cameraInputRef = useRef<HTMLInputElement | null>(null);
+	const cameraVideoInputRef = useRef<HTMLInputElement | null>(null);
+
+	const onChange = (event: ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(event.target.files ?? []);
+		event.target.value = "";
+		if (files.length > 0) onFiles(files);
+	};
+
+	const actions: DrawerAddAction[] = [
+		{
+			key: "photo",
+			label: t("chat_drawer.take_photo"),
+			icon: busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraFilled className="h-4 w-4" />,
+			onClick: () => cameraInputRef.current?.click(),
+		},
+		{
+			key: "video",
+			label: t("chat_drawer.record_video", { defaultValue: "Record video" }),
+			icon: <Video className="h-4 w-4 fill-current" />,
+			onClick: () => cameraVideoInputRef.current?.click(),
+		},
+		{
+			key: "upload",
+			label: uploadLabel ?? t("chat_drawer.upload_photo"),
+			icon: <CameraPlusFilled className="h-4 w-4" />,
+			onClick: () => uploadInputRef.current?.click(),
+		},
+	];
+
+	const inputs = (
+		<>
+			<input type="file" ref={uploadInputRef} onChange={onChange} accept="image/*,video/*" multiple={multiple} className="hidden" />
+			<input type="file" ref={cameraInputRef} onChange={onChange} accept="image/*" capture="environment" className="hidden" />
+			<input type="file" ref={cameraVideoInputRef} onChange={onChange} accept="video/*" capture="environment" className="hidden" />
+		</>
+	);
+
+	return { actions, inputs };
+}

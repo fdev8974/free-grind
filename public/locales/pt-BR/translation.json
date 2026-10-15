@@ -686,7 +686,7 @@
         "collections_delete": "Excluir coleção",
         "collections_name_placeholder": "Nome da coleção",
         "collections_editor_hint": "Toque nas mídias na ordem em que devem ser enviadas. Novos envios são adicionados à sua pasta.",
-        "collections_editor_empty_hint": "",
+        "collections_delete_media_message": "",
         "collections_save": "Salvar coleção ({{count}})",
         "collections_item_count_one": "{{count}} item",
         "collections_item_count_other": "{{count}} itens",

@@ -1,5 +1,5 @@
 import { Check, Loader2 } from "lucide-react";
-import { CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
+import { ImagesFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
@@ -11,12 +11,14 @@ import {
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
+	useDrawerAddActions,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
-import { useCallback, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
+import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
@@ -68,7 +70,8 @@ export function DrawerCollectionEditorSheet({
 	const [pendingTotal, setPendingTotal] = useState(0);
 	const preparedRef = useRef<PreparedUpload[]>([]);
 	const pendingFile = pendingFiles[0] ?? null;
-	const uploadInputRef = useRef<HTMLInputElement | null>(null);
+	const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+	const [deletingId, setDeletingId] = useState<number | null>(null);
 	const isUploading = uploadProgress != null;
 	const isBusy = isUploading || isSaving;
 
@@ -131,9 +134,7 @@ export function DrawerCollectionEditorSheet({
 	// Picked files go through the same add step as the chat drawer (crop,
 	// taken on Grindr, looping), one after another, then upload together.
 	const onPickFiles = useCallback(
-		(event: ChangeEvent<HTMLInputElement>) => {
-			const files = Array.from(event.target.files ?? []);
-			event.target.value = "";
+		(files: File[]) => {
 			const valid = files.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"));
 			if (valid.length < files.length) {
 				toast.error(t("chat_drawer.invalid_file_type"));
@@ -145,6 +146,13 @@ export function DrawerCollectionEditorSheet({
 		},
 		[t],
 	);
+
+	const { actions: addActions, inputs: addInputs } = useDrawerAddActions({
+		onFiles: onPickFiles,
+		multiple: true,
+		busy: isUploading,
+		uploadLabel: uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : undefined,
+	});
 
 	// Moves to the next picked file; `prepared` is null when this one was skipped.
 	// After the last one, everything confirmed so far is uploaded.
@@ -160,6 +168,31 @@ export function DrawerCollectionEditorSheet({
 		},
 		[pendingFiles, uploadPrepared],
 	);
+
+	// Deleting removes the media from the drawer itself, so every collection
+	// using it loses it too (collections skip missing ids).
+	const confirmDeleteMedia = useCallback(async () => {
+		if (confirmDeleteId == null) return;
+		const mediaId = confirmDeleteId;
+		setDeletingId(mediaId);
+		try {
+			await service.deleteDrawerMedia(mediaId);
+			void chatDb.deleteMediaFile(getDrawerMediaKey(mediaId));
+			setSelectedIds((prev) => {
+				if (!prev.has(mediaId)) return prev;
+				const next = new Set(prev);
+				next.delete(mediaId);
+				return next;
+			});
+			await onReloadMedia();
+		} catch (deleteError) {
+			appLog.error("[DrawerCollectionEditorSheet] failed to delete drawer media", deleteError);
+			toast.error(deleteError instanceof Error ? deleteError.message : t("chat.errors.delete_failed"));
+		} finally {
+			setDeletingId(null);
+			setConfirmDeleteId(null);
+		}
+	}, [confirmDeleteId, service, onReloadMedia, t]);
 
 	const handleSave = useCallback(async () => {
 		const trimmed = name.trim();
@@ -202,7 +235,7 @@ export function DrawerCollectionEditorSheet({
 				onClose={pendingFile ? () => finishAddStep(null, true) : undefined}
 			/>
 
-			<input type="file" ref={uploadInputRef} onChange={onPickFiles} accept="image/*,video/*" multiple className="hidden" />
+			{addInputs}
 
 			{pendingFile ? (
 				<DrawerAddMediaStep
@@ -234,29 +267,21 @@ export function DrawerCollectionEditorSheet({
 					<DrawerEmptyState
 						icon={<ImagesFilled className="h-5 w-5" />}
 						title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
-						hint={t("settings_albums.collections_editor_empty_hint", { defaultValue: "Upload photos or videos from your device to add them to this collection." })}
+						hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
 					>
-						<DrawerActionButton
-							icon={uploadProgress ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraPlusFilled className="h-4 w-4" />}
-							label={uploadProgress
-								? `${uploadProgress.done}/${uploadProgress.total}`
-								: t("chat_drawer.upload_photo")}
-							onClick={() => uploadInputRef.current?.click()}
-							disabled={isBusy}
-						/>
+						<div className="grid w-full max-w-sm grid-cols-3 gap-2">
+							{addActions.map((action) => (
+								<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
+							))}
+						</div>
 					</DrawerEmptyState>
 				) : undefined}
 			>
 				<DrawerGrid isDesktop={isDesktop}>
-					{/* Upload as the first tile, like the chat drawer. */}
-					<DrawerActionTile
-						icon={uploadProgress ? <Loader2 className="animate-spin" /> : <CameraPlusFilled />}
-						label={uploadProgress
-							? `${uploadProgress.done}/${uploadProgress.total}`
-							: t("chat_drawer.upload_photo")}
-						onClick={() => uploadInputRef.current?.click()}
-						disabled={isBusy}
-					/>
+					{/* Add actions as the first tiles, like the chat drawer. */}
+					{addActions.map((action) => (
+						<DrawerActionTile key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
+					))}
 					{media.map((item) => {
 						const isVideo = item.contentType.startsWith("video/");
 						const position = orderedSelection.indexOf(item.id) + 1;
@@ -272,6 +297,11 @@ export function DrawerCollectionEditorSheet({
 								onSelect={isBusy ? undefined : () => toggleSelection(item.id)}
 								previewProps={bindPreview({ src: mediaSrc, isVideo })}
 								consumePreviewClick={consumePreviewClick}
+								busy={deletingId === item.id}
+								// Hidden on selected tiles, so it can't be hit while setting the order.
+								onDelete={position > 0 || isBusy ? undefined : () => setConfirmDeleteId(item.id)}
+								isDeleting={deletingId === item.id}
+								deleteLabel={t("chat_drawer.delete_media")}
 							/>
 						);
 					})}
@@ -292,6 +322,17 @@ export function DrawerCollectionEditorSheet({
 			</>
 			)}
 			<DrawerMediaPreview media={drawerPreview} />
+			<ConfirmDialog
+				isOpen={confirmDeleteId != null}
+				title={t("chat_drawer.delete_confirm_title")}
+				message={t("settings_albums.collections_delete_media_message", { defaultValue: "This removes it from your drawer and from every collection that uses it." })}
+				confirmLabel={t("chat_drawer.delete_confirm_label")}
+				cancelLabel={t("chat.actions.cancel")}
+				onConfirm={() => void confirmDeleteMedia()}
+				onCancel={() => { if (deletingId == null) setConfirmDeleteId(null); }}
+				isProcessing={deletingId != null}
+				confirmTone="danger"
+			/>
 		</BottomSheet>
 	);
 }
