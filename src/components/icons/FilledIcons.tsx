@@ -638,16 +638,16 @@ export function PillFilled(props: IconProps) {
 	);
 }
 
-export function ClapperboardFilled(props: IconProps) {
+/** Companion to ImagesFilled: same stacked cards, with a play mark instead of the landscape. */
+export function VideosFilled(props: IconProps) {
 	const id = useMaskId();
 	return (
 		<FilledSvg {...props}>
-			{/* Stripes on the clapper, and a gap between clapper and slate. */}
 			<CutoutMask id={id}>
-				<path d="m12.296 3.464 3.02 3.956M6.18 5.276l3.1 3.899" fill="none" strokeWidth={1.75} />
+				<path d="M13 6.4v5.2a.55.55 0 0 0 .83.47l4.3-2.6a.55.55 0 0 0 0-.94l-4.3-2.6A.55.55 0 0 0 13 6.4z" stroke="none" />
 			</CutoutMask>
-			<path mask={`url(#${id})`} d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z" />
-			<path d="M3 12.5h18V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+			<rect mask={`url(#${id})`} x="8" y="2" width="14" height="14" rx="2" />
+			<path d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" fill="none" />
 		</FilledSvg>
 	);
 }

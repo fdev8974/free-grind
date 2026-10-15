@@ -1,7 +1,7 @@
 import { Loader2, Search, Star, X } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
-import { ClapperboardFilled, ImagesFilled, MailFilled, PillFilled } from "../../../components/icons/FilledIcons";
+import { ImagesFilled, MailFilled, PillFilled, VideosFilled } from "../../../components/icons/FilledIcons";
 import { type CSSProperties, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -147,7 +147,7 @@ export function ChatInboxHeader({
 									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("video_gallery.open", { defaultValue: "Videos" })}
 								>
-									<ClapperboardFilled className="h-5 w-5" />
+									<VideosFilled className="h-5 w-5" />
 								</button>
 							)}
 							{!isSearchOpen && (
