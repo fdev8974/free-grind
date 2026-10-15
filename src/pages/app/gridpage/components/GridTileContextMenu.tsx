@@ -6,6 +6,8 @@ import { BottomSheet, SheetClose } from "../../../../components/ui/bottom-sheet"
 import { menuTransitionStyle } from "../../../../hooks/usePresence";
 
 type GridTileContextMenuProps = {
+	/** Drives the desktop menu's enter/exit transition (see usePresence). */
+	visible?: boolean;
 	x: number;
 	y: number;
 	isDesktop: boolean;
@@ -32,6 +34,7 @@ type TileAction = {
 // bottom sheet on mobile. Both close themselves before running the action
 // (the sheet animates out via SheetClose), so the action callbacks don't.
 export function GridTileContextMenu({
+	visible = true,
 	x,
 	y,
 	isDesktop,

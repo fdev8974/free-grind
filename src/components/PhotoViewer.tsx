@@ -8,6 +8,7 @@ import { appLog } from "../utils/logger";
 import { haptic } from "../utils/haptics";
 import { ProfileImage } from "./ui/profile-image";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { menuTransitionStyle, usePresence } from "../hooks/usePresence";
 
 export type PhotoViewerMedia = {
 	url: string;
@@ -122,6 +123,7 @@ export function PhotoViewer({
 	const [zoomOffset, setZoomOffset] = useState({ x: 0, y: 0 });
 	const [isSaving, setIsSaving] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const menuPresence = usePresence(isMenuOpen);
 	const menuRef = useRef<HTMLDivElement | null>(null);
 	const [hasAcknowledgedWarning, setHasAcknowledgedWarning] = useState(false);
 
@@ -827,8 +829,8 @@ export function PhotoViewer({
 							>
 								<EllipsisVertical className="h-4 w-4" />
 							</button>
-							{isMenuOpen && (
-								<div data-lenis-prevent className="absolute right-0 top-[calc(100%+0.25rem)] max-h-[calc(100dvh-8rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-xl border border-white/15 bg-black/90 py-1.5 shadow-xl backdrop-blur-md">
+							{menuPresence.rendered && (
+								<div data-lenis-prevent style={menuTransitionStyle(menuPresence.visible)} className="absolute right-0 top-[calc(100%+0.25rem)] max-h-[calc(100dvh-8rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-xl border border-white/15 bg-black/90 py-1.5 shadow-xl backdrop-blur-md">
 									<button
 										type="button"
 										onClick={() => { setIsMenuOpen(false); void handleSave(); }}

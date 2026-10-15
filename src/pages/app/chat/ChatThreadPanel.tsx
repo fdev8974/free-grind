@@ -144,6 +144,7 @@ import {
 } from "../../../services/savedPhrases";
 import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
 import { haptic } from "../../../utils/haptics";
+import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 
 type ChatThreadPanelProps = {
 	navigate: NavigateFunction;
@@ -723,6 +724,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		onSendLocation,
 		onSendGiphy,
 	} = props;
+	const headerMenuPresence = usePresence(isHeaderActionsMenuOpen);
 
     const [savedPhrases, setSavedPhrases] = useState<string[]>([]);
 
@@ -1503,12 +1505,15 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									>
 										<EllipsisVertical className="h-4 w-4" />
 									</button>
-									{isHeaderActionsMenuOpen ? (
+									{headerMenuPresence.rendered ? (
 										<div
 											data-lenis-prevent
 											className="absolute right-0 top-full z-30 mt-1 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
 											// Mobile: stay within the space between the floating header and composer.
-											style={!isDesktop ? { maxHeight: `calc(${mobileKeyboardInset > 0 ? `100dvh - ${mobileKeyboardInset}px` : "100dvh"} - ${headerHeight + composerHeight}px - 1rem)` } : undefined}
+											style={{
+												...menuTransitionStyle(headerMenuPresence.visible),
+												...(!isDesktop ? { maxHeight: `calc(${mobileKeyboardInset > 0 ? `100dvh - ${mobileKeyboardInset}px` : "100dvh"} - ${headerHeight + composerHeight}px - 1rem)` } : {}),
+											}}
 										>
 											<div className="flex shrink-0 flex-col gap-1 px-2">
 											{!isArchived && (

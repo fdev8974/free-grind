@@ -69,6 +69,7 @@ import type { BrowseFiltersDraft } from "./browse-filters-storage";
 import { SKIP_BLOCK_CONFIRM_KEY, isBlockConfirmSkipped } from "../../utils/blockConfirm";
 import * as chatDb from "../../services/chatDb";
 import { hideProfile as hideProfileLocally, unhideProfile as unhideProfileLocally, GRID_HIDE_STATE_EVENT, type GridHideStateChangeDetail } from "../../services/profileHide";
+import { usePresence } from "../../hooks/usePresence";
 
 const EXPLORE_LOCATION_STORAGE_KEY = "grid_explore_location_v1";
 // The local displayname filter ("Lokale Filter" > nicknameFilter) matches
@@ -1353,6 +1354,8 @@ export function GridPage() {
 	);
 
 	const [tileContextMenu, setTileContextMenu] = useState<{ card: BrowseCard; x: number; y: number } | null>(null);
+	const tileMenuPresence = usePresence(tileContextMenu);
+	const renderedTileMenu = tileMenuPresence.rendered;
 	const handleOpenTileContextMenu = useCallback((card: BrowseCard, x: number, y: number) => {
 		setTileContextMenu({ card, x, y });
 	}, []);
@@ -1853,29 +1856,30 @@ export function GridPage() {
 				/>
 			)}
 
-			{tileContextMenu && (
+			{renderedTileMenu && (
 				<GridTileContextMenu
-					x={tileContextMenu.x}
-					y={tileContextMenu.y}
+					visible={tileMenuPresence.visible}
+					x={renderedTileMenu.x}
+					y={renderedTileMenu.y}
 					isDesktop={isDesktop}
 					title={
-						localNicknamesByProfileId[tileContextMenu.card.profileId]?.trim() ||
-						getDisplayName(tileContextMenu.card) ||
+						localNicknamesByProfileId[renderedTileMenu.card.profileId]?.trim() ||
+						getDisplayName(renderedTileMenu.card) ||
 						t("common.unknown_display_name")
 					}
-					isFavorite={tileContextMenu.card.favorite === true}
-					hasNickname={Boolean(localNicknamesByProfileId[tileContextMenu.card.profileId])}
+					isFavorite={renderedTileMenu.card.favorite === true}
+					hasNickname={Boolean(localNicknamesByProfileId[renderedTileMenu.card.profileId])}
 					onClose={handleCloseTileContextMenu}
-					onMessage={() => handleMessageProfile(tileContextMenu.card.profileId)}
+					onMessage={() => handleMessageProfile(renderedTileMenu.card.profileId)}
 					onToggleFavorite={() =>
 						void handleToggleFavoriteProfile(
-							tileContextMenu.card.profileId,
-							tileContextMenu.card.favorite === true,
+							renderedTileMenu.card.profileId,
+							renderedTileMenu.card.favorite === true,
 						)
 					}
-					onEditNickname={() => setNicknamePromptCard(tileContextMenu.card)}
-					onHide={() => handleHideProfile(tileContextMenu.card.profileId)}
-					onBlock={() => void handleBlockProfile(tileContextMenu.card.profileId)}
+					onEditNickname={() => setNicknamePromptCard(renderedTileMenu.card)}
+					onHide={() => handleHideProfile(renderedTileMenu.card.profileId)}
+					onBlock={() => void handleBlockProfile(renderedTileMenu.card.profileId)}
 				/>
 			)}
 

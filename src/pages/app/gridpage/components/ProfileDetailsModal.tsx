@@ -66,6 +66,7 @@ import { isLocateEnabled, isSexualHealthEnabled } from "../../../../utils/option
 import { findConversationByProfileId } from "../../../../services/chatDb";
 import { setLocalNicknameForProfile } from "../../../../services/chatContactIndex";
 import { haptic } from "../../../../utils/haptics";
+import { menuTransitionStyle, usePresence } from "../../../../hooks/usePresence";
 
 type OwnProfileData = { tags: string[] };
 const ownProfileDataCache = new Map<string, OwnProfileData>();
@@ -429,6 +430,7 @@ export function ProfileDetailsModal({
 	const inlineScrolled = headerOpacity > 0.5;
 	const [carouselDragDelta, setCarouselDragDelta] = useState(0);
 	const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+	const actionsMenuPresence = usePresence(isActionsMenuOpen);
 	const [banBioPrompt, setBanBioPrompt] = useState<{ text: string } | null>(null);
 	const [banNamePrompt, setBanNamePrompt] = useState<{ text: string } | null>(null);
 	const [quickMessageDraft, setQuickMessageDraft] = useState("");
@@ -1654,8 +1656,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								>
 									<EllipsisVertical className="h-4 w-4" />
 								</button>
-								{isActionsMenuOpen && (
-									<div data-lenis-prevent className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+								{actionsMenuPresence.rendered && (
+									<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 										<div className="flex flex-col gap-1 px-2">
 										{showLocate && (
 										<button
@@ -2267,8 +2269,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 													aria-label="More actions" aria-expanded={isActionsMenuOpen}>
 													<EllipsisVertical className="h-4 w-4" />
 												</button>
-												{isActionsMenuOpen && (
-													<div data-lenis-prevent className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+												{actionsMenuPresence.rendered && (
+													<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 														<div className="flex flex-col gap-1 px-2">
 														{showLocate && (
 														<button type="button" disabled={isTriangleDisabled}
