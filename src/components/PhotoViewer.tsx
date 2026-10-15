@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { isIos, saveMediaToDevice } from "../services/saveMedia";
 import { appLog } from "../utils/logger";
+import { haptic } from "../utils/haptics";
 import { ProfileImage } from "./ui/profile-image";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 
@@ -83,6 +84,9 @@ function getObjectContainRect(el: HTMLImageElement | HTMLVideoElement): DOMRect 
 	return new DOMRect(left, top, contentW, contentH);
 }
 
+/** Vertical drag distance (px) past which releasing closes the viewer. */
+const DISMISS_THRESHOLD_PX = 120;
+
 export function PhotoViewer({
 	isOpen,
 	onClose,
@@ -128,6 +132,26 @@ export function PhotoViewer({
 	// this. Always treated as visible on desktop (see `chromeVisible` below),
 	// since this is a mobile-only gesture.
 	const [showChrome, setShowChrome] = useState(true);
+	// Vertical drag-to-dismiss (mobile, unzoomed): the media follows the finger
+	// while the backdrop fades; past the threshold it closes, otherwise snaps back.
+	const [dismissY, setDismissY] = useState(0);
+	const [isDismissDragging, setIsDismissDragging] = useState(false);
+	const dismissArmedRef = useRef(false);
+	const dismissStartTimeRef = useRef(0);
+	// Fade-out before handing control back to the parent, for every close path.
+	const [isClosing, setIsClosing] = useState(false);
+	const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const onCloseRef = useRef(onClose);
+	onCloseRef.current = onClose;
+	const closeAnimated = useCallback(() => {
+		if (closeTimerRef.current) return;
+		setIsClosing(true);
+		closeTimerRef.current = setTimeout(() => {
+			closeTimerRef.current = null;
+			onCloseRef.current();
+		}, 180);
+	}, []);
+	useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 	const [videoCurrentTime, setVideoCurrentTime] = useState(0);
 	const [videoDuration, setVideoDuration] = useState(0);
 	const [isScrubbing, setIsScrubbing] = useState(false);
@@ -192,6 +216,9 @@ export function PhotoViewer({
 		setIsMenuOpen(false);
 		setHasAcknowledgedWarning(false);
 		setShowChrome(true);
+		setDismissY(0);
+		setIsDismissDragging(false);
+		setIsClosing(false);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen]);
 
@@ -407,6 +434,9 @@ export function PhotoViewer({
 			decidedAxisRef.current = null;
 			isDraggingRef.current = false;
 			setDragOffset(0);
+			// A second finger turns a dismiss drag into a pinch.
+			setDismissY(0);
+			setIsDismissDragging(false);
 		}
 	}, []);
 
@@ -424,6 +454,7 @@ export function PhotoViewer({
 
 				setZoomScale((prev) => {
 					const next = Math.min(Math.max(1, prev * ratio), 4);
+					if ((next === 4 && prev < 4) || (next === 1 && prev > 1)) haptic(10);
 					if (pinchCenterRef.current && next !== prev) {
 						const cx = pinchCenterRef.current.x - window.innerWidth / 2;
 						const cy = pinchCenterRef.current.y - window.innerHeight / 2;
@@ -484,20 +515,32 @@ export function PhotoViewer({
 				return;
 			}
 
-			// Not zoomed: lock axis, swipe left/right to navigate (only when multiple photos)
-			if (N < 2) return;
+			// Not zoomed: lock axis — left/right navigates (only with multiple
+			// photos), up/down drags the viewer away to dismiss it.
 			if (!decidedAxisRef.current && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
 				decidedAxisRef.current = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+				if (decidedAxisRef.current === "v") {
+					dismissArmedRef.current = false;
+					dismissStartTimeRef.current = performance.now();
+					setIsDismissDragging(true);
+				}
 			}
 
-			if (decidedAxisRef.current === "h") {
+			if (decidedAxisRef.current === "h" && N >= 2) {
 				isDraggingRef.current = true;
 				setDragOffset(dx);
+			} else if (decidedAxisRef.current === "v" && !isDesktop) {
+				setDismissY(dy);
+				const armed = Math.abs(dy) > DISMISS_THRESHOLD_PX;
+				if (armed !== dismissArmedRef.current) {
+					dismissArmedRef.current = armed;
+					if (armed) haptic(15);
+				}
 			}
 
 			lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
 		},
-		[clampOffset, N],
+		[clampOffset, N, isDesktop],
 	);
 
 	const handleTouchEnd = useCallback(
@@ -513,7 +556,18 @@ export function PhotoViewer({
 				return;
 			}
 
-			if (N >= 2 && decidedAxisRef.current === "h" && zoomScaleRef.current === 1 && isDraggingRef.current) {
+			if (decidedAxisRef.current === "v" && zoomScaleRef.current === 1 && !isDesktop) {
+				setIsDismissDragging(false);
+				const elapsed = Math.max(1, performance.now() - dismissStartTimeRef.current);
+				const isFling = Math.abs(dismissY) / elapsed > 0.6 && Math.abs(dismissY) > 40;
+				if (Math.abs(dismissY) > DISMISS_THRESHOLD_PX || isFling) {
+					// Keep travelling in the swipe direction while fading out.
+					setDismissY(Math.sign(dismissY || 1) * window.innerHeight * 0.6);
+					closeAnimated();
+				} else {
+					setDismissY(0);
+				}
+			} else if (N >= 2 && decidedAxisRef.current === "h" && zoomScaleRef.current === 1 && isDraggingRef.current) {
 				const threshold = Math.min(70, window.innerWidth * 0.22);
 				if (dragOffset < -threshold) showNext();
 				else if (dragOffset > threshold) showPrev();
@@ -534,7 +588,7 @@ export function PhotoViewer({
 				setZoomOffset({ x: 0, y: 0 });
 			}
 		},
-		[dragOffset, showNext, showPrev, N],
+		[dragOffset, showNext, showPrev, N, dismissY, isDesktop, closeAnimated],
 	);
 
 	const handleButtonTouchEnd = useCallback(
@@ -551,13 +605,13 @@ export function PhotoViewer({
 	useEffect(() => {
 		if (!isOpen) return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") { e.stopPropagation(); onClose(); return; }
+			if (e.key === "Escape") { e.stopPropagation(); closeAnimated(); return; }
 			if (e.key === "ArrowLeft") showPrev();
 			if (e.key === "ArrowRight") showNext();
 		};
 		window.addEventListener("keydown", onKey, { capture: true });
 		return () => window.removeEventListener("keydown", onKey, { capture: true });
-	}, [isOpen, onClose, showPrev, showNext]);
+	}, [isOpen, closeAnimated, showPrev, showNext]);
 
 	const handleSave = async () => {
 		const photo = photos[centerIdx];
@@ -662,11 +716,20 @@ export function PhotoViewer({
 	// The tap-to-hide-chrome gesture is mobile-only — desktop keeps chrome on
 	// permanently (showChrome still exists in state there, it's just never
 	// toggled since the click handler below only flips it off-desktop).
-	const chromeVisible = isDesktop || showChrome;
+	const dismissProgress = Math.min(1, Math.abs(dismissY) / (DISMISS_THRESHOLD_PX * 2.5));
+	const chromeVisible = (isDesktop || showChrome) && dismissY === 0 && !isClosing;
 	const chromeFadeClass = `transition-opacity duration-300 ${chromeVisible ? "opacity-100" : "pointer-events-none opacity-0"}`;
 
 	return createPortal(
-		<div className="fixed inset-0 z-[80] bg-black" onClick={onClose}>
+		<div
+			className="fixed inset-0 z-[80] animate-in fade-in duration-200"
+			onClick={closeAnimated}
+			style={{
+				backgroundColor: `rgba(0, 0, 0, ${1 - dismissProgress * 0.85})`,
+				opacity: isClosing ? 0 : 1,
+				transition: isDismissDragging ? "none" : "opacity 180ms ease-out, background-color 220ms ease-out",
+			}}
+		>
 			{isCurrentVideo && !(menuActions && menuActions.length > 0) && (
 				// Same darkening treatment as the album header's top gradient —
 				// the seek bar/mute button dropped their own chip backgrounds, so
@@ -700,9 +763,9 @@ export function PhotoViewer({
 							<div className="flex min-w-0 items-center gap-3">
 							<button
 								type="button"
-								onClick={onClose}
+								onClick={closeAnimated}
 								onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
-								onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
+								onTouchEnd={(e) => handleButtonTouchEnd(e, closeAnimated)}
 								className="header-icon-btn header-icon-btn--back inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 								aria-label={t("profile_details.close_photo_viewer")}
 							>
@@ -782,9 +845,9 @@ export function PhotoViewer({
 				<>
 					<button
 						type="button"
-						onClick={(e) => { e.stopPropagation(); onClose(); }}
+						onClick={(e) => { e.stopPropagation(); closeAnimated(); }}
 						onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
-						onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
+						onTouchEnd={(e) => handleButtonTouchEnd(e, closeAnimated)}
 						className={`header-icon-btn header-icon-btn--back absolute left-[var(--app-px)] z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.close_photo_viewer")}
@@ -922,7 +985,13 @@ export function PhotoViewer({
 
 			<div
 				ref={trackContainerRef}
-				className="h-full w-full overflow-hidden"
+				className="h-full w-full overflow-hidden animate-in zoom-in-95 duration-200"
+				style={{
+					transform: dismissY !== 0 || isClosing
+						? `translateY(${dismissY}px) scale(${isClosing && dismissY === 0 ? 0.94 : 1 - dismissProgress * 0.15})`
+						: undefined,
+					transition: isDismissDragging ? "none" : "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+				}}
 				onClick={(e) => e.stopPropagation()}
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
@@ -975,7 +1044,7 @@ export function PhotoViewer({
 								// overflow-hidden lives here so the clip boundary for a
 								// zoomed image/video is the full slide, not some smaller box.
 								className="flex h-full w-screen flex-shrink-0 items-center justify-center overflow-hidden"
-								onClick={onClose}
+								onClick={closeAnimated}
 							>
 								<div
 									className="relative w-full"
