@@ -1573,7 +1573,8 @@ export function ChatThreadMessages({
                                                         @keyframes logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
                                                         .logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
                                                     `}</style>
-                                                    <div className="absolute bottom-3 left-3">
+                                                    {/* Level with the time in the bubble's footer; above its gradient. */}
+                                                    <div className="absolute bottom-1.5 left-2.5 z-10">
                                                         <TakenOnGrindrBadge
                                                             label={imageCreatedAt != null ? formatTakenOnGrindrTime(imageCreatedAt, nowTimestamp, t) : null}
                                                         />
