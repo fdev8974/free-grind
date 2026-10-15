@@ -1381,7 +1381,11 @@
             "one_hour_ago": "",
             "hours_ago_long": "",
             "one_day_ago": "",
-            "days_ago": ""
+            "days_ago": "",
+            "taken_now": "",
+            "taken_ago": "",
+            "taken_last_week": "",
+            "taken_in": ""
         },
         "preview": {
             "sent_image": "Poslao sliku",

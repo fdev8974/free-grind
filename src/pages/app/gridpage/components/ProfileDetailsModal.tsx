@@ -39,7 +39,7 @@ import { PromptDialog } from "../../../../components/ui/prompt-dialog";
 import { ReportProfileDialog } from "../../../../components/ReportProfileDialog";
 import freegrindLogo from "../../../../images/freegrind-logo.webp";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
-import { formatDateTime24, formatTakenOnGrindrTime } from "../../chat/chatUtils";
+import { formatDateTime24, formatTakenOnGrindrSentence } from "../../chat/chatUtils";
 import { TakenOnGrindrBadge } from "../../chat/TakenOnGrindrBadge";
 import { formatRelativeTime } from "../../../../utils/relativeTime";
 import {
@@ -1041,7 +1041,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		return (
 			<div className="pointer-events-none absolute bottom-3 left-3 z-20 flex flex-row items-center gap-1.5">
 				{meta?.takenOnGrindr ? (
-					<TakenOnGrindrBadge variant="pill" label={meta.createdAt ? formatTakenOnGrindrTime(meta.createdAt, Date.now(), t) : null} />
+					<TakenOnGrindrBadge variant="pill" label={meta.createdAt ? formatTakenOnGrindrSentence(meta.createdAt, Date.now(), t) : null} />
 				) : null}
 				{tapTimestamp != null ? (
 					<div className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-sm">

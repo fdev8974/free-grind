@@ -1371,7 +1371,11 @@
       "one_hour_ago": "1 hour ago",
       "hours_ago_long": "{{count}} hours ago",
       "one_day_ago": "1 day ago",
-      "days_ago": "{{count}} days ago"
+      "days_ago": "{{count}} days ago",
+      "taken_now": "Taken just now",
+      "taken_ago": "Taken {{time}}",
+      "taken_last_week": "Taken last week",
+      "taken_in": "Taken in {{time}}"
     },
     "preview": {
       "sent_image": "Sent an image",

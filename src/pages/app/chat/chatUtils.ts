@@ -266,6 +266,28 @@ export function formatTakenOnGrindrTime(
 	return formatter.format(new Date(timestamp));
 }
 
+/** Same steps as formatTakenOnGrindrTime, as a sentence: "Taken just now",
+ * "Taken 2 hours ago", "Taken last week", "Taken in August 2026". */
+export function formatTakenOnGrindrSentence(
+	timestamp: number,
+	now: number,
+	t: TranslateFn,
+): string {
+	const diffMs = Math.max(0, now - timestamp);
+	const dayMs = 24 * 60 * 60 * 1000;
+	if (diffMs < 60 * 1000) {
+		return t("chat.time.taken_now", { defaultValue: "Taken just now" });
+	}
+	const time = formatTakenOnGrindrTime(timestamp, now, t);
+	if (diffMs < 7 * dayMs) {
+		return t("chat.time.taken_ago", { time, defaultValue: "Taken {{time}}" });
+	}
+	if (diffMs < 14 * dayMs) {
+		return t("chat.time.taken_last_week", { defaultValue: "Taken last week" });
+	}
+	return t("chat.time.taken_in", { time, defaultValue: "Taken in {{time}}" });
+}
+
 export function formatDateTime24(timestamp: number): string {
 	const date = new Date(timestamp);
 	const day = String(date.getDate()).padStart(2, "0");
