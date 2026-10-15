@@ -750,7 +750,7 @@ export function PhotoViewer({
 								<EllipsisVertical className="h-4 w-4" />
 							</button>
 							{isMenuOpen && (
-								<div data-lenis-prevent className="absolute right-0 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-8rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-xl border border-white/15 bg-black/90 py-1.5 shadow-xl backdrop-blur-md">
+								<div data-lenis-prevent className="absolute right-0 top-[calc(100%+0.25rem)] max-h-[calc(100dvh-8rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-xl border border-white/15 bg-black/90 py-1.5 shadow-xl backdrop-blur-md">
 									<button
 										type="button"
 										onClick={() => { setIsMenuOpen(false); void handleSave(); }}

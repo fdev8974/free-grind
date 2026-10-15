@@ -1506,7 +1506,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									{isHeaderActionsMenuOpen ? (
 										<div
 											data-lenis-prevent
-											className="absolute right-0 top-full z-30 mt-2 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
+											className="absolute right-0 top-full z-30 mt-1 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
 											// Mobile: stay within the space between the floating header and composer.
 											style={!isDesktop ? { maxHeight: `calc(${mobileKeyboardInset > 0 ? `100dvh - ${mobileKeyboardInset}px` : "100dvh"} - ${headerHeight + composerHeight}px - 1rem)` } : undefined}
 										>
