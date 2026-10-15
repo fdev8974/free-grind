@@ -190,7 +190,7 @@ type ChatThreadPanelProps = {
 	startMessageLongPress: (messageId: string) => void;
 	endMessageLongPress: () => void;
 	messageLongPressTriggeredRef: { current: boolean };
-	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number) => void;
+	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number) => void;
 	openAlbumViewerById: (albumId: number, isOwnAlbum?: boolean) => void | Promise<void>;
 	onJumpToMessage: (messageId: string) => void;
 	highlightedMessageId: string | null;

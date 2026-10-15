@@ -95,6 +95,7 @@ import {
 	getMessageAlbumId,
 	getMessageImageUrl,
 	getMessageImageCreatedAt,
+	formatTakenOnGrindrTime,
 	getMessageTakenOnGrindr,
 	getMessageVideoUrl,
 	getMessageMediaId,
@@ -133,7 +134,7 @@ import { isReadReceiptsHidden } from "../../utils/privacy";
 import { clearChatNotifications } from "../../services/localNotify";
 import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
 import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatMediaSend";
-import freegrindLogo from "../../images/freegrind-logo.webp";
+import { TakenOnGrindrBadge } from "./chat/TakenOnGrindrBadge";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
 import { getProfileImageUrl, getThumbImageUrl, validateMediaHash } from "../../utils/media";
@@ -695,7 +696,7 @@ export function ChatPage() {
 	const [isChatMediaSheetOpen, setIsChatMediaSheetOpen] = useState(false);
 	const albumViewerCancelledRef = useRef(false);
 	const albumHistoryModeRef = useRef<"direct" | "viewerOverSheet" | null>(null);
-	type ThreadMediaItem = PhotoViewerMedia & { meta?: { takenOnGrindr: boolean; createdAtLabel: string | null; timestamp: number } };
+	type ThreadMediaItem = PhotoViewerMedia & { meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number } };
 	const [fullScreenMediaList, setFullScreenMediaList] = useState<ThreadMediaItem[]>([]);
 	const [fullScreenMediaIndex, setFullScreenMediaIndex] = useState(0);
 	// Guards openFullScreenImage's async carousel build against a second tap
@@ -6342,7 +6343,7 @@ export function ChatPage() {
 	 */
 	const openFullScreenImage = useCallback((
 		imageUrl: string,
-		meta?: { takenOnGrindr: boolean; createdAtLabel: string | null; timestamp: number },
+		meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number },
 		mediaType: "image" | "video" = "image",
 		messageId?: string,
 		senderId?: number,
@@ -6394,6 +6395,7 @@ export function ChatPage() {
 								msg && f.kind === "image"
 									? {
 											takenOnGrindr: getMessageTakenOnGrindr(msg),
+											createdAt,
 											createdAtLabel: createdAt != null ? formatDateTime24(createdAt) : null,
 											timestamp: msg.timestamp,
 										}
@@ -6782,24 +6784,27 @@ export function ChatPage() {
 				conversationId={selectedConversation?.data.conversationId ?? null}
 				renderExtraInfo={(idx) => {
 					const meta = fullScreenMediaList[idx]?.meta;
-					if (!meta) return null;
+					const label = meta ? meta.createdAtLabel ?? (meta.timestamp ? formatDateTime24(meta.timestamp) : null) : null;
+					if (!label) return null;
 					return (
 						<p className="inline-flex items-center gap-1 rounded-full bg-black/65 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
+							<span>{label}</span>
+						</p>
+					);
+				}}
+				renderMediaOverlay={(idx) => {
+					const meta = fullScreenMediaList[idx]?.meta;
+					if (!meta?.takenOnGrindr) return null;
+					return (
+						<>
 							<style>{`
 								@keyframes logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
 								.logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
 							`}</style>
-							{meta.takenOnGrindr ? (
-								<img
-									src={freegrindLogo}
-									alt={t("chat.thread.taken_on_grindr")}
-									className="h-3.5 w-3.5 rounded-full logo-shine"
-								/>
-							) : null}
-							{meta.createdAtLabel ?? (meta.timestamp ? formatDateTime24(meta.timestamp) : null) ? (
-								<span>{meta.createdAtLabel ?? formatDateTime24(meta.timestamp)}</span>
-							) : null}
-						</p>
+							<TakenOnGrindrBadge
+								label={meta.createdAt != null ? formatTakenOnGrindrTime(meta.createdAt, nowTimestamp, t) : null}
+							/>
+						</>
 					);
 				}}
 			/>

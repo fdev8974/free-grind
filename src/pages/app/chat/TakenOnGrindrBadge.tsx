@@ -23,7 +23,7 @@ export function TakenOnGrindrBadge({ label, shineClassName = "logo-shine" }: Tak
 			<img src={freegrindLogo} alt={t("chat.thread.taken_on_grindr")} className={`h-5 w-5 rounded-full ${shineClassName}`} />
 			{label != null ? (
 				<span
-					className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold ${
+					className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
 						isAmoled
 							? "bg-black/65 text-white"
 							: "bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] text-[var(--text)] shadow-sm backdrop-blur-md"

@@ -23,6 +23,8 @@ export type PhotoViewerProps = {
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
 	renderExtraInfo?: (index: number) => React.ReactNode;
+	/** Badge pinned to the bottom-left corner of the visible picture (images only) — follows zoom/pan without being scaled itself. */
+	renderMediaOverlay?: (index: number) => React.ReactNode;
 	/** Full-width bar anchored to the bottom (e.g. a reply/react bar) — pushes the page-count pill and renderExtraInfo up out of its way when present. */
 	renderFooter?: (index: number) => React.ReactNode;
 	/** Chat conversation this media belongs to, if any — saved media is filed under a matching device subfolder instead of a flat Downloads folder. */
@@ -85,6 +87,69 @@ function getObjectContainRect(el: HTMLImageElement | HTMLVideoElement): DOMRect 
 	return new DOMRect(left, top, contentW, contentH);
 }
 
+/**
+ * Pins its children to the bottom-left corner of the sibling <img>'s actually
+ * drawn content (see getObjectContainRect — the element box is letterboxed),
+ * then maps that corner through the image's zoom transform
+ * (`translate(offset) scale(scale)`, origin = box center) so the badge rides
+ * along with zoom/pan while staying unscaled itself.
+ */
+function MediaCornerOverlay({
+	zoomScale,
+	zoomOffset,
+	children,
+}: {
+	zoomScale: number;
+	zoomOffset: { x: number; y: number };
+	children: React.ReactNode;
+}) {
+	const anchorRef = useRef<HTMLDivElement>(null);
+	const [content, setContent] = useState<{ boxW: number; boxH: number; w: number; h: number } | null>(null);
+
+	useLayoutEffect(() => {
+		const img = anchorRef.current?.parentElement?.querySelector("img");
+		if (!img) return;
+		const measure = () => {
+			const boxW = img.offsetWidth;
+			const boxH = img.offsetHeight;
+			const { naturalWidth: nw, naturalHeight: nh } = img;
+			if (!nw || !nh || !boxW || !boxH) return;
+			const mediaRatio = nw / nh;
+			const fitsWidth = mediaRatio > boxW / boxH;
+			setContent({
+				boxW,
+				boxH,
+				w: fitsWidth ? boxW : boxH * mediaRatio,
+				h: fitsWidth ? boxW / mediaRatio : boxH,
+			});
+		};
+		measure();
+		img.addEventListener("load", measure);
+		const observer = new ResizeObserver(measure);
+		observer.observe(img);
+		return () => {
+			img.removeEventListener("load", measure);
+			observer.disconnect();
+		};
+	}, []);
+
+	const x = content ? content.boxW / 2 + (-content.w / 2) * zoomScale + zoomOffset.x : 0;
+	const y = content ? content.boxH / 2 + (content.h / 2) * zoomScale + zoomOffset.y : 0;
+
+	return (
+		<div
+			ref={anchorRef}
+			className="pointer-events-none absolute left-0 top-0"
+			style={{
+				transform: `translate(${x}px, ${y}px) translate(0.75rem, calc(-100% - 0.75rem))`,
+				visibility: content ? "visible" : "hidden",
+			}}
+		>
+			{children}
+		</div>
+	);
+}
+
 /** Vertical drag distance (px) past which releasing closes the viewer. */
 const DISMISS_THRESHOLD_PX = 120;
 
@@ -95,6 +160,7 @@ export function PhotoViewer({
 	initialIndex = 0,
 	onIndexChange,
 	renderExtraInfo,
+	renderMediaOverlay,
 	renderFooter,
 	conversationId,
 	menuActions,
@@ -1181,6 +1247,17 @@ export function PhotoViewer({
 											onMouseDown={isCurrent ? handleMediaMouseDown : undefined}
 										/>
 									)}
+									{type === "image" && renderMediaOverlay ? (() => {
+										const overlay = renderMediaOverlay(photoIndex);
+										return overlay ? (
+											<MediaCornerOverlay
+												zoomScale={isCurrent ? zoomScale : 1}
+												zoomOffset={isCurrent ? zoomOffset : { x: 0, y: 0 }}
+											>
+												{overlay}
+											</MediaCornerOverlay>
+										) : null;
+									})() : null}
 								</div>
 							</div>
 						);
