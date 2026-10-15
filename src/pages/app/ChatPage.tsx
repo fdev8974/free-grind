@@ -4107,6 +4107,55 @@ export function ChatPage() {
 		[isUpdatingConversationState, service, t],
 	);
 
+	const toggleMuteConversation = useCallback(
+		async (conversationId: string, isMuted: boolean) => {
+			if (isUpdatingConversationState) {
+				return;
+			}
+
+			setIsUpdatingConversationState(true);
+
+			try {
+				if (isMuted) {
+					await service.unmuteConversation(conversationId);
+				} else {
+					await service.muteConversation(conversationId);
+				}
+				setConversations((previous) =>
+					previous.map((conversation) =>
+						conversation.data.conversationId === conversationId
+							? { ...conversation, data: { ...conversation.data, muted: !isMuted } }
+							: conversation,
+					),
+				);
+				// Archived entries render from `archivedConversations` (see
+				// togglePinConversation above).
+				setArchivedConversations((previous) => {
+					const existing = previous.get(conversationId);
+					if (!existing) {
+						return previous;
+					}
+					const next = new Map(previous);
+					next.set(conversationId, {
+						...existing,
+						entry: {
+							...existing.entry,
+							data: { ...existing.entry.data, muted: !isMuted },
+						},
+					});
+					return next;
+				});
+			} catch (error) {
+				toast.error(
+					error instanceof Error ? error.message : t("chat.errors.update_mute_state"),
+				);
+			} finally {
+				setIsUpdatingConversationState(false);
+			}
+		},
+		[isUpdatingConversationState, service, t],
+	);
+
 	const togglePin = useCallback(() => {
 		if (!selectedConversation) {
 			return;
@@ -6459,6 +6508,7 @@ export function ChatPage() {
 			}}
 			typingConversationIds={typingConversationIds}
 			onTogglePinConversation={togglePinConversation}
+			onToggleMuteConversation={toggleMuteConversation}
 			hiddenConversationIds={hiddenConversationIds}
 			onToggleHideConversation={toggleHideConversation}
 			onDeleteConversation={deleteConversationFromChat}

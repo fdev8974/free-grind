@@ -1,5 +1,6 @@
-import { RefreshCw, Eye, Flame, Send, type LucideIcon } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type TouchEvent } from "react";
+import { RefreshCw } from "lucide-react";
+import { EyeFilled, FlameFilled, SendFilled } from "../../components/icons/FilledIcons";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type ComponentType, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useInterestData } from "../../hooks/queries/useInterestQueries";
@@ -25,7 +26,7 @@ import { usePreferences } from "../../contexts/PreferencesContext";
 
 const ONBOARDING_KEY = "fg-interest-onboarding-seen";
 
-const TAB_ICONS: Record<InterestTab, LucideIcon> = { views: Eye, taps: Flame, sent: Send };
+const TAB_ICONS: Record<InterestTab, ComponentType<{ className?: string }>> = { views: EyeFilled, taps: FlameFilled, sent: SendFilled };
 
 function loadStoredLimit(tab: InterestTab, fallback: number): number {
 	const saved = sessionStorage.getItem(`interest-scroll-${tab}`);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, Sun, Timer, Trash2 } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { Chip } from "../../components/ui/chip";
@@ -35,6 +35,7 @@ export function BehaviorPage() {
 		keepScreenOn,
 		autoFocusLocationSearch,
 		doubleTapTapType,
+		chatRowSwipeActions,
 		setPreferences,
 	} = usePreferences();
 	const albumExpirationLabels: Record<(typeof ALBUM_EXPIRATION_OPTIONS)[number], string> = {
@@ -101,6 +102,22 @@ export function BehaviorPage() {
 							window.localStorage.setItem(SKIP_LINK_OPEN_CONFIRM_KEY, String(!checked));
 						}}
 					/>
+				</div>
+
+				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.chats")}</p>
+					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<ToggleRow
+							id="behavior-chat-row-swipe-actions"
+							highlighted={highlightId === "behavior-chat-row-swipe-actions"}
+							icon={<MoveHorizontal className="h-5 w-5" />}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("behavior.chat_row_swipe_actions")}
+							description={t("behavior.chat_row_swipe_actions_desc")}
+							checked={chatRowSwipeActions}
+							onChange={(checked) => void setPreferences({ chatRowSwipeActions: checked })}
+						/>
+					</div>
 				</div>
 
 				<div>

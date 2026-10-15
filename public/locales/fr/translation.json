@@ -1036,7 +1036,10 @@
         "grid": "Grille",
         "double_tap_tap_type": "Double toucher pour envoyer un tap",
         "double_tap_tap_type_desc": "Touchez deux fois un profil dans la grille pour envoyer ce tap. Désactivez pour ouvrir les profils immédiatement d'un simple toucher.",
-        "double_tap_off": "Désactivé"
+        "double_tap_off": "Désactivé",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "Choisissez les notifications que vous recevez et si elles s'affichent lorsque l'application est ouverte.",

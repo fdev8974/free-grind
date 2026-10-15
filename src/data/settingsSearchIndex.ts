@@ -6,7 +6,7 @@ import {
 	CheckCheck,
 	Clapperboard,
 	ClipboardList,
-	DatabaseBackup,
+	ArchiveRestore,
 	Eye,
 	EyeOff,
 	ExternalLink,
@@ -21,7 +21,6 @@ import {
 	LayoutGrid,
 	MessageCircle,
 	MessageSquareQuote,
-	MessageSquareWarning,
 	Monitor,
 	Moon,
 	Palette,
@@ -43,6 +42,10 @@ import {
 	Workflow,
 	Clock,
 	Vibrate,
+	MoveHorizontal,
+	Puzzle,
+	Bot,
+	Bug,
 	type LucideIcon,
 } from "lucide-react";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL } from "../utils/githubIssues";
@@ -208,7 +211,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 				defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
 			}),
 			section: "Look & Feel",
-			icon: ToggleRight,
+			icon: Puzzle,
 			iconClass: "bg-emerald-500/15 text-emerald-400",
 		},
 		{
@@ -328,6 +331,16 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-red-500/15 text-red-400",
 		},
 		{
+			id: "behavior-chat-row-swipe-actions",
+			route: "/settings/behavior",
+			anchor: "behavior-chat-row-swipe-actions",
+			label: t("behavior.chat_row_swipe_actions"),
+			description: t("behavior.chat_row_swipe_actions_desc"),
+			section: "Behavior",
+			icon: MoveHorizontal,
+			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
 			id: "behavior-default-expiring-photos",
 			route: "/settings/behavior",
 			anchor: "behavior-default-expiring-photos",
@@ -424,7 +437,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			label: t("settings.automation"),
 			description: t("settings.automation_desc"),
 			section: "Look & Feel",
-			icon: Workflow,
+			icon: Bot,
 			iconClass: "bg-amber-500/15 text-amber-400",
 		},
 		{
@@ -560,7 +573,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			label: t("settings.data", { defaultValue: "Backup & Restore" }),
 			description: t("settings.data_desc", { defaultValue: "Downloaded media storage, and back up/restore your entire account" }),
 			section: "Backup & Restore",
-			icon: DatabaseBackup,
+			icon: ArchiveRestore,
 			iconClass: "bg-teal-500/15 text-teal-400",
 		},
 		{
@@ -672,7 +685,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			label: t("settings.report_issue"),
 			description: t("settings.report_issue_desc"),
 			section: "About",
-			icon: MessageSquareWarning,
+			icon: Bug,
 			iconClass: "bg-rose-500/15 text-rose-400",
 		},
 	].filter(

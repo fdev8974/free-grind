@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { UserFilled } from "../icons/FilledIcons";
 import { cn } from "../../utils/cn";
 
 interface ProfileImageProps {
@@ -26,7 +26,7 @@ export function ProfileImage({ src, alt, className, iconClassName }: ProfileImag
 				className,
 			)}
 		>
-			<User className={cn("h-1/2 w-1/2", iconClassName)} />
+			<UserFilled className={cn("h-1/2 w-1/2", iconClassName)} />
 		</div>
 	);
 }

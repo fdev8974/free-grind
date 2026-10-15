@@ -1028,7 +1028,10 @@
     "grid": "Grid",
     "double_tap_tap_type": "Double Tap to Send a Tap",
     "double_tap_tap_type_desc": "Double tap a profile in the grid to send this tap. Turn off to open profiles instantly on a single tap.",
-    "double_tap_off": "Off"
+    "double_tap_off": "Off",
+    "chats": "Chats",
+    "chat_row_swipe_actions": "Swipe Actions in Chat List",
+    "chat_row_swipe_actions_desc": "Swipe a chat right to pin it or left to delete it. Long press still opens all actions."
   },
   "notifications_page": {
     "subtitle": "Choose which notifications you get, and whether they show up while the app is open.",

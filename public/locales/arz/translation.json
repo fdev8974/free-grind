@@ -1052,7 +1052,10 @@
         "grid": "الشبكة",
         "double_tap_tap_type": "دوستين عشان تبعت تاب",
         "double_tap_tap_type_desc": "دوس مرتين على بروفايل في الشبكة عشان تبعت التاب ده. اقفله عشان البروفايلات تفتح على طول من دوسة واحدة.",
-        "double_tap_off": "مقفول"
+        "double_tap_off": "مقفول",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "اختار الإشعارات التي تريد تلقيها، وما إذا كانت ستظهر أثناء فتح التطبيق.",

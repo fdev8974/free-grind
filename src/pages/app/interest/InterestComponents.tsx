@@ -1,5 +1,6 @@
-import { useLayoutEffect, useRef, useState, memo, type CSSProperties } from "react";
-import { Eye, Lock, Ban, History, MoveHorizontal, Home, Zap, Check, RefreshCw, type LucideIcon } from "lucide-react";
+import { useLayoutEffect, useRef, useState, memo, type ComponentType, type CSSProperties } from "react";
+import { Ban, History, MoveHorizontal, Zap, Check, RefreshCw } from "lucide-react";
+import { EyeFilled, HomeFilled, LockFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { getThumbImageUrl } from "../../../utils/media";
 import { ProfileImage } from "../../../components/ui/profile-image";
@@ -11,7 +12,7 @@ import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
 export type InterestTabConfig = {
 	key: InterestTab;
 	label: string;
-	icon: LucideIcon;
+	icon: ComponentType<{ className?: string }>;
 	/** Total shown next to the label while the tab is active; omitted = no count. */
 	total?: number;
 	/** New items since last seen — a dot on the icon while the tab is inactive. */
@@ -208,7 +209,7 @@ export const InterestRow = memo(function InterestRow({
 				)}
 				{isLocked && (
 					<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-1 ring-[var(--surface)] z-10">
-						{isPrivate ? <Lock className="h-3 w-3" /> : (
+						{isPrivate ? <LockFilled className="h-3 w-3" /> : (
 							<span title={t("interest_page.blocked_profile")}>
 								<Ban className="h-3 w-3" />
 							</span>
@@ -236,7 +237,7 @@ export const InterestRow = memo(function InterestRow({
 						)}
 						{item.rightNow === "HOSTING" && (
 							<span title={t("right_now.hosting")}>
-								<Home className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
+								<HomeFilled className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 							</span>
 						)}
 						{item.rightNow === "NOT_HOSTING" && (
@@ -288,7 +289,7 @@ export const InterestRow = memo(function InterestRow({
 							className="glass-pill flex h-8 items-center gap-1.5 px-3"
 							style={{ "--pill-color": "var(--text-muted)" } as CSSProperties}
 						>
-							<Eye className="h-3.5 w-3.5 text-[var(--text-muted)]" />
+							<EyeFilled className="h-3.5 w-3.5 text-[var(--text-muted)]" />
 							<span className="text-xs font-bold leading-none tabular-nums text-[var(--text)]">
 								{item.viewCount || 1}
 							</span>

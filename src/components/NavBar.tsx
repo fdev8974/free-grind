@@ -1,4 +1,5 @@
-import { LayoutGrid as GridIcon, Flame, MessageCircle, User, Check, Loader2 } from "lucide-react";
+import { Flame, MessageCircle, Check, Loader2 } from "lucide-react";
+import { LayoutGridFilled as GridIcon, UserFilled } from "./icons/FilledIcons";
 import toast from "react-hot-toast";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -572,7 +573,7 @@ export function NavBar() {
 											<Icon className="h-5 w-5 fill-current md:h-[1.2rem] md:w-[1.2rem]" />
 										) : !profilePhotoUrl ? (
 											// No profile photo: a user icon that takes the tab's (active) color like the other icons.
-											<User className="h-5 w-5 fill-current md:h-[1.2rem] md:w-[1.2rem]" />
+											<UserFilled className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										) : (
 											<Avatar
 												src={profilePhotoUrl}

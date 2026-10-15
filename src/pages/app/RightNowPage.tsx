@@ -4,13 +4,12 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
 	ArrowUpDown,
-	Clock,
-	Home,
 	MessageSquare,
 	Navigation,
-	SlidersHorizontal,
 	Star,
 } from "lucide-react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
+import { ClockFilled, HomeFilled } from "../../components/icons/FilledIcons";
 import { useRightNowFeed } from "../../hooks/queries/useRightNowQueries";
 import type { RightNowFeedItem } from "../../services/apiFunctions";
 import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
@@ -269,19 +268,19 @@ function RightNowRow({
 					<div className="flex items-center gap-3">
 						{timeAgo ? (
 							<span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-								<Clock className="h-3 w-3" />
+								<ClockFilled className="h-3 w-3" />
 								{timeAgo}
 							</span>
 						) : null}
 						{distance && distance !== "hidden" ? (
 							<span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-								<Navigation className="h-3 w-3" />
+								<Navigation className="h-3 w-3 fill-current" />
 								{distance}
 							</span>
 						) : null}
 						{isHosting && (
 							<span className="flex items-center gap-1 text-xs text-[var(--right-now)]">
-								<Home className="h-3.5 w-3.5" />
+								<HomeFilled className="h-3.5 w-3.5" />
 							</span>
 						)}
 					</div>
@@ -690,7 +689,7 @@ export function RightNowPage() {
 							type="button"
 							onClick={toggleHostingOnly}
 							className={cn(
-								"glass-pill shrink-0 px-4 py-2 text-sm font-bold active:scale-95",
+								"glass-pill inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold active:scale-95",
 								hostingOnly
 									? "bg-[var(--right-now)] border-[var(--right-now)] text-white shadow-lg shadow-[var(--right-now)]/40"
 									: "text-[var(--right-now)] hover:border-[var(--right-now)]/60 hover:bg-[var(--right-now)]/20",
@@ -699,6 +698,7 @@ export function RightNowPage() {
 								"--pill-color": "var(--right-now)",
 							} as React.CSSProperties : undefined}
 						>
+							<HomeFilled className="h-3.5 w-3.5" />
 							{t("right_now.hosting")}
 						</button>
 
@@ -715,7 +715,7 @@ export function RightNowPage() {
 								"--pill-color": "var(--right-now)",
 							} as React.CSSProperties : undefined}
 						>
-							<SlidersHorizontal className="h-3.5 w-3.5" />
+							<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
 							{hasAdvancedFilters ? filterSummary : t("right_now.filters")}
 						</button>
 					</div>

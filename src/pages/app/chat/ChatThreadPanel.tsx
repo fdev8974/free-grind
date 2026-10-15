@@ -8,16 +8,12 @@ import {
 	Copy,
 	Download,
 	EllipsisVertical,
-	Eye,
-	EyeOff,
 	Languages,
 	Star,
 	GitMerge,
 	GripVertical,
-	HeartPulse,
 	Hourglass,
 	ImagePlus,
-	Images,
 	Loader2,
 	Mic,
 	Square,
@@ -25,11 +21,9 @@ import {
 	Settings2,
 	BookMarked,
 	MessageCircleOff,
-	MessageCircleX,
 	Flag,
 	MessageSquarePlus,
 	MessageSquareQuote,
-	PencilLine,
 	Pin,
 	Play,
 	Reply,
@@ -39,13 +33,11 @@ import {
 	SquareCenterlineDashedHorizontal,
 	Trash2,
 	Video,
-	VideoOff,
 	Undo2,
-	User,
-	Volume2,
 	X,
+	BellOff,
 } from "lucide-react";
-import { ImagePlusFilled, MapPinFilled, MessageSquareQuoteFilled, SquareStackFilled, StickerFilled } from "../../../components/icons/FilledIcons";
+import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
@@ -1452,7 +1444,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										className="rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
 										aria-label="Received media"
 									>
-										<Images className="h-4 w-4" />
+										<ImagesFilled className="h-4 w-4" />
 									</button>
 								)}
 
@@ -1488,7 +1480,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												disabled={profileId == null}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"
 											>
-												<User className="mr-2 h-4 w-4 opacity-70" />
+												<UserFilled className="mr-2 h-4 w-4 opacity-70" />
 												{t("chat.view_profile")}
 											</button>
 											)}
@@ -1501,7 +1493,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												}}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 											>
-												<HeartPulse className="mr-2 h-4 w-4 opacity-70" />
+												<BananaFilled className="mr-2 h-4 w-4 opacity-70" />
 												{t("chat.log_encounter", { defaultValue: "I met this person now" })}
 											</button>
 											)}
@@ -1522,9 +1514,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
 												>
 													{videoCallDisabled ? (
-														<VideoOff className="mr-2 h-4 w-4 opacity-70" />
+														<VideoOffFilled className="mr-2 h-4 w-4 opacity-70" />
 													) : (
-														<Video className="mr-2 h-4 w-4 opacity-70" />
+														<Video className="mr-2 h-4 w-4 fill-current opacity-70" />
 													)}
 													<span className="flex flex-col">
 														<span>{t("chat.start_video_call")}</span>
@@ -1553,7 +1545,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													disabled={!selectedConversation}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 												>
-													<Images className="mr-2 h-4 w-4 opacity-70" />
+													<ImagesFilled className="mr-2 h-4 w-4 opacity-70" />
 													{t("chat.received_media")}
 												</button>
 											)}
@@ -1617,7 +1609,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												disabled={profileId == null || !onEditLocalNickname}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"
 											>
-												<PencilLine className="mr-2 h-4 w-4 opacity-70" />
+												<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
 												{localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
 											</button>
 											{isArchived && onMergeConversation && (
@@ -1668,7 +1660,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													}}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 												>
-													<Pin className="mr-2 h-4 w-4 opacity-70" />
+													<Pin className={`mr-2 h-4 w-4 opacity-70 ${selectedConversation?.data.pinned ? "fill-current" : ""}`} />
 													{selectedConversation?.data.pinned ? t("chat.unpin") : t("chat.pin")}
 												</button>
 											)}
@@ -1681,7 +1673,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												}}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 											>
-												{isHidden ? <Eye className="mr-2 h-4 w-4 opacity-70" /> : <EyeOff className="mr-2 h-4 w-4 opacity-70" />}
+												{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 												{isHidden
 													? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
 													: t("chat.hide_conversation", { defaultValue: "Hide chat" })}
@@ -1697,9 +1689,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 												>
 													{selectedConversation?.data.muted ? (
-														<Volume2 className="mr-2 h-4 w-4 opacity-70" />
+														<BellOffFilled className="mr-2 h-4 w-4 opacity-70" />
 													) : (
-														<MessageCircleOff className="mr-2 h-4 w-4 opacity-70" />
+														<BellOff className="mr-2 h-4 w-4 opacity-70" />
 													)}
 													{selectedConversation?.data.muted ? t("chat.unmute") : t("chat.mute")}
 												</button>
@@ -1744,7 +1736,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													disabled={isUnblockingProfile || profileId == null || !onUnblockProfile}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-emerald-400 transition hover:bg-emerald-500/10 disabled:opacity-60"
 												>
-													<ShieldCheck className="mr-2 h-4 w-4 opacity-70" />
+													<ShieldCheckFilled className="mr-2 h-4 w-4 opacity-70" />
 													{isUnblockingProfile ? t("profile_details.unblock_in_progress") : t("profile_details.unblock")}
 												</button>
 											)}
@@ -1757,7 +1749,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													}}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10"
 												>
-													<Flag className="mr-2 h-4 w-4 opacity-70" />
+													<Flag className="mr-2 h-4 w-4 fill-current opacity-70" />
 													{t("profile_details.report.menu_item")}
 												</button>
 											)}
@@ -1767,7 +1759,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												disabled={!selectedConversation || !onDeleteConversation || isDeletingConversation}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
 											>
-												<MessageCircleX className="mr-2 h-4 w-4 opacity-70" />
+												<MessageCircleXFilled className="mr-2 h-4 w-4 opacity-70" />
 												{isDeletingConversation ? t("chat.delete_conversation_in_progress") : t("chat.delete_conversation")}
 											</button>
 											</div>
@@ -2253,7 +2245,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									>
 										<span className="relative h-4 w-4">
 											<span className="absolute inset-0" style={{ opacity: Math.max(0, 1 - dragProgress * 2) }}>
-											<Mic className="h-4 w-4 animate-pulse" />
+											<MicFilled className="h-4 w-4 animate-pulse" />
 										</span>
 											<Trash2 className={`absolute inset-0 h-4 w-4 ${trashBounce ? "animate-trash-bounce" : ""}`} style={{ opacity: Math.max(0, (dragProgress - 0.3) / 0.7) }} />
 										</span>
@@ -2407,7 +2399,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											}}
 										/>
 									)}
-									<Mic className="relative h-4 w-4" />
+									<MicFilled className="relative h-4 w-4" />
 								</button>
 							)}
 						</div>}
@@ -2452,7 +2444,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								aria-label={t("chat.attach_media")}
 								title={t("chat.attach_media")}
 							>
-								<ImagePlusFilled className="h-5 w-5" />
+								<CameraPlusFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
@@ -2465,7 +2457,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								aria-label={t("chat.drawer_label")}
 								title={t("chat.drawer_label")}
 							>
-								<SquareStackFilled className="h-5 w-5" />
+								<ImagesFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"

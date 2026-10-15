@@ -1028,7 +1028,10 @@
         "grid": "Grid",
         "double_tap_tap_type": "Doppeltippen sendet einen Tap",
         "double_tap_tap_type_desc": "Tippe ein Profil im Grid doppelt an, um diesen Tap zu senden. Schalte es aus, damit Profile schon beim einfachen Tippen sofort öffnen.",
-        "double_tap_off": "Aus"
+        "double_tap_off": "Aus",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "Wähle, welche Benachrichtigungen du erhältst und ob sie bei geöffneter App angezeigt werden.",

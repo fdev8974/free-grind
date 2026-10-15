@@ -1,4 +1,5 @@
-import { X, Home, Camera, Loader2, CheckCircle2, AlertCircle, Lock, Hourglass } from "lucide-react";
+import { X, Camera, Loader2, CheckCircle2, AlertCircle, Lock, Hourglass } from "lucide-react";
+import { HomeFilled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -633,7 +634,7 @@ export function RightNowPostPage({ onClose, onPost }: RightNowPostPageProps) {
 									}}
 								>
 									<ToggleRow
-										icon={<Home className="h-5 w-5" />}
+										icon={<HomeFilled className="h-5 w-5" />}
 										iconClass={cn(
 											"flex h-10 w-10 items-center justify-center shadow-sm transition-colors",
 											isHosting ? "bg-[var(--right-now)] text-white" : "bg-[var(--surface-3,var(--surface))] text-[var(--text-muted)]"

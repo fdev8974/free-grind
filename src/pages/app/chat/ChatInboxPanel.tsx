@@ -1,10 +1,13 @@
-import { Archive, BellOff, CheckCheck, Eye, EyeOff, Home, Loader2, MessageCircle, Pin, PinOff, Star, Trash2, Zap } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { Archive, BellOff, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2, Zap } from "lucide-react";
+import { BellOffFilled, EyeOffFilled, HomeFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChatSearchPanel } from "./ChatSearchPanel";
 import { ChatInboxHeader, type ChatInboxHeaderProps } from "./ChatInboxHeader";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -104,6 +107,7 @@ type ChatInboxPanelProps = ChatInboxHeaderProps & {
 	onViewProfile: (profileId: number) => void;
 	typingConversationIds?: Set<string>;
 	onTogglePinConversation: (conversationId: string, isPinned: boolean) => void | Promise<void>;
+	onToggleMuteConversation: (conversationId: string, isMuted: boolean) => void | Promise<void>;
 	hiddenConversationIds: Set<string>;
 	onToggleHideConversation: (conversationId: string, isHidden: boolean) => void;
 	onDeleteConversation: (conversationId: string) => void | Promise<void>;
@@ -124,9 +128,115 @@ type ChatConversationRowProps = {
 	onSelectConversation: (c: ConversationEntry) => void;
 	onViewProfile: (profileId: number) => void;
 	onOpenContextMenu: (conversation: ConversationEntry, isArchived: boolean, x: number, y: number) => void;
+	onOpenActionSheet: (conversation: ConversationEntry, isArchived: boolean, title: string) => void;
 	onSwipePin: (conversation: ConversationEntry) => void;
 	onSwipeDeleteRequest: (conversation: ConversationEntry, isArchived: boolean) => void;
 };
+
+type ConversationAction = {
+	key: string;
+	label: string;
+	icon: ReactNode;
+	onSelect: () => void;
+	destructive?: boolean;
+};
+
+type ConversationActionHandlers = {
+	onTogglePin: () => void;
+	onToggleMute: () => void;
+	onToggleHide: () => void;
+	onDelete: () => void;
+};
+
+// Shared by the desktop right-click menu and the mobile long-press sheet so
+// both always offer the same actions. Toggle icons stay the same glyph and
+// only fill in while their state is active.
+function buildConversationActions(
+	t: TFunction,
+	conversation: ConversationEntry,
+	isArchived: boolean,
+	isHidden: boolean,
+	handlers: ConversationActionHandlers,
+): ConversationAction[] {
+	const isPinned = conversation.data.pinned;
+	const isMuted = conversation.data.muted;
+	return [
+		...(!isArchived
+			? [{
+				key: "pin",
+				label: isPinned ? t("chat.unpin") : t("chat.pin"),
+				icon: <Pin className={`h-4 w-4 ${isPinned ? "fill-current" : ""}`} />,
+				onSelect: handlers.onTogglePin,
+			}]
+			: []),
+		{
+			key: "mute",
+			label: isMuted ? t("chat.unmute") : t("chat.mute"),
+			icon: isMuted ? <BellOffFilled className="h-4 w-4" /> : <BellOff className="h-4 w-4" />,
+			onSelect: handlers.onToggleMute,
+		},
+		{
+			key: "hide",
+			label: isHidden
+				? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
+				: t("chat.hide_conversation", { defaultValue: "Hide chat" }),
+			icon: isHidden ? <EyeOffFilled className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />,
+			onSelect: handlers.onToggleHide,
+		},
+		{
+			key: "delete",
+			label: t("chat.delete_conversation"),
+			icon: <Trash2Filled className="h-4 w-4" />,
+			onSelect: handlers.onDelete,
+			destructive: true,
+		},
+	];
+}
+
+function ConversationActionSheet({
+	title,
+	actions,
+	onClose,
+}: {
+	title: string;
+	actions: ConversationAction[];
+	onClose: () => void;
+}) {
+	// Run the picked action only once the sheet has finished closing — it pops
+	// its own history entry on close, which would otherwise race anything the
+	// action opens (e.g. the delete confirmation).
+	const pendingActionRef = useRef<(() => void) | null>(null);
+	return (
+		<BottomSheet
+			onClose={() => {
+				const action = pendingActionRef.current;
+				pendingActionRef.current = null;
+				onClose();
+				action?.();
+			}}
+		>
+			<p className="truncate px-4 pb-2 text-sm font-semibold text-[var(--text)]">{title}</p>
+			<div className="flex flex-col pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
+				{actions.map((action) => (
+					<SheetClose
+						key={action.key}
+						onClick={() => {
+							pendingActionRef.current = action.onSelect;
+						}}
+						className={`flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-semibold transition ${
+							action.destructive
+								? "mt-1 border-t border-[var(--border)] text-red-500 hover:bg-red-500/10"
+								: "text-[var(--text)] hover:bg-[var(--surface-2)]"
+						}`}
+					>
+						{action.icon}
+						{action.label}
+					</SheetClose>
+				))}
+			</div>
+		</BottomSheet>
+	);
+}
 
 // Pinning is a server-side flag on a live conversation — it doesn't make
 // sense (and the API has nothing to target) once we've locally archived a
@@ -139,6 +249,7 @@ function ConversationContextMenu({
 	y,
 	onClose,
 	onTogglePin,
+	onToggleMute,
 	onToggleHide,
 	onDelete,
 }: {
@@ -149,6 +260,7 @@ function ConversationContextMenu({
 	y: number;
 	onClose: () => void;
 	onTogglePin: () => void;
+	onToggleMute: () => void;
 	onToggleHide: () => void;
 	onDelete: () => void;
 }) {
@@ -186,7 +298,12 @@ function ConversationContextMenu({
 		};
 	}, [onClose]);
 
-	const isPinned = conversation.data.pinned;
+	const actions = buildConversationActions(t, conversation, isArchived, isHidden, {
+		onTogglePin,
+		onToggleMute,
+		onToggleHide,
+		onDelete,
+	});
 
 	// Portal to <body> — the list sits inside PullToRefreshContainer, which
 	// applies a `transform` to its content wrapper (even at rest, translateY(0)
@@ -199,35 +316,23 @@ function ConversationContextMenu({
 			style={{ top: position.top, left: position.left }}
 			className="fixed z-[70] flex min-w-[190px] flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl"
 		>
-			{!isArchived && (
-				<button
-					type="button"
-					onClick={onTogglePin}
-					className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
-				>
-					{isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-					{isPinned ? t("chat.unpin") : t("chat.pin")}
-				</button>
-			)}
-			<button
-				type="button"
-				onClick={onToggleHide}
-				className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
-			>
-				{isHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-				{isHidden
-					? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
-					: t("chat.hide_conversation", { defaultValue: "Hide chat" })}
-			</button>
-			<div className="-mx-2 mt-1 border-t border-[var(--border)] pt-1" />
-			<button
-				type="button"
-				onClick={onDelete}
-				className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm text-red-500 transition hover:bg-red-500/10"
-			>
-				<Trash2 className="h-4 w-4" />
-				{t("chat.delete_conversation")}
-			</button>
+			{actions.map((action) => (
+				<Fragment key={action.key}>
+					{action.destructive && <div className="-mx-2 mt-1 border-t border-[var(--border)] pt-1" />}
+					<button
+						type="button"
+						onClick={action.onSelect}
+						className={`flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm transition ${
+							action.destructive
+								? "text-red-500 hover:bg-red-500/10"
+								: "text-[var(--text)] hover:bg-[var(--surface-2)]"
+						}`}
+					>
+						{action.icon}
+						{action.label}
+					</button>
+				</Fragment>
+			))}
 		</div>,
 		document.body,
 	);
@@ -246,11 +351,12 @@ function ChatConversationRow({
 	onSelectConversation,
 	onViewProfile,
 	onOpenContextMenu,
+	onOpenActionSheet,
 	onSwipePin,
 	onSwipeDeleteRequest,
 }: ChatConversationRowProps) {
 	const { t } = useTranslation();
-	const { showDebugInfo } = usePreferences();
+	const { showDebugInfo, chatRowSwipeActions } = usePreferences();
 	const { ref, revealClass } = useRevealOnScroll();
 	useAvatarCache();
 
@@ -265,10 +371,19 @@ function ChatConversationRow({
 		lock: "pending" | "horizontal" | "vertical";
 	} | null>(null);
 	const suppressClickRef = useRef(false);
+	const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const cancelLongPress = () => {
+		if (longPressTimerRef.current) {
+			clearTimeout(longPressTimerRef.current);
+			longPressTimerRef.current = null;
+		}
+	};
+	useEffect(() => cancelLongPress, []);
 
 	const SWIPE_THRESHOLD = 60;
 	const SWIPE_MAX_DRAG = 96;
 	const DIRECTION_LOCK_DISTANCE = 8;
+	const LONG_PRESS_MS = 450;
 
 	const resetSwipeVisual = () => {
 		const content = contentRef.current;
@@ -292,6 +407,16 @@ function ChatConversationRow({
 		}
 		const touch = event.touches[0];
 		swipeStateRef.current = { startX: touch.clientX, startY: touch.clientY, dx: 0, armed: false, lock: "pending" };
+		cancelLongPress();
+		longPressTimerRef.current = setTimeout(() => {
+			longPressTimerRef.current = null;
+			// Holding still: end the gesture here so the release neither swipes
+			// nor opens the chat.
+			swipeStateRef.current = null;
+			suppressClickRef.current = true;
+			haptic(30);
+			onOpenActionSheet(conversation, isArchived, displayName);
+		}, LONG_PRESS_MS);
 	};
 
 	const handleTouchMove = (event: React.TouchEvent) => {
@@ -305,6 +430,13 @@ function ChatConversationRow({
 
 		if (state.lock === "pending") {
 			if (Math.max(Math.abs(rawDx), Math.abs(rawDy)) < DIRECTION_LOCK_DISTANCE) return;
+			cancelLongPress();
+			// With swipe actions off, any movement just ends the gesture (it was
+			// only being tracked for the long press).
+			if (!chatRowSwipeActions) {
+				swipeStateRef.current = null;
+				return;
+			}
 			// Whichever axis moved further decides the gesture — once it's a
 			// vertical scroll we stop touching the row entirely so scrolling
 			// the list can never leave a swipe "armed" for the next touchend.
@@ -345,6 +477,7 @@ function ChatConversationRow({
 	};
 
 	const handleTouchEnd = () => {
+		cancelLongPress();
 		const state = swipeStateRef.current;
 		swipeStateRef.current = null;
 		if (!state) return;
@@ -363,6 +496,7 @@ function ChatConversationRow({
 	};
 
 	const handleTouchCancel = () => {
+		cancelLongPress();
 		swipeStateRef.current = null;
 		resetSwipeVisual();
 	};
@@ -376,8 +510,9 @@ function ChatConversationRow({
 	};
 
 	const handleContextMenu = (event: React.MouseEvent) => {
-		if (!isDesktop) return;
 		event.preventDefault();
+		// Touch devices fire contextmenu on long press too; the sheet handles that.
+		if (!isDesktop) return;
 		onOpenContextMenu(conversation, isArchived, event.clientX, event.clientY);
 	};
 
@@ -479,7 +614,7 @@ function ChatConversationRow({
 								</p>
 								{conversation.data.muted && (
 									<span title={t("chat.muted")}>
-										<BellOff className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+										<BellOffFilled className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
 									</span>
 								)}
 								{conversation.data.favorite && (
@@ -489,7 +624,7 @@ function ChatConversationRow({
 								)}
 								{conversation.data.rightNow === "HOSTING" && (
 									<span title={t("right_now.hosting")}>
-										<Home className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
+										<HomeFilled className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 									</span>
 								)}
 								{conversation.data.rightNow === "NOT_HOSTING" && (
@@ -580,6 +715,7 @@ export function ChatInboxPanel({
 	needsReplyOnly,
 	typingConversationIds,
 	onTogglePinConversation,
+	onToggleMuteConversation,
 	hiddenConversationIds,
 	onToggleHideConversation,
 	onDeleteConversation,
@@ -596,6 +732,37 @@ export function ChatInboxPanel({
 		x: number;
 		y: number;
 	} | null>(null);
+	const [actionSheetState, setActionSheetState] = useState<{
+		conversation: ConversationEntry;
+		isArchived: boolean;
+		title: string;
+	} | null>(null);
+
+	const conversationActionHandlers = (
+		conversation: ConversationEntry,
+		isArchived: boolean,
+		close: () => void,
+	): ConversationActionHandlers => ({
+		onTogglePin: () => {
+			close();
+			void onTogglePinConversation(conversation.data.conversationId, conversation.data.pinned);
+		},
+		onToggleMute: () => {
+			close();
+			void onToggleMuteConversation(conversation.data.conversationId, conversation.data.muted);
+		},
+		onToggleHide: () => {
+			close();
+			onToggleHideConversation(
+				conversation.data.conversationId,
+				hiddenConversationIds.has(conversation.data.conversationId),
+			);
+		},
+		onDelete: () => {
+			close();
+			requestDeleteConversation(conversation, isArchived);
+		},
+	});
 	const [deleteConfirmState, setDeleteConfirmState] = useState<{
 		conversation: ConversationEntry;
 		isArchived: boolean;
@@ -809,6 +976,9 @@ export function ChatInboxPanel({
 														isDesktop={isDesktop}
 														onSelectConversation={onSelectConversation}
 														onViewProfile={onViewProfile}
+														onOpenActionSheet={(c, isArchived, title) =>
+															setActionSheetState({ conversation: c, isArchived, title })
+														}
 														onOpenContextMenu={(c, isArchived, x, y) =>
 															setContextMenuState({ conversation: c, isArchived, x, y })
 														}
@@ -842,23 +1012,22 @@ export function ChatInboxPanel({
 					x={contextMenuState.x}
 					y={contextMenuState.y}
 					onClose={() => setContextMenuState(null)}
-					onTogglePin={() => {
-						const { conversation } = contextMenuState;
-						setContextMenuState(null);
-						void onTogglePinConversation(conversation.data.conversationId, conversation.data.pinned);
-					}}
-					onToggleHide={() => {
-						const { conversation } = contextMenuState;
-						setContextMenuState(null);
-						onToggleHideConversation(
-							conversation.data.conversationId,
-							hiddenConversationIds.has(conversation.data.conversationId),
-						);
-					}}
-					onDelete={() => {
-						setContextMenuState(null);
-						requestDeleteConversation(contextMenuState.conversation, contextMenuState.isArchived);
-					}}
+					{...conversationActionHandlers(contextMenuState.conversation, contextMenuState.isArchived, () => setContextMenuState(null))}
+				/>
+			) : null}
+
+			{actionSheetState ? (
+				<ConversationActionSheet
+					title={actionSheetState.title}
+					actions={buildConversationActions(
+						t,
+						actionSheetState.conversation,
+						actionSheetState.isArchived,
+						hiddenConversationIds.has(actionSheetState.conversation.data.conversationId),
+						// The sheet closes itself before running the action.
+						conversationActionHandlers(actionSheetState.conversation, actionSheetState.isArchived, () => {}),
+					)}
+					onClose={() => setActionSheetState(null)}
 				/>
 			) : null}
 

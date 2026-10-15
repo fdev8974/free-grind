@@ -13,7 +13,6 @@ import {
 	Globe,
 	Hash,
 	Heart,
-	Home,
 	MapPin,
 	MessageCircle,
 	MessageSquare,
@@ -29,6 +28,7 @@ import {
 	Syringe,
 	User,
 } from "lucide-react";
+import { HomeFilled } from "../../../../components/icons/FilledIcons";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
@@ -521,7 +521,7 @@ export function ProfileDetailsContent({
 								<span className="flex items-center gap-1 font-semibold" style={{ color: "var(--right-now)" }}>
 									{isRightNowHosting ? (
 										<>
-											<Home className="h-3.5 w-3.5" />
+											<HomeFilled className="h-3.5 w-3.5" />
 											{t("right_now.hosting")}
 										</>
 									) : (

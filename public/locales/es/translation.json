@@ -1036,7 +1036,10 @@
         "grid": "Cuadrícula",
         "double_tap_tap_type": "Doble toque para enviar un tap",
         "double_tap_tap_type_desc": "Toca dos veces un perfil en la cuadrícula para enviar este tap. Desactívalo para abrir los perfiles al instante con un solo toque.",
-        "double_tap_off": "Desactivado"
+        "double_tap_off": "Desactivado",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "Elige qué notificaciones recibes y si se muestran mientras la app está abierta.",

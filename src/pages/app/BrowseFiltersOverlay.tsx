@@ -10,13 +10,13 @@ import {
 	Scale,
 	Search,
 	ShieldAlert,
-	SlidersHorizontal,
 	Tag as TagIcon,
 	Users,
 	X,
 	Zap,
 	type LucideIcon,
 } from "lucide-react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
@@ -365,7 +365,7 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 					<div className="flex items-center justify-between gap-3">
 						<div className="flex items-center gap-3">
 							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text)]">
-								<SlidersHorizontal className="h-5 w-5" />
+								<PhosphorSlidersHorizontal weight="fill" className="h-5 w-5" />
 							</div>
 							<h2 className="text-xl font-bold tracking-tight text-[var(--text)]">
 								{t("browse_filters.title")}

@@ -1028,7 +1028,10 @@
         "grid": "Grid",
         "double_tap_tap_type": "Dubbeltikken om een tap te sturen",
         "double_tap_tap_type_desc": "Tik twee keer op een profiel in het Grid om deze tap te sturen. Zet het uit om profielen direct met één tik te openen.",
-        "double_tap_off": "Uit"
+        "double_tap_off": "Uit",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "Kies welke meldingen je krijgt en of ze verschijnen terwijl de app open is.",

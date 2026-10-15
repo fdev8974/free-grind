@@ -1,5 +1,7 @@
-import { Clapperboard, Images, Loader2, Mail, Pill, Search, SlidersHorizontal, Star, X } from "lucide-react";
+import { Clapperboard, Images, Loader2, Pill, Search, Star, X } from "lucide-react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
+import { MailFilled } from "../../../components/icons/FilledIcons";
 import { type CSSProperties, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -190,7 +192,7 @@ export function ChatInboxHeader({
 									)}
 									style={!hasActiveInboxFilters ? { "--pill-color": "var(--accent)" } as CSSProperties : undefined}
 								>
-									<SlidersHorizontal className="h-3.5 w-3.5" />
+									<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
 									{t("right_now.filters")}
 									{hasActiveInboxFilters && activeFilterCount > 0 && (
 										<span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent-contrast)] px-1 text-[9px] font-bold text-[var(--accent)]">
@@ -200,13 +202,13 @@ export function ChatInboxHeader({
 								</button>
 
 								<FilterPill
-									icon={<Mail className="h-3.5 w-3.5" />}
+									icon={<MailFilled className="h-3.5 w-3.5" />}
 									label={t("chat_filters.options.unread")}
 									active={Boolean(inboxFilters.unreadOnly)}
 									onClick={onToggleUnreadOnly}
 								/>
 								<FilterPill
-									icon={<Star className={`h-3.5 w-3.5 ${inboxFilters.favoritesOnly ? "fill-current" : ""}`} />}
+									icon={<Star className="h-3.5 w-3.5 fill-current" />}
 									label={t("browse_filters.options.favorites")}
 									active={Boolean(inboxFilters.favoritesOnly)}
 									onClick={onToggleFavoritesOnly}

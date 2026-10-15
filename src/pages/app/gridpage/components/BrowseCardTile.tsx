@@ -1,5 +1,6 @@
 import type { BrowseCard } from "../../GridPage.types";
-import { Flame, MapPin, MapPinOff, MessageCircle, Plane, Satellite, Star, Zap } from "lucide-react";
+import { Flame, MessageCircle, Plane, Satellite, Star, Zap } from "lucide-react";
+import { MapPinFilled, MapPinOffFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { useTranslation } from "react-i18next";
 import {
@@ -283,15 +284,10 @@ export function BrowseCardTile({
 					<div className="absolute bottom-2 right-2 z-10 flex flex-col items-end gap-1">
 						{/* Tap status sits above the row so it doesn't crowd favorite + chat
 							next to the distance. Outlined flame = you tapped, filled = they
-							tapped you, white flame on orange = both (mutual). */}
+							tapped you, filled with a white outline = both (mutual). */}
 						{(hasSentTap || hasReceivedTap) && (
 							<div
-								className={cn(
-									"flex h-5 w-5 items-center justify-center rounded-full shadow-lg",
-									hasSentTap && hasReceivedTap
-										? "bg-orange-500 text-white"
-										: "bg-black/50 text-orange-400 backdrop-blur-sm",
-								)}
+								className="flex h-5 w-5 items-center justify-center drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]"
 								title={hasSentTap && hasReceivedTap
 									? t("browse_page.tile_tap.mutual", { defaultValue: "You tapped each other" })
 									: hasSentTap
@@ -299,15 +295,20 @@ export function BrowseCardTile({
 										: t("browse_page.tile_tap.received", { defaultValue: "They tapped you" })}
 							>
 								<Flame
-									className={cn("h-3.5 w-3.5", hasReceivedTap && "fill-current")}
+									className={cn(
+										"h-3.5 w-3.5",
+										hasSentTap && hasReceivedTap
+											? "fill-orange-500 text-white"
+											: cn("text-orange-400", hasReceivedTap && "fill-current"),
+									)}
 									strokeWidth={hasSentTap && !hasReceivedTap ? 2.5 : 2}
 								/>
 							</div>
 						)}
 						<div className="flex items-center gap-1">
 							{isFavorite && (
-								<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-yellow-500 shadow-lg backdrop-blur-sm">
-									<Star className="h-3.5 w-3.5 fill-current" />
+								<div className="flex h-5 w-5 items-center justify-center">
+									<Star className="h-3.5 w-3.5 fill-current text-yellow-500 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]" />
 								</div>
 							)}
 
@@ -321,8 +322,8 @@ export function BrowseCardTile({
 									)}
 								</span>
 							) : hasChatted ? (
-								<div className="flex h-5 w-5 items-center justify-center rounded-full bg-black/50 text-white shadow-lg backdrop-blur-sm">
-									<MessageCircle className="h-3.5 w-3.5" />
+								<div className="flex h-5 w-5 items-center justify-center">
+									<MessageCircle className="h-3.5 w-3.5 fill-current text-white drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]" />
 								</div>
 							) : null}
 						</div>
@@ -332,10 +333,10 @@ export function BrowseCardTile({
 					<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none" />
 					<div className="absolute bottom-2 left-2 z-10 flex h-5 items-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
 						{card.distanceMeters == null || !Number.isFinite(card.distanceMeters) ? (
-							<MapPinOff className="h-3.5 w-3.5" />
+							<MapPinOffFilled className="h-3.5 w-3.5" />
 						) : (
 							<span className="inline-flex items-center gap-1 text-xs font-semibold">
-								<MapPin className="h-3.5 w-3.5" />
+								<MapPinFilled className="h-3.5 w-3.5" />
 								{formatDistance(card.distanceMeters, t, unitsPreset)}
 							</span>
 						)}

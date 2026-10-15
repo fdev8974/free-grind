@@ -1044,7 +1044,10 @@
         "grid": "Mreža",
         "double_tap_tap_type": "Dvojni dotik pošlje tap",
         "double_tap_tap_type_desc": "Dvakrat se dotakni profila v mreži, da pošlješ ta tap. Izklopi, da se profili takoj odprejo z enim dotikom.",
-        "double_tap_off": "Izklopljeno"
+        "double_tap_off": "Izklopljeno",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "Izberi, katera obvestila prejemaš in ali se prikazujejo, ko je aplikacija odprta.",

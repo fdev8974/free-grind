@@ -1036,7 +1036,10 @@
         "grid": "Grade",
         "double_tap_tap_type": "Toque duplo para enviar um toque",
         "double_tap_tap_type_desc": "Toque duas vezes em um perfil na grade para enviar este toque. Desative para abrir os perfis na hora com um toque simples.",
-        "double_tap_off": "Desativado"
+        "double_tap_off": "Desativado",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicativo está aberto.",

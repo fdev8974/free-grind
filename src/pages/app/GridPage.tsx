@@ -1,5 +1,7 @@
 import { useAuth } from "../../contexts/useAuth";
-import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, RefreshCw, X, Check, UserSearch } from "lucide-react";
+import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, Check, UserSearch } from "lucide-react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
+import { EyeFilled, EyeOffFilled, MapPinFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -1486,9 +1488,9 @@ export function GridPage() {
 											{exploreLocation ? (
 												<Search className="h-3.5 w-3.5" />
 											) : useAutoLocation ? (
-												<Navigation className="h-3.5 w-3.5" />
+												<Navigation className="h-3.5 w-3.5 fill-current" />
 											) : (
-												<MapPin className="h-3.5 w-3.5" />
+												<MapPinFilled className="h-3.5 w-3.5" />
 											)}
 										</div>
 										<div className="min-w-0 flex-1">
@@ -1525,8 +1527,8 @@ export function GridPage() {
 										className="group flex h-12 shrink-0 items-center justify-center pl-3 pr-4 transition active:scale-90 disabled:opacity-50"
 									>
 										{showDistance
-											? <Eye className={`h-4 w-4 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
-											: <EyeOff
+											? <EyeFilled className={`h-4 w-4 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
+											: <EyeOffFilled
 													className={cn(
 														"h-4 w-4 transition-colors text-[var(--text-muted)]",
 														exploreLocation ? "group-hover:text-[var(--explore)]" : "group-hover:text-[var(--accent)]",
@@ -1565,7 +1567,7 @@ export function GridPage() {
 											: undefined
 									}
 								>
-									<UserSearch className="h-4 w-4" />
+									<UserSearchFilled className="h-4 w-4" />
 								</button>
 							</div>
 
@@ -1630,7 +1632,7 @@ export function GridPage() {
 												: undefined
 										}
 									>
-										<SlidersHorizontal className="h-3.5 w-3.5" />
+										<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
 										{t("right_now.filters")}
 										{hasActiveBrowseFilters ? (
 											<span
@@ -1655,13 +1657,13 @@ export function GridPage() {
 										)}
 										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
 									>
-										<ListFilter className="h-3.5 w-3.5 shrink-0" />
+										<ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
 										{sortOptions.find((option) => option.value === sortBy)?.label ?? sortOptions[0].label}
 									</button>
 
 									{!exploreLocation && (
 										<FilterPill
-											icon={<Star className={`h-3.5 w-3.5 ${browseFilters.favorites ? "fill-current" : ""}`} />}
+											icon={<Star className="h-3.5 w-3.5 fill-current" />}
 											label={t("browse_filters.options.favorites")}
 											active={Boolean(browseFilters.favorites)}
 											onClick={() =>
@@ -1688,7 +1690,7 @@ export function GridPage() {
 									/>
 
 									<FilterPill
-										icon={<Plane className={`h-3.5 w-3.5 ${browseFilters.isVisiting ? "fill-current" : ""}`} />}
+										icon={<Plane className="h-3.5 w-3.5 fill-current" />}
 										label={t("profile_details.visiting")}
 										active={Boolean(browseFilters.isVisiting)}
 										onClick={() =>

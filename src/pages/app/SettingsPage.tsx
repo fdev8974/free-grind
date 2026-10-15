@@ -3,45 +3,32 @@ import { getVersion } from "@tauri-apps/api/app";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import {
+	DatabaseBackup,
 	AlertCircle,
 	Bell,
-	Bug,
 	CheckCircle2,
 	ChevronRight,
-	ClipboardList,
-	DatabaseBackup,
 	Download,
-	EyeOff,
 	GitBranch,
-	HeartPulse,
 	HelpCircle,
-	Images,
 	Languages,
-	Info,
 	Loader2,
 	LogOut,
-	Megaphone,
-	MessageSquareWarning,
 	History,
-	Palette,
 	Plus,
 	Radar,
 	RotateCcw,
 	RefreshCcw,
 	Search,
 	Shield,
-	SlidersHorizontal,
-	ToggleRight,
 	Terminal,
-	FlaskConical,
-    Workflow,
-	UserPlus,
-	UserX,
 	X,
-	FileUp,
 	ScrollText,
 	Share2,
+	Puzzle,
 } from "lucide-react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
+import { ArchiveRestoreFilled, BotFilled, BugFilled, ClipboardListFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, UserPlusFilled, UserXFilled } from "../../components/icons/FilledIcons";
 import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -841,7 +828,7 @@ export function SettingsPage() {
 									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 								>
 									<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-										<UserPlus className="h-5 w-5" />
+										<UserPlusFilled className="h-5 w-5" />
 									</div>
 									<div className="min-w-0 flex-1">
 										<p className="text-sm font-semibold leading-snug">
@@ -904,7 +891,7 @@ export function SettingsPage() {
 								</div>
 								{navRow(
 									() => navigate("/settings/albums"),
-									<Images className="h-5 w-5" />,
+									<ImagesFilled className="h-5 w-5" />,
 									"bg-pink-500/15 text-pink-400",
 									t("settings.my_albums"),
 									t("settings.my_albums_desc"),
@@ -925,14 +912,14 @@ export function SettingsPage() {
 							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/blocked"),
-									<UserX className="h-5 w-5" />,
+									<UserXFilled className="h-5 w-5" />,
 									"bg-red-500/15 text-red-400",
 									t("settings.blocked_accounts"),
 									t("settings.blocked_accounts_desc"),
 								)}
 								{navRow(
 									() => navigate("/settings/hidden"),
-									<EyeOff className="h-5 w-5" />,
+									<EyeOffFilled className="h-5 w-5" />,
 									"bg-slate-500/15 text-slate-400",
 									t("settings.hidden_profiles", { defaultValue: "Hidden Profiles" }),
 									t("settings.hidden_profiles_desc", {
@@ -950,7 +937,7 @@ export function SettingsPage() {
 								)}
 								{navRow(
 									() => navigate("/settings/privacy"),
-									<Shield className="h-5 w-5" />,
+									<Shield className="h-5 w-5 fill-current" />,
 									"bg-sky-500/15 text-sky-400",
 									t("settings.privacy"),
 									t("settings.privacy_desc"),
@@ -958,7 +945,7 @@ export function SettingsPage() {
 								{isSexualHealthEnabled() &&
 									navRow(
 										() => navigate("/settings/sexual-health"),
-										<HeartPulse className="h-5 w-5" />,
+										<HeartPulseFilled className="h-5 w-5" />,
 										"bg-rose-500/15 text-rose-400",
 										t("settings.sexual_health", { defaultValue: "Sexual Health" }),
 										t("settings.sexual_health_desc", {
@@ -974,21 +961,21 @@ export function SettingsPage() {
 							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/customizability"),
-									<Palette className="h-5 w-5" />,
+									<PaletteFilled className="h-5 w-5" />,
 									"bg-violet-500/15 text-violet-400",
 									t("settings.customizability"),
 									t("settings.customizability_desc"),
 								)}
 								{navRow(
 									() => navigate("/settings/behavior"),
-									<SlidersHorizontal className="h-5 w-5" />,
+									<PhosphorSlidersHorizontal weight="fill" className="h-5 w-5" />,
 									"bg-slate-500/15 text-slate-400",
 									t("settings.behavior"),
 									t("settings.behavior_desc"),
 								)}
 								{navRow(
 									() => navigate("/settings/optional-features"),
-									<ToggleRight className="h-5 w-5" />,
+									<Puzzle className="h-5 w-5 fill-current" />,
 									"bg-emerald-500/15 text-emerald-400",
 									t("customizability.optional_features", { defaultValue: "Optional Features" }),
 									t("customizability.optional_features_desc", {
@@ -997,14 +984,14 @@ export function SettingsPage() {
 								)}
 								{navRow(
 									() => navigate("/settings/notifications"),
-									<Bell className="h-5 w-5" />,
+									<Bell className="h-5 w-5 fill-current" />,
 									"bg-blue-500/15 text-blue-400",
 									t("settings.notifications"),
 									t("settings.notifications_desc"),
 								)}
 								{navRow(
 									() => navigate("/settings/automation"),
-									<Workflow className="h-5 w-5" />,
+									<BotFilled className="h-5 w-5" />,
 									"bg-amber-500/15 text-amber-400",
 									t("settings.automation"),
 									t("settings.automation_desc"),
@@ -1020,7 +1007,7 @@ export function SettingsPage() {
 							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/data"),
-									<DatabaseBackup className="h-5 w-5" />,
+									<ArchiveRestoreFilled className="h-5 w-5" />,
 									"bg-teal-500/15 text-teal-400",
 									t("settings.data", { defaultValue: "Backup & Restore" }),
 									t("settings.data_desc", { defaultValue: "Downloaded media storage, and back up/restore your entire account" }),
@@ -1155,7 +1142,7 @@ export function SettingsPage() {
 								<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 									<div className="flex w-full items-center gap-3 px-4 py-3.5">
 										<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-											<Bug className="h-5 w-5" />
+											<BugFilled className="h-5 w-5" />
 										</div>
 										<div className="min-w-0 flex-1">
 											<p className="text-sm font-semibold leading-snug">Show Debug Overlays</p>
@@ -1178,7 +1165,7 @@ export function SettingsPage() {
 									)}
 									{navRow(
 										() => navigate("/settings/assignments"),
-										<FlaskConical className="h-5 w-5" />,
+										<FlaskConicalFilled className="h-5 w-5" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
 										"Assignments & Feature Flags",
 										"Server-side flags and A/B experiments assigned to this account.",
@@ -1192,7 +1179,7 @@ export function SettingsPage() {
 									)}
 									{navRow(
 										replayRestoreOffer,
-										<FileUp className="h-5 w-5" />,
+										<FileUpFilled className="h-5 w-5" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
 										"Show Restore Offer",
 										"Opens the first-login backup restore dialog.",
@@ -1206,7 +1193,7 @@ export function SettingsPage() {
 									)}
 									{navRow(
 										() => void showSharePickerDebug(),
-										<Share2 className="h-5 w-5" />,
+										<Share2 className="h-5 w-5 fill-current" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
 										"Show Share Picker",
 										"Opens the \"Send to…\" chat picker with sample images, as if shared from another app.",
@@ -1215,7 +1202,7 @@ export function SettingsPage() {
 									<div className="p-4 sm:p-5">
 										<div className="flex items-start gap-3">
 											<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-												<Bell className="h-5 w-5" />
+												<Bell className="h-5 w-5 fill-current" />
 											</div>
 											<div className="grid gap-3 min-w-0 flex-1">
 												<div className="flex items-center gap-2 flex-wrap">
@@ -1354,7 +1341,7 @@ export function SettingsPage() {
 									</div>
 									{navRow(
 										() => setPreviewAnnouncement(true),
-										<Megaphone className="h-5 w-5" />,
+										<MegaphoneFilled className="h-5 w-5" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
 										"Preview Version Announcement",
 										LATEST_ANNOUNCEMENT
@@ -1380,21 +1367,21 @@ export function SettingsPage() {
 							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/about"),
-									<Info className="h-5 w-5" />,
+									<InfoFilled className="h-5 w-5" />,
 									"bg-slate-500/15 text-slate-400",
 									t("settings.about"),
 									t("settings.about_desc"),
 								)}
 								{navRow(
 									() => void openExternalUrl(GITHUB_ISSUES_URL),
-									<ClipboardList className="h-5 w-5" />,
+									<ClipboardListFilled className="h-5 w-5" />,
 									"bg-orange-500/15 text-orange-400",
 									t("settings.issue_board"),
 									t("settings.issue_board_desc"),
 								)}
 								{navRow(
 									() => void openExternalUrl(GITHUB_NEW_ISSUE_URL),
-									<MessageSquareWarning className="h-5 w-5" />,
+									<BugFilled className="h-5 w-5" />,
 									"bg-rose-500/15 text-rose-400",
 									t("settings.report_issue"),
 									t("settings.report_issue_desc"),

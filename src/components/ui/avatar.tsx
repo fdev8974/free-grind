@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ImgHTMLAttributes } from "react";
-import { User } from "lucide-react";
+import { UserFilled } from "../icons/FilledIcons";
 import { cn } from "../../utils/cn";
 
 interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
@@ -37,7 +37,7 @@ export function Avatar({
 			) : initials ? (
 				<span>{initials}</span>
 			) : (
-				<User className="h-5 w-5" />
+				<UserFilled className="h-5 w-5" />
 			)}
 		</div>
 	);

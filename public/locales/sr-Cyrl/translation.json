@@ -1038,7 +1038,10 @@
         "grid": "Мрежа",
         "double_tap_tap_type": "Двоструки додир шаље тап",
         "double_tap_tap_type_desc": "Двапут додирните профил у мрежи да пошаљете овај тап. Искључите да се профили одмах отварају једним додиром.",
-        "double_tap_off": "Искључено"
+        "double_tap_off": "Искључено",
+        "chats": "",
+        "chat_row_swipe_actions": "",
+        "chat_row_swipe_actions_desc": ""
     },
     "notifications_page": {
         "subtitle": "Изаберите која обавештења добијате и да ли се приказују док је апликација отворена.",
