@@ -154,6 +154,16 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-orange-500/15 text-orange-400",
 		},
 		{
+			id: "cust-drawer-layout",
+			route: "/settings/customizability",
+			anchor: "cust-drawer-layout",
+			label: t("customizability.drawer_layout", { defaultValue: "Split Media Drawer into Categories" }),
+			description: t("customizability.drawer_layout_desc", { defaultValue: "Show media, albums and collections in separate tabs instead of all on one page." }),
+			section: "Look & Feel",
+			icon: Images,
+			iconClass: "bg-violet-500/15 text-violet-400",
+		},
+		{
 			id: "cust-reveal-effect",
 			route: "/settings/customizability",
 			anchor: "cust-reveal-effect",

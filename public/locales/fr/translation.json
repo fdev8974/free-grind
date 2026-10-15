@@ -978,6 +978,9 @@
         "columns_2": "2 Colonnes",
         "columns_3": "3 Colonnes",
         "columns_4": "",
+        "chat_section": "",
+        "drawer_layout": "",
+        "drawer_layout_desc": "",
         "reveal_effect": {
             "title": "Effet de révélation",
             "description": "L'effet de révélation anime les éléments lorsque vous faites défiler vers le bas. Vous pouvez le désactiver ou modifier son intensité.",
@@ -1623,7 +1626,9 @@
         "albums_empty_hint": "",
         "collections_empty": "",
         "collections_empty_hint": "",
-        "collections_create": ""
+        "collections_create": "",
+        "view_combined": "",
+        "view_split": ""
     },
     "favorites": {
         "added": "Ajouté aux favoris",

@@ -970,6 +970,9 @@
     "columns_2": "2 Columns",
     "columns_3": "3 Columns",
     "columns_4": "4 Columns",
+    "chat_section": "Chat Page",
+    "drawer_layout": "Split Media Drawer into Categories",
+    "drawer_layout_desc": "Show media, albums and collections in separate tabs instead of all on one page.",
     "reveal_effect": {
       "title": "Reveal Effect",
       "description": "The reveal effect animates items as you scroll down. You can disable it or change its intensity.",
@@ -1609,7 +1612,9 @@
     "albums_empty_hint": "Albums let you share several photos at once, and stop sharing any time.",
     "collections_empty": "You don't have any collections yet.",
     "collections_empty_hint": "Collections group drawer photos so you can send them together in one tap.",
-    "collections_create": "Create collection"
+    "collections_create": "Create collection",
+    "view_combined": "Show all on one page",
+    "view_split": "Split into categories"
   },
   "favorites": {
     "added": "Added to favorites",

@@ -970,6 +970,9 @@
         "columns_2": "2 Spalten",
         "columns_3": "3 Spalten",
         "columns_4": "",
+        "chat_section": "",
+        "drawer_layout": "",
+        "drawer_layout_desc": "",
         "reveal_effect": {
             "title": "Reveal-Effekt",
             "description": "Der Reveal-Effekt animiert Elemente beim Scrollen. Du kannst ihn deaktivieren oder die Intensität anpassen.",
@@ -1609,7 +1612,9 @@
         "albums_empty_hint": "",
         "collections_empty": "",
         "collections_empty_hint": "",
-        "collections_create": ""
+        "collections_create": "",
+        "view_combined": "",
+        "view_split": ""
     },
     "favorites": {
         "added": "Zu Favoriten hinzugefügt",

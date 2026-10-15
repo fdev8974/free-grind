@@ -978,6 +978,9 @@
         "columns_2": "2 kolone",
         "columns_3": "3 kolone",
         "columns_4": "",
+        "chat_section": "",
+        "drawer_layout": "",
+        "drawer_layout_desc": "",
         "reveal_effect": {
             "title": "Efekat otkrivanja",
             "description": "Efekat otkrivanja animira stavke dok skrolaš prema dolje. Možeš ga isključiti ili promijeniti jačinu.",
@@ -1623,7 +1626,9 @@
         "albums_empty_hint": "",
         "collections_empty": "",
         "collections_empty_hint": "",
-        "collections_create": ""
+        "collections_create": "",
+        "view_combined": "",
+        "view_split": ""
     },
     "favorites": {
         "added": "Dodano u favorite",

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronRight, Clock, Flame, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate, X } from "lucide-react";
+import { Check, ChevronRight, Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -151,6 +151,7 @@ export function CustomizabilityPage() {
 		revealEffectEnabled,
 		revealEffectStrength,
 		showGridTapStatus,
+		splitDrawerCategories,
 		setPreferences,
 	} = usePreferences();
 	const [customHex, setCustomHex] = useState(accentColor);
@@ -605,6 +606,25 @@ export function CustomizabilityPage() {
 						</div>
 					</div>
 				)}
+
+				{/* CHAT */}
+				<div>
+					<SectionLabel>{t("customizability.chat_section", { defaultValue: "Chat Page" })}</SectionLabel>
+					<div className="surface-card overflow-hidden">
+						<ToggleRow
+							id="cust-drawer-layout"
+							highlighted={highlightId === "cust-drawer-layout"}
+							icon={<Images className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("customizability.drawer_layout", { defaultValue: "Split Media Drawer into Categories" })}
+							description={t("customizability.drawer_layout_desc", {
+								defaultValue: "Show media, albums and collections in separate tabs instead of all on one page.",
+							})}
+							checked={splitDrawerCategories}
+							onChange={(checked) => void setPreferences({ splitDrawerCategories: checked })}
+						/>
+					</div>
+				</div>
 
 				{/* VISUAL EFFECTS */}
 				<div>

@@ -1002,6 +1002,9 @@
         "columns_2": "عمودان",
         "columns_3": "3 أعمدة",
         "columns_4": "",
+        "chat_section": "",
+        "drawer_layout": "",
+        "drawer_layout_desc": "",
         "reveal_effect": {
             "title": "تأثير الكشف",
             "description": "يُظهر تأثير الكشف العناصر أثناء التمرير لأسفل. يمكنك تعطيله أو تغيير شدته.",
@@ -1665,7 +1668,9 @@
         "albums_empty_hint": "",
         "collections_empty": "",
         "collections_empty_hint": "",
-        "collections_create": ""
+        "collections_create": "",
+        "view_combined": "",
+        "view_split": ""
     },
     "favorites": {
         "added": "اضافات الي المفضلة",

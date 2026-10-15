@@ -986,6 +986,9 @@
         "columns_2": "2 stolpca",
         "columns_3": "3 stolpci",
         "columns_4": "",
+        "chat_section": "",
+        "drawer_layout": "",
+        "drawer_layout_desc": "",
         "reveal_effect": {
             "title": "Učinek razkritja",
             "description": "Učinek razkritja animira elemente med pomikanjem navzdol. Lahko ga izklopiš ali spremeniš jakost.",
@@ -1637,7 +1640,9 @@
         "albums_empty_hint": "",
         "collections_empty": "",
         "collections_empty_hint": "",
-        "collections_create": ""
+        "collections_create": "",
+        "view_combined": "",
+        "view_split": ""
     },
     "favorites": {
         "added": "Dodano med priljubljene",

@@ -6,7 +6,7 @@ import { haptic } from "../../../utils/haptics";
 // editor, album "add from drawer"), so they stay visually in sync.
 
 export const drawerGridClass = (isDesktop: boolean) =>
-	`grid gap-0.5 ${isDesktop ? "grid-cols-5" : "grid-cols-4"}`;
+	`grid gap-0.5 ${isDesktop ? "grid-cols-4" : "grid-cols-3"}`;
 
 export const DRAWER_TILE_CLASS = "relative aspect-square overflow-hidden rounded-md";
 

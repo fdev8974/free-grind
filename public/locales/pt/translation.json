@@ -978,6 +978,9 @@
         "columns_2": "2 colunas",
         "columns_3": "3 colunas",
         "columns_4": "",
+        "chat_section": "",
+        "drawer_layout": "",
+        "drawer_layout_desc": "",
         "reveal_effect": {
             "title": "Efeito de Revelação",
             "description": "O efeito de revelação anima os itens conforme você rola a página para baixo. Você pode desativá-lo ou alterar sua intensidade.",
@@ -1623,7 +1626,9 @@
         "albums_empty_hint": "",
         "collections_empty": "",
         "collections_empty_hint": "",
-        "collections_create": ""
+        "collections_create": "",
+        "view_combined": "",
+        "view_split": ""
     },
     "favorites": {
         "added": "Adicionado aos favoritos",

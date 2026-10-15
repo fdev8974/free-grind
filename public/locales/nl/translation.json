@@ -970,6 +970,9 @@
         "columns_2": "2 kolommen",
         "columns_3": "3 kolommen",
         "columns_4": "",
+        "chat_section": "",
+        "drawer_layout": "",
+        "drawer_layout_desc": "",
         "reveal_effect": {
             "title": "Onthullingseffect",
             "description": "Het onthullingseffect animeert items terwijl je naar beneden scrolt. Je kunt het uitschakelen of de intensiteit aanpassen.",
@@ -1609,7 +1612,9 @@
         "albums_empty_hint": "",
         "collections_empty": "",
         "collections_empty_hint": "",
-        "collections_create": ""
+        "collections_create": "",
+        "view_combined": "",
+        "view_split": ""
     },
     "favorites": {
         "added": "Toegevoegd aan favorieten",

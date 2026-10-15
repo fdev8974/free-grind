@@ -173,6 +173,7 @@ const preferencesSchema = z.object({
 	revealEffectStrength: z.enum(["subtle", "pronounced"]).default("subtle"),
 	showAlbumSensitiveContentWarning: z.boolean().default(true),
 	openAlbumAsBottomSheet: z.boolean().default(false),
+	splitDrawerCategories: z.boolean().default(true),
 	sortDrawerMediaByFrequency: z.boolean().default(true),
 	keepScreenOn: z.boolean().default(false),
 	autoFocusLocationSearch: z.boolean().default(true),
@@ -218,6 +219,7 @@ type PreferencesAction =
 	| { type: "SET_REVEAL_EFFECT_STRENGTH"; payload: RevealStrength }
 	| { type: "SET_SHOW_ALBUM_SENSITIVE_CONTENT_WARNING"; payload: boolean }
 	| { type: "SET_OPEN_ALBUM_AS_BOTTOM_SHEET"; payload: boolean }
+	| { type: "SET_SPLIT_DRAWER_CATEGORIES"; payload: boolean }
 	| { type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY"; payload: boolean }
 	| { type: "SET_KEEP_SCREEN_ON"; payload: boolean }
 	| { type: "SET_DOUBLE_TAP_TAP_TYPE"; payload: number | null }
@@ -272,6 +274,8 @@ function preferencesReducer(
 			return { ...state, showAlbumSensitiveContentWarning: action.payload };
 		case "SET_OPEN_ALBUM_AS_BOTTOM_SHEET":
 			return { ...state, openAlbumAsBottomSheet: action.payload };
+		case "SET_SPLIT_DRAWER_CATEGORIES":
+			return { ...state, splitDrawerCategories: action.payload };
 		case "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY":
 			return { ...state, sortDrawerMediaByFrequency: action.payload };
 		case "SET_KEEP_SCREEN_ON":
@@ -372,6 +376,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		revealEffectStrength: "subtle",
 		showAlbumSensitiveContentWarning: true,
 		openAlbumAsBottomSheet: false,
+		splitDrawerCategories: true,
 		sortDrawerMediaByFrequency: true,
 		keepScreenOn: false,
 		autoFocusLocationSearch: true,
@@ -417,6 +422,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_REVEAL_EFFECT_STRENGTH", payload: parsed.revealEffectStrength });
 					dispatch({ type: "SET_SHOW_ALBUM_SENSITIVE_CONTENT_WARNING", payload: parsed.showAlbumSensitiveContentWarning });
 					dispatch({ type: "SET_OPEN_ALBUM_AS_BOTTOM_SHEET", payload: parsed.openAlbumAsBottomSheet });
+					dispatch({ type: "SET_SPLIT_DRAWER_CATEGORIES", payload: parsed.splitDrawerCategories });
 					dispatch({ type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY", payload: parsed.sortDrawerMediaByFrequency });
 					dispatch({ type: "SET_KEEP_SCREEN_ON", payload: parsed.keepScreenOn });
 					dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: parsed.autoFocusLocationSearch });
@@ -510,6 +516,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				revealEffectStrength: currentState.revealEffectStrength,
 				showAlbumSensitiveContentWarning: currentState.showAlbumSensitiveContentWarning,
 				openAlbumAsBottomSheet: currentState.openAlbumAsBottomSheet,
+				splitDrawerCategories: currentState.splitDrawerCategories,
 				sortDrawerMediaByFrequency: currentState.sortDrawerMediaByFrequency,
 				keepScreenOn: currentState.keepScreenOn,
 				autoFocusLocationSearch: currentState.autoFocusLocationSearch,
@@ -585,6 +592,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.openAlbumAsBottomSheet !== undefined) {
 				dispatch({ type: "SET_OPEN_ALBUM_AS_BOTTOM_SHEET", payload: newValues.openAlbumAsBottomSheet });
+			}
+			if (newValues.splitDrawerCategories !== undefined) {
+				dispatch({ type: "SET_SPLIT_DRAWER_CATEGORIES", payload: newValues.splitDrawerCategories });
 			}
 			if (newValues.sortDrawerMediaByFrequency !== undefined) {
 				dispatch({ type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY", payload: newValues.sortDrawerMediaByFrequency });
@@ -682,6 +692,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					revealEffectStrength: preferences.revealEffectStrength,
 					showAlbumSensitiveContentWarning: preferences.showAlbumSensitiveContentWarning,
 					openAlbumAsBottomSheet: preferences.openAlbumAsBottomSheet,
+					splitDrawerCategories: preferences.splitDrawerCategories,
 					sortDrawerMediaByFrequency: preferences.sortDrawerMediaByFrequency,
 					keepScreenOn: preferences.keepScreenOn,
 					autoFocusLocationSearch: preferences.autoFocusLocationSearch,
@@ -721,6 +732,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		revealEffectStrength: state.revealEffectStrength,
 		showAlbumSensitiveContentWarning: state.showAlbumSensitiveContentWarning,
 		openAlbumAsBottomSheet: state.openAlbumAsBottomSheet,
+		splitDrawerCategories: state.splitDrawerCategories,
 		sortDrawerMediaByFrequency: state.sortDrawerMediaByFrequency,
 		keepScreenOn: state.keepScreenOn,
 		autoFocusLocationSearch: state.autoFocusLocationSearch,

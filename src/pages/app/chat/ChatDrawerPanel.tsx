@@ -3,6 +3,8 @@ import {
 	Check,
 	Images,
 	Layers,
+	LayoutGrid,
+	LayoutPanelTop,
 	Pencil,
 	SquareCenterlineDashedHorizontal,
 	Image as ImageIcon,
@@ -19,7 +21,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
-import { CameraFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
+import { CameraFilled, CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
 import { SlidingTabs } from "../../../components/ui/sliding-tabs";
 import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerActionTile, DrawerEmptyState, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
@@ -127,7 +129,7 @@ export function ChatDrawerPanel({
 }: ChatDrawerPanelProps) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const { defaultExpiringPhotos, defaultAlbumExpirationType } = usePreferences();
+	const { defaultExpiringPhotos, defaultAlbumExpirationType, splitDrawerCategories, setPreferences } = usePreferences();
 	// Re-renders once a background fetch lands a drawer item in the local
 	// media cache, so it can swap in the cached copy without waiting for a DB read.
 	useLocalMediaCache();
@@ -151,6 +153,11 @@ export function ChatDrawerPanel({
 	const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
 	const [collectionsLoaded, setCollectionsLoaded] = useState(false);
 	const [activeTab, setActiveTab] = useState<DrawerTab>("media");
+	// Split into categories off (appearance setting): no tabs, one grid of
+	// actions, albums, collections, then media.
+	const combined = !splitDrawerCategories;
+	const hasCombinedGroups = combined && (albums.length > 0 || collections.length > 0);
+	const showSection = (tab: DrawerTab) => combined || activeTab === tab;
 	const EXPIRY_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"];
 	const [albumExpirationType, setAlbumExpirationType] = useState<string>(defaultAlbumExpirationType);
 	const EXPIRY_LABELS: Record<string, string> = {
@@ -414,20 +421,118 @@ export function ChatDrawerPanel({
 		setConfirmDeleteMediaId(null);
 	}, [deletingMediaId]);
 
+	// Albums and collections are both created on the albums settings page.
+	const openAlbumsPage = () => {
+		onBack();
+		navigate("/settings/albums");
+	};
 	// Empty album/collection tabs: both are created on the albums settings page.
 	const renderCreateButton = (label: string) => (
 		<button
 			type="button"
-			onClick={() => {
-				onBack();
-				navigate("/settings/albums");
-			}}
+			onClick={openAlbumsPage}
 			className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
 		>
 			<Plus className="h-4 w-4" />
 			{label}
 		</button>
 	);
+
+	const albumTiles = albums.map((album) => {
+		const cover = albumCoverMap.get(album.albumId);
+		const isShared = sharedAlbumIds.has(album.albumId);
+		const mediaCount = albumMediaCountMap.get(album.albumId);
+		const isSelected = selectedAlbumIds.has(album.albumId);
+		const dimmed = (hasSelection || hasCollectionSelection) && !isSelected;
+		return (
+			<div
+				key={`album-${album.albumId}`}
+				role="button"
+				tabIndex={0}
+				onClick={() => { if (hasSelection) return; setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); }}
+				onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
+				className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+			>
+				{cover ? <img src={cover} alt="" className="h-full w-full object-cover scale-110" style={{ filter: "blur(3px)" }} /> : (
+					<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Album className="h-6 w-6 opacity-50" /></div>
+				)}
+				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
+					<div className="h-10 w-10 overflow-hidden rounded-full ring-2 ring-white/60" style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}>
+						<ProfileImage src={ownProfilePhotoUrl} />
+					</div>
+					<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{album.albumName || t("chat_drawer.album_fallback", { defaultValue: "My Album" })}</p>
+					{isShared && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-contrast)]">{t("chat_drawer.sharing", { defaultValue: "Sharing" })}</span>}
+				</div>
+				{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
+				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
+			</div>
+		);
+	});
+
+	const collectionTiles = collections.map((collection) => {
+		const presentIds = getPresentCollectionMediaIds(collection);
+		const presentVideoCount = presentIds.filter((id) => isVideoMediaId(id)).length;
+		// Up to four items as a mosaic cover, so a collection reads as
+		// "several photos" at a glance.
+		const coverItems = presentIds
+			.slice(0, 4)
+			.map((id) => media.find((m) => m.id === id))
+			.filter((m): m is DrawerMedia => m != null);
+		const mosaicClass =
+			coverItems.length >= 2 ? "grid-cols-2" : "grid-cols-1";
+		const mosaicRows = coverItems.length >= 3 ? "grid-rows-2" : "grid-rows-1";
+		const isSelected = selectedCollectionId === collection.id;
+		const dimmed = (hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation) && !isSelected;
+		return (
+			<div
+				key={`collection-${collection.id}`}
+				role="button"
+				tabIndex={0}
+				title={t("chat_drawer.collection_badge")}
+				onClick={() => { if (!dimmed) toggleCollectionSelection(collection); }}
+				onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
+				className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+			>
+				{coverItems.length > 0 ? (
+					<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
+						{coverItems.map((item, index) => {
+							const src = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+							// With three items the first spans the full left column.
+							const span = coverItems.length === 3 && index === 0 ? "row-span-2" : "";
+							return item.contentType.startsWith("video/") ? (
+								<video
+									key={item.id}
+									src={src}
+									preload="metadata"
+									muted
+									onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
+									className={`h-full w-full min-h-0 object-cover ${span}`}
+								/>
+							) : (
+								<img key={item.id} src={src} alt="" className={`h-full w-full min-h-0 object-cover ${span}`} />
+							);
+						})}
+					</div>
+				) : (
+					<div className="absolute inset-0 bg-[var(--surface)]" />
+				)}
+				<div className="absolute inset-0 bg-black/35" />
+				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
+					<div
+						className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 ring-2 ring-white/60 backdrop-blur-sm"
+						style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
+					>
+						<Layers className="h-5 w-5 text-white" />
+					</div>
+					<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{collection.name}</p>
+				</div>
+				<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
+				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
+			</div>
+		);
+	});
 
 	// Capture / upload actions, shown as the first tiles of the media grid.
 	const actionsDisabled = isAdding || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
@@ -447,7 +552,7 @@ export function ChatDrawerPanel({
 		{
 			key: "upload",
 			label: t("chat_drawer.upload_photo"),
-			icon: <ImagesFilled className="h-4 w-4" />,
+			icon: <CameraPlusFilled className="h-4 w-4" />,
 			onClick: () => uploadInputRef.current?.click(),
 		},
 	];
@@ -473,9 +578,28 @@ export function ChatDrawerPanel({
 							<X className="h-4 w-4" />
 						</button>
 					) : (
-						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<div className="flex items-center gap-1">
+							{/* Same switch as the appearance setting, flipped right here. The icon shows the view it switches to. */}
+							{(() => {
+								const label = splitDrawerCategories
+									? t("chat_drawer.view_combined", { defaultValue: "Show all on one page" })
+									: t("chat_drawer.view_split", { defaultValue: "Split into categories" });
+								return (
+									<button
+										type="button"
+										onClick={() => void setPreferences({ splitDrawerCategories: !splitDrawerCategories })}
+										className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+										aria-label={label}
+										title={label}
+									>
+										{splitDrawerCategories ? <LayoutGrid className="h-4 w-4" /> : <LayoutPanelTop className="h-4 w-4" />}
+									</button>
+								);
+							})()}
+							<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+								<X className="h-4 w-4" />
+							</SheetClose>
+						</div>
 					)}
 				</div>
 
@@ -633,7 +757,7 @@ export function ChatDrawerPanel({
 				) : (
 					<>
 						{/* Media / albums / collections switcher. Empty album/collection tabs link to the albums page to create one. */}
-						{(() => {
+						{!combined && (() => {
 							const tabs = [
 								{ value: "media" as const, label: t("chat_drawer.tab_media", { defaultValue: "Media" }) },
 								{ value: "albums" as const, label: t("chat_drawer.tab_albums", { defaultValue: "Albums" }) },
@@ -666,7 +790,7 @@ export function ChatDrawerPanel({
 								</div>
 							) : (
 								<div className="flex flex-col gap-3">
-								{activeTab === "albums" && albums.length === 0 && (
+								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (
 										<div className="flex justify-center py-8">
 											<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
@@ -681,7 +805,7 @@ export function ChatDrawerPanel({
 										</DrawerEmptyState>
 									)
 								)}
-								{activeTab === "collections" && collections.length === 0 && (
+								{!combined && activeTab === "collections" && collections.length === 0 && (
 									collectionsLoaded ? (
 										<DrawerEmptyState
 											icon={<Layers className="h-5 w-5" />}
@@ -696,107 +820,12 @@ export function ChatDrawerPanel({
 										</div>
 									)
 								)}
-								{((activeTab === "albums" && albums.length > 0) || (activeTab === "collections" && collections.length > 0)) && (
+								{!combined && ((activeTab === "albums" && albums.length > 0) || (activeTab === "collections" && collections.length > 0)) && (
 									<div className={`grid gap-2 ${isDesktop ? "grid-cols-4" : "grid-cols-3"}`}>
-									{/* Albums */}
-									{activeTab === "albums" && albums.map((album) => {
-										const cover = albumCoverMap.get(album.albumId);
-										const isShared = sharedAlbumIds.has(album.albumId);
-										const mediaCount = albumMediaCountMap.get(album.albumId);
-										const isSelected = selectedAlbumIds.has(album.albumId);
-										const dimmed = (hasSelection || hasCollectionSelection) && !isSelected;
-										return (
-											<div
-												key={`album-${album.albumId}`}
-												role="button"
-												tabIndex={0}
-												onClick={() => { if (hasSelection) return; setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); }}
-												onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
-												className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
-											>
-												{cover ? <img src={cover} alt="" className="h-full w-full object-cover scale-110" style={{ filter: "blur(3px)" }} /> : (
-													<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Album className="h-6 w-6 opacity-50" /></div>
-												)}
-												<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
-													<div className="h-10 w-10 overflow-hidden rounded-full ring-2 ring-white/60" style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}>
-														<ProfileImage src={ownProfilePhotoUrl} />
-													</div>
-													<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{album.albumName || t("chat_drawer.album_fallback", { defaultValue: "My Album" })}</p>
-													{isShared && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-contrast)]">{t("chat_drawer.sharing", { defaultValue: "Sharing" })}</span>}
-												</div>
-												{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
-												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-												{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
-											</div>
-										);
-									})}
-									{/* Collections */}
-									{activeTab === "collections" && collections.map((collection) => {
-										const presentIds = getPresentCollectionMediaIds(collection);
-										const presentVideoCount = presentIds.filter((id) => isVideoMediaId(id)).length;
-										// Up to four items as a mosaic cover, so a collection reads as
-										// "several photos" at a glance.
-										const coverItems = presentIds
-											.slice(0, 4)
-											.map((id) => media.find((m) => m.id === id))
-											.filter((m): m is DrawerMedia => m != null);
-										const mosaicClass =
-											coverItems.length >= 2 ? "grid-cols-2" : "grid-cols-1";
-										const mosaicRows = coverItems.length >= 3 ? "grid-rows-2" : "grid-rows-1";
-										const isSelected = selectedCollectionId === collection.id;
-										const dimmed = (hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation) && !isSelected;
-										return (
-											<div
-												key={`collection-${collection.id}`}
-												role="button"
-												tabIndex={0}
-												title={t("chat_drawer.collection_badge")}
-												onClick={() => { if (!dimmed) toggleCollectionSelection(collection); }}
-												onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
-												className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
-											>
-												{coverItems.length > 0 ? (
-													<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
-														{coverItems.map((item, index) => {
-															const src = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
-															// With three items the first spans the full left column.
-															const span = coverItems.length === 3 && index === 0 ? "row-span-2" : "";
-															return item.contentType.startsWith("video/") ? (
-																<video
-																	key={item.id}
-																	src={src}
-																	preload="metadata"
-																	muted
-																	onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-																	className={`h-full w-full min-h-0 object-cover ${span}`}
-																/>
-															) : (
-																<img key={item.id} src={src} alt="" className={`h-full w-full min-h-0 object-cover ${span}`} />
-															);
-														})}
-													</div>
-												) : (
-													<div className="absolute inset-0 bg-[var(--surface)]" />
-												)}
-												<div className="absolute inset-0 bg-black/35" />
-												<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
-													<div
-														className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 ring-2 ring-white/60 backdrop-blur-sm"
-														style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
-													>
-														<Layers className="h-5 w-5 text-white" />
-													</div>
-													<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{collection.name}</p>
-												</div>
-												<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
-												{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-												{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
-											</div>
-										);
-									})}
+										{activeTab === "albums" ? albumTiles : collectionTiles}
 									</div>
 								)}
-								{activeTab === "media" && media.length > 0 && (
+								{showSection("media") && (media.length > 0 || hasCombinedGroups) && (
 								<div className={drawerGridClass(isDesktop)}>
 									{drawerActions.map((action) => (
 										<DrawerActionTile
@@ -807,6 +836,9 @@ export function ChatDrawerPanel({
 											disabled={actionsDisabled}
 										/>
 									))}
+									{/* Not split into categories: albums and collections share the media grid. */}
+									{combined && albumTiles}
+									{combined && collectionTiles}
 									{media.map((item) => {
 										const isSelected = selectedIds.has(item.id);
 										const isImage = item.contentType.startsWith("image/");
@@ -901,13 +933,14 @@ export function ChatDrawerPanel({
 								</div>
 								)}
 								{/* Empty drawer: the add actions on their own, as the way in. */}
-								{activeTab === "media" && media.length === 0 && (
+								{showSection("media") && media.length === 0 && !hasCombinedGroups && (
 									<DrawerEmptyState
 										icon={<ImagesFilled className="h-5 w-5" />}
 										title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
 										hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
 									>
-										<div className="grid w-full max-w-sm grid-cols-3 gap-2">
+										{/* Not split into categories: there is no albums tab with its own create link, so it joins the actions. */}
+										<div className={`grid w-full gap-2 ${combined ? "max-w-md grid-cols-4" : "max-w-sm grid-cols-3"}`}>
 											{drawerActions.map((action) => (
 												<DrawerActionButton
 													key={action.key}
@@ -917,6 +950,13 @@ export function ChatDrawerPanel({
 													disabled={actionsDisabled}
 												/>
 											))}
+											{combined && (
+												<DrawerActionButton
+													icon={<ImagesFilled className="h-4 w-4" />}
+													label={t("chat_drawer.albums_create", { defaultValue: "Create album" })}
+													onClick={openAlbumsPage}
+												/>
+											)}
 										</div>
 									</DrawerEmptyState>
 								)}
