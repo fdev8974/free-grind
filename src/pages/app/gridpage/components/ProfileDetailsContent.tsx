@@ -544,6 +544,15 @@ export function ProfileDetailsContent({
 									{t("profile_details.recently_joined")}
 								</span>
 							)}
+							{activeProfile.lastReceivedTapTimestamp != null && (
+								<span className="flex items-center gap-1 font-semibold text-orange-400">
+									<Flame className="h-3.5 w-3.5 fill-current" />
+									{t("profile_details.tapped_you", {
+										time: formatRelativeTime(activeProfile.lastReceivedTapTimestamp),
+										defaultValue: "Tapped you · {{time}}",
+									})}
+								</span>
+							)}
 						</div>
 						{(PositionIcon != null && !shouldHideField(formatEnumValue(activeProfile.sexualPosition, sexualPositionLabels)) || !shouldHideField(formatHeightCm(activeProfile.height, t, unitsPreset)) || !shouldHideField(formatWeightKg(activeProfile.weight, t, unitsPreset)) || !shouldHideField(formatEnumValue(activeProfile.bodyType, bodyTypeLabels, t))) && (
 							<div className="mt-1 flex items-center gap-x-3 text-sm text-[var(--text-muted)]">

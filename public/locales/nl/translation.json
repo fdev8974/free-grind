@@ -1367,7 +1367,11 @@
             "mins_ago": "{{count}} min geleden",
             "hours_ago": "",
             "now": "Nu",
-            "last_week": "Vorige week"
+            "last_week": "Vorige week",
+            "one_hour_ago": "",
+            "hours_ago_long": "",
+            "one_day_ago": "",
+            "days_ago": ""
         },
         "preview": {
             "sent_image": "Heeft een afbeelding gestuurd",
@@ -1727,6 +1731,7 @@
         "last_message": "Last message {{time}}",
         "chatted_before": "Chatted before",
         "recently_joined": "Onlangs lid geworden",
+        "tapped_you": "",
         "account_info": "Accountinformatie",
         "profile_id": "Profiel-ID",
         "profile_id_copied": "Profiel-ID gekopieerd naar klembord",

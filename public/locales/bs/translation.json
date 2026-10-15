@@ -1377,7 +1377,11 @@
             "mins_ago": "prije {{count}} min",
             "hours_ago": "",
             "now": "Sada",
-            "last_week": "Prošle sedmice"
+            "last_week": "Prošle sedmice",
+            "one_hour_ago": "",
+            "hours_ago_long": "",
+            "one_day_ago": "",
+            "days_ago": ""
         },
         "preview": {
             "sent_image": "Poslao sliku",
@@ -1742,6 +1746,7 @@
         "last_message": "Last message {{time}}",
         "chatted_before": "Chatted before",
         "recently_joined": "Nedavno se pridružio",
+        "tapped_you": "",
         "account_info": "Informacije o računu",
         "profile_id": "ID profila",
         "profile_id_copied": "ID profila kopiran u međuspremnik",

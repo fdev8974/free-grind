@@ -1399,7 +1399,11 @@
             "mins_ago": "من {{count}} دقيقة",
             "hours_ago": "",
             "now": "الان",
-            "last_week": "الاسبوع الماضي"
+            "last_week": "الاسبوع الماضي",
+            "one_hour_ago": "",
+            "hours_ago_long": "",
+            "one_day_ago": "",
+            "days_ago": ""
         },
         "preview": {
             "sent_image": "تم إرسال صورة",
@@ -1759,6 +1763,7 @@
         "last_message": "آخر رسالة {{time}}",
         "chatted_before": "تحدثنا سابقا",
         "recently_joined": "انضمم مؤخراً",
+        "tapped_you": "",
         "account_info": "معلومات الحساب",
         "profile_id": "البروفايل",
         "profile_id_copied": "تم نسخ معرّف البروفايل إلى الحافظة",

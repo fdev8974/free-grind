@@ -1377,7 +1377,11 @@
             "mins_ago": "Hace {{count}}min",
             "hours_ago": "",
             "now": "Ahora",
-            "last_week": "La semana pasada"
+            "last_week": "La semana pasada",
+            "one_hour_ago": "",
+            "hours_ago_long": "",
+            "one_day_ago": "",
+            "days_ago": ""
         },
         "preview": {
             "sent_image": "Envió una imagen",
@@ -1742,6 +1746,7 @@
         "last_message": "Último mensaje {{time}}",
         "chatted_before": "Chatted before",
         "recently_joined": "Se unió recientemente",
+        "tapped_you": "",
         "account_info": "Información de la cuenta",
         "profile_id": "ID de perfil",
         "profile_id_copied": "ID de perfil copiado al portapapeles",

@@ -1367,7 +1367,11 @@
       "mins_ago": "{{count}} mins ago",
       "hours_ago": "{{count}}h ago",
       "now": "Now",
-      "last_week": "Last week"
+      "last_week": "Last week",
+      "one_hour_ago": "1 hour ago",
+      "hours_ago_long": "{{count}} hours ago",
+      "one_day_ago": "1 day ago",
+      "days_ago": "{{count}} days ago"
     },
     "preview": {
       "sent_image": "Sent an image",
@@ -1727,6 +1731,7 @@
     "last_message": "Last message {{time}}",
     "chatted_before": "Chatted before",
     "recently_joined": "Recently joined",
+    "tapped_you": "Tapped you · {{time}}",
     "account_info": "Account Info",
     "profile_id": "Profile ID",
     "profile_id_copied": "Profile ID copied to clipboard",

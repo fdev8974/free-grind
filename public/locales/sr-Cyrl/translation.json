@@ -1381,7 +1381,11 @@
             "mins_ago": "пре {{count}} мин",
             "hours_ago": "",
             "now": "Сада",
-            "last_week": "Прошле недеље"
+            "last_week": "Прошле недеље",
+            "one_hour_ago": "",
+            "hours_ago_long": "",
+            "one_day_ago": "",
+            "days_ago": ""
         },
         "preview": {
             "sent_image": "Послата слика",
@@ -1744,6 +1748,7 @@
         "last_message": "Последња порука {{time}}",
         "chatted_before": "Дописивали сте се раније",
         "recently_joined": "Недавно се придружио",
+        "tapped_you": "",
         "account_info": "Подаци о налогу",
         "profile_id": "ID профила",
         "profile_id_copied": "ID профила је копиран у привремену меморију",

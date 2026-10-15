@@ -224,57 +224,46 @@ export function formatFullDateTime(timestamp: number): string {
 	});
 }
 
+/** Relative time for the "taken on Grindr" badge: now, x mins ago, 1 hour
+ * ago, x hours ago, x days ago, last week, then month and year (August 2026). */
 export function formatTakenOnGrindrTime(
 	timestamp: number,
 	now: number,
 	t: TranslateFn,
 ): string {
-	const diffMs = now - timestamp;
+	const diffMs = Math.max(0, now - timestamp);
 	const minuteMs = 60 * 1000;
+	const hourMs = 60 * minuteMs;
+	const dayMs = 24 * hourMs;
 
 	if (diffMs < minuteMs) {
 		return t("chat.time.now");
 	}
-
-	// Recent photos get a relative time instead of just "Today".
-	const hourMs = 60 * minuteMs;
 	if (diffMs < hourMs) {
 		const mins = Math.floor(diffMs / minuteMs);
 		return mins === 1 ? t("chat.time.one_min_ago") : t("chat.time.mins_ago", { count: mins });
 	}
-	if (diffMs < 12 * hourMs) {
-		return t("chat.time.hours_ago", { count: Math.floor(diffMs / hourMs) });
+	if (diffMs < dayMs) {
+		const hours = Math.floor(diffMs / hourMs);
+		return hours === 1
+			? t("chat.time.one_hour_ago", { defaultValue: "1 hour ago" })
+			: t("chat.time.hours_ago_long", { count: hours, defaultValue: "{{count}} hours ago" });
 	}
-
-	const msgDate = new Date(timestamp);
-	const nowDate = new Date(now);
-
-	const isSameDay = (d1: Date, d2: Date) =>
-		d1.getFullYear() === d2.getFullYear() &&
-		d1.getMonth() === d2.getMonth() &&
-		d1.getDate() === d2.getDate();
-
-	if (isSameDay(msgDate, nowDate)) {
-		return t("chat.today");
+	if (diffMs < 7 * dayMs) {
+		const days = Math.floor(diffMs / dayMs);
+		return days === 1
+			? t("chat.time.one_day_ago", { defaultValue: "1 day ago" })
+			: t("chat.time.days_ago", { count: days, defaultValue: "{{count}} days ago" });
 	}
-
-	const yesterday = new Date(now);
-	yesterday.setDate(yesterday.getDate() - 1);
-	if (isSameDay(msgDate, yesterday)) {
-		return t("chat.yesterday");
-	}
-
-	const oneWeekAgo = new Date(now);
-	oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-	if (msgDate > oneWeekAgo) {
+	if (diffMs < 14 * dayMs) {
 		return t("chat.time.last_week");
 	}
 
 	const formatter = getDateTimeFormatter(i18n.language, {
-		month: "short",
+		month: "long",
 		year: "numeric",
 	});
-	return formatter.format(msgDate);
+	return formatter.format(new Date(timestamp));
 }
 
 export function formatDateTime24(timestamp: number): string {

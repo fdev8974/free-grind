@@ -39,8 +39,8 @@ import { PromptDialog } from "../../../../components/ui/prompt-dialog";
 import { ReportProfileDialog } from "../../../../components/ReportProfileDialog";
 import freegrindLogo from "../../../../images/freegrind-logo.webp";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
-import { formatDateTime24 } from "../../chat/chatUtils";
-import { formatRelativeTime } from "../../../../utils/relativeTime";
+import { formatDateTime24, formatTakenOnGrindrTime } from "../../chat/chatUtils";
+import { TakenOnGrindrBadge } from "../../chat/TakenOnGrindrBadge";
 import {
 	formatEstimatedAccountCreation,
 	formatDistance,
@@ -1031,6 +1031,18 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		[carouselHashes, photoCreatedAtByHash, t],
 	);
 
+	// Bottom left of the profile carousel: "taken on Grindr" for the photo in
+	// view. (When they last tapped you sits next to "recently joined" below.)
+	const renderCarouselCornerBadges = () => {
+		const meta = photoCreatedAtByHash[carouselHashes[mobileCarouselPhotoIndex]];
+		if (!meta?.takenOnGrindr) return null;
+		return (
+			<div className="pointer-events-none absolute bottom-3 left-3 z-20">
+				<TakenOnGrindrBadge label={meta.createdAt ? formatTakenOnGrindrTime(meta.createdAt, Date.now(), t) : null} />
+			</div>
+		);
+	};
+
 	const renderPhotoFooter = useCallback(
 		(index: number) => {
 			const hash = carouselHashes[index];
@@ -1764,14 +1776,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								{renderCarouselSlideContent(hash, index)}
 							</div>
 						))}
-						{activeProfile.lastReceivedTapTimestamp != null && (
-							<div className="pointer-events-none absolute bottom-3 left-3 z-20 flex flex-row items-center gap-1.5">
-								<div className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-sm">
-									<Flame className="h-3.5 w-3.5 shrink-0 text-orange-400" />
-									<span className="text-xs font-medium text-white">{formatRelativeTime(activeProfile.lastReceivedTapTimestamp)}</span>
-								</div>
-							</div>
-						)}
+						{renderCarouselCornerBadges()}
 						{carouselHashes.length > 1 && (
 							<div className="absolute inset-y-0 right-3 z-20 flex flex-col items-center justify-center">
 								<div className="flex flex-col items-center gap-1.5 rounded-full bg-black/30 px-[5px] py-[10px] backdrop-blur-sm">
@@ -2151,16 +2156,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								{renderCarouselSlideContent(hash, index)}
 							</div>
 						))}
-						{activeProfile.lastReceivedTapTimestamp != null && (
-							<div className="pointer-events-none absolute bottom-3 left-3 z-20 flex flex-row items-center gap-1.5">
-								<div className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-sm">
-									<Flame className="h-3.5 w-3.5 shrink-0 text-orange-400" />
-									<span className="text-xs font-medium text-white">
-										{formatRelativeTime(activeProfile.lastReceivedTapTimestamp)}
-									</span>
-								</div>
-							</div>
-						)}
+						{renderCarouselCornerBadges()}
 						{carouselHashes.length > 1 && (
 							<>
 								<button
