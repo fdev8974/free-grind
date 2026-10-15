@@ -1332,7 +1332,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		</div>
 	);
 
-	// "I met this person now" — same encounter logging as the chat header
+	// "We just hooked up" — same encounter logging as the chat header
 	// menu, gated by the same Sexual Health optional-feature toggle.
 	const [showSexualHealth] = useState(isSexualHealthEnabled);
 	const [showLocate] = useState(isLocateEnabled);
@@ -1400,7 +1400,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 		>
 			<BananaFilled className="mr-2 h-4 w-4 opacity-70" />
-			{t("chat.log_encounter", { defaultValue: "I met this person now" })}
+			{t("chat.log_encounter", { defaultValue: "We just hooked up" })}
 		</button>
 	) : null;
 

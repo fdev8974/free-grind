@@ -232,7 +232,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			anchor: "cust-show-sexual-health",
 			label: t("customizability.show_sexual_health", { defaultValue: "Sexual Health" }),
 			description: t("customizability.show_sexual_health_desc", {
-				defaultValue: "Show the Sexual Health section, its inbox header button and \"I met this person now\" in the chat menu.",
+				defaultValue: "Show the Sexual Health section, its inbox header button and \"We just hooked up\" in the chat menu.",
 			}),
 			section: "Optional Features",
 			icon: HeartPulse,
