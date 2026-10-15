@@ -1314,6 +1314,8 @@
         "share_album_label": "Album delen",
         "share_location_label": "Locatie delen",
         "share_location_confirm": "Deze locatie delen?",
+        "share_location_current": "",
+        "share_location_saved_hint": "",
         "drawer_label": "Galerij",
         "giphy": {
             "title": "GIFs",

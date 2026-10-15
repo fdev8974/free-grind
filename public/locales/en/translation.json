@@ -1314,6 +1314,8 @@
     "share_album_label": "Share album",
     "share_location_label": "Share location",
     "share_location_confirm": "Share this location?",
+    "share_location_current": "Current location",
+    "share_location_saved_hint": "Save places in your location settings to share them quickly here.",
     "drawer_label": "Drawer",
     "giphy": {
       "title": "GIFs",

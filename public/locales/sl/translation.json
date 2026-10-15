@@ -1334,6 +1334,8 @@
         "share_album_label": "Deli album",
         "share_location_label": "Deli lokacijo",
         "share_location_confirm": "Delim to lokacijo?",
+        "share_location_current": "",
+        "share_location_saved_hint": "",
         "drawer_label": "Galerija",
         "giphy": {
             "title": "GIF-i",

@@ -1346,6 +1346,8 @@
         "share_album_label": "مشاركه الالبوم",
         "share_location_label": "مشاركه الموقع",
         "share_location_confirm": "مشاركه هذا الموقع",
+        "share_location_current": "",
+        "share_location_saved_hint": "",
         "drawer_label": "درج",
         "giphy": {
             "title": "صور متحركه",

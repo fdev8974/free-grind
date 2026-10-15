@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
+import { DRAWER_TILE_CLASS, DrawerActionButton, drawerGridClass } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
@@ -612,18 +613,13 @@ export function ChatDrawerPanel({
 							return (
 								<div className="mb-2 grid shrink-0 grid-cols-3 gap-2">
 									{actions.map((action) => (
-										<button
+										<DrawerActionButton
 											key={action.key}
-											type="button"
+											icon={action.icon}
+											label={action.label}
 											onClick={action.onClick}
 											disabled={actionsDisabled}
-											className="flex flex-col items-center gap-1.5 rounded-2xl bg-[var(--surface-2)] px-2 py-3 text-[var(--text)] transition active:scale-95 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] disabled:pointer-events-none disabled:opacity-40"
-										>
-											<span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]">
-												{action.icon}
-											</span>
-											<span className="text-xs font-semibold leading-tight">{action.label}</span>
-										</button>
+										/>
 									))}
 								</div>
 							);
@@ -762,7 +758,7 @@ export function ChatDrawerPanel({
 									</div>
 								)}
 								{media.length > 0 && (
-								<div className={`grid gap-0.5 ${isDesktop ? "grid-cols-5" : "grid-cols-4"}`}>
+								<div className={drawerGridClass(isDesktop)}>
 									{media.map((item) => {
 										const isSelected = selectedIds.has(item.id);
 										const isImage = item.contentType.startsWith("image/");
@@ -780,7 +776,7 @@ export function ChatDrawerPanel({
 												tabIndex={0}
 												onClick={() => { if (isClickable) toggleSelection(item.id, isItemVideo); }}
 												onKeyDown={(e) => e.key === "Enter" && isClickable && toggleSelection(item.id, isItemVideo)}
-												className={`relative aspect-square overflow-hidden rounded-md transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
+												className={`${DRAWER_TILE_CLASS} transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
 												style={{
 													outline: isSelected ? "2px solid var(--accent)" : "none",
 													outlineOffset: "-2px",

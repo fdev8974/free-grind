@@ -59,7 +59,8 @@ import { ChatDrawerPanel } from "./ChatDrawerPanel";
 import { EncounterLogSheet } from "../sexual-health/EncounterLogSheet";
 import { isSexualHealthEnabled } from "../../../utils/optionalFeatures";
 import { decodeGeohash } from "../../../utils/geohash";
-import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
+import { ShareLocationSheet } from "./ShareLocationSheet";
+import { loadSavedLocations } from "../../../services/savedLocations";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useEffectiveColorScheme } from "../../../hooks/useEffectiveColorScheme";
@@ -970,7 +971,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			return;
 		}
 		if (!geohash) {
-			toast.error(t("chat.errors.no_location_set", { defaultValue: "No location set in settings" }));
+			// No own location set — fall back to the first saved location, if any.
+			void loadSavedLocations().then((saved) => {
+				if (saved[0]) setPendingLocationShare({ lat: saved[0].lat, lon: saved[0].lon });
+				else toast.error(t("chat.errors.no_location_set", { defaultValue: "No location set in settings" }));
+			});
 			return;
 		}
 		try {
@@ -2662,28 +2667,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					) : null}
 
                     {pendingLocationShare ? (
-						<BottomDrawer
-							title={t("chat.share_location_confirm", { defaultValue: "Share this location?" })}
+						<ShareLocationSheet
+							location={pendingLocationShare}
+							onChange={setPendingLocationShare}
 							onClose={() => setPendingLocationShare(null)}
-							onConfirm={() => {
-								void onSendLocation(pendingLocationShare.lat, pendingLocationShare.lon);
-								setPendingLocationShare(null);
-							}}
-							confirmLabel={t("chat.send")}
+							onSend={(loc) => void onSendLocation(loc.lat, loc.lon)}
 							isDesktop={isDesktop}
-						>
-							<div className="px-3 pb-3">
-								<div className="overflow-hidden rounded-xl border border-[var(--border)]" style={{ height: "40dvh" }}>
-									<MapLocationPicker
-										selectedLocation={pendingLocationShare}
-										onPick={(lat, lon) => setPendingLocationShare({ lat, lon })}
-										onError={(msg) => toast.error(msg)}
-										className="h-full w-full"
-										defaultZoom={18}
-									/>
-								</div>
-							</div>
-						</BottomDrawer>
+						/>
                     ) : null}
 
 					{isGiphyPickerOpen ? (

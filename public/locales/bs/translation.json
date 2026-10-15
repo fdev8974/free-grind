@@ -1324,6 +1324,8 @@
         "share_album_label": "Podijeli album",
         "share_location_label": "Podijeli lokaciju",
         "share_location_confirm": "Podijeliti ovu lokaciju?",
+        "share_location_current": "",
+        "share_location_saved_hint": "",
         "drawer_label": "Galerija",
         "giphy": {
             "title": "GIF-ovi",

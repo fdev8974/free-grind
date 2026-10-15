@@ -1324,6 +1324,8 @@
         "share_album_label": "Compartir álbum",
         "share_location_label": "Compartir ubicación",
         "share_location_confirm": "¿Compartir esta ubicación?",
+        "share_location_current": "",
+        "share_location_saved_hint": "",
         "drawer_label": "Galería",
         "giphy": {
             "title": "GIFs",

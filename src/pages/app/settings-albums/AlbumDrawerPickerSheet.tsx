@@ -1,4 +1,5 @@
 import { Check, Image as ImageIcon, Loader2, Plus, RefreshCw, X } from "lucide-react";
+import { DRAWER_TILE_CLASS, drawerGridClass } from "../chat/drawerUi";
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -82,7 +83,7 @@ export function AlbumDrawerPickerSheet({
 
 			<div
 				data-lenis-prevent
-				className="flex-1 overflow-y-auto max-h-[60vh] rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
+				className="flex-1 overflow-y-auto max-h-[60vh]"
 			>
 				{isLoading ? (
 					<div className="flex h-full items-center justify-center py-8">
@@ -107,7 +108,7 @@ export function AlbumDrawerPickerSheet({
 						<p className="text-xs">{t("settings_albums.drawer_empty", { defaultValue: "No media in your drawer yet." })}</p>
 					</div>
 				) : (
-					<div className={`grid gap-px bg-[var(--border)] ${isDesktop ? "grid-cols-5" : "grid-cols-3"}`}>
+					<div className={drawerGridClass(isDesktop)}>
 						{imageMedia.map((item) => {
 							const isSelected = selectedIds.has(item.id);
 
@@ -118,7 +119,7 @@ export function AlbumDrawerPickerSheet({
 									tabIndex={0}
 									onClick={() => toggleSelection(item.id)}
 									onKeyDown={(e) => e.key === "Enter" && toggleSelection(item.id)}
-									className="relative aspect-square overflow-hidden cursor-pointer transition"
+									className={`${DRAWER_TILE_CLASS} cursor-pointer transition`}
 									style={{
 										outline: isSelected ? "2px solid var(--accent)" : "none",
 										outlineOffset: "-2px",

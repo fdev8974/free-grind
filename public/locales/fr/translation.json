@@ -1324,6 +1324,8 @@
         "share_album_label": "Partager l'album",
         "share_location_label": "Partager la localisation",
         "share_location_confirm": "Partager cette localisation ?",
+        "share_location_current": "",
+        "share_location_saved_hint": "",
         "drawer_label": "Dossier multimédia",
         "giphy": {
             "title": "GIFs",

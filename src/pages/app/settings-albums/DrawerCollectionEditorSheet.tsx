@@ -1,4 +1,6 @@
-import { Check, Image as ImageIcon, Loader2, Play, Plus, RefreshCw, Upload, X } from "lucide-react";
+import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, X } from "lucide-react";
+import { ImagesFilled } from "../../../components/icons/FilledIcons";
+import { DRAWER_TILE_CLASS, DrawerActionButton, drawerGridClass } from "../chat/drawerUi";
 import { useCallback, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -165,9 +167,21 @@ export function DrawerCollectionEditorSheet({
 
 			<input type="file" ref={uploadInputRef} onChange={(e) => void onPickFiles(e)} accept="image/*,video/*" multiple className="hidden" />
 
+			<div className="mb-2 shrink-0">
+				<DrawerActionButton
+					layout="row"
+					icon={uploadProgress ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagesFilled className="h-5 w-5" />}
+					label={uploadProgress
+						? `${t("chat_drawer.upload_photo")} ${uploadProgress.done}/${uploadProgress.total}`
+						: t("chat_drawer.upload_photo")}
+					onClick={() => uploadInputRef.current?.click()}
+					disabled={isBusy}
+				/>
+			</div>
+
 			<div
 				data-lenis-prevent
-				className="min-h-0 flex-1 overflow-y-auto max-h-[50vh] rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
+				className="min-h-0 flex-1 overflow-y-auto max-h-[50vh]"
 			>
 				{isLoading && media.length === 0 ? (
 					<div className="flex h-full items-center justify-center py-8">
@@ -187,33 +201,7 @@ export function DrawerCollectionEditorSheet({
 						</button>
 					</div>
 				) : (
-					<div className={`grid gap-px bg-[var(--border)] ${isDesktop ? "grid-cols-5" : "grid-cols-3"}`}>
-						<button
-							type="button"
-							onClick={() => uploadInputRef.current?.click()}
-							disabled={isBusy}
-							className="relative aspect-square bg-[var(--surface)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:brightness-75"
-							aria-label={t("chat_drawer.upload_photo")}
-							title={t("chat_drawer.upload_photo")}
-						>
-							<div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
-								{uploadProgress ? (
-									<>
-										<Loader2 className="h-5 w-5 animate-spin" />
-										<span className="text-[10px] font-medium tabular-nums">
-											{uploadProgress.done}/{uploadProgress.total}
-										</span>
-									</>
-								) : (
-									<span className="relative inline-flex">
-										<Upload className="h-5 w-5" />
-										<span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--accent)]">
-											<Plus className="h-2.5 w-2.5 stroke-[3] text-[var(--accent-contrast)]" />
-										</span>
-									</span>
-								)}
-							</div>
-						</button>
+					<div className={drawerGridClass(isDesktop)}>
 						{media.map((item) => {
 							const isVideo = item.contentType.startsWith("video/");
 							const position = orderedSelection.indexOf(item.id) + 1;
@@ -227,7 +215,7 @@ export function DrawerCollectionEditorSheet({
 									tabIndex={0}
 									onClick={() => { if (!isBusy) toggleSelection(item.id); }}
 									onKeyDown={(e) => e.key === "Enter" && !isBusy && toggleSelection(item.id)}
-									className="relative aspect-square overflow-hidden transition cursor-pointer"
+									className={`${DRAWER_TILE_CLASS} transition cursor-pointer`}
 									style={{
 										outline: isSelected ? "2px solid var(--accent)" : "none",
 										outlineOffset: "-2px",
