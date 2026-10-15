@@ -21,6 +21,7 @@ import { CameraFilled, CameraPlusFilled, ImagesFilled } from "../../../component
 import { SlidingTabs } from "../../../components/ui/sliding-tabs";
 import {
 	DRAWER_ICON_BUTTON_CLASS,
+	DRAWER_TILE_CLASS,
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
 	DrawerActionTile,
@@ -460,7 +461,7 @@ export function ChatDrawerPanel({
 				tabIndex={0}
 				onClick={() => { if (hasSelection) return; setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); }}
 				onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
-				className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+				className={`${DRAWER_TILE_CLASS} cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
 				{cover ? <img src={cover} alt="" className="h-full w-full object-cover scale-110" style={{ filter: "blur(3px)" }} /> : (
 					<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Album className="h-6 w-6 opacity-50" /></div>
@@ -474,7 +475,7 @@ export function ChatDrawerPanel({
 				</div>
 				{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-md" style={{ border: "2px solid var(--accent)" }} />}
 			</div>
 		);
 	});
@@ -501,7 +502,7 @@ export function ChatDrawerPanel({
 				title={t("chat_drawer.collection_badge")}
 				onClick={() => { if (!dimmed) toggleCollectionSelection(collection); }}
 				onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
-				className={`relative aspect-square overflow-hidden rounded-xl cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+				className={`${DRAWER_TILE_CLASS} cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
 				{coverItems.length > 0 ? (
 					<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
@@ -538,7 +539,7 @@ export function ChatDrawerPanel({
 				</div>
 				<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-xl" style={{ border: "2px solid var(--accent)" }} />}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-md" style={{ border: "2px solid var(--accent)" }} />}
 			</div>
 		);
 	});
