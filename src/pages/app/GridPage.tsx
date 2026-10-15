@@ -4,6 +4,7 @@ import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
+import { useScrollRowFade } from "../../hooks/useScrollRowFade";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { encodeGeohash } from "../../utils/geohash";
@@ -372,40 +373,8 @@ export function GridPage() {
 	const [isNameSearchOpen, setIsNameSearchOpen] = useState(false);
 	const showNameSearch = isNameSearchOpen || Boolean(nicknameFilter);
 
-	// Fade the right edge of the quick-filter row while more chips are
-	// scrolled out of view — otherwise nothing hints that the row scrolls.
-	// The mask goes on each chip, not the scroll container: a masked ancestor
-	// becomes the backdrop root and kills the pills' backdrop-blur glass effect.
-	const chipRowRef = useRef<HTMLDivElement | null>(null);
-	const updateChipRowFade = useCallback(() => {
-		const el = chipRowRef.current;
-		const row = el?.firstElementChild;
-		if (!el || !row) return;
-		const hasMore = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
-		const fadeEnd = el.getBoundingClientRect().right;
-		const fadeStart = fadeEnd - 48;
-		for (const chip of Array.from(row.children) as HTMLElement[]) {
-			const rect = chip.getBoundingClientRect();
-			let mask = "";
-			if (hasMore && rect.right > fadeStart) {
-				// Gradient stops in chip-local px so all chips share one continuous fade.
-				mask = `linear-gradient(to right, black ${fadeStart - rect.left}px, transparent ${fadeEnd - rect.left}px)`;
-			}
-			chip.style.maskImage = mask;
-			chip.style.webkitMaskImage = mask;
-		}
-	}, []);
-	useEffect(() => {
-		const el = chipRowRef.current;
-		if (!el) return;
-		updateChipRowFade();
-		// Observe the inner row too: chips appear/disappear (clear-all, explore
-		// mode) without the scroll container itself changing size.
-		const observer = new ResizeObserver(updateChipRowFade);
-		observer.observe(el);
-		if (el.firstElementChild) observer.observe(el.firstElementChild);
-		return () => observer.disconnect();
-	}, [updateChipRowFade]);
+	// Fades the quick-filter row's right edge while more chips are off-screen.
+	const chipRowFade = useScrollRowFade();
 
 	// Distance/age/popularity sorts need the viewer's own position, so explore
 	// mode only offers the ones that still make sense (see the reset effect above).
@@ -1637,8 +1606,8 @@ export function GridPage() {
 							)}
 
 							<div
-								ref={chipRowRef}
-								onScroll={updateChipRowFade}
+								ref={chipRowFade.ref}
+								onScroll={chipRowFade.onScroll}
 								className="-mx-[var(--app-px)] overflow-x-auto pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 							>
 								<div className="flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">

@@ -73,6 +73,7 @@ import { decodeGeohash } from "../../../utils/geohash";
 import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import { useEffectiveColorScheme } from "../../../hooks/useEffectiveColorScheme";
 import {
 	getMessageLocation,
 	getMessagePreviewLabel,
@@ -151,6 +152,7 @@ import {
 
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
+import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
 import { haptic } from "../../../utils/haptics";
 
 type ChatThreadPanelProps = {
@@ -366,7 +368,14 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { t } = useTranslation();
 	useAvatarCache();
     const apiFunctions = useApiFunctions();
-	const { unitsPreset, geohash } = usePreferences();
+	const { unitsPreset, geohash, amoledMode } = usePreferences();
+	const effectiveColorScheme = useEffectiveColorScheme();
+	// AMOLED on mobile: the bottom bar blends into the black page so the saved
+	// phrases and the input float instead of sitting on a surface strip.
+	const mobileComposerBg =
+		!props.isDesktop && amoledMode && effectiveColorScheme === "dark"
+			? "bg-[var(--bg)]"
+			: "border-t border-[var(--border)] bg-[var(--surface)]";
 	// Feature-detected once (doesn't change during the app's lifetime) —
 	// hides every video-call entry point entirely on WebView builds without
 	// RTCPeerConnection (confirmed missing on some Linux WebKitGTK builds)
@@ -851,6 +860,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		};
 	}, []);
     
+    // Same right-edge fade as the grid header's quick-filter chips.
+    const phraseRowFade = useScrollRowFade();
+
     const filteredPhrases = savedPhrases.filter((phrase) =>
         draft.trim() === "" || phrase.toLowerCase().startsWith(draft.toLowerCase()),
     );
@@ -1960,7 +1972,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 
 					{isArchived ? (
 						<div
-					className={`${!isDesktop ? "shrink-0 px-[var(--app-px)] py-3" : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4"} bg-[var(--surface)]`}
+					className={`${!isDesktop ? `shrink-0 px-[var(--app-px)] py-3 ${mobileComposerBg}` : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--surface)]"}`}
 							style={
 								!isDesktop
 									? { paddingBottom: mobileKeyboardInset > 0 ? "12px" : "max(12px, env(safe-area-inset-bottom))" }
@@ -1990,7 +2002,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					) : (
 					<form
 						onSubmit={onFormSubmit}
-						className={`relative ${!isDesktop ? "shrink-0 px-[var(--app-px)] pt-3" : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4"} border-t border-[var(--border)] bg-[var(--surface)]`}
+						className={`relative ${!isDesktop ? `shrink-0 px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)] bg-[var(--surface)]"}`}
 					>
 						{(isUploadingAttachment || uploadProgress > 0) && (
 							<div
@@ -2005,7 +2017,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						)}
 						{/* --- QUICK PHRASE PILLS --- */}
 						{!slashMenuMatch && filteredPhrases.length > 0 && (
-							<div className="mb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+							<div
+								ref={phraseRowFade.ref}
+								onScroll={phraseRowFade.onScroll}
+								className="mb-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+							>
+								<div className="flex min-w-max items-center gap-2">
 								{filteredPhrases.map((phrase, idx) => {
 									const isExact = phrase.toLowerCase() === draft.trim().toLowerCase();
 									return (
@@ -2023,6 +2040,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										</button>
 									);
 								})}
+								</div>
 							</div>
 						)}
 						{/* -------------------------- */}
