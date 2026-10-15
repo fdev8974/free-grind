@@ -1,6 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import { appCacheDir, join } from "@tauri-apps/api/path";
-import { BaseDirectory, mkdir, open, remove, writeFile as writeFsFile } from "@tauri-apps/plugin-fs";
+import { listen } from "@tauri-apps/api/event";
+import { appCacheDir, documentDir, downloadDir, join } from "@tauri-apps/api/path";
+import { BaseDirectory, mkdir, open, remove } from "@tauri-apps/plugin-fs";
+import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-fs-api";
+import { isAndroid, isIos } from "./saveMedia";
 
 /**
  * Mirrors `EXPORT_TABLES[].category` in `src-tauri/src/commands/backup.rs` —
@@ -29,42 +32,85 @@ export type BackupInspection =
 
 export type ImportBackupResult = { ok: true; rowsImported: number } | { ok: false; error: "wrong_owner" | "invalid_format" };
 
+/** Payload of the `backup-export-progress` / `backup-import-progress` events emitted by backup.rs. */
+export type BackupProgress = {
+	table: string;
+	tableIndex: number;
+	tableCount: number;
+	rowsDone: number;
+	/** Missing when importing an archive written before the manifest carried row counts. */
+	rowsTotal?: number;
+};
+
 const BACKUP_TEMP_DIR = "backup-tmp";
+/** Fewer, larger IPC writes — a picked File's stream yields ~64 KB chunks, one round-trip each otherwise. */
+const IMPORT_WRITE_CHUNK_SIZE = 8 * 1024 * 1024;
 
 async function tempZipPath(prefix: string): Promise<string> {
 	await mkdir(BACKUP_TEMP_DIR, { baseDir: BaseDirectory.AppCache, recursive: true });
 	return join(await appCacheDir(), BACKUP_TEMP_DIR, `${prefix}-${crypto.randomUUID()}.zip`);
 }
 
-export function newExportTempPath(): Promise<string> {
-	return tempZipPath("export");
-}
-
 /** Copies a picked `File` to a scratch path on disk, streamed so a large archive never sits fully in WebView memory. */
 export async function copyPickedFileToTemp(file: File): Promise<string> {
 	const path = await tempZipPath("import");
-	await writeFsFile(path, file.stream());
+	const handle = await open(path, { write: true, create: true, truncate: true });
+	try {
+		const reader = file.stream().getReader();
+		const buffer = new Uint8Array(IMPORT_WRITE_CHUNK_SIZE);
+		let filled = 0;
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			let offset = 0;
+			while (offset < value.length) {
+				const take = Math.min(value.length - offset, buffer.length - filled);
+				buffer.set(value.subarray(offset, offset + take), filled);
+				filled += take;
+				offset += take;
+				if (filled === buffer.length) {
+					await handle.write(buffer);
+					filled = 0;
+				}
+			}
+		}
+		if (filled > 0) {
+			await handle.write(buffer.subarray(0, filled));
+		}
+	} catch (error) {
+		await handle.close().catch(() => {});
+		await cleanupTempFile(path);
+		throw error;
+	}
+	await handle.close();
+	return path;
+}
+
+/**
+ * Android: lets the user pick a backup via the system picker and copies it to
+ * a scratch path natively in Rust. `<input type="file">` on Android's WebView
+ * routes the whole archive through JS, which was slow and flaky for large
+ * media backups. Resolves to null if the picker was cancelled.
+ */
+export async function pickBackupFileToTempAndroid(): Promise<string | null> {
+	const [uri] = await AndroidFs.showOpenFilePicker({
+		// Some file managers report zips as octet-stream; the inspection step
+		// rejects anything that isn't actually a backup anyway.
+		mimeTypes: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
+	});
+	if (!uri) return null;
+	const path = await tempZipPath("import");
+	try {
+		await invoke("copy_android_uri_to_file", { srcUri: uri, destPath: path });
+	} catch (error) {
+		await cleanupTempFile(path);
+		throw error;
+	}
 	return path;
 }
 
 export async function cleanupTempFile(path: string): Promise<void> {
 	await remove(path).catch(() => {});
-}
-
-/** Reads a file back off disk in chunks, for handing to a streaming writer (Android SAF / desktop). */
-export async function* readFileInChunks(path: string): AsyncGenerator<Uint8Array> {
-	const file = await open(path, { read: true });
-	try {
-		const CHUNK_SIZE = 512 * 1024;
-		while (true) {
-			const buffer = new Uint8Array(CHUNK_SIZE);
-			const bytesRead = await file.read(buffer);
-			if (bytesRead === null) break;
-			yield bytesRead === CHUNK_SIZE ? buffer : buffer.slice(0, bytesRead);
-		}
-	} finally {
-		await file.close();
-	}
 }
 
 export function exportBackupToFile(
@@ -74,6 +120,43 @@ export function exportBackupToFile(
 	categories: BackupCategoryId[],
 ): Promise<void> {
 	return invoke("export_backup_to_file", { dbFileName, ownerUserId, destPath, categories });
+}
+
+/**
+ * Builds the backup archive natively and puts it where the user can find it:
+ * Downloads/FreeGrind on desktop, the app's Documents dir on iOS (exposed in
+ * the Files app via UIFileSharingEnabled), and the public Downloads/FreeGrind
+ * via MediaStore on Android. All byte shuffling happens in Rust — none of the
+ * archive ever crosses the JS bridge.
+ */
+export async function exportBackup(dbFileName: string, ownerUserId: number, categories: BackupCategoryId[]): Promise<void> {
+	const fileName = `free-grind-data-${new Date().toISOString().slice(0, 10)}.zip`;
+
+	if (!isAndroid()) {
+		const baseDir = isIos() ? await documentDir() : await downloadDir();
+		await exportBackupToFile(dbFileName, ownerUserId, await join(baseDir, "FreeGrind", fileName), categories);
+		return;
+	}
+
+	// MediaStore files can only be written through their content URI, so the
+	// archive is built in a scratch file first and then copied over natively.
+	const tempPath = await tempZipPath("export");
+	try {
+		await exportBackupToFile(dbFileName, ownerUserId, tempPath, categories);
+		const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "application/zip", {
+			isPending: true,
+		});
+		try {
+			await invoke("copy_file_to_android_uri", { srcPath: tempPath, destUri: uri });
+			await AndroidFs.setPublicFilePending(uri, false);
+			await AndroidFs.scanPublicFile(uri);
+		} catch (error) {
+			await AndroidFs.removeFile(uri).catch(() => {});
+			throw error;
+		}
+	} finally {
+		await cleanupTempFile(tempPath);
+	}
 }
 
 export function inspectBackupFile(srcPath: string, ownerUserId: number): Promise<BackupInspection> {
@@ -87,4 +170,30 @@ export function importBackupFile(
 	categories: BackupCategoryId[],
 ): Promise<ImportBackupResult> {
 	return invoke("import_backup_from_file", { dbFileName, ownerUserId, srcPath, categories });
+}
+
+export function listenBackupProgress(kind: "export" | "import", onProgress: (progress: BackupProgress) => void): Promise<() => void> {
+	return listen<BackupProgress>(`backup-${kind}-progress`, (event) => onProgress(event.payload));
+}
+
+/** Overall 0..1 fraction across all tables, or null while the current table's size is unknown. */
+export function backupProgressFraction(progress: BackupProgress): number | null {
+	if (progress.tableCount === 0) return null;
+	if (progress.rowsTotal == null) return null;
+	const withinTable = progress.rowsTotal > 0 ? Math.min(progress.rowsDone / progress.rowsTotal, 1) : 1;
+	return (progress.tableIndex + withinTable) / progress.tableCount;
+}
+
+/**
+ * Tauri commands reject with the serialized `AppError` (`{ kind, message }`),
+ * not an `Error` — so `error.message` checks alone always fell back to the
+ * generic toast and hid the real cause.
+ */
+export function backupErrorMessage(error: unknown, fallback: string): string {
+	if (error instanceof Error && error.message) return error.message;
+	if (typeof error === "string" && error) return error;
+	if (error && typeof error === "object" && "message" in error && typeof error.message === "string" && error.message) {
+		return error.message;
+	}
+	return fallback;
 }

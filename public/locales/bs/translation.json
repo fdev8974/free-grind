@@ -2349,6 +2349,8 @@
         "category_saved_locations": "Sačuvane lokacije",
         "category_settings": "Postavke",
         "category_sexual_health": "Seksualno zdravlje",
+        "progress_step": "",
+        "progress_preparing": "",
         "export_no_categories": "Odaberi barem jednu kategoriju za izvoz.",
         "export_categories_title": "Šta želiš izvesti?",
         "export_confirm": "Izvezi",

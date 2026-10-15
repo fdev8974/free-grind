@@ -2331,6 +2331,8 @@
         "category_saved_locations": "Opgeslagen locaties",
         "category_settings": "Instellingen",
         "category_sexual_health": "Seksuele gezondheid",
+        "progress_step": "",
+        "progress_preparing": "",
         "export_no_categories": "Kies minstens één categorie om te exporteren.",
         "export_categories_title": "Wat wil je exporteren?",
         "export_confirm": "Exporteren",

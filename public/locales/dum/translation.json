@@ -2363,6 +2363,8 @@
         "category_saved_locations": "المواقع المحفوظة",
         "category_settings": "الإعدادات",
         "category_sexual_health": "الصحة الجنسية",
+        "progress_step": "",
+        "progress_preparing": "",
         "export_no_categories": "اختار فئة واحدة على الأقل عشان تصدّر.",
         "export_categories_title": "عايز تصدّر إيه؟",
         "export_confirm": "تصدير",

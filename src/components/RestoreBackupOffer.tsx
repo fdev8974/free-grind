@@ -3,22 +3,23 @@ import { FileArchive, FileUp, Loader2, Lock, UploadCloud, X } from "lucide-react
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
+import { BackupProgressBar } from "./BackupProgressBar";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { BottomSheet, SheetClose } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import * as chatDb from "../services/chatDb";
 import {
+	backupErrorMessage as getErrorMessage,
 	cleanupTempFile,
 	copyPickedFileToTemp,
 	importBackupFile,
 	inspectBackupFile,
+	pickBackupFileToTempAndroid,
 	type BackupCategoryId,
 } from "../services/backupRestore";
+import { isAndroid } from "../services/saveMedia";
 import { markRestoreOffered } from "../utils/restoreOfferStorage";
-
-function getErrorMessage(error: unknown, fallback: string): string {
-	return error instanceof Error && error.message ? error.message : fallback;
-}
+import { appLog } from "../utils/logger";
 
 export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone: () => void }) {
 	const { t } = useTranslation();
@@ -46,10 +47,13 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 		);
 	};
 
-	const handleFilePicked = async (file: File) => {
+	/** `stage` copies the picked archive to a local scratch path (null = picker cancelled). */
+	const handleFilePicked = async (stage: () => Promise<string | null>) => {
 		setIsBusy(true);
-		const tempPath = await copyPickedFileToTemp(file);
+		let tempPath: string | null = null;
 		try {
+			tempPath = await stage();
+			if (tempPath == null) return;
 			const inspection = await inspectBackupFile(tempPath, userId);
 			if (!inspection.ok) {
 				showImportError(inspection.error);
@@ -58,8 +62,9 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 			}
 			setPendingImport({ tempPath, categories: inspection.categories, selected: new Set(inspection.categories) });
 		} catch (error) {
+			appLog.error("[RestoreBackupOffer] reading backup file failed", error);
 			toast.error(getErrorMessage(error, t("restore_offer.import_failed", { defaultValue: "Failed to read backup file." })));
-			await cleanupTempFile(tempPath);
+			if (tempPath != null) await cleanupTempFile(tempPath);
 		} finally {
 			setIsBusy(false);
 		}
@@ -94,6 +99,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 			finish();
 			window.location.reload();
 		} catch (error) {
+			appLog.error("[RestoreBackupOffer] backup import failed", error);
 			toast.error(getErrorMessage(error, t("restore_offer.import_failed", { defaultValue: "Failed to read backup file." })));
 		} finally {
 			setIsBusy(false);
@@ -130,7 +136,13 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 
 				<button
 					type="button"
-					onClick={() => fileInputRef.current?.click()}
+					onClick={() => {
+						if (isAndroid()) {
+							void handleFilePicked(pickBackupFileToTempAndroid);
+						} else {
+							fileInputRef.current?.click();
+						}
+					}}
 					onDragOver={(event) => {
 						event.preventDefault();
 						if (!isBusy) setIsDragging(true);
@@ -140,7 +152,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 						event.preventDefault();
 						setIsDragging(false);
 						const file = event.dataTransfer.files?.[0];
-						if (file && !isBusy) void handleFilePicked(file);
+						if (file && !isBusy) void handleFilePicked(() => copyPickedFileToTemp(file));
 					}}
 					disabled={isBusy}
 					className={`group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-7 text-center transition disabled:cursor-wait ${
@@ -172,7 +184,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					onChange={(event) => {
 						const file = event.target.files?.[0];
 						event.target.value = "";
-						if (file) void handleFilePicked(file);
+						if (file) void handleFilePicked(() => copyPickedFileToTemp(file));
 					}}
 				/>
 
@@ -207,6 +219,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 						</p>
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleCategory} />
 					</div>
+					<BackupProgressBar kind="import" active={isBusy} />
 					<div className="flex gap-2 px-4 pb-4 pt-2">
 						<SheetClose
 							disabled={isBusy}

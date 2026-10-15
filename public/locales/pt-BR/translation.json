@@ -2349,6 +2349,8 @@
         "category_saved_locations": "Localizações salvas",
         "category_settings": "Configurações",
         "category_sexual_health": "Saúde sexual",
+        "progress_step": "",
+        "progress_preparing": "",
         "export_no_categories": "Escolha pelo menos uma categoria para exportar.",
         "export_categories_title": "O que você quer exportar?",
         "export_confirm": "Exportar",

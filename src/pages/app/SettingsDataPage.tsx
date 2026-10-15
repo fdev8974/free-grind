@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
+import { BackupProgressBar } from "../../components/BackupProgressBar";
 import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
@@ -25,13 +26,13 @@ import { BaseDirectory, mkdir, writeFile as writeFsFile } from "@tauri-apps/plug
 import * as chatDb from "../../services/chatDb";
 import {
 	BACKUP_CATEGORY_IDS,
+	backupErrorMessage as getErrorMessage,
 	cleanupTempFile,
 	copyPickedFileToTemp,
-	exportBackupToFile,
+	exportBackup,
 	importBackupFile,
 	inspectBackupFile,
-	newExportTempPath,
-	readFileInChunks,
+	pickBackupFileToTempAndroid,
 	type BackupCategoryId,
 } from "../../services/backupRestore";
 import { loadEncounters } from "../../services/encounters";
@@ -48,10 +49,6 @@ function formatBytes(bytes: number): string {
 	const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
 	const value = bytes / 1024 ** exponent;
 	return `${exponent === 0 ? value : value.toFixed(1)} ${units[exponent]}`;
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-	return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function SettingsDataPage() {
@@ -143,72 +140,11 @@ export function SettingsDataPage() {
 			return false;
 		}
 		setIsExporting(true);
-		const tempPath = await newExportTempPath();
 		try {
-			const fileName = `free-grind-data-${new Date().toISOString().slice(0, 10)}.zip`;
-
-			// The actual SQL read + base64 decode + zip compression all happen
-			// natively in Rust (src-tauri/src/commands/backup.rs) — this just
-			// writes the archive to a scratch file, which the platform-specific
-			// branches below then move to where the user can actually find it.
-			await exportBackupToFile(chatDb.getActiveChatDbFileName(), userId, tempPath, Array.from(exportCategories));
-
-			if (isAndroid()) {
-				// The blob-URL + <a download> trick below doesn't trigger a save on
-				// Android's WebView, so write the export directly via MediaStore instead.
-				const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "application/zip", {
-					isPending: true,
-				});
-				try {
-					const writable = await AndroidFs.openWriteFileStream(uri);
-					const writer = writable.getWriter();
-					try {
-						for await (const chunk of readFileInChunks(tempPath)) {
-							await writer.write(chunk);
-						}
-						await writer.close();
-					} catch (error) {
-						// A write failure already released the stream, so closing it
-						// again would throw and mask the real error below.
-						await writer.abort(error).catch(() => {});
-						throw error;
-					}
-					await AndroidFs.setPublicFilePending(uri, false);
-					await AndroidFs.scanPublicFile(uri);
-				} catch (error) {
-					await AndroidFs.removeFile(uri).catch(() => {});
-					throw error;
-				}
-			} else {
-				// Streams straight to disk instead of loading the whole archive
-				// into memory first.
-				const generator = readFileInChunks(tempPath);
-				const readable = new ReadableStream<Uint8Array>({
-					async pull(controller) {
-						const { value, done } = await generator.next();
-						if (done) {
-							controller.close();
-						} else {
-							controller.enqueue(value);
-						}
-					},
-					async cancel() {
-						await generator.return(undefined);
-					},
-				});
-
-				// iOS has no shared Downloads folder — write into the app's own
-				// Documents dir instead, which Info.plist's UIFileSharingEnabled +
-				// LSSupportsOpeningDocumentsInPlace expose in the Files app under
-				// "On My iPhone/iPad" > Free Grind.
-				const baseDir = isIos() ? BaseDirectory.Document : BaseDirectory.Download;
-				// Must stay under <baseDir>/FreeGrind — the fs:allow-write-file
-				// capability (desktop.json / ios.json) only scopes write access to
-				// that folder, same one saveMedia.ts saves media into on desktop.
-				await mkdir("FreeGrind", { baseDir, recursive: true });
-				await writeFsFile(`FreeGrind/${fileName}`, readable, { baseDir });
-			}
-
+			// The SQL read, base64 decode, zip compression and the copy to the
+			// final location all happen natively (src-tauri/src/commands/backup.rs)
+			// on a worker thread — nothing of the archive crosses the JS bridge.
+			await exportBackup(chatDb.getActiveChatDbFileName(), userId, Array.from(exportCategories));
 			toast.success(
 				isAndroid()
 					? t("data_backup.export_success", { defaultValue: "Data exported." })
@@ -218,11 +154,11 @@ export function SettingsDataPage() {
 			);
 			return true;
 		} catch (error) {
+			appLog.error("[SettingsDataPage] backup export failed", error);
 			toast.error(getErrorMessage(error, t("data_backup.export_failed", { defaultValue: "Failed to export data." })));
 			return false;
 		} finally {
 			setIsExporting(false);
-			await cleanupTempFile(tempPath);
 		}
 	};
 
@@ -234,18 +170,20 @@ export function SettingsDataPage() {
 		);
 	};
 
-	const handleImportFile = async (file: File) => {
+	/** `stage` copies the picked archive to a local scratch path (null = picker cancelled). */
+	const handleImportFile = async (stage: () => Promise<string | null>) => {
 		if (userId == null) {
 			toast.error(t("data_backup.import_no_user", { defaultValue: "You must be signed in to import." }));
 			return;
 		}
 		setIsImporting(true);
-		// Copy the picked file to disk first (streamed, so a large archive
-		// never sits fully in WebView memory), then hand a plain path to
-		// Rust for inspection — only once we know which categories are
-		// actually in the file do we ask the user which of those to restore.
-		const tempPath = await copyPickedFileToTemp(file);
+		// Copy the picked file to disk first, then hand a plain path to Rust
+		// for inspection — only once we know which categories are actually in
+		// the file do we ask the user which of those to restore.
+		let tempPath: string | null = null;
 		try {
+			tempPath = await stage();
+			if (tempPath == null) return;
 			const inspection = await inspectBackupFile(tempPath, userId);
 			if (!inspection.ok) {
 				showImportError(inspection.error);
@@ -254,8 +192,9 @@ export function SettingsDataPage() {
 			}
 			setPendingImport({ tempPath, categories: inspection.categories, selected: new Set(inspection.categories) });
 		} catch (error) {
+			appLog.error("[SettingsDataPage] reading backup file failed", error);
 			toast.error(getErrorMessage(error, t("data_backup.import_failed", { defaultValue: "Failed to import data." })));
-			await cleanupTempFile(tempPath);
+			if (tempPath != null) await cleanupTempFile(tempPath);
 		} finally {
 			setIsImporting(false);
 		}
@@ -299,6 +238,7 @@ export function SettingsDataPage() {
 			setPendingImport(null);
 			window.location.reload();
 		} catch (error) {
+			appLog.error("[SettingsDataPage] backup import failed", error);
 			toast.error(getErrorMessage(error, t("data_backup.import_failed", { defaultValue: "Failed to import data." })));
 		} finally {
 			setIsImporting(false);
@@ -344,8 +284,8 @@ export function SettingsDataPage() {
 			if (isAndroid()) {
 				// Blob-URL + <a download> doesn't trigger a save on Android's WebView
 				// (same reasoning as the other exports on this page), so this writes
-				// via the same open-stream + writer pattern used for the full data
-				// and encounters exports.
+				// via the same open-stream + writer pattern used for the encounters
+				// export.
 				const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "text/plain", {
 					isPending: true,
 				});
@@ -422,9 +362,9 @@ export function SettingsDataPage() {
 			const fileName = `free-grind-encounters-${new Date().toISOString().slice(0, 10)}.ics`;
 
 			if (isAndroid()) {
-				// Same reasoning as the full data export above: blob-URL + <a download>
-				// doesn't trigger a save on Android's WebView. Writes via the same
-				// open-stream + writer pattern as the full data export below — a
+				// Blob-URL + <a download> doesn't trigger a save on Android's
+				// WebView. Writes via the same open-stream + writer pattern as the
+				// saved phrases export above — a
 				// direct AndroidFs.writeFile(uri, bytes) call on a freshly-created
 				// pending MediaStore entry was unreliable on-device even though it
 				// type-checks and works on desktop.
@@ -523,7 +463,13 @@ export function SettingsDataPage() {
 						<button
 							id="data-import"
 							type="button"
-							onClick={() => fileInputRef.current?.click()}
+							onClick={() => {
+								if (isAndroid()) {
+									void handleImportFile(pickBackupFileToTempAndroid);
+								} else {
+									fileInputRef.current?.click();
+								}
+							}}
 							disabled={isImporting}
 							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
 						>
@@ -554,7 +500,7 @@ export function SettingsDataPage() {
 							onChange={(event) => {
 								const file = event.target.files?.[0];
 								event.target.value = "";
-								if (file) void handleImportFile(file);
+								if (file) void handleImportFile(() => copyPickedFileToTemp(file));
 							}}
 						/>
 
@@ -797,6 +743,7 @@ export function SettingsDataPage() {
 					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
 						<BackupCategoryPicker categories={BACKUP_CATEGORY_IDS} selected={exportCategories} onToggle={toggleExportCategory} />
 					</div>
+					<BackupProgressBar kind="export" active={isExporting} />
 					<div className="flex gap-2 px-4 pb-4 pt-2">
 						<SheetClose
 							disabled={isExporting}
@@ -845,6 +792,7 @@ export function SettingsDataPage() {
 						</p>
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleImportCategory} />
 					</div>
+					<BackupProgressBar kind="import" active={isImporting} />
 					<div className="flex gap-2 px-4 pb-4 pt-2">
 						<SheetClose
 							disabled={isImporting}
