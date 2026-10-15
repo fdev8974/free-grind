@@ -27,7 +27,6 @@ import {
 	Play,
 	Reply,
 	RotateCw,
-	SendHorizontal,
 	ShieldCheck,
 	SquareCenterlineDashedHorizontal,
 	Trash2,
@@ -37,7 +36,7 @@ import {
 	BellOff,
 } from "lucide-react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
-import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
+import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, SendHorizontalFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
@@ -2215,7 +2214,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								>
 									{props.isSendingAudio
 										? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-										: <SendHorizontal className="h-3.5 w-3.5" />}
+										: <SendHorizontalFilled className="h-3.5 w-3.5" />}
 								</button>
 							</div>
 						) : null}
@@ -2407,7 +2406,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									disabled={isSending || !!pendingLocationShare || draft.trim().length === 0}
 									className={`shrink-0 inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 disabled:opacity-30 ${!isDesktop ? "rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "rounded-lg text-[var(--accent)]"}`}
 								>
-									{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+									{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontalFilled className="h-4 w-4" />}
 								</button>
 							) : (
 								<button

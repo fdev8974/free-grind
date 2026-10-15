@@ -314,6 +314,21 @@ export function SendFilled(props: IconProps) {
 	);
 }
 
+export function SendHorizontalFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M6 12h16" fill="none" strokeWidth={1.75} />
+			</CutoutMask>
+			<path
+				mask={`url(#${id})`}
+				d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z"
+			/>
+		</FilledSvg>
+	);
+}
+
 export function LockFilled(props: IconProps) {
 	return (
 		<FilledSvg {...props}>
