@@ -1332,7 +1332,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					<>
 						<div
 							ref={!isDesktop ? headerRef : undefined}
-							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-20 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_80%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_80%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
+							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-30 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_80%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_80%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? {
@@ -1504,7 +1504,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										<EllipsisVertical className="h-4 w-4" />
 									</button>
 									{isHeaderActionsMenuOpen ? (
-										<div className="absolute right-0 top-full z-30 mt-2 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+										<div
+											data-lenis-prevent
+											className="absolute right-0 top-full z-30 mt-2 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
+											// Mobile: stay within the space between the floating header and composer.
+											style={!isDesktop ? { maxHeight: `calc(${mobileKeyboardInset > 0 ? `100dvh - ${mobileKeyboardInset}px` : "100dvh"} - ${headerHeight + composerHeight}px - 1rem)` } : undefined}
+										>
 											<div className="flex shrink-0 flex-col gap-1 px-2">
 											{!isArchived && (
 											<button
