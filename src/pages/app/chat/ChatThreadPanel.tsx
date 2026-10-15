@@ -374,6 +374,20 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	// Height of the floating mobile composer, reserved as bottom padding in the
 	// message list so the newest message isn't hidden behind it.
 	const [composerHeight, setComposerHeight] = useState(0);
+	const [headerHeight, setHeaderHeight] = useState(0);
+	const headerObserverRef = useRef<ResizeObserver | null>(null);
+	const headerRef = useCallback((node: HTMLDivElement | null) => {
+		headerObserverRef.current?.disconnect();
+		headerObserverRef.current = null;
+		if (!node) {
+			setHeaderHeight(0);
+			return;
+		}
+		const observer = new ResizeObserver(() => setHeaderHeight(node.offsetHeight));
+		observer.observe(node);
+		headerObserverRef.current = observer;
+		setHeaderHeight(node.offsetHeight);
+	}, []);
 	const composerObserverRef = useRef<ResizeObserver | null>(null);
 	const composerRef = useCallback((node: HTMLFormElement | null) => {
 		composerObserverRef.current?.disconnect();
@@ -1317,7 +1331,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				return (
 					<>
 						<div
-							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `shrink-0 bg-[var(--surface)] px-[var(--app-px)] pb-3 ${isMobileAmoled ? "border-transparent" : "border-[var(--border)]/60"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
+							ref={!isDesktop ? headerRef : undefined}
+							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-20 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_80%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_80%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? {
@@ -1933,6 +1948,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				<ChatThreadMessages
 						isDesktop={isDesktop}
 						bottomInset={!isDesktop ? composerHeight : 0}
+						topInset={!isDesktop ? headerHeight : 0}
 						selectedConversation={selectedConversation}
 						userId={userId}
 						nowTimestamp={nowTimestamp}

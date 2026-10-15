@@ -66,6 +66,8 @@ type ChatThreadMessagesProps = {
 	isDesktop: boolean;
 	/** Space covered by a floating composer at the bottom (mobile). */
 	bottomInset?: number;
+	/** Space covered by a floating header at the top (mobile). */
+	topInset?: number;
 	selectedConversation: ConversationEntry;
 	userId: number | null;
 	nowTimestamp: number;
@@ -311,6 +313,7 @@ function MessageContextMenu({
 export function ChatThreadMessages({
 	isDesktop,
 	bottomInset = 0,
+	topInset = 0,
 	selectedConversation,
 	userId,
 	nowTimestamp,
@@ -914,7 +917,7 @@ export function ChatThreadMessages({
 			onScroll={handleThreadScroll}
 			data-lenis-prevent
 			className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
-			style={bottomInset > 0 ? { paddingBottom: bottomInset } : undefined}
+			style={bottomInset > 0 || topInset > 0 ? { paddingBottom: bottomInset, paddingTop: topInset } : undefined}
 		>
             {messagePageKey ? (
                 <button

@@ -60,13 +60,13 @@ export function PageHeader({
 				{/* Full-bleed (100vw, centred) so the bar spans the window on desktop rather than
 				    stopping at the page's max-width; the overshoot is clipped by html's overflow-x. */}
 				<div
-					className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 border-b border-[var(--border)]"
-					// Same frosted glass as the bottom NavBar.
+					className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 border-b border-[var(--border)]/60"
+					// Same frosted glass as the bottom NavBar and the chat composer.
 					style={{
 						opacity: progress,
-						background: "color-mix(in srgb, var(--surface) 90%, transparent)",
-						backdropFilter: "blur(16px)",
-						WebkitBackdropFilter: "blur(16px)",
+						background: "color-mix(in srgb, var(--surface) 80%, transparent)",
+						backdropFilter: "blur(24px)",
+						WebkitBackdropFilter: "blur(24px)",
 					}}
 					aria-hidden="true"
 				/>
