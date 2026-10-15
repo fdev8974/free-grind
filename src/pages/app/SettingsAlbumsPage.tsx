@@ -60,6 +60,7 @@ import type { DrawerMedia } from "./chat/ChatDrawerPanel";
 import { sortDrawerMediaByUsage } from "./chat/chatUtils";
 import * as chatDb from "../../services/chatDb";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../services/mediaStore";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { appLog } from "../../utils/logger";
 import {
 	DndContext,
@@ -453,14 +454,24 @@ export function SettingsAlbumsPage() {
 		void loadDrawerMedia(true);
 	}, [albumDetails, limits, loadDrawerMedia, t]);
 
-	// Drawer item as a File, for uploading it to an album directly.
+	// Drawer item as a File, for uploading it to an album directly. A locally
+	// cached copy is a base64 data: URI, decoded here without a fetch; the CDN
+	// URL goes through plugin-http, the webview's own fetch is blocked by CORS.
 	const downloadDrawerMedia = async (item: DrawerMedia): Promise<File | null> => {
+		const extension = item.contentType.split("/")[1]?.split(";")[0] || "mp4";
+		const fileName = `drawer-${item.id}.${extension}`;
 		try {
-			const response = await fetch(getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url);
+			const cachedUri = getCachedMediaUri(getDrawerMediaKey(item.id));
+			const base64 = cachedUri?.startsWith("data:") ? cachedUri.slice(cachedUri.indexOf(",") + 1) : null;
+			if (base64) {
+				const binary = atob(base64);
+				const bytes = new Uint8Array(binary.length);
+				for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+				return new File([bytes], fileName, { type: item.contentType });
+			}
+			const response = await tauriFetch(item.url);
 			if (!response.ok) throw new Error(`Download failed (${response.status})`);
-			const blob = await response.blob();
-			const extension = item.contentType.split("/")[1]?.split(";")[0] || "mp4";
-			return new File([blob], `drawer-${item.id}.${extension}`, { type: item.contentType });
+			return new File([await response.arrayBuffer()], fileName, { type: item.contentType });
 		} catch (downloadError) {
 			appLog.warn(`[SettingsAlbumsPage] failed to download drawer media ${item.id}`, downloadError);
 			return null;
