@@ -130,6 +130,12 @@ function SortableAlbumMediaItem({
 	const isVideo = item.contentType?.startsWith("video/");
 	const isProcessing = item.processing;
 	const isRejected = item.rejectionId != null;
+	// A freshly uploaded video has no preview until the server finishes
+	// processing it; its thumb URL doesn't load yet either.
+	const [previewFailed, setPreviewFailed] = useState(false);
+	// The album poll swaps in a fresh URL once processing is done; try that one.
+	useEffect(() => setPreviewFailed(false), [imageUrl]);
+	const showPreview = Boolean(imageUrl) && !isProcessing && !previewFailed;
 
 	return (
 		<div
@@ -137,17 +143,21 @@ function SortableAlbumMediaItem({
 			style={style}
 			className={`relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] ${isDragging ? "z-10 opacity-40" : ""}`}
 		>
-			{imageUrl ? (
+			{showPreview ? (
 				<img
 					src={imageUrl}
 					alt={t("settings_albums.media_alt", { index: index + 1 })}
+					onError={() => setPreviewFailed(true)}
 					className={`aspect-square w-full object-cover ${isRejected ? "opacity-40 grayscale" : ""}`}
 				/>
 			) : (
-				<div className="aspect-square w-full bg-[var(--surface)]" />
+				<div className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 bg-[var(--surface)] text-[var(--text-muted)]">
+					{isVideo ? <Film className="h-7 w-7 opacity-50" /> : <Images className="h-7 w-7 opacity-50" />}
+					{isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin opacity-70" /> : null}
+				</div>
 			)}
 
-			{isVideo && (
+			{isVideo && showPreview && (
 				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
 					<div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
 						<Play className="h-4 w-4 fill-white text-white" />

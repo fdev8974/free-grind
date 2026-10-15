@@ -1,5 +1,4 @@
 import { AlertTriangle, ImageIcon, Loader2, Plus } from "lucide-react";
-import { CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
@@ -10,8 +9,9 @@ import {
 	DrawerGrid,
 	DrawerHeader,
 	DrawerMediaTile,
+	useDrawerAddActions,
 } from "../chat/drawerUi";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -56,19 +56,18 @@ export function ProfilePictureDrawer({
 	isDesktop,
 }: ProfilePictureDrawerProps) {
 	const { t } = useTranslation();
-	const uploadInputRef = useRef<HTMLInputElement | null>(null);
 	const [confirmDeleteHash, setConfirmDeleteHash] = useState<string | null>(null);
 	const [selectedHashes, setSelectedHashes] = useState<Set<string>>(new Set());
 
-	const onPickFile = useCallback(
-		(event: React.ChangeEvent<HTMLInputElement>) => {
-			const file = event.target.files?.[0] ?? null;
-			event.target.value = "";
-			if (!file) return;
-			onUploadFile(file);
+	// Same take photo / upload actions as the other drawers; profile pictures
+	// are photos only, one at a time (the editor's crop step follows).
+	const onPickFiles = useCallback(
+		(files: File[]) => {
+			if (files[0]) onUploadFile(files[0]);
 		},
 		[onUploadFile],
 	);
+	const { actions: addActions, inputs: addInputs } = useDrawerAddActions({ onFiles: onPickFiles, allowVideo: false });
 
 	const toggleSelection = useCallback(
 		(hash: string) => {
@@ -127,7 +126,7 @@ export function ProfilePictureDrawer({
 		>
 			<DrawerHeader title={t("profile_photo_drawer.title")} className="mb-1" />
 
-			<input type="file" ref={uploadInputRef} onChange={onPickFile} accept="image/*" className="hidden" />
+			{addInputs}
 
 			<p className="mb-3 text-xs text-[var(--text-muted)]">
 				{t("profile_photo_drawer.description")}
@@ -149,25 +148,21 @@ export function ProfilePictureDrawer({
 					<DrawerEmptyState
 						icon={<ImageIcon className="h-5 w-5" />}
 						title={t("profile_photo_drawer.empty")}
-						hint={t("profile_photo_drawer.empty_hint", { defaultValue: "Upload a photo from your device to add it to your profile." })}
+						hint={t("profile_photo_drawer.empty_hint", { defaultValue: "Take a photo or upload one from your device to add it to your profile." })}
 					>
-						<DrawerActionButton
-							icon={<CameraPlusFilled className="h-4 w-4" />}
-							label={t("profile_photo_drawer.upload")}
-							onClick={() => uploadInputRef.current?.click()}
-							disabled={isSelecting}
-						/>
+						<div className="grid w-full max-w-xs grid-cols-2 gap-2">
+							{addActions.map((action) => (
+								<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isSelecting} />
+							))}
+						</div>
 					</DrawerEmptyState>
 				) : undefined}
 			>
 				<DrawerGrid isDesktop={isDesktop}>
-					{/* Upload as the first tile, like the chat drawer. */}
-					<DrawerActionTile
-						icon={<CameraPlusFilled />}
-						label={t("profile_photo_drawer.upload")}
-						onClick={() => uploadInputRef.current?.click()}
-						disabled={isSelecting || hasSelection}
-					/>
+					{/* Add actions as the first tiles, like the chat drawer. */}
+					{addActions.map((action) => (
+						<DrawerActionTile key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isSelecting || hasSelection} />
+					))}
 					{visibleImages.map((image) => {
 						const isPending = image.state === MEDIA_MODERATION_STATE.PENDING;
 						const isRejected = image.state === MEDIA_MODERATION_STATE.REJECTED;
