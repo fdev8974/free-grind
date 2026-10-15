@@ -2146,7 +2146,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-1 py-1.5 pl-1.5 pr-1 ${!isDesktop ? "rounded-[1.25rem] bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
+							<div className={`mb-2 flex items-center gap-1 py-1.5 pl-1.5 pr-1 ${!isDesktop ? "min-h-[46px] rounded-[1.25rem] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
 								<div className="flex-1 min-w-0">
 									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} />
 								</div>
@@ -2340,7 +2340,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											? t("chat.write_message")
 											: t("chat.new_conversation.write_first_message")
 									}
-									className="flex-1 bg-transparent py-1 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60"
+									className="flex-1 bg-transparent py-1.5 text-sm leading-5 text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60"
 									style={{ fieldSizing: "content", maxHeight: "115px" } as React.CSSProperties}
 								/>
 							)}
@@ -2441,7 +2441,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									setIsGiphyPickerOpen((prev) => !prev);
 									if (isDrawerOpen) toggleDrawer();
 								}}
-								className={`${!isDesktop ? "h-full w-full text-[var(--accent)] active:opacity-60" : "h-9 w-9 text-[var(--text-muted)]"} inline-flex items-center justify-center rounded-xl transition hover:text-[var(--text)] disabled:opacity-60`}
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.giphy.button_label")}
 								title={t("chat.giphy.button_label")}
 							>
@@ -2455,7 +2455,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									if (pendingLocationShare) handleLocationShareRequest();
 								}}
 								disabled={isUploadingAttachment}
-								className={`${!isDesktop ? "h-full w-full text-[var(--accent)] active:opacity-60" : "h-9 w-9 text-[var(--text-muted)]"} inline-flex items-center justify-center rounded-xl transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60`}
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.attach_media")}
 								title={t("chat.attach_media")}
 							>
@@ -2468,7 +2468,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									if (pendingLocationShare) handleLocationShareRequest();
 								}}
 								disabled={!selectedConversation && !targetProfileId}
-								className={`${!isDesktop ? "h-full w-full text-[var(--accent)] active:opacity-60" : "h-9 w-9 text-[var(--text-muted)]"} inline-flex items-center justify-center rounded-xl transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed`}
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed`}
 								aria-label={t("chat.drawer_label")}
 								title={t("chat.drawer_label")}
 							>
@@ -2480,7 +2480,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									handleLocationShareRequest();
 									if (isDrawerOpen) toggleDrawer();
 								}}
-								className={`${!isDesktop ? "h-full w-full text-[var(--accent)] active:opacity-60" : "h-9 w-9 text-[var(--text-muted)]"} inline-flex items-center justify-center rounded-xl transition hover:text-[var(--text)] disabled:opacity-60`}
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.share_location_label", { defaultValue: "Share Location" })}
 								title={t("chat.share_location_label", { defaultValue: "Share Location" })}
 							>
@@ -2489,7 +2489,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							<button
 								type="button"
 								onClick={() => setIsSavedPhrasesOpen((prev) => !prev)}
-								className={`${!isDesktop ? "h-full w-full text-[var(--accent)] active:opacity-60" : "h-9 w-9 text-[var(--text-muted)]"} inline-flex items-center justify-center rounded-xl transition hover:text-[var(--text)] disabled:opacity-60`}
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 								title={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 							>
