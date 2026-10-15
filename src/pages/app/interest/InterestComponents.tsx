@@ -373,32 +373,29 @@ export const InterestViewTile = memo(function InterestViewTile({
 						<ProfileImage
 							src={imageSrc}
 							alt={displayName ?? ""}
-							className={cn((isLocked || blurGridProfilePictures) && "blur-md scale-110")}
+							className={cn(
+								blurGridProfilePictures ? "blur-md scale-110" : isLocked && "blur-[3px] scale-105",
+							)}
 						/>
 
-						{/* Locked tiles: blurred photo, darkened, with the lock/ban icon on top.
-							The opaque-ish backdrop also hides the inset ring when there's no photo. */}
+						{/* Locked tiles: lightly blurred and darkened photo. */}
 						{isLocked && (
 							<div
-								className="absolute inset-0 flex items-center justify-center bg-black/45 text-white/50"
+								className="absolute inset-0 bg-black/30"
 								title={isPrivate ? undefined : t("interest_page.blocked_profile")}
-							>
-								{isPrivate ? <LockFilled className="h-1/3 w-1/3" /> : <Ban className="h-1/3 w-1/3" />}
-							</div>
+							/>
 						)}
 
 						<div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/70 via-black/25 to-transparent" />
 
 						{/* Top-left: view count */}
-						{!isPrivate && (
-							<span
-								className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm"
-								title={t("interest_page.total_viewed_count")}
-							>
-								<EyeFilled className="h-3 w-3" />
-								<span className="tabular-nums">{item.viewCount || 1}</span>
-							</span>
-						)}
+						<span
+							className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm"
+							title={t("interest_page.total_viewed_count")}
+						>
+							<EyeFilled className="h-3 w-3" />
+							<span className="tabular-nums">{item.viewCount || 1}</span>
+						</span>
 
 						{/* Top-right: presence */}
 						<div className="absolute right-2 top-2 z-10 flex h-5 items-center gap-1">
