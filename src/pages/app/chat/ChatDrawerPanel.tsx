@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CameraFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
-import { DRAWER_TILE_CLASS, DrawerActionButton, drawerGridClass } from "./drawerUi";
+import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
@@ -128,6 +128,7 @@ export function ChatDrawerPanel({
 	// media cache, so it can swap in the cached copy without waiting for a DB read.
 	useLocalMediaCache();
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [pendingAddFile, setPendingAddFile] = useState<File | null>(null);
 	const [pendingTakenOnGrindr, setPendingTakenOnGrindr] = useState(false);
 	const [pendingLooping, setPendingLooping] = useState(false);
@@ -774,9 +775,10 @@ export function ChatDrawerPanel({
 												key={item.id}
 												role="button"
 												tabIndex={0}
-												onClick={() => { if (isClickable) toggleSelection(item.id, isItemVideo); }}
+												{...bindPreview({ src: mediaSrc, isVideo: isItemVideo })}
+												onClick={() => { if (consumePreviewClick()) return; if (isClickable) toggleSelection(item.id, isItemVideo); }}
 												onKeyDown={(e) => e.key === "Enter" && isClickable && toggleSelection(item.id, isItemVideo)}
-												className={`${DRAWER_TILE_CLASS} transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
+												className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${isBlocked ? "opacity-30 pointer-events-none" : isClickable ? "cursor-pointer" : "pointer-events-none"}`}
 												style={{
 													outline: isSelected ? "2px solid var(--accent)" : "none",
 													outlineOffset: "-2px",
@@ -786,6 +788,7 @@ export function ChatDrawerPanel({
 													<img
 														src={mediaSrc}
 														alt={t("chat_drawer.media_alt")}
+														draggable={false}
 														className="h-full w-full object-cover"
 													/>
 												) : (
@@ -992,6 +995,7 @@ export function ChatDrawerPanel({
 					</>
 				)}
 
+				<DrawerMediaPreview media={drawerPreview} />
 				<ConfirmDialog
 					isOpen={confirmDeleteMediaId != null}
 					title={t("chat_drawer.delete_confirm_title")}
