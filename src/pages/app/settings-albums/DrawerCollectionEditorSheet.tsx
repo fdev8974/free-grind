@@ -1,6 +1,6 @@
 import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, X } from "lucide-react";
-import { ImagesFilled } from "../../../components/icons/FilledIcons";
-import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "../chat/drawerUi";
+import { CameraPlusFilled } from "../../../components/icons/FilledIcons";
+import { DRAWER_TILE_CLASS, DrawerActionTile, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "../chat/drawerUi";
 import { useCallback, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -168,18 +168,6 @@ export function DrawerCollectionEditorSheet({
 
 			<input type="file" ref={uploadInputRef} onChange={(e) => void onPickFiles(e)} accept="image/*,video/*" multiple className="hidden" />
 
-			<div className="mb-2 shrink-0">
-				<DrawerActionButton
-					layout="row"
-					icon={uploadProgress ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagesFilled className="h-5 w-5" />}
-					label={uploadProgress
-						? `${t("chat_drawer.upload_photo")} ${uploadProgress.done}/${uploadProgress.total}`
-						: t("chat_drawer.upload_photo")}
-					onClick={() => uploadInputRef.current?.click()}
-					disabled={isBusy}
-				/>
-			</div>
-
 			<div
 				data-lenis-prevent
 				className="min-h-0 flex-1 overflow-y-auto max-h-[50vh]"
@@ -203,6 +191,15 @@ export function DrawerCollectionEditorSheet({
 					</div>
 				) : (
 					<div className={drawerGridClass(isDesktop)}>
+						{/* Upload as the first tile, like the chat drawer. */}
+						<DrawerActionTile
+							icon={uploadProgress ? <Loader2 className="animate-spin" /> : <CameraPlusFilled />}
+							label={uploadProgress
+								? `${uploadProgress.done}/${uploadProgress.total}`
+								: t("chat_drawer.upload_photo")}
+							onClick={() => uploadInputRef.current?.click()}
+							disabled={isBusy}
+						/>
 						{media.map((item) => {
 							const isVideo = item.contentType.startsWith("video/");
 							const position = orderedSelection.indexOf(item.id) + 1;
