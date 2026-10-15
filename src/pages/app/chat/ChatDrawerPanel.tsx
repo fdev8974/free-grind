@@ -20,6 +20,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { CameraFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
+import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
 import { DRAWER_TILE_CLASS, DrawerActionButton, DrawerMediaPreview, drawerGridClass, useDrawerMediaPreview } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { ProfileImage } from "../../../components/ui/profile-image";
@@ -130,6 +131,7 @@ export function ChatDrawerPanel({
 	useLocalMediaCache();
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
+	const albumRowFade = useScrollRowFade();
 	const [pendingAddFile, setPendingAddFile] = useState<File | null>(null);
 	const [pendingTakenOnGrindr, setPendingTakenOnGrindr] = useState(false);
 	const [pendingLooping, setPendingLooping] = useState(false);
@@ -650,7 +652,13 @@ export function ChatDrawerPanel({
 								<div className="flex flex-col gap-3">
 								{/* Albums & collections: their own horizontal row above the photos. */}
 								{(albums.length > 0 || collections.length > 0) && (
-									<div className="flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+									<div
+										ref={albumRowFade.ref}
+										onScroll={albumRowFade.onScroll}
+										className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+									>
+									{/* Single inner row, as useScrollRowFade expects. */}
+									<div className="flex w-max gap-2">
 									{/* Albums */}
 									{albums.map((album) => {
 										const cover = albumCoverMap.get(album.albumId);
@@ -747,6 +755,7 @@ export function ChatDrawerPanel({
 											</div>
 										);
 									})}
+									</div>
 									</div>
 								)}
 								{/* Only when there's nothing at all — albums and collections count too. */}
