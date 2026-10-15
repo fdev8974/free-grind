@@ -32,6 +32,7 @@ import { resolveAvatarSrc } from "../../../services/avatarStore";
 import { useInboxSyncStatus } from "../../../hooks/useInboxSyncStatus";
 import { FEED_HEADER_OFFSET, FEED_MASK_GRADIENT_STOP } from "../../../config/design-config";
 import { haptic } from "../../../utils/haptics";
+import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 
 /** Footer bar below the chat list's scroll area (not inside it) — reads as
  * part of the list (same border/background as a conversation row) rather
@@ -242,6 +243,7 @@ function ConversationActionSheet({
 // sense (and the API has nothing to target) once we've locally archived a
 // conversation the server can no longer produce.
 function ConversationContextMenu({
+	visible = true,
 	conversation,
 	isArchived,
 	isHidden,
@@ -253,6 +255,7 @@ function ConversationContextMenu({
 	onToggleHide,
 	onDelete,
 }: {
+	visible?: boolean;
 	conversation: ConversationEntry;
 	isArchived: boolean;
 	isHidden: boolean;
@@ -313,7 +316,7 @@ function ConversationContextMenu({
 	return createPortal(
 		<div
 			ref={menuRef}
-			style={{ top: position.top, left: position.left }}
+			style={{ top: position.top, left: position.left, ...menuTransitionStyle(visible, "top left") }}
 			className="fixed z-[70] flex min-w-[190px] flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl"
 		>
 			{actions.map((action) => (
@@ -732,6 +735,7 @@ export function ChatInboxPanel({
 		x: number;
 		y: number;
 	} | null>(null);
+	const contextMenuPresence = usePresence(contextMenuState);
 	const [actionSheetState, setActionSheetState] = useState<{
 		conversation: ConversationEntry;
 		isArchived: boolean;
@@ -1004,15 +1008,16 @@ export function ChatInboxPanel({
 
 			{isDesktop && !isSearchOpen && <ChatSyncFooterRow userId={userId} />}
 
-			{contextMenuState ? (
+			{contextMenuPresence.rendered ? (
 				<ConversationContextMenu
-					conversation={contextMenuState.conversation}
-					isArchived={contextMenuState.isArchived}
-					isHidden={hiddenConversationIds.has(contextMenuState.conversation.data.conversationId)}
-					x={contextMenuState.x}
-					y={contextMenuState.y}
+					visible={contextMenuPresence.visible}
+					conversation={contextMenuPresence.rendered.conversation}
+					isArchived={contextMenuPresence.rendered.isArchived}
+					isHidden={hiddenConversationIds.has(contextMenuPresence.rendered.conversation.data.conversationId)}
+					x={contextMenuPresence.rendered.x}
+					y={contextMenuPresence.rendered.y}
 					onClose={() => setContextMenuState(null)}
-					{...conversationActionHandlers(contextMenuState.conversation, contextMenuState.isArchived, () => setContextMenuState(null))}
+					{...conversationActionHandlers(contextMenuPresence.rendered.conversation, contextMenuPresence.rendered.isArchived, () => setContextMenuState(null))}
 				/>
 			) : null}
 

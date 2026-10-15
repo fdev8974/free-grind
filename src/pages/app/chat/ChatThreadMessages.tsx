@@ -61,6 +61,7 @@ import {
 } from "./chatUtils";
 import type { MessageTranslations } from "../../../hooks/useMessageTranslations";
 import { haptic } from "../../../utils/haptics";
+import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 
 type ChatThreadMessagesProps = {
 	isDesktop: boolean;
@@ -235,11 +236,13 @@ type MessageContextMenuAction = {
 // the thread scroll container sits inside layout that can end up with a
 // transformed ancestor, which would otherwise hijack `position: fixed`.
 function MessageContextMenu({
+	visible = true,
 	x,
 	y,
 	actions,
 	onClose,
 }: {
+	visible?: boolean;
 	x: number;
 	y: number;
 	actions: MessageContextMenuAction[];
@@ -281,7 +284,7 @@ function MessageContextMenu({
 	return createPortal(
 		<div
 			ref={menuRef}
-			style={{ top: position.top, left: position.left }}
+			style={{ top: position.top, left: position.left, ...menuTransitionStyle(visible, "top left") }}
 			className="fixed z-[70] flex min-w-[200px] flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl"
 		>
 			{actions.map((action) => (
@@ -705,10 +708,13 @@ export function ChatThreadMessages({
 		};
 	}, []);
 
+	// Rendered (not live) state, so the menu keeps its content while animating out.
+	const contextMenuPresence = usePresence(contextMenuState);
 	const contextMenuTarget = useMemo(() => {
-		if (!contextMenuState) return null;
-		return threadMessages.find((m) => m.messageId === contextMenuState.messageId) ?? null;
-	}, [contextMenuState, threadMessages]);
+		const menu = contextMenuPresence.rendered;
+		if (!menu) return null;
+		return threadMessages.find((m) => m.messageId === menu.messageId) ?? null;
+	}, [contextMenuPresence.rendered, threadMessages]);
 
 	const contextMenuActions = useMemo<MessageContextMenuAction[]>(() => {
 		if (!contextMenuTarget) return [];
@@ -2233,10 +2239,11 @@ export function ChatThreadMessages({
 					style={{left: reactionParticles.x, top: reactionParticles.y, opacity: 0, width: p.size, height: p.size, background: "rgba(249,115,22,0.9)", boxShadow: `0 0 ${p.size * 3}px ${p.size}px rgba(249,115,22,0.6)`, zIndex: 9999, "--dx": `${p.dx}px`, "--dy": `${p.dy}px`, "--dur": `${p.dur}s`, "--delay": `${p.delay}s`} as React.CSSProperties}
 				/>
 			))}
-			{contextMenuState && contextMenuTarget ? (
+			{contextMenuPresence.rendered && contextMenuTarget ? (
 				<MessageContextMenu
-					x={contextMenuState.x}
-					y={contextMenuState.y}
+					visible={contextMenuPresence.visible}
+					x={contextMenuPresence.rendered.x}
+					y={contextMenuPresence.rendered.y}
 					actions={contextMenuActions}
 					onClose={() => setContextMenuState(null)}
 				/>

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff, X } from "lucide-react";
 import { BottomSheet, SheetClose } from "../../../../components/ui/bottom-sheet";
+import { menuTransitionStyle } from "../../../../hooks/usePresence";
 
 type GridTileContextMenuProps = {
 	x: number;
@@ -119,18 +120,20 @@ export function GridTileContextMenu({
 		);
 	}
 
-	return <DesktopTileMenu x={x} y={y} actions={actions} onClose={onClose} />;
+	return <DesktopTileMenu visible={visible} x={x} y={y} actions={actions} onClose={onClose} />;
 }
 
 // Same shape as the chat inbox's ConversationContextMenu — portaled to
 // <body> because PullToRefreshContainer applies a `transform` to its content,
 // which would otherwise become the containing block for `position: fixed`.
 function DesktopTileMenu({
+	visible,
 	x,
 	y,
 	actions,
 	onClose,
 }: {
+	visible: boolean;
 	x: number;
 	y: number;
 	actions: TileAction[];
@@ -172,7 +175,7 @@ function DesktopTileMenu({
 	return createPortal(
 		<div
 			ref={menuRef}
-			style={{ top: position.top, left: position.left }}
+			style={{ top: position.top, left: position.left, ...menuTransitionStyle(visible, "top left") }}
 			onContextMenu={(e) => e.preventDefault()}
 			className="no-touch-callout fixed z-[70] flex min-w-[190px] flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl"
 		>
