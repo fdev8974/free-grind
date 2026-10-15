@@ -42,6 +42,7 @@ import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
 import { classifyProfileAccess } from "../../utils/profileAccessStatus";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { SKIP_BLOCK_CONFIRM_KEY, isBlockConfirmSkipped } from "../../utils/blockConfirm";
+import { navigateBackTo } from "../../utils/navigateBack";
 
 const profileRouteParamsSchema = z.object({
 	profileId: z.string().min(1),
@@ -234,7 +235,10 @@ export function GridProfilePage() {
 
 	const isTappingProfile = tappingProfileId === profileId;
 
-	const locationState = (location.state as { returnTo?: unknown; profileIds?: unknown } | null) ?? {};
+	const locationState =
+		(location.state as { returnTo?: unknown; profileIds?: unknown; fromChat?: unknown } | null) ?? {};
+	// Opened from a chat thread, which sits directly below in history.
+	const openedFromChat = locationState.fromChat === true;
 	const returnToFromState =
 		typeof locationState.returnTo === "string" ? locationState.returnTo : null;
 	const profileIds: string[] = Array.isArray(locationState.profileIds)
@@ -382,9 +386,16 @@ export function GridProfilePage() {
 	}, [activeProfile]);
 
 	const handleMessageProfile = (targetProfileId: string) => {
+		if (openedFromChat) {
+			navigateBackTo(navigate, safeReturnTo);
+			return;
+		}
+		// Back from the chat should land on this profile again.
+		const profileParams = new URLSearchParams();
+		profileParams.set("returnTo", safeReturnTo);
 		const nextParams = new URLSearchParams();
 		nextParams.set("targetProfileId", targetProfileId);
-		nextParams.set("returnTo", safeReturnTo);
+		nextParams.set("returnTo", `${location.pathname}?${profileParams.toString()}`);
 		navigate(`/chat?${nextParams.toString()}`);
 	};
 
@@ -544,7 +555,11 @@ export function GridProfilePage() {
 				variant={isDesktopLike ? "modal" : "page"}
 				isOpen
 				onClose={() => {
-					navigate(safeReturnTo, { replace: true });
+					if (openedFromChat) {
+						navigateBackTo(navigate, safeReturnTo);
+					} else {
+						navigate(safeReturnTo, { replace: true });
+					}
 				}}
 				onPrevProfile={handlePrevProfile}
 				onNextProfile={handleNextProfile}

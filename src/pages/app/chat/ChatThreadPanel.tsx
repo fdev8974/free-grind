@@ -43,6 +43,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import type { NavigateFunction } from "react-router-dom";
+import { navigateBackTo } from "../../../utils/navigateBack";
 import toast from "react-hot-toast";
 import { appLog } from "../../../utils/logger";
 import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
@@ -175,6 +176,7 @@ type ChatThreadPanelProps = {
 	localNickname?: string | null;
 	onEditLocalNickname?: (profileId: number, defaultName: string) => void | Promise<void>;
 	getProfileReturnToChatPath: (profileId: number) => string;
+	chatReturnTo: string | null;
 	isLoadingThread: boolean;
 	threadConversationId: string | null;
 	threadError: string | null;
@@ -631,6 +633,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		localNickname = null,
 		onEditLocalNickname,
 		getProfileReturnToChatPath,
+		chatReturnTo,
 		isLoadingThread,
 		threadConversationId,
 		threadError,
@@ -1347,7 +1350,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                                 {!isDesktop && (
                                     <button
                                         type="button"
-                                        onClick={() => navigate("/chat")}
+                                        onClick={() => (chatReturnTo ? navigateBackTo(navigate, chatReturnTo) : navigate("/chat"))}
                                         className="header-icon-btn header-icon-btn--back inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
                                         aria-label={t("browse_location.back_aria")}
                                     >
@@ -1365,7 +1368,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										nextParams.set("returnTo", returnTo);
 										navigate(
 											`/profile/${profileId}?${nextParams.toString()}`,
-											{ state: { returnTo } },
+											{ state: { returnTo, fromChat: true } },
 										);
 									}}
 									disabled={profileId == null}
@@ -1521,7 +1524,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													const returnTo = getProfileReturnToChatPath(profileId);
 													const nextParams = new URLSearchParams();
 													nextParams.set("returnTo", returnTo);
-													navigate(`/profile/${profileId}?${nextParams.toString()}`, { state: { returnTo } });
+													navigate(`/profile/${profileId}?${nextParams.toString()}`, { state: { returnTo, fromChat: true } });
 												}}
 												disabled={profileId == null}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"

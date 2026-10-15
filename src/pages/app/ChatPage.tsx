@@ -765,7 +765,7 @@ export function ChatPage() {
 	}, [searchParams]);
 	const chatReturnTo = useMemo(() => {
 		const raw = searchParams.get("returnTo");
-		if (!raw || !raw.startsWith("/")) {
+		if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
 			return null;
 		}
 		return raw;
@@ -3935,10 +3935,14 @@ export function ChatPage() {
 			if (chatReturnTo) {
 				nextParams.set("returnTo", chatReturnTo);
 			}
+			// Resolving a targetProfileId lookup replaces the transient
+			// /chat?targetProfileId=… entry, so back from the thread lands on
+			// whoever opened the chat (e.g. the profile), not on the inbox.
 			navigate(
 				nextParams.size > 0
 					? `/chat/${encodeURIComponent(conversationId)}?${nextParams.toString()}`
 					: `/chat/${encodeURIComponent(conversationId)}`,
+				{ replace: targetProfileId != null },
 			);
 		},
 		[
@@ -3953,15 +3957,22 @@ export function ChatPage() {
 
 	const getProfileReturnToChatPath = useCallback(
 		(profileId: number) => {
+			// Carry the chat's own returnTo along, so coming back from the
+			// profile still knows where the chat was opened from.
+			const nextParams = new URLSearchParams();
+			if (chatReturnTo) {
+				nextParams.set("returnTo", chatReturnTo);
+			}
 			if (selectedConversationId) {
-				return `/chat/${encodeURIComponent(selectedConversationId)}`;
+				return nextParams.size > 0
+					? `/chat/${encodeURIComponent(selectedConversationId)}?${nextParams.toString()}`
+					: `/chat/${encodeURIComponent(selectedConversationId)}`;
 			}
 
-			const nextParams = new URLSearchParams();
 			nextParams.set("targetProfileId", String(profileId));
 			return `/chat?${nextParams.toString()}`;
 		},
-		[selectedConversationId],
+		[chatReturnTo, selectedConversationId],
 	);
 
 	useEffect(() => {
@@ -4619,7 +4630,7 @@ export function ChatPage() {
 					const returnTo = getProfileReturnToChatPath(targetId as number);
 					const nextParams = new URLSearchParams();
 					nextParams.set("returnTo", returnTo);
-					navigate(`/profile/${targetId}?${nextParams.toString()}`, { state: { returnTo } });
+					navigate(`/profile/${targetId}?${nextParams.toString()}`, { state: { returnTo, fromChat: true } });
 					break;
 				}
 				case "chat":
@@ -6514,6 +6525,7 @@ export function ChatPage() {
 			}
 			onEditLocalNickname={editLocalNicknameFromChat}
 			getProfileReturnToChatPath={getProfileReturnToChatPath}
+			chatReturnTo={chatReturnTo}
 			isLoadingThread={isLoadingThread}
 			threadConversationId={threadConversationId}
 			threadError={threadError}
