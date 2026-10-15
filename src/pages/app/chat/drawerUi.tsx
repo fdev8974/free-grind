@@ -5,6 +5,7 @@ import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "l
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { SheetClose } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
+import freegrindLogo from "../../../images/freegrind-logo.webp";
 
 // Shared building blocks for every media drawer sheet (chat drawer, collection
 // editor, album "add from drawer", profile pictures), so they stay in sync:
@@ -334,6 +335,7 @@ export function DrawerMediaTile({
 	previewProps,
 	consumePreviewClick,
 	mediaClassName = "",
+	takenOnGrindr = false,
 	onDelete,
 	isDeleting = false,
 	deleteLabel,
@@ -354,6 +356,8 @@ export function DrawerMediaTile({
 	previewProps?: Record<string, unknown>;
 	consumePreviewClick?: () => boolean;
 	mediaClassName?: string;
+	/** Shows the "taken on Grindr" logo bottom left. */
+	takenOnGrindr?: boolean;
 	onDelete?: (event: MouseEvent<HTMLButtonElement>) => void;
 	isDeleting?: boolean;
 	deleteLabel?: string;
@@ -401,6 +405,10 @@ export function DrawerMediaTile({
 				>
 					{selectedContent ?? <Check className="h-5 w-5 text-white drop-shadow" />}
 				</div>
+			) : null}
+
+			{takenOnGrindr ? (
+				<img src={freegrindLogo} alt="" className="logo-shine pointer-events-none absolute bottom-1 left-1 h-4 w-4 rounded-full" />
 			) : null}
 
 			{onDelete ? (

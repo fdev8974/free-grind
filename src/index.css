@@ -1345,3 +1345,11 @@ dialog::backdrop {
 @media (prefers-reduced-motion: reduce) {
   .tile-flame-ember { display: none; }
 }
+
+/* Glow on the "taken on Grindr" logo; global so drawer tiles get it on every page. */
+@keyframes logo-shine {
+	0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.3)) brightness(1); }
+	50% { filter: drop-shadow(0 0 7px rgba(255, 140, 0, 0.95)) brightness(1.25); }
+}
+.logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .logo-shine { animation: none; } }

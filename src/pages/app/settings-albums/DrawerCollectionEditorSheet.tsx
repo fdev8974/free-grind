@@ -173,6 +173,7 @@ export function DrawerCollectionEditorSheet({
 								key={item.id}
 								src={mediaSrc}
 								isVideo={isVideo}
+								takenOnGrindr={item.takenOnGrindr}
 								alt={t("chat_drawer.media_alt")}
 								selected={position > 0}
 								selectedContent={<span className="text-lg font-bold text-white drop-shadow">{position}</span>}

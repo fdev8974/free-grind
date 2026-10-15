@@ -38,7 +38,6 @@ import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { useModalClose } from "../../../hooks/useModalClose";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
@@ -522,6 +521,7 @@ export function ChatDrawerPanel({
 												onSelect={isClickable ? () => toggleSelection(item.id, isItemVideo) : undefined}
 												previewProps={bindPreview({ src: mediaSrc, isVideo: isItemVideo })}
 												consumePreviewClick={consumePreviewClick}
+												takenOnGrindr={item.takenOnGrindr}
 												busy={deletion.deletingId === item.id}
 												onDelete={hasCollectionSelection ? undefined : () => deletion.requestDelete(item.id)}
 												isDeleting={deletion.deletingId === item.id}
@@ -538,13 +538,6 @@ export function ChatDrawerPanel({
 													<span className="pointer-events-none absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[11px] font-bold text-[var(--accent-contrast)]">
 														{collectionPosition}
 													</span>
-												) : null}
-												{item.takenOnGrindr ? (
-													<img
-														src={freegrindLogo}
-														alt=""
-														className="absolute bottom-1 left-1 h-4 w-4 rounded-full logo-shine"
-													/>
 												) : null}
 											</DrawerMediaTile>
 										);

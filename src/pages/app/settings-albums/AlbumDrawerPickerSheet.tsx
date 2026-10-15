@@ -151,6 +151,7 @@ export function AlbumDrawerPickerSheet({
 								key={item.id}
 								src={mediaSrc}
 								isVideo={isVideo}
+								takenOnGrindr={item.takenOnGrindr}
 								alt={t("chat_drawer.media_alt")}
 								selected={selectedIds.has(item.id)}
 								onSelect={() => toggleSelection(item.id)}
