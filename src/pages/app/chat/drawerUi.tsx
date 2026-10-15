@@ -111,15 +111,46 @@ export function useDrawerMediaPreview() {
 	return { preview, bind, consumeClick };
 }
 
+const PREVIEW_ANIMATION_MS = 180;
+
 export function DrawerMediaPreview({ media }: { media: DrawerPreviewMedia | null }) {
-	if (!media) return null;
+	// Keep the last media mounted while it animates out, then drop it.
+	const [shown, setShown] = useState<DrawerPreviewMedia | null>(media);
+	const [isVisible, setIsVisible] = useState(false);
+
+	useEffect(() => {
+		if (media) {
+			setShown(media);
+			// Two frames so the hidden start state is painted before transitioning in.
+			let inner = 0;
+			const outer = requestAnimationFrame(() => {
+				inner = requestAnimationFrame(() => setIsVisible(true));
+			});
+			return () => {
+				cancelAnimationFrame(outer);
+				cancelAnimationFrame(inner);
+			};
+		}
+		setIsVisible(false);
+		const timer = setTimeout(() => setShown(null), PREVIEW_ANIMATION_MS);
+		return () => clearTimeout(timer);
+	}, [media]);
+
+	if (!shown) return null;
+	const transition = `opacity ${PREVIEW_ANIMATION_MS}ms ease-out, transform ${PREVIEW_ANIMATION_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1)`;
 	return createPortal(
-		<div className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-6 backdrop-blur-md animate-in fade-in duration-150">
-			<div className="max-h-full max-w-full overflow-hidden rounded-2xl shadow-2xl animate-in zoom-in-90 duration-200">
-				{media.isVideo ? (
-					<video src={media.src} autoPlay muted loop playsInline className="max-h-[80dvh] max-w-full object-contain" />
+		<div
+			className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-6 backdrop-blur-md"
+			style={{ opacity: isVisible ? 1 : 0, transition: `opacity ${PREVIEW_ANIMATION_MS}ms ease-out` }}
+		>
+			<div
+				className="max-h-full max-w-full overflow-hidden rounded-2xl shadow-2xl"
+				style={{ opacity: isVisible ? 1 : 0, transform: `scale(${isVisible ? 1 : 0.88})`, transition }}
+			>
+				{shown.isVideo ? (
+					<video src={shown.src} autoPlay muted loop playsInline className="max-h-[80dvh] max-w-full object-contain" />
 				) : (
-					<img src={media.src} alt="" className="max-h-[80dvh] max-w-full object-contain" />
+					<img src={shown.src} alt="" className="max-h-[80dvh] max-w-full object-contain" />
 				)}
 			</div>
 		</div>,
