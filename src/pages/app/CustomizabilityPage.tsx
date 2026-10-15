@@ -476,8 +476,8 @@ export function CustomizabilityPage() {
 										<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
 											{t("customizability.browse_grid_mobile_desc")}
 										</p>
-										<div className="mt-3 grid grid-cols-2 gap-2">
-											{(["2", "3"] as const).map((cols) => (
+										<div className="mt-3 grid grid-cols-3 gap-2">
+											{(["2", "3", "4"] as const).map((cols) => (
 												<button
 													key={cols}
 													type="button"

@@ -57,7 +57,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 
 	const viewerHistoryPushedRef = useRef(false);
 
-	const minmaxValue = mobileGridColumns === "2" ? "130px" : "100px";
+	const minmaxValue = mobileGridColumns === "2" ? "130px" : mobileGridColumns === "4" ? "80px" : "100px";
 
 	const loadSharedAlbums = useCallback(async () => {
 		setError(null);

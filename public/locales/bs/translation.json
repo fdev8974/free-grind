@@ -977,6 +977,7 @@
         "browse_grid_mobile_desc": "Odaberi koliko se profila prikazuje po redu na Gridu na mobilnom.",
         "columns_2": "2 kolone",
         "columns_3": "3 kolone",
+        "columns_4": "",
         "reveal_effect": {
             "title": "Efekat otkrivanja",
             "description": "Efekat otkrivanja animira stavke dok skrolaš prema dolje. Možeš ga isključiti ili promijeniti jačinu.",

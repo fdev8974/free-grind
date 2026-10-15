@@ -977,6 +977,7 @@
         "browse_grid_mobile_desc": "Ajuste quantos perfis aparecem por linha em dispositivos móveis.",
         "columns_2": "2 colunas",
         "columns_3": "3 colunas",
+        "columns_4": "",
         "reveal_effect": {
             "title": "Efeito de Revelação",
             "description": "O efeito de revelação anima os itens conforme você rola a página para baixo. Você pode desativá-lo ou alterar sua intensidade.",

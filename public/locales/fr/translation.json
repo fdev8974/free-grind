@@ -977,6 +977,7 @@
         "browse_grid_mobile_desc": "Ajuster le nombre de profils affichés par ligne sur mobile.",
         "columns_2": "2 Colonnes",
         "columns_3": "3 Colonnes",
+        "columns_4": "",
         "reveal_effect": {
             "title": "Effet de révélation",
             "description": "L'effet de révélation anime les éléments lorsque vous faites défiler vers le bas. Vous pouvez le désactiver ou modifier son intensité.",

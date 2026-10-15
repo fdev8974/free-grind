@@ -985,6 +985,7 @@
         "browse_grid_mobile_desc": "Izberi, koliko profilov se prikaže v vrstici mreže na mobilnih napravah.",
         "columns_2": "2 stolpca",
         "columns_3": "3 stolpci",
+        "columns_4": "",
         "reveal_effect": {
             "title": "Učinek razkritja",
             "description": "Učinek razkritja animira elemente med pomikanjem navzdol. Lahko ga izklopiš ali spremeniš jakost.",

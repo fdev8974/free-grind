@@ -157,7 +157,7 @@ const preferencesSchema = z.object({
 	amoledMode: z.boolean().default(false),
 	accentColor: z.string().default("#7c3aed"),
 	accentContrast: z.string().default("#ffffff"),
-	mobileGridColumns: z.enum(["2", "3"]).default("3"),
+	mobileGridColumns: z.enum(["2", "3", "4"]).default("3"),
 	unitsPreset: z.enum(UNIT_PRESETS).default("world"),
 	blurIncomingMedia: z.boolean().default(false),
 	blurGridProfilePictures: z.boolean().default(false),
@@ -204,7 +204,7 @@ type PreferencesAction =
 	| { type: "SET_LOADING"; payload: boolean }
 	| { type: "SET_COLOR_SCHEME"; payload: ColorScheme }
 	| { type: "SET_AMOLED_MODE"; payload: boolean }
-	| { type: "SET_MOBILE_GRID_COLUMNS"; payload: "2" | "3" }
+	| { type: "SET_MOBILE_GRID_COLUMNS"; payload: "2" | "3" | "4" }
 	| { type: "SET_UNITS_PRESET"; payload: UnitsPreset }
 	| { type: "SET_BLUR_INCOMING_MEDIA"; payload: boolean }
 	| { type: "SET_BLUR_GRID_PROFILE_PICTURES"; payload: boolean }

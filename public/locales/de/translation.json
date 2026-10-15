@@ -969,6 +969,7 @@
         "browse_grid_mobile_desc": "Anzahl der Profile pro Reihe auf dem Handy anpassen.",
         "columns_2": "2 Spalten",
         "columns_3": "3 Spalten",
+        "columns_4": "",
         "reveal_effect": {
             "title": "Reveal-Effekt",
             "description": "Der Reveal-Effekt animiert Elemente beim Scrollen. Du kannst ihn deaktivieren oder die Intensität anpassen.",

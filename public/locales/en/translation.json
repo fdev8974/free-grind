@@ -969,6 +969,7 @@
     "browse_grid_mobile_desc": "Choose how many profiles appear per row on the grid on mobile.",
     "columns_2": "2 Columns",
     "columns_3": "3 Columns",
+    "columns_4": "4 Columns",
     "reveal_effect": {
       "title": "Reveal Effect",
       "description": "The reveal effect animates items as you scroll down. You can disable it or change its intensity.",

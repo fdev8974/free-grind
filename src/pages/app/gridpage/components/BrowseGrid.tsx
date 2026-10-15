@@ -16,17 +16,25 @@ import { Button } from "../../../../components/ui/button";
 import { getAsyncState } from "../../../../hooks/useAsyncViewState";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 
-function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; mobileColumns: "2" | "3" }) {
-	const count = isDesktop ? 30 : mobileColumns === "2" ? 16 : 24;
+// Min track width per mobile column setting; auto-fill then yields exactly
+// that many columns until the 250px cap kicks in on wide screens.
+const MOBILE_MIN_TRACK: Record<"2" | "3" | "4", string> = {
+	"2": "33.4%",
+	"3": "25.1%",
+	"4": "20.1%",
+};
+
+function mobileGridTemplate(columns: "2" | "3" | "4") {
+	return `repeat(auto-fill, minmax(clamp(${MOBILE_MIN_TRACK[columns]}, 15vw, 250px), 1fr))`;
+}
+
+function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; mobileColumns: "2" | "3" | "4" }) {
+	const count = isDesktop ? 30 : Number(mobileColumns) * 8;
 	return (
 		<div
 			className={cn("w-full grid", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px")}
 			style={{
-				gridTemplateColumns: isDesktop
-					? "repeat(6, minmax(0, 1fr))"
-					: mobileColumns === "2"
-						? "repeat(auto-fill, minmax(clamp(33.4%, 15vw, 250px), 1fr))"
-						: "repeat(auto-fill, minmax(clamp(25.1%, 15vw, 250px), 1fr))",
+				gridTemplateColumns: isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileColumns),
 			}}
 		>
 			{Array.from({ length: count }).map((_, i) => (
@@ -111,11 +119,7 @@ export function BrowseGrid({
 	const { mobileGridColumns } = usePreferences();
 	const isDesktop = useDesktopBreakpoint();
 
-	const gridTemplateColumns = isDesktop
-		? "repeat(6, minmax(0, 1fr))"
-		: mobileGridColumns === "2"
-			? "repeat(auto-fill,  minmax(clamp(33.4%, 15vw, 250px), 1fr))"
-			: "repeat(auto-fill,  minmax(clamp(25.1%, 15vw, 250px), 1fr))";
+	const gridTemplateColumns = isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileGridColumns);
 	const gridClassName = cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px");
 
 	// Column count and row height (tiles are always square, see BrowseCardTile)
@@ -128,7 +132,7 @@ export function BrowseGrid({
 	const probeElRef = useRef<HTMLDivElement | null>(null);
 	const probeObserverRef = useRef<ResizeObserver | null>(null);
 	const [rowMetrics, setRowMetrics] = useState<RowMetrics>(() => ({
-		columnCount: isDesktop ? 6 : mobileGridColumns === "2" ? 3 : 4,
+		columnCount: isDesktop ? 6 : Number(mobileGridColumns),
 		rowSizePx: 140,
 	}));
 
@@ -307,7 +311,7 @@ export function BrowseGrid({
 
 	if (viewState === "loading") {
 		return (
-			<BrowseGridSkeleton isDesktop={isDesktop} mobileColumns={mobileGridColumns as "2" | "3"} />
+			<BrowseGridSkeleton isDesktop={isDesktop} mobileColumns={mobileGridColumns} />
 		);
 	}
 

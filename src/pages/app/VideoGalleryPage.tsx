@@ -198,7 +198,7 @@ export function VideoGalleryPage() {
 	const navigate = useNavigate();
 	const { userId } = useAuth();
 	const { mobileGridColumns } = usePreferences();
-	const minmaxValue = mobileGridColumns === "2" ? "130px" : "100px";
+	const minmaxValue = mobileGridColumns === "2" ? "130px" : mobileGridColumns === "4" ? "80px" : "100px";
 
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);

@@ -969,6 +969,7 @@
         "browse_grid_mobile_desc": "Kies hoeveel profielen er per rij in het Grid op mobiel verschijnen.",
         "columns_2": "2 kolommen",
         "columns_3": "3 kolommen",
+        "columns_4": "",
         "reveal_effect": {
             "title": "Onthullingseffect",
             "description": "Het onthullingseffect animeert items terwijl je naar beneden scrolt. Je kunt het uitschakelen of de intensiteit aanpassen.",

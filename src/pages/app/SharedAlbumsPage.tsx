@@ -174,7 +174,7 @@ export function SharedAlbumsPage() {
 	const [isSavingAll, setIsSavingAll] = useState(false);
 	const feedContainerRef = useRef<HTMLDivElement>(null);
 	const viewerHistoryPushedRef = useRef(false);
-	const minmaxValue = mobileGridColumns === "2" ? "130px" : "100px";
+	const minmaxValue = mobileGridColumns === "2" ? "130px" : mobileGridColumns === "4" ? "80px" : "100px";
 
 	const [filters, setFilters] = useState({ isFavorite: false, isOnline: false, onlyVideo: false });
 
