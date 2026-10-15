@@ -1360,6 +1360,7 @@
         "time": {
             "one_min_ago": "1 min geleden",
             "mins_ago": "{{count}} min geleden",
+            "hours_ago": "",
             "now": "Nu",
             "last_week": "Vorige week"
         },

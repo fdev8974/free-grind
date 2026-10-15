@@ -1370,6 +1370,7 @@
         "time": {
             "one_min_ago": "prije 1 min",
             "mins_ago": "prije {{count}} min",
+            "hours_ago": "",
             "now": "Sada",
             "last_week": "Prošle sedmice"
         },

@@ -1360,6 +1360,7 @@
         "time": {
             "one_min_ago": "vor 1 Min",
             "mins_ago": "vor {{count}} Min",
+            "hours_ago": "",
             "now": "Jetzt",
             "last_week": "Letzte Woche"
         },

@@ -236,6 +236,16 @@ export function formatTakenOnGrindrTime(
 		return t("chat.time.now");
 	}
 
+	// Recent photos get a relative time instead of just "Today".
+	const hourMs = 60 * minuteMs;
+	if (diffMs < hourMs) {
+		const mins = Math.floor(diffMs / minuteMs);
+		return mins === 1 ? t("chat.time.one_min_ago") : t("chat.time.mins_ago", { count: mins });
+	}
+	if (diffMs < 12 * hourMs) {
+		return t("chat.time.hours_ago", { count: Math.floor(diffMs / hourMs) });
+	}
+
 	const msgDate = new Date(timestamp);
 	const nowDate = new Date(now);
 

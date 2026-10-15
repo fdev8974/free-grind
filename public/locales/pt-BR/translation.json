@@ -1370,6 +1370,7 @@
         "time": {
             "one_min_ago": "1 min atrás",
             "mins_ago": "{{count}} minutos atrás",
+            "hours_ago": "",
             "now": "Agora",
             "last_week": "Semana passada"
         },

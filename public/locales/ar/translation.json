@@ -1400,6 +1400,7 @@
         "time": {
             "one_min_ago": "قبل دقيقة واحدة",
             "mins_ago": "من {{count}} دقيقة",
+            "hours_ago": "",
             "now": "الان",
             "last_week": "الاسبوع الماضي"
         },

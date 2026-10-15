@@ -1380,6 +1380,7 @@
         "time": {
             "one_min_ago": "pred 1 min",
             "mins_ago": "pred {{count}} min",
+            "hours_ago": "",
             "now": "Zdaj",
             "last_week": "Prejšnji teden"
         },

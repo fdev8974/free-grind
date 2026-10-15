@@ -1374,6 +1374,7 @@
         "time": {
             "one_min_ago": "пре 1 мин",
             "mins_ago": "пре {{count}} мин",
+            "hours_ago": "",
             "now": "Сада",
             "last_week": "Прошле недеље"
         },

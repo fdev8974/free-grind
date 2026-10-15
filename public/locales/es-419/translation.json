@@ -1370,6 +1370,7 @@
         "time": {
             "one_min_ago": "Hace 1 min",
             "mins_ago": "Hace {{count}}min",
+            "hours_ago": "",
             "now": "Ahora",
             "last_week": "La semana pasada"
         },
