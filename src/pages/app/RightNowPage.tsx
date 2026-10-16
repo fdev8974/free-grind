@@ -427,9 +427,10 @@ export function RightNowPage() {
 		setTimeout(() => setIsModalMounted(false), 300);
 	}, []);
 
+	// The sheet only calls this once its close animation has finished.
 	const handleCloseModal = useCallback(() => {
 		setIsPosting(false);
-		setTimeout(() => setIsModalMounted(false), 300);
+		setIsModalMounted(false);
 	}, []);
 
 	const positionFilterOptions = useMemo(
