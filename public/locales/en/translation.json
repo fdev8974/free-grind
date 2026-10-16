@@ -372,7 +372,11 @@
     "error_session_update_failed": "Failed to update session",
     "error_end_failed": "Failed to end session",
     "upload_preview_alt": "Upload preview",
-    "close_aria": "Close"
+    "close_aria": "Close",
+    "create_session_subtitle": "Show people nearby what you're up to.",
+    "section_message": "Message",
+    "section_photo": "Photo",
+    "section_options": "Options"
   },
   "right_now_filters": {
     "title": "Right Now Filters",

@@ -378,7 +378,11 @@
         "error_session_update_failed": "Ажурирање сесије није успело",
         "error_end_failed": "Завршавање сесије није успело",
         "upload_preview_alt": "Преглед отпремања",
-        "close_aria": "Затвори"
+        "close_aria": "Затвори",
+        "create_session_subtitle": "",
+        "section_message": "",
+        "section_photo": "",
+        "section_options": ""
     },
     "right_now_filters": {
         "title": "Right Now филтери",

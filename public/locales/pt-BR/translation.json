@@ -377,7 +377,11 @@
         "error_session_update_failed": "Falha ao atualizar sessão",
         "error_end_failed": "Falha ao encerrar sessão",
         "upload_preview_alt": "Prévia do envio",
-        "close_aria": "Fechar"
+        "close_aria": "Fechar",
+        "create_session_subtitle": "",
+        "section_message": "",
+        "section_photo": "",
+        "section_options": ""
     },
     "right_now_filters": {
         "title": "Right Now Filtros",

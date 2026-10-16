@@ -1,4 +1,4 @@
-import { X, Camera, Loader2, CheckCircle2, AlertCircle, Lock, Hourglass } from "lucide-react";
+import { X, Camera, Loader2, CheckCircle2, Lock, Hourglass } from "lucide-react";
 import { HomeFilled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { useEffect, useState, useRef, useMemo } from "react";
@@ -15,6 +15,8 @@ import { sanitizeUploadFile } from "../../../services/uploadSanitize";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import type { RightNowCreatePostRequest, RightNowUpdatePostRequest } from "../../../services/apiFunctions";
 import { getRightNowSessionDuration } from "./rightnow-constants";
+import { DrawerEmptyState } from "../chat/drawerUi";
+import { SheetSection } from "../../../components/ui/sheet-section";
 import { simulateCreatePost, simulateEndSession, simulateFetchActivePost, simulateUpdatePost, simulateUploadMedia } from "./rightnow-simulation";
 
 interface RightNowPostPageProps {
@@ -29,7 +31,7 @@ export function RightNowPostPage({ onClose, onPost }: RightNowPostPageProps) {
 			onClose={onClose}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="max-h-[92dvh]"
+			panelClassName="relative max-h-[92dvh] px-4"
 		>
 			<RightNowPostSheetContent onPost={onPost} />
 		</BottomSheet>
@@ -317,197 +319,142 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 
 
 
+	const weeklyMax = Math.max(2, rightNowRemaining);
+
 	return (
 		<>
-			<div className="mb-1 flex items-center justify-between gap-3 px-[var(--app-px)]">
-				<h3 className="text-sm font-semibold text-[var(--text)]">
-					{isEditMode ? t("right_now.edit_session_title") : t("right_now.create_session_title")}
-				</h3>
-				<SheetClose
-					className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-				>
-					<X className="h-4 w-4" />
-				</SheetClose>
-			</div>
+			{/* Right Now's signature glow, bleeding down from the top edge of the sheet. */}
+			<div
+				aria-hidden="true"
+				className="pointer-events-none absolute inset-x-0 top-0 h-48"
+				style={{ background: "radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--right-now) 26%, transparent), transparent)" }}
+			/>
 
-			{/* Progress Bar (Edit Mode) */}
-			{isEditMode && activeRightNowExpiresAt && (
-				<div className="relative z-10 px-[var(--app-px)] mx-1 pt-3 pb-2">
-					<style>
-						{`
-							@keyframes hourglass-rotate {
-								0% { transform: rotate(0deg); }
-								40% { transform: rotate(180deg); }
-								60% { transform: rotate(180deg); }
-								100% { transform: rotate(360deg); }
-							}
-							.animate-hourglass-rotate {
-								animation: hourglass-rotate 4.5s infinite ease-in-out;
-							}
-						`}
-					</style>
-					<div className="flex items-center gap-3">
-						<div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-							<div
-								className="h-full bg-[var(--right-now)] transition-all duration-1000 ease-out"
-								style={{ width: `${timeLeft.percent}%` }}
-							/>
-						</div>
-						<div className="flex items-center gap-1.5 min-w-[5.5rem] justify-end text-xs font-bold text-[var(--right-now)]">
-							<Hourglass className="h-3.5 w-3.5 animate-hourglass-rotate" />
+			{/* Header: title + status line, weekly sessions highlighted on the right */}
+			<div className="relative mb-4 flex items-start justify-between gap-3">
+				<div className="min-w-0">
+					<h3 className="text-sm font-semibold text-[var(--text)]">
+						{isEditMode ? t("right_now.edit_session_title") : t("right_now.create_session_title")}
+					</h3>
+					{isEditMode && activeRightNowExpiresAt ? (
+						<p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-[var(--right-now)]">
+							<style>
+								{`
+									@keyframes hourglass-rotate {
+										0% { transform: rotate(0deg); }
+										40% { transform: rotate(180deg); }
+										60% { transform: rotate(180deg); }
+										100% { transform: rotate(360deg); }
+									}
+									.animate-hourglass-rotate {
+										animation: hourglass-rotate 4.5s infinite ease-in-out;
+									}
+								`}
+							</style>
+							<Hourglass className="h-3 w-3 shrink-0 animate-hourglass-rotate" />
 							<span className="tabular-nums">
 								{displayMins}m {t("right_now.remaining")}
 							</span>
-						</div>
+						</p>
+					) : (
+						<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+							{t("right_now.create_session_subtitle", { defaultValue: "Show people nearby what you're up to." })}
+						</p>
+					)}
+				</div>
+				<div className="flex shrink-0 items-center gap-1">
+					<div
+						title={t("right_now.weekly_limit")}
+						aria-label={`${t("right_now.weekly_limit")}: ${rightNowRemaining}/${weeklyMax}`}
+						className={cn(
+							"flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5",
+							rightNowRemaining > 0
+								? "bg-[color-mix(in_srgb,var(--right-now)_16%,var(--surface-2))] shadow-md shadow-[var(--right-now)]/20"
+								: "bg-[var(--surface-2)]",
+						)}
+					>
+						<span
+							className={cn(
+								"flex h-5 w-5 items-center justify-center rounded-full",
+								rightNowRemaining > 0 ? "bg-[var(--right-now)] text-white" : "bg-[var(--surface)] text-[var(--text-muted)]",
+							)}
+						>
+							<RightNowIcon className="h-3 w-3" />
+						</span>
+						<span className="text-xs font-bold tabular-nums text-[var(--text)]">
+							{rightNowRemaining}/{weeklyMax}
+						</span>
 					</div>
+					<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+						<X className="h-4 w-4" />
+					</SheetClose>
+				</div>
+			</div>
+
+			{/* Remaining time bar (edit mode) */}
+			{isEditMode && activeRightNowExpiresAt && (
+				<div className="relative mb-4 h-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+					<div
+						className="h-full rounded-full bg-[var(--right-now)] shadow-[0_0_8px_var(--right-now)] transition-all duration-1000 ease-out"
+						style={{ width: `${timeLeft.percent}%` }}
+					/>
 				</div>
 			)}
 
-			{/* Top Status Bar: Credits (New) or Visibility Toggle (Edit) */}
-			<div className="relative z-10 px-[var(--app-px)] pt-4 space-y-3">
-				{isEditMode ? (
-					<div
-						className="overflow-hidden rounded-2xl shadow-sm"
-						style={{
-							backgroundColor: "color-mix(in srgb, var(--right-now), transparent 96%)",
-							border: "1px solid color-mix(in srgb, var(--right-now), transparent 88%)",
-						}}
-					>
-						<ToggleRow
-							icon={<RightNowIcon className="h-5 w-5" />}
-							iconClass={cn(
-								"flex h-10 w-10 items-center justify-center shadow-sm transition-colors",
-								isHidden ? "bg-[var(--surface-3,var(--surface))] text-[var(--text-muted)]" : "bg-[var(--right-now)] text-white"
-							)}
-							label={t("right_now.visibility")}
-							description={isHidden ? t("right_now.status_hidden") : t("right_now.status_visible")}
-							checked={!isHidden}
-							onChange={(checked) => setIsHidden(!checked)}
-							dense
-							activeColor="var(--right-now)"
-							activeThumbColor="#fff"
-						/>
-					</div>
-				) : (
-					<div
-						className="flex items-center justify-between rounded-2xl p-3 shadow-sm"
-						style={{
-							backgroundColor: "color-mix(in srgb, var(--right-now), transparent 96%)",
-							border: "1px solid color-mix(in srgb, var(--right-now), transparent 88%)",
-						}}
-					>
-						<div className="flex items-center gap-4">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--right-now)] text-white shadow-sm">
-								<RightNowIcon className="h-5 w-5" />
-							</div>
-							<div>
-								<div className="flex items-center gap-1.5">
-									<div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] opacity-70">
-										{t("right_now.weekly_limit")}
-									</div>
-								</div>
-								<div className="font-black text-[var(--text)]">
-									{rightNowRemaining} {t("right_now.remaining_count")}
-								</div>
-							</div>
-						</div>
-						<div className="flex items-center gap-3">
-							<div className="flex gap-1">
-								{Array.from({ length: Math.max(2, rightNowRemaining) }).map((_, i) => (
-									<div
-										key={i}
-										className={cn(
-											"h-1.5 w-5 rounded-full",
-											i < rightNowRemaining
-												? "bg-[var(--right-now)]"
-												: rightNowRemaining === 0
-													? "border border-[var(--text-muted)] opacity-20 bg-transparent"
-													: "border border-[var(--right-now)]/30 bg-transparent"
-										)}
-									/>
-								))}
-							</div>
-							<span className={cn(
-								"text-xs font-black tabular-nums",
-								rightNowRemaining === 0 ? "text-[var(--text-muted)] opacity-70" : "text-[var(--right-now)]"
-							)}>
-								{rightNowRemaining}/{Math.max(2, rightNowRemaining)}
-							</span>
-						</div>
-					</div>
-				)}
-
-				{/* Next Refresh Info */}
-				{!isEditMode && !canPost && (
-					<div className="flex items-center gap-4 rounded-2xl bg-[var(--surface-2)] p-3 border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-top-2">
-						<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
-							<AlertCircle className="h-5 w-5" />
-						</div>
-						<div>
-							<div className="text-[10px] font-bold uppercase tracking-widest text-orange-500/60">
-								{t("right_now.next_refresh")}
-							</div>
-							<div className="text-sm font-bold text-[var(--text)]">
-								{t("right_now.refresh_time")}
-							</div>
-						</div>
-					</div>
-				)}
-			</div>
-
-			{/* Content */}
-			<div
-				className={cn(
-					"relative z-10 min-h-0 flex-1 px-[var(--app-px)] pb-6",
-					canPost ? "overflow-y-auto" : "overflow-hidden"
-				)}
-				data-lenis-prevent
-			>
-				<div className={cn("py-4", !canPost && "h-full flex flex-col justify-center")}>
+			<div className="relative -mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<div className="space-y-5">
 					{!canPost ? (
-						/* State-of-the-art Empty/Locked State */
-						<div className="flex flex-col items-center justify-center px-4 text-center animate-in fade-in zoom-in-95 duration-500">
-							<div className="relative mb-6">
-								{/* Original Single Glow with Noise & GPU Acceleration */}
-								<div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 animate-morph-glow bg-[var(--right-now)]/15 blur-2xl rounded-full opacity-40 transform-gpu will-change-transform overflow-hidden pointer-events-none">
-									<div
-										className="absolute inset-0 opacity-[0.15] mix-blend-overlay pointer-events-none"
-										style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}
-									/>
-								</div>
-								<div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[var(--surface-2)] border-2 border-dashed border-[var(--right-now)]/30 shadow-inner">
-									<Lock className="h-9 w-9 text-[var(--text-muted)] opacity-50" />
-								</div>
-							</div>
-							<h3 className="text-xl font-black text-[var(--text)] mb-2">
-								{t("right_now.limit_reached_title")}
-							</h3>
-							<p className="text-sm text-[var(--text-muted)] max-w-[240px] leading-relaxed">
-								{t("right_now.limit_reached_desc")}
-							</p>
+						/* Weekly limit used up — the chat drawer's empty state (plain, no tile stack), tinted Right Now orange. */
+						<div style={{ "--accent": "var(--right-now)", "--accent-contrast": "#fff" } as React.CSSProperties}>
+							<DrawerEmptyState
+								icon={<Lock className="h-5 w-5" />}
+								fanned={false}
+								title={t("right_now.limit_reached_title")}
+								hint={t("right_now.limit_reached_desc")}
+							>
+								<p className="text-xs text-[var(--text-muted)]">
+									{t("right_now.next_refresh")}: <span className="font-semibold text-[var(--text)]">{t("right_now.refresh_time")}</span>
+								</p>
+							</DrawerEmptyState>
 						</div>
 					) : (
-						/* Regular Form */
 						<>
-							<div className="relative mb-2">
-								<textarea
-									autoFocus
-									value={text}
-									onChange={(e) => setText(e.target.value.slice(0, maxChars))}
-									placeholder={t("right_now.session_placeholder")}
-									className="w-full min-h-[76px] resize-none rounded-2xl p-3 pb-5 text-[var(--text)] outline-none focus:ring-1 focus:ring-[var(--right-now)] transition-all"
-									style={{
-										backgroundColor: "color-mix(in srgb, var(--right-now), transparent 96%)",
-										border: "1px solid color-mix(in srgb, var(--right-now), transparent 88%)",
-									}}
-								/>
-								<div className="absolute bottom-2.5 right-3 text-[10px] font-medium text-[var(--text-muted)] opacity-70">
-									{t("right_now.char_limit", { count: text.length })}
-								</div>
-							</div>
+							{isEditMode && (
+								<SheetSection title={t("right_now.visibility")}>
+									<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+										<ToggleRow
+											icon={<RightNowIcon className="h-5 w-5" />}
+											iconClass={cn(
+												"flex h-10 w-10 items-center justify-center transition-colors",
+												isHidden ? "bg-[var(--surface)] text-[var(--text-muted)]" : "bg-[var(--right-now)] text-white"
+											)}
+											label={isHidden ? t("right_now.status_hidden") : t("right_now.status_visible")}
+											checked={!isHidden}
+											onChange={(checked) => setIsHidden(!checked)}
+											dense
+											activeColor="var(--right-now)"
+											activeThumbColor="#fff"
+										/>
+									</div>
+								</SheetSection>
+							)}
 
-							{/* Photo Selector */}
-							<div className="relative mb-4">
+							<SheetSection title={t("right_now.section_message", { defaultValue: "Message" })}>
+								<div className="relative">
+									<textarea
+										autoFocus
+										value={text}
+										onChange={(e) => setText(e.target.value.slice(0, maxChars))}
+										placeholder={t("right_now.session_placeholder")}
+										className="min-h-[88px] w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 pb-6 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--right-now)]"
+									/>
+									<div className="pointer-events-none absolute bottom-2.5 right-3 text-[10px] font-medium text-[var(--text-muted)]">
+										{t("right_now.char_limit", { count: text.length })}
+									</div>
+								</div>
+							</SheetSection>
+
+							<SheetSection title={t("right_now.section_photo", { defaultValue: "Photo" })}>
 								<input
 									type="file"
 									ref={fileInputRef}
@@ -516,7 +463,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 									className="hidden"
 								/>
 								{thumbnailUrl ? (
-									<div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[var(--surface-2)] shadow-sm border border-[var(--border)]">
+									<div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[var(--surface-2)]">
 										<img
 											src={thumbnailUrl}
 											className="h-full w-full object-cover"
@@ -530,7 +477,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 											}}
 											className="absolute right-2 top-2 rounded-full bg-black/60 p-2 text-white backdrop-blur-md transition hover:bg-black/80"
 										>
-											<X className="h-5 w-5" />
+											<X className="h-4 w-4" />
 										</button>
 									</div>
 								) : (
@@ -538,50 +485,36 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 										type="button"
 										onClick={() => fileInputRef.current?.click()}
 										disabled={isUploading}
-										className="flex w-full items-center gap-4 rounded-2xl p-3 text-[var(--text)] shadow-sm active:scale-[0.99] transition-transform disabled:opacity-50"
-										style={{
-											backgroundColor: "color-mix(in srgb, var(--right-now), transparent 96%)",
-											border: "1px solid color-mix(in srgb, var(--right-now), transparent 88%)",
-										}}
+										className="flex w-full items-center gap-2.5 rounded-2xl bg-[var(--surface-2)] py-2 pl-2 pr-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] active:scale-[0.99] disabled:opacity-60"
 									>
-										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--right-now)] text-white shadow-sm">
-											{isUploading ? (
-												<Loader2 className="h-5 w-5 animate-spin" />
-											) : (
-												<Camera className="h-5 w-5" />
-											)}
-										</div>
-										<span className="font-semibold">
-											{isUploading
-												? t("right_now.uploading")
-												: t("right_now.add_photo")}
+										<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--right-now)]">
+											{isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+										</span>
+										<span className="text-sm font-semibold text-[var(--text)]">
+											{isUploading ? t("right_now.uploading") : t("right_now.add_photo")}
 										</span>
 									</button>
 								)}
-							</div>
+							</SheetSection>
 
-							<div
-								className="overflow-hidden rounded-2xl shadow-sm"
-								style={{
-									backgroundColor: "color-mix(in srgb, var(--right-now), transparent 96%)",
-									border: "1px solid color-mix(in srgb, var(--right-now), transparent 88%)",
-								}}
-							>
-								<ToggleRow
-									icon={<HomeFilled className="h-5 w-5" />}
-									iconClass={cn(
-										"flex h-10 w-10 items-center justify-center shadow-sm transition-colors",
-										isHosting ? "bg-[var(--right-now)] text-white" : "bg-[var(--surface-3,var(--surface))] text-[var(--text-muted)]"
-									)}
-									label={t("right_now.i_am_hosting")}
-									description={t("right_now.i_am_hosting_desc")}
-									checked={isHosting}
-									onChange={setIsHosting}
-									dense
-									activeColor="var(--right-now)"
-									activeThumbColor="#fff"
-								/>
-							</div>
+							<SheetSection title={t("right_now.section_options", { defaultValue: "Options" })}>
+								<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+									<ToggleRow
+										icon={<HomeFilled className="h-5 w-5" />}
+										iconClass={cn(
+											"flex h-10 w-10 items-center justify-center transition-colors",
+											isHosting ? "bg-[var(--right-now)] text-white" : "bg-[var(--surface)] text-[var(--text-muted)]"
+										)}
+										label={t("right_now.i_am_hosting")}
+										description={t("right_now.i_am_hosting_desc")}
+										checked={isHosting}
+										onChange={setIsHosting}
+										dense
+										activeColor="var(--right-now)"
+										activeThumbColor="#fff"
+									/>
+								</div>
+							</SheetSection>
 						</>
 					)}
 
@@ -672,24 +605,21 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 
 			{/* Bottom actions */}
 			{canPost && (
-				<div className="relative z-10 shrink-0 border-t border-[var(--border)] px-[var(--app-px)] pt-3">
+				<div className="relative -mx-4 mt-3 flex shrink-0 flex-col gap-2 border-t border-[var(--border)] px-4 pt-3">
 					<button
 						type="button"
 						onClick={handlePost}
 						disabled={isPosting}
-						className="group relative overflow-hidden w-full rounded-2xl bg-[var(--right-now)] py-4 text-center font-bold text-white shadow-lg shadow-[var(--right-now)]/20 active:scale-[0.98] transition-all hover:brightness-110 disabled:opacity-70 flex items-center justify-center gap-2"
+						className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--right-now)] px-4 text-sm font-semibold text-white shadow-lg shadow-[var(--right-now)]/30 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-70"
 					>
-						<div className="relative z-10 flex items-center justify-center gap-2">
-							{isPosting && <Loader2 className="h-5 w-5 animate-spin" />}
-							{isPosting
-								? isEditMode
-									? t("right_now.updating")
-									: t("right_now.starting_session")
-								: isEditMode
-								? t("right_now.update_now")
-								: t("right_now.start_now")}
-						</div>
-						<div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
+						{isPosting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RightNowIcon className="h-4 w-4" />}
+						{isPosting
+							? isEditMode
+								? t("right_now.updating")
+								: t("right_now.starting_session")
+							: isEditMode
+							? t("right_now.update_now")
+							: t("right_now.start_now")}
 					</button>
 
 					{isEditMode && rightNowTestMode && (
@@ -697,16 +627,10 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							type="button"
 							onClick={handleEndSession}
 							disabled={isEnding || isPosting}
-							className="mt-3 w-full rounded-2xl border border-red-500/30 bg-red-500/10 py-3 text-center font-semibold text-red-500 transition-all active:scale-[0.98] disabled:opacity-50"
+							className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-sm font-semibold text-red-500 transition active:scale-[0.98] disabled:opacity-50"
 						>
-							{isEnding ? (
-								<div className="flex items-center justify-center gap-2">
-									<Loader2 className="h-4 w-4 animate-spin" />
-									{t("right_now.ending_session")}
-								</div>
-							) : (
-								t("right_now.end_session")
-							)}
+							{isEnding && <Loader2 className="h-4 w-4 animate-spin" />}
+							{isEnding ? t("right_now.ending_session") : t("right_now.end_session")}
 						</button>
 					)}
 				</div>

@@ -60,16 +60,20 @@ export function DrawerActionTile({ icon, label, onClick, disabled }: Omit<Drawer
 }
 
 /** Empty state for a drawer tab: a small fanned stack of tiles with the tab's
- * icon, a title, a hint, and the tab's call to action below. */
+ * icon, a title, a hint, and the tab's call to action below. `fanned={false}`
+ * drops the tile stack (which reads as "media") and keeps just the glowing
+ * icon, for empty states outside the drawer. */
 export function DrawerEmptyState({
 	icon,
 	title,
 	hint,
+	fanned = true,
 	children,
 }: {
 	icon: ReactNode;
 	title: string;
 	hint: string;
+	fanned?: boolean;
 	children?: ReactNode;
 }) {
 	const tileClass = "absolute inset-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-sm";
@@ -83,15 +87,23 @@ export function DrawerEmptyState({
 					className="pointer-events-none absolute -inset-x-10 -inset-y-6"
 					style={{ background: "radial-gradient(closest-side, color-mix(in srgb, var(--accent) 24%, transparent), transparent)" }}
 				/>
-				<div className="absolute inset-y-2 left-1/2 aspect-square -translate-x-1/2">
-					<div className={`${tileClass} -translate-x-7 -rotate-12 opacity-60`} />
-					<div className={`${tileClass} translate-x-7 rotate-12 opacity-60`} />
-					<div className={`${tileClass} flex items-center justify-center`}>
-						<span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md shadow-[var(--accent)]/30">
+				{fanned ? (
+					<div className="absolute inset-y-2 left-1/2 aspect-square -translate-x-1/2">
+						<div className={`${tileClass} -translate-x-7 -rotate-12 opacity-60`} />
+						<div className={`${tileClass} translate-x-7 rotate-12 opacity-60`} />
+						<div className={`${tileClass} flex items-center justify-center`}>
+							<span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md shadow-[var(--accent)]/30">
+								{icon}
+							</span>
+						</div>
+					</div>
+				) : (
+					<div className="absolute inset-0 flex items-center justify-center">
+						<span className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/30 [&_svg]:h-7 [&_svg]:w-7">
 							{icon}
 						</span>
 					</div>
-				</div>
+				)}
 			</div>
 			<div className="space-y-1">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>

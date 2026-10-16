@@ -392,7 +392,11 @@
         "error_session_update_failed": "فشل تحديث الجلسة",
         "error_end_failed": "فشل إنهاء الجلسة",
         "upload_preview_alt": "معاينة التحميل",
-        "close_aria": "انهاء"
+        "close_aria": "انهاء",
+        "create_session_subtitle": "",
+        "section_message": "",
+        "section_photo": "",
+        "section_options": ""
     },
     "right_now_filters": {
         "title": "فلتره right now",

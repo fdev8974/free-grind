@@ -382,7 +382,11 @@
         "error_session_update_failed": "Posodobitev seje ni uspela",
         "error_end_failed": "Končanje seje ni uspelo",
         "upload_preview_alt": "Predogled nalaganja",
-        "close_aria": "Zapri"
+        "close_aria": "Zapri",
+        "create_session_subtitle": "",
+        "section_message": "",
+        "section_photo": "",
+        "section_options": ""
     },
     "right_now_filters": {
         "title": "Filtri Right Now",

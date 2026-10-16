@@ -372,7 +372,11 @@
         "error_session_update_failed": "Session konnte nicht aktualisiert werden",
         "error_end_failed": "Session konnte nicht beendet werden",
         "upload_preview_alt": "Upload-Vorschau",
-        "close_aria": "Schließen"
+        "close_aria": "Schließen",
+        "create_session_subtitle": "",
+        "section_message": "",
+        "section_photo": "",
+        "section_options": ""
     },
     "right_now_filters": {
         "title": "Right now Filter",

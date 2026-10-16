@@ -377,7 +377,11 @@
         "error_session_update_failed": "Échec de la mise à jour de la session",
         "error_end_failed": "Impossible de terminer la session",
         "upload_preview_alt": "Aperçu de l'élément importé",
-        "close_aria": "Fermer"
+        "close_aria": "Fermer",
+        "create_session_subtitle": "",
+        "section_message": "",
+        "section_photo": "",
+        "section_options": ""
     },
     "right_now_filters": {
         "title": "Filtres Right Now",

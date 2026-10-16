@@ -372,7 +372,11 @@
         "error_session_update_failed": "Sessie bijwerken mislukt",
         "error_end_failed": "Sessie beëindigen mislukt",
         "upload_preview_alt": "Uploadvoorbeeld",
-        "close_aria": "Sluiten"
+        "close_aria": "Sluiten",
+        "create_session_subtitle": "",
+        "section_message": "",
+        "section_photo": "",
+        "section_options": ""
     },
     "right_now_filters": {
         "title": "Right Now-filters",
