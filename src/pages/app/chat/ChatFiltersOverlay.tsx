@@ -1,10 +1,8 @@
 import { RotateCcw, X } from "lucide-react";
-import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChatFiltersPanel } from "./ChatFiltersPanel";
 import { buildChatFiltersDraft, type ChatFiltersDraft } from "./chatUtils";
-import { PageHeaderBackground } from "../../../components/ui/PageHeaderBackground";
+import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
 
 type Props = {
 	isDesktop: boolean;
@@ -26,143 +24,49 @@ export function ChatFiltersOverlay({
 	hiddenCount,
 }: Props) {
 	const { t } = useTranslation();
-	const [isClosing, setIsClosing] = useState(false);
-	const isClosingRef = useRef(false);
-	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-	const handleClose = useCallback(() => {
-		if (isClosingRef.current) return;
-		isClosingRef.current = true;
-		setIsClosing(true);
-
-		if (window.history.state?.modal === "chat-filters") {
-			window.history.back();
-		}
-
-		if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
-		closeTimeoutRef.current = setTimeout(() => {
-			closeTimeoutRef.current = null;
-			onClose();
-		}, 300);
-	}, [onClose]);
-
-	useEffect(() => {
-		return () => {
-			if (closeTimeoutRef.current) {
-				clearTimeout(closeTimeoutRef.current);
-				closeTimeoutRef.current = null;
-			}
-		};
-	}, []);
-
-	useEffect(() => {
-		if (window.history.state?.modal !== "chat-filters") {
-			window.history.pushState({ modal: "chat-filters" }, "");
-		}
-
-		const handlePopState = (e: PopStateEvent) => {
-			if (e.state?.modal !== "chat-filters") {
-				handleClose();
-			}
-		};
-
-		window.addEventListener("popstate", handlePopState);
-		return () => window.removeEventListener("popstate", handlePopState);
-	}, [handleClose]);
-
-	const handleApply = () => {
-		onApply(draft);
-		handleClose();
-	};
-
-	const handleClear = () => {
-		onApply(buildChatFiltersDraft({}));
-		handleClose();
-	};
 
 	return (
-		<div
-			className={`fixed inset-0 z-[55] flex flex-col no-touch-callout isolate ${
-				isClosing ? "pointer-events-none" : ""
-			}`}
+		<BottomSheet
+			onClose={onClose}
+			isDesktop={isDesktop}
+			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			panelClassName="max-h-[92dvh] px-4"
 		>
-			{/* Backdrop */}
-			<div
-				className={`absolute inset-0 bg-black/45 backdrop-blur-sm ${
-					isClosing ? "animate-backdrop-out" : "animate-backdrop-in"
-				}`}
-				onClick={handleClose}
-			/>
-
-			{/* Modal */}
-			<div
-				role="dialog"
-				aria-modal="true"
-				className={`relative mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-[var(--bg)] shadow-2xl transform-gpu will-change-transform ${
-					isClosing ? "animate-modal-top-out" : "animate-modal-top-in"
-				} md:border-x md:border-[var(--border)]`}
-				onClick={(e) => e.stopPropagation()}
-			>
-				{/* Header */}
-				<header className="relative shrink-0 overflow-hidden px-[var(--app-px)] pb-5 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
-					<PageHeaderBackground color="var(--accent)" />
-					<div className="flex items-center justify-between gap-3">
-						<div className="flex items-center gap-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text)]">
-								<PhosphorSlidersHorizontal weight="fill" className="h-5 w-5" />
-							</div>
-							<h2 className="text-xl font-bold tracking-tight text-[var(--text)]">
-								{t("right_now.filters")}
-							</h2>
-						</div>
-						<button
-							type="button"
-							onClick={handleClose}
-							className="shrink-0 rounded-full bg-[var(--surface-2)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--text)] active:scale-90"
-							aria-label={t("common.close")}
-						>
-							<X className="h-5 w-5" />
-						</button>
-					</div>
-				</header>
-
-				<div className="shrink-0 border-b border-[var(--border)]" />
-
-				{/* Filter content */}
-				<div className="relative z-10 min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
-					<ChatFiltersPanel
-						isDesktop={isDesktop}
-						draft={draft}
-						onChangeDraft={onChangeDraft}
-						archivedCount={archivedCount}
-						hiddenCount={hiddenCount}
-					/>
-				</div>
-
-				{/* Bottom actions */}
-				<div
-					className="relative z-10 shrink-0 border-t border-[var(--border)] px-[var(--app-px)] pt-3 flex gap-2"
-					style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
-				>
-					<button
-						type="button"
-						onClick={handleClear}
-						className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-2xl border border-[var(--border)] px-4 text-sm font-bold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
-					>
-						<RotateCcw className="h-4 w-4" />
-						{t("browse_filters.clear_all")}
-					</button>
-					<button
-						type="button"
-						onClick={handleApply}
-						className="group relative h-12 flex-1 overflow-hidden rounded-2xl bg-[var(--accent)] text-sm font-bold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98]"
-						style={{ boxShadow: "0 8px 20px -4px color-mix(in srgb, var(--accent), transparent 65%)" }}
-					>
-						<span className="relative z-10">{t("browse_filters.apply")}</span>
-						<div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-					</button>
-				</div>
+			<div className="mb-1 flex items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">{t("right_now.filters")}</h3>
+				<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+					<X className="h-4 w-4" />
+				</SheetClose>
 			</div>
-		</div>
+
+			{/* The panel brings its own horizontal padding. */}
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
+				<ChatFiltersPanel
+					isDesktop={isDesktop}
+					draft={draft}
+					onChangeDraft={onChangeDraft}
+					archivedCount={archivedCount}
+					hiddenCount={hiddenCount}
+				/>
+			</div>
+
+			{/* SheetClose closes animated and pops the sheet's history entry. */}
+			<div className="-mx-4 mt-1 flex shrink-0 gap-2 border-t border-[var(--border)] px-4 pt-3">
+				<SheetClose
+					onClick={() => onApply(buildChatFiltersDraft({}))}
+					className="flex h-12 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] px-4 text-sm font-bold text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
+				>
+					<RotateCcw className="h-4 w-4" />
+					{t("browse_filters.clear_all")}
+				</SheetClose>
+				<SheetClose
+					onClick={() => onApply(draft)}
+					className="group relative h-12 flex-1 overflow-hidden rounded-xl bg-[var(--accent)] text-sm font-bold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98]"
+				>
+					<span className="relative z-10">{t("browse_filters.apply")}</span>
+					<div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+				</SheetClose>
+			</div>
+		</BottomSheet>
 	);
 }

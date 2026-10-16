@@ -184,16 +184,21 @@ export function ChatInboxHeader({
 										onSetFiltersDraft(buildChatFiltersDraft(inboxFilters, { pinnedFilter, archivedFilter, hiddenFilter }, needsReplyOnly));
 										onSetIsFiltersOpen(true);
 									}}
+									title={t("right_now.filters")}
+									aria-label={t("right_now.filters")}
 									className={cn(
-										"inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all active:scale-95",
+										"inline-flex shrink-0 items-center justify-center gap-1.5 py-2 text-sm font-bold transition-all active:scale-95",
+										// Icon-only keeps the text line height so it matches the label pills.
+										hasActiveInboxFilters && activeFilterCount > 0 ? "px-3" : "px-[11px]",
 										hasActiveInboxFilters
 											? "rounded-full border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/40"
 											: "glass-pill text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
 									)}
 									style={!hasActiveInboxFilters ? { "--pill-color": "var(--accent)" } as CSSProperties : undefined}
 								>
-									<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
-									{t("right_now.filters")}
+									<span className="flex h-5 items-center">
+										<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
+									</span>
 									{hasActiveInboxFilters && activeFilterCount > 0 && (
 										<span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent-contrast)] px-1 text-[9px] font-bold text-[var(--accent)]">
 											{activeFilterCount}
