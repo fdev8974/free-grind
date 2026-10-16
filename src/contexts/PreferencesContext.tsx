@@ -179,6 +179,7 @@ const preferencesSchema = z.object({
 	sortDrawerMediaByFrequency: z.boolean().default(true),
 	keepScreenOn: z.boolean().default(false),
 	autoFocusLocationSearch: z.boolean().default(false),
+	autoFocusRightNowText: z.boolean().default(true),
 	// Swipe a chat row right to pin, left to delete (mobile).
 	chatRowSwipeActions: z.boolean().default(true),
 	// Tap type sent by double tapping a grid tile; null disables the gesture.
@@ -228,6 +229,7 @@ type PreferencesAction =
 	| { type: "SET_DOUBLE_TAP_TAP_TYPE"; payload: number | null }
 	| { type: "SET_SHOW_GRID_TAP_STATUS"; payload: boolean }
 	| { type: "SET_AUTO_FOCUS_LOCATION_SEARCH"; payload: boolean }
+	| { type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT"; payload: boolean }
 	| { type: "SET_CHAT_ROW_SWIPE_ACTIONS"; payload: boolean }
 	| { type: "SET_DEFAULT_EXPIRING_PHOTOS"; payload: boolean }
 	| { type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE"; payload: Preferences["defaultAlbumExpirationType"] }
@@ -287,6 +289,8 @@ function preferencesReducer(
 			return { ...state, keepScreenOn: action.payload };
 		case "SET_AUTO_FOCUS_LOCATION_SEARCH":
 			return { ...state, autoFocusLocationSearch: action.payload };
+		case "SET_AUTO_FOCUS_RIGHT_NOW_TEXT":
+			return { ...state, autoFocusRightNowText: action.payload };
 		case "SET_CHAT_ROW_SWIPE_ACTIONS":
 			return { ...state, chatRowSwipeActions: action.payload };
 		case "SET_DOUBLE_TAP_TAP_TYPE":
@@ -386,6 +390,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		sortDrawerMediaByFrequency: true,
 		keepScreenOn: false,
 		autoFocusLocationSearch: false,
+		autoFocusRightNowText: true,
 		chatRowSwipeActions: true,
 		doubleTapTapType: 1,
 		showGridTapStatus: true,
@@ -433,6 +438,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY", payload: parsed.sortDrawerMediaByFrequency });
 					dispatch({ type: "SET_KEEP_SCREEN_ON", payload: parsed.keepScreenOn });
 					dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: parsed.autoFocusLocationSearch });
+					dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: parsed.autoFocusRightNowText });
 					dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: parsed.chatRowSwipeActions });
 					dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: parsed.doubleTapTapType });
 					dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: parsed.showGridTapStatus });
@@ -528,6 +534,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				sortDrawerMediaByFrequency: currentState.sortDrawerMediaByFrequency,
 				keepScreenOn: currentState.keepScreenOn,
 				autoFocusLocationSearch: currentState.autoFocusLocationSearch,
+				autoFocusRightNowText: currentState.autoFocusRightNowText,
 				chatRowSwipeActions: currentState.chatRowSwipeActions,
 				doubleTapTapType: currentState.doubleTapTapType,
 				showGridTapStatus: currentState.showGridTapStatus,
@@ -615,6 +622,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.autoFocusLocationSearch !== undefined) {
 				dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: newValues.autoFocusLocationSearch });
+			}
+			if (newValues.autoFocusRightNowText !== undefined) {
+				dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: newValues.autoFocusRightNowText });
 			}
 			if (newValues.chatRowSwipeActions !== undefined) {
 				dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: newValues.chatRowSwipeActions });
@@ -708,6 +718,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					sortDrawerMediaByFrequency: preferences.sortDrawerMediaByFrequency,
 					keepScreenOn: preferences.keepScreenOn,
 					autoFocusLocationSearch: preferences.autoFocusLocationSearch,
+					autoFocusRightNowText: preferences.autoFocusRightNowText,
 					chatRowSwipeActions: preferences.chatRowSwipeActions,
 					doubleTapTapType: preferences.doubleTapTapType,
 					showGridTapStatus: preferences.showGridTapStatus,
@@ -749,6 +760,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		sortDrawerMediaByFrequency: state.sortDrawerMediaByFrequency,
 		keepScreenOn: state.keepScreenOn,
 		autoFocusLocationSearch: state.autoFocusLocationSearch,
+		autoFocusRightNowText: state.autoFocusRightNowText,
 		chatRowSwipeActions: state.chatRowSwipeActions,
 		doubleTapTapType: state.doubleTapTapType,
 		showGridTapStatus: state.showGridTapStatus,

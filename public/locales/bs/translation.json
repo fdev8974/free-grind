@@ -1043,6 +1043,8 @@
         "location": "Lokacija",
         "auto_focus_location_search": "Automatski fokusiraj polje za pretragu",
         "auto_focus_location_search_desc": "Automatski fokusiraj polje za pretragu pri otvaranju prozora lokacije. Isključi ako ti smeta da se tastatura odmah pojavi.",
+        "auto_focus_right_now_text": "",
+        "auto_focus_right_now_text_desc": "",
         "display": "Ekran",
         "keep_screen_on": "Drži ekran uključenim",
         "keep_screen_on_desc": "Spriječi zatamnjivanje ili zaključavanje ekrana dok je aplikacija otvorena. Automatski se isključuje kad napustiš aplikaciju.",

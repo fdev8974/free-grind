@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
+import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { Chip } from "../../components/ui/chip";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../contexts/PreferencesContext";
@@ -34,6 +35,7 @@ export function BehaviorPage() {
 		sortDrawerMediaByFrequency,
 		keepScreenOn,
 		autoFocusLocationSearch,
+		autoFocusRightNowText,
 		doubleTapTapType,
 		chatRowSwipeActions,
 		setPreferences,
@@ -242,6 +244,24 @@ export function BehaviorPage() {
 							description={t("behavior.auto_focus_location_search_desc")}
 							checked={autoFocusLocationSearch}
 							onChange={(checked) => void setPreferences({ autoFocusLocationSearch: checked })}
+						/>
+					</div>
+				</div>
+
+				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("right_now.title")}</p>
+					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<ToggleRow
+							id="behavior-auto-focus-right-now-text"
+							highlighted={highlightId === "behavior-auto-focus-right-now-text"}
+							icon={<RightNowIcon className="h-5 w-5" />}
+							iconClass="bg-[var(--right-now)]/15 text-[var(--right-now)]"
+							label={t("behavior.auto_focus_right_now_text", { defaultValue: "Auto-Focus Session Text" })}
+							description={t("behavior.auto_focus_right_now_text_desc", {
+								defaultValue: "Automatically focus the text field and open the keyboard when starting or editing a Right Now session.",
+							})}
+							checked={autoFocusRightNowText}
+							onChange={(checked) => void setPreferences({ autoFocusRightNowText: checked })}
 						/>
 					</div>
 				</div>

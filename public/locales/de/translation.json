@@ -1035,6 +1035,8 @@
         "location": "Standort",
         "auto_focus_location_search": "Suchfeld automatisch fokussieren",
         "auto_focus_location_search_desc": "Fokussiert beim Öffnen des Standort-Overlays automatisch das Suchfeld. Schalte dies aus, wenn dich die sofort aufpoppende Tastatur stört.",
+        "auto_focus_right_now_text": "",
+        "auto_focus_right_now_text_desc": "",
         "display": "Anzeige",
         "keep_screen_on": "Bildschirm eingeschaltet lassen",
         "keep_screen_on_desc": "Verhindert, dass der Bildschirm gedimmt oder gesperrt wird, solange die App geöffnet ist. Schaltet sich automatisch ab, sobald du die App verlässt.",

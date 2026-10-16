@@ -1043,6 +1043,8 @@
         "location": "Emplacement",
         "auto_focus_location_search": "Focus automatique sur le champs de recherche",
         "auto_focus_location_search_desc": "Placez automatiquement le curseur dans le champ de recherche à l'ouverture. Désactivez cette option si l'apparition immédiate du clavier vous gêne.",
+        "auto_focus_right_now_text": "",
+        "auto_focus_right_now_text_desc": "",
         "display": "Afficher",
         "keep_screen_on": "Maintenir l'écran allumé",
         "keep_screen_on_desc": "Empêche l'écran de s'assombrir ou de se verrouiller tant que l'application est ouverte. Se désactive automatiquement une fois que vous quittez l'application.",

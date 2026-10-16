@@ -1035,6 +1035,8 @@
         "location": "Locatie",
         "auto_focus_location_search": "Zoekveld automatisch focussen",
         "auto_focus_location_search_desc": "Focus automatisch op het zoekveld bij het openen van het locatievenster. Zet uit als het meteen verschijnende toetsenbord je stoort.",
+        "auto_focus_right_now_text": "",
+        "auto_focus_right_now_text_desc": "",
         "display": "Scherm",
         "keep_screen_on": "Scherm aan houden",
         "keep_screen_on_desc": "Voorkom dat het scherm dimt of vergrendelt terwijl de app open is. Wordt automatisch uitgeschakeld zodra je de app verlaat.",

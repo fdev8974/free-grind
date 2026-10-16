@@ -1059,6 +1059,8 @@
         "location": "موقع",
         "auto_focus_location_search": "حقل الدور بالتركيز التلقائي",
         "auto_focus_location_search_desc": "فعّل التركيز التلقائي على حقل نص الدور عند فتح نافذة الموقع. أوقف هذه الخاصية إذا كان ظهور لوحة المفاتيح فورًا يزعجك.",
+        "auto_focus_right_now_text": "",
+        "auto_focus_right_now_text_desc": "",
         "display": "عرض",
         "keep_screen_on": "أبقِ الشاشة قيد التشغيل",
         "keep_screen_on_desc": "يمنع هذا التطبيق من التعتيم أو القفل أثناء تشغيله. يتم إيقاف تشغيله تلقائيًا بمجرد الخروج من التطبيق.",

@@ -1035,6 +1035,8 @@
     "location": "Location",
     "auto_focus_location_search": "Auto-Focus Search Field",
     "auto_focus_location_search_desc": "Automatically focus the search text field when opening the location overlay. Turn off if the keyboard popping up right away bothers you.",
+    "auto_focus_right_now_text": "Auto-Focus Session Text",
+    "auto_focus_right_now_text_desc": "Automatically focus the text field and open the keyboard when starting or editing a Right Now session.",
     "display": "Display",
     "keep_screen_on": "Keep Screen On",
     "keep_screen_on_desc": "Prevent the screen from dimming or locking while the app is open. Turns off automatically once you leave the app.",

@@ -39,10 +39,15 @@ export function RightNowPostPage({ onClose, onPost }: RightNowPostPageProps) {
 	);
 }
 
+// Translucent "glass" fields (same recipe as the profile's quick-message bar),
+// so the breathing glow behind them stays visible.
+const GLASS_FIELD =
+	"border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface-2)_50%,transparent)] backdrop-blur-md";
+
 function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPost">) {
 	const { t } = useTranslation();
 	const apiFunctions = useApiFunctions();
-	const { setPreferences, activeRightNowId, activeRightNowExpiresAt, developerMode, showDebugInfo, rightNowRemaining, rightNowTestMode } = usePreferences();
+	const { setPreferences, activeRightNowId, activeRightNowExpiresAt, developerMode, showDebugInfo, rightNowRemaining, rightNowTestMode, autoFocusRightNowText } = usePreferences();
 	// Closes through the sheet so it animates out and pops its history entry.
 	const handleClose = useBottomSheetClose();
 
@@ -433,7 +438,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 						<>
 							{isEditMode && (
 								<SheetSection title={t("right_now.visibility")}>
-									<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+									<div className={`overflow-hidden rounded-2xl ${GLASS_FIELD}`}>
 										<ToggleRow
 											icon={<RightNowIcon className="h-5 w-5" />}
 											iconClass={cn(
@@ -454,11 +459,11 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							<SheetSection title={t("right_now.section_message", { defaultValue: "Message" })}>
 								<div className="relative">
 									<textarea
-										autoFocus
+										autoFocus={autoFocusRightNowText}
 										value={text}
 										onChange={(e) => setText(e.target.value.slice(0, maxChars))}
 										placeholder={t("right_now.session_placeholder")}
-										className="min-h-[88px] w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3 pb-6 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--right-now)]"
+										className={`min-h-[88px] w-full resize-none rounded-xl ${GLASS_FIELD} p-3 pb-6 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--right-now)]`}
 									/>
 									<div className="pointer-events-none absolute bottom-2.5 right-3 text-[10px] font-medium text-[var(--text-muted)]">
 										{t("right_now.char_limit", { count: text.length })}
@@ -508,7 +513,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 											"group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-6 text-center transition disabled:cursor-wait",
 											isDraggingPhoto
 												? "border-[var(--right-now)] bg-[color-mix(in_srgb,var(--right-now)_10%,var(--surface))]"
-												: "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--right-now)] hover:bg-[color-mix(in_srgb,var(--right-now)_6%,var(--surface-2))]",
+												: "border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface-2)_50%,transparent)] backdrop-blur-md hover:border-[var(--right-now)] hover:bg-[color-mix(in_srgb,var(--right-now)_8%,transparent)]",
 										)}
 									>
 										<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--right-now)] text-white shadow-lg shadow-[var(--right-now)]/20 transition group-hover:scale-105">
@@ -527,7 +532,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							</SheetSection>
 
 							<SheetSection title={t("right_now.section_options", { defaultValue: "Options" })}>
-								<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+								<div className={`overflow-hidden rounded-2xl ${GLASS_FIELD}`}>
 									<ToggleRow
 										icon={<HomeFilled className="h-5 w-5" />}
 										iconClass={cn(
