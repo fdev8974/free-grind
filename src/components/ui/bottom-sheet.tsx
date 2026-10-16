@@ -105,6 +105,9 @@ export function BottomSheet({
 
 	useEffect(() => { animateCloseRef.current = animateClose; }, [animateClose]);
 
+	const isProcessingRef = useRef(isProcessing);
+	useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
+
 	useEffect(() => {
 		// Allocated once per sheet (not per effect run), so a StrictMode re-run
 		// still matches the entry pushed by the first run.
@@ -144,6 +147,13 @@ export function BottomSheet({
 		let unregister: (() => void) | null = null;
 		onBackButtonPress(() => {
 			if (openSheets[openSheets.length - 1] !== sheetIdRef.current) return;
+			// A locked sheet can still have a non-sheet overlay stacked on top
+			// with its own history entry (e.g. the album viewer over the album
+			// sheet) — hand the back press to that overlay's popstate handler.
+			if (isProcessingRef.current) {
+				if (history.state?.bottomSheetId !== historyIdRef.current) history.back();
+				return;
+			}
 			animateCloseRef.current();
 		})
 			.then((listener) => {
