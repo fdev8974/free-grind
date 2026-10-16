@@ -36,6 +36,8 @@ type BrowseCardTileProps = {
 	onMessageProfile: (profileId: string) => void;
 	onOpenContextMenu?: (card: BrowseCard, x: number, y: number) => void;
 	isDesktop?: boolean;
+	/** Hides the Popular badge, e.g. while sorted by distance where it's just noise. */
+	hidePopular?: boolean;
 };
 
 export function BrowseCardTile({
@@ -48,6 +50,7 @@ export function BrowseCardTile({
 	onMessageProfile: _onMessageProfile,
 	onOpenContextMenu,
 	isDesktop = false,
+	hidePopular = false,
 }: BrowseCardTileProps) {
 	const { t } = useTranslation();
 	const { unitsPreset, showDebugInfo, blurGridProfilePictures, doubleTapTapType } = usePreferences();
@@ -61,7 +64,7 @@ export function BrowseCardTile({
 	const isDemoCard = card.profileId.toString().startsWith("demo-");
 	const isVisiting = card.isVisiting === true;
 	const isRoaming = card.roaming === true;
-	const isPopular = card.isPopular === true;
+	const isPopular = !hidePopular && card.isPopular === true;
 	const isRightNow = card.rightNow === "HOSTING" || card.rightNow === "NOT_HOSTING";
 	const isBoosting = card.isBoosting === true;
 	const databaseUnread = chatContactStatus?.unreadCount ?? 0;

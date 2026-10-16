@@ -1829,6 +1829,7 @@ export function GridPage() {
 							onDoubleTapProfile={handleDoubleTapProfile}
 							onMessageProfile={handleMessageProfile}
 							onOpenContextMenu={handleOpenTileContextMenu}
+							hidePopular={sortBy === "distance"}
 							hasMore={nextPage !== null && !(nicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}
 							isLoadingMore={isLoadingMoreCards}
 							onLoadMore={() => {

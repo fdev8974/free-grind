@@ -74,6 +74,7 @@ type BrowseGridProps = {
 	onDoubleTapProfile?: (profileId: string, tapId: number) => boolean;
 	onMessageProfile: (profileId: string) => void;
 	onOpenContextMenu?: (card: BrowseCard, x: number, y: number) => void;
+	hidePopular?: boolean;
 	hasMore?: boolean;
 	isLoadingMore?: boolean;
 	onLoadMore?: () => void;
@@ -105,6 +106,7 @@ export function BrowseGrid({
 	onDoubleTapProfile,
 	onMessageProfile,
 	onOpenContextMenu,
+	hidePopular,
 	hasMore,
 	isLoadingMore,
 	onLoadMore,
@@ -332,6 +334,7 @@ export function BrowseGrid({
 									onMessageProfile={onMessageProfile}
 									onOpenContextMenu={onOpenContextMenu}
 									isDesktop={isDesktop}
+									hidePopular={hidePopular}
 								/>
 							))}
 						</div>
