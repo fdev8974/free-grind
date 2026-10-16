@@ -367,6 +367,8 @@
     "end_session": "End Session",
     "session_updated": "Session updated!",
     "session_created": "Session started!",
+    "started_overlay_subtitle": "Session started",
+    "started_overlay_tagline": "You're out there now. Ready, willing and close by.",
     "session_ended": "Session ended",
     "session_expired": "Session expired",
     "error_fetch_session": "Could not load session data",

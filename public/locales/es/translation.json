@@ -372,6 +372,8 @@
         "end_session": "Finalizar sesión",
         "session_updated": "¡Sesión actualizada!",
         "session_created": "¡Sesión iniciada!",
+        "started_overlay_subtitle": "",
+        "started_overlay_tagline": "",
         "session_ended": "Sesión finalizada",
         "session_expired": "Sesión caducada",
         "error_fetch_session": "No se pudo cargar los datos de la sesión",

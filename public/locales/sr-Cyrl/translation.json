@@ -373,6 +373,8 @@
         "end_session": "Заврши сесију",
         "session_updated": "Сесија је ажурирана!",
         "session_created": "Сесија је покренута!",
+        "started_overlay_subtitle": "",
+        "started_overlay_tagline": "",
         "session_ended": "Сесија је завршена",
         "session_expired": "Сесија је истекла",
         "error_fetch_session": "Учитавање података сесије није успело",

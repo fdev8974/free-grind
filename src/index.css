@@ -704,6 +704,25 @@
 		text-shadow: 0 0 20px rgba(217, 70, 239, 0.85), 0 0 60px rgba(168, 85, 247, 0.55);
 	}
 
+	/* Right Now "session started" overlay — Sin Mode's build in Right Now purple */
+	.right-now-started-backdrop {
+		background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--right-now) 32%, transparent) 0%, rgba(14, 4, 22, 0.93) 60%, rgba(9, 3, 15, 0.98) 100%);
+	}
+
+	.right-now-started-rays {
+		background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--right-now) 20%, transparent) 0deg 6deg, transparent 6deg 18deg);
+		mask-image: radial-gradient(circle, black 0%, transparent 68%);
+		-webkit-mask-image: radial-gradient(circle, black 0%, transparent 68%);
+	}
+
+	.right-now-started-halo {
+		background: radial-gradient(circle, color-mix(in srgb, var(--right-now) 70%, transparent) 0%, color-mix(in srgb, var(--right-now) 18%, transparent) 55%, transparent 72%);
+	}
+
+	.right-now-started-title {
+		text-shadow: 0 0 20px color-mix(in srgb, var(--right-now) 85%, transparent), 0 0 60px color-mix(in srgb, var(--right-now) 55%, transparent);
+	}
+
 	.tab-menu {
 		background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 80%);
 		backdrop-filter: blur(12px);

@@ -367,6 +367,8 @@
         "end_session": "Sessie beëindigen",
         "session_updated": "Sessie bijgewerkt!",
         "session_created": "Sessie gestart!",
+        "started_overlay_subtitle": "",
+        "started_overlay_tagline": "",
         "session_ended": "Sessie beëindigd",
         "session_expired": "Sessie verlopen",
         "error_fetch_session": "Kon sessiegegevens niet laden",

@@ -377,6 +377,8 @@
         "end_session": "Končaj sejo",
         "session_updated": "Seja posodobljena!",
         "session_created": "Seja začeta!",
+        "started_overlay_subtitle": "",
+        "started_overlay_tagline": "",
         "session_ended": "Seja končana",
         "session_expired": "Seja je potekla",
         "error_fetch_session": "Podatkov seje ni bilo mogoče naložiti",

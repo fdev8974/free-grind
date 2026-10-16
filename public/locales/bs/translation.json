@@ -372,6 +372,8 @@
         "end_session": "Završi sesiju",
         "session_updated": "Sesija ažurirana!",
         "session_created": "Sesija pokrenuta!",
+        "started_overlay_subtitle": "",
+        "started_overlay_tagline": "",
         "session_ended": "Sesija završena",
         "session_expired": "Sesija je istekla",
         "error_fetch_session": "Nije moguće učitati podatke sesije",

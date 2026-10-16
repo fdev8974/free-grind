@@ -387,6 +387,8 @@
         "end_session": "إنهاء الجلسة",
         "session_updated": "تم تحديث الجلسة!",
         "session_created": "بدأت الجلسة!",
+        "started_overlay_subtitle": "",
+        "started_overlay_tagline": "",
         "session_ended": "انتهاء الجلسة",
         "session_expired": "انتهت الجلسة",
         "error_fetch_session": "تعذر تحميل بيانات الجلسة",

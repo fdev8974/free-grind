@@ -367,6 +367,8 @@
         "end_session": "Session beenden",
         "session_updated": "Session aktualisiert!",
         "session_created": "Session gestartet!",
+        "started_overlay_subtitle": "",
+        "started_overlay_tagline": "",
         "session_ended": "Session beendet",
         "session_expired": "Session abgelaufen",
         "error_fetch_session": "Session-Daten konnten nicht geladen werden",

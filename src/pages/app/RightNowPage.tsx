@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -367,6 +368,7 @@ export function RightNowPage() {
 	}), [sort, hostingOnly, ageMin, ageMax, positionFilter]);
 
 	const { data: items = [], isLoading, error, refetch } = useRightNowFeed(queryParams);
+	const queryClient = useQueryClient();
 
 	const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
 	const [viewerIndex, setViewerIndex] = useState(0);
@@ -424,8 +426,14 @@ export function RightNowPage() {
 			setFabPhase("loading");
 		}
 		setIsPosting(false);
-		setTimeout(() => setIsModalMounted(false), 300);
-	}, []);
+		// Reload the feed (every filter variant) so the new/edited own post and
+		// its photo show up. Once more shortly after, in case the server hadn't
+		// picked up the change yet on the first fetch.
+		const refreshFeed = () => void queryClient.invalidateQueries({ queryKey: ["rightnow", "feed"] });
+		refreshFeed();
+		setTimeout(refreshFeed, 2000);
+		// Unmounting happens in handleCloseModal once the sheet has animated out.
+	}, [queryClient]);
 
 	// The sheet only calls this once its close animation has finished.
 	const handleCloseModal = useCallback(() => {

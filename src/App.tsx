@@ -60,6 +60,7 @@ import { SplashReadyBridge } from "./components/SplashReadyBridge";
 import { HotswapUpdatedToastBridge } from "./components/HotswapUpdatedToastBridge";
 import { SmoothScroll } from "./components/SmoothScroll";
 import { SinModeUnlockOverlay } from "./components/SinModeUnlockOverlay";
+import { RightNowStartedOverlay } from "./components/RightNowStartedOverlay";
 import { usePreferences } from "./contexts/PreferencesContext";
 import ManagerApp from "./ManagerApp";
 import { getRuntimeContext } from "./services/runtimeContext";
@@ -202,6 +203,7 @@ export default function App() {
 			<PreferencesProvider>
 			<ExploreModeProvider>
 				<SinModeUnlockOverlay />
+				<RightNowStartedOverlay />
 				<EntitlementBypassPrompt />
 				<SmoothScroll>
 					{showOnboarding ? (

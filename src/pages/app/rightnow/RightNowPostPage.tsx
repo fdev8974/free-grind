@@ -16,6 +16,7 @@ import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import type { RightNowCreatePostRequest, RightNowUpdatePostRequest } from "../../../services/apiFunctions";
 import { getRightNowSessionDuration } from "./rightnow-constants";
 import { DrawerEmptyState } from "../chat/drawerUi";
+import { triggerRightNowStarted } from "../../../components/RightNowStartedOverlay";
 import { SheetSection } from "../../../components/ui/sheet-section";
 import { simulateCreatePost, simulateEndSession, simulateFetchActivePost, simulateUpdatePost, simulateUploadMedia } from "./rightnow-simulation";
 
@@ -283,17 +284,16 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 				}
 			}
 
-			toast.success(
-				isEditMode
-					? t("right_now.session_updated")
-					: t("right_now.session_created"),
-				{
+			// A new session gets the full-screen celebration instead of a toast.
+			if (isEditMode) {
+				toast.success(t("right_now.session_updated"), {
 					icon: <CheckCircle2 className="w-5 h-5 text-[var(--right-now)]" />,
-				},
-			);
+				});
+			}
 
 			onPost(isEditMode);
 			handleClose();
+			if (!isEditMode) triggerRightNowStarted();
 		} catch (error) {
 			appLog.error("Failed to post:", error);
 			toast.error(isEditMode ? t("right_now.error_session_update_failed") : t("right_now.error_session_failed"));
