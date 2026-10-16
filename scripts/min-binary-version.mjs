@@ -17,6 +17,12 @@ const VERSION_ONLY_LINE = /^[+-]\s*(version\s*=\s*"|"version"\s*:)/;
 
 /** Does `commit` change native code (src-tauri) beyond the version fields? */
 function changesNativeCode(commit) {
+  // Binary files (e.g. app icons) show up as "Binary files … differ" with no
+  // +/- lines, and pure renames/mode changes have none either — numstat marks
+  // the former "-\t-" and the latter "0\t0", so count both as native.
+  const numstat = git(["diff", "--numstat", `${commit}^1`, commit, "--", "src-tauri"]);
+  if (numstat.split("\n").some((line) => /^(-\t-|0\t0)\t/.test(line))) return true;
+
   const diff = git(["diff", "-U0", `${commit}^1`, commit, "--", "src-tauri"]);
   return diff
     .split("\n")
