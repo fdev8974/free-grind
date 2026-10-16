@@ -1118,7 +1118,8 @@
             "email": "E-Mail",
             "password": "Passwort",
             "show_password": "Passwort anzeigen",
-            "hide_password": "Passwort verbergen"
+            "hide_password": "Passwort verbergen",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Anmelden",

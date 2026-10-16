@@ -1142,7 +1142,8 @@
             "email": "الايميل",
             "password": "الرالسري",
             "show_password": "اظهار الرالسري",
-            "hide_password": "اخفاء الرالسري"
+            "hide_password": "اخفاء الرالسري",
+            "error_details": ""
         },
         "sign_in": {
             "title": "تسجيل الدخول",

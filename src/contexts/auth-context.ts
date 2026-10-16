@@ -13,10 +13,17 @@ export type AccountStatus =
 	| { kind: "restriction"; restriction: Restriction }
 	| null;
 
+/** A failed sign-in/sign-up, as shown on the auth pages. */
+export interface AuthError {
+	message: string;
+	/** The raw technical text behind a generic `message`, folded away under "Details". */
+	detail?: string;
+}
+
 export interface AuthState {
 	userId: number | null;
 	isLoading: boolean;
-	error: string | null;
+	error: AuthError | null;
 	/**
 	 * True once the per-profile db (chatDb) is pointed at the active user's
 	 * own file and the one-time legacy-settings migration has been checked.
@@ -79,6 +86,8 @@ export interface AuthContextType extends AuthState {
 	savedAccounts: SavedAccountMeta[];
 	switchAccount: (profileId: string) => Promise<void>;
 	removeSavedAccount: (profileId: string) => Promise<void>;
+	/** Drops a stale `error`, e.g. when the sign-in page switches method. */
+	clearError: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

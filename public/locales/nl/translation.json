@@ -1118,7 +1118,8 @@
             "email": "E-mail",
             "password": "Wachtwoord",
             "show_password": "Wachtwoord tonen",
-            "hide_password": "Wachtwoord verbergen"
+            "hide_password": "Wachtwoord verbergen",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Inloggen",

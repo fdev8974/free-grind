@@ -1142,7 +1142,8 @@
             "email": "الإيميل",
             "password": "كلمة السر",
             "show_password": "إظهار كلمة السر",
-            "hide_password": "إخفاء كلمة السر"
+            "hide_password": "إخفاء كلمة السر",
+            "error_details": ""
         },
         "sign_in": {
             "title": "تسجيل الدخول",

@@ -68,11 +68,18 @@ pub(super) async fn run_flow(
         builder = builder.user_agent(DESKTOP_USER_AGENT);
     }
 
+    // tao matches the parent against each Activity's getLocalClassName(), and
+    // launched through a disguise <activity-alias> that is the alias
+    // (DisguiseDefaultAlias, ...), never "MainActivity". Ask the main window.
     #[cfg(target_os = "android")]
     {
-        builder = builder
-            .activity_name("FacebookOAuthActivity")
-            .created_by_activity_name("MainActivity");
+        builder = builder.activity_name("FacebookOAuthActivity");
+        if let Some(parent) = app
+            .get_webview_window("main")
+            .and_then(|main| main.activity_name().ok())
+        {
+            builder = builder.created_by_activity_name(parent);
+        }
     }
 
     #[cfg(target_os = "windows")]

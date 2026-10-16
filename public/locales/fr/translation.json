@@ -1126,7 +1126,8 @@
             "email": "Adresse e-mail",
             "password": "Mot de passe",
             "show_password": "Afficher le mot de passe",
-            "hide_password": "Masquer le mot de passe"
+            "hide_password": "Masquer le mot de passe",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Connexion",

@@ -32,7 +32,8 @@ function birthdayToMillis(value: string): number | null {
 export function SignUpPage() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const { signUp, login, error } = useAuth();
+	const { signUp, login, error, clearError } = useAuth();
+	useEffect(() => clearError, [clearError]);
 	const { callMethod } = useApi();
 	// Accounts this app created so far; null until loaded.
 	const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null);

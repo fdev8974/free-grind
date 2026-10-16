@@ -1126,7 +1126,8 @@
             "email": "E-mail",
             "password": "Lozinka",
             "show_password": "Prikaži lozinku",
-            "hide_password": "Sakrij lozinku"
+            "hide_password": "Sakrij lozinku",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Prijava",

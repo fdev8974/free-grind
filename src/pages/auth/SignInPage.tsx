@@ -263,8 +263,17 @@ export function SignInPage() {
 	// Set when an email sign-in is refused until the account verifies by SMS.
 	const [verification, setVerification] = useState<{ profileId: string } | null>(null);
 
-	const { login, loginWithGoogle, loginWithGoogleWindow, loginWithFacebook, error } = useAuth();
+	const { login, loginWithGoogle, loginWithGoogleWindow, loginWithFacebook, error, clearError } = useAuth();
 	const navigate = useNavigate();
+
+	// A failure belongs to the method that produced it; also don't carry it to the next page.
+	const changeMethod = (next: SignInMethod) => {
+		setMethod(next);
+		clearError();
+		setGoogleAppError(null);
+		setNeedsRecaptchaHelper(false);
+	};
+	useEffect(() => clearError, [clearError]);
 
 	const isPasswordFormValid = email.trim().length > 0 && password.trim().length > 0;
 	const isGoogleFormValid = googleToken.trim().length > 0;
@@ -422,7 +431,7 @@ export function SignInPage() {
 			toolbar={
 				<SlidingTabs<SignInMethod>
 					value={method}
-					onChange={setMethod}
+					onChange={changeMethod}
 					tabs={[
 						{ value: "password", icon: <Mail className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_password") },
 						{ value: "google", icon: <GoogleIcon className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_google", { defaultValue: "Google" }) },
@@ -580,7 +589,7 @@ export function SignInPage() {
 								{t("auth.sign_in.google_app_sign_in", { defaultValue: "Sign in with the Google app" })}
 							</Button>
 							{googleAppError ? <AuthErrorBox message={googleAppError} /> : null}
-							{!showManualToken && error ? <AuthErrorBox message={error} /> : null}
+							{!showManualToken && error ? <AuthErrorBox message={error.message} detail={error.detail} /> : null}
 							<button
 								type="button"
 								onClick={() => setShowManualToken((prev) => !prev)}

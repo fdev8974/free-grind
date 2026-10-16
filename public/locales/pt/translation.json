@@ -1126,7 +1126,8 @@
             "email": "Email",
             "password": "Palavra-passe",
             "show_password": "Mostrar palavra-passe",
-            "hide_password": "Ocultar palavra-passe"
+            "hide_password": "Ocultar palavra-passe",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Entrar",

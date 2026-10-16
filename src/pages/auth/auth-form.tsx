@@ -1,9 +1,10 @@
-import type { InputHTMLAttributes, ReactNode } from "react";
+import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronDown } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { cn } from "../../utils/cn";
+import type { AuthError } from "../../contexts/auth-context";
 
 export function IconInput({
 	icon,
@@ -24,11 +25,34 @@ export function IconInput({
 	);
 }
 
-export function AuthErrorBox({ message }: { message: string }) {
+/** `detail` is raw technical text, folded away so it can still be copied into a bug report. */
+export function AuthErrorBox({ message, detail }: { message: string; detail?: string }) {
+	const { t } = useTranslation();
+	const [showDetail, setShowDetail] = useState(false);
+	const hasDetail = !!detail && detail !== message;
 	return (
-		<div className="animate-fade-in flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]">
-			<AlertCircle className="h-4 w-4 shrink-0 text-[#f87171]" />
-			<span>{message}</span>
+		<div
+			role="alert"
+			className="animate-fade-in rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]"
+		>
+			<div className="flex items-start gap-2">
+				<AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#f87171]" />
+				<span className="min-w-0 flex-1 leading-snug">{message}</span>
+				{hasDetail ? (
+					<button
+						type="button"
+						onClick={() => setShowDetail((prev) => !prev)}
+						aria-expanded={showDetail}
+						className="flex shrink-0 items-center gap-0.5 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+					>
+						{t("auth.common.error_details", { defaultValue: "Details" })}
+						<ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", showDetail && "rotate-180")} />
+					</button>
+				) : null}
+			</div>
+			{hasDetail && showDetail ? (
+				<p className="animate-fade-in mt-2 select-text break-words font-mono text-xs text-[var(--text-muted)]">{detail}</p>
+			) : null}
 		</div>
 	);
 }
@@ -40,7 +64,7 @@ export function AuthSubmitSection({
 	loadingLabel,
 	label,
 }: {
-	error: string | null;
+	error: string | AuthError | null;
 	loading: boolean;
 	disabled: boolean;
 	loadingLabel: string;
@@ -48,8 +72,10 @@ export function AuthSubmitSection({
 }) {
 	return (
 		<>
-			{error ? (
+			{typeof error === "string" ? (
 				<AuthErrorBox message={error} />
+			) : error ? (
+				<AuthErrorBox message={error.message} detail={error.detail} />
 			) : null}
 			<div className="pt-1">
 				<Button

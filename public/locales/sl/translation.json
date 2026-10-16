@@ -1134,7 +1134,8 @@
             "email": "E-pošta",
             "password": "Geslo",
             "show_password": "Prikaži geslo",
-            "hide_password": "Skrij geslo"
+            "hide_password": "Skrij geslo",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Prijava",

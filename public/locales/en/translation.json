@@ -1118,7 +1118,8 @@
       "email": "Email",
       "password": "Password",
       "show_password": "Show password",
-      "hide_password": "Hide password"
+      "hide_password": "Hide password",
+      "error_details": "Details"
     },
     "sign_in": {
       "title": "Sign In",

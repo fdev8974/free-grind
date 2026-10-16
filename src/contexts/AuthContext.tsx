@@ -1,4 +1,5 @@
 import {
+	useCallback,
 	useReducer,
 	useEffect,
 	useRef,
@@ -16,6 +17,7 @@ import {
 	AuthContext,
 	type AccountStatus,
 	type AuthContextType,
+	type AuthError,
 	type AuthState,
 	type SavedAccountMeta,
 	type LoginOptions,
@@ -69,15 +71,26 @@ function describeLoginError(
 	appError: AppError | null,
 	fallback: string,
 	invalidCredentialsMessage: string,
-): string {
+): AuthError {
 	if (
 		appError?.kind === "Api" &&
 		typeof appError.message === "object" &&
 		appError.message.code === INVALID_INPUT_PARAMETERS_CODE
 	) {
-		return invalidCredentialsMessage;
+		return { message: invalidCredentialsMessage };
 	}
-	return appError?.prettyMessage || fallback;
+	// Plumbing failures ("failed to open sign-in window: ..."): the raw text
+	// means nothing to the user, so it only goes under "Details".
+	if (appError?.kind === "Connect") {
+		return {
+			message: "Couldn't connect. Check your internet connection and try again.",
+			detail: appError.prettyMessage,
+		};
+	}
+	if (appError?.kind === "Http") {
+		return { message: fallback, detail: appError.prettyMessage };
+	}
+	return { message: appError?.prettyMessage || fallback };
 }
 
 function isInvalidCredentials(appError: AppError | null): boolean {
@@ -104,7 +117,7 @@ type AuthAction =
 	| { type: "SET_USER"; payload: number }
 	| { type: "CLEAR_USER" }
 	| { type: "SET_LOADING"; payload: boolean }
-	| { type: "SET_ERROR"; payload: string | null }
+	| { type: "SET_ERROR"; payload: AuthError | null }
 	| { type: "SET_SETTINGS_READY"; payload: boolean }
 	| { type: "SET_TOKEN_EXPIRED"; payload: boolean }
 	| { type: "SET_ACCOUNT_STATUS"; payload: AccountStatus };
@@ -224,7 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				appLog.error("[Auth] checkAuth failed", appError ?? error);
 				dispatch({
 					type: "SET_ERROR",
-					payload: appError?.prettyMessage || "Failed to check auth status",
+					payload: { message: appError?.prettyMessage || "Failed to check auth status" },
 				});
 			}
 		} finally {
@@ -279,20 +292,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				if (error.reason !== "cancelled") {
 					const message =
 						CAPTCHA_SIGN_IN_MESSAGES[error.reason] ?? "Captcha verification failed. Please try again.";
-					dispatch({ type: "SET_ERROR", payload: message });
-					toast.error(message);
+					dispatch({ type: "SET_ERROR", payload: { message } });
 				}
 				throw error;
 			}
 			const appError = asAppError(error);
 			const message = describeLoginError(
 				appError,
-				"Login failed",
+				"Sign-in failed. Please try again.",
 				"Invalid email or password. Please check your credentials and try again.",
 			);
 			appLog.error("[Auth] login failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
-			toast.error(message);
 			throw error;
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
@@ -319,12 +330,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const appError = asAppError(error);
 			const message = describeLoginError(
 				appError,
-				"Google login failed",
+				"Google sign-in failed. Please try again.",
 				"This Google token is invalid or has expired. Please get a new one and try again.",
 			);
 			appLog.error("[Auth] loginWithGoogle failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
-			toast.error(message);
 			throw error;
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
@@ -354,10 +364,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				appLog.info("[Auth] loginWithGoogleWindow: canceled");
 				throw error;
 			}
-			const message = describeLoginError(appError, "Google login failed", "Google login failed. Please try again.");
+			const message = describeLoginError(appError, "Google sign-in failed. Please try again.", "Google sign-in failed. Please try again.");
 			appLog.error("[Auth] loginWithGoogleWindow failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
-			toast.error(message);
 			throw error;
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
@@ -387,15 +396,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				appLog.info("[Auth] loginWithFacebook: canceled");
 				throw error;
 			}
-			const message =
+			const message: AuthError =
 				appError?.kind === "Auth" && appError.message === FACEBOOK_HANDOFF_REFUSED
-					? "Facebook tried to continue in another app. Please sign in on the Facebook page instead."
+					? { message: "Facebook tried to continue in another app. Please sign in on the Facebook page instead." }
 					: appError?.kind === "Auth" && appError.message === FACEBOOK_DIALOG_ERROR
-						? "Facebook refused the sign-in. Please try again later."
-						: describeLoginError(appError, "Facebook login failed", "Facebook login failed. Please try again.");
+						? { message: "Facebook refused the sign-in. Please try again later." }
+						: describeLoginError(appError, "Facebook sign-in failed. Please try again.", "Facebook sign-in failed. Please try again.");
 			appLog.error("[Auth] loginWithFacebook failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
-			toast.error(message);
 			throw error;
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
@@ -424,17 +432,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				appLog.warn("[Auth] signUp: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
 				// A missing helper is answered by SignUpPage's install card instead.
 				if (error.reason !== "cancelled" && error.reason !== "addonUnavailable") {
-					const message = "Captcha verification failed. Please try again.";
-					dispatch({ type: "SET_ERROR", payload: message });
-					toast.error(message);
+					dispatch({ type: "SET_ERROR", payload: { message: "Captcha verification failed. Please try again." } });
 				}
 				throw error;
 			}
 			const appError = asAppError(error);
-			const message = appError?.prettyMessage || "Sign up failed";
+			const message = describeLoginError(appError, "Sign-up failed. Please try again.", "Sign-up failed. Please try again.");
 			appLog.error("[Auth] signUp failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
-			toast.error(message);
 			throw error;
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
@@ -507,7 +512,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const appError = asAppError(error);
 			const message = appError?.prettyMessage || "Failed to switch account";
 			appLog.error("[Auth] switchAccount failed", { kind: appError?.kind, message });
-			dispatch({ type: "SET_ERROR", payload: message });
+			dispatch({ type: "SET_ERROR", payload: { message } });
 			toast.error(message);
 			throw error;
 		} finally {
@@ -794,6 +799,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	}, [state.userId, state.isLoading]);
 
+	const clearError = useCallback(() => dispatch({ type: "SET_ERROR", payload: null }), []);
+
 	const value: AuthContextType = {
 		...state,
 		login,
@@ -807,6 +814,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		savedAccounts,
 		switchAccount,
 		removeSavedAccount,
+		clearError,
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

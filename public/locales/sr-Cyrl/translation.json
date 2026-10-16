@@ -1128,7 +1128,8 @@
             "email": "Е-пошта",
             "password": "Лозинка",
             "show_password": "Прикажи лозинку",
-            "hide_password": "Сакриј лозинку"
+            "hide_password": "Сакриј лозинку",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Пријава",

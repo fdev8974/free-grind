@@ -1126,7 +1126,8 @@
             "email": "Correo",
             "password": "Contraseña",
             "show_password": "Mostrar contraseña",
-            "hide_password": "Ocultar contraseña"
+            "hide_password": "Ocultar contraseña",
+            "error_details": ""
         },
         "sign_in": {
             "title": "Iniciar sesión",
