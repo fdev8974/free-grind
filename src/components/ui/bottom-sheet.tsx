@@ -5,6 +5,10 @@ const BottomSheetContext = createContext<() => void>(() => {});
 // Open sheets in mount order, so Escape only closes the topmost one when a
 // sheet opens another on top of itself.
 const openSheets: object[] = [];
+
+// Each sheet tags its own history entry, so with sheets stacked a back press
+// that lands on the lower sheet's entry still closes the upper one.
+let nextSheetHistoryId = 1;
 export const useBottomSheetClose = () => useContext(BottomSheetContext);
 
 interface SheetCloseProps {
@@ -58,6 +62,7 @@ export function BottomSheet({
 	const closingRef = useRef(false);
 	const backAlreadyDoneRef = useRef(false);
 	const didPushHistoryRef = useRef(false);
+	const historyIdRef = useRef<number | null>(null);
 	const animateCloseRef = useRef<() => void>(() => {});
 
 	// useEffect fires after browser has painted — double RAF ensures initial
@@ -88,12 +93,16 @@ export function BottomSheet({
 	useEffect(() => { animateCloseRef.current = animateClose; }, [animateClose]);
 
 	useEffect(() => {
+		// Allocated once per sheet (not per effect run), so a StrictMode re-run
+		// still matches the entry pushed by the first run.
+		historyIdRef.current ??= nextSheetHistoryId++;
+		const historyId = historyIdRef.current;
 		if (!didPushHistoryRef.current) {
 			didPushHistoryRef.current = true;
-			history.pushState({ bottomSheet: true }, "");
+			history.pushState({ bottomSheet: true, bottomSheetId: historyId }, "");
 		}
 		const onPopState = () => {
-			if (history.state?.bottomSheet) return;
+			if (history.state?.bottomSheetId === historyId) return;
 			if (closingRef.current) return;
 			backAlreadyDoneRef.current = true;
 			animateCloseRef.current();

@@ -1,5 +1,6 @@
-import { Bookmark, Check, Compass, Home, Loader2, MapPin, Navigation, Search, X } from "lucide-react";
+import { Bookmark, Check, Compass, Home, Loader2, MapPin, Navigation, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import z from "zod";
@@ -351,8 +352,8 @@ function LocationSheetContent({
 		}
 	};
 
-	// Bookmark button in the footer: removes the pinned spot if it's already
-	// saved, otherwise opens the naming field to save it.
+	// Bookmark/trash button in the footer: removes the pinned spot if it's
+	// already saved, otherwise opens the naming field to save it.
 	const handleToggleBookmark = () => {
 		if (pinnedSavedLocation) {
 			void deleteSavedLocation(pinnedSavedLocation.id).then(setSavedLocations);
@@ -649,10 +650,12 @@ function LocationSheetContent({
 					disabled={!selectedLocation}
 					title={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
 					aria-label={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
-					style={pinnedSavedLocation || isNamingLocation ? { color: tabColor } : undefined}
-					className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
+					style={isNamingLocation ? { color: tabColor } : undefined}
+					className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] transition disabled:opacity-50 ${
+						pinnedSavedLocation ? "hover:bg-red-500/10 hover:text-red-400" : "hover:text-[var(--text)]"
+					}`}
 				>
-					<Bookmark className={`h-4 w-4 ${pinnedSavedLocation ? "fill-current" : ""}`} />
+					{pinnedSavedLocation ? <Trash2 className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
 				</button>
 				<button
 					type="button"
@@ -674,9 +677,13 @@ function LocationSheetContent({
 				</button>
 			</div>
 
-			{isVisitingModeOpen && (
-				<VisitingModeSheet isDesktop={isDesktop} onClose={() => setIsVisitingModeOpen(false)} />
-			)}
+			{/* Portaled out: this sheet's transformed panel would otherwise become
+			    the containing block for the nested sheet's position: fixed. */}
+			{isVisitingModeOpen &&
+				createPortal(
+					<VisitingModeSheet isDesktop={isDesktop} onClose={() => setIsVisitingModeOpen(false)} />,
+					document.body,
+				)}
 		</>
 	);
 }
