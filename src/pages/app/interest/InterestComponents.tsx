@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, memo, type ComponentType } from "react";
-import { Ban, History, MoveHorizontal, Zap, Check, RefreshCw, Star } from "lucide-react";
+import { Ban, History, MoveHorizontal, Check, RefreshCw, Star } from "lucide-react";
 import { ClockFilled, EyeFilled, HomeFilled, LockFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { getThumbImageUrl } from "../../../utils/media";
@@ -245,7 +245,7 @@ export const InterestRow = memo(function InterestRow({
 						)}
 						{item.rightNow === "NOT_HOSTING" && (
 							<span title={t("right_now.not_hosting", { defaultValue: "Right Now" })}>
-								<Zap className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
+								<RightNowIcon className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 							</span>
 						)}
 					</div>

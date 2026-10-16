@@ -1,5 +1,6 @@
-import { Archive, BellOff, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2, Zap } from "lucide-react";
+import { Archive, BellOff, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2 } from "lucide-react";
 import { BellOffFilled, EyeOffFilled, HomeFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
+import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -632,7 +633,7 @@ function ChatConversationRow({
 								)}
 								{conversation.data.rightNow === "NOT_HOSTING" && (
 									<span title={t("right_now.not_hosting", { defaultValue: "Right Now" })}>
-										<Zap className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
+										<RightNowIcon className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 									</span>
 								)}
 								{readReceiptsOverridden && (readReceiptsHidden ? (

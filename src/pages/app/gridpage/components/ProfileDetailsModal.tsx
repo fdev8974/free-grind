@@ -1,5 +1,6 @@
-import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X, Zap } from "lucide-react";
+import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
 import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled } from "../../../../components/icons/FilledIcons";
+import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
@@ -1001,7 +1002,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 						className="inline-flex items-center gap-1 rounded-full bg-black/65 px-3 py-1 text-xs font-semibold ring-1 ring-white/25"
 						style={{ color: "var(--right-now)" }}
 					>
-						<Zap className="h-3.5 w-3.5" />
+						<RightNowIcon className="h-3.5 w-3.5" />
 						<span>{t("profile_details.right_now")}</span>
 					</p>
 				);
@@ -1803,7 +1804,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 													className="flex w-1.5 shrink-0 items-center justify-center overflow-visible transition-[height] duration-300 ease-out"
 													style={{ height: index === mobileCarouselPhotoIndex ? "12px" : "6px" }}
 												>
-													<Zap
+													<RightNowIcon
 														className="h-3 w-3 shrink-0 scale-[0.55] transition-colors duration-150 ease-out"
 														style={{ color: index === mobileCarouselPhotoIndex ? "var(--right-now)" : "rgba(255,255,255,0.4)" }}
 														fill="currentColor"
@@ -2205,7 +2206,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 													className="flex w-2 shrink-0 items-center justify-center overflow-visible transition-[height] duration-300 ease-out"
 													style={{ height: index === mobileCarouselPhotoIndex ? "16px" : "8px" }}
 												>
-													<Zap
+													<RightNowIcon
 														className="h-4 w-4 shrink-0 scale-[0.55] transition-colors duration-150 ease-out"
 														style={{ color: index === mobileCarouselPhotoIndex ? "var(--right-now)" : "rgba(255,255,255,0.4)" }}
 														fill="currentColor"
