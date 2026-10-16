@@ -2318,12 +2318,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									<div className="flex-1" />
 									{!isDesktop && showRecordCircle && (
 									<span
-										className="text-xs text-[var(--text-muted)] shrink-0 select-none"
+										className="inline-flex items-center gap-0.5 text-xs text-[var(--text-muted)] shrink-0 select-none"
 										style={{
 											transform: `translateX(${recordDragX * 0.4}px)`,
 											opacity: 1 - dragProgress * 1.5,
 										}}
 									>
+										<ChevronLeft className="h-4 w-4 shrink-0" />
 										{t("chat.cancel_recording", { defaultValue: "Slide left to cancel" })}
 									</span>
 								)}
