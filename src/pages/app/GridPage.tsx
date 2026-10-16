@@ -1628,23 +1628,30 @@ export function GridPage() {
 										title={t("browse_page.sort")}
 										aria-label={t("browse_page.sort")}
 										className={cn(
-											"glass-pill inline-flex shrink-0 items-center gap-1.5 py-2 text-sm font-bold transition-all active:scale-95",
-											isDefaultSort ? "px-3" : "px-4",
+											"glass-pill inline-flex shrink-0 items-center gap-1.5 text-sm font-bold transition-all active:scale-95",
+											// Icon-only keeps the text line height so it matches the label pills.
+											isDefaultSort ? "justify-center px-[11px] py-2" : "px-4 py-2",
 											exploreLocation
 												? "text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
 												: "text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
 										)}
 										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
 									>
-										<ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+										<span className="flex h-5 items-center">
+											<ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+										</span>
 										{!isDefaultSort && (sortOptions.find((option) => option.value === sortBy)?.label ?? sortOptions[0].label)}
 									</button>
 
 									<button
 										type="button"
 										onClick={() => setIsFiltersOpen(true)}
+										title={t("right_now.filters")}
+										aria-label={t("right_now.filters")}
 										className={cn(
-											"inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all active:scale-95",
+											"inline-flex shrink-0 items-center justify-center gap-1.5 py-2 text-sm font-bold transition-all active:scale-95",
+											// Icon-only keeps the text line height so it matches the label pills.
+											hasActiveBrowseFilters ? "px-3" : "px-[11px]",
 											hasActiveBrowseFilters
 												? exploreLocation
 													? "rounded-full border border-[var(--explore)] bg-[var(--explore)] text-white shadow-lg shadow-[var(--explore)]/40"
@@ -1659,8 +1666,9 @@ export function GridPage() {
 												: undefined
 										}
 									>
-										<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
-										{t("right_now.filters")}
+										<span className="flex h-5 items-center">
+											<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
+										</span>
 										{hasActiveBrowseFilters ? (
 											<span
 												className={cn(
