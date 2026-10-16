@@ -2193,7 +2193,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-1 py-1.5 pl-1.5 pr-1 ${!isDesktop ? "min-h-[46px] rounded-[1.25rem] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
+							<div className={`mb-2 flex items-center gap-1 py-1.5 pl-1.5 pr-1 ${!isDesktop ? "min-h-[50px] rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "min-h-[42px] rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
 								<div className="flex-1 min-w-0">
 									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} />
 								</div>
