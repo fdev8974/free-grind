@@ -436,26 +436,6 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 						</div>
 					) : (
 						<>
-							{isEditMode && (
-								<SheetSection title={t("right_now.visibility")}>
-									<div className={`overflow-hidden rounded-2xl ${GLASS_FIELD}`}>
-										<ToggleRow
-											icon={<RightNowIcon className="h-5 w-5" />}
-											iconClass={cn(
-												"flex h-10 w-10 items-center justify-center transition-colors",
-												isHidden ? "bg-[var(--surface)] text-[var(--text-muted)]" : "bg-[var(--right-now)] text-white"
-											)}
-											label={isHidden ? t("right_now.status_hidden") : t("right_now.status_visible")}
-											checked={!isHidden}
-											onChange={(checked) => setIsHidden(!checked)}
-											dense
-											activeColor="var(--right-now)"
-											activeThumbColor="#fff"
-										/>
-									</div>
-								</SheetSection>
-							)}
-
 							<SheetSection title={t("right_now.section_message", { defaultValue: "Message" })}>
 								<div className="relative">
 									<textarea
@@ -532,7 +512,23 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							</SheetSection>
 
 							<SheetSection title={t("right_now.section_options", { defaultValue: "Options" })}>
-								<div className={`overflow-hidden rounded-2xl ${GLASS_FIELD}`}>
+								<div className={`divide-y divide-[color-mix(in_srgb,var(--border)_60%,transparent)] overflow-hidden rounded-2xl ${GLASS_FIELD}`}>
+									{isEditMode && (
+										<ToggleRow
+											icon={<RightNowIcon className="h-5 w-5" />}
+											iconClass={cn(
+												"flex h-10 w-10 items-center justify-center transition-colors",
+												isHidden ? "bg-[var(--surface)] text-[var(--text-muted)]" : "bg-[var(--right-now)] text-white"
+											)}
+											label={t("right_now.visibility")}
+											description={isHidden ? t("right_now.status_hidden") : t("right_now.status_visible")}
+											checked={!isHidden}
+											onChange={(checked) => setIsHidden(!checked)}
+											dense
+											activeColor="var(--right-now)"
+											activeThumbColor="#fff"
+										/>
+									)}
 									<ToggleRow
 										icon={<HomeFilled className="h-5 w-5" />}
 										iconClass={cn(
