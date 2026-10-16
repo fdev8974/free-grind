@@ -73,6 +73,25 @@ import { hideProfile as hideProfileLocally, unhideProfile as unhideProfileLocall
 import { usePresence } from "../../hooks/usePresence";
 
 const EXPLORE_LOCATION_STORAGE_KEY = "grid_explore_location_v1";
+
+// Explore is per profile (each has its own real location), so the stored
+// explore location is keyed by account.
+function exploreLocationStorageKey(userId: number | null | undefined): string {
+	return `${EXPLORE_LOCATION_STORAGE_KEY}:${userId ?? "anonymous"}`;
+}
+
+function readStoredExploreLocation(userId: number | null | undefined): ExploreLocation {
+	if (typeof window === "undefined") return null;
+	try {
+		// Pre-per-profile builds stored one app-wide entry; drop it so it can't
+		// show up for whichever profile happens to be active.
+		sessionStorage.removeItem(EXPLORE_LOCATION_STORAGE_KEY);
+		const raw = sessionStorage.getItem(exploreLocationStorageKey(userId));
+		return raw ? (JSON.parse(raw) as ExploreLocation) : null;
+	} catch {
+		return null;
+	}
+}
 // The local displayname filter ("Lokale Filter" > nicknameFilter) matches
 // only against already-loaded cards, so a narrow/rare name would otherwise
 // keep auto-pagination running indefinitely trying to find more matches.
@@ -139,24 +158,24 @@ export function GridPage() {
 	// without touching the real geohash (preferences.geohash / nearbyGeoHash).
 	// Kept out of PreferencesContext and out of localStorage on purpose —
 	// this is meant to be temporary, so it only survives sessionStorage
-	// (same tab, until the app fully restarts), not a real preference.
-	const [exploreLocation, setExploreLocationRaw] = useState<ExploreLocation>(() => {
-		if (typeof window === "undefined") return null;
-		try {
-			const raw = sessionStorage.getItem(EXPLORE_LOCATION_STORAGE_KEY);
-			return raw ? (JSON.parse(raw) as ExploreLocation) : null;
-		} catch {
-			return null;
-		}
-	});
+	// (same tab, until the app fully restarts), not a real preference. Stored
+	// per profile, and swapped when the active account changes.
+	const [exploreLocation, setExploreLocationRaw] = useState<ExploreLocation>(() => readStoredExploreLocation(userId));
+	const exploreUserIdRef = useRef(userId);
+	useEffect(() => {
+		if (exploreUserIdRef.current === userId) return;
+		exploreUserIdRef.current = userId;
+		setExploreLocationRaw(readStoredExploreLocation(userId));
+	}, [userId]);
 	const setExploreLocation = useCallback((next: ExploreLocation) => {
 		setExploreLocationRaw(next);
 		if (typeof window === "undefined") return;
 		try {
+			const key = exploreLocationStorageKey(exploreUserIdRef.current);
 			if (next) {
-				sessionStorage.setItem(EXPLORE_LOCATION_STORAGE_KEY, JSON.stringify(next));
+				sessionStorage.setItem(key, JSON.stringify(next));
 			} else {
-				sessionStorage.removeItem(EXPLORE_LOCATION_STORAGE_KEY);
+				sessionStorage.removeItem(key);
 			}
 		} catch {
 			// ignore — worst case explore resets on next load

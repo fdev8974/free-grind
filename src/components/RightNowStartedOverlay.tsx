@@ -67,8 +67,8 @@ export function RightNowStartedOverlay() {
 			>
 				<div className="relative flex h-36 w-36 items-center justify-center">
 					<div className="right-now-started-halo absolute inset-0 rounded-full animate-sin-mode-shimmer motion-reduce:animate-none" />
-					<span className="relative flex h-24 w-24 animate-sin-mode-in items-center justify-center rounded-full bg-[var(--right-now)] text-white shadow-[0_0_40px_var(--right-now)]">
-						<RightNowIcon className="h-12 w-12" />
+					<span className="relative animate-sin-mode-in text-white drop-shadow-[0_0_18px_var(--right-now)]">
+						<RightNowIcon className="h-20 w-20" />
 					</span>
 				</div>
 
