@@ -64,7 +64,8 @@ import { PromptDialog } from "../../components/ui/prompt-dialog";
 import { cn } from "../../utils/cn";
 import { DEMO_CARDS, DEMO_CHAT_STATUS, SHOW_DEMO_DATA } from "./gridpage/demoData";
 import { BrowseFiltersOverlay } from "./BrowseFiltersOverlay";
-import { LocationOverlay, type ExploreLocation, EXPLORE_COLOR } from "./LocationOverlay";
+import { LocationOverlay, type ExploreLocation } from "./LocationOverlay";
+import { useIsRightNowLive } from "../../hooks/useIsRightNowLive";
 import type { BrowseFiltersDraft } from "./browse-filters-storage";
 import { SKIP_BLOCK_CONFIRM_KEY, isBlockConfirmSkipped } from "../../utils/blockConfirm";
 import * as chatDb from "../../services/chatDb";
@@ -76,6 +77,14 @@ const EXPLORE_LOCATION_STORAGE_KEY = "grid_explore_location_v1";
 // only against already-loaded cards, so a narrow/rare name would otherwise
 // keep auto-pagination running indefinitely trying to find more matches.
 const NICKNAME_FILTER_MAX_PAGES = 7;
+
+// Overrides for the grid while a public Right Now session is live (see GridPage's root).
+const RIGHT_NOW_LIVE_VARS = {
+	"--accent": "var(--right-now)",
+	"--accent-contrast": "#fff",
+	"--accent-readable": "var(--right-now)",
+	"--explore": "var(--right-now)",
+} as React.CSSProperties;
 
 // Guards the initial auto-location refresh below to once per actual app
 // launch. This has to be a module-level variable, not sessionStorage — the
@@ -158,6 +167,7 @@ export function GridPage() {
 	// way isRightNow does for --right-now. Reset on unmount so navigating away
 	// from Grid reverts the accent even though exploreLocation itself persists.
 	const { setIsExploreActive } = useExploreMode();
+	const isRightNowLive = useIsRightNowLive();
 	useEffect(() => {
 		setIsExploreActive(exploreLocation !== null);
 		return () => setIsExploreActive(false);
@@ -1431,7 +1441,9 @@ export function GridPage() {
 	const isIncognitoActive = getIncognitoMode();
 
 	return (
-		<>
+		// While a public Right Now session is live, the grid takes on Right Now
+		// colors over everything — the user's accent and explore's blue alike.
+		<div className="contents" style={isRightNowLive ? RIGHT_NOW_LIVE_VARS : undefined}>
 			{showDebugInfo && debugLoadSource && !SHOW_DEMO_DATA && (
 				<div
 					className={cn(
@@ -1473,14 +1485,14 @@ export function GridPage() {
 				refreshingLabel={t("browse_page.refreshing_feed")}
 			>
 				<header ref={headerRef} className="relative z-20 flex shrink-0 flex-col pb-2 pointer-events-none">
-					<PageHeaderBackground color={exploreLocation ? EXPLORE_COLOR : "var(--accent)"} />
+					<PageHeaderBackground color={exploreLocation ? "var(--explore)" : "var(--accent)"} />
 					<div className="pointer-events-auto px-[var(--app-px)] sm:px-4">
 					<div>
 						<div>
 							<div className="mb-1 flex items-center gap-2">
 								<div
 									className="glass-pill inline-flex h-12 w-full items-center overflow-hidden transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_26%,transparent)] has-[button:active]:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_38%,transparent)]"
-									style={{ "--pill-color": exploreLocation ? EXPLORE_COLOR : "var(--accent)" } as React.CSSProperties}
+									style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
 								>
 									<button
 										type="button"
@@ -1490,8 +1502,8 @@ export function GridPage() {
 										<div
 											className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
 											style={{
-												backgroundColor: exploreLocation ? EXPLORE_COLOR : "var(--accent)",
-												boxShadow: `0 1px 8px 0 ${exploreLocation ? EXPLORE_COLOR : "var(--accent)"}4d`,
+												backgroundColor: exploreLocation ? "var(--explore)" : "var(--accent)",
+												boxShadow: `0 1px 8px 0 color-mix(in srgb, ${exploreLocation ? "var(--explore)" : "var(--accent)"} 30%, transparent)`,
 											}}
 										>
 											{exploreLocation ? (
@@ -2089,6 +2101,6 @@ export function GridPage() {
 					</div>
 				</form>
 			</dialog>
-		</>
+		</div>
 	);
 }

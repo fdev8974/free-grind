@@ -519,6 +519,7 @@ export function RightNowPage() {
 			void setPreferences({
 				activeRightNowId: null,
 				activeRightNowExpiresAt: null,
+				activeRightNowHidden: false,
 			});
 		}
 	}, [isSessionActive, activeRightNowId, setPreferences]);

@@ -170,6 +170,8 @@ const preferencesSchema = z.object({
 	rightNowTestMode: z.boolean().default(false),
 	activeRightNowId: z.number().nullable().optional(),
 	activeRightNowExpiresAt: z.number().nullable().optional(),
+	/** Active session paused ("hidden") — the grid only takes on Right Now colors while it's public. */
+	activeRightNowHidden: z.boolean().optional(),
 	rightNowRemaining: z.number().default(0),
 	revealEffectEnabled: z.boolean().default(true),
 	revealEffectStrength: z.enum(["subtle", "pronounced"]).default("subtle"),
@@ -219,6 +221,7 @@ type PreferencesAction =
 	| { type: "SET_AUTO_LOCATION"; payload: boolean }
 	| { type: "SET_RIGHT_NOW_TEST_MODE"; payload: boolean }
 	| { type: "SET_RIGHT_NOW_REMAINING"; payload: number }
+	| { type: "SET_RIGHT_NOW_HIDDEN"; payload: boolean }
 	| { type: "SET_REVEAL_EFFECT_ENABLED"; payload: boolean }
 	| { type: "SET_REVEAL_EFFECT_STRENGTH"; payload: RevealStrength }
 	| { type: "SET_SHOW_ALBUM_SENSITIVE_CONTENT_WARNING"; payload: boolean }
@@ -273,6 +276,8 @@ function preferencesReducer(
 			return { ...state, rightNowTestMode: action.payload };
 		case "SET_RIGHT_NOW_REMAINING":
 			return { ...state, rightNowRemaining: action.payload };
+		case "SET_RIGHT_NOW_HIDDEN":
+			return { ...state, activeRightNowHidden: action.payload };
 		case "SET_REVEAL_EFFECT_ENABLED":
 			return { ...state, revealEffectEnabled: action.payload };
 		case "SET_REVEAL_EFFECT_STRENGTH":
@@ -361,6 +366,42 @@ interface StoredLocationPrefs {
 	useAutoLocation: boolean;
 }
 
+// Per-profile Right Now session — same chatDb-backed store as location, so a
+// session never carries over to another account after switching. (The weekly
+// sessions left stay in the shared blob: EntitlementsBridge refetches them from
+// the server for every account anyway.)
+const RIGHT_NOW_SETTINGS_KEY = "rightNowPreferences";
+
+interface StoredRightNowPrefs {
+	activeRightNowId: number | null;
+	activeRightNowExpiresAt: number | null;
+	activeRightNowHidden?: boolean;
+}
+
+/** Older builds kept the Right Now state in the shared localStorage blob.
+ * Handed to whichever profile loads first without its own entry, then
+ * removed from the blob so no other profile inherits it. */
+function takeLegacyRightNowPrefs(): StoredRightNowPrefs | null {
+	try {
+		const stored = localStorage.getItem(PREFERENCES_STORAGE_KEY);
+		if (!stored) return null;
+		const decoded = JSON.parse(stored) as Record<string, unknown>;
+		if (!("activeRightNowId" in decoded) && !("activeRightNowExpiresAt" in decoded)) {
+			return null;
+		}
+		const legacy: StoredRightNowPrefs = {
+			activeRightNowId: typeof decoded.activeRightNowId === "number" ? decoded.activeRightNowId : null,
+			activeRightNowExpiresAt: typeof decoded.activeRightNowExpiresAt === "number" ? decoded.activeRightNowExpiresAt : null,
+		};
+		delete decoded.activeRightNowId;
+		delete decoded.activeRightNowExpiresAt;
+		localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(decoded));
+		return legacy;
+	} catch {
+		return null;
+	}
+}
+
 export function PreferencesProvider({ children }: { children: ReactNode }) {
 	const [state, dispatch] = useReducer(preferencesReducer, {
 		geohash: null,
@@ -381,6 +422,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		rightNowTestMode: false,
 		activeRightNowId: null,
 		activeRightNowExpiresAt: null,
+		activeRightNowHidden: false,
 		rightNowRemaining: 0,
 		revealEffectEnabled: true,
 		revealEffectStrength: "subtle",
@@ -429,7 +471,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_SHOW_DEBUG_INFO", payload: parsed.showDebugInfo });
 					dispatch({ type: "SET_TEST_REMINDER_DISABLED", payload: parsed.testReminderDisabled });
 					dispatch({ type: "SET_RIGHT_NOW_TEST_MODE", payload: parsed.rightNowTestMode });
-					dispatch({ type: "SET_RIGHT_NOW_REMAINING", payload: parsed.rightNowRemaining });
 					dispatch({ type: "SET_REVEAL_EFFECT_ENABLED", payload: parsed.revealEffectEnabled });
 					dispatch({ type: "SET_REVEAL_EFFECT_STRENGTH", payload: parsed.revealEffectStrength });
 					dispatch({ type: "SET_SHOW_ALBUM_SENSITIVE_CONTENT_WARNING", payload: parsed.showAlbumSensitiveContentWarning });
@@ -437,6 +478,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_SPLIT_DRAWER_CATEGORIES", payload: parsed.splitDrawerCategories });
 					dispatch({ type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY", payload: parsed.sortDrawerMediaByFrequency });
 					dispatch({ type: "SET_KEEP_SCREEN_ON", payload: parsed.keepScreenOn });
+					dispatch({ type: "SET_RIGHT_NOW_REMAINING", payload: parsed.rightNowRemaining });
 					dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: parsed.autoFocusLocationSearch });
 					dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: parsed.autoFocusRightNowText });
 					dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: parsed.chatRowSwipeActions });
@@ -444,13 +486,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: parsed.showGridTapStatus });
 					dispatch({ type: "SET_DEFAULT_EXPIRING_PHOTOS", payload: parsed.defaultExpiringPhotos });
 					dispatch({ type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE", payload: parsed.defaultAlbumExpirationType });
-					dispatch({
-						type: "SET_RIGHT_NOW_STATUS",
-						payload: {
-							id: parsed.activeRightNowId ?? null,
-							expiresAt: parsed.activeRightNowExpiresAt ?? null,
-						},
-					});
 					dispatch({
 						type: "SET_ACCENT",
 						payload: { color: parsed.accentColor, contrast: parsed.accentContrast },
@@ -501,6 +536,41 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		};
 	}, [userId, settingsReady]);
 
+	// Per-profile Right Now session: cleared the moment the account changes (so
+	// the previous profile's session never shows for the new one), then loaded
+	// from the new account's chatDb once it's ready.
+	useEffect(() => {
+		dispatch({ type: "SET_RIGHT_NOW_STATUS", payload: { id: null, expiresAt: null } });
+		dispatch({ type: "SET_RIGHT_NOW_HIDDEN", payload: false });
+	}, [userId]);
+	useEffect(() => {
+		if (!settingsReady) {
+			return;
+		}
+		let cancelled = false;
+		void (async () => {
+			let stored = await getSetting<Partial<StoredRightNowPrefs>>(RIGHT_NOW_SETTINGS_KEY);
+			if (!stored) {
+				const legacy = takeLegacyRightNowPrefs();
+				if (legacy) {
+					await setSetting(RIGHT_NOW_SETTINGS_KEY, legacy);
+					stored = legacy;
+				}
+			}
+			if (cancelled) {
+				return;
+			}
+			dispatch({
+				type: "SET_RIGHT_NOW_STATUS",
+				payload: { id: stored?.activeRightNowId ?? null, expiresAt: stored?.activeRightNowExpiresAt ?? null },
+			});
+			dispatch({ type: "SET_RIGHT_NOW_HIDDEN", payload: stored?.activeRightNowHidden ?? false });
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [userId, settingsReady]);
+
 	const stateRef = useRef(state);
 	stateRef.current = state;
 
@@ -542,6 +612,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				defaultAlbumExpirationType: currentState.defaultAlbumExpirationType,
 				activeRightNowId: currentState.activeRightNowId ?? null,
 				activeRightNowExpiresAt: currentState.activeRightNowExpiresAt ?? null,
+				activeRightNowHidden: currentState.activeRightNowHidden ?? false,
 				...newValues,
 			};
 
@@ -598,6 +669,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.rightNowRemaining !== undefined) {
 				dispatch({ type: "SET_RIGHT_NOW_REMAINING", payload: newValues.rightNowRemaining });
+			}
+			if (newValues.activeRightNowHidden !== undefined) {
+				dispatch({ type: "SET_RIGHT_NOW_HIDDEN", payload: newValues.activeRightNowHidden });
 			}
 			if (newValues.revealEffectEnabled !== undefined) {
 				dispatch({ type: "SET_REVEAL_EFFECT_ENABLED", payload: newValues.revealEffectEnabled });
@@ -692,6 +766,19 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				} satisfies StoredLocationPrefs);
 			}
 
+			// The Right Now session is per-profile too (see RIGHT_NOW_SETTINGS_KEY).
+			if (
+				newValues.activeRightNowId !== undefined ||
+				newValues.activeRightNowExpiresAt !== undefined ||
+				newValues.activeRightNowHidden !== undefined
+			) {
+				await setSetting(RIGHT_NOW_SETTINGS_KEY, {
+					activeRightNowId: preferences.activeRightNowId ?? null,
+					activeRightNowExpiresAt: preferences.activeRightNowExpiresAt ?? null,
+					activeRightNowHidden: preferences.activeRightNowHidden ?? false,
+				} satisfies StoredRightNowPrefs);
+			}
+
 			// Persist the rest to localStorage (geohash/locationName/useAutoLocation excluded, see above)
 			localStorage.setItem(
 				PREFERENCES_STORAGE_KEY,
@@ -709,7 +796,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					showDebugInfo: preferences.showDebugInfo,
 					testReminderDisabled: preferences.testReminderDisabled,
 					rightNowTestMode: preferences.rightNowTestMode,
-					rightNowRemaining: preferences.rightNowRemaining,
 					revealEffectEnabled: preferences.revealEffectEnabled,
 					revealEffectStrength: preferences.revealEffectStrength,
 					showAlbumSensitiveContentWarning: preferences.showAlbumSensitiveContentWarning,
@@ -717,6 +803,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					splitDrawerCategories: preferences.splitDrawerCategories,
 					sortDrawerMediaByFrequency: preferences.sortDrawerMediaByFrequency,
 					keepScreenOn: preferences.keepScreenOn,
+					rightNowRemaining: preferences.rightNowRemaining,
 					autoFocusLocationSearch: preferences.autoFocusLocationSearch,
 					autoFocusRightNowText: preferences.autoFocusRightNowText,
 					chatRowSwipeActions: preferences.chatRowSwipeActions,
@@ -724,8 +811,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					showGridTapStatus: preferences.showGridTapStatus,
 					defaultExpiringPhotos: preferences.defaultExpiringPhotos,
 					defaultAlbumExpirationType: preferences.defaultAlbumExpirationType,
-					activeRightNowId: preferences.activeRightNowId,
-					activeRightNowExpiresAt: preferences.activeRightNowExpiresAt,
 				}),
 			);
 		},
@@ -751,6 +836,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		rightNowTestMode: state.rightNowTestMode,
 		activeRightNowId: state.activeRightNowId,
 		activeRightNowExpiresAt: state.activeRightNowExpiresAt,
+		activeRightNowHidden: state.activeRightNowHidden,
 		rightNowRemaining: state.rightNowRemaining,
 		revealEffectEnabled: state.revealEffectEnabled,
 		revealEffectStrength: state.revealEffectStrength,

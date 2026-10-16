@@ -101,6 +101,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 				setText(post.activeText || "");
 				setIsHosting(post.hosting);
 				setIsHidden(post.postStatus === "HIDDEN");
+				void setPreferences({ activeRightNowHidden: post.postStatus === "HIDDEN" });
 				setShowOnMap(post.shareLocation === "DISTANCE_AND_MAP");
 
 				if (post.media && post.media.length > 0) {
@@ -133,6 +134,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 				void setPreferences({
 					activeRightNowId: null,
 					activeRightNowExpiresAt: null,
+					activeRightNowHidden: false,
 				});
 				toast.error(t("right_now.session_expired"), { id: "right-now-expired" });
 				return;
@@ -246,6 +248,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 				} else {
 					await apiFunctions.updateRightNowPost(activeRightNowId, updatePayload);
 				}
+				await setPreferences({ activeRightNowHidden: isHidden });
 			} else {
 				const createPayload: RightNowCreatePostRequest = {
 					text: text.trim(),
@@ -270,6 +273,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 					await setPreferences({
 						activeRightNowId: id,
 						activeRightNowExpiresAt: expiresAt,
+						activeRightNowHidden: false,
 						rightNowRemaining: Math.max(0, rightNowRemaining - 1),
 					});
 				} else {
@@ -279,6 +283,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 					await setPreferences({
 						activeRightNowId: response.post.id,
 						activeRightNowExpiresAt: expiresAt,
+						activeRightNowHidden: false,
 						rightNowRemaining: Math.max(0, rightNowRemaining - 1),
 					});
 				}
@@ -320,6 +325,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 			await setPreferences({
 				activeRightNowId: null,
 				activeRightNowExpiresAt: null,
+				activeRightNowHidden: false,
 			});
 
 			toast.success(t("right_now.session_ended"), {

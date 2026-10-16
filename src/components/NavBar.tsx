@@ -10,7 +10,7 @@ import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
 import { useExploreMode } from "../contexts/ExploreModeContext";
-import { usePreferences } from "../contexts/PreferencesContext";
+import { useIsRightNowLive } from "../hooks/useIsRightNowLive";
 import {
 	getInterestLastSeen,
 	INTEREST_SEEN_EVENT,
@@ -92,18 +92,8 @@ export function NavBar() {
 	const { data: myProfile } = useMyOwnProfile();
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
-	const { activeRightNowId, activeRightNowExpiresAt } = usePreferences();
-	// Re-rendered at the expiry time so the avatar badge disappears on its own.
-	const [rightNowNow, setRightNowNow] = useState(() => Date.now());
-	useEffect(() => {
-		if (!activeRightNowExpiresAt) return;
-		const remaining = activeRightNowExpiresAt - Date.now();
-		if (remaining <= 0) return;
-		const timer = setTimeout(() => setRightNowNow(Date.now()), Math.min(remaining + 50, 2_147_483_647));
-		return () => clearTimeout(timer);
-	}, [activeRightNowExpiresAt]);
-	const isRightNowSessionActive =
-		!!activeRightNowId && !!activeRightNowExpiresAt && activeRightNowExpiresAt > Math.max(rightNowNow, Date.now());
+	// A live (public) Right Now session takes the grid tab's color over everything, explore included.
+	const isRightNowLive = useIsRightNowLive();
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
 	const [navStyle, setNavStyle] = useState(readNavStyle);
 	useEffect(() => {
@@ -567,13 +557,13 @@ export function NavBar() {
 											? // Mobile app: no filled pill on the full-width bar, highlight via text color only.
 												cn(
 													"data-[state=active]:bg-transparent data-[state=active]:shadow-none",
-													item.value === "right-now"
+													item.value === "right-now" || (item.value === "browse" && isRightNowLive)
 														? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
 														: item.value === "browse" && isExploreActive
 															? "focus-visible:ring-[var(--explore)] data-[state=active]:text-[var(--explore)]"
 															: "focus-visible:ring-[var(--accent)] data-[state=active]:text-[var(--accent)]",
 												)
-											: item.value === "right-now"
+											: item.value === "right-now" || (item.value === "browse" && isRightNowLive)
 												? "focus-visible:ring-[var(--right-now)] data-[state=active]:bg-[var(--right-now)] data-[state=active]:text-white"
 												: item.value === "browse" && isExploreActive
 													? "focus-visible:ring-[var(--explore)] data-[state=active]:bg-[var(--explore)] data-[state=active]:text-white"
@@ -603,22 +593,13 @@ export function NavBar() {
 												)}
 											/>
 										)}
-										{!Icon && isRightNowSessionActive && (
-											// Active Right Now session: small splash badge offset to the avatar's bottom right.
-											<span
-												aria-hidden="true"
-												className="absolute -bottom-1.5 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--right-now)] text-white ring-2 ring-[var(--surface)]"
-											>
-												<RightNowIcon className="h-2.5 w-2.5" />
-											</span>
-										)}
 										{(item.value === "inbox" && inboxUnseen) ||
 										(item.value === "interest" && interestUnseen) ? (
 											<span className="absolute -right-1 -top-1 flex h-2 w-2">
 												<span
 													className={cn(
 														"absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-														activeTab === "right-now"
+														activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
 															? "bg-[var(--right-now)]"
 															: activeTab === "browse" && isExploreActive
 																? "bg-[var(--explore)]"
@@ -628,7 +609,7 @@ export function NavBar() {
 												<span
 													className={cn(
 														"relative inline-block h-2 w-2 rounded-full ring-1 ring-[var(--surface)]",
-														activeTab === "right-now"
+														activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
 															? "bg-[var(--right-now)]"
 															: activeTab === "browse" && isExploreActive
 																? "bg-[var(--explore)]"
