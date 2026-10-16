@@ -396,7 +396,7 @@
     "apply": "Apply",
     "not_specified": "Not specified",
     "sort": {
-      "default": "Default",
+      "default": "Default (Distance)",
       "original": "Original",
       "youngest": "Youngest",
       "oldest": "Oldest",

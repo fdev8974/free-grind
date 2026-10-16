@@ -16,11 +16,10 @@ import {
 	Zap,
 	type LucideIcon,
 } from "lucide-react";
-import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
-import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
+import { BottomSheet, SheetClose, useBottomSheetClose } from "../../components/ui/bottom-sheet";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { cn } from "../../utils/cn";
@@ -66,14 +65,32 @@ interface BrowseFiltersOverlayProps {
 	 * doesn't apply to a browsed-away explore location — hide those two quick
 	 * filters while explore mode is active (mirrors GridPage's own filter row). */
 	isExploreActive?: boolean;
+	isDesktop: boolean;
 }
 
-export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExploreActive = false }: BrowseFiltersOverlayProps) {
+export function BrowseFiltersOverlay({ onClose, isDesktop, ...props }: BrowseFiltersOverlayProps) {
+	return (
+		<BottomSheet
+			onClose={onClose}
+			isDesktop={isDesktop}
+			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			panelClassName="max-h-[92dvh] px-4"
+		>
+			<BrowseFiltersSheetContent {...props} />
+		</BottomSheet>
+	);
+}
+
+function BrowseFiltersSheetContent({
+	initialDraft,
+	onApply,
+	isExploreActive = false,
+}: Omit<BrowseFiltersOverlayProps, "onClose" | "isDesktop">) {
 	const { t, i18n } = useTranslation();
 	const { unitsPreset } = usePreferences();
 	const { data: managedTagCategories } = useManagedTagCategories(i18n.language);
-	const [isClosing, setIsClosing] = useState(false);
-	const isClosingRef = useRef(false);
+	// Closes through the sheet so it animates out and pops its history entry.
+	const handleClose = useBottomSheetClose();
 
 	// Mirrors GridPage's own filter row: while browsing an explore location,
 	// every accent-tinted element in this sheet switches to EXPLORE_COLOR
@@ -99,13 +116,6 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 	const [tags, setTags] = useState<string[]>(normalized.tags);
 	const [tagDraft, setTagDraft] = useState("");
 	const [nicknameFilter, setNicknameFilter] = useState(normalized.nicknameFilter);
-
-	const handleClose = () => {
-		if (isClosingRef.current) return;
-		isClosingRef.current = true;
-		setIsClosing(true);
-		setTimeout(() => onClose(), 280);
-	};
 
 	const isImperialHeight = unitsPreset === "uk" || unitsPreset === "american";
 	const isImperialWeight = unitsPreset === "american";
@@ -346,295 +356,261 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 	);
 
 	return (
-		<div className={`fixed inset-0 z-[55] flex flex-col no-touch-callout isolate ${isClosing ? "pointer-events-none" : ""}`}>
-			<div
-				className={`absolute inset-0 bg-black/45 backdrop-blur-sm ${isClosing ? "animate-backdrop-out" : "animate-backdrop-in"}`}
-				onClick={handleClose}
-			/>
+		<>
+			<div className="mb-3 flex items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">{t("browse_filters.title")}</h3>
+				<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+					<X className="h-4 w-4" />
+				</SheetClose>
+			</div>
 
-			<div
-				role="dialog"
-				aria-modal="true"
-				className={`relative mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-[var(--bg)] shadow-2xl transform-gpu will-change-transform ${
-					isClosing ? "animate-modal-top-out" : "animate-modal-top-in"
-				} md:border-x md:border-[var(--border)]`}
-				onClick={(e) => e.stopPropagation()}
-			>
-				<header className="relative shrink-0 overflow-hidden px-[var(--app-px)] pb-5 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
-					<PageHeaderBackground color={accentColor} />
-					<div className="flex items-center justify-between gap-3">
-						<div className="flex items-center gap-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text)]">
-								<PhosphorSlidersHorizontal weight="fill" className="h-5 w-5" />
-							</div>
-							<h2 className="text-xl font-bold tracking-tight text-[var(--text)]">
-								{t("browse_filters.title")}
-							</h2>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>
+				<div className="space-y-4 pb-2">
+					{renderToggleSection(t("browse_filters.quick_filters"), browseFilterOptions, Zap)}
+
+					<section className="rounded-2xl p-4" style={cardStyle}>
+						{renderSectionHeader(
+							t("browse_filters.age"),
+							Calendar,
+							false,
+							`${ageMin || 18}-${ageMax || 99}${(ageMax ? Number(ageMax) : 99) >= 99 ? "+" : ""}`,
+						)}
+						<RangeSlider
+							label={t("browse_filters.age")}
+							min={18}
+							max={99}
+							minDefault={ageMin ? Number(ageMin) : 18}
+							maxDefault={ageMax ? Number(ageMax) : 99}
+							activeColor={accentColor}
+							hideHeader
+							onChange={(min, max) => {
+								setAgeMin(min === 18 ? "" : String(min));
+								setAgeMax(max === 99 ? "" : String(max));
+							}}
+						/>
+					</section>
+
+					<section className="rounded-2xl p-4" style={cardStyle}>
+						{renderSectionHeader(
+							t("browse_filters.height"),
+							Ruler,
+							false,
+							`${isImperialHeight ? formatInchesAsFeetInches(heightMinDefault) : `${heightMinDefault}${heightRange.unit}`} - ${isImperialHeight ? formatInchesAsFeetInches(heightMaxDefault) : `${heightMaxDefault}${heightRange.unit}`}${heightMaxDefault >= heightRange.max ? "+" : ""}`,
+						)}
+						<RangeSlider
+							label={t("browse_filters.height")}
+							unit={heightRange.unit}
+							formatValue={isImperialHeight ? formatInchesAsFeetInches : undefined}
+							min={heightRange.min}
+							max={heightRange.max}
+							minDefault={heightMinDefault}
+							maxDefault={heightMaxDefault}
+							activeColor={accentColor}
+							hideHeader
+							onChange={(min, max) => {
+								const minCm = isImperialHeight ? Math.round(inchesToCm(min)) : min;
+								const maxCm = isImperialHeight ? Math.round(inchesToCm(max)) : max;
+								setHeightCmMin(min === heightRange.min ? "" : String(minCm));
+								setHeightCmMax(max === heightRange.max ? "" : String(maxCm));
+							}}
+						/>
+					</section>
+
+					<section className="rounded-2xl p-4" style={cardStyle}>
+						{renderSectionHeader(
+							t("browse_filters.weight"),
+							Scale,
+							false,
+							`${weightMinDefault}${weightRange.unit} - ${weightMaxDefault}${weightRange.unit}${weightMaxDefault >= weightRange.max ? "+" : ""}`,
+						)}
+						<RangeSlider
+							label={t("browse_filters.weight")}
+							unit={weightRange.unit}
+							min={weightRange.min}
+							max={weightRange.max}
+							minDefault={weightMinDefault}
+							maxDefault={weightMaxDefault}
+							activeColor={accentColor}
+							hideHeader
+							onChange={(min, max) => {
+								const minGrams = isImperialWeight ? Math.round(poundsToGrams(min)) : Math.round(kgToGrams(min));
+								const maxGrams = isImperialWeight ? Math.round(poundsToGrams(max)) : Math.round(kgToGrams(max));
+								setWeightGramsMin(min === weightRange.min ? "" : String(minGrams));
+								setWeightGramsMax(max === weightRange.max ? "" : String(maxGrams));
+							}}
+						/>
+					</section>
+
+					{renderSection(
+						t("profile_editor.sections.states.position"),
+						sexualPositionFilterOptions,
+						sexualPositions,
+						(value) => toggleMultiSelect(value, setSexualPositions),
+						ArrowUpDown,
+					)}
+					{renderSection(
+						t("profile_editor.sections.states.tribes"),
+						tribeFilterOptions,
+						tribes,
+						(value) => toggleMultiSelect(value, setTribes),
+						Users,
+					)}
+					{renderSection(
+						t("profile_editor.sections.expectations.looking_for"),
+						lookingForFilterOptions,
+						lookingFor,
+						(value) => toggleMultiSelect(value, setLookingFor),
+						Heart,
+					)}
+					{renderSection(
+						t("profile_editor.sections.states.relationship_status"),
+						relationshipFilterOptions,
+						relationshipStatuses,
+						(value) => toggleMultiSelect(value, setRelationshipStatuses),
+						HeartHandshake,
+					)}
+					{renderSection(
+						t("profile_editor.sections.states.body_type"),
+						bodyTypeFilterOptions,
+						bodyTypes,
+						(value) => toggleMultiSelect(value, setBodyTypes),
+						Dumbbell,
+					)}
+					{renderSection(
+						t("profile_editor.sections.expectations.meet_at"),
+						meetAtFilterOptions,
+						meetAt,
+						(value) => toggleMultiSelect(value, setMeetAt),
+						MapPin,
+					)}
+					{renderSection(
+						t("profile_editor.sections.expectations.accept_nsfw"),
+						nsfwFilterOptions,
+						nsfwPics,
+						(value) => toggleMultiSelect(value, setNsfwPics),
+						ShieldAlert,
+					)}
+
+					<section className="rounded-2xl p-4" style={cardStyle}>
+						{renderSectionHeader(t("browse_filters.tags"), TagIcon)}
+						<div className="flex flex-wrap items-center gap-2">
+							<input
+								type="text"
+								placeholder={t("browse_filters.tags_placeholder")}
+								value={tagDraft}
+								onChange={(e) => setTagDraft(e.target.value)}
+								onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+								className="h-9 min-w-40 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)]"
+							/>
+							<button
+								type="button"
+								onClick={() => addTag()}
+								className={cn(
+									"h-9 rounded-lg border border-[var(--border)] px-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
+									isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
+								)}
+							>
+								{t("browse_filters.add")}
+							</button>
 						</div>
-						<button
-							type="button"
-							onClick={handleClose}
-							className="shrink-0 rounded-full bg-[var(--surface-2)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--text)] active:scale-90"
-							aria-label="Close"
-						>
-							<X className="h-5 w-5" />
-						</button>
-					</div>
-				</header>
+						{tagSearchResults.length > 0 && (
+							<div className="mt-2 flex flex-wrap gap-2">
+								{tagSearchResults.map((tag) => (
+									<button
+										key={tag.tagId}
+										type="button"
+										onClick={() => addManagedTag(tag)}
+										className={cn(
+											"rounded-full border bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--text)] transition",
+											isExploreActive
+												? "border-[var(--explore)]/60 hover:bg-[var(--explore)] hover:text-white"
+												: "border-[var(--accent)]/60 hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)]",
+										)}
+									>
+										+ {tag.text}
+									</button>
+								))}
+							</div>
+						)}
+						{tags.length > 0 && (
+							<div className="mt-2 flex flex-wrap gap-2">
+								{tags.map((tag) => (
+									<button
+										key={tag}
+										type="button"
+										onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
+										className={cn(
+											"rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition",
+											isExploreActive
+												? "border-[var(--explore)] bg-[var(--explore)] text-white"
+												: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]",
+										)}
+									>
+										{tagLabel(tag)} <span className="ml-1">×</span>
+									</button>
+								))}
+							</div>
+						)}
+					</section>
 
-				<div className="shrink-0 border-b border-[var(--border)]" />
+					{renderToggleSection(
+						t("browse_filters.local_filters.visiting_title"),
+						localFilterOptions,
+						Compass,
+						true,
+					)}
 
-				<div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-[var(--app-px)]" data-lenis-prevent>
-					<div className="space-y-6 py-6">
-						{renderToggleSection(t("browse_filters.quick_filters"), browseFilterOptions, Zap)}
-
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(
-								t("browse_filters.age"),
-								Calendar,
-								false,
-								`${ageMin || 18}-${ageMax || 99}${(ageMax ? Number(ageMax) : 99) >= 99 ? "+" : ""}`,
-							)}
-							<RangeSlider
-								label={t("browse_filters.age")}
-								min={18}
-								max={99}
-								minDefault={ageMin ? Number(ageMin) : 18}
-								maxDefault={ageMax ? Number(ageMax) : 99}
-								activeColor={accentColor}
-								hideHeader
-								onChange={(min, max) => {
-									setAgeMin(min === 18 ? "" : String(min));
-									setAgeMax(max === 99 ? "" : String(max));
-								}}
+					<section className="rounded-2xl p-4" style={cardStyle}>
+						{renderSectionHeader(t("browse_filters.local_filters.name_title"), Search, true)}
+						<div className="relative">
+							<Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+							<input
+								type="text"
+								value={nicknameFilter}
+								onChange={(e) => setNicknameFilter(e.target.value)}
+								placeholder={t("browse_filters.local_filters.nickname_placeholder")}
+								className={cn(
+									"h-9 w-full rounded-full border border-[var(--border)] bg-[var(--surface)] pl-8 pr-8 text-sm text-[var(--text)] outline-none transition",
+									isExploreActive ? "focus:border-[var(--explore)]" : "focus:border-[var(--accent)]",
+								)}
 							/>
-						</section>
-
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(
-								t("browse_filters.height"),
-								Ruler,
-								false,
-								`${isImperialHeight ? formatInchesAsFeetInches(heightMinDefault) : `${heightMinDefault}${heightRange.unit}`} - ${isImperialHeight ? formatInchesAsFeetInches(heightMaxDefault) : `${heightMaxDefault}${heightRange.unit}`}${heightMaxDefault >= heightRange.max ? "+" : ""}`,
-							)}
-							<RangeSlider
-								label={t("browse_filters.height")}
-								unit={heightRange.unit}
-								formatValue={isImperialHeight ? formatInchesAsFeetInches : undefined}
-								min={heightRange.min}
-								max={heightRange.max}
-								minDefault={heightMinDefault}
-								maxDefault={heightMaxDefault}
-								activeColor={accentColor}
-								hideHeader
-								onChange={(min, max) => {
-									const minCm = isImperialHeight ? Math.round(inchesToCm(min)) : min;
-									const maxCm = isImperialHeight ? Math.round(inchesToCm(max)) : max;
-									setHeightCmMin(min === heightRange.min ? "" : String(minCm));
-									setHeightCmMax(max === heightRange.max ? "" : String(maxCm));
-								}}
-							/>
-						</section>
-
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(
-								t("browse_filters.weight"),
-								Scale,
-								false,
-								`${weightMinDefault}${weightRange.unit} - ${weightMaxDefault}${weightRange.unit}${weightMaxDefault >= weightRange.max ? "+" : ""}`,
-							)}
-							<RangeSlider
-								label={t("browse_filters.weight")}
-								unit={weightRange.unit}
-								min={weightRange.min}
-								max={weightRange.max}
-								minDefault={weightMinDefault}
-								maxDefault={weightMaxDefault}
-								activeColor={accentColor}
-								hideHeader
-								onChange={(min, max) => {
-									const minGrams = isImperialWeight ? Math.round(poundsToGrams(min)) : Math.round(kgToGrams(min));
-									const maxGrams = isImperialWeight ? Math.round(poundsToGrams(max)) : Math.round(kgToGrams(max));
-									setWeightGramsMin(min === weightRange.min ? "" : String(minGrams));
-									setWeightGramsMax(max === weightRange.max ? "" : String(maxGrams));
-								}}
-							/>
-						</section>
-
-						{renderSection(
-							t("profile_editor.sections.states.position"),
-							sexualPositionFilterOptions,
-							sexualPositions,
-							(value) => toggleMultiSelect(value, setSexualPositions),
-							ArrowUpDown,
-						)}
-						{renderSection(
-							t("profile_editor.sections.states.tribes"),
-							tribeFilterOptions,
-							tribes,
-							(value) => toggleMultiSelect(value, setTribes),
-							Users,
-						)}
-						{renderSection(
-							t("profile_editor.sections.expectations.looking_for"),
-							lookingForFilterOptions,
-							lookingFor,
-							(value) => toggleMultiSelect(value, setLookingFor),
-							Heart,
-						)}
-						{renderSection(
-							t("profile_editor.sections.states.relationship_status"),
-							relationshipFilterOptions,
-							relationshipStatuses,
-							(value) => toggleMultiSelect(value, setRelationshipStatuses),
-							HeartHandshake,
-						)}
-						{renderSection(
-							t("profile_editor.sections.states.body_type"),
-							bodyTypeFilterOptions,
-							bodyTypes,
-							(value) => toggleMultiSelect(value, setBodyTypes),
-							Dumbbell,
-						)}
-						{renderSection(
-							t("profile_editor.sections.expectations.meet_at"),
-							meetAtFilterOptions,
-							meetAt,
-							(value) => toggleMultiSelect(value, setMeetAt),
-							MapPin,
-						)}
-						{renderSection(
-							t("profile_editor.sections.expectations.accept_nsfw"),
-							nsfwFilterOptions,
-							nsfwPics,
-							(value) => toggleMultiSelect(value, setNsfwPics),
-							ShieldAlert,
-						)}
-
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(t("browse_filters.tags"), TagIcon)}
-							<div className="flex flex-wrap items-center gap-2">
-								<input
-									type="text"
-									placeholder={t("browse_filters.tags_placeholder")}
-									value={tagDraft}
-									onChange={(e) => setTagDraft(e.target.value)}
-									onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-									className="h-9 min-w-40 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)]"
-								/>
+							{nicknameFilter && (
 								<button
 									type="button"
-									onClick={() => addTag()}
-									className={cn(
-										"h-9 rounded-lg border border-[var(--border)] px-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
-										isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
-									)}
+									onClick={() => setNicknameFilter("")}
+									className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 								>
-									{t("browse_filters.add")}
+									<X className="h-3.5 w-3.5" />
 								</button>
-							</div>
-							{tagSearchResults.length > 0 && (
-								<div className="mt-2 flex flex-wrap gap-2">
-									{tagSearchResults.map((tag) => (
-										<button
-											key={tag.tagId}
-											type="button"
-											onClick={() => addManagedTag(tag)}
-											className={cn(
-												"rounded-full border bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--text)] transition",
-												isExploreActive
-													? "border-[var(--explore)]/60 hover:bg-[var(--explore)] hover:text-white"
-													: "border-[var(--accent)]/60 hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)]",
-											)}
-										>
-											+ {tag.text}
-										</button>
-									))}
-								</div>
 							)}
-							{tags.length > 0 && (
-								<div className="mt-2 flex flex-wrap gap-2">
-									{tags.map((tag) => (
-										<button
-											key={tag}
-											type="button"
-											onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
-											className={cn(
-												"rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition",
-												isExploreActive
-													? "border-[var(--explore)] bg-[var(--explore)] text-white"
-													: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]",
-											)}
-										>
-											{tagLabel(tag)} <span className="ml-1">×</span>
-										</button>
-									))}
-								</div>
-							)}
-						</section>
-
-						{renderToggleSection(
-							t("browse_filters.local_filters.visiting_title"),
-							localFilterOptions,
-							Compass,
-							true,
-						)}
-
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(t("browse_filters.local_filters.name_title"), Search, true)}
-							<div className="relative">
-								<Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
-								<input
-									type="text"
-									value={nicknameFilter}
-									onChange={(e) => setNicknameFilter(e.target.value)}
-									placeholder={t("browse_filters.local_filters.nickname_placeholder")}
-									className={cn(
-										"h-9 w-full rounded-full border border-[var(--border)] bg-[var(--surface)] pl-8 pr-8 text-sm text-[var(--text)] outline-none transition",
-										isExploreActive ? "focus:border-[var(--explore)]" : "focus:border-[var(--accent)]",
-									)}
-								/>
-								{nicknameFilter && (
-									<button
-										type="button"
-										onClick={() => setNicknameFilter("")}
-										className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-									>
-										<X className="h-3.5 w-3.5" />
-									</button>
-								)}
-							</div>
-						</section>
-					</div>
-				</div>
-
-				<div
-					className="relative z-10 shrink-0 border-t border-[var(--border)] px-[var(--app-px)] pt-3 flex gap-2"
-					style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
-				>
-					<button
-						type="button"
-						onClick={clearAll}
-						className={cn(
-							"flex-1 rounded-xl border border-[var(--border)] py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
-							isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
-						)}
-					>
-						{t("browse_filters.clear_all")}
-					</button>
-					<button
-						type="button"
-						onClick={handleApply}
-						className={cn(
-							"relative flex-1 overflow-hidden rounded-xl py-3 text-sm font-bold transition group",
-							isExploreActive ? "bg-[var(--explore)] text-white" : "bg-[var(--accent)] text-[var(--accent-contrast)]",
-						)}
-					>
-						<span className="relative z-10">{t("browse_filters.apply")}</span>
-						<div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-					</button>
+						</div>
+					</section>
 				</div>
 			</div>
-		</div>
+
+			<div className="-mx-4 mt-3 flex shrink-0 gap-2 border-t border-[var(--border)] px-4 pt-3">
+				<button
+					type="button"
+					onClick={clearAll}
+					className={cn(
+						"flex-1 rounded-xl border border-[var(--border)] py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
+						isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
+					)}
+				>
+					{t("browse_filters.clear_all")}
+				</button>
+				<button
+					type="button"
+					onClick={handleApply}
+					className={cn(
+						"relative flex-1 overflow-hidden rounded-xl py-3 text-sm font-bold transition group",
+						isExploreActive ? "bg-[var(--explore)] text-white" : "bg-[var(--accent)] text-[var(--accent-contrast)]",
+					)}
+				>
+					<span className="relative z-10">{t("browse_filters.apply")}</span>
+					<div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+				</button>
+			</div>
+		</>
 	);
 }

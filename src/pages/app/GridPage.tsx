@@ -2034,11 +2034,10 @@ export function GridPage() {
 						nicknameFilter,
 					} satisfies BrowseFiltersDraft}
 					onClose={() => setIsFiltersOpen(false)}
-					onApply={(draft) => {
-						applyDraft(draft);
-						setIsFiltersOpen(false);
-					}}
+					// The sheet closes itself (animated, popping its history entry) after applying.
+					onApply={applyDraft}
 					isExploreActive={Boolean(exploreLocation)}
+					isDesktop={isDesktop}
 				/>
 			)}
 
