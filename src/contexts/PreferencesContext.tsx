@@ -178,7 +178,7 @@ const preferencesSchema = z.object({
 	splitDrawerCategories: z.boolean().default(true),
 	sortDrawerMediaByFrequency: z.boolean().default(true),
 	keepScreenOn: z.boolean().default(false),
-	autoFocusLocationSearch: z.boolean().default(true),
+	autoFocusLocationSearch: z.boolean().default(false),
 	// Swipe a chat row right to pin, left to delete (mobile).
 	chatRowSwipeActions: z.boolean().default(true),
 	// Tap type sent by double tapping a grid tile; null disables the gesture.
@@ -385,7 +385,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		splitDrawerCategories: true,
 		sortDrawerMediaByFrequency: true,
 		keepScreenOn: false,
-		autoFocusLocationSearch: true,
+		autoFocusLocationSearch: false,
 		chatRowSwipeActions: true,
 		doubleTapTapType: 1,
 		showGridTapStatus: true,
