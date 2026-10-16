@@ -346,6 +346,7 @@
         "session_placeholder": "Que recherches-tu ?",
         "char_limit": "{{count}}/140",
         "add_photo": "Ajouter une photo",
+        "photo_hint": "",
         "add_video": "Ajouter une vidéo",
         "i_am_hosting": "Je reçois",
         "i_am_hosting_desc": "Faites savoir aux autres que vous pouvez recevoir",

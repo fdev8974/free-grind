@@ -1,4 +1,4 @@
-import { X, Camera, Loader2, CheckCircle2, Lock, Hourglass } from "lucide-react";
+import { X, ImagePlus, Loader2, CheckCircle2, Lock, Hourglass } from "lucide-react";
 import { HomeFilled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { useEffect, useState, useRef, useMemo } from "react";
@@ -30,7 +30,8 @@ export function RightNowPostPage({ onClose, onPost }: RightNowPostPageProps) {
 		<BottomSheet
 			onClose={onClose}
 			isDesktop={isDesktop}
-			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			// Same glass as the bottom navigation: translucent surface + 24px blur.
+			bg="bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] backdrop-blur-[24px]"
 			panelClassName="relative max-h-[92dvh] px-4"
 		>
 			<RightNowPostSheetContent onPost={onPost} />
@@ -52,6 +53,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 	const [mediaId, setMediaId] = useState<number | null>(null);
 	const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
+	const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
 	const [isPosting, setIsPosting] = useState(false);
 	const [isEnding, setIsEnding] = useState(false);
 
@@ -163,10 +165,8 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 		return () => clearInterval(interval);
 	}, [isEditMode, activeRightNowExpiresAt]);
 
-	const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-
+	const uploadFile = async (file: File) => {
+		if (isUploading) return;
 		setIsUploading(true);
 
 		try {
@@ -198,6 +198,18 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 			setIsUploading(false);
 			if (fileInputRef.current) fileInputRef.current.value = "";
 		}
+	};
+
+	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) void uploadFile(file);
+	};
+
+	const handleFileDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDraggingPhoto(false);
+		const file = e.dataTransfer.files?.[0];
+		if (file && file.type.startsWith("image/")) void uploadFile(file);
 	};
 
 	const handlePost = async () => {
@@ -323,10 +335,10 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 
 	return (
 		<>
-			{/* Right Now's signature glow, bleeding down from the top edge of the sheet. */}
+			{/* Right Now's signature glow, bleeding down from the top edge of the sheet and slowly breathing. */}
 			<div
 				aria-hidden="true"
-				className="pointer-events-none absolute inset-x-0 top-0 h-48"
+				className="pointer-events-none absolute inset-x-0 top-0 h-48 origin-top animate-glow-breathe motion-reduce:animate-none"
 				style={{ background: "radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--right-now) 26%, transparent), transparent)" }}
 			/>
 
@@ -481,17 +493,34 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 										</button>
 									</div>
 								) : (
+									/* Drop zone, same look as the backup restore offer. */
 									<button
 										type="button"
 										onClick={() => fileInputRef.current?.click()}
+										onDragOver={(e) => {
+											e.preventDefault();
+											if (!isUploading) setIsDraggingPhoto(true);
+										}}
+										onDragLeave={() => setIsDraggingPhoto(false)}
+										onDrop={handleFileDrop}
 										disabled={isUploading}
-										className="flex w-full items-center gap-2.5 rounded-2xl bg-[var(--surface-2)] py-2 pl-2 pr-3.5 text-left transition hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] active:scale-[0.99] disabled:opacity-60"
+										className={cn(
+											"group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-6 text-center transition disabled:cursor-wait",
+											isDraggingPhoto
+												? "border-[var(--right-now)] bg-[color-mix(in_srgb,var(--right-now)_10%,var(--surface))]"
+												: "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--right-now)] hover:bg-[color-mix(in_srgb,var(--right-now)_6%,var(--surface-2))]",
+										)}
 									>
-										<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--surface)] text-[var(--right-now)]">
-											{isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+										<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--right-now)] text-white shadow-lg shadow-[var(--right-now)]/20 transition group-hover:scale-105">
+											{isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
 										</span>
-										<span className="text-sm font-semibold text-[var(--text)]">
-											{isUploading ? t("right_now.uploading") : t("right_now.add_photo")}
+										<span className="space-y-1">
+											<span className="block text-sm font-semibold text-[var(--text)]">
+												{isUploading ? t("right_now.uploading") : t("right_now.add_photo")}
+											</span>
+											<span className="block text-xs text-[var(--text-muted)]">
+												{t("right_now.photo_hint", { defaultValue: "Tap to choose or drop an image here" })}
+											</span>
 										</span>
 									</button>
 								)}

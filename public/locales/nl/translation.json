@@ -341,6 +341,7 @@
         "session_placeholder": "Waar ben je naar op zoek?",
         "char_limit": "{{count}}/140",
         "add_photo": "Foto toevoegen",
+        "photo_hint": "",
         "add_video": "Video toevoegen",
         "i_am_hosting": "Kan ontvangen",
         "i_am_hosting_desc": "Laat anderen weten dat je een plek hebt",

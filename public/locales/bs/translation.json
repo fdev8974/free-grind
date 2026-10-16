@@ -346,6 +346,7 @@
         "session_placeholder": "Šta tražiš?",
         "char_limit": "{{count}}/140",
         "add_photo": "Dodaj fotografiju",
+        "photo_hint": "",
         "add_video": "Dodaj videozapis",
         "i_am_hosting": "Primam",
         "i_am_hosting_desc": "Javi drugima da imaš mjesto",

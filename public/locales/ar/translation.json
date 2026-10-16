@@ -361,6 +361,7 @@
         "session_placeholder": "ماذا تدور هنا",
         "char_limit": "{{count}}/140",
         "add_photo": "اضافه صور",
+        "photo_hint": "",
         "add_video": "اضافه فيديو",
         "i_am_hosting": "يستضيف",
         "i_am_hosting_desc": "فى مكانى",

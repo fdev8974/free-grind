@@ -347,6 +347,7 @@
         "session_placeholder": "Шта тражите?",
         "char_limit": "{{count}}/140",
         "add_photo": "Додај фотографију",
+        "photo_hint": "",
         "add_video": "Додај видео",
         "i_am_hosting": "Домаћин",
         "i_am_hosting_desc": "Нека други знају да имате место",

@@ -351,6 +351,7 @@
         "session_placeholder": "Kaj iščeš?",
         "char_limit": "{{count}}/140",
         "add_photo": "Dodaj fotografijo",
+        "photo_hint": "",
         "add_video": "Dodaj videoposnetek",
         "i_am_hosting": "Gostim",
         "i_am_hosting_desc": "Sporoči drugim, da imaš prostor",

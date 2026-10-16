@@ -23,6 +23,8 @@
 	--animate-search-in: search-in 0.3s ease-out forwards;
 	--animate-badge-in: badge-in 0.3s ease-out forwards;
 	--animate-morph-glow: morph-glow 8s ease-in-out infinite;
+	/* Slow breathing glow (Right Now sheet header) */
+	--animate-glow-breathe: glow-breathe 4s ease-in-out infinite;
 	--animate-spin: spin 1s linear infinite;
 	--animate-fade-in: fade-in 0.4s ease-out forwards;
 	--animate-fade-in-subtle: fade-in-subtle 0.4s ease-out both;
@@ -58,6 +60,17 @@
 		75% {
 			transform: scale(1.1) translate(-10%, -5%);
 			border-radius: 60% 40% 50% 50% / 40% 40% 60% 60%;
+		}
+	}
+
+	@keyframes glow-breathe {
+		0%, 100% {
+			opacity: 0.65;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1.12);
 		}
 	}
 
