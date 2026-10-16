@@ -976,6 +976,8 @@
         "visual_effects": "Effets visuels",
         "browse_grid_mobile": "Grille d'exploration (Mobile)",
         "browse_grid_mobile_desc": "Ajuster le nombre de profils affichés par ligne sur mobile.",
+        "views_grid_layout": "",
+        "views_grid_mobile_desc": "",
         "columns_2": "2 Colonnes",
         "columns_3": "3 Colonnes",
         "columns_4": "",

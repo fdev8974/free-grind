@@ -147,6 +147,7 @@ export function CustomizabilityPage() {
 		amoledMode,
 		accentColor,
 		mobileGridColumns,
+		mobileViewsGridColumns,
 		unitsPreset,
 		revealEffectEnabled,
 		revealEffectStrength,
@@ -603,6 +604,43 @@ export function CustomizabilityPage() {
 									{ value: "views", label: t("customizability.interest_show_views") },
 								]}
 							/>
+							{isMobilePlatform && (
+								<div
+									id="cust-views-grid"
+									className={`p-4 ${highlightId === "cust-views-grid" ? "animate-settings-highlight" : ""}`}
+								>
+									<div className="flex items-start gap-3">
+										<div className="rounded-2xl bg-blue-500/15 p-2.5 text-blue-400 shrink-0">
+											<LayoutGrid className="h-5 w-5" />
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-semibold leading-snug">{t("customizability.views_grid_layout")}</p>
+											<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
+												{t("customizability.views_grid_mobile_desc")}
+											</p>
+											<div className="mt-3 grid grid-cols-3 gap-2">
+												{(["2", "3", "4"] as const).map((cols) => (
+													<button
+														key={cols}
+														type="button"
+														onClick={() => void setPreferences({ mobileViewsGridColumns: cols })}
+														className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
+														style={{
+															borderColor: mobileViewsGridColumns === cols ? "var(--accent)" : "var(--border)",
+															background: mobileViewsGridColumns === cols
+																? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
+																: "var(--surface-2)",
+															color: mobileViewsGridColumns === cols ? "var(--accent-readable)" : "var(--text)",
+														}}
+													>
+														{t(`customizability.columns_${cols}`)}
+													</button>
+												))}
+											</div>
+										</div>
+									</div>
+								</div>
+							)}
 						</div>
 					</div>
 				)}

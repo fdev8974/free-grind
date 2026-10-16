@@ -19,6 +19,8 @@ export type InterestItem = {
 	isRead?: boolean;
 	onlineUntil?: number | null;
 	rightNow?: string | null;
+	/** Received taps only; null when the tapper hides their distance. */
+	distanceMeters?: number | null;
 };
 
 export const PREVIEW_ID_PREFIX = "preview:";
@@ -335,6 +337,7 @@ export function normalizeTaps(payload: unknown, _t: TFunction): InterestItem[] {
 			isMutual: obj.isMutual === true || obj.mutual === true,
 			onlineUntil: toNumber(obj.onlineUntil),
 			rightNow: getItemRightNow(obj),
+			distanceMeters: toNumber(obj.distance),
 		};
 
 		const existing = mergedMap.get(profileId);

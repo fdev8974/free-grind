@@ -976,6 +976,8 @@
         "visual_effects": "Efeitos visuais",
         "browse_grid_mobile": "Navegar em grelha (dispositivos móveis)",
         "browse_grid_mobile_desc": "Ajuste quantos perfis aparecem por linha em dispositivos móveis.",
+        "views_grid_layout": "",
+        "views_grid_mobile_desc": "",
         "columns_2": "2 colunas",
         "columns_3": "3 colunas",
         "columns_4": "",

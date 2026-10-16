@@ -1647,7 +1647,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									disabled={isTogglingFavorite}
 									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
 										isFavorite
-											? "header-icon-btn--active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
+											? `header-icon-btn--active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] ${inlineScrolled ? "" : "shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"}`
 											: inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
 									}`}
 									aria-label={isFavorite ? t("chat.unfavorite") : t("chat.favorite")}

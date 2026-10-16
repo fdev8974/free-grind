@@ -968,6 +968,8 @@
         "visual_effects": "Visuelle Effekte",
         "browse_grid_mobile": "Übersichts-Raster (Mobil)",
         "browse_grid_mobile_desc": "Anzahl der Profile pro Reihe auf dem Handy anpassen.",
+        "views_grid_layout": "",
+        "views_grid_mobile_desc": "",
         "columns_2": "2 Spalten",
         "columns_3": "3 Spalten",
         "columns_4": "",

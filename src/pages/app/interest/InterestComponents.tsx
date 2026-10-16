@@ -1,12 +1,12 @@
 import { useLayoutEffect, useRef, useState, memo, type ComponentType } from "react";
-import { Ban, History, MoveHorizontal, Check, RefreshCw, Star } from "lucide-react";
+import { Ban, History, MoveHorizontal, Check, RefreshCw, Star, Navigation } from "lucide-react";
 import { ClockFilled, EyeFilled, HomeFilled, LockFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { getThumbImageUrl } from "../../../utils/media";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { type InterestItem, type InterestTab, formatTimestamp, getTapEmoji, PREVIEW_ID_PREFIX } from "./interestUtils";
 import { cn } from "../../../utils/cn";
-import { isOnlineEndingSoon } from "../gridpage/utils";
+import { formatDistance, isOnlineEndingSoon } from "../gridpage/utils";
 import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { usePreferences } from "../../../contexts/PreferencesContext";
@@ -170,6 +170,7 @@ export const InterestRow = memo(function InterestRow({
 	isBlocked?: boolean;
 }) {
 	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
 	const { ref, revealClass } = useRevealOnScroll();
 	const imageSrc = item.imageHash ? getThumbImageUrl(item.imageHash, "320x320") : null;
 
@@ -255,6 +256,12 @@ export const InterestRow = memo(function InterestRow({
 							<ClockFilled className="h-3 w-3 shrink-0" />
 							<span className="truncate">{formatTimestamp(item.timestamp, t, now)}</span>
 						</span>
+						{mode === "taps" && item.distanceMeters != null && (
+							<span className="flex shrink-0 items-center gap-1">
+								<Navigation className="h-3 w-3 fill-current" />
+								<span className="tabular-nums">{formatDistance(item.distanceMeters, t, unitsPreset)}</span>
+							</span>
+						)}
 						{mode === "views" && !isPrivate && (
 							<span className="flex shrink-0 items-center gap-1">
 								<EyeFilled className="h-3 w-3" />

@@ -158,6 +158,8 @@ const preferencesSchema = z.object({
 	accentColor: z.string().default("#7c3aed"),
 	accentContrast: z.string().default("#ffffff"),
 	mobileGridColumns: z.enum(["2", "3", "4"]).default("3"),
+	// Column count of the Interest → Views grid on mobile, separate from the browse grid.
+	mobileViewsGridColumns: z.enum(["2", "3", "4"]).default("2"),
 	unitsPreset: z.enum(UNIT_PRESETS).default("world"),
 	blurIncomingMedia: z.boolean().default(false),
 	blurGridProfilePictures: z.boolean().default(false),
@@ -206,6 +208,7 @@ type PreferencesAction =
 	| { type: "SET_COLOR_SCHEME"; payload: ColorScheme }
 	| { type: "SET_AMOLED_MODE"; payload: boolean }
 	| { type: "SET_MOBILE_GRID_COLUMNS"; payload: "2" | "3" | "4" }
+	| { type: "SET_MOBILE_VIEWS_GRID_COLUMNS"; payload: "2" | "3" | "4" }
 	| { type: "SET_UNITS_PRESET"; payload: UnitsPreset }
 	| { type: "SET_BLUR_INCOMING_MEDIA"; payload: boolean }
 	| { type: "SET_BLUR_GRID_PROFILE_PICTURES"; payload: boolean }
@@ -248,6 +251,8 @@ function preferencesReducer(
 			return { ...state, amoledMode: action.payload };
 		case "SET_MOBILE_GRID_COLUMNS":
 			return { ...state, mobileGridColumns: action.payload };
+		case "SET_MOBILE_VIEWS_GRID_COLUMNS":
+			return { ...state, mobileViewsGridColumns: action.payload };
 		case "SET_UNITS_PRESET":
 			return { ...state, unitsPreset: action.payload };
 		case "SET_BLUR_INCOMING_MEDIA":
@@ -361,6 +366,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		accentColor: "#7c3aed",
 		accentContrast: "#ffffff",
 		mobileGridColumns: "3",
+		mobileViewsGridColumns: "2",
 		unitsPreset: "world",
 		blurIncomingMedia: false,
 		blurGridProfilePictures: false,
@@ -410,6 +416,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_COLOR_SCHEME", payload: parsed.colorScheme });
 					dispatch({ type: "SET_AMOLED_MODE", payload: parsed.amoledMode });
 					dispatch({ type: "SET_MOBILE_GRID_COLUMNS", payload: parsed.mobileGridColumns });
+					dispatch({ type: "SET_MOBILE_VIEWS_GRID_COLUMNS", payload: parsed.mobileViewsGridColumns });
 					dispatch({ type: "SET_UNITS_PRESET", payload: parsed.unitsPreset });
 					dispatch({ type: "SET_BLUR_INCOMING_MEDIA", payload: parsed.blurIncomingMedia });
 					dispatch({ type: "SET_BLUR_GRID_PROFILE_PICTURES", payload: parsed.blurGridProfilePictures });
@@ -503,6 +510,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				accentColor: currentState.accentColor,
 				accentContrast: currentState.accentContrast,
 				mobileGridColumns: currentState.mobileGridColumns,
+				mobileViewsGridColumns: currentState.mobileViewsGridColumns,
 				unitsPreset: currentState.unitsPreset,
 				blurIncomingMedia: currentState.blurIncomingMedia,
 				blurGridProfilePictures: currentState.blurGridProfilePictures,
@@ -553,6 +561,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.mobileGridColumns !== undefined) {
 				dispatch({ type: "SET_MOBILE_GRID_COLUMNS", payload: newValues.mobileGridColumns });
+			}
+			if (newValues.mobileViewsGridColumns !== undefined) {
+				dispatch({ type: "SET_MOBILE_VIEWS_GRID_COLUMNS", payload: newValues.mobileViewsGridColumns });
 			}
 			if (newValues.unitsPreset !== undefined) {
 				dispatch({ type: "SET_UNITS_PRESET", payload: newValues.unitsPreset });
@@ -680,6 +691,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					accentColor: preferences.accentColor,
 					accentContrast: preferences.accentContrast,
 					mobileGridColumns: preferences.mobileGridColumns,
+					mobileViewsGridColumns: preferences.mobileViewsGridColumns,
 					unitsPreset: preferences.unitsPreset,
 					blurIncomingMedia: preferences.blurIncomingMedia,
 					blurGridProfilePictures: preferences.blurGridProfilePictures,
@@ -717,6 +729,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		accentColor: state.accentColor,
 		accentContrast: state.accentContrast,
 		mobileGridColumns: state.mobileGridColumns,
+		mobileViewsGridColumns: state.mobileViewsGridColumns,
 		unitsPreset: state.unitsPreset,
 		blurIncomingMedia: state.blurIncomingMedia,
 		blurGridProfilePictures: state.blurGridProfilePictures,

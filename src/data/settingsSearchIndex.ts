@@ -142,6 +142,16 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-blue-500/15 text-blue-400",
 		},
 		{
+			id: "cust-views-grid",
+			route: "/settings/customizability",
+			anchor: "cust-views-grid",
+			label: t("customizability.views_grid_layout"),
+			description: t("customizability.views_grid_mobile_desc"),
+			section: "Look & Feel",
+			icon: LayoutGrid,
+			iconClass: "bg-blue-500/15 text-blue-400",
+		},
+		{
 			id: "cust-grid-tap-status",
 			route: "/settings/customizability",
 			anchor: "cust-grid-tap-status",
@@ -702,6 +712,6 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		(entry) =>
 			(showSexualHealth || entry.id !== "nav-sexual-health") &&
 			// Bottom-nav style, grid layout and haptics options only exist in the mobile app.
-			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-haptics"].includes(entry.id)),
+			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics"].includes(entry.id)),
 	), [t, showSexualHealth, isMobilePlatform]);
 }

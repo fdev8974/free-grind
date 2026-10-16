@@ -976,6 +976,8 @@
         "visual_effects": "Efectos visuales",
         "browse_grid_mobile": "Cuadrícula de Navegar (Móvil)",
         "browse_grid_mobile_desc": "Ajusta cuántos perfiles aparecen por fila en el móvil.",
+        "views_grid_layout": "",
+        "views_grid_mobile_desc": "",
         "columns_2": "2 Columnas",
         "columns_3": "3 Columnas",
         "columns_4": "",

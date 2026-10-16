@@ -10,7 +10,7 @@ import { InterestViewTile } from "./InterestComponents";
 import type { InterestItem } from "./interestUtils";
 
 export function useViewsGridLayout() {
-	const { mobileGridColumns } = usePreferences();
+	const { mobileViewsGridColumns: mobileGridColumns } = usePreferences();
 	const isDesktop = useDesktopBreakpoint();
 	return {
 		isDesktop,
