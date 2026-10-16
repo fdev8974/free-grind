@@ -302,6 +302,9 @@ export function ChatPage() {
 	const olderLoadSnapshotRef = useRef<{
 		scrollTop: number;
 		scrollHeight: number;
+		// Oldest message shown when the snapshot was taken — the restore only
+		// applies once something older has actually been prepended.
+		firstMessageId: string | null;
 	} | null>(null);
 	const selectedConversationUnreadCountRef = useRef(0);
 	const lastLoadedConversationIdRef = useRef<string | null>(null);
@@ -1636,6 +1639,27 @@ export function ChatPage() {
 								}
 								combined = next;
 							}
+						} else {
+							// A server-filtered response (e.g. unread-only) legitimately
+							// omits the conversation currently open — it's read by
+							// definition — and a brand-new chat isn't in chatDb yet for
+							// the getConversation fallback to recover. Dropping it would
+							// null out selectedConversation and bounce the mobile layout
+							// back to the inbox. Keep it in state; filteredConversations
+							// still applies the same filters client-side, so it doesn't
+							// leak into the visible list.
+							const selectedId = selectedConversationIdRef.current;
+							if (
+								selectedId &&
+								!combined.some((entry) => entry.data.conversationId === selectedId)
+							) {
+								const selectedEntry = previous.find(
+									(entry) => entry.data.conversationId === selectedId,
+								);
+								if (selectedEntry) {
+									combined = [...combined, selectedEntry];
+								}
+							}
 						}
 
 						// Polling re-fetches on a fixed interval regardless of whether
@@ -1806,6 +1830,7 @@ export function ChatPage() {
 						olderLoadSnapshotRef.current = {
 							scrollTop: container.scrollTop,
 							scrollHeight: container.scrollHeight,
+							firstMessageId: threadMessagesRef.current[0]?.messageId ?? null,
 						};
 					}
 					isLoadingOlderMessagesRef.current = true;
@@ -1909,6 +1934,7 @@ export function ChatPage() {
 					olderLoadSnapshotRef.current = {
 						scrollTop: container.scrollTop,
 						scrollHeight: container.scrollHeight,
+						firstMessageId: threadMessagesRef.current[0]?.messageId ?? null,
 					};
 				}
 				isLoadingOlderMessagesRef.current = true;
@@ -2827,20 +2853,28 @@ export function ChatPage() {
 					}
 				}
 				if (!updates.length) return;
+				// A realtime batch can span several conversations — persist each
+				// update under its own conversation, and only merge the ones for
+				// the conversation currently open into the thread view.
 				const nonExpiredImageUpdates = updates.filter((u) => !(u.body as any)?._imageExpired);
-				void chatLog.appendMessages(
-					incomingImagesWithoutUrl[0].conversationId,
-					nonExpiredImageUpdates,
-				);
-				captureMediaForMessages(
-					nonExpiredImageUpdates,
-					incomingImagesWithoutUrl[0].conversationId,
-				);
+				const nonExpiredImageUpdatesByConv = new Map<string, UiMessage[]>();
+				for (const u of nonExpiredImageUpdates) {
+					const list = nonExpiredImageUpdatesByConv.get(u.conversationId) ?? [];
+					list.push(u);
+					nonExpiredImageUpdatesByConv.set(u.conversationId, list);
+				}
+				for (const [cid, list] of nonExpiredImageUpdatesByConv) {
+					void chatLog.appendMessages(cid, list);
+					captureMediaForMessages(list, cid);
+				}
+				const activeConversationId = selectedConversationIdRef.current;
+				const activeUpdates = updates.filter((u) => u.conversationId === activeConversationId);
+				if (!activeUpdates.length) return;
 				setThreadMessages((prev) => {
 					const previousById = new Map(prev.map((m) => [m.messageId, m] as const));
 					const map = new Map<string, UiMessage>();
 					for (const m of prev) map.set(m.messageId, m);
-					for (const m of updates) {
+					for (const m of activeUpdates) {
 						map.set(
 							m.messageId,
 							mergeMessagePreservingUnsendWipe(previousById.get(m.messageId), m),
@@ -2884,19 +2918,28 @@ export function ChatPage() {
 					}
 				}
 				if (!updates.length) return;
+				// A realtime batch can span several conversations — persist each
+				// update under its own conversation, and only merge the ones for
+				// the conversation currently open into the thread view.
 				const nonExpiredVideoUpdates = updates.filter((u) => !(u.body as any)?._videoExpired);
-				if (nonExpiredVideoUpdates.length > 0) {
-					void chatLog.appendMessages(incomingVideosWithoutUrl[0].conversationId, nonExpiredVideoUpdates);
-					captureMediaForMessages(
-						nonExpiredVideoUpdates,
-						incomingVideosWithoutUrl[0].conversationId,
-					);
+				const nonExpiredVideoUpdatesByConv = new Map<string, UiMessage[]>();
+				for (const u of nonExpiredVideoUpdates) {
+					const list = nonExpiredVideoUpdatesByConv.get(u.conversationId) ?? [];
+					list.push(u);
+					nonExpiredVideoUpdatesByConv.set(u.conversationId, list);
 				}
+				for (const [cid, list] of nonExpiredVideoUpdatesByConv) {
+					void chatLog.appendMessages(cid, list);
+					captureMediaForMessages(list, cid);
+				}
+				const activeConversationId = selectedConversationIdRef.current;
+				const activeUpdates = updates.filter((u) => u.conversationId === activeConversationId);
+				if (!activeUpdates.length) return;
 				setThreadMessages((prev) => {
 					const previousById = new Map(prev.map((m) => [m.messageId, m] as const));
 					const map = new Map<string, UiMessage>();
 					for (const m of prev) map.set(m.messageId, m);
-					for (const m of updates) {
+					for (const m of activeUpdates) {
 						map.set(
 							m.messageId,
 							mergeMessagePreservingUnsendWipe(previousById.get(m.messageId), m),
@@ -3602,21 +3645,31 @@ export function ChatPage() {
 		const isNewMessageArrival = lastMessageIdRef.current !== lastMessage.messageId;
 		lastMessageIdRef.current = lastMessage.messageId;
 
-		if (preserveThreadScrollRef.current) {
-			const container = threadScrollContainerRef.current;
-			const snapshot = olderLoadSnapshotRef.current;
-			if (container && snapshot) {
-				const heightDelta = container.scrollHeight - snapshot.scrollHeight;
-				container.scrollTop = snapshot.scrollTop + heightDelta;
-			}
-			olderLoadSnapshotRef.current = null;
-			preserveThreadScrollRef.current = false;
-			return;
-		}
-
 		const container = threadScrollContainerRef.current;
 		const isNewConversation =
 			lastLoadedConversationIdRef.current !== selectedConversationId;
+
+		if (preserveThreadScrollRef.current) {
+			const snapshot = olderLoadSnapshotRef.current;
+			if (isNewConversation || !snapshot) {
+				olderLoadSnapshotRef.current = null;
+				preserveThreadScrollRef.current = false;
+			} else if (threadMessages[0].messageId !== snapshot.firstMessageId) {
+				if (container) {
+					const heightDelta = container.scrollHeight - snapshot.scrollHeight;
+					container.scrollTop = snapshot.scrollTop + heightDelta;
+				}
+				olderLoadSnapshotRef.current = null;
+				preserveThreadScrollRef.current = false;
+				return;
+			}
+			// Otherwise nothing older has landed yet (still in flight, or the
+			// load came back empty) and this update is something else — e.g. a
+			// realtime message appended at the bottom. Restoring the snapshot
+			// here would yank the view back up to wherever it was when the
+			// older-load started, so leave it armed and handle this update
+			// normally below.
+		}
 
 		const isNearBottom = container
 			? container.scrollHeight - container.scrollTop - container.clientHeight < 250
