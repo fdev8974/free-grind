@@ -271,8 +271,8 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 			},
 			{
 				icon: Images,
-				title: "Redesigned Chat Drawer",
-				description: "A fresh drawer with a press-and-hold preview of photos and videos before you send them.",
+				title: "Redesigned Media Drawer",
+				description: "A completely reworked drawer for photos, videos, albums and collections: switch between views, press and hold to preview before sending, edit photos, and create, edit or delete albums and collections without leaving the chat.",
 			},
 			{
 				icon: MapPin,
@@ -328,6 +328,11 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 				icon: FlaskConical,
 				title: "Assignments & Feature Flags",
 				description: "Curious what Grindr is testing? Inspect the server-side flags and A/B experiments assigned to your account from the developer section in Settings.",
+			},
+			{
+				icon: DatabaseBackup,
+				title: "Backup & Restore Fixed",
+				description: "Backing up and restoring your data works reliably again, now with a progress bar so you can see how far along it is.",
 			},
 			{
 				icon: Wrench,
