@@ -2286,7 +2286,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[var(--border)]" />
 							</div>
 						)}
-						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${slashMatches.length > 0 ? "rounded-b-xl border-t-0" : !isDesktop ? "rounded-[21px]" : "rounded-xl"} border py-1 mb-2 transition-colors ${
+						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${slashMatches.length > 0 ? "rounded-b-xl border-t-0" : !isDesktop ? "rounded-[25px]" : "rounded-xl"} border py-1 mb-2 transition-colors ${
 							!isDesktop && slashMatches.length === 0
 								// Mobile: no outline, state is shown through the fill instead.
 								? isRecording
@@ -2301,15 +2301,15 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									<button
 										type="button"
 										onClick={cancelRecording}
-										className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg"
+										className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center rounded-lg`}
 										style={{ color: `color-mix(in srgb, var(--accent) ${Math.round((1 - dragProgress) * 100)}%, #ef4444)` }}
 										aria-label={t("chat.cancel_recording", { defaultValue: "Cancel" })}
 									>
-										<span className="relative h-4 w-4">
+										<span className={`relative ${!isDesktop ? "h-5 w-5" : "h-4 w-4"}`}>
 											<span className="absolute inset-0" style={{ opacity: Math.max(0, 1 - dragProgress * 2) }}>
-											<MicFilled className="h-4 w-4 animate-pulse" />
+											<MicFilled className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-pulse`} />
 										</span>
-											<Trash2 className={`absolute inset-0 h-4 w-4 ${trashBounce ? "animate-trash-bounce" : ""}`} style={{ opacity: Math.max(0, (dragProgress - 0.3) / 0.7) }} />
+											<Trash2 className={`absolute inset-0 ${!isDesktop ? "h-5 w-5" : "h-4 w-4"} ${trashBounce ? "animate-trash-bounce" : ""}`} style={{ opacity: Math.max(0, (dragProgress - 0.3) / 0.7) }} />
 										</span>
 									</button>
 									<span className={`text-sm font-semibold tabular-nums shrink-0 ${recordingMs >= 50_000 ? "text-red-500 animate-pulse" : "text-[var(--accent)]"}`}>
@@ -2387,7 +2387,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											? t("chat.write_message")
 											: t("chat.new_conversation.write_first_message")
 									}
-									className="flex-1 bg-transparent py-1.5 text-sm leading-5 text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60"
+									className={`flex-1 bg-transparent ${!isDesktop ? "py-2.5" : "py-1.5"} text-sm leading-5 text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60`}
 									style={{ fieldSizing: "content", maxHeight: "115px" } as React.CSSProperties}
 								/>
 							)}
@@ -2395,18 +2395,18 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<button
 									type="button"
 									onClick={() => stopRecording()}
-									className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:opacity-80 transition"
+									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center rounded-lg text-red-500 hover:opacity-80 transition`}
 									aria-label={t("chat.stop_recording", { defaultValue: "Stop recording" })}
 								>
-									<Square className="h-4 w-4 fill-current" />
+									<Square className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} fill-current`} />
 								</button>
 							) : draft.trim().length > 0 || isSending ? (
 								<button
 									type="submit"
 									disabled={isSending || !!pendingLocationShare || draft.trim().length === 0}
-									className={`shrink-0 inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 disabled:opacity-30 ${!isDesktop ? "rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "rounded-lg text-[var(--accent)]"}`}
+									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center transition hover:opacity-80 disabled:opacity-30 ${!isDesktop ? "rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "rounded-lg text-[var(--accent)]"}`}
 								>
-									{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontalFilled className="h-4 w-4" />}
+									{isSending ? <Loader2 className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-spin`} /> : <SendHorizontalFilled className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />}
 								</button>
 							) : (
 								<button
@@ -2443,7 +2443,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									} : undefined}
 									onPointerUp={!isDesktop ? () => { isCapturingRef.current = false; setRecordDragX(0); if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; } setShowRecordCircle(false); stopRecording(true); } : undefined}
 									onPointerCancel={!isDesktop ? () => { isCapturingRef.current = false; setRecordDragX(0); if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; } setShowRecordCircle(false); cancelRecording(); } : undefined}
-									className={`relative shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg transition select-none touch-none ${isRecording ? "text-red-500" : "text-[var(--accent)] hover:opacity-80"}`}
+									className={`relative shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center rounded-lg transition select-none touch-none ${isRecording ? "text-red-500" : "text-[var(--accent)] hover:opacity-80"}`}
 									style={showRecordCircle ? {
 										transform: `translateX(${recordDragX}px)`,
 										transition: recordDragX === 0 ? "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)" : "none",
@@ -2461,7 +2461,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											}}
 										/>
 									)}
-									<MicFilled className="relative h-4 w-4" />
+									<MicFilled className={`relative ${!isDesktop ? "h-5 w-5" : "h-4 w-4"}`} />
 								</button>
 							)}
 						</div>}
