@@ -482,7 +482,8 @@
         "set_as_home": "Nastavi kot dom",
         "home_location_label": "Dom",
         "home_updated_toast": "Domača lokacija posodobljena",
-        "home_update_failed": "Posodobitev domače lokacije ni uspela"
+        "home_update_failed": "Posodobitev domače lokacije ni uspela",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "Brskaj",

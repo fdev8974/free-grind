@@ -472,7 +472,8 @@
     "set_as_home": "Set as home",
     "home_location_label": "Home",
     "home_updated_toast": "Home location updated",
-    "home_update_failed": "Failed to update home location"
+    "home_update_failed": "Failed to update home location",
+    "saved_hint": "Tap the bookmark below to save the pinned spot for quick access."
   },
   "nav": {
     "browse": "Browse",

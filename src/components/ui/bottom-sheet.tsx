@@ -1,6 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
 const BottomSheetContext = createContext<() => void>(() => {});
+
+// Open sheets in mount order, so Escape only closes the topmost one when a
+// sheet opens another on top of itself.
+const openSheets: object[] = [];
 export const useBottomSheetClose = () => useContext(BottomSheetContext);
 
 interface SheetCloseProps {
@@ -98,8 +102,19 @@ export function BottomSheet({
 		return () => window.removeEventListener("popstate", onPopState);
 	}, []);
 
+	const sheetIdRef = useRef({});
+	useEffect(() => {
+		const id = sheetIdRef.current;
+		openSheets.push(id);
+		return () => {
+			const index = openSheets.indexOf(id);
+			if (index !== -1) openSheets.splice(index, 1);
+		};
+	}, []);
+
 	useEffect(() => {
 		const onKeyDown = (e: KeyboardEvent) => {
+			if (openSheets[openSheets.length - 1] !== sheetIdRef.current) return;
 			if (e.key === "Escape" && !isProcessing) {
 				e.stopImmediatePropagation();
 				animateClose();

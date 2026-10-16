@@ -492,7 +492,8 @@
         "set_as_home": "تم تعيينه كمنزل",
         "home_location_label": "المنزل",
         "home_updated_toast": "تم تحديث موقع المنزل",
-        "home_update_failed": "فشل تحديث موقع المنزل"
+        "home_update_failed": "فشل تحديث موقع المنزل",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "تصفح",

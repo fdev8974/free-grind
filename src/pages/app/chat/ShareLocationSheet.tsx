@@ -1,5 +1,5 @@
-import { Bookmark, Send, X } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Send, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
@@ -8,8 +8,9 @@ import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useHomeLocation } from "../../../hooks/queries/useProfileQueries";
 import { loadSavedLocations, type SavedLocation } from "../../../services/savedLocations";
 import { decodeGeohash, encodeGeohash } from "../../../utils/geohash";
+import { LocationChip, SavedLocationChip, useGeohashLabel } from "../gridpage/components/LocationChips";
 import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
-import { reverseGeocodeCityDistrictForGeohash, reverseGeocodeGeohash } from "../gridpage/geocoding";
+import { reverseGeocodeGeohash } from "../gridpage/geocoding";
 
 type LatLon = { lat: number; lon: number };
 
@@ -33,77 +34,6 @@ function decodeGeohashCenter(geohash: string | null | undefined): LatLon | null 
 
 function isSameSpot(a: LatLon, b: LatLon): boolean {
 	return Math.abs(a.lat - b.lat) < 1e-7 && Math.abs(a.lon - b.lon) < 1e-7;
-}
-
-/** Resolves a geohash to a label, or null while pending / when it can't be resolved. */
-function useGeohashLabel(geohash: string | null, resolve: (geohash: string) => Promise<string | null>, debounceMs = 0) {
-	const [label, setLabel] = useState<{ geohash: string; value: string | null } | null>(null);
-	useEffect(() => {
-		if (!geohash) return;
-		let cancelled = false;
-		const timer = setTimeout(() => {
-			void resolve(geohash).then((value) => {
-				if (!cancelled) setLabel({ geohash, value });
-			});
-		}, debounceMs);
-		return () => {
-			cancelled = true;
-			clearTimeout(timer);
-		};
-	}, [geohash, resolve, debounceMs]);
-	// Stale result for a previous pin position counts as still resolving.
-	return label && label.geohash === geohash ? { resolved: true, value: label.value } : { resolved: false, value: null };
-}
-
-function LocationChip({
-	icon,
-	title,
-	subtitle,
-	isActive,
-	onClick,
-}: {
-	icon: ReactNode;
-	title: string;
-	subtitle: string | null;
-	isActive: boolean;
-	onClick: () => void;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={`flex max-w-[14rem] shrink-0 items-center gap-2.5 rounded-2xl py-2 pl-2 pr-3.5 text-left transition active:scale-95 ${
-				isActive
-					? "bg-[color-mix(in_srgb,var(--accent)_16%,var(--surface-2))] ring-2 ring-inset ring-[var(--accent)]"
-					: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]"
-			}`}
-		>
-			<span
-				className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition ${
-					isActive ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "bg-[var(--surface)] text-[var(--accent)]"
-				}`}
-			>
-				{icon}
-			</span>
-			<span className="min-w-0">
-				<span className="block truncate text-sm font-semibold leading-tight text-[var(--text)]">{title}</span>
-				{subtitle ? <span className="mt-0.5 block truncate text-[11px] leading-tight text-[var(--text-muted)]">{subtitle}</span> : null}
-			</span>
-		</button>
-	);
-}
-
-function SavedLocationChip({ location, isActive, onClick }: { location: SavedLocation; isActive: boolean; onClick: () => void }) {
-	const { value } = useGeohashLabel(location.geohash, reverseGeocodeCityDistrictForGeohash);
-	return (
-		<LocationChip
-			icon={<Bookmark className="h-4 w-4 fill-current" />}
-			title={location.name}
-			subtitle={value}
-			isActive={isActive}
-			onClick={onClick}
-		/>
-	);
 }
 
 export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesktop }: ShareLocationSheetProps) {

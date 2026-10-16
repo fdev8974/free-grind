@@ -472,7 +472,8 @@
         "set_as_home": "Als Zuhause festlegen",
         "home_location_label": "Zuhause",
         "home_updated_toast": "Heimatort aktualisiert",
-        "home_update_failed": "Heimatort konnte nicht aktualisiert werden"
+        "home_update_failed": "Heimatort konnte nicht aktualisiert werden",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "Durchsuchen",

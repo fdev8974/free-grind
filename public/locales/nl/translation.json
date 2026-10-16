@@ -472,7 +472,8 @@
         "set_as_home": "Instellen als thuis",
         "home_location_label": "Thuis",
         "home_updated_toast": "Thuislocatie bijgewerkt",
-        "home_update_failed": "Thuislocatie bijwerken mislukt"
+        "home_update_failed": "Thuislocatie bijwerken mislukt",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "Bladeren",

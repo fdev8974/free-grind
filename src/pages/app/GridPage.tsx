@@ -1981,6 +1981,7 @@ export function GridPage() {
 					onClose={() => setIsLocationOpen(false)}
 					exploreLocation={exploreLocation}
 					onSetExploreLocation={setExploreLocation}
+					isDesktop={isDesktop}
 				/>
 			)}
 

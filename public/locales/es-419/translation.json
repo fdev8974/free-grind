@@ -477,7 +477,8 @@
         "set_as_home": "Establecer como casa",
         "home_location_label": "Casa",
         "home_updated_toast": "Ubicación de casa actualizada",
-        "home_update_failed": "Falló la actualización de la ubicación"
+        "home_update_failed": "Falló la actualización de la ubicación",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "Navegar",

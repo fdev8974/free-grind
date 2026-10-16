@@ -477,7 +477,8 @@
         "set_as_home": "Definir como página inicial",
         "home_location_label": "Lar",
         "home_updated_toast": "Localização de casa atualizada",
-        "home_update_failed": "Falha ao atualizar o local de casa"
+        "home_update_failed": "Falha ao atualizar o local de casa",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "Navegar",

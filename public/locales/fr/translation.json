@@ -477,7 +477,8 @@
         "set_as_home": "Définir comme Maison",
         "home_location_label": "Maison",
         "home_updated_toast": "Emplacement du domicile mis à jour",
-        "home_update_failed": "Échec de la mise à jour du domicile"
+        "home_update_failed": "Échec de la mise à jour du domicile",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "Explorer",

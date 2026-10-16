@@ -477,7 +477,8 @@
         "set_as_home": "Postavi kao kuću",
         "home_location_label": "Kuća",
         "home_updated_toast": "Kućna lokacija ažurirana",
-        "home_update_failed": "Ažuriranje kućne lokacije nije uspjelo"
+        "home_update_failed": "Ažuriranje kućne lokacije nije uspjelo",
+        "saved_hint": ""
     },
     "nav": {
         "browse": "Pregledaj",

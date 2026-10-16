@@ -13,6 +13,10 @@ type MapLocationPickerProps = {
 	initialCenter?: [number, number];
 	/** Marker color override — defaults to --accent inside createPinMarkerElement. */
 	pinColor?: string;
+	/** Plain wheel scrolls the surrounding container; only Ctrl/Cmd + wheel zooms.
+	 * For maps that fill most of a scrollable sheet and would otherwise swallow
+	 * every scroll attempt. */
+	modifierWheelZoom?: boolean;
 };
 
 export function MapLocationPicker({
@@ -29,6 +33,7 @@ export function MapLocationPicker({
 	// yet. Leaving it undefined when not passed keeps that distinction.
 	initialCenter,
 	pinColor,
+	modifierWheelZoom = false,
 }: MapLocationPickerProps) {
 	const { t } = useTranslation();
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -59,6 +64,8 @@ export function MapLocationPicker({
 	initialCenterRef.current = initialCenter;
 	const pinColorRef = useRef(pinColor);
 	pinColorRef.current = pinColor;
+	const modifierWheelZoomRef = useRef(modifierWheelZoom);
+	modifierWheelZoomRef.current = modifierWheelZoom;
 
 	useEffect(() => {
 		let mounted = true;
@@ -77,6 +84,15 @@ export function MapLocationPicker({
 		};
 		const wheelTarget = mapContainerRef.current;
 		wheelTarget?.addEventListener("wheel", blockWheelPropagation, { passive: false });
+		// Captured before maplibre's own handler (on the canvas inside) sees
+		// it: stopping it here keeps the map from zooming and skips the
+		// preventDefault above, so the browser scrolls the container instead.
+		const passWheelToContainer = (event: WheelEvent) => {
+			if (modifierWheelZoomRef.current && !event.ctrlKey && !event.metaKey) {
+				event.stopPropagation();
+			}
+		};
+		wheelTarget?.addEventListener("wheel", passWheelToContainer, { capture: true });
 
 		// Waits for the browser to actually paint the current layout (two
 		// rAFs, since the first one just schedules a frame that hasn't been
@@ -157,6 +173,7 @@ export function MapLocationPicker({
 		return () => {
 			mounted = false;
 			wheelTarget?.removeEventListener("wheel", blockWheelPropagation);
+			wheelTarget?.removeEventListener("wheel", passWheelToContainer, { capture: true });
 			resizeObserverRef.current?.disconnect();
 			resizeObserverRef.current = null;
 			if (mapRef.current) {
