@@ -493,6 +493,14 @@ export function InterestPage() {
 		}
 	}, [activeTab, maxInterestTimestamp, data]);
 
+	// Refetch when the page opens and on every tab switch — the query's 5 min
+	// staleTime would otherwise keep showing cached views/taps. One query feeds
+	// all tabs, so this refreshes them all. cancelRefetch: false joins an
+	// already-running fetch (e.g. the very first load) instead of restarting it.
+	useEffect(() => {
+		void refetch({ cancelRefetch: false });
+	}, [activeTab, refetch]);
+
 	const handleRefresh = useCallback(() => {
 		setLimits((prev) => ({ ...prev, [activeTab]: ITEMS_PER_PAGE }));
 		sessionStorage.removeItem(`interest-scroll-${activeTab}`);
