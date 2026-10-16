@@ -130,6 +130,30 @@ export const interestViewsStore = {
 		});
 	},
 
+	async deleteMany(profileIds: string[]): Promise<void> {
+		if (profileIds.length === 0) return;
+
+		const db = await openDatabase();
+		if (!db) return;
+
+		return new Promise((resolve) => {
+			const tx = db.transaction(STORE_NAME, "readwrite");
+			const store = tx.objectStore(STORE_NAME);
+			for (const id of profileIds) {
+				store.delete(id);
+			}
+			tx.oncomplete = () => {
+				db.close();
+				resolve();
+			};
+			tx.onerror = (e) => {
+				appLog.error("[interestStore] IDB Delete Error", e);
+				db.close();
+				resolve();
+			};
+		});
+	},
+
 	async cleanup(): Promise<void> {
 		const db = await openDatabase();
 		if (!db) return;

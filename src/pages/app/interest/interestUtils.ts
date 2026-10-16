@@ -290,25 +290,26 @@ export function normalizeViews(
 		mergedMap.set(item.profileId, item);
 	}
 
-	// Stale synthetic preview IDs (e.g. from before this hash was resolvable) keyed by
-	// hash, so a newly-recovered real ID for the same hash can evict its old locked twin.
-	const staleSyntheticIdByHash = new Map<string, string>();
-	for (const item of previouslyCached) {
-		if (item.profileId.startsWith(PREVIEW_ID_PREFIX) && item.imageHash) {
-			staleSyntheticIdByHash.set(item.imageHash, item.profileId);
-		}
-	}
-
 	// Then fresh profiles/previews from server (overwrite old items with new timestamps)
 	for (const incoming of [...incomingProfiles, ...incomingPreviews]) {
-		if (!incoming.profileId.startsWith(PREVIEW_ID_PREFIX) && incoming.imageHash) {
-			const staleId = staleSyntheticIdByHash.get(incoming.imageHash);
-			if (staleId && staleId !== incoming.profileId) {
-				mergedMap.delete(staleId);
-			}
-		}
 		const existing = mergedMap.get(incoming.profileId);
 		mergedMap.set(incoming.profileId, mergeViewItem(existing ?? null, incoming));
+	}
+
+	// Drop locked synthetic previews whose hash now belongs to a real profile.
+	// Checked against the whole merged set, not just this response: the cached
+	// locked twin otherwise survives (and reappears next to the unlocked entry)
+	// once the real profile is only in the cache and no longer in the response.
+	const realHashes = new Set<string>();
+	for (const item of mergedMap.values()) {
+		if (item.imageHash && !item.profileId.startsWith(PREVIEW_ID_PREFIX)) {
+			realHashes.add(item.imageHash);
+		}
+	}
+	for (const [id, item] of mergedMap) {
+		if (id.startsWith(PREVIEW_ID_PREFIX) && item.imageHash && realHashes.has(item.imageHash)) {
+			mergedMap.delete(id);
+		}
 	}
 
 	return Array.from(mergedMap.values()).sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));

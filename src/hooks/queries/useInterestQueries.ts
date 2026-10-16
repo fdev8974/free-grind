@@ -51,9 +51,15 @@ export function useInterestData() {
 				api.getProfilesByIds,
 			);
 
-			// 4. Update persistence store with merged views
+			// 4. Update persistence store with merged views, and drop cached rows
+			// the merge evicted (locked previews resolved to a real profile) —
+			// otherwise they come back from IndexedDB on the next load.
 			await interestViewsStore.upsertMany(
 				normalizedViews.map((item) => toStoredView(item))
+			);
+			const keptIds = new Set(normalizedViews.map((item) => item.profileId));
+			await interestViewsStore.deleteMany(
+				cachedViews.filter((item) => !keptIds.has(item.profileId)).map((item) => item.profileId)
 			);
 
 			return {
