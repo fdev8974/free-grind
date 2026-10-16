@@ -397,7 +397,7 @@
         "not_specified": "Nicht angegeben",
         "sort": {
             "default": "Standard",
-            "distance": "Entfernung",
+            "original": "",
             "youngest": "Jüngste",
             "oldest": "Älteste",
             "popular": "Beliebt",

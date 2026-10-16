@@ -402,7 +402,7 @@
         "not_specified": "Sem especificação",
         "sort": {
             "default": "Padrão",
-            "distance": "Distância",
+            "original": "",
             "youngest": "Mais jovem",
             "oldest": "Mais velho",
             "popular": "Popular",

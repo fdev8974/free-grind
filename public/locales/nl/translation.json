@@ -397,7 +397,7 @@
         "not_specified": "Niet opgegeven",
         "sort": {
             "default": "Standaard",
-            "distance": "Afstand",
+            "original": "",
             "youngest": "Jongste",
             "oldest": "Oudste",
             "popular": "Populair",

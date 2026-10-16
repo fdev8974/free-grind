@@ -403,7 +403,7 @@
         "not_specified": "Није наведено",
         "sort": {
             "default": "Подразумевано",
-            "distance": "Удаљеност",
+            "original": "",
             "youngest": "Најмлађи",
             "oldest": "Најстарији",
             "popular": "Популарни",

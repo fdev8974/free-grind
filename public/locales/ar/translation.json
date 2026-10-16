@@ -417,7 +417,7 @@
         "not_specified": "غير محدد",
         "sort": {
             "default": "تقصير",
-            "distance": "مسافة",
+            "original": "",
             "youngest": "الأصغر سناً",
             "oldest": "الاكبر سناً",
             "popular": "شائع",

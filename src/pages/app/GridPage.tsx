@@ -383,11 +383,15 @@ export function GridPage() {
 	// mode only offers the ones that still make sense (see the reset effect above).
 	const sortOptions = useMemo<{ value: BrowseSortOption; label: string }[]>(
 		() => [
-			{ value: "default", label: t("browse_filters.sort.default") },
+			// Distance is the default sort, so it carries the "Default" label;
+			// raw server order is offered as "Original".
+			...(exploreLocation
+				? []
+				: [{ value: "distance" as const, label: t("browse_filters.sort.default") }]),
+			{ value: "default", label: t("browse_filters.sort.original", { defaultValue: "Original" }) },
 			...(exploreLocation
 				? []
 				: [
-					{ value: "distance" as const, label: t("browse_filters.sort.distance") },
 					{ value: "age-asc" as const, label: t("browse_filters.sort.youngest") },
 					{ value: "age-desc" as const, label: t("browse_filters.sort.oldest") },
 					{ value: "popular" as const, label: t("browse_filters.sort.popular") },
@@ -396,6 +400,8 @@ export function GridPage() {
 		],
 		[exploreLocation, t],
 	);
+	// Explore mode has no distance sort, so server order is its default there.
+	const isDefaultSort = sortBy === (exploreLocation ? "default" : "distance");
 
 	const {
 		tappingProfileId,
@@ -1618,6 +1624,24 @@ export function GridPage() {
 								<div className="flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">
 									<button
 										type="button"
+										onClick={() => setIsSortSheetOpen(true)}
+										title={t("browse_page.sort")}
+										aria-label={t("browse_page.sort")}
+										className={cn(
+											"glass-pill inline-flex shrink-0 items-center gap-1.5 py-2 text-sm font-bold transition-all active:scale-95",
+											isDefaultSort ? "px-3" : "px-4",
+											exploreLocation
+												? "text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
+												: "text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
+										)}
+										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
+									>
+										<ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+										{!isDefaultSort && (sortOptions.find((option) => option.value === sortBy)?.label ?? sortOptions[0].label)}
+									</button>
+
+									<button
+										type="button"
 										onClick={() => setIsFiltersOpen(true)}
 										className={cn(
 											"inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all active:scale-95",
@@ -1647,21 +1671,6 @@ export function GridPage() {
 												{activeFilterCount}
 											</span>
 										) : null}
-									</button>
-
-									<button
-										type="button"
-										onClick={() => setIsSortSheetOpen(true)}
-										className={cn(
-											"glass-pill inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all active:scale-95",
-											exploreLocation
-												? "text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
-												: "text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
-										)}
-										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
-									>
-										<ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
-										{sortOptions.find((option) => option.value === sortBy)?.label ?? sortOptions[0].label}
 									</button>
 
 									{!exploreLocation && (

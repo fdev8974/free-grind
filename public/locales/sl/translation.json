@@ -407,7 +407,7 @@
         "not_specified": "Ni navedeno",
         "sort": {
             "default": "Privzeto",
-            "distance": "Razdalja",
+            "original": "",
             "youngest": "Najmlajši",
             "oldest": "Najstarejši",
             "popular": "Priljubljeno",
