@@ -2286,7 +2286,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[var(--border)]" />
 							</div>
 						)}
-						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${slashMatches.length > 0 ? "rounded-b-xl border-t-0" : !isDesktop ? "rounded-[1.25rem]" : "rounded-xl"} border py-1.5 mb-2 transition-colors ${
+						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${slashMatches.length > 0 ? "rounded-b-xl border-t-0" : !isDesktop ? "rounded-[21px]" : "rounded-xl"} border py-1 mb-2 transition-colors ${
 							!isDesktop && slashMatches.length === 0
 								// Mobile: no outline, state is shown through the fill instead.
 								? isRecording
