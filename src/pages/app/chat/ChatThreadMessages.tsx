@@ -560,6 +560,10 @@ export function ChatThreadMessages({
 	} | null>(null);
 	const SWIPE_REPLY_THRESHOLD = 55;
 	const SWIPE_REPLY_MAX_DRAG = 80;
+	// iOS's back gesture starts at the screen's left edge and drags right —
+	// the same direction as swipe-to-reply. Leave that strip to the system.
+	const IOS_BACK_EDGE_WIDTH = 30;
+	const onIos = useMemo(() => isIos(), []);
 	const swipeElRef = useRef(new Map<string, HTMLDivElement>());
 	const swipeIconRef = useRef(new Map<string, HTMLDivElement>());
 
@@ -588,6 +592,7 @@ export function ChatThreadMessages({
 				isDesktop ||
 				isArchived ||
 				event.touches.length !== 1 ||
+				(onIos && event.touches[0].clientX < IOS_BACK_EDGE_WIDTH) ||
 				isLocalClientMessageId(message.messageId) ||
 				isLocalHistoryMessage(message)
 			) {
@@ -603,7 +608,7 @@ export function ChatThreadMessages({
 				armed: false,
 			};
 		},
-		[isArchived, isDesktop, startMessageLongPress],
+		[isArchived, isDesktop, onIos, startMessageLongPress],
 	);
 
 	const handleMobileTouchMove = useCallback(
@@ -1398,7 +1403,9 @@ export function ChatThreadMessages({
                                 }
                             }}
                             className={`relative flex w-full ${mine ? "justify-end" : "justify-start"} ${isLastMessage && !mine ? "pb-6" : ""}`}
-                        style={{ touchAction: "pan-y" }}
+                        // pan-y would also veto WebKit's horizontal edge-swipe-back on iOS;
+                        // the scroller is overflow-x-hidden, so nothing else pans sideways.
+                        style={onIos ? undefined : { touchAction: "pan-y" }}
                         onTouchStart={(event) => handleMobileTouchStart(event, message)}
                         onTouchEnd={handleMobileTouchEnd}
                         onTouchCancel={handleMobileTouchCancel}
