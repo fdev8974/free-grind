@@ -1,8 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	Ban,
-	Bot,
 	CalendarClock,
 	ChevronRight,
 	CircleCheck,
@@ -13,10 +12,10 @@ import {
 	Loader2,
 	ScrollText,
 	ShieldAlert,
-	Tag,
 	type LucideIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { BotFilled, TagFilled } from "./icons/FilledIcons";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { useAuth } from "../contexts/useAuth";
 import type { AccountStatus } from "../contexts/auth-context";
@@ -26,7 +25,7 @@ import { hourCycleOptions } from "../utils/timeFormat";
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
 /** `highlight` marks a value that needs the user's attention (accent color). */
-type Detail = { icon: LucideIcon; label: string; value: string; highlight?: boolean };
+type Detail = { icon: LucideIcon | ComponentType<{ className?: string }>; label: string; value: string; highlight?: boolean };
 
 /**
  * Grindr's codes ("DRUG_SALES") as readable text ("Drug sales"); anything
@@ -108,14 +107,14 @@ function banDetailRows(subReason: string | null | undefined, automated: boolean 
 	const rows: Detail[] = [];
 	if (subReason) {
 		rows.push({
-			icon: Tag,
+			icon: TagFilled,
 			label: t("account_status.details.sub_reason", { defaultValue: "Sub-reason" }),
 			value: humanize(subReason),
 		});
 	}
 	if (automated != null) {
 		rows.push({
-			icon: Bot,
+			icon: BotFilled,
 			label: t("account_status.details.automated", { defaultValue: "Automated" }),
 			value: automated
 				? t("account_status.details.yes", { defaultValue: "Yes" })
