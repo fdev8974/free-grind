@@ -357,6 +357,8 @@
         "visibility": "Vidljivost",
         "status_hidden": "Trenutno skriveno",
         "status_visible": "Javno vidljivo",
+        "visibility_visible_desc": "",
+        "visibility_hidden_desc": "",
         "weekly_limit": "Sedmične sesije",
         "remaining_count": "dostupno",
         "next_refresh": "Sljedeće osvježavanje",

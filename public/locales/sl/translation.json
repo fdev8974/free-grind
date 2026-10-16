@@ -362,6 +362,8 @@
         "visibility": "Vidnost",
         "status_hidden": "Trenutno skrito",
         "status_visible": "Javno vidno",
+        "visibility_visible_desc": "",
+        "visibility_hidden_desc": "",
         "weekly_limit": "Tedenske seje",
         "remaining_count": "na voljo",
         "next_refresh": "Naslednja osvežitev",

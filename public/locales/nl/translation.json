@@ -352,6 +352,8 @@
         "visibility": "Zichtbaarheid",
         "status_hidden": "Momenteel verborgen",
         "status_visible": "Openbaar zichtbaar",
+        "visibility_visible_desc": "",
+        "visibility_hidden_desc": "",
         "weekly_limit": "Wekelijkse sessies",
         "remaining_count": "beschikbaar",
         "next_refresh": "Volgende vernieuwing",

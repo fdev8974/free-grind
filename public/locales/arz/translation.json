@@ -372,6 +372,8 @@
         "visibility": "الرؤية",
         "status_hidden": "مخفي دلوقتي",
         "status_visible": "مرئي للعامة",
+        "visibility_visible_desc": "",
+        "visibility_hidden_desc": "",
         "weekly_limit": "جلسات أسبوعية",
         "remaining_count": "متاح",
         "next_refresh": "التحديث التالي",

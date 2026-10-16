@@ -521,7 +521,11 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 												isHidden ? "bg-[var(--surface)] text-[var(--text-muted)]" : "bg-[var(--right-now)] text-white"
 											)}
 											label={t("right_now.visibility")}
-											description={isHidden ? t("right_now.status_hidden") : t("right_now.status_visible")}
+											description={
+												isHidden
+													? t("right_now.visibility_hidden_desc", { defaultValue: "Paused, nobody nearby can see your session" })
+													: t("right_now.visibility_visible_desc", { defaultValue: "Your session shows up in the Right Now feed" })
+											}
 											checked={!isHidden}
 											onChange={(checked) => setIsHidden(!checked)}
 											dense

@@ -358,6 +358,8 @@
         "visibility": "Видљивост",
         "status_hidden": "Тренутно сакривено",
         "status_visible": "Јавно видљиво",
+        "visibility_visible_desc": "",
+        "visibility_hidden_desc": "",
         "weekly_limit": "Недељне сесије",
         "remaining_count": "доступно",
         "next_refresh": "Следеће обнављање",

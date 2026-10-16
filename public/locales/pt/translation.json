@@ -357,6 +357,8 @@
         "visibility": "Visibilidade",
         "status_hidden": "Atualmente oculto",
         "status_visible": "Publicamente visível",
+        "visibility_visible_desc": "",
+        "visibility_hidden_desc": "",
         "weekly_limit": "Sessões Semanais",
         "remaining_count": "disponível",
         "next_refresh": "Próxima atualização",

@@ -352,6 +352,8 @@
     "visibility": "Visibility",
     "status_hidden": "Currently hidden",
     "status_visible": "Publicly visible",
+    "visibility_visible_desc": "Your session shows up in the Right Now feed",
+    "visibility_hidden_desc": "Paused, nobody nearby can see your session",
     "weekly_limit": "Weekly Sessions",
     "remaining_count": "available",
     "next_refresh": "Next refresh",
