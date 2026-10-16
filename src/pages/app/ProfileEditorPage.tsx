@@ -639,6 +639,7 @@ export function ProfileEditorPage() {
 		}
 	}, [isPhotoDrawerOpen, loadPoolImages]);
 
+	const photoDrawerCloseRef = useRef<(() => void) | null>(null);
 	const handleAddSelectedImages = useCallback(
 		async (hashes: string[]) => {
 			const newHashes = hashes.filter(
@@ -656,7 +657,9 @@ export function ProfileEditorPage() {
 				[...profilePhotoHashes, ...newHashes.slice(0, remainingSlots)],
 				{ successMessage: t("profile_editor.toasts.photo_added") },
 			);
-			setIsPhotoDrawerOpen(false);
+			// Animated close; falls back to unmounting if the drawer is already gone.
+			if (photoDrawerCloseRef.current) photoDrawerCloseRef.current();
+			else setIsPhotoDrawerOpen(false);
 		},
 		[profilePhotoHashes, persistProfilePhotos, t],
 	);
@@ -1039,6 +1042,7 @@ export function ProfileEditorPage() {
 					onDeleteImage={handleDeletePoolImage}
 					onUploadFile={handleDrawerUploadFile}
 					onClose={() => setIsPhotoDrawerOpen(false)}
+					closeRef={photoDrawerCloseRef}
 					isDesktop={isDesktop}
 				/>
 			) : null}

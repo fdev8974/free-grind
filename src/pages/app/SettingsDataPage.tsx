@@ -69,6 +69,8 @@ export function SettingsDataPage() {
 
 	const [exportCategories, setExportCategories] = useState<Set<BackupCategoryId>>(new Set(BACKUP_CATEGORY_IDS));
 	const [showExportCategoryPicker, setShowExportCategoryPicker] = useState(false);
+	// Closes the export picker animated once the export has finished.
+	const exportSheetCloseRef = useRef<(() => void) | null>(null);
 	const [pendingImport, setPendingImport] = useState<{
 		tempPath: string;
 		categories: BackupCategoryId[];
@@ -725,6 +727,7 @@ export function SettingsDataPage() {
 			{showExportCategoryPicker && (
 				<BottomSheet
 					onClose={() => setShowExportCategoryPicker(false)}
+					closeRef={exportSheetCloseRef}
 					isDesktop={isDesktop}
 					isProcessing={isExporting}
 					panelClassName="max-h-[82dvh]"
@@ -757,7 +760,7 @@ export function SettingsDataPage() {
 								void (async () => {
 									const success = await handleExport();
 									if (success) {
-										setShowExportCategoryPicker(false);
+										exportSheetCloseRef.current?.();
 									}
 								})();
 							}}

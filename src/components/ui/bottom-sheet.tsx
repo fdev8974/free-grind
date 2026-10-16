@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { onBackButtonPress } from "@tauri-apps/api/app";
 import { platform } from "@tauri-apps/plugin-os";
 
@@ -53,6 +53,11 @@ interface BottomSheetProps {
 	zIndex?: string;
 	bg?: string;
 	panelClassName?: string;
+	/** Receives the sheet's animated close, for code outside its children —
+	 * e.g. a parent closing it once an async action succeeded. Use this
+	 * instead of unmounting the sheet directly, which skips the slide-out
+	 * and leaves its history entry behind. Works even while isProcessing. */
+	closeRef?: MutableRefObject<(() => void) | null>;
 	children: ReactNode;
 }
 
@@ -64,6 +69,7 @@ export function BottomSheet({
 	zIndex = "z-[60]",
 	bg = "bg-[var(--surface)]",
 	panelClassName = "",
+	closeRef,
 	children,
 }: BottomSheetProps) {
 	const [dragY, setDragY] = useState(0);
@@ -92,8 +98,8 @@ export function BottomSheet({
 		};
 	}, []);
 
-	const animateClose = useCallback(() => {
-		if (isProcessing || closingRef.current) return;
+	const closeAnimated = useCallback(() => {
+		if (closingRef.current) return;
 		closingRef.current = true;
 		if (!backAlreadyDoneRef.current && didPushHistoryRef.current) {
 			didPushHistoryRef.current = false;
@@ -101,9 +107,22 @@ export function BottomSheet({
 		}
 		setIsClosing(true);
 		closeTimerRef.current = setTimeout(onClose, 320);
-	}, [isProcessing, onClose]);
+	}, [onClose]);
+
+	const animateClose = useCallback(() => {
+		if (isProcessing) return;
+		closeAnimated();
+	}, [isProcessing, closeAnimated]);
 
 	useEffect(() => { animateCloseRef.current = animateClose; }, [animateClose]);
+
+	useEffect(() => {
+		if (!closeRef) return;
+		closeRef.current = closeAnimated;
+		return () => {
+			if (closeRef.current === closeAnimated) closeRef.current = null;
+		};
+	}, [closeRef, closeAnimated]);
 
 	const isProcessingRef = useRef(isProcessing);
 	useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);

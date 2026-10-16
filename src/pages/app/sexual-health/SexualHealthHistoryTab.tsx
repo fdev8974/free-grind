@@ -203,10 +203,7 @@ export function SexualHealthHistoryTab({
 			{isLogSheetOpen && (
 				<EncounterLogSheet
 					onClose={() => setIsLogSheetOpen(false)}
-					onLogged={() => {
-						setIsLogSheetOpen(false);
-						reload();
-					}}
+					onLogged={reload}
 				/>
 			)}
 
@@ -217,14 +214,8 @@ export function SexualHealthHistoryTab({
 						editingEncounter.profileId != null ? avatarByProfileId[editingEncounter.profileId] ?? null : null
 					}
 					onClose={() => setEditingEncounter(null)}
-					onLogged={() => {
-						setEditingEncounter(null);
-						reload();
-					}}
-					onDeleted={() => {
-						setEditingEncounter(null);
-						reload();
-					}}
+					onLogged={reload}
+					onDeleted={reload}
 				/>
 			)}
 		</div>

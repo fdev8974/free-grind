@@ -194,10 +194,8 @@ export function DrawerCollectionsSection({
 					error={drawerMediaError}
 					onReloadMedia={() => loadDrawerMedia(true)}
 					onClose={() => setEditing(undefined)}
-					onSaved={(items) => {
-						setCollections(items);
-						setEditing(undefined);
-					}}
+					// The sheet closes itself (animated) after saving; onClose then clears `editing`.
+					onSaved={(items) => setCollections(items)}
 					isDesktop={isDesktop}
 				/>
 			) : null}

@@ -490,6 +490,7 @@ export function SettingsAlbumsPage() {
 
 	// Photos go in by drawer id. Videos can't (the by-id endpoint doesn't add
 	// them), so they're downloaded from the drawer and uploaded directly.
+	const drawerPickerCloseRef = useRef<(() => void) | null>(null);
 	const handleAddFromDrawer = async (mediaIds: number[]) => {
 		if (!drawerPickerAlbumId || mediaIds.length === 0) return;
 		const albumId = drawerPickerAlbumId;
@@ -517,7 +518,9 @@ export function SettingsAlbumsPage() {
 			}
 			if (added > 0) toast.success(t("settings_albums.toast_added_from_drawer", { count: added }));
 			await loadAlbumDetails(albumId, true);
-			setDrawerPickerAlbumId(null);
+			// Animated close; falls back to unmounting if the sheet is already gone.
+			if (drawerPickerCloseRef.current) drawerPickerCloseRef.current();
+			else setDrawerPickerAlbumId(null);
 		} catch (addError) {
 			toast.error(addError instanceof Error ? addError.message : t("settings_albums.error_upload_fallback"));
 		} finally {
@@ -1450,6 +1453,7 @@ export function SettingsAlbumsPage() {
 						onLoadMedia={() => loadDrawerMedia(true)}
 						onClose={() => setDrawerPickerAlbumId(null)}
 						onConfirm={handleAddFromDrawer}
+						closeRef={drawerPickerCloseRef}
 						isSubmitting={isAddingFromDrawer}
 						remainingSlots={remainingSlots}
 						isDesktop={isDesktop}

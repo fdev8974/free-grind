@@ -13,7 +13,7 @@ import {
 	DrawerMediaTile,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
@@ -89,6 +89,7 @@ export function DrawerCollectionEditorSheet({
 	}, [onReloadMedia]);
 	const deletion = useDrawerMediaDelete({ onDeleted: removeDeleted });
 
+	const sheetCloseRef = useRef<(() => void) | null>(null);
 	const handleSave = useCallback(async () => {
 		const trimmed = name.trim();
 		// Prune deleted drawer media only when the drawer actually loaded, so a
@@ -104,6 +105,7 @@ export function DrawerCollectionEditorSheet({
 				mediaIds,
 			});
 			onSaved(collections);
+			sheetCloseRef.current?.();
 		} catch (saveError) {
 			appLog.error("[DrawerCollectionEditorSheet] failed to save collection", saveError);
 			toast.error(t("settings_albums.collections_save_failed"));
@@ -114,7 +116,10 @@ export function DrawerCollectionEditorSheet({
 
 	return (
 		<BottomSheet
-			onClose={isBusy ? () => {} : onClose}
+			// isProcessing blocks user closes while busy; onClose stays real so the
+			// post-save close (sheetCloseRef) still unmounts.
+			onClose={onClose}
+			closeRef={sheetCloseRef}
 			isProcessing={isBusy}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"

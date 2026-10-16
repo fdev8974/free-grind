@@ -13,7 +13,7 @@ import {
 	DrawerMediaTile,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
@@ -32,6 +32,8 @@ interface AlbumDrawerPickerSheetProps {
 	isSubmitting: boolean;
 	remainingSlots: number;
 	isDesktop: boolean;
+	/** Animated close for the parent to call once the confirm action succeeded. */
+	closeRef?: MutableRefObject<(() => void) | null>;
 }
 
 export function AlbumDrawerPickerSheet({
@@ -44,6 +46,7 @@ export function AlbumDrawerPickerSheet({
 	isSubmitting,
 	remainingSlots,
 	isDesktop,
+	closeRef,
 }: AlbumDrawerPickerSheetProps) {
 	const { t } = useTranslation();
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
@@ -105,7 +108,9 @@ export function AlbumDrawerPickerSheet({
 
 	return (
 		<BottomSheet
-			onClose={isBusy ? () => {} : onClose}
+			// isProcessing blocks user closes while busy; onClose stays real for closeRef.
+			onClose={onClose}
+			closeRef={closeRef}
 			isProcessing={isBusy}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"

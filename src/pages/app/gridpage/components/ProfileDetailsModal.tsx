@@ -1536,7 +1536,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		<EncounterLogSheet
 			prefill={encounterPrefill}
 			onClose={() => setEncounterPrefill(null)}
-			onLogged={() => setEncounterPrefill(null)}
 		/>
 	) : null;
 

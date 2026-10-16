@@ -410,6 +410,17 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const [banWordPrompt, setBanWordPrompt] = useState<{ text: string } | null>(null);
 	const [banNamePrompt, setBanNamePrompt] = useState<{ text: string } | null>(null);
 	const [isSavedPhrasesOpen, setIsSavedPhrasesOpen] = useState(false);
+	// Animated close for the saved phrases / merge sheets, plus an action to
+	// run once they're gone (navigation or the next dialog would otherwise race
+	// the sheet popping its own history entry).
+	const savedPhrasesSheetCloseRef = useRef<(() => void) | null>(null);
+	const mergeSheetCloseRef = useRef<(() => void) | null>(null);
+	const afterSheetCloseRef = useRef<(() => void) | null>(null);
+	const runAfterSheetClose = () => {
+		const action = afterSheetCloseRef.current;
+		afterSheetCloseRef.current = null;
+		action?.();
+	};
 	const [isEncounterSheetOpen, setIsEncounterSheetOpen] = useState(false);
 	const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 	const closeReportDialog = useCallback(() => setIsReportDialogOpen(false), []);
@@ -1923,7 +1934,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									avatarSrc: resolveAvatarSrc(avatarHash, getParticipantAvatarUrl(avatarHash)),
 								}}
 								onClose={() => setIsEncounterSheetOpen(false)}
-								onLogged={() => setIsEncounterSheetOpen(false)}
 							/>
 						) : null}
 					</>
@@ -2750,7 +2760,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							onClose={() => {
 								setPhrasesExpanded(false);
 								setIsSavedPhrasesOpen(false);
+								runAfterSheetClose();
 							}}
+							closeRef={savedPhrasesSheetCloseRef}
 							onExpand={() => setPhrasesExpanded(true)}
 							isDesktop={isDesktop}
 							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
@@ -2770,7 +2782,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									<div className="flex items-center gap-1">
 										<button
 											type="button"
-											onClick={() => { setIsSavedPhrasesOpen(false); navigate("/settings/data"); }}
+											onClick={() => {
+												afterSheetCloseRef.current = () => navigate("/settings/data");
+												savedPhrasesSheetCloseRef.current?.();
+											}}
 											className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
 											aria-label={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
 											title={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
@@ -2845,7 +2860,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 
 					{isMergeSheetOpen ? (
 						<BottomSheet
-							onClose={() => setIsMergeSheetOpen(false)}
+							onClose={() => {
+								setIsMergeSheetOpen(false);
+								runAfterSheetClose();
+							}}
+							closeRef={mergeSheetCloseRef}
 							isDesktop={isDesktop}
 							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 						>
@@ -2888,8 +2907,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													key={conversation.data.conversationId}
 													type="button"
 													onClick={() => {
-														setIsMergeSheetOpen(false);
-														setMergeConfirmTarget(conversation);
+														afterSheetCloseRef.current = () => setMergeConfirmTarget(conversation);
+														mergeSheetCloseRef.current?.();
 													}}
 													className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-[var(--surface-2)]"
 												>

@@ -14,7 +14,7 @@ import {
 	Video,
 	X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDrawerMediaDelete } from "./useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "./useDrawerUploadQueue";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
@@ -296,6 +296,21 @@ export function ChatDrawerPanel({
 	const selectedCollection = collections.find((c) => c.id === selectedCollectionId) ?? null;
 	const sendIds = selectedCollection ? getPresentCollectionMediaIds(selectedCollection) : Array.from(selectedIds);
 
+	// Closes the sheet animated (sliding out and popping its history entry),
+	// then runs `after` — e.g. a navigation that would otherwise race that pop.
+	const sheetCloseRef = useRef<(() => void) | null>(null);
+	const afterCloseRef = useRef<(() => void) | null>(null);
+	const closeSheet = useCallback((after?: () => void) => {
+		afterCloseRef.current = after ?? null;
+		if (sheetCloseRef.current) {
+			sheetCloseRef.current();
+		} else {
+			afterCloseRef.current = null;
+			onBack();
+			after?.();
+		}
+	}, [onBack]);
+
 	const handleSendSelected = useCallback(async () => {
 		if (sendIds.length === 0) {
 			toast.error(
@@ -308,12 +323,12 @@ export function ChatDrawerPanel({
 			setSelectedIds(new Set());
 			setSelectedCollectionId(null);
 			setMediaMaxViews(defaultImageMaxViews);
-			onBack();
+			closeSheet();
 		} catch (err) {
 			const message = err instanceof Error ? err.message : t("chat_drawer.error_send_failed");
 			toast.error(message);
 		}
-	}, [sendIds, selectedCollection, onSendMedia, onBack, t, mediaMaxViews, defaultImageMaxViews]);
+	}, [sendIds, selectedCollection, onSendMedia, closeSheet, t, mediaMaxViews, defaultImageMaxViews]);
 	const hasSelection = selectedIds.size > 0;
 	const hasAlbumSelection = selectedAlbumIds.size > 0;
 	const hasCollectionSelection = selectedCollection != null;
@@ -348,8 +363,7 @@ export function ChatDrawerPanel({
 
 	// Albums and collections are both created on the albums settings page.
 	const openAlbumsPage = () => {
-		onBack();
-		navigate("/settings/albums");
+		closeSheet(() => navigate("/settings/albums"));
 	};
 	// Empty album/collection tabs: both are created on the albums settings page.
 	const renderCreateButton = (label: string) => (
@@ -405,8 +419,7 @@ export function ChatDrawerPanel({
 							icon={<Pencil className="h-2.5 w-2.5" />}
 							label={t("chat_drawer.album_edit", { defaultValue: "Edit album" })}
 							onClick={() => {
-								onBack();
-								navigate("/settings/albums", { state: { openAlbumId: album.albumId } });
+								closeSheet(() => navigate("/settings/albums", { state: { openAlbumId: album.albumId } }));
 							}}
 						/>
 					</>
@@ -499,8 +512,7 @@ export function ChatDrawerPanel({
 							icon={<Pencil className="h-2.5 w-2.5" />}
 							label={t("chat_drawer.collection_edit", { defaultValue: "Edit collection" })}
 							onClick={() => {
-								onBack();
-								navigate("/settings/albums", { state: { openCollectionId: collection.id } });
+								closeSheet(() => navigate("/settings/albums", { state: { openCollectionId: collection.id } }));
 							}}
 						/>
 					</>
@@ -515,7 +527,15 @@ export function ChatDrawerPanel({
 
 	return (
 		<BottomSheet
-			onClose={isSending || upload.isUploading ? () => {} : onBack}
+			// isProcessing already blocks user-initiated closes while busy; onClose
+			// must stay real so a programmatic close (closeRef) still unmounts.
+			onClose={() => {
+				onBack();
+				const after = afterCloseRef.current;
+				afterCloseRef.current = null;
+				after?.();
+			}}
+			closeRef={sheetCloseRef}
 			isProcessing={isSending || upload.isUploading}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
@@ -695,7 +715,7 @@ export function ChatDrawerPanel({
 												type="button"
 												onClick={() => {
 													if (selectedAlbumIds.size === 0 || !onStopAlbumShare) return;
-													void Promise.all([...selectedAlbumIds].map(id => onStopAlbumShare!(id))).then(() => { setSelectedAlbumIds(new Set()); onBack(); });
+													void Promise.all([...selectedAlbumIds].map(id => onStopAlbumShare!(id))).then(() => { setSelectedAlbumIds(new Set()); closeSheet(); });
 												}}
 												disabled={isSharingAlbum}
 												className="min-w-0 flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:opacity-60"
@@ -722,7 +742,7 @@ export function ChatDrawerPanel({
 												type="button"
 												onClick={() => {
 													if (selectedAlbumIds.size === 0 || !onShareAlbum) return;
-													void Promise.all([...selectedAlbumIds].map(id => onShareAlbum!(id, albumExpirationType))).then(() => { setSelectedAlbumIds(new Set()); onBack(); });
+													void Promise.all([...selectedAlbumIds].map(id => onShareAlbum!(id, albumExpirationType))).then(() => { setSelectedAlbumIds(new Set()); closeSheet(); });
 												}}
 												disabled={isSharingAlbum}
 												className={DRAWER_PRIMARY_BUTTON_CLASS}

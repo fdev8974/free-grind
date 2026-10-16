@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -24,7 +24,9 @@ interface EncounterLogSheetProps {
 	editingEncounter?: Encounter;
 	editingAvatarSrc?: string | null;
 	onClose: () => void;
-	onLogged: () => void;
+	/** After a successful save. The sheet closes itself (animated); onClose follows once it's gone. */
+	onLogged?: () => void;
+	/** After a successful delete; the sheet closes itself as with onLogged. */
 	onDeleted?: () => void;
 }
 
@@ -40,6 +42,7 @@ export function EncounterLogSheet({
 	const isDesktop = useDesktopBreakpoint();
 	const [scheme] = usePrepScheme();
 	const isEditing = editingEncounter != null;
+	const sheetCloseRef = useRef<(() => void) | null>(null);
 	const [person, setPerson] = useState<PickedPerson | null>(
 		editingEncounter
 			? {
@@ -102,7 +105,8 @@ export function EncounterLogSheet({
 				});
 				toast.success(t("sexualHealth.encounter.saved", { defaultValue: "Encounter logged" }));
 			}
-			onLogged();
+			onLogged?.();
+			sheetCloseRef.current?.();
 		} catch {
 			toast.error(t("sexualHealth.encounter.save_failed", { defaultValue: "Could not log this encounter." }));
 		} finally {
@@ -116,6 +120,7 @@ export function EncounterLogSheet({
 		try {
 			await deleteEncounter(editingEncounter.id);
 			onDeleted?.();
+			sheetCloseRef.current?.();
 		} finally {
 			setIsDeleting(false);
 			setIsConfirmingDelete(false);
@@ -129,7 +134,7 @@ export function EncounterLogSheet({
 	// this "fixed inset-0" overlay to that container's box instead of the
 	// real viewport, leaving it stuck behind the app's fixed bottom nav bar.
 	return createPortal(
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} isProcessing={isSaving}>
+		<BottomSheet onClose={onClose} closeRef={sheetCloseRef} isDesktop={isDesktop} isProcessing={isSaving}>
 			<div className="flex items-center justify-between px-4 pb-3">
 				<p className="text-sm font-semibold text-[var(--text)]">
 					{isEditing

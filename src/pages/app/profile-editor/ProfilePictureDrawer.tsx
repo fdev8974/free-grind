@@ -11,7 +11,7 @@ import {
 	DrawerMediaTile,
 	useDrawerAddActions,
 } from "../chat/drawerUi";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -38,6 +38,8 @@ interface ProfilePictureDrawerProps {
 	onUploadFile: (file: File) => void;
 	onClose: () => void;
 	isDesktop: boolean;
+	/** Animated close for the parent to call once adding photos succeeded. */
+	closeRef?: MutableRefObject<(() => void) | null>;
 }
 
 export function ProfilePictureDrawer({
@@ -54,6 +56,7 @@ export function ProfilePictureDrawer({
 	onUploadFile,
 	onClose,
 	isDesktop,
+	closeRef,
 }: ProfilePictureDrawerProps) {
 	const { t } = useTranslation();
 	const [confirmDeleteHash, setConfirmDeleteHash] = useState<string | null>(null);
@@ -118,7 +121,9 @@ export function ProfilePictureDrawer({
 
 	return (
 		<BottomSheet
-			onClose={isSelecting ? () => {} : onClose}
+			// isProcessing blocks user closes while busy; onClose stays real for closeRef.
+			onClose={onClose}
+			closeRef={closeRef}
 			isProcessing={isSelecting}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
