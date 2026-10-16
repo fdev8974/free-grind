@@ -1,10 +1,23 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { onBackButtonPress } from "@tauri-apps/api/app";
+import { platform } from "@tauri-apps/plugin-os";
 
 const BottomSheetContext = createContext<() => void>(() => {});
 
 // Open sheets in mount order, so Escape only closes the topmost one when a
 // sheet opens another on top of itself.
 const openSheets: object[] = [];
+
+/** Lets other back-button handlers (useAndroidBackToGrid) stand aside while a sheet handles it. */
+export const isAnyBottomSheetOpen = () => openSheets.length > 0;
+
+function isAndroid(): boolean {
+	try {
+		return platform() === "android";
+	} catch {
+		return false;
+	}
+}
 
 // Each sheet tags its own history entry, so with sheets stacked a back press
 // that lands on the lower sheet's entry still closes the upper one.
@@ -118,6 +131,29 @@ export function BottomSheet({
 		return () => {
 			const index = openSheets.indexOf(id);
 			if (index !== -1) openSheets.splice(index, 1);
+		};
+	}, []);
+
+	// Android back closes the topmost sheet directly instead of relying on the
+	// WebView's own history back: on the grid no back handler is registered
+	// (so back can leave the app there), and the native default only goes back
+	// when canGoBack() says so, which isn't reliable for pushState entries.
+	useEffect(() => {
+		if (!isAndroid()) return;
+		let cancelled = false;
+		let unregister: (() => void) | null = null;
+		onBackButtonPress(() => {
+			if (openSheets[openSheets.length - 1] !== sheetIdRef.current) return;
+			animateCloseRef.current();
+		})
+			.then((listener) => {
+				if (cancelled) void listener.unregister();
+				else unregister = () => void listener.unregister();
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+			unregister?.();
 		};
 	}, []);
 

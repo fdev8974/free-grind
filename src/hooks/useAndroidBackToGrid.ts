@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { onBackButtonPress } from "@tauri-apps/api/app";
 import { platform } from "@tauri-apps/plugin-os";
 import { appLog } from "../utils/logger";
+import { isAnyBottomSheetOpen } from "../components/ui/bottom-sheet";
 
 const GRID_PATH = "/";
 
@@ -39,6 +40,8 @@ export function useAndroidBackToGrid() {
 		let unregister: (() => void) | null = null;
 
 		onBackButtonPress(({ canGoBack }) => {
+			// An open bottom sheet registers its own handler and closes itself.
+			if (isAnyBottomSheetOpen()) return;
 			if (canGoBack) {
 				window.history.back();
 			} else if (window.location.pathname !== GRID_PATH) {
