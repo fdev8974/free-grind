@@ -323,7 +323,7 @@ export function InterestPage() {
 	const [showOnboarding, setShowOnboarding] = useState(() => {
 		return !localStorage.getItem(ONBOARDING_KEY);
 	});
-	const touchStartXRef = useRef<number | null>(null);
+	const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
 	const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
 	const feedContainerRef = useRef<HTMLDivElement | null>(null);
@@ -525,7 +525,8 @@ export function InterestPage() {
 	);
 
 	const handleTouchStart = useCallback((event: TouchEvent<HTMLDivElement>) => {
-		touchStartXRef.current = event.touches[0]?.clientX ?? null;
+		const touch = event.touches[0];
+		touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
 	}, []);
 
 	const tabOrder: InterestTab[] = useMemo(
@@ -559,13 +560,20 @@ export function InterestPage() {
 
 	const handleTouchEnd = useCallback(
 		(event: TouchEvent<HTMLDivElement>) => {
-			const startX = touchStartXRef.current;
-			if (startX == null) {
+			const start = touchStartRef.current;
+			touchStartRef.current = null;
+			if (start == null) {
 				return;
 			}
 
-			const endX = event.changedTouches[0]?.clientX ?? startX;
-			const deltaX = startX - endX;
+			const endTouch = event.changedTouches[0];
+			const deltaX = start.x - (endTouch?.clientX ?? start.x);
+			const deltaY = (endTouch?.clientY ?? start.y) - start.y;
+			// Only clearly horizontal gestures switch tabs — a slightly diagonal
+			// pull-to-refresh drag must not count as a swipe.
+			if (Math.abs(deltaX) < Math.abs(deltaY) * 2) {
+				return;
+			}
 			const currentIndex = tabOrder.indexOf(activeTab);
 
 			// Swipe left (positive deltaX) -> move to the next tab
@@ -577,8 +585,6 @@ export function InterestPage() {
 			if (deltaX < -70 && currentIndex > 0) {
 				handleSetActiveTab(tabOrder[currentIndex - 1]);
 			}
-
-			touchStartXRef.current = null;
 		},
 		[activeTab, handleSetActiveTab, tabOrder],
 	);
