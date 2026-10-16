@@ -1,25 +1,9 @@
-import {
-	ArrowUpDown,
-	Calendar,
-	Compass,
-	Dumbbell,
-	Heart,
-	HeartHandshake,
-	MapPin,
-	Ruler,
-	Scale,
-	Search,
-	ShieldAlert,
-	Tag as TagIcon,
-	Users,
-	X,
-	Zap,
-	type LucideIcon,
-} from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
 import { BottomSheet, SheetClose, useBottomSheetClose } from "../../components/ui/bottom-sheet";
+import { SheetChip, SheetSection } from "../../components/ui/sheet-section";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { cn } from "../../utils/cn";
@@ -252,107 +236,58 @@ function BrowseFiltersSheetContent({
 		handleClose();
 	};
 
-	const cardStyle: React.CSSProperties = {
-		backgroundColor: `color-mix(in srgb, ${accentColor}, transparent 96%)`,
-		border: `1px solid color-mix(in srgb, ${accentColor}, transparent 88%)`,
-	};
+	const inputClassName = cn(
+		"h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)]",
+		isExploreActive ? "focus:border-[var(--explore)]" : "focus:border-[var(--accent)]",
+	);
 
-	const LocalBadge = () => (
-		<span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-			<Zap className="h-2.5 w-2.5" />
+	const localBadge = (
+		<span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
 			{t("browse_filters.local_filters.badge")}
 		</span>
 	);
 
-	const renderSectionHeader = (title: string, Icon?: LucideIcon, isLocal?: boolean, valueBadge?: string) => (
-		<div className="mb-4 flex items-center justify-between gap-2.5">
-			<div className="flex items-center gap-2.5">
-				{Icon && <Icon className="h-4 w-4 shrink-0" style={{ color: accentColor }} />}
-				<p className="text-sm font-bold tracking-tight text-[var(--text)]">
-					{title}
-				</p>
-				{isLocal && <LocalBadge />}
-			</div>
-			{valueBadge && (
-				<span
-					className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-sm text-[var(--text)]"
-					style={{ backgroundColor: `color-mix(in srgb, ${accentColor}, transparent 85%)` }}
-				>
-					{valueBadge}
-				</span>
-			)}
-		</div>
-	);
-
-	const renderSection = (
+	const renderChipSection = (
 		title: string,
 		options: ManagedOption[],
 		selectedValues: number[],
 		onToggle: (value: number) => void,
-		icon?: LucideIcon,
 	) => (
-		<section className="rounded-2xl p-4" style={cardStyle}>
-			{renderSectionHeader(title, icon)}
+		<SheetSection title={title}>
 			<div className="flex flex-wrap gap-2">
-				{options.map((option) => {
-					const isSelected = selectedValues.includes(option.value);
-					return (
-						<button
-							key={`${title}-${option.value}`}
-							type="button"
-							onClick={() => onToggle(option.value)}
-							className={cn(
-								"rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-all active:scale-95",
-								isSelected
-									? isExploreActive
-										? "border-[var(--explore)] bg-[var(--explore)] text-white shadow-sm"
-										: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm"
-									: isExploreActive
-										? "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--explore)]/60 hover:text-[var(--text)]"
-										: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)]/60 hover:text-[var(--text)]",
-							)}
-						>
-							{option.label}
-						</button>
-					);
-				})}
+				{options.map((option) => (
+					<SheetChip
+						key={`${title}-${option.value}`}
+						active={selectedValues.includes(option.value)}
+						onClick={() => onToggle(option.value)}
+						accentColor={accentColor}
+					>
+						{option.label}
+					</SheetChip>
+				))}
 			</div>
-		</section>
+		</SheetSection>
 	);
 
 	const renderToggleSection = (
 		title: string,
 		options: Array<{ key: keyof BrowseFilters; label: string }>,
-		icon?: LucideIcon,
 		isLocal?: boolean,
 	) => (
-		<section className="rounded-2xl p-4" style={cardStyle}>
-			{renderSectionHeader(title, icon, isLocal)}
+		<SheetSection title={title} badge={isLocal ? localBadge : undefined}>
 			<div className="flex flex-wrap gap-2">
-				{options.map((filter) => {
-					const active = browseFilters[filter.key];
-					return (
-						<button
-							key={filter.key}
-							type="button"
-							onClick={() => toggleBrowseFilter(filter.key)}
-							className={cn(
-								"rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-all active:scale-95",
-								active
-									? isExploreActive
-										? "border-[var(--explore)] bg-[var(--explore)] text-white shadow-sm"
-										: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm"
-									: isExploreActive
-										? "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--explore)]/60 hover:text-[var(--text)]"
-										: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)]/60 hover:text-[var(--text)]",
-							)}
-						>
-							{filter.label}
-						</button>
-					);
-				})}
+				{options.map((filter) => (
+					<SheetChip
+						key={filter.key}
+						active={Boolean(browseFilters[filter.key])}
+						onClick={() => toggleBrowseFilter(filter.key)}
+						accentColor={accentColor}
+					>
+						{filter.label}
+					</SheetChip>
+				))}
 			</div>
-		</section>
+		</SheetSection>
 	);
 
 	return (
@@ -365,150 +300,137 @@ function BrowseFiltersSheetContent({
 			</div>
 
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>
-				<div className="space-y-4 pb-2">
-					{renderToggleSection(t("browse_filters.quick_filters"), browseFilterOptions, Zap)}
+				<div className="space-y-5 pb-2">
+					{renderToggleSection(t("browse_filters.quick_filters"), browseFilterOptions)}
 
-					<section className="rounded-2xl p-4" style={cardStyle}>
-						{renderSectionHeader(
-							t("browse_filters.age"),
-							Calendar,
-							false,
-							`${ageMin || 18}-${ageMax || 99}${(ageMax ? Number(ageMax) : 99) >= 99 ? "+" : ""}`,
-						)}
-						<RangeSlider
-							label={t("browse_filters.age")}
-							min={18}
-							max={99}
-							minDefault={ageMin ? Number(ageMin) : 18}
-							maxDefault={ageMax ? Number(ageMax) : 99}
-							activeColor={accentColor}
-							hideHeader
-							onChange={(min, max) => {
-								setAgeMin(min === 18 ? "" : String(min));
-								setAgeMax(max === 99 ? "" : String(max));
-							}}
-						/>
-					</section>
+					<SheetSection
+						title={t("browse_filters.age")}
+						value={`${ageMin || 18}-${ageMax || 99}${(ageMax ? Number(ageMax) : 99) >= 99 ? "+" : ""}`}
+					>
+						<div className="px-1">
+							<RangeSlider
+								label={t("browse_filters.age")}
+								min={18}
+								max={99}
+								minDefault={ageMin ? Number(ageMin) : 18}
+								maxDefault={ageMax ? Number(ageMax) : 99}
+								activeColor={accentColor}
+								hideHeader
+								onChange={(min, max) => {
+									setAgeMin(min === 18 ? "" : String(min));
+									setAgeMax(max === 99 ? "" : String(max));
+								}}
+							/>
+						</div>
+					</SheetSection>
 
-					<section className="rounded-2xl p-4" style={cardStyle}>
-						{renderSectionHeader(
-							t("browse_filters.height"),
-							Ruler,
-							false,
-							`${isImperialHeight ? formatInchesAsFeetInches(heightMinDefault) : `${heightMinDefault}${heightRange.unit}`} - ${isImperialHeight ? formatInchesAsFeetInches(heightMaxDefault) : `${heightMaxDefault}${heightRange.unit}`}${heightMaxDefault >= heightRange.max ? "+" : ""}`,
-						)}
-						<RangeSlider
-							label={t("browse_filters.height")}
-							unit={heightRange.unit}
-							formatValue={isImperialHeight ? formatInchesAsFeetInches : undefined}
-							min={heightRange.min}
-							max={heightRange.max}
-							minDefault={heightMinDefault}
-							maxDefault={heightMaxDefault}
-							activeColor={accentColor}
-							hideHeader
-							onChange={(min, max) => {
-								const minCm = isImperialHeight ? Math.round(inchesToCm(min)) : min;
-								const maxCm = isImperialHeight ? Math.round(inchesToCm(max)) : max;
-								setHeightCmMin(min === heightRange.min ? "" : String(minCm));
-								setHeightCmMax(max === heightRange.max ? "" : String(maxCm));
-							}}
-						/>
-					</section>
+					<SheetSection
+						title={t("browse_filters.height")}
+						value={`${isImperialHeight ? formatInchesAsFeetInches(heightMinDefault) : `${heightMinDefault}${heightRange.unit}`} - ${isImperialHeight ? formatInchesAsFeetInches(heightMaxDefault) : `${heightMaxDefault}${heightRange.unit}`}${heightMaxDefault >= heightRange.max ? "+" : ""}`}
+					>
+						<div className="px-1">
+							<RangeSlider
+								label={t("browse_filters.height")}
+								unit={heightRange.unit}
+								formatValue={isImperialHeight ? formatInchesAsFeetInches : undefined}
+								min={heightRange.min}
+								max={heightRange.max}
+								minDefault={heightMinDefault}
+								maxDefault={heightMaxDefault}
+								activeColor={accentColor}
+								hideHeader
+								onChange={(min, max) => {
+									const minCm = isImperialHeight ? Math.round(inchesToCm(min)) : min;
+									const maxCm = isImperialHeight ? Math.round(inchesToCm(max)) : max;
+									setHeightCmMin(min === heightRange.min ? "" : String(minCm));
+									setHeightCmMax(max === heightRange.max ? "" : String(maxCm));
+								}}
+							/>
+						</div>
+					</SheetSection>
 
-					<section className="rounded-2xl p-4" style={cardStyle}>
-						{renderSectionHeader(
-							t("browse_filters.weight"),
-							Scale,
-							false,
-							`${weightMinDefault}${weightRange.unit} - ${weightMaxDefault}${weightRange.unit}${weightMaxDefault >= weightRange.max ? "+" : ""}`,
-						)}
-						<RangeSlider
-							label={t("browse_filters.weight")}
-							unit={weightRange.unit}
-							min={weightRange.min}
-							max={weightRange.max}
-							minDefault={weightMinDefault}
-							maxDefault={weightMaxDefault}
-							activeColor={accentColor}
-							hideHeader
-							onChange={(min, max) => {
-								const minGrams = isImperialWeight ? Math.round(poundsToGrams(min)) : Math.round(kgToGrams(min));
-								const maxGrams = isImperialWeight ? Math.round(poundsToGrams(max)) : Math.round(kgToGrams(max));
-								setWeightGramsMin(min === weightRange.min ? "" : String(minGrams));
-								setWeightGramsMax(max === weightRange.max ? "" : String(maxGrams));
-							}}
-						/>
-					</section>
+					<SheetSection
+						title={t("browse_filters.weight")}
+						value={`${weightMinDefault}${weightRange.unit} - ${weightMaxDefault}${weightRange.unit}${weightMaxDefault >= weightRange.max ? "+" : ""}`}
+					>
+						<div className="px-1">
+							<RangeSlider
+								label={t("browse_filters.weight")}
+								unit={weightRange.unit}
+								min={weightRange.min}
+								max={weightRange.max}
+								minDefault={weightMinDefault}
+								maxDefault={weightMaxDefault}
+								activeColor={accentColor}
+								hideHeader
+								onChange={(min, max) => {
+									const minGrams = isImperialWeight ? Math.round(poundsToGrams(min)) : Math.round(kgToGrams(min));
+									const maxGrams = isImperialWeight ? Math.round(poundsToGrams(max)) : Math.round(kgToGrams(max));
+									setWeightGramsMin(min === weightRange.min ? "" : String(minGrams));
+									setWeightGramsMax(max === weightRange.max ? "" : String(maxGrams));
+								}}
+							/>
+						</div>
+					</SheetSection>
 
-					{renderSection(
+					{renderChipSection(
 						t("profile_editor.sections.states.position"),
 						sexualPositionFilterOptions,
 						sexualPositions,
 						(value) => toggleMultiSelect(value, setSexualPositions),
-						ArrowUpDown,
 					)}
-					{renderSection(
+					{renderChipSection(
 						t("profile_editor.sections.states.tribes"),
 						tribeFilterOptions,
 						tribes,
 						(value) => toggleMultiSelect(value, setTribes),
-						Users,
 					)}
-					{renderSection(
+					{renderChipSection(
 						t("profile_editor.sections.expectations.looking_for"),
 						lookingForFilterOptions,
 						lookingFor,
 						(value) => toggleMultiSelect(value, setLookingFor),
-						Heart,
 					)}
-					{renderSection(
+					{renderChipSection(
 						t("profile_editor.sections.states.relationship_status"),
 						relationshipFilterOptions,
 						relationshipStatuses,
 						(value) => toggleMultiSelect(value, setRelationshipStatuses),
-						HeartHandshake,
 					)}
-					{renderSection(
+					{renderChipSection(
 						t("profile_editor.sections.states.body_type"),
 						bodyTypeFilterOptions,
 						bodyTypes,
 						(value) => toggleMultiSelect(value, setBodyTypes),
-						Dumbbell,
 					)}
-					{renderSection(
+					{renderChipSection(
 						t("profile_editor.sections.expectations.meet_at"),
 						meetAtFilterOptions,
 						meetAt,
 						(value) => toggleMultiSelect(value, setMeetAt),
-						MapPin,
 					)}
-					{renderSection(
+					{renderChipSection(
 						t("profile_editor.sections.expectations.accept_nsfw"),
 						nsfwFilterOptions,
 						nsfwPics,
 						(value) => toggleMultiSelect(value, setNsfwPics),
-						ShieldAlert,
 					)}
 
-					<section className="rounded-2xl p-4" style={cardStyle}>
-						{renderSectionHeader(t("browse_filters.tags"), TagIcon)}
-						<div className="flex flex-wrap items-center gap-2">
+					<SheetSection title={t("browse_filters.tags")}>
+						<div className="flex gap-2">
 							<input
 								type="text"
 								placeholder={t("browse_filters.tags_placeholder")}
 								value={tagDraft}
 								onChange={(e) => setTagDraft(e.target.value)}
 								onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-								className="h-9 min-w-40 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)]"
+								className={cn(inputClassName, "min-w-0 flex-1")}
 							/>
 							<button
 								type="button"
 								onClick={() => addTag()}
-								className={cn(
-									"h-9 rounded-lg border border-[var(--border)] px-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
-									isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
-								)}
+								disabled={!tagDraft.trim()}
+								className="h-11 shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
 							>
 								{t("browse_filters.add")}
 							</button>
@@ -516,75 +438,55 @@ function BrowseFiltersSheetContent({
 						{tagSearchResults.length > 0 && (
 							<div className="mt-2 flex flex-wrap gap-2">
 								{tagSearchResults.map((tag) => (
-									<button
-										key={tag.tagId}
-										type="button"
-										onClick={() => addManagedTag(tag)}
-										className={cn(
-											"rounded-full border bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--text)] transition",
-											isExploreActive
-												? "border-[var(--explore)]/60 hover:bg-[var(--explore)] hover:text-white"
-												: "border-[var(--accent)]/60 hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)]",
-										)}
-									>
+									<SheetChip key={tag.tagId} active={false} onClick={() => addManagedTag(tag)} accentColor={accentColor} size="sm">
 										+ {tag.text}
-									</button>
+									</SheetChip>
 								))}
 							</div>
 						)}
 						{tags.length > 0 && (
 							<div className="mt-2 flex flex-wrap gap-2">
 								{tags.map((tag) => (
-									<button
+									<SheetChip
 										key={tag}
-										type="button"
+										active
 										onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
-										className={cn(
-											"rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition",
-											isExploreActive
-												? "border-[var(--explore)] bg-[var(--explore)] text-white"
-												: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]",
-										)}
+										accentColor={accentColor}
+										size="sm"
 									>
-										{tagLabel(tag)} <span className="ml-1">×</span>
-									</button>
+										<span className="inline-flex items-center gap-1">
+											{tagLabel(tag)}
+											<X className="h-3 w-3" />
+										</span>
+									</SheetChip>
 								))}
 							</div>
 						)}
-					</section>
+					</SheetSection>
 
-					{renderToggleSection(
-						t("browse_filters.local_filters.visiting_title"),
-						localFilterOptions,
-						Compass,
-						true,
-					)}
+					{renderToggleSection(t("browse_filters.local_filters.visiting_title"), localFilterOptions, true)}
 
-					<section className="rounded-2xl p-4" style={cardStyle}>
-						{renderSectionHeader(t("browse_filters.local_filters.name_title"), Search, true)}
+					<SheetSection title={t("browse_filters.local_filters.name_title")} badge={localBadge}>
 						<div className="relative">
-							<Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
+							<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
 							<input
 								type="text"
 								value={nicknameFilter}
 								onChange={(e) => setNicknameFilter(e.target.value)}
 								placeholder={t("browse_filters.local_filters.nickname_placeholder")}
-								className={cn(
-									"h-9 w-full rounded-full border border-[var(--border)] bg-[var(--surface)] pl-8 pr-8 text-sm text-[var(--text)] outline-none transition",
-									isExploreActive ? "focus:border-[var(--explore)]" : "focus:border-[var(--accent)]",
-								)}
+								className={cn(inputClassName, "pl-10 pr-10")}
 							/>
 							{nicknameFilter && (
 								<button
 									type="button"
 									onClick={() => setNicknameFilter("")}
-									className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 								>
 									<X className="h-3.5 w-3.5" />
 								</button>
 							)}
 						</div>
-					</section>
+					</SheetSection>
 				</div>
 			</div>
 
@@ -592,23 +494,20 @@ function BrowseFiltersSheetContent({
 				<button
 					type="button"
 					onClick={clearAll}
-					className={cn(
-						"flex-1 rounded-xl border border-[var(--border)] py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
-						isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
-					)}
+					className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text)]"
 				>
 					{t("browse_filters.clear_all")}
 				</button>
 				<button
 					type="button"
 					onClick={handleApply}
+					style={{ backgroundColor: accentColor, borderColor: accentColor }}
 					className={cn(
-						"relative flex-1 overflow-hidden rounded-xl py-3 text-sm font-bold transition group",
-						isExploreActive ? "bg-[var(--explore)] text-white" : "bg-[var(--accent)] text-[var(--accent-contrast)]",
+						"inline-flex h-11 flex-1 items-center justify-center rounded-xl border px-4 text-sm font-semibold transition hover:brightness-110 active:scale-[0.98]",
+						isExploreActive ? "text-white" : "text-[var(--accent-contrast)]",
 					)}
 				>
-					<span className="relative z-10">{t("browse_filters.apply")}</span>
-					<div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+					{t("browse_filters.apply")}
 				</button>
 			</div>
 		</>
