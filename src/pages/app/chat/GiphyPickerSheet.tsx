@@ -2,6 +2,8 @@ import { Check, Clock, Loader2, Search, Send, Sticker, TrendingUp, X } from "luc
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { SlidingTabs } from "../../../components/ui/sliding-tabs";
+import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
 import { getRecentGifs, setRecentGifs } from "../../../services/chatDb";
 
@@ -106,11 +108,9 @@ function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId
 								key={`${ci}-${i}`}
 								type="button"
 								onClick={() => onToggle(gif)}
-								className="group relative w-full overflow-hidden rounded-lg bg-[var(--surface-2)]"
+								className="group relative w-full overflow-hidden rounded-xl bg-[var(--surface-2)] transition active:scale-[0.98]"
 								style={{
 									aspectRatio: gif.width > 0 && gif.height > 0 ? `${gif.width} / ${gif.height}` : "1 / 1",
-									outline: isSelected ? "2px solid var(--accent)" : "none",
-									outlineOffset: "-2px",
 								}}
 							>
 								<img
@@ -120,9 +120,12 @@ function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId
 									className="h-full w-full object-cover transition group-hover:scale-105"
 								/>
 								{isSelected && (
-									<div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}>
-										<Check className="h-5 w-5 text-white drop-shadow" />
-									</div>
+									<>
+										<div className="pointer-events-none absolute inset-0 rounded-xl bg-[color-mix(in_srgb,var(--accent)_25%,transparent)] ring-2 ring-inset ring-[var(--accent)]" />
+										<span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md">
+											<Check className="h-3.5 w-3.5" />
+										</span>
+									</>
 								)}
 							</button>
 						);
@@ -207,106 +210,86 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 		setSelectedGif((prev) => (prev?.id === gif.id ? null : gif));
 	};
 
-	const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-		{ id: "trending", label: t("chat.giphy.tab_trending"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
-		{ id: "recent", label: t("chat.giphy.tab_recent"), icon: <Clock className="h-3.5 w-3.5" /> },
-	];
-
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]" panelClassName="max-h-[60dvh]">
-			{/* Header */}
-			<div className="flex items-center justify-between px-4 pb-3">
-				<p className="text-sm font-semibold text-[var(--text)]">
-					{t("chat.giphy.title")}
-				</p>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
+		<BottomSheet
+			onClose={onClose}
+			isDesktop={isDesktop}
+			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			panelClassName="max-h-[70dvh] px-4"
+		>
+			<div className="mb-3 flex items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">{t("chat.giphy.title")}</h3>
+				<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
 					<X className="h-4 w-4" />
 				</SheetClose>
 			</div>
 
-			{/* Tab bar */}
-			<div className="flex border-b border-[var(--border)] px-2 pb-0 pt-1">
-				{tabs.map((tab_item) => (
-					<button
-						key={tab_item.id}
-						type="button"
-						onClick={() => handleTabChange(tab_item.id)}
-						className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition ${
-							tab === tab_item.id
-								? "border-[var(--accent)] text-[var(--accent)]"
-								: "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]"
-						}`}
-					>
-						{tab_item.icon}
-						{tab_item.label}
-					</button>
-				))}
-			</div>
+			<SlidingTabs<Tab>
+				className="mb-3 shrink-0"
+				value={tab}
+				onChange={handleTabChange}
+				tabs={[
+					{ value: "trending", label: t("chat.giphy.tab_trending"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
+					{ value: "recent", label: t("chat.giphy.tab_recent"), icon: <Clock className="h-3.5 w-3.5" /> },
+				]}
+			/>
 
 			{/* Search (Trending tab only) */}
 			{tab === "trending" && (
-				<div className="px-4 pt-3">
-					<div className="relative flex items-center">
-						<Search className="pointer-events-none absolute left-3 h-4 w-4 text-[var(--text-muted)]" />
-						<input
-							type="text"
-							value={query}
-							onChange={(e) => handleQueryChange(e.target.value)}
-							placeholder={t("chat.giphy.search_placeholder")}
-							className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 pl-9 pr-4 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
-						/>
-						{query.length > 0 && (
-							<button
-								type="button"
-								onClick={() => handleQueryChange("")}
-								className="absolute right-3 text-[var(--text-muted)] hover:text-[var(--text)]"
-							>
-								<X className="h-3.5 w-3.5" />
-							</button>
-						)}
-					</div>
+				<div className="relative mb-3 shrink-0">
+					<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+					<input
+						type="text"
+						value={query}
+						onChange={(e) => handleQueryChange(e.target.value)}
+						placeholder={t("chat.giphy.search_placeholder")}
+						className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-10 pr-10 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+					/>
+					{isLoading && query.trim() ? (
+						<Loader2 className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--text-muted)]" />
+					) : query.length > 0 ? (
+						<button
+							type="button"
+							onClick={() => handleQueryChange("")}
+							className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+						>
+							<X className="h-3.5 w-3.5" />
+						</button>
+					) : null}
 				</div>
 			)}
 
 			{/* Content */}
-			<div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-3" data-lenis-prevent>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent>
 				{tab === "trending" ? (
 					isLoading ? (
 						<div className="flex items-center justify-center py-12">
-							<div className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--accent)] border-t-transparent" />
+							<Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
 						</div>
 					) : error ? (
-						<div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+						<div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
 							<p className="text-sm text-[var(--text-muted)]">{error}</p>
 							<button
 								type="button"
 								onClick={() => (query.trim() ? void searchGifs(query.trim()) : void loadTrending())}
-								className="text-sm text-[var(--accent)] hover:underline"
+								className="inline-flex h-9 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text)] transition hover:brightness-110"
 							>
 								{t("chat.giphy.retry")}
 							</button>
 						</div>
 					) : gifs.length === 0 ? (
 						<div className="flex items-center justify-center py-12">
-							<p className="text-sm text-[var(--text-muted)]">
-								{t("chat.giphy.no_results")}
-							</p>
+							<p className="text-sm text-[var(--text-muted)]">{t("chat.giphy.no_results")}</p>
 						</div>
 					) : (
 						<GifGrid gifs={gifs} selectedId={selectedGif?.id ?? null} onToggle={handleToggle} />
 					)
 				) : recentGifs.length === 0 ? (
-					<div className="flex flex-col items-center justify-center gap-2.5 text-center text-[var(--text-muted)]" style={{ minHeight: "40dvh" }}>
-						<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
-							<Sticker className="h-5 w-5 opacity-60" />
-						</div>
-						<p className="text-sm font-medium">
-							{t("chat.giphy.recent_empty")}
-						</p>
-						<p className="text-xs opacity-60">
-							{t("chat.giphy.recent_empty_hint")}
-						</p>
-					</div>
+					<DrawerEmptyState
+						icon={<Sticker className="h-5 w-5" />}
+						title={t("chat.giphy.recent_empty")}
+						hint={t("chat.giphy.recent_empty_hint")}
+					/>
 				) : (
 					<GifGrid gifs={recentGifs} selectedId={selectedGif?.id ?? null} onToggle={handleToggle} />
 				)}
@@ -314,24 +297,19 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 
 			{/* Send footer */}
 			{selectedGif && (
-				<div className="border-t border-[var(--border)] px-3 pt-3">
-					<button
-						type="button"
+				<div className="-mx-4 mt-3 flex shrink-0 border-t border-[var(--border)] px-4 pt-3">
+					{/* SheetClose so the sheet animates out and pops its history entry. */}
+					<SheetClose
 						onClick={() => {
 							void saveRecentGif(selectedGif).then(setRecentGifsState);
 							onSelect(selectedGif);
-							onClose();
 						}}
 						disabled={isSending}
-						className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+						className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
 					>
-						{isSending ? (
-							<Loader2 className="h-4 w-4 animate-spin" />
-						) : (
-							<Send className="h-4 w-4" />
-						)}
+						{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
 						<span>{isSending ? t("chat_drawer.sending") : t("chat.send")}</span>
-					</button>
+					</SheetClose>
 				</div>
 			)}
 		</BottomSheet>

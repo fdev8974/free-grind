@@ -89,6 +89,7 @@ import {
 	conversationNeedsReply,
 	draftToFilters,
 	getMediaCaptureTarget,
+	findPreviewFallbackMessage,
 	isPreviewUnhelpful,
 	getMessageAlbumId,
 	getMessageImageUrl,
@@ -307,6 +308,11 @@ export function ChatPage() {
 		firstMessageId: string | null;
 	} | null>(null);
 	const selectedConversationUnreadCountRef = useRef(0);
+	// Per-conversation result of loadInbox's server-side preview fallback,
+	// keyed by the lastActivityTimestamp it was fetched for.
+	const remotePreviewFallbackRef = useRef(
+		new Map<string, { activity: number; preview: ConversationEntry["data"]["preview"] }>(),
+	);
 	const lastLoadedConversationIdRef = useRef<string | null>(null);
 	const lastMessageIdRef = useRef<string | null>(null);
 	const conversationsWithPendingUnreadRef = useRef(new Set<string>());
@@ -1320,22 +1326,20 @@ export function ChatPage() {
 							return c;
 						}
 						const messages = await chatDb.getMessages(c.conversationId);
-						for (let i = messages.length - 1; i >= 0; i--) {
-							const message = messages[i];
-							if (message.body && typeof message.body === "object") {
-								return {
-									...c,
-									entry: {
-										...c.entry,
-										data: {
-											...c.entry.data,
-											preview: buildPreviewFromMessage(message, t),
-										},
-									},
-								};
-							}
+						const message = findPreviewFallbackMessage(messages);
+						if (!message) {
+							return c;
 						}
-						return c;
+						return {
+							...c,
+							entry: {
+								...c.entry,
+								data: {
+									...c.entry.data,
+									preview: buildPreviewFromMessage(message, t),
+								},
+							},
+						};
 					}),
 				);
 				if (cancelled) {
@@ -1550,8 +1554,20 @@ export function ChatPage() {
 				}
 
 				setConversations((previous) => {
-					const entriesWithUnreadFixed = response.entries.map((entry) => {
-						const cid = entry.data.conversationId;
+					const previousById = new Map(
+						previous.map((conversation) => [conversation.data.conversationId, conversation] as const),
+					);
+					const entriesWithUnreadFixed = response.entries.map((rawEntry) => {
+						const cid = rawEntry.data.conversationId;
+						// Keep a fallback preview already patched in (see
+						// entriesNeedingFallbackPreview below) while the server still
+						// has nothing better, instead of flashing back to "no messages
+						// yet" on every poll until the async patch re-lands.
+						const previousPreview = previousById.get(cid)?.data.preview;
+						const entry =
+							isPreviewUnhelpful(rawEntry.data.preview) && !isPreviewUnhelpful(previousPreview ?? null)
+								? { ...rawEntry, data: { ...rawEntry.data, preview: previousPreview ?? null } }
+								: rawEntry;
 
 						// If this is the active conversation, it's definitely read.
 						if (cid === selectedConversationIdRef.current) {
@@ -1717,13 +1733,29 @@ export function ChatPage() {
 						entriesNeedingFallbackPreview.map(async (entry) => {
 							const cid = entry.data.conversationId;
 							const localData = await chatLog.readLog(cid);
-							for (let i = localData.messages.length - 1; i >= 0; i--) {
-								const message = localData.messages[i];
-								if (message.body && typeof message.body === "object") {
-									return [cid, buildPreviewFromMessage(message, t)] as const;
-								}
+							const localMessage = findPreviewFallbackMessage(localData.messages);
+							if (localMessage) {
+								return [cid, buildPreviewFromMessage(localMessage, t)] as const;
 							}
-							return null;
+							// Nothing local either (e.g. a chat never opened on this
+							// device) — ask the server for its latest page once per
+							// lastActivityTimestamp, instead of on every poll.
+							const activity = entry.data.lastActivityTimestamp ?? 0;
+							const cached = remotePreviewFallbackRef.current.get(cid);
+							if (cached && cached.activity === activity) {
+								return cached.preview ? ([cid, cached.preview] as const) : null;
+							}
+							try {
+								const remote = await service.listMessages({ conversationId: cid });
+								const remoteMessage = findPreviewFallbackMessage(
+									[...remote.messages].sort((a, b) => a.timestamp - b.timestamp),
+								);
+								const preview = remoteMessage ? buildPreviewFromMessage(remoteMessage, t) : null;
+								remotePreviewFallbackRef.current.set(cid, { activity, preview });
+								return preview ? ([cid, preview] as const) : null;
+							} catch {
+								return null;
+							}
 						}),
 					).then((results) => {
 						const patches = new Map(
@@ -2590,14 +2622,7 @@ export function ChatPage() {
 						(a, b) => a.timestamp - b.timestamp,
 					);
 					const newest = sortedCandidates[sortedCandidates.length - 1];
-					let bestPreviewMessage: Message | null = null;
-					for (let i = sortedCandidates.length - 1; i >= 0; i--) {
-						const candidate = sortedCandidates[i];
-						if (candidate.body && typeof candidate.body === "object") {
-							bestPreviewMessage = candidate;
-							break;
-						}
-					}
+					const bestPreviewMessage = findPreviewFallbackMessage(sortedCandidates);
 
 					if (newest && bestPreviewMessage) {
 						syncConversation((conversation) => ({

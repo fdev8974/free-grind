@@ -529,6 +529,26 @@ export function buildPreviewFromMessage(
 	};
 }
 
+/**
+ * Newest message (input sorted oldest-first) usable as a fallback inbox
+ * preview. A body-less message still counts when its type alone says what it
+ * was — viewed/expired photos and videos lose their body, and a conversation
+ * made up only of those would otherwise find nothing and fall back to "no
+ * messages yet". Unsent body-less messages are skipped.
+ */
+export function findPreviewFallbackMessage<T extends Message>(messages: readonly T[]): T | null {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const message = messages[i];
+		if (message.body && typeof message.body === "object") {
+			return message;
+		}
+		if (!message.unsent && message.type && SELF_EXPLANATORY_PREVIEW_TYPES.has(message.type)) {
+			return message;
+		}
+	}
+	return null;
+}
+
 export function getMessageText(message: UiMessage, t: TranslateFn): string {
 	if (!message.body || typeof message.body !== "object") {
 		if (message.unsent) {

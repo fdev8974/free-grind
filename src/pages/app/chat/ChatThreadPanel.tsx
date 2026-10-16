@@ -2738,10 +2738,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					{isGiphyPickerOpen ? (
 						<GiphyPickerSheet
 							onClose={() => setIsGiphyPickerOpen(false)}
-							onSelect={(gif) => {
-								setIsGiphyPickerOpen(false);
-								void onSendGiphy(gif);
-							}}
+							// The sheet closes itself (animated) after a pick.
+							onSelect={(gif) => void onSendGiphy(gif)}
 							isDesktop={isDesktop}
 							isSending={isSending}
 						/>
