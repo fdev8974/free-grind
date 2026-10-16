@@ -10,6 +10,7 @@ import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
 import { useExploreMode } from "../contexts/ExploreModeContext";
+import { usePreferences } from "../contexts/PreferencesContext";
 import {
 	getInterestLastSeen,
 	INTEREST_SEEN_EVENT,
@@ -91,6 +92,18 @@ export function NavBar() {
 	const { data: myProfile } = useMyOwnProfile();
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
+	const { activeRightNowId, activeRightNowExpiresAt } = usePreferences();
+	// Re-rendered at the expiry time so the avatar badge disappears on its own.
+	const [rightNowNow, setRightNowNow] = useState(() => Date.now());
+	useEffect(() => {
+		if (!activeRightNowExpiresAt) return;
+		const remaining = activeRightNowExpiresAt - Date.now();
+		if (remaining <= 0) return;
+		const timer = setTimeout(() => setRightNowNow(Date.now()), Math.min(remaining + 50, 2_147_483_647));
+		return () => clearTimeout(timer);
+	}, [activeRightNowExpiresAt]);
+	const isRightNowSessionActive =
+		!!activeRightNowId && !!activeRightNowExpiresAt && activeRightNowExpiresAt > Math.max(rightNowNow, Date.now());
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
 	const [navStyle, setNavStyle] = useState(readNavStyle);
 	useEffect(() => {
@@ -589,6 +602,15 @@ export function NavBar() {
 															: "ring-[var(--accent-contrast)]",
 												)}
 											/>
+										)}
+										{!Icon && isRightNowSessionActive && (
+											// Active Right Now session: small splash badge offset to the avatar's bottom right.
+											<span
+												aria-hidden="true"
+												className="absolute -bottom-1.5 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--right-now)] text-white ring-2 ring-[var(--surface)]"
+											>
+												<RightNowIcon className="h-2.5 w-2.5" />
+											</span>
 										)}
 										{(item.value === "inbox" && inboxUnseen) ||
 										(item.value === "interest" && interestUnseen) ? (
