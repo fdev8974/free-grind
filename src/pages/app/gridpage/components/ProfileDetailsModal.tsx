@@ -43,6 +43,8 @@ import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { formatDateTime24, formatTakenOnGrindrSentence } from "../../chat/chatUtils";
 import { TakenOnGrindrBadge } from "../../chat/TakenOnGrindrBadge";
 import { formatRelativeTime } from "../../../../utils/relativeTime";
+import { useInterestData } from "../../../../hooks/queries/useInterestQueries";
+import { getTapEmoji } from "../../interest/interestUtils";
 import {
 	formatEstimatedAccountCreation,
 	formatDistance,
@@ -1034,6 +1036,15 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		[carouselHashes, photoCreatedAtByHash, t],
 	);
 
+	// The profile payload's tapType is the one we sent; the received type
+	// only comes with the interest list.
+	const { data: interestData } = useInterestData();
+	const receivedTapType = useMemo(() => {
+		const profileId = activeProfile?.profileId;
+		if (!profileId) return null;
+		return interestData?.taps?.find((item) => item.profileId === String(profileId))?.tapType ?? null;
+	}, [interestData?.taps, activeProfile?.profileId]);
+
 	// Bottom left of the profile carousel: "taken on Grindr" for the photo in
 	// view, then when they last tapped you, as matching glass pills.
 	const renderCarouselCornerBadges = () => {
@@ -1047,7 +1058,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				) : null}
 				{tapTimestamp != null ? (
 					<div className="flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 backdrop-blur-sm">
-						<Flame className="h-3.5 w-3.5 shrink-0 text-orange-400" />
+						<span className="text-sm leading-none select-none">{getTapEmoji(receivedTapType)}</span>
 						<span className="text-xs font-medium text-white">{formatRelativeTime(tapTimestamp)}</span>
 					</div>
 				) : null}
