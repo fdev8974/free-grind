@@ -493,13 +493,15 @@ export function InterestPage() {
 		}
 	}, [activeTab, maxInterestTimestamp, data]);
 
-	// Refetch when the page opens and on every tab switch — the query's 5 min
-	// staleTime would otherwise keep showing cached views/taps. One query feeds
-	// all tabs, so this refreshes them all. cancelRefetch: false joins an
+	// Refetch once when the page opens — the query's 5 min staleTime would
+	// otherwise keep showing cached views/taps. One query feeds all tabs, so
+	// switching tabs needs no refetch. cancelRefetch: false joins an
 	// already-running fetch (e.g. the very first load) instead of restarting it.
+	const refetchRef = useRef(refetch);
+	refetchRef.current = refetch;
 	useEffect(() => {
-		void refetch({ cancelRefetch: false });
-	}, [activeTab, refetch]);
+		void refetchRef.current({ cancelRefetch: false });
+	}, []);
 
 	const handleRefresh = useCallback(() => {
 		setLimits((prev) => ({ ...prev, [activeTab]: ITEMS_PER_PAGE }));
