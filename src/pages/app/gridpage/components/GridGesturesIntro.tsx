@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import { ArrowDown, Hand, MousePointerClick, Pointer, Settings2 } from "lucide-react";
+import { ArrowDown, Hand, MessageCircle, MousePointerClick, Pointer, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass } from "../../../../components/FullscreenPrompt";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
+import { Chip } from "../../../../components/ui/chip";
 import { getTapEmoji } from "../../interest/interestUtils";
 
 export const GRID_GESTURES_INTRO_SEEN_KEY = "fg-grid-gestures-intro-seen";
@@ -23,7 +24,7 @@ export function markGridGesturesIntroSeen(): void {
 	}
 }
 
-function GestureRow({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
+function GestureRow({ icon, title, description, children }: { icon: ReactNode; title: string; description: string; children?: ReactNode }) {
 	return (
 		<div className="flex items-start gap-3 px-4 py-3.5">
 			<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--accent)]">
@@ -32,6 +33,7 @@ function GestureRow({ icon, title, description }: { icon: ReactNode; title: stri
 			<div className="min-w-0 flex-1">
 				<p className="text-sm font-semibold leading-snug text-[var(--text)]">{title}</p>
 				<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">{description}</p>
+				{children}
 			</div>
 		</div>
 	);
@@ -41,7 +43,10 @@ function GestureRow({ icon, title, description }: { icon: ReactNode; title: stri
 // profiles to try them on.
 export function GridGesturesIntro({ isDesktop, onConfirm }: { isDesktop: boolean; onConfirm: () => void }) {
 	const { t } = useTranslation();
-	const { doubleTapTapType } = usePreferences();
+	const { doubleTapTapType, doubleTapAction, setPreferences } = usePreferences();
+	const isDoubleTapOff = doubleTapTapType === null;
+	// Off is stored as a null tap type, so picking an action restores the last/default one.
+	const tapTypeForAction = doubleTapTapType ?? 1;
 
 	return (
 		<FullscreenPrompt
@@ -65,17 +70,51 @@ export function GridGesturesIntro({ isDesktop, onConfirm }: { isDesktop: boolean
 						: t("browse_page.gestures_intro.open_title", { defaultValue: "Tap" })}
 					description={t("browse_page.gestures_intro.open_desc", { defaultValue: "Open the profile." })}
 				/>
-				{doubleTapTapType !== null && (
-					<GestureRow
-						icon={<span className="text-xl leading-none">{getTapEmoji(doubleTapTapType)}</span>}
-						title={isDesktop
-							? t("browse_page.gestures_intro.double_tap_title_desktop", { defaultValue: "Double-click" })
-							: t("browse_page.gestures_intro.double_tap_title", { defaultValue: "Double tap" })}
-						description={t("browse_page.gestures_intro.double_tap_desc", {
-							defaultValue: "Send a tap without opening the profile.",
-						})}
-					/>
-				)}
+				<GestureRow
+					icon={isDoubleTapOff
+						? <Pointer className="h-5 w-5 opacity-50" />
+						: doubleTapAction === "chat"
+							? <MessageCircle className="h-5 w-5" />
+							: <span className="text-xl leading-none">{getTapEmoji(tapTypeForAction)}</span>}
+					title={isDesktop
+						? t("browse_page.gestures_intro.double_tap_title_desktop", { defaultValue: "Double-click" })
+						: t("browse_page.gestures_intro.double_tap_title", { defaultValue: "Double tap" })}
+					description={isDoubleTapOff
+						? t("browse_page.gestures_intro.double_tap_off_desc", {
+							defaultValue: "Off. Profiles open instantly on a single tap.",
+						})
+						: doubleTapAction === "chat"
+							? t("browse_page.gestures_intro.double_tap_chat_desc", {
+								defaultValue: "Open the chat without opening the profile.",
+							})
+							: t("browse_page.gestures_intro.double_tap_desc", {
+								defaultValue: "Send a tap without opening the profile.",
+							})}
+				>
+					<div className="mt-2.5 flex flex-wrap gap-2">
+						<Chip
+							className="min-h-8 px-3 py-1 text-xs"
+							selected={!isDoubleTapOff && doubleTapAction === "tap"}
+							onClick={() => void setPreferences({ doubleTapTapType: tapTypeForAction, doubleTapAction: "tap" })}
+						>
+							{getTapEmoji(tapTypeForAction)} {t("browse_page.gestures_intro.double_tap_send_tap", { defaultValue: "Send Tap" })}
+						</Chip>
+						<Chip
+							className="min-h-8 px-3 py-1 text-xs"
+							selected={!isDoubleTapOff && doubleTapAction === "chat"}
+							onClick={() => void setPreferences({ doubleTapTapType: tapTypeForAction, doubleTapAction: "chat" })}
+						>
+							<MessageCircle className="inline h-3.5 w-3.5 -mt-0.5" /> {t("behavior.double_tap_open_chat", { defaultValue: "Open Chat" })}
+						</Chip>
+						<Chip
+							className="min-h-8 px-3 py-1 text-xs"
+							selected={isDoubleTapOff}
+							onClick={() => void setPreferences({ doubleTapTapType: null })}
+						>
+							{t("behavior.double_tap_off", { defaultValue: "Off" })}
+						</Chip>
+					</div>
+				</GestureRow>
 				<GestureRow
 					icon={isDesktop ? <MousePointerClick className="h-5 w-5" /> : <Hand className="h-5 w-5" />}
 					title={isDesktop
@@ -95,8 +134,8 @@ export function GridGesturesIntro({ isDesktop, onConfirm }: { isDesktop: boolean
 			</div>
 			<p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
 				<Settings2 className="h-3.5 w-3.5 shrink-0" />
-				{t("browse_page.gestures_intro.settings_hint", {
-					defaultValue: "Choose the double tap type in Settings → Behavior.",
+				{t("browse_page.gestures_intro.settings_hint_change", {
+					defaultValue: "You can change this and the tap type later in Settings → Behavior.",
 				})}
 			</p>
 		</FullscreenPrompt>

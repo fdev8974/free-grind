@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, MessageCircle, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
@@ -37,6 +37,7 @@ export function BehaviorPage() {
 		autoFocusLocationSearch,
 		autoFocusRightNowText,
 		doubleTapTapType,
+		doubleTapAction,
 		chatRowSwipeActions,
 		setPreferences,
 	} = usePreferences();
@@ -204,10 +205,10 @@ export function BehaviorPage() {
 								<Flame className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold">{t("behavior.double_tap_tap_type", { defaultValue: "Double Tap to Send a Tap" })}</p>
+								<p className="text-sm font-semibold">{t("behavior.double_tap_action", { defaultValue: "Double Tap Action" })}</p>
 								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
-									{t("behavior.double_tap_tap_type_desc", {
-										defaultValue: "Double tap a profile in the grid to send this tap. Turn off to open profiles instantly on a single tap.",
+									{t("behavior.double_tap_action_desc", {
+										defaultValue: "Double tap a profile in the grid to send a tap or open the chat directly. Turn off to open profiles instantly on a single tap.",
 									})}
 								</p>
 								<div className="mt-3 flex flex-wrap gap-2">
@@ -220,12 +221,19 @@ export function BehaviorPage() {
 									{DOUBLE_TAP_TAP_TYPES.map((tapType) => (
 										<Chip
 											key={tapType}
-											selected={doubleTapTapType === tapType}
-											onClick={() => void setPreferences({ doubleTapTapType: tapType })}
+											selected={doubleTapTapType === tapType && doubleTapAction === "tap"}
+											onClick={() => void setPreferences({ doubleTapTapType: tapType, doubleTapAction: "tap" })}
 										>
 											{getTapEmoji(tapType)} {tapLabel(tapType, t)}
 										</Chip>
 									))}
+									{/* Off is stored as a null tap type, so keep a tap type around while chat is picked. */}
+									<Chip
+										selected={doubleTapTapType !== null && doubleTapAction === "chat"}
+										onClick={() => void setPreferences({ doubleTapTapType: doubleTapTapType ?? 1, doubleTapAction: "chat" })}
+									>
+										<MessageCircle className="inline h-3.5 w-3.5 -mt-0.5" /> {t("behavior.double_tap_open_chat", { defaultValue: "Open Chat" })}
+									</Chip>
 								</div>
 							</div>
 						</div>

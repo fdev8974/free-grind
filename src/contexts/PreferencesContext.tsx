@@ -186,6 +186,8 @@ const preferencesSchema = z.object({
 	chatRowSwipeActions: z.boolean().default(true),
 	// Tap type sent by double tapping a grid tile; null disables the gesture.
 	doubleTapTapType: z.number().int().min(0).max(2).nullable().default(1),
+	// What the grid double tap does while enabled: send the tap above or open the chat.
+	doubleTapAction: z.enum(["tap", "chat"]).default("tap"),
 	showGridTapStatus: z.boolean().default(true),
 	defaultExpiringPhotos: z.boolean().default(false),
 	defaultAlbumExpirationType: z
@@ -194,6 +196,7 @@ const preferencesSchema = z.object({
 });
 
 type Preferences = z.infer<typeof preferencesSchema>;
+export type DoubleTapAction = Preferences["doubleTapAction"];
 
 interface PreferencesContextType extends Preferences {
 	setPreferences: (newValues: Partial<Preferences>) => Promise<void>;
@@ -230,6 +233,7 @@ type PreferencesAction =
 	| { type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY"; payload: boolean }
 	| { type: "SET_KEEP_SCREEN_ON"; payload: boolean }
 	| { type: "SET_DOUBLE_TAP_TAP_TYPE"; payload: number | null }
+	| { type: "SET_DOUBLE_TAP_ACTION"; payload: DoubleTapAction }
 	| { type: "SET_SHOW_GRID_TAP_STATUS"; payload: boolean }
 	| { type: "SET_AUTO_FOCUS_LOCATION_SEARCH"; payload: boolean }
 	| { type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT"; payload: boolean }
@@ -300,6 +304,8 @@ function preferencesReducer(
 			return { ...state, chatRowSwipeActions: action.payload };
 		case "SET_DOUBLE_TAP_TAP_TYPE":
 			return { ...state, doubleTapTapType: action.payload };
+		case "SET_DOUBLE_TAP_ACTION":
+			return { ...state, doubleTapAction: action.payload };
 		case "SET_SHOW_GRID_TAP_STATUS":
 			return { ...state, showGridTapStatus: action.payload };
 		case "SET_DEFAULT_EXPIRING_PHOTOS":
@@ -435,6 +441,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusRightNowText: true,
 		chatRowSwipeActions: true,
 		doubleTapTapType: 1,
+		doubleTapAction: "tap",
 		showGridTapStatus: true,
 		defaultExpiringPhotos: false,
 		defaultAlbumExpirationType: "INDEFINITE",
@@ -483,6 +490,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: parsed.autoFocusRightNowText });
 					dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: parsed.chatRowSwipeActions });
 					dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: parsed.doubleTapTapType });
+					dispatch({ type: "SET_DOUBLE_TAP_ACTION", payload: parsed.doubleTapAction });
 					dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: parsed.showGridTapStatus });
 					dispatch({ type: "SET_DEFAULT_EXPIRING_PHOTOS", payload: parsed.defaultExpiringPhotos });
 					dispatch({ type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE", payload: parsed.defaultAlbumExpirationType });
@@ -607,6 +615,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				autoFocusRightNowText: currentState.autoFocusRightNowText,
 				chatRowSwipeActions: currentState.chatRowSwipeActions,
 				doubleTapTapType: currentState.doubleTapTapType,
+				doubleTapAction: currentState.doubleTapAction,
 				showGridTapStatus: currentState.showGridTapStatus,
 				defaultExpiringPhotos: currentState.defaultExpiringPhotos,
 				defaultAlbumExpirationType: currentState.defaultAlbumExpirationType,
@@ -705,6 +714,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.doubleTapTapType !== undefined) {
 				dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: newValues.doubleTapTapType });
+			}
+			if (newValues.doubleTapAction !== undefined) {
+				dispatch({ type: "SET_DOUBLE_TAP_ACTION", payload: newValues.doubleTapAction });
 			}
 			if (newValues.showGridTapStatus !== undefined) {
 				dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: newValues.showGridTapStatus });
@@ -808,6 +820,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					autoFocusRightNowText: preferences.autoFocusRightNowText,
 					chatRowSwipeActions: preferences.chatRowSwipeActions,
 					doubleTapTapType: preferences.doubleTapTapType,
+					doubleTapAction: preferences.doubleTapAction,
 					showGridTapStatus: preferences.showGridTapStatus,
 					defaultExpiringPhotos: preferences.defaultExpiringPhotos,
 					defaultAlbumExpirationType: preferences.defaultAlbumExpirationType,
@@ -849,6 +862,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusRightNowText: state.autoFocusRightNowText,
 		chatRowSwipeActions: state.chatRowSwipeActions,
 		doubleTapTapType: state.doubleTapTapType,
+		doubleTapAction: state.doubleTapAction,
 		showGridTapStatus: state.showGridTapStatus,
 		defaultExpiringPhotos: state.defaultExpiringPhotos,
 		defaultAlbumExpirationType: state.defaultAlbumExpirationType,

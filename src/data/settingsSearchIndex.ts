@@ -384,9 +384,9 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			id: "behavior-double-tap-tap-type",
 			route: "/settings/behavior",
 			anchor: "behavior-double-tap-tap-type",
-			label: t("behavior.double_tap_tap_type", { defaultValue: "Double Tap to Send a Tap" }),
-			description: t("behavior.double_tap_tap_type_desc", {
-				defaultValue: "Double tap a profile in the grid to send this tap. Turn off to open profiles instantly on a single tap.",
+			label: t("behavior.double_tap_action", { defaultValue: "Double Tap Action" }),
+			description: t("behavior.double_tap_action_desc", {
+				defaultValue: "Double tap a profile in the grid to send a tap or open the chat directly. Turn off to open profiles instantly on a single tap.",
 			}),
 			section: "Behavior",
 			icon: Flame,

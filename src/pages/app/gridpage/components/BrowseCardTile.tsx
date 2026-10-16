@@ -47,13 +47,13 @@ export function BrowseCardTile({
 	tapStatus,
 	onSelectProfile,
 	onDoubleTapProfile,
-	onMessageProfile: _onMessageProfile,
+	onMessageProfile,
 	onOpenContextMenu,
 	isDesktop = false,
 	hidePopular = false,
 }: BrowseCardTileProps) {
 	const { t } = useTranslation();
-	const { unitsPreset, showDebugInfo, blurGridProfilePictures, doubleTapTapType } = usePreferences();
+	const { unitsPreset, showDebugInfo, blurGridProfilePictures, doubleTapTapType, doubleTapAction } = usePreferences();
 	const { ref, revealClass } = useRevealOnScroll();
 	const name = localNickname?.trim() || getDisplayName(card);
 	const onlineStatus = getOnlineStatusMeta(card.lastOnline, card.onlineUntil);
@@ -151,6 +151,11 @@ export function BrowseCardTile({
 		if (singleTapTimerRef.current) {
 			clearTimeout(singleTapTimerRef.current);
 			singleTapTimerRef.current = null;
+			if (doubleTapAction === "chat") {
+				haptic(15);
+				onMessageProfile(card.profileId);
+				return;
+			}
 			if (onDoubleTapProfile(card.profileId, doubleTapTapType)) {
 				haptic(30, [15, 10, 25]);
 				setFlameBurst({ key: Date.now(), tapId: doubleTapTapType });
