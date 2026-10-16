@@ -58,6 +58,7 @@ import { ProfileDetailsContent } from "./ProfileDetailsContent";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { PhotoViewer, type PhotoViewerMenuAction } from "../../../../components/PhotoViewer";
 import { PhotoActionBar } from "../../../../components/PhotoActionBar";
+import { AlbumMediaSheet } from "../../../../components/AlbumMediaSheet";
 import { useProfileAlbumStatus } from "../../../../hooks/useProfileAlbumStatus";
 import { captureAlbum, getLocalAlbum } from "../../../../services/albumStore";
 import type { AlbumViewer } from "../../../../types/shared-albums";
@@ -227,7 +228,7 @@ export function ProfileDetailsModal({
 	onNextProfile,
 }: ProfileDetailsModalProps) {
 	const { t } = useTranslation();
-	const { unitsPreset, showAlbumSensitiveContentWarning } = usePreferences();
+	const { unitsPreset, showAlbumSensitiveContentWarning, openAlbumAsBottomSheet } = usePreferences();
 	const { userId } = useAuth();
 	const navigate = useNavigate();
 	const apiFunctions = useApiFunctions();
@@ -1169,22 +1170,62 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	const [albumViewerIndex, setAlbumViewerIndex] = useState(0);
 	const [isOpeningAlbum, setIsOpeningAlbum] = useState(false);
 	const [isSavingAllAlbumMedia, setIsSavingAllAlbumMedia] = useState(false);
-	const albumViewerOpenRef = useRef(false);
-	albumViewerOpenRef.current = albumViewer != null;
+	// Browse-first sheet (openAlbumAsBottomSheet) — the full-screen viewer is
+	// only shown once an item is picked, and closing it returns to the sheet.
+	const [isAlbumSheetOpen, setIsAlbumSheetOpen] = useState(false);
+	const [isAlbumViewerShown, setIsAlbumViewerShown] = useState(false);
+	const albumViewerShownRef = useRef(false);
+	albumViewerShownRef.current = albumViewer != null && isAlbumViewerShown;
+	const albumSheetOpenRef = useRef(false);
+	albumSheetOpenRef.current = isAlbumSheetOpen;
+
+	const resetAlbumViewerState = useCallback(() => {
+		setAlbumViewer(null);
+		setAlbumViewerIndex(0);
+		setIsAlbumSheetOpen(false);
+		setIsAlbumViewerShown(false);
+	}, []);
+
+	// Pushes the viewer's own history entry. Keeps the router state but drops
+	// an open sheet's tag, so the locked sheet underneath can tell this entry
+	// isn't its own and hands Android back to it.
+	const pushAlbumViewerHistory = useCallback(() => {
+		const state = window.history.state as Record<string, unknown> | null;
+		if (state?.profileAlbumViewer) return;
+		const { bottomSheet: _sheet, bottomSheetId: _sheetId, ...rest } = state ?? {};
+		window.history.pushState({ ...rest, profileAlbumViewer: true }, "");
+	}, []);
 
 	useEffect(() => {
 		const onPopState = () => {
-			if (albumViewerOpenRef.current && !(window.history.state as { profileAlbumViewer?: boolean } | null)?.profileAlbumViewer) {
-				setAlbumViewer(null);
-				setAlbumViewerIndex(0);
+			// While only the sheet is showing it handles its own history entry.
+			if (!albumViewerShownRef.current) return;
+			if ((window.history.state as { profileAlbumViewer?: boolean } | null)?.profileAlbumViewer) return;
+			if (albumSheetOpenRef.current) {
+				setIsAlbumViewerShown(false);
+				return;
 			}
+			resetAlbumViewerState();
 		};
 		window.addEventListener("popstate", onPopState);
 		return () => window.removeEventListener("popstate", onPopState);
-	}, []);
+	}, [resetAlbumViewerState]);
+
+	const handleSelectAlbumContent = useCallback((index: number) => {
+		setAlbumViewerIndex(index);
+		setIsAlbumViewerShown(true);
+		pushAlbumViewerHistory();
+	}, [pushAlbumViewerHistory]);
 
 	const closeAlbumViewer = useCallback(() => {
 		const state = window.history.state as Record<string, unknown> | null;
+		if (isAlbumSheetOpen) {
+			// Back to the sheet — the entry sits on top of the sheet's own one
+			// on the same route, so popping it is safe in both variants.
+			if (state?.profileAlbumViewer) window.history.back();
+			setIsAlbumViewerShown(false);
+			return;
+		}
 		if (state?.profileAlbumViewer) {
 			if (variant === "page") {
 				// Pop the entry instead of leaving a stale duplicate behind,
@@ -1198,9 +1239,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				window.history.replaceState(rest, "");
 			}
 		}
-		setAlbumViewer(null);
-		setAlbumViewerIndex(0);
-	}, [variant]);
+		resetAlbumViewerState();
+	}, [variant, isAlbumSheetOpen, resetAlbumViewerState]);
 
 	const handleAlbumViewerIndexChange = useCallback((index: number) => {
 		setAlbumViewerIndex((prev) => (prev === index ? prev : index));
@@ -1288,6 +1328,18 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		}
 		const albumId = albumStatus.albumId;
 		const profileIdNum = Number(messageProfileId);
+		// Either straight into the full-screen viewer, or into the browse-first
+		// sheet, which pushes its own history entry.
+		const presentAlbum = () => {
+			setAlbumViewerIndex(0);
+			if (openAlbumAsBottomSheet) {
+				setIsAlbumSheetOpen(true);
+				setIsAlbumViewerShown(false);
+				return;
+			}
+			setIsAlbumViewerShown(true);
+			pushAlbumViewerHistory();
+		};
 		setIsOpeningAlbum(true);
 		try {
 			await apiFunctions.openSharedAlbum({ albumId });
@@ -1303,10 +1355,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				conversationId: null,
 				content: details.content,
 			});
-			setAlbumViewerIndex(0);
-			if (!(window.history.state as { profileAlbumViewer?: boolean } | null)?.profileAlbumViewer) {
-				window.history.pushState({ ...(window.history.state as object | null), profileAlbumViewer: true }, "");
-			}
+			presentAlbum();
 			void captureAlbum({
 				albumId: details.albumId,
 				albumName: details.albumName,
@@ -1331,17 +1380,14 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					conversationId: null,
 					content: local.content,
 				});
-				setAlbumViewerIndex(0);
-				if (!(window.history.state as { profileAlbumViewer?: boolean } | null)?.profileAlbumViewer) {
-					window.history.pushState({ ...(window.history.state as object | null), profileAlbumViewer: true }, "");
-				}
+				presentAlbum();
 			} else {
 				toast.error(error instanceof Error ? error.message : t("shared_albums.error_open_fallback"));
 			}
 		} finally {
 			setIsOpeningAlbum(false);
 		}
-	}, [albumStatus.hasSharedWithMe, albumStatus.albumId, isOpeningAlbum, apiFunctions, messageProfileId, activeProfileName, activeProfilePhotoHashes, profileOnlineUntil, profileDistance, t]);
+	}, [albumStatus.hasSharedWithMe, albumStatus.albumId, isOpeningAlbum, apiFunctions, messageProfileId, activeProfileName, activeProfilePhotoHashes, profileOnlineUntil, profileDistance, t, openAlbumAsBottomSheet, pushAlbumViewerHistory]);
 
 	const albumViewerPhotos = useMemo(() => {
 		if (!albumViewer) return [];
@@ -1484,15 +1530,27 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	) : null;
 
 	const albumViewerOverlay = albumViewer && (
+		<>
+		{isAlbumSheetOpen ? (
+			<AlbumMediaSheet
+				albumName={albumViewer.albumName}
+				content={albumViewer.content}
+				onClose={resetAlbumViewerState}
+				onSelect={handleSelectAlbumContent}
+				locked={isAlbumViewerShown}
+			/>
+		) : null}
 		<PhotoViewer
-			isOpen={true}
+			isOpen={isAlbumViewerShown}
 			onClose={closeAlbumViewer}
 			photos={albumViewerPhotos}
 			initialIndex={albumViewerIndex}
 			onIndexChange={handleAlbumViewerIndexChange}
 			menuActions={albumMenuActions}
 			albumHeader={albumHeader}
-			contentWarning={showAlbumSensitiveContentWarning}
+			// Only gate directly-opened albums — the sheet already showed the
+			// album's contents, so the warning would be redundant per item.
+			contentWarning={showAlbumSensitiveContentWarning && !isAlbumSheetOpen}
 			renderFooter={(idx) => {
 				const item = albumViewer.content[idx];
 				if (!item || messageProfileId == null || isOwnProfile) return null;
@@ -1507,6 +1565,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				);
 			}}
 		/>
+		</>
 	);
 
 	// Shared between both the mobile/inline and split-desktop carousel

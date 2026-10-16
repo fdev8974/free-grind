@@ -5957,9 +5957,11 @@ export function ChatPage() {
 			window.history.pushState({ ...window.history.state, chatAlbum: "direct" }, "");
 			albumHistoryModeRef.current = "direct";
 		} else if (isAlbumViewerOverSheet) {
-			// Merging keeps BottomSheet's `bottomSheet` flag, so popping this
-			// entry doesn't make the sheet think its own entry was popped.
-			window.history.pushState({ ...window.history.state, chatAlbum: "viewerOverSheet" }, "");
+			// Keeps the router state but drops the sheet's own tag — the locked
+			// sheet only hands Android back to this entry when it can tell the
+			// entry isn't its own.
+			const { bottomSheet: _sheet, bottomSheetId: _sheetId, ...routerState } = window.history.state ?? {};
+			window.history.pushState({ ...routerState, chatAlbum: "viewerOverSheet" }, "");
 			albumHistoryModeRef.current = "viewerOverSheet";
 		}
 	}, [isAlbumOverlayOpen, isAlbumMediaSheetOpen, isAlbumViewerOverSheet]);
