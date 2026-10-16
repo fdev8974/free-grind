@@ -290,6 +290,8 @@ function LocationSheetContent({
 	const isPinManual = !selectedLocation?.isAuto;
 	const homeGeohash = homeLocation ? encodeGeohash(homeLocation.lat, homeLocation.lon) : null;
 	const pinnedSavedLocation = isPinManual ? savedLocations.find((saved) => saved.geohash === pinGeohash) : undefined;
+	// Home already has its own chip, so saving it again would only duplicate it.
+	const isPinOnHome = isPinManual && !!homeGeohash && pinGeohash === homeGeohash;
 
 	// Whether the pin already is the active location of this tab — nothing to
 	// confirm then, so the footer button stays disabled.
@@ -582,7 +584,7 @@ function LocationSheetContent({
 							icon={<HomeFilled className="h-4 w-4" />}
 							title={t("browse_location.home_location_label")}
 							subtitle={homeLocation.name ?? null}
-							isActive={isPinManual && pinGeohash === homeGeohash}
+							isActive={isPinOnHome}
 							onClick={() => pinLocation(homeLocation.lat, homeLocation.lon, homeLocation.name)}
 						/>
 					) : null}
@@ -636,7 +638,7 @@ function LocationSheetContent({
 					<button
 						type="button"
 						onClick={() => selectedLocation && void handleSetAsHome(selectedLocation.lat, selectedLocation.lon)}
-						disabled={!selectedLocation || updateHomeLocation.isPending || (isPinManual && pinGeohash === homeGeohash)}
+						disabled={!selectedLocation || updateHomeLocation.isPending || isPinOnHome}
 						title={t("browse_location.set_as_home")}
 						aria-label={t("browse_location.set_as_home")}
 						className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
@@ -647,7 +649,7 @@ function LocationSheetContent({
 				<button
 					type="button"
 					onClick={handleToggleBookmark}
-					disabled={!selectedLocation}
+					disabled={!selectedLocation || (isPinOnHome && !pinnedSavedLocation)}
 					title={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
 					aria-label={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
 					style={isNamingLocation ? { color: tabColor } : undefined}
