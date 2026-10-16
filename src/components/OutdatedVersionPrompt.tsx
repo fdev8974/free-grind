@@ -179,7 +179,7 @@ export function OutdatedVersionPromptView({
 					<div className="flex flex-col items-center overflow-hidden">
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 							{t("update_prompt.outdated", {
-								defaultValue: "You're using Free Grind {{version}}, which is outdated.",
+								defaultValue: "You're using Free Grind {{version}}, which is outdated. Outdated versions no longer receive over-the-air updates, so you'll miss new features and fixes until you install the latest version.",
 								version: appVersion,
 							})}
 						</p>

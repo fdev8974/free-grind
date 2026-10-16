@@ -2492,7 +2492,7 @@
   },
   "update_prompt": {
     "title": "Update Available",
-    "outdated": "You're using Free Grind {{version}}, which is outdated.",
+    "outdated": "You're using Free Grind {{version}}, which is outdated. Outdated versions no longer receive over-the-air updates, so you'll miss new features and fixes until you install the latest version.",
     "latest": "The latest version is {{version}}.",
     "downloading": "Downloading…",
     "downloading_percent": "Downloading… {{percent}}%",
