@@ -2249,8 +2249,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						{slashMatches.length > 0 && (
 							<div
 								onMouseDown={(event) => event.preventDefault()}
-								className="absolute bottom-full left-0 right-0 max-h-64 overflow-hidden rounded-t-2xl border-x border-t border-[var(--accent)] bg-[var(--surface)] shadow-xl z-40">
-								<div className="max-h-64 overflow-y-auto p-1.5">
+								// Mobile: a frosted card floating above the pill composer (same
+								// material), instead of a tab fused onto the desktop input.
+								className={!isDesktop
+									? "absolute bottom-full left-0 right-0 z-40 mb-2 max-h-64 overflow-hidden rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] shadow-[0_-1px_4px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+									: "absolute bottom-full left-0 right-0 max-h-64 overflow-hidden rounded-t-2xl border-x border-t border-[var(--accent)] bg-[var(--surface)] shadow-xl z-40"}>
+								<div data-lenis-prevent className="max-h-64 overflow-y-auto p-1.5">
 								<div className="flex flex-col gap-1">
 									{slashMatches.map((command, index) => {
 										const isSelected = index === slashSelectedIndex;
@@ -2263,10 +2267,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												onClick={() => selectSlashCommand(command)}
 												onMouseEnter={() => setSlashSelectedIndex(index)}
 												title={isDisabled ? t("chat.slash_commands.errors.no_conversation", { defaultValue: "Open a chat first" }) : undefined}
-												className={`w-full rounded-xl text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${
+												className={`w-full text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${!isDesktop ? "rounded-2xl active:scale-[0.98]" : "rounded-xl"} ${
 													isSelected
 														? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-														: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]"
+														: !isDesktop
+															? "active:bg-[color-mix(in_srgb,var(--text)_8%,transparent)]"
+															: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]"
 												}`}
 											>
 												<div className="flex items-center gap-1.5 text-sm font-semibold">
@@ -2276,7 +2282,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 															className={`inline-flex items-center leading-none rounded-md px-1.5 py-1 text-[10px] font-normal ${
 																isSelected
 																	? "bg-black/15 text-[var(--accent-contrast)]"
-																	: "bg-[var(--surface)] text-[var(--text-muted)]"
+																	: "bg-[color-mix(in_srgb,var(--text)_8%,transparent)] text-[var(--text-muted)]"
 															}`}
 														>
 															{command.argHint}
@@ -2290,7 +2296,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 																	className={`inline-flex items-center leading-none rounded-full px-1.5 py-1 text-[10px] font-medium ${
 																		isSelected
 																			? "bg-black/15 text-[var(--accent-contrast)]"
-																			: "bg-[var(--surface)] text-[var(--text-muted)]"
+																			: "bg-[color-mix(in_srgb,var(--text)_8%,transparent)] text-[var(--text-muted)]"
 																	}`}
 																>
 																	/{alias}
@@ -2309,12 +2315,16 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									})}
 								</div>
 								</div>
-								<div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-black/30 to-transparent" />
-								<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[var(--border)]" />
+								{isDesktop && (
+									<>
+										<div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-black/30 to-transparent" />
+										<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[var(--border)]" />
+									</>
+								)}
 							</div>
 						)}
-						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${slashMatches.length > 0 ? "rounded-b-xl border-t-0" : !isDesktop ? "rounded-[25px]" : "rounded-xl"} border py-1 mb-2 transition-colors ${
-							!isDesktop && slashMatches.length === 0
+						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${!isDesktop ? "rounded-[25px]" : slashMatches.length > 0 ? "rounded-b-xl border-t-0" : "rounded-xl"} border py-1 mb-2 transition-colors ${
+							!isDesktop
 								// Mobile: no outline, state is shown through the fill instead.
 								? isRecording
 									? `pl-1 pr-1 border-transparent ${recordingMs >= 50_000 ? "bg-red-500/15" : "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]"}`
