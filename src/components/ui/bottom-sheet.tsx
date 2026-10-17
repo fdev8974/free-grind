@@ -76,7 +76,6 @@ export function BottomSheet({
 	const [isDragging, setIsDragging] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 	const [isClosing, setIsClosing] = useState(false);
-	const dragStartY = useRef<number | null>(null);
 	const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const closingRef = useRef(false);
 	const backAlreadyDoneRef = useRef(false);
@@ -198,52 +197,146 @@ export function BottomSheet({
 		return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
 	}, [isProcessing, animateClose]);
 
-	const onTouchStart = (e: React.TouchEvent) => {
-		dragStartY.current = e.touches[0].clientY;
-		setIsDragging(true);
-	};
+	const panelRef = useRef<HTMLDivElement>(null);
+	const dragYRef = useRef(0);
+	const onExpandRef = useRef(onExpand);
+	useEffect(() => { onExpandRef.current = onExpand; }, [onExpand]);
 
-	const onTouchMove = (e: React.TouchEvent) => {
-		if (dragStartY.current === null) return;
-		const delta = e.touches[0].clientY - dragStartY.current;
-		if (delta < -60 && onExpand) {
-			onExpand();
-			dragStartY.current = e.touches[0].clientY;
-			return;
-		}
-		setDragY(Math.max(0, delta));
-	};
+	// Native-style drag: the whole sheet follows the finger, not just the
+	// handle. A downward drag on the content only grabs the sheet when nothing
+	// under the finger is scrolled down, so lists still scroll normally; a
+	// mostly-horizontal move (sliders, carousels) is left alone. Registered
+	// natively because React's touch listeners are passive and can't stop the
+	// WebView's own overscroll once the sheet has taken the gesture.
+	useEffect(() => {
+		const panel = panelRef.current;
+		if (!panel || isDesktop) return;
 
-	const onTouchEnd = () => {
-		if (dragY > 100) animateClose();
-		setDragY(0);
-		setIsDragging(false);
-		dragStartY.current = null;
-	};
+		let startX = 0;
+		let startY = 0;
+		let fromHandle = false;
+		let mode: "pending" | "drag" | "ignore" = "ignore";
+		let lastY = 0;
+		let lastT = 0;
+		let velocity = 0;
 
+		const isScrolledAncestor = (target: EventTarget | null) => {
+			for (let el = target as HTMLElement | null; el && el !== panel; el = el.parentElement) {
+				if (el.dataset.sheetNoDrag !== undefined) return true;
+				if (el.scrollTop > 0 && el.scrollHeight > el.clientHeight) {
+					const overflowY = getComputedStyle(el).overflowY;
+					if (overflowY === "auto" || overflowY === "scroll") return true;
+				}
+			}
+			return false;
+		};
+
+		const setDrag = (y: number) => {
+			dragYRef.current = y;
+			setDragY(y);
+		};
+
+		const onStart = (e: TouchEvent) => {
+			if (e.touches.length !== 1 || closingRef.current || isProcessingRef.current) {
+				mode = "ignore";
+				return;
+			}
+			const touch = e.touches[0];
+			startX = touch.clientX;
+			startY = touch.clientY;
+			lastY = startY;
+			lastT = e.timeStamp;
+			velocity = 0;
+			fromHandle = !!(e.target as HTMLElement).closest("[data-sheet-handle]");
+			mode = !fromHandle && isScrolledAncestor(e.target) ? "ignore" : "pending";
+		};
+
+		const onMove = (e: TouchEvent) => {
+			if (mode === "ignore") return;
+			const touch = e.touches[0];
+			const dx = touch.clientX - startX;
+			const dy = touch.clientY - startY;
+
+			if (mode === "pending") {
+				if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+				// Content only hands over on a downward drag; an upward one is a
+				// normal scroll. The handle takes both (up = expand).
+				if (Math.abs(dx) > Math.abs(dy) || (!fromHandle && dy < 0)) {
+					mode = "ignore";
+					return;
+				}
+				mode = "drag";
+				startY = touch.clientY;
+				setIsDragging(true);
+			}
+
+			e.preventDefault();
+			const delta = touch.clientY - startY;
+			if (delta < -60 && fromHandle && onExpandRef.current) {
+				onExpandRef.current();
+				startY = touch.clientY;
+				return;
+			}
+			const dt = e.timeStamp - lastT;
+			if (dt > 0) velocity = 0.8 * ((touch.clientY - lastY) / dt) + 0.2 * velocity;
+			lastY = touch.clientY;
+			lastT = e.timeStamp;
+			setDrag(Math.max(0, delta));
+		};
+
+		const onEnd = () => {
+			if (mode !== "drag") {
+				mode = "ignore";
+				return;
+			}
+			mode = "ignore";
+			const height = panel.offsetHeight || 1;
+			const y = dragYRef.current;
+			// Close on a flick even if it was short, or on a long slow drag.
+			if ((velocity > 0.5 && y > 10) || y > Math.min(height * 0.3, 180)) animateCloseRef.current();
+			setDrag(0);
+			setIsDragging(false);
+		};
+
+		panel.addEventListener("touchstart", onStart, { passive: true });
+		panel.addEventListener("touchmove", onMove, { passive: false });
+		panel.addEventListener("touchend", onEnd);
+		panel.addEventListener("touchcancel", onEnd);
+		return () => {
+			panel.removeEventListener("touchstart", onStart);
+			panel.removeEventListener("touchmove", onMove);
+			panel.removeEventListener("touchend", onEnd);
+			panel.removeEventListener("touchcancel", onEnd);
+		};
+	}, [isDesktop]);
+
+	const isShown = isVisible && !isClosing;
 	const isAnimating = isVisible && !isDragging;
-	const transform = (!isVisible || isClosing)
-		? "translateY(120%)"
-		: `translateY(${dragY}px)`;
+	const transform = isShown ? `translateY(${dragY}px)` : "translateY(110%)";
+	// Scrim follows the sheet while dragging, like the native ones do.
+	const panelHeight = panelRef.current?.offsetHeight || 1;
+	const scrimOpacity = isShown ? 1 - Math.min(1, dragY / panelHeight) : 0;
 
 	return (
 		<BottomSheetContext.Provider value={animateClose}>
 			<div
-				className={`fixed inset-0 ${zIndex} flex flex-col justify-end bg-black/45 backdrop-blur-sm no-touch-callout`}
-				style={{
-					opacity: (!isVisible || isClosing) ? 0 : 1,
-					transition: isVisible ? "opacity 0.3s ease" : "none",
-				}}
+				className={`fixed inset-0 ${zIndex} flex flex-col justify-end no-touch-callout`}
 				onClick={isProcessing ? undefined : animateClose}
-                onTouchStart={(e) => { if (e.target === e.currentTarget) onTouchStart(e); }}
-                onTouchMove={(e) => { if (dragStartY.current !== null) onTouchMove(e); }}
-                onTouchEnd={() => { if (dragStartY.current !== null) onTouchEnd(); }}
 			>
 				<div
-					className={`flex flex-col rounded-t-2xl border-x border-t border-[var(--border)] ${bg} shadow-2xl overflow-hidden ${isDesktop ? "w-full max-w-[800px] mx-auto" : "mx-3"} ${panelClassName}`}
+					aria-hidden
+					className={`absolute inset-0 ${isDesktop ? "bg-black/45 backdrop-blur-sm" : "bg-black/50"}`}
+					style={{
+						opacity: scrimOpacity,
+						transition: isAnimating ? "opacity 0.3s ease" : "none",
+					}}
+				/>
+				<div
+					ref={panelRef}
+					className={`relative flex flex-col ${bg} shadow-2xl overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl border-x border-t border-[var(--border)]" : "w-full rounded-t-[24px] border-t border-[var(--border)]"} ${panelClassName}`}
 					style={{
 						transform,
-						transition: isAnimating ? "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)" : "none",
+						transition: isAnimating ? "transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)" : "none",
 						willChange: "transform",
 						paddingBottom: "max(16px, env(safe-area-inset-bottom))",
 						minHeight: isDesktop ? undefined : "50dvh",
@@ -251,13 +344,8 @@ export function BottomSheet({
 					onClick={(e) => e.stopPropagation()}
 				>
 					{!isDesktop && (
-						<div
-							className="flex justify-center pt-2.5 pb-1 cursor-grab touch-none"
-							onTouchStart={onTouchStart}
-							onTouchMove={onTouchMove}
-							onTouchEnd={onTouchEnd}
-						>
-							<div className="h-1 w-10 rounded-full bg-[var(--border)]" />
+						<div data-sheet-handle className="flex shrink-0 justify-center pt-3 pb-2 touch-none">
+							<div className="h-1 w-9 rounded-full bg-[var(--text-muted)]/40" />
 						</div>
 					)}
 					{isDesktop && <div className="pt-4" />}
