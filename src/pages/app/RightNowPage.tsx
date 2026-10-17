@@ -361,7 +361,6 @@ function RightNowMapCard({
 	const { unitsPreset } = usePreferences();
 	const name = getItemName(item, t);
 	const avatarUrl = getItemDisplayImageUrl(item);
-	const timeAgo = formatRelativeTime(item.postedAt);
 	const distance = item.distanceMeters != null ? formatDistance(item.distanceMeters, t, unitsPreset) : null;
 	const isOnline = isItemOnline(item);
 	const isEndingSoon = isOnline && isOnlineEndingSoon(item.onlineUntil);
@@ -441,12 +440,6 @@ function RightNowMapCard({
 							{item.isFavorite && <Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />}
 						</div>
 						<div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
-							{timeAgo ? (
-								<span className="inline-flex items-center gap-1">
-									<ClockFilled className="h-3 w-3" />
-									{timeAgo}
-								</span>
-							) : null}
 							{distance && distance !== "hidden" ? (
 								<span className="inline-flex items-center gap-1">
 									<Navigation className="h-3 w-3 fill-current" />
