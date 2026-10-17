@@ -2215,9 +2215,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 ${!isDesktop ? "h-[50px] rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "h-[42px] rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
-								{/* Fixed to the composer's exact height (border + py-1 + its 40/32px
-								    buttons), so swapping between the two doesn't shift the layout. */}
+							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 ${!isDesktop ? "rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
+								{/* No fixed height: like the composer it's border + py-1 + its h-10/h-8
+								    buttons, all in rem, so the two match even when the system font
+								    scale changes rem (a px height drifted from it). */}
 								<div className="flex-1 min-w-0">
 									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} largeButton={!isDesktop} />
 								</div>
