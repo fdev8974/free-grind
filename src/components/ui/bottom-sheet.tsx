@@ -32,6 +32,9 @@ export function holdSheetDrag(): () => void {
 	};
 }
 
+/** True while a holdSheetDrag() hold is active (e.g. a peek owns the finger). */
+export const isSheetDragHeld = () => sheetDragHolds > 0;
+
 /** Lets other back-button handlers (useAndroidBackToGrid) stand aside while a sheet handles it. */
 export const isAnyBottomSheetOpen = () => openSheets.length > 0;
 

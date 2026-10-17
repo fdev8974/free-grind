@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
@@ -31,7 +31,7 @@ export function DrawerActionButton({ icon, label, onClick, disabled, layout = "c
 			type="button"
 			onClick={onClick}
 			disabled={disabled}
-			className={`flex items-center rounded-2xl bg-[var(--surface-2)] text-[var(--text)] transition active:scale-95 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] disabled:pointer-events-none disabled:opacity-40 ${
+			className={`flex items-center rounded-[var(--radius-sm)] bg-[var(--surface-2)] text-[var(--text)] transition active:scale-95 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] disabled:pointer-events-none disabled:opacity-40 ${
 				layout === "row" ? "w-full gap-3 px-3 py-2.5 text-left" : "flex-col gap-1.5 px-2 py-3"
 			}`}
 		>
@@ -76,7 +76,7 @@ export function DrawerEmptyState({
 	fanned?: boolean;
 	children?: ReactNode;
 }) {
-	const tileClass = "absolute inset-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] shadow-sm";
+	const tileClass = "absolute inset-0 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] shadow-sm";
 	return (
 		<div className="flex flex-col items-center gap-5 px-2 pb-8 pt-10 text-center">
 			<div className="relative h-24 w-32">
@@ -299,6 +299,7 @@ export function DrawerBody({
 	retryLabel,
 	empty,
 	className = "max-h-[60vh]",
+	gestureProps,
 	children,
 }: {
 	isLoading?: boolean;
@@ -308,6 +309,8 @@ export function DrawerBody({
 	/** Shown instead of `children` when set. */
 	empty?: ReactNode;
 	className?: string;
+	/** Touch handlers for the scroll area, e.g. useSwipeTabs. */
+	gestureProps?: HTMLAttributes<HTMLDivElement>;
 	children?: ReactNode;
 }) {
 	const { t } = useTranslation();
@@ -343,7 +346,7 @@ export function DrawerBody({
 	}
 	// min-h-0 + data-lenis-prevent: both are needed for the inner scroll to work in a sheet.
 	return (
-		<div data-lenis-prevent className={`min-h-0 flex-1 overflow-y-auto ${isDetented ? "" : className}`}>
+		<div data-lenis-prevent {...gestureProps} className={`min-h-0 flex-1 overflow-y-auto ${isDetented ? "" : className}`}>
 			{content}
 		</div>
 	);

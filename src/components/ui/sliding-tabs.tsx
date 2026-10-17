@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode, type TouchEvent } from "react";
 import { cn } from "../../utils/cn";
 import { haptic } from "../../utils/haptics";
+import { isSheetDragHeld } from "./bottom-sheet";
 
 export interface SlidingTab<T extends string> {
 	value: T;
@@ -65,4 +66,48 @@ export function SlidingTabs<T extends string>({
 			})}
 		</div>
 	);
+}
+
+/**
+ * Swipe left/right on a tab's content to switch to the next/previous tab, like
+ * native tab pagers. Spread the result onto the content area. A mostly
+ * vertical move is left to scrolling; sliders, maps and an open peek keep
+ * their own gestures.
+ */
+export function useSwipeTabs<T extends string>(
+	tabs: readonly T[],
+	value: T,
+	onChange: (value: T) => void,
+	enabled = true,
+) {
+	const startRef = useRef<{ x: number; y: number; t: number } | null>(null);
+
+	const onTouchStart = (event: TouchEvent<HTMLElement>) => {
+		startRef.current = null;
+		if (!enabled || event.touches.length !== 1) return;
+		const target = event.target as HTMLElement;
+		if (target.closest('input[type="range"], .maplibregl-map, [data-no-tab-swipe]')) return;
+		const touch = event.touches[0];
+		startRef.current = { x: touch.clientX, y: touch.clientY, t: event.timeStamp };
+	};
+
+	const onTouchEnd = (event: TouchEvent<HTMLElement>) => {
+		const start = startRef.current;
+		startRef.current = null;
+		if (!start || isSheetDragHeld()) return;
+		const touch = event.changedTouches[0];
+		const dx = touch.clientX - start.x;
+		const dy = touch.clientY - start.y;
+		const dt = Math.max(1, event.timeStamp - start.t);
+		// Clearly horizontal, and either far enough or a quick flick.
+		if (Math.abs(dx) < 1.5 * Math.abs(dy)) return;
+		if (Math.abs(dx) < 70 && !(Math.abs(dx) > 35 && Math.abs(dx) / dt > 0.5)) return;
+		const index = tabs.indexOf(value);
+		const next = tabs[index + (dx < 0 ? 1 : -1)];
+		if (next === undefined) return;
+		haptic(10);
+		onChange(next);
+	};
+
+	return { onTouchStart, onTouchEnd, onTouchCancel: () => { startRef.current = null; } };
 }

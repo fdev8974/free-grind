@@ -18,7 +18,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useDrawerMediaDelete } from "./useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "./useDrawerUploadQueue";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
-import { SlidingTabs } from "../../../components/ui/sliding-tabs";
+import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
 import {
 	DRAWER_ICON_BUTTON_CLASS,
 	DRAWER_TILE_CLASS,
@@ -86,6 +86,7 @@ export interface DrawerMedia {
 }
 
 type DrawerTab = "media" | "albums" | "collections";
+const DRAWER_TABS: readonly DrawerTab[] = ["media", "albums", "collections"];
 
 interface ChatDrawerPanelProps {
 	isLoading: boolean;
@@ -155,6 +156,7 @@ export function ChatDrawerPanel({
 	const combined = !splitDrawerCategories;
 	const hasCombinedGroups = combined && (albums.length > 0 || collections.length > 0);
 	const showSection = (tab: DrawerTab) => combined || activeTab === tab;
+	const tabSwipe = useSwipeTabs<DrawerTab>(DRAWER_TABS, activeTab, setActiveTab, !combined);
 	const EXPIRY_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"];
 	const [albumExpirationType, setAlbumExpirationType] = useState<string>(defaultAlbumExpirationType);
 	const EXPIRY_LABELS: Record<string, string> = {
@@ -582,7 +584,7 @@ export function ChatDrawerPanel({
 						})()}
 
 						{/* Content Grid */}
-						<DrawerBody isLoading={isLoading} error={error} onRetry={onLoadMedia}>
+						<DrawerBody isLoading={isLoading} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
 								<div className="flex flex-col gap-3">
 								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (

@@ -2,7 +2,7 @@ import { Check, Clock, Loader2, Search, Send, Sticker, TrendingUp, X } from "luc
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
-import { SlidingTabs } from "../../../components/ui/sliding-tabs";
+import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
 import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
 import { getRecentGifs, setRecentGifs } from "../../../services/chatDb";
@@ -137,6 +137,7 @@ function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId
 }
 
 type Tab = "trending" | "recent";
+const GIPHY_TABS: readonly Tab[] = ["trending", "recent"];
 
 export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = false }: GiphyPickerSheetProps) {
 	const { t } = useTranslation();
@@ -205,6 +206,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 			void loadTrending();
 		}
 	};
+	const tabSwipe = useSwipeTabs<Tab>(GIPHY_TABS, tab, handleTabChange);
 
 	const handleToggle = (gif: GiphyItem) => {
 		setSelectedGif((prev) => (prev?.id === gif.id ? null : gif));
@@ -259,7 +261,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 			)}
 
 			{/* Content */}
-			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent {...tabSwipe}>
 				{tab === "trending" ? (
 					isLoading ? (
 						<div className="flex items-center justify-center py-12">
