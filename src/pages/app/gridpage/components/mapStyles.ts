@@ -10,47 +10,99 @@ export function getMapStyleUrl(scheme: "light" | "dark"): string {
 	return scheme === "dark" ? MAP_STYLE_DARK : MAP_STYLE_LIGHT;
 }
 
+function readCssColor(name: string, fallback: string): string {
+	const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+	return /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
+}
+
+/** Mixes two #rrggbb colors; `amount` is the share of `b` (0..1). */
+function mixHex(a: string, b: string, amount: number): string {
+	const channel = (hex: string, i: number) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+	return `#${[0, 1, 2]
+		.map((i) => Math.round(channel(a, i) * (1 - amount) + channel(b, i) * amount).toString(16).padStart(2, "0"))
+		.join("")}`;
+}
+
 /**
  * CARTO's dark-matter style defaults to a near-monochrome black map where
- * roads/rail barely register. Re-tint land/water/roads with a Google
- * Maps-style dark palette (blue water, teal-green land, light visible
- * roads) instead. Call after the style has (re)loaded, e.g. on the
- * MapLibre "style.load" event.
+ * roads/rail barely register. Re-tint it with the app's own dark palette
+ * (the --dark-* tokens, so AMOLED mode follows too, plus a hint of the user's
+ * accent) so the map reads as part of the app. Call after the style has
+ * (re)loaded, e.g. on the MapLibre "style.load" event.
  */
 export function applyDarkMapTheme(map: any): void {
-	const LAND = "#1b2e33";
-	const PARK = "#163328";
-	const WATER = "#0d1f30";
-	const ROAD_CASE = "#0f1d20";
-	const ROAD_FILL = "#5c6f74";
-	const ROAD_MINOR_FILL = "#445256";
-	const RAIL = "#62737a";
-	const RAIL_DASH = "#4a565a";
+	const bg = readCssColor("--dark-bg", "#0f131a");
+	const surface2 = readCssColor("--dark-surface-2", "#1f2835");
+	const textMuted = readCssColor("--dark-text-muted", "#96a2b6");
+	const accent = readCssColor("--accent", "#7c3aed");
+
+	// Land a step lighter than surface-2: maps sit inside dialogs/sheets whose
+	// backgrounds are surface/surface-2, and land in exactly those colors made
+	// the map melt into them. Water stays dark, so the contrast reads clearly.
+	// AMOLED keeps it darker: only a hair above surface-2 so it stays distinct.
+	const isAmoled = document.documentElement.getAttribute("data-amoled") === "true";
+	const LAND = mixHex(surface2, textMuted, isAmoled ? 0.03 : 0.08);
+	const PARK = mixHex(LAND, "#2f7a55", 0.22);
+	const BUILDING = mixHex(LAND, textMuted, 0.08);
+	const WATER = mixHex(bg, accent, 0.12);
+	const ROAD_CASE = mixHex(LAND, bg, 0.5);
+	const ROAD_FILL = mixHex(LAND, textMuted, 0.4);
+	// The accent marks the road hierarchy (like Google's highway color):
+	// motorways/trunks clearly in the accent, primaries a light touch, the
+	// rest stays neutral so the map isn't drowned in it.
+	const ROAD_MAJOR_FILL = mixHex(ROAD_FILL, accent, 0.6);
+	const ROAD_PRIMARY_FILL = mixHex(ROAD_FILL, accent, 0.25);
+	const ROAD_MINOR_FILL = mixHex(LAND, textMuted, 0.16);
+	const RAIL = mixHex(LAND, textMuted, 0.25);
+	const RAIL_DASH = mixHex(LAND, textMuted, 0.12);
+	const LABEL = textMuted;
+	const PLACE_LABEL = mixHex(mixHex(textMuted, "#ffffff", 0.25), accent, 0.2);
+	// Dense and secondary: a step quieter than street/place names.
+	const HOUSENUMBER = mixHex(textMuted, LAND, 0.3);
 
 	try {
 		for (const layer of map.getStyle()?.layers ?? []) {
 			const id: string = layer.id;
-
-			if (layer.type === "background") {
-				map.setPaintProperty(id, "background-color", LAND);
-			} else if (layer.type === "fill") {
-				if (/^park/.test(id)) {
-					map.setPaintProperty(id, "fill-color", PARK);
-				} else if (id === "landcover" || id === "landuse") {
-					map.setPaintProperty(id, "fill-color", LAND);
-				} else if (/water/i.test(id)) {
-					map.setPaintProperty(id, "fill-color", WATER);
+			try {
+				if (layer.type === "background") {
+					map.setPaintProperty(id, "background-color", LAND);
+				} else if (layer.type === "fill") {
+					if (/^park/.test(id)) {
+						map.setPaintProperty(id, "fill-color", PARK);
+					} else if (/water/i.test(id)) {
+						map.setPaintProperty(id, "fill-color", WATER);
+					} else if (/building/i.test(id)) {
+						map.setPaintProperty(id, "fill-color", BUILDING);
+					} else if (id === "landcover" || id === "landuse") {
+						map.setPaintProperty(id, "fill-color", LAND);
+					}
+				} else if (layer.type === "symbol" && layer.layout?.["text-field"] != null) {
+					const isHousenumber = id === "housenumber" || layer["source-layer"] === "housenumber";
+					const isPlace = /^place_(city|town|capital)/.test(id);
+					map.setPaintProperty(id, "text-color", isHousenumber ? HOUSENUMBER : isPlace ? PLACE_LABEL : LABEL);
+					map.setPaintProperty(id, "text-halo-color", bg);
+					if (isHousenumber) map.setPaintProperty(id, "text-halo-width", 1);
+				} else if (layer.type === "line") {
+					if (layer["source-layer"] === "transportation") {
+						if (/rail/.test(id)) {
+							map.setPaintProperty(id, "line-color", /dash/.test(id) ? RAIL_DASH : RAIL);
+						} else if (/case/.test(id)) {
+							map.setPaintProperty(id, "line-color", ROAD_CASE);
+						} else if (/service|path|minor/.test(id)) {
+							map.setPaintProperty(id, "line-color", ROAD_MINOR_FILL);
+						} else if (/_(mot|trunk)_fill/.test(id)) {
+							map.setPaintProperty(id, "line-color", ROAD_MAJOR_FILL);
+						} else if (/_pri_fill/.test(id)) {
+							map.setPaintProperty(id, "line-color", ROAD_PRIMARY_FILL);
+						} else {
+							map.setPaintProperty(id, "line-color", ROAD_FILL);
+						}
+					} else if (/water/i.test(id)) {
+						map.setPaintProperty(id, "line-color", WATER);
+					}
 				}
-			} else if (layer.type === "line" && layer["source-layer"] === "transportation") {
-				if (/rail/.test(id)) {
-					map.setPaintProperty(id, "line-color", /dash/.test(id) ? RAIL_DASH : RAIL);
-				} else if (/case/.test(id)) {
-					map.setPaintProperty(id, "line-color", ROAD_CASE);
-				} else if (/service|path/.test(id)) {
-					map.setPaintProperty(id, "line-color", ROAD_MINOR_FILL);
-				} else {
-					map.setPaintProperty(id, "line-color", ROAD_FILL);
-				}
+			} catch {
+				// skip a layer that doesn't take this property
 			}
 		}
 	} catch {
@@ -76,6 +128,8 @@ export function applyRightNowMapTheme(map: any, accent: string): void {
 	const BOUNDARY = "#3b2d66";
 	const LABEL = "#c4b5fd";
 	const LABEL_HALO = "#0a0714";
+	// House numbers are dense; keep them a step quieter than street/place names.
+	const HOUSENUMBER = "#7d70a8";
 
 	try {
 		for (const layer of map.getStyle()?.layers ?? []) {
@@ -111,9 +165,10 @@ export function applyRightNowMapTheme(map: any, accent: string): void {
 						map.setPaintProperty(id, "line-color", BOUNDARY);
 					}
 				} else if (layer.type === "symbol" && layer.layout?.["text-field"] != null) {
-					map.setPaintProperty(id, "text-color", LABEL);
+					const isHousenumber = id === "housenumber" || layer["source-layer"] === "housenumber";
+					map.setPaintProperty(id, "text-color", isHousenumber ? HOUSENUMBER : LABEL);
 					map.setPaintProperty(id, "text-halo-color", LABEL_HALO);
-					map.setPaintProperty(id, "text-opacity", 0.75);
+					map.setPaintProperty(id, "text-opacity", isHousenumber ? 0.6 : 0.75);
 				}
 			} catch {
 				// skip a layer that doesn't take this property
