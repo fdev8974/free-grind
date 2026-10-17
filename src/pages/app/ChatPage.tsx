@@ -6268,10 +6268,13 @@ export function ChatPage() {
 
 				setReplyTargetMessageId(null);
 				toast.success(t("chat.toasts.media_sent"));
-				setIsDrawerOpen(false);
+				// Don't close the drawer here: ChatDrawerPanel closes its sheet
+				// itself after this resolves, which also pops the sheet's history
+				// entry. Unmounting it from here would leave that entry behind, so
+				// the next back press would do nothing.
 
 				// Reload drawer media to update "used" status
-				await loadDrawerMedia();
+				void loadDrawerMedia();
 			} catch (error) {
 				toast.error(
 					error instanceof Error ? error.message : t("chat.errors.send_drawer_media"),
