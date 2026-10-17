@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { ToastBar, useToaster, type DefaultToastOptions, type Toast, type ToastPosition } from "react-hot-toast";
 import { CheckCircle2, AlertCircle, Loader2, Info } from "lucide-react";
 
@@ -70,15 +71,49 @@ function ToastItem({ toast, offset, onHeightUpdate }: { toast: Toast; offset: nu
 	);
 }
 
-// Shared styling for react-hot-toast, used both by the app-wide instance in
-// main.tsx and by a second instance mounted inside native <dialog> modals
-// (see AutomationRuleEditor.tsx) — a <dialog> shown via showModal() is
-// promoted to the browser's top layer, which always paints above regular
-// document content regardless of z-index, so the app-wide Toaster's toasts
-// end up hidden behind the dialog's backdrop. Rendering a second Toaster as
-// a descendant of the open dialog puts it in that same top-layer subtree,
-// so it paints above the backdrop instead.
+// Elements that toasts should currently render into instead of the document
+// body. A native <dialog> shown via showModal() is promoted to the browser's
+// top layer, which always paints above regular document content regardless of
+// z-index, so toasts rendered at the app root end up hidden behind the
+// dialog's backdrop. An open dialog mounts a <ToasterHost /> and the single
+// AppToaster portals into the most recently mounted one, putting the toasts
+// in that same top-layer subtree so they paint above the backdrop.
 //
+// This must stay a portal of the one AppToaster rather than a second
+// useToaster() instance: react-hot-toast 2.6's store, on unmount, removes the
+// *first* subscriber with the same toaster id instead of its own. A second
+// toaster unmounting therefore silently unsubscribed the app-wide one, which
+// then froze on its last state — e.g. a toast visible forever.
+let hosts: HTMLElement[] = [];
+const hostListeners = new Set<() => void>();
+
+function setHosts(next: HTMLElement[]) {
+	hosts = next;
+	hostListeners.forEach((l) => l());
+}
+
+function subscribeHosts(listener: () => void) {
+	hostListeners.add(listener);
+	return () => hostListeners.delete(listener);
+}
+
+const getActiveHost = () => hosts[hosts.length - 1] ?? null;
+
+// Mount only while the surrounding top-layer element (e.g. dialog) is open —
+// a host inside a closed dialog would render the toasts invisibly.
+export function ToasterHost() {
+	const ref = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		const el = ref.current;
+		if (!el) return;
+		setHosts([...hosts, el]);
+		return () => setHosts(hosts.filter((h) => h !== el));
+	}, []);
+
+	return <div ref={ref} />;
+}
+
 // This is a hand-rolled toaster (using react-hot-toast's exported ToastBar +
 // useToaster primitives) instead of the library's own <Toaster>. The stock
 // <Toaster> pauses its auto-dismiss timer on mouseenter and only resumes on
@@ -89,10 +124,13 @@ function ToastItem({ toast, offset, onHeightUpdate }: { toast: Toast; offset: nu
 // and toast text (e.g. coordinates copied out for the locate triangulation
 // feature) stays selectable, since we don't need to disable pointer events
 // to work around the bug.
+//
+// Mount exactly once (main.tsx); use <ToasterHost /> inside dialogs.
 export function AppToaster() {
 	const { toasts, handlers } = useToaster(TOAST_OPTIONS);
+	const host = useSyncExternalStore(subscribeHosts, getActiveHost);
 
-	return (
+	const content = (
 		<div
 			style={{
 				position: "fixed",
@@ -116,4 +154,6 @@ export function AppToaster() {
 			))}
 		</div>
 	);
+
+	return host ? createPortal(content, host) : content;
 }

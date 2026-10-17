@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AtSign, Ban, Calendar, FileText, Flame, ImageOff, Image as ImageIcon, MessageCirclePlus, MessageSquare, Plus, Search, Trash2, User, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { AppToaster } from "../AppToaster";
+import { ToasterHost } from "../AppToaster";
 import { Slider } from "../ui/range-slider";
 import type { Album } from "../../types/albums";
 import type {
@@ -265,7 +265,7 @@ export function AutomationRuleEditor({
 				if (event.target === dialogRef.current) onCancel();
 			}}
 		>
-			<AppToaster />
+			{isOpen && <ToasterHost />}
 			{draft && <div className="grid max-h-[min(85dvh,calc(100dvh-var(--keyboard-inset,0px)-2rem))] grid-rows-[auto_1fr_auto]">
 			<div className="border-b border-[var(--border)] p-5 pb-4">
 				<div className="flex items-center justify-between gap-2">
