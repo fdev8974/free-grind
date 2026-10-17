@@ -1193,7 +1193,8 @@
             "qr_or_paste": "",
             "qr_code_placeholder": "",
             "qr_back": "",
-            "qr_entry": ""
+            "qr_entry": "",
+            "qr_scan_hint": ""
         },
         "reset": {
             "title": "Ресетовање лозинке",

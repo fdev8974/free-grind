@@ -1183,7 +1183,8 @@
       "qr_or_paste": "or paste the code",
       "qr_code_placeholder": "Sign-in code",
       "qr_back": "Back to the other sign-in options",
-      "qr_entry": "Signed in on another device? Use a QR code"
+      "qr_entry": "Signed in on another device? Use a QR code",
+      "qr_scan_hint": "Point the camera at the QR code on your other device"
     },
     "reset": {
       "title": "Reset password",

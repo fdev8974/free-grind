@@ -7,6 +7,9 @@ import { isTauriRuntime } from "./tauriWebSocket";
 
 type PermissionState = "granted" | "denied" | "prompt" | "prompt-with-rationale";
 
+/** Set on <html> while scanning; layout.css makes the app see-through then. */
+const SCANNING_CLASS = "qr-scanning";
+
 export class QrScanError extends Error {
 	constructor(readonly reason: "permissionDenied" | "cancelled" | "failed", detail?: string) {
 		super(detail ?? reason);
@@ -25,19 +28,31 @@ async function ensureCameraPermission(): Promise<void> {
 	if (requested.camera !== "granted") throw new QrScanError("permissionDenied");
 }
 
-/** Opens the full-screen camera and resolves with the first QR code it reads. */
+/**
+ * Shows the camera and resolves with the first QR code it reads. Windowed:
+ * the camera sits *behind* the webview, so the page stays on top to draw its
+ * own controls (QrScanOverlay) — the plugin's full-screen mode has no way out.
+ */
 export async function scanQrCode(): Promise<string> {
 	await ensureCameraPermission();
+	document.documentElement.classList.add(SCANNING_CLASS);
 	try {
 		const result = await invoke<{ content: string }>("plugin:barcode-scanner|scan", {
-			windowed: false,
+			windowed: true,
 			formats: ["QR_CODE"],
 		});
 		return result.content;
 	} catch (error) {
 		const message = String(error);
-		// The plugin rejects with "cancelled" when the user backs out of the camera.
+		// cancelQrScan() makes the plugin reject the pending scan with "cancelled".
 		if (/cancel/i.test(message)) throw new QrScanError("cancelled", message);
 		throw new QrScanError("failed", message);
+	} finally {
+		document.documentElement.classList.remove(SCANNING_CLASS);
 	}
+}
+
+/** Stops a running scanQrCode(), which then rejects as "cancelled". */
+export async function cancelQrScan(): Promise<void> {
+	await invoke("plugin:barcode-scanner|cancel").catch(() => {});
 }

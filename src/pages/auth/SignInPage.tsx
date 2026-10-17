@@ -12,7 +12,8 @@ import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 import { isAndroid } from "../../services/saveMedia";
 import { isTauriRuntime } from "../../services/tauriWebSocket";
-import { isQrScanSupported, QrScanError, scanQrCode } from "../../services/qrScanner";
+import { cancelQrScan, isQrScanSupported, QrScanError, scanQrCode } from "../../services/qrScanner";
+import { QrScanOverlay } from "../../components/QrScanOverlay";
 import { cn } from "../../utils/cn";
 import { SlidingTabs } from "../../components/ui/sliding-tabs";
 
@@ -163,6 +164,7 @@ export function SignInPage() {
 	const [isTransferLoading, setIsTransferLoading] = useState(false);
 	const [canScanQr] = useState(isQrScanSupported);
 	const [scanError, setScanError] = useState<string | null>(null);
+	const [isScanning, setIsScanning] = useState(false);
 	// With a camera to scan with, pasting the code stays folded away.
 	const [showManualTransferCode, setShowManualTransferCode] = useState(false);
 
@@ -262,6 +264,7 @@ export function SignInPage() {
 		setScanError(null);
 		clearError();
 		let code: string;
+		setIsScanning(true);
 		try {
 			code = await scanQrCode();
 		} catch (error) {
@@ -272,9 +275,21 @@ export function SignInPage() {
 					: t("auth.sign_in.qr_scan_failed", { defaultValue: "Couldn't scan the code. Please try again." }),
 			);
 			return;
+		} finally {
+			setIsScanning(false);
 		}
 		await submitTransferCode(code);
 	};
+
+	// Leaving the page mid-scan must not leave the camera running behind it.
+	const isScanningRef = useRef(false);
+	isScanningRef.current = isScanning;
+	useEffect(
+		() => () => {
+			if (isScanningRef.current) void cancelQrScan();
+		},
+		[],
+	);
 
 	const handleTransferSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -365,6 +380,13 @@ export function SignInPage() {
 		>
 			{showTransfer ? (
 				<form key="qr" onSubmit={handleTransferSubmit} className="animate-fade-in space-y-5">
+					{isScanning ? (
+						<QrScanOverlay
+							hint={t("auth.sign_in.qr_scan_hint", { defaultValue: "Point the camera at the QR code on your other device" })}
+							cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+							onCancel={() => void cancelQrScan()}
+						/>
+					) : null}
 					<div>
 						<Step
 							step={1}
