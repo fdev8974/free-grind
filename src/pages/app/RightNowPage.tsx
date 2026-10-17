@@ -6,8 +6,6 @@ import type { TFunction } from "i18next";
 import {
 	ArrowUpDown,
 	Crosshair,
-	List,
-	Map as MapIcon,
 	MessageSquare,
 	Hourglass,
 	Navigation,
@@ -16,7 +14,7 @@ import {
 	X,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { ClockFilled, HomeFilled } from "../../components/icons/FilledIcons";
+import { ClockFilled, HomeFilled, MapFilled } from "../../components/icons/FilledIcons";
 import { useRightNowFeed } from "../../hooks/queries/useRightNowQueries";
 import { useFeatureFlag } from "../../services/assignmentsStore";
 import { decodeGeohash } from "../../utils/geohash";
@@ -386,7 +384,7 @@ function RightNowMapCard({
 	const headerAvatarUrl = heroSrc ? getRightNowProfileImageUrl(item) ?? avatarUrl : avatarUrl;
 
 	return (
-		<div className="relative mx-auto max-w-xl overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.55),0_8px_16px_-6px_rgba(0,0,0,0.35)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+		<div className="relative mx-auto max-w-xl overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.55),0_8px_16px_-6px_rgba(0,0,0,0.35)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
 			{/* Close, pinned to the card's corner (over the photo when there is one) */}
 			<button
 				type="button"
@@ -430,11 +428,12 @@ function RightNowMapCard({
 				{/* Header: avatar, name, meta, close */}
 				<div className="flex items-end gap-3">
 					<button type="button" onClick={() => onSelect(item.profileId)} className="relative shrink-0">
-						<div className="h-14 w-14 overflow-hidden rounded-full border-2 border-[var(--surface)] bg-[var(--surface-2)] shadow-lg">
+						<div className="h-14 w-14 overflow-hidden rounded-full border border-[var(--bg)] bg-[var(--surface-2)] shadow-lg">
 							<ProfileImage src={headerAvatarUrl} alt={name} />
 						</div>
 						{/* Session countdown ring, same as the map markers */}
-						<svg className="pointer-events-none absolute -inset-1 h-[calc(100%+0.5rem)] w-[calc(100%+0.5rem)] -rotate-90" viewBox="0 0 64 64" aria-hidden="true">
+						{/* overflow-visible: an SVG clips to its box by default, which cut off the ring's glow. */}
+						<svg className="pointer-events-none absolute -inset-[3px] h-[calc(100%+6px)] w-[calc(100%+6px)] -rotate-90 overflow-visible" viewBox="0 0 64 64" aria-hidden="true">
 							<circle cx="32" cy="32" r="30.75" fill="none" stroke="color-mix(in srgb, var(--right-now) 22%, transparent)" strokeWidth="2.5" />
 							<circle
 								cx="32"
@@ -953,13 +952,20 @@ export function RightNowPage() {
 							type="button"
 							onClick={toggleViewMode}
 							title={isMapView ? t("right_now.view_list", { defaultValue: "List" }) : t("right_now.view_map", { defaultValue: "Map" })}
-							aria-label={isMapView ? t("right_now.view_list", { defaultValue: "List" }) : t("right_now.view_map", { defaultValue: "Map" })}
-							// Icon-only, keeping the text line height so it matches the label pills.
-							className="glass-pill inline-flex shrink-0 items-center justify-center px-[11px] py-2 text-sm font-bold text-[var(--right-now)] hover:border-[var(--right-now)]/60 hover:bg-[var(--right-now)]/20 active:scale-95"
-							style={{ "--pill-color": "var(--right-now)" } as React.CSSProperties}
+							aria-label={t("right_now.view_map", { defaultValue: "Map" })}
+							aria-pressed={isMapView}
+							// Icon-only toggle (always the map icon), filled while the map is shown;
+							// keeps the text line height so it matches the label pills.
+							className={cn(
+								"glass-pill inline-flex shrink-0 items-center justify-center px-[11px] py-2 text-sm font-bold active:scale-95",
+								isMapView
+									? "bg-[var(--right-now)] border-[var(--right-now)] text-white shadow-lg shadow-[var(--right-now)]/40"
+									: "text-[var(--right-now)] hover:border-[var(--right-now)]/60 hover:bg-[var(--right-now)]/20",
+							)}
+							style={!isMapView ? ({ "--pill-color": "var(--right-now)" } as React.CSSProperties) : undefined}
 						>
 							<span className="flex h-5 items-center">
-								{isMapView ? <List className="h-3.5 w-3.5" /> : <MapIcon className="h-3.5 w-3.5" />}
+								<MapFilled className="h-3.5 w-3.5" />
 							</span>
 						</button>
 						)}

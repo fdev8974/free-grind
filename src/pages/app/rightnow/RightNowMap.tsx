@@ -123,7 +123,7 @@ function buildMarkerElement(
 		"position:absolute",
 		"inset:0",
 		"border-radius:9999px",
-		"border:2px solid var(--bg)",
+		"border:1px solid var(--bg)",
 		"background:var(--surface-2)",
 		"color:var(--text-muted)",
 		"box-shadow:0 4px 12px rgba(0,0,0,0.35)",

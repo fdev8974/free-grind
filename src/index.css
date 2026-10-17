@@ -862,7 +862,7 @@
 		position: absolute;
 		inset: 0;
 		border-radius: 9999px;
-		border: 2px solid var(--bg);
+		border: 1px solid var(--bg);
 		background: var(--surface-2);
 		color: var(--text-muted);
 		overflow: hidden;
