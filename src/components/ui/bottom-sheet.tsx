@@ -356,7 +356,7 @@ export function BottomSheet({
 			samples = [{ t: e.timeStamp, y: startY }];
 			const target = e.target as HTMLElement;
 			fromHandle = !!target.closest("[data-sheet-handle]") || !panel.contains(target);
-			mode = !fromHandle && isScrolledAncestor(e.target) ? "ignore" : "pending";
+			mode = "pending";
 		};
 
 		const onMove = (e: TouchEvent) => {
@@ -371,7 +371,13 @@ export function BottomSheet({
 				// Content hands over an upward drag only while the sheet can
 				// still grow; otherwise that's a normal scroll.
 				const canGrow = state.detented && !state.expanded;
-				if (Math.abs(dx) > Math.abs(dy) || (!fromHandle && dy < 0 && !canGrow)) {
+				// Checked here rather than on touchstart, so content that only
+				// claims the gesture after a long press (drag-to-reorder) wins.
+				if (
+					Math.abs(dx) > Math.abs(dy)
+					|| (!fromHandle && dy < 0 && !canGrow)
+					|| (!fromHandle && isScrolledAncestor(e.target))
+				) {
 					mode = "ignore";
 					return;
 				}

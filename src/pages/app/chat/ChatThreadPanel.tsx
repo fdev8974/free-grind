@@ -143,6 +143,7 @@ import {
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
 import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
+import { DrawerEmptyState } from "./drawerUi";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 
@@ -320,35 +321,38 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 			ref={setNodeRef}
 			style={style}
 			{...(isDesktop ? {} : { ...attributes, ...listeners })}
-			className={`group flex items-start gap-3 px-4 py-3 ${isDesktop ? "" : "touch-pan-y no-touch-callout"} ${isDragging ? "z-10 bg-[var(--surface)] opacity-60" : ""}`}
+			// While reordering, the sheet must not take the drag as a dismiss.
+			data-sheet-no-drag={isDragging ? "" : undefined}
+			// Inset divider (starts at the text, like native lists), hidden on the
+			// first row and on the row being dragged.
+			className={`group relative flex items-center gap-1 pl-1 pr-2 before:absolute before:right-3 before:top-0 before:h-px before:bg-[var(--border)] before:opacity-60 first:before:hidden ${isDesktop ? "before:left-12" : "before:left-10"} ${isDesktop ? "" : "touch-pan-y no-touch-callout"} ${isDragging ? "z-10 rounded-2xl bg-[color-mix(in_srgb,var(--surface-2)_85%,var(--text)_10%)] shadow-lg before:hidden" : ""}`}
 		>
 			{isDesktop && (
 				<button
 					type="button"
 					{...attributes}
 					{...listeners}
-					className="mt-0.5 flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-xl text-[var(--text-muted)] active:cursor-grabbing"
+					className="flex h-8 w-6 shrink-0 cursor-grab items-center justify-center text-[var(--text-muted)] opacity-50 transition group-hover:opacity-100 active:cursor-grabbing"
 					aria-label={t("settings_saved_phrases.reorder", { defaultValue: "Reorder phrase" })}
 				>
 					<GripVertical className="h-4 w-4" />
 				</button>
 			)}
-			<div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--accent)]">
-				<MessageSquareQuote className="h-3.5 w-3.5" />
-			</div>
+			{/* The whole row sends the phrase, not just its text. */}
 			<SheetClose
 				onClick={onUse}
-				className="min-w-0 flex-1 break-words text-left text-sm leading-relaxed text-[var(--text)] transition hover:text-[var(--accent)]"
+				className={`flex min-w-0 flex-1 items-start gap-3 rounded-xl py-3 text-left transition active:bg-[color-mix(in_srgb,var(--text)_6%,transparent)] ${isDesktop ? "pl-1" : "pl-3"}`}
 			>
-				<span className="block break-words">{phrase}</span>
+				<MessageSquareQuote className="mt-[3px] h-4 w-4 shrink-0 text-[var(--accent-readable)]" />
+				<span className="min-w-0 flex-1 break-words text-sm leading-relaxed text-[var(--text)]">{phrase}</span>
 			</SheetClose>
 			<button
 				type="button"
 				onClick={onDelete}
-				className="mt-0.5 shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+				className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition active:scale-90 active:bg-red-500/15 hover:bg-red-500/10 hover:text-red-400"
 				aria-label={t("settings_saved_phrases.delete", { defaultValue: "Delete phrase" })}
 			>
-				<Trash2 className="h-3.5 w-3.5" />
+				<Trash2 className="h-4 w-4" />
 			</button>
 		</div>
 	);
@@ -2774,93 +2778,97 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							expandable
 							isDesktop={isDesktop}
 							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+							panelClassName="px-4"
 						>
-							{/* Header */}
-							<div className="flex items-center justify-between px-4 pb-3">
-									<div className="flex items-center gap-2">
-										<p className="text-sm font-semibold text-[var(--text)]">
-											{t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
-										</p>
-										{savedPhrases.length > 0 && (
-											<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
-												{savedPhrases.length}
-											</span>
-										)}
-									</div>
-									<div className="flex items-center gap-1">
-										<button
-											type="button"
-											onClick={() => {
-												afterSheetCloseRef.current = () => navigate("/settings/data");
-												savedPhrasesSheetCloseRef.current?.();
-											}}
-											className={SHEET_ICON_BUTTON_CLASS}
-											aria-label={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
-											title={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
-										>
-											<Settings2 className="h-4 w-4" />
-										</button>
-										<SheetCloseButton />
-									</div>
-								</div>
-
-								{/* Add input */}
-								<div className="px-3 pb-3">
-									<div className="flex gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5">
-										<input
-											type="text"
-											value={newPhraseInput}
-											onChange={(e) => setNewPhraseInput(e.target.value)}
-											onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddPhrase(); } }}
-											placeholder={t("settings_saved_phrases.new_placeholder", { defaultValue: "Add a new phrase..." })}
-											className="min-w-0 flex-1 bg-transparent px-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none"
-										/>
-										<button
-											type="button"
-											onClick={handleAddPhrase}
-											disabled={!newPhraseInput.trim()}
-											className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-40"
-										>
-											<Plus className="h-3.5 w-3.5" />
-											{t("settings_saved_phrases.add", { defaultValue: "Add" })}
-										</button>
-									</div>
-								</div>
-
-								<div className="border-t border-[var(--border)]" />
-
-								{/* Phrases list */}
-								<div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: isDesktop ? "40dvh" : undefined }}>
-									{savedPhrases.length === 0 ? (
-										<div className="flex flex-col items-center justify-center gap-2.5 text-center text-[var(--text-muted)]" style={{ minHeight: "40dvh" }}>
-											<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
-												<MessageSquareQuoteFilled className="h-5 w-5 opacity-60" />
-											</div>
-											<p className="text-sm font-medium">
-												{t("settings_saved_phrases.empty", { defaultValue: "No saved phrases yet." })}
-											</p>
-											<p className="text-xs opacity-60">
-												{t("settings_saved_phrases.empty_hint", { defaultValue: "Type above to add your first phrase." })}
-											</p>
-										</div>
-									) : (
-										<DndContext sensors={savedPhrasesSensors} modifiers={[restrictToVerticalAxis]} autoScroll={false} onDragEnd={(e) => void handlePhrasesDragEnd(e)}>
-											<SortableContext items={savedPhrases} strategy={verticalListSortingStrategy}>
-												<div className="divide-y divide-[var(--border)]">
-													{savedPhrases.map((phrase, originalIndex) => (
-														<SortableSavedPhraseRow
-															key={phrase}
-															phrase={phrase}
-															onUse={() => handleUsePhrase(phrase)}
-															onDelete={() => handleDeletePhrase(originalIndex)}
-															isDesktop={isDesktop}
-														/>
-													))}
-												</div>
-											</SortableContext>
-										</DndContext>
+							<div className="mb-3 flex items-center justify-between gap-3">
+								<div className="flex min-w-0 items-center gap-2">
+									<h3 className="truncate text-sm font-semibold text-[var(--text)]">
+										{t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
+									</h3>
+									{savedPhrases.length > 0 && (
+										<span className="rounded-full bg-[color-mix(in_srgb,var(--text)_8%,transparent)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
+											{savedPhrases.length}
+										</span>
 									)}
 								</div>
+								<div className="flex items-center gap-2">
+									<button
+										type="button"
+										onClick={() => {
+											afterSheetCloseRef.current = () => navigate("/settings/data");
+											savedPhrasesSheetCloseRef.current?.();
+										}}
+										className={SHEET_ICON_BUTTON_CLASS}
+										aria-label={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
+										title={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
+									>
+										<Settings2 className="h-4 w-4" />
+									</button>
+									<SheetCloseButton />
+								</div>
+							</div>
+
+							{/* Add field: round add button inside, like a composer. */}
+							<form
+								className="relative mb-3 shrink-0"
+								onSubmit={(e) => {
+									e.preventDefault();
+									handleAddPhrase();
+								}}
+							>
+								<input
+									type="text"
+									value={newPhraseInput}
+									onChange={(e) => setNewPhraseInput(e.target.value)}
+									enterKeyHint="done"
+									placeholder={t("settings_saved_phrases.new_placeholder", { defaultValue: "Add a new phrase..." })}
+									className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-3.5 pr-12 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+								/>
+								<button
+									type="submit"
+									disabled={!newPhraseInput.trim()}
+									className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] transition active:scale-90 hover:brightness-110 disabled:bg-[color-mix(in_srgb,var(--text)_10%,transparent)] disabled:text-[var(--text-muted)]"
+									aria-label={t("settings_saved_phrases.add", { defaultValue: "Add" })}
+									title={t("settings_saved_phrases.add", { defaultValue: "Add" })}
+								>
+									<Plus className="h-4 w-4" strokeWidth={2.5} />
+								</button>
+							</form>
+
+							{/* Phrases list */}
+							<div
+								data-lenis-prevent
+								className="-mx-4 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-1"
+								style={{ maxHeight: isDesktop ? "40dvh" : undefined }}
+							>
+								{savedPhrases.length === 0 ? (
+									<div className="flex h-full min-h-[30dvh] items-center justify-center">
+										<DrawerEmptyState
+											fanned={false}
+											icon={<MessageSquareQuoteFilled className="h-5 w-5" />}
+											title={t("settings_saved_phrases.empty", { defaultValue: "No saved phrases yet." })}
+											hint={t("settings_saved_phrases.empty_hint", { defaultValue: "Type above to add your first phrase." })}
+										/>
+									</div>
+								) : (
+									<DndContext sensors={savedPhrasesSensors} modifiers={[restrictToVerticalAxis]} autoScroll={false} onDragEnd={(e) => void handlePhrasesDragEnd(e)}>
+										<SortableContext items={savedPhrases} strategy={verticalListSortingStrategy}>
+											{/* Inset grouped list, like native settings lists. */}
+											<div className="rounded-2xl bg-[var(--surface-2)] py-1">
+												{savedPhrases.map((phrase, originalIndex) => (
+													<SortableSavedPhraseRow
+														key={phrase}
+														phrase={phrase}
+														onUse={() => handleUsePhrase(phrase)}
+														onDelete={() => handleDeletePhrase(originalIndex)}
+														isDesktop={isDesktop}
+													/>
+												))}
+											</div>
+										</SortableContext>
+									</DndContext>
+								)}
+							</div>
 						</BottomSheet>
 					) : null}
 
