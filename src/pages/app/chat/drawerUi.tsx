@@ -494,12 +494,15 @@ export function DrawerTileCornerButton({
 	label,
 	onClick,
 	disabled,
+	stacked = false,
 }: {
 	corner: "left" | "right";
 	icon: ReactNode;
 	label: string;
 	onClick: (event: MouseEvent<HTMLButtonElement>) => void;
 	disabled?: boolean;
+	/** On an album / collection stack tile, whose front card starts lower. */
+	stacked?: boolean;
 }) {
 	return (
 		<button
@@ -509,7 +512,7 @@ export function DrawerTileCornerButton({
 			// Keeps a press on the button from starting the tile's hold-to-peek.
 			onPointerDown={(event) => event.stopPropagation()}
 			disabled={disabled}
-			className={`absolute top-1.5 z-[1] inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60 ${corner === "left" ? "left-1.5" : "right-1.5"}`}
+			className={`absolute ${stacked ? "top-3" : "top-1.5"} z-[1] inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60 ${corner === "left" ? "left-1.5" : "right-1.5"}`}
 			aria-label={label}
 			title={label}
 		>
