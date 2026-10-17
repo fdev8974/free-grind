@@ -466,11 +466,11 @@ export function BottomSheet({
 				<div
 					ref={scrimRef}
 					aria-hidden
-					className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+					className={`absolute inset-0 ${isDesktop ? "bg-black/45 backdrop-blur-sm" : "bg-black/50"}`}
 				/>
 				<div
 					ref={panelRef}
-					className={`relative flex flex-col ${bg} overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl border-x border-t border-[var(--border)] shadow-2xl" : "w-full rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.35)]"} ${panelClassName}`}
+					className={`relative flex flex-col ${bg} overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl border-x border-t border-[var(--border)] shadow-2xl" : "w-full rounded-t-[24px] shadow-[0_-1px_4px_rgba(0,0,0,0.25),0_-10px_36px_rgba(0,0,0,0.5)]"} ${panelClassName}`}
 					// transform, height and transition are set by applyLayout.
 					style={{
 						willChange: "transform",
