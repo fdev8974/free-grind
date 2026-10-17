@@ -738,7 +738,7 @@ export function RightNowPage() {
 	// Only posts shared with "Show me on map" carry lat/lon; everyone else is
 	// list-only.
 	const mapItems = useMemo(() => items.filter(hasMapPosition), [items]);
-	const mapFitKey = useMemo(() => JSON.stringify(queryParams), [queryParams]);
+	const mapFitKey = useMemo(() => JSON.stringify([queryParams, geohash]), [queryParams, geohash]);
 	const selectedMapItem = useMemo(
 		() => (selectedMapKey ? mapItems.find((item) => getRightNowItemKey(item) === selectedMapKey) ?? null : null),
 		[mapItems, selectedMapKey],

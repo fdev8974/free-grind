@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useApiFunctions } from "../useApiFunctions";
+import { usePreferences } from "../../contexts/PreferencesContext";
 import type { RightNowSortOption } from "../../pages/app/rightnow/rightnow-filters-storage";
 
 import { DEFAULT_STALE_TIME_MS } from "../../config/ui-constants";
@@ -14,9 +15,12 @@ interface RightNowQueryParams {
 
 export function useRightNowFeed(params: RightNowQueryParams) {
 	const api = useApiFunctions();
+	// The feed is located server-side, so the browse location must be part of
+	// the key — otherwise a location change keeps serving the old area's posts.
+	const { geohash } = usePreferences();
 
 	return useQuery({
-		queryKey: ["rightnow", "feed", params],
+		queryKey: ["rightnow", "feed", params, geohash],
 		queryFn: async () => {
 			const items = await api.getRightNowFeed(params);
 			// Deduplicate items by their ID to prevent React "duplicate key" errors

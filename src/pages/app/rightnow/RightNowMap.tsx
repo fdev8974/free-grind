@@ -660,8 +660,16 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	// Browse location changed: move over there right away, so the map doesn't
+	// sit on the old area while the new feed loads (or if it comes back empty).
+	const lastCenterRef = useRef(fallbackCenter);
 	useEffect(() => {
 		syncRadar();
+		const previous = lastCenterRef.current;
+		lastCenterRef.current = fallbackCenter;
+		if (!fallbackCenter || !previous) return;
+		if (previous[0] === fallbackCenter[0] && previous[1] === fallbackCenter[1]) return;
+		mapRef.current?.jumpTo({ center: fallbackCenter, zoom: 12 });
 	}, [fallbackCenter, syncRadar]);
 
 	useEffect(() => {
