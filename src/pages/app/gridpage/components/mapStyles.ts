@@ -58,7 +58,7 @@ export function applyDarkMapTheme(map: any): void {
 	const LABEL = textMuted;
 	const PLACE_LABEL = mixHex(mixHex(textMuted, "#ffffff", 0.25), accent, 0.2);
 	// Dense and secondary: a step quieter than street/place names.
-	const HOUSENUMBER = mixHex(textMuted, LAND, 0.3);
+	const HOUSENUMBER = mixHex(textMuted, LAND, 0.5);
 
 	try {
 		for (const layer of map.getStyle()?.layers ?? []) {
