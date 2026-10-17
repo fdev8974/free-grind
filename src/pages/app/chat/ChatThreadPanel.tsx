@@ -942,6 +942,15 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		return map;
 	}, [threadMessages, externalAlbumCoverMap]);
 
+	const ownAlbumNameMap = useMemo(() => {
+		const map = new Map<number, string>();
+		for (const album of shareableAlbums) {
+			const name = album.albumName?.trim();
+			if (name) map.set(album.albumId, name);
+		}
+		return map;
+	}, [shareableAlbums]);
+
 	const sharedAlbumIds = useMemo(() => {
 		const ids = new Set<number>();
 		for (const msg of threadMessages) {
@@ -2000,10 +2009,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						canReply={canReply}
 						handleStopAlbumShare={handleStopAlbumShare}
 						handleRemoveLocalAlbum={handleRemoveLocalAlbum}
+						ownAlbumMediaCountMap={albumMediaCountMap}
+						ownAlbumNameMap={ownAlbumNameMap}
 						threadBottomRef={threadBottomRef}
 						isPartnerTyping={isPartnerTyping}
 						isArchived={isArchived}
-						ownProfilePhotoUrl={ownProfilePhotoUrl}
 						localNickname={localNickname}
 						messageTranslations={messageTranslations}
 				/>

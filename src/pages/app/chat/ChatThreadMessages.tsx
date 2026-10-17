@@ -1,4 +1,4 @@
-import { Album, Ban, Copy, Download, Eye, History, Hourglass, Languages, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
+import { Album, Ban, Copy, Download, Eye, History, Hourglass, ImagePlay, Images, Languages, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { createPortal } from "react-dom";
 import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
@@ -14,8 +14,7 @@ import { appLog } from "../../../utils/logger";
 import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
 import { loadSavedPhrases, saveSavedPhrases } from "../../../services/savedPhrases";
 import type { ConversationEntry, Message } from "../../../types/messages";
-import type { UiMessage } from "../../../types/chat-page";
-import { ProfileImage } from "../../../components/ui/profile-image";
+import type { AlbumMediaCount, UiMessage } from "../../../types/chat-page";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getMessageFallbackMediaKey } from "../../../services/mediaStore";
@@ -23,13 +22,14 @@ import { useAlbumCache } from "../../../hooks/useAlbumCache";
 import {
     ensureAlbumCacheChecked,
     getCachedAlbumCoverUri,
+    getCachedAlbumMediaCount,
+    getCachedAlbumName,
     getCachedAlbumContentThumbUri,
     isAlbumCachedLocally,
     isAlbumKnownRevoked,
 } from "../../../services/albumStore";
 import { useAvatarCache } from "../../../hooks/useAvatarCache";
-import { resolveAvatarSrc } from "../../../services/avatarStore";
-import { getThumbImageUrl, validateMediaHash } from "../../../utils/media";
+import { getThumbImageUrl } from "../../../utils/media";
 import { getForbiddenWords, setForbiddenWords } from "../../../utils/autoblock";
 import {
 	SKIP_LINK_OPEN_CONFIRM_KEY,
@@ -102,10 +102,12 @@ type ChatThreadMessagesProps = {
 	canReply: boolean;
 	handleStopAlbumShare: (albumId: number) => void | Promise<void>;
 	handleRemoveLocalAlbum: (albumId: number) => void | Promise<void>;
+	/** Image/video counts of the user's own albums (received ones come from albumStore). */
+	ownAlbumMediaCountMap?: Map<number, AlbumMediaCount>;
+	ownAlbumNameMap?: Map<number, string>;
 	threadBottomRef: { current: HTMLDivElement | null };
 	isPartnerTyping?: boolean;
 	isArchived?: boolean;
-	ownProfilePhotoUrl?: string | null;
 	localNickname?: string | null;
 	messageTranslations: MessageTranslations;
 };
@@ -144,7 +146,17 @@ function ReadStatusRelativeTime({ readAt, t }: { readAt: number; t: any }) {
 	return <>{t("chat.read_relative", { time: formatRelativeTime(readAt, now), defaultValue: "Read {{time}}" })}</>;
 }
 
-function AlbumExpirationCountdown({ expiresAt, isOnce, t }: { expiresAt: number; isOnce?: boolean; t: any }) {
+/** Glass pill in a media bubble's top-left corner (Album, View once, Replay, GIF). */
+function MediaBadge({ icon, label }: { icon: React.ReactNode; label: React.ReactNode }) {
+	return (
+		<div className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/45 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-white ring-1 ring-white/15 backdrop-blur-md">
+			{icon}
+			{label}
+		</div>
+	);
+}
+
+function AlbumExpirationCountdown({ expiresAt, isOnce, t, className = "mt-1" }: { expiresAt: number; isOnce?: boolean; t: any; className?: string }) {
 	const [timeLeft, setTimeLeft] = useState<number>(expiresAt - Date.now());
 
 	useEffect(() => {
@@ -185,7 +197,7 @@ function AlbumExpirationCountdown({ expiresAt, isOnce, t }: { expiresAt: number;
 					}
 				`}
 			</style>
-			<div className="mt-1 flex items-center">
+			<div className={`flex items-center ${className}`}>
 				<span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold tracking-wide text-[var(--accent)] shadow-lg backdrop-blur-sm sm:text-[11px] uppercase">
 					<Hourglass className="h-3 w-3 animate-hourglass-rotate" />
 					<span>
@@ -348,10 +360,11 @@ export function ChatThreadMessages({
 	canReply,
 	handleStopAlbumShare,
 	handleRemoveLocalAlbum,
+	ownAlbumMediaCountMap,
+	ownAlbumNameMap,
 	threadBottomRef,
 	isPartnerTyping = false,
 	isArchived = false,
-	ownProfilePhotoUrl = null,
 	localNickname = null,
 	messageTranslations,
 }: ChatThreadMessagesProps) {
@@ -1097,6 +1110,14 @@ export function ChatThreadMessages({
                     const albumCover =
                         (albumId != null ? getCachedAlbumCoverUri(albumId) : null) ??
                         getMessageAlbumCoverUrl(message);
+                    const albumMediaCount =
+                        albumId != null
+                            ? (ownAlbumMediaCountMap?.get(albumId) ?? getCachedAlbumMediaCount(albumId))
+                            : null;
+                    const albumName =
+                        albumId != null
+                            ? (ownAlbumNameMap?.get(albumId) ?? getCachedAlbumName(albumId))
+                            : null;
                     const messageText = getMessageText(message, t);
                     const replyPreviewRaw = message.replyPreview as {
                         text?: string; type?: string; chat1Type?: string;
@@ -1288,28 +1309,6 @@ export function ChatThreadMessages({
                     const mediaBlurClassName = shouldBlurIncomingMedia
                         ? "blur-md transition"
                         : "";
-                    const senderParticipant =
-                        selectedConversation.data.participants.find(
-                            (participant) =>
-                                Number(participant.profileId) === Number(message.senderId),
-                        ) ?? null;
-                    // participants only lists the *other* side of a DM, so for an
-                    // own album/video-call share (mine) the lookup above always
-                    // misses — fall back to the signed-in user's own photo,
-                    // already resolved for the media drawer, instead of showing
-                    // the placeholder in the bubble's centered avatar.
-                    const senderAvatarUrl = mine
-                        ? ownProfilePhotoUrl
-                        : resolveAvatarSrc(
-                            senderParticipant?.primaryMediaHash,
-                            senderParticipant?.primaryMediaHash &&
-                            validateMediaHash(senderParticipant.primaryMediaHash)
-                                ? getThumbImageUrl(senderParticipant.primaryMediaHash, "320x320")
-                                : null,
-                        );
-                    const senderLabel = mine
-                        ? t("chat.you")
-                        : selectedConversation.data.name?.trim() || t("common.unknown_display_name");
                     const isActiveSearchMatch =
                         selectedThreadMessageMatches[activeThreadSearchIndex]
                             ?.messageId === message.messageId;
@@ -1565,14 +1564,9 @@ export function ChatThreadMessages({
                                                 className={`${message.type === "Giphy" && hasReply ? "max-h-96 w-full object-cover" : isImageOnlyBubble ? "max-h-80 w-full object-cover" : "max-h-64 w-full object-cover"} ${mediaBlurClassName}`}
                                             />
                                             {isExpiringImage ? (
-                                                <div className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white ring-1 ring-white/25">
-                                                    <Eye className="h-3 w-3" />
-                                                    <span>{t("chat.attachments.view_once")}</span>
-                                                </div>
+                                                <MediaBadge icon={<Eye className="h-3.5 w-3.5" />} label={t("chat.attachments.view_once")} />
                                             ) : message.type === "Giphy" ? (
-                                                <div className="absolute right-3 top-3 inline-flex items-center rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white ring-1 ring-white/25">
-                                                    GIF
-                                                </div>
+                                                <MediaBadge icon={<ImagePlay className="h-3.5 w-3.5" />} label="GIF" />
                                             ) : null}
                                             {messageTakenOnGrindr ? (
                                                 <>
@@ -1658,18 +1652,15 @@ export function ChatThreadMessages({
                                         >
                                             <div className={`relative h-56 w-64 max-w-full overflow-hidden rounded-2xl ${tailCorner} bg-[var(--surface-2)] sm:w-72`}>
                                                 <div className="absolute inset-0 flex items-center justify-center text-[var(--text-muted)]">
-                                                    <Album className="h-8 w-8" />
+                                                    <Album className="h-8 w-8 opacity-60" />
                                                 </div>
                                                 {albumCover ? (
-                                                    <>
-                                                        <img
-                                                            key={albumCover}
-                                                            src={albumCover}
-                                                            alt={t("chat.thread.album_cover")}
-                                                            className={`h-full w-full scale-110 object-cover ${isLocked ? "blur-sm opacity-50" : ""}`}
-                                                        />
-                                                        {!isLocked && <div className="absolute inset-0 bg-black/25" />}
-                                                    </>
+                                                    <img
+                                                        key={albumCover}
+                                                        src={albumCover}
+                                                        alt={t("chat.thread.album_cover")}
+                                                        className={`absolute inset-0 h-full w-full scale-110 object-cover transition-transform duration-500 ease-out ${isLocked ? "blur-sm opacity-50" : "group-hover/media:scale-[1.16]"}`}
+                                                    />
                                                 ) : null}
 
                                                 {isLocked && (
@@ -1680,31 +1671,49 @@ export function ChatThreadMessages({
                                                         </span>
                                                     </div>
                                                 )}
-                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-3 text-center text-white">
-                                                    <div className="h-20 w-20 overflow-hidden rounded-full border border-white/25 bg-white/15 text-white shadow-lg backdrop-blur-sm">
-                                                        <ProfileImage
-                                                            src={senderAvatarUrl}
-                                                            alt={senderLabel}
-                                                        />
+
+                                                <MediaBadge icon={<Album className="h-3.5 w-3.5" />} label={t("chat.thread.album_label")} />
+
+                                                {!isLocked && (
+                                                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/30 backdrop-blur-md transition group-hover/media:scale-105 group-hover/media:bg-white/25">
+                                                            <Images className="h-5 w-5 drop-shadow" />
+                                                        </div>
                                                     </div>
-                                                    <p className="max-w-full truncate text-sm font-semibold leading-tight text-white drop-shadow">
-                                                        {senderLabel}
-                                                    </p>
-                                                </div>
-                                                <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2 text-white">
+                                                )}
+
+                                                <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col gap-1 bg-gradient-to-t from-black/85 via-black/50 to-transparent px-3 pb-2 pt-10 text-white">
                                                     {!isLocked && isExpiringMedia && (expiresAt > Date.now() || isOnce) && (
                                                         <AlbumExpirationCountdown
                                                             expiresAt={expiresAt}
                                                             isOnce={isOnce}
                                                             t={t}
+                                                            className="mb-0.5"
                                                         />
                                                     )}
-                                                    <div className="flex items-center justify-between gap-2 text-[10px]">
-                                                        <div className="flex items-center gap-2">
+                                                    {albumName ? (
+                                                        <p className="truncate text-sm font-semibold leading-tight drop-shadow">
+                                                            {albumName}
+                                                        </p>
+                                                    ) : null}
+                                                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                                                        <div className="flex min-w-0 items-center gap-2.5 font-medium text-white/90">
+                                                            {albumMediaCount && (albumMediaCount.images > 0 || albumMediaCount.videos === 0) ? (
+                                                                <span className="inline-flex items-center gap-1 tabular-nums" title={t("chat.thread.album_photo_count", { count: albumMediaCount.images })}>
+                                                                    <Images className="h-3.5 w-3.5" />
+                                                                    {albumMediaCount.images}
+                                                                </span>
+                                                            ) : null}
+                                                            {albumMediaCount && albumMediaCount.videos > 0 ? (
+                                                                <span className="inline-flex items-center gap-1 tabular-nums" title={t("chat.thread.album_video_count", { count: albumMediaCount.videos })}>
+                                                                    <Video className="h-3.5 w-3.5" />
+                                                                    {albumMediaCount.videos}
+                                                                </span>
+                                                            ) : null}
                                                             {pending ? <span>{t("chat.sending")}</span> : null}
                                                             {failed ? <span>{t("chat.thread.failed")}</span> : null}
                                                         </div>
-                                                        <div className="flex items-center gap-2">
+                                                        <div className="flex shrink-0 items-center gap-2 text-[10px] text-white/80">
                                                             {(localOnly || isCachedExpiredAlbum) ? (
                                                                 <span title={t("chat.thread.from_local_history")}><History className="h-3 w-3 opacity-80" /></span>
                                                             ) : null}
@@ -1822,15 +1831,9 @@ export function ChatThreadMessages({
                                                     />
                                                     {isLimitedVideo && (
                                                         videoMaxViews === 1 ? (
-                                                            <div className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white ring-1 ring-white/25">
-                                                                <Eye className="h-3 w-3" />
-                                                                <span>{t("chat.attachments.view_once")}</span>
-                                                            </div>
+                                                            <MediaBadge icon={<Eye className="h-3.5 w-3.5" />} label={t("chat.attachments.view_once")} />
                                                         ) : (
-                                                            <div className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white ring-1 ring-white/25">
-                                                                <Repeat2 className="h-3 w-3" />
-                                                                <span>Replay</span>
-                                                            </div>
+                                                            <MediaBadge icon={<Repeat2 className="h-3.5 w-3.5" />} label={t("chat.attachments.replay")} />
                                                         )
                                                     )}
                                                     <div
