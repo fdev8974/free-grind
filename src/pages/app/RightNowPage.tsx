@@ -47,7 +47,7 @@ import {
 } from "../../config/ui-constants";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
-import { RightNowMap, getRightNowAvatarUrl, getRightNowItemKey, hasMapPosition } from "./rightnow/RightNowMap";
+import { RightNowMap, getRightNowAvatarUrl, getRightNowItemKey, getRightNowProfileImageUrl, hasMapPosition } from "./rightnow/RightNowMap";
 
 type SortOption = RightNowSortOption;
 
@@ -369,10 +369,6 @@ function RightNowMapCard({
 		() => (item.media || []).map((m) => m.data?.fullImageUrl || m.data?.thumbnailUrl || "").filter(Boolean),
 		[item.media],
 	);
-	const thumbs = useMemo(
-		() => (item.media || []).map((m) => m.data?.thumbnailUrl || m.data?.fullImageUrl || "").filter(Boolean),
-		[item.media],
-	);
 
 	const now = Date.now();
 	const sessionFraction =
@@ -381,28 +377,65 @@ function RightNowMapCard({
 			: null;
 	const minutesLeft = item.expiresAt != null ? Math.max(0, Math.ceil((item.expiresAt - now) / 60_000)) : null;
 
-	return (
-		<div className="relative mx-auto max-w-xl overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
-			{/* Right Now glow along the top edge */}
-			<div
-				aria-hidden="true"
-				className="pointer-events-none absolute inset-x-0 top-0 h-24"
-				style={{ background: "radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--right-now) 22%, transparent), transparent)" }}
-			/>
+	// A post photo becomes the card's hero image; the avatar then shows the
+	// profile photo so the two don't repeat.
+	const heroSrc = photos[0] ?? null;
+	const headerAvatarUrl = heroSrc ? getRightNowProfileImageUrl(item) ?? avatarUrl : avatarUrl;
 
-			<div className="relative p-4">
+	return (
+		<div className="relative mx-auto max-w-xl overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.55),0_8px_16px_-6px_rgba(0,0,0,0.35)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+			{/* Close, pinned to the card's corner (over the photo when there is one) */}
+			<button
+				type="button"
+				onClick={onClose}
+				aria-label={t("common.close")}
+				className={cn(
+					"absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full transition",
+					heroSrc
+						? "bg-black/45 text-white backdrop-blur-md hover:bg-black/60"
+						: "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
+				)}
+			>
+				<X className="h-4 w-4" />
+			</button>
+
+			{heroSrc ? (
+				<button
+					type="button"
+					onClick={() => onOpenPhoto(photos, 0, item.profileId)}
+					className="relative block h-40 w-full overflow-hidden"
+				>
+					<img src={heroSrc} alt="" className="h-full w-full object-cover" draggable={false} />
+					{/* Fades the photo into the card */}
+					<div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[color-mix(in_srgb,var(--surface)_92%,transparent)]" />
+					{photos.length > 1 ? (
+						<span className="absolute bottom-12 right-3 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-md">
+							+{photos.length - 1}
+						</span>
+					) : null}
+				</button>
+			) : (
+				/* Right Now glow along the top edge */
+				<div
+					aria-hidden="true"
+					className="pointer-events-none absolute inset-x-0 top-0 h-24"
+					style={{ background: "radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--right-now) 22%, transparent), transparent)" }}
+				/>
+			)}
+
+			<div className={cn("relative p-4", heroSrc && "-mt-10 pt-0")}>
 				{/* Header: avatar, name, meta, close */}
-				<div className="flex items-start gap-3">
+				<div className="flex items-end gap-3">
 					<button type="button" onClick={() => onSelect(item.profileId)} className="relative shrink-0">
-						<div className="h-14 w-14 overflow-hidden rounded-full bg-[var(--surface-2)] ring-2 ring-[var(--right-now)] ring-offset-2 ring-offset-[var(--surface)]">
-							<ProfileImage src={avatarUrl} alt={name} />
+						<div className="h-14 w-14 overflow-hidden rounded-full bg-[var(--surface-2)] ring-2 ring-[var(--right-now)] ring-offset-2 ring-offset-[var(--surface)] shadow-lg">
+							<ProfileImage src={headerAvatarUrl} alt={name} />
 						</div>
 						{isOnline ? (
 							<span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface)] ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 						) : null}
 					</button>
 
-					<button type="button" onClick={() => onSelect(item.profileId)} className="min-w-0 flex-1 pt-0.5 text-left">
+					<button type="button" onClick={() => onSelect(item.profileId)} className={cn("min-w-0 flex-1 pb-0.5 text-left", !heroSrc && "pr-8")}>
 						<div className="flex min-w-0 items-center gap-1.5">
 							<p className="truncate text-base font-bold text-[var(--text)]">{name}</p>
 							{item.isFavorite && <Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />}
@@ -428,34 +461,10 @@ function RightNowMapCard({
 							) : null}
 						</div>
 					</button>
-
-					<button
-						type="button"
-						onClick={onClose}
-						aria-label={t("common.close")}
-						className="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-					>
-						<X className="h-4 w-4" />
-					</button>
 				</div>
 
 				{item.text ? (
 					<p className="mt-3 line-clamp-4 text-sm leading-relaxed text-[var(--text)]">{item.text}</p>
-				) : null}
-
-				{thumbs.length > 0 ? (
-					<div className="mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-						{thumbs.map((src, index) => (
-							<button
-								key={`${src}-${index}`}
-								type="button"
-								onClick={() => onOpenPhoto(photos, index, item.profileId)}
-								className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--surface-2)] transition active:scale-95"
-							>
-								<img src={src} alt="" className="h-full w-full object-cover" draggable={false} />
-							</button>
-						))}
-					</div>
 				) : null}
 
 				{/* Session countdown */}
@@ -1052,7 +1061,7 @@ export function RightNowPage() {
 					)}
 
 					{selectedMapItem && (
-						<div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+120px)] z-20 px-3">
+						<div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] z-20 px-3">
 							<RightNowMapCard
 								key={selectedMapKey}
 								item={selectedMapItem}

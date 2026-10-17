@@ -39,6 +39,13 @@ const FIT_PADDING = { top: 56, bottom: 230, left: 48, right: 48 };
 const FIT_MAX_ZOOM = 15;
 const MARKER_SIZE = 48;
 
+/** The poster's profile photo (ignoring any photo attached to the post). */
+export function getRightNowProfileImageUrl(item: RightNowFeedItem): string | null {
+	return item.profileImageMediaHash && validateMediaHash(item.profileImageMediaHash)
+		? getThumbImageUrl(item.profileImageMediaHash, "320x320")
+		: null;
+}
+
 /** Avatar for a Right Now post: the post's own photo when it has one, else the profile photo. */
 export function getRightNowAvatarUrl(item: RightNowFeedItem): string | null {
 	const postImage = item.media?.find((m) => m.data?.thumbnailUrl || m.data?.fullImageUrl)?.data;
@@ -58,7 +65,8 @@ const USER_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 2
 // Session progress ring around the avatar (SVG, so it can count down).
 // Hugs the avatar: 3px larger on each side, stroke centred on that gap.
 const RING_SIZE = MARKER_SIZE + 6;
-const RING_RADIUS = RING_SIZE / 2 - 1.75;
+const RING_STROKE = 2.5;
+const RING_RADIUS = RING_SIZE / 2 - RING_STROKE / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 /** Freshly posted sessions glow for this long. */
 const FRESH_MS = 5 * 60_000;
@@ -143,9 +151,9 @@ function buildMarkerElement(
 	ring.setAttribute("class", "rn-ring");
 	ring.setAttribute("viewBox", `0 0 ${RING_SIZE} ${RING_SIZE}`);
 	ring.innerHTML = [
-		`<circle cx="${center}" cy="${center}" r="${RING_RADIUS}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3.5"/>`,
+		`<circle cx="${center}" cy="${center}" r="${RING_RADIUS}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="${RING_STROKE}"/>`,
 		`<circle data-role="ring-progress" class="rn-ring-progress" cx="${center}" cy="${center}" r="${RING_RADIUS}" fill="none"`,
-		` stroke="var(--right-now)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${RING_CIRCUMFERENCE}"`,
+		` stroke="var(--right-now)" stroke-width="${RING_STROKE}" stroke-linecap="round" stroke-dasharray="${RING_CIRCUMFERENCE}"`,
 		` transform="rotate(-90 ${center} ${center})"/>`,
 	].join("");
 	inner.appendChild(ring);
@@ -186,9 +194,10 @@ const CLUSTER_RADIUS_PX = 56;
 /** From this zoom on everyone is shown individually. */
 const CLUSTER_MAX_ZOOM = 15;
 
-/** Count shown on a cluster; capped so it fits the circle. */
+/** Count shown on a cluster; anything above five reads "5+". */
+const CLUSTER_COUNT_MAX = 5;
 function formatClusterCount(count: number): string {
-	return count > 99 ? "99+" : String(count);
+	return count > CLUSTER_COUNT_MAX ? `${CLUSTER_COUNT_MAX}+` : String(count);
 }
 
 // A group of nearby posts, drawn like a profile marker: the newest member's
@@ -229,7 +238,9 @@ function buildClusterElement(members: RightNowFeedItem[], onClick: () => void): 
 	const ring = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 	ring.setAttribute("class", "rn-ring");
 	ring.setAttribute("viewBox", `0 0 ${RING_SIZE} ${RING_SIZE}`);
-	ring.innerHTML = `<circle class="rn-ring-progress" cx="${center}" cy="${center}" r="${RING_RADIUS}" fill="none" stroke="var(--right-now)" stroke-width="3.5"/>`;
+	// Thinner than a profile's countdown ring — it's just an outline here.
+	const clusterStroke = 1.75;
+	ring.innerHTML = `<circle cx="${center}" cy="${center}" r="${RING_SIZE / 2 - clusterStroke / 2}" fill="none" stroke="var(--right-now)" stroke-width="${clusterStroke}"/>`;
 	inner.appendChild(ring);
 
 	pop.appendChild(inner);
