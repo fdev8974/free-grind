@@ -392,10 +392,11 @@ export function GridPage() {
 	// why the grid is narrowed down.
 	const [isNameSearchOpen, setIsNameSearchOpen] = useState(false);
 	const showNameSearch = isNameSearchOpen || Boolean(nicknameFilter);
-	// The same field also opens a profile by ID: a purely numeric entry is
-	// taken as an ID (offered below the field) and doesn't filter the grid by
-	// name, which would only page through it for a match that can't exist.
-	const profileIdQuery = /^\d{5,}$/.test(nicknameFilter.trim()) ? nicknameFilter.trim() : null;
+	// The same field also opens a profile by ID: any purely numeric entry is
+	// taken as an ID (IDs come in every length, old ones are short), offered
+	// below the field, and doesn't filter the grid by name, which would only
+	// page through it for a match that can't exist.
+	const profileIdQuery = /^\d+$/.test(nicknameFilter.trim()) ? nicknameFilter.trim() : null;
 	const effectiveNicknameFilter = profileIdQuery ? "" : nicknameFilter;
 
 	// Fades the quick-filter row's right edge while more chips are off-screen.
