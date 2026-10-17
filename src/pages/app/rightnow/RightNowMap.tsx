@@ -457,7 +457,18 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 
 		const hidden = new Set(groups.flatMap((group) => group.keys));
 		for (const [key, entry] of entries) {
-			entry.marker.getElement().style.display = hidden.has(key) ? "none" : "";
+			const element: HTMLElement = entry.marker.getElement();
+			const wasHidden = element.style.display === "none";
+			element.style.display = hidden.has(key) ? "none" : "";
+			if (wasHidden && !hidden.has(key)) {
+				// Leaving a group: pop it in quickly so the split reads as a reveal.
+				const pop = element.querySelector<HTMLElement>(".rn-marker-pop");
+				if (pop) {
+					pop.style.animation = "none";
+					void pop.offsetWidth; // restart the animation
+					pop.style.animation = "rn-marker-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both";
+				}
+			}
 		}
 
 		const clusters = clustersRef.current;
@@ -479,7 +490,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 					padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current },
 					// Never stop short of the level where clustering ends.
 					maxZoom: Math.max(CLUSTER_MAX_ZOOM, map.getZoom() + 2),
-					duration: 600,
+					duration: 400,
 				});
 			});
 			element.style.zIndex = "5";
@@ -592,6 +603,17 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 					if (schemeRef.current === "dark") applyDarkMapTheme(map);
 					// setStyle drops custom sources/layers, so re-add the hotspots.
 					syncHotspots();
+				});
+				// Regroup while the map moves (once per frame), not only when it
+				// stops — otherwise tapping a group shows nothing until the whole
+				// zoom animation has finished, which feels like a hang.
+				let reclusterFrame = 0;
+				map.on("move", () => {
+					if (reclusterFrame) return;
+					reclusterFrame = requestAnimationFrame(() => {
+						reclusterFrame = 0;
+						recluster();
+					});
 				});
 				map.on("moveend", recluster);
 				map.on("click", () => onSelectKeyRef.current(null));

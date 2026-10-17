@@ -39,6 +39,7 @@ import {
 import { getSexualPositionFilterOptions } from "./profile-option-builders";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { RightNowPostFAB, type RightNowFABPhase } from "./rightnow/RightNowPostFAB";
+import { useNavStyle } from "../../components/NavBar";
 import { RightNowPostPage } from "./rightnow/RightNowPostPage";
 import { RightNowFiltersPage } from "./RightNowFiltersPage";
 import { PhotoViewer } from "../../components/PhotoViewer";
@@ -459,12 +460,6 @@ function RightNowMapCard({
 							{item.isFavorite && <Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />}
 						</div>
 						<div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
-							{minutesLeft != null ? (
-								<span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--right-now)_16%,transparent)] px-2 py-0.5 font-semibold tabular-nums text-[var(--right-now)]">
-									<Hourglass className="h-3 w-3" />
-									{minutesLeft}m
-								</span>
-							) : null}
 							{distance && distance !== "hidden" ? (
 								<span className="inline-flex items-center gap-1">
 									<Navigation className="h-3 w-3 fill-current" />
@@ -475,6 +470,12 @@ function RightNowMapCard({
 								<span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--right-now)_16%,transparent)] px-2 py-0.5 font-semibold text-[var(--right-now)]">
 									<HomeFilled className="h-3 w-3" />
 									{t("right_now.hosting")}
+								</span>
+							) : null}
+							{minutesLeft != null ? (
+								<span className="inline-flex items-center gap-1 tabular-nums">
+									<Hourglass className="h-3 w-3" />
+									{minutesLeft}m
 								</span>
 							) : null}
 						</div>
@@ -750,6 +751,7 @@ export function RightNowPage() {
 	const isMapAvailable = isMapFlagOn || rightNowTestMode;
 	const isMapView = isMapAvailable && viewMode === "map";
 	const isMapCardOpen = isMapView && selectedMapItem !== null;
+	const { fullWidth: navFullWidth } = useNavStyle();
 	// Set by RightNowMap; the header's Center pill frames all markers through it.
 	const mapRecenterRef = useRef<(() => void) | null>(null);
 
@@ -1064,7 +1066,15 @@ export function RightNowPage() {
 					)}
 
 					{selectedMapItem && (
-						<div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+96px)] z-20 px-3">
+						<div
+							className={cn(
+								"absolute inset-x-0 z-20 px-3",
+								// Sits a bit above the nav: the full-width bar is lower than the floating card.
+								navFullWidth
+									? "bottom-[calc(env(safe-area-inset-bottom,0px)+76px)]"
+									: "bottom-[calc(env(safe-area-inset-bottom,0px)+96px)]",
+							)}
+						>
 							<RightNowMapCard
 								key={selectedMapKey}
 								item={selectedMapItem}

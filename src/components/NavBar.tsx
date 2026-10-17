@@ -43,6 +43,29 @@ const readNavStyle = () => ({
 });
 
 /**
+ * The bottom nav's effective look, kept in sync with the customization page.
+ * `fullWidth`: edge-to-edge bar (mobile app default) instead of the floating
+ * card desktop/web always use — overlays placed above the nav (e.g. the Right
+ * Now map card) need less bottom offset then.
+ */
+export function useNavStyle(): { fullWidth: boolean; hideLabels: boolean } {
+	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
+	const [navStyle, setNavStyle] = useState(readNavStyle);
+	useEffect(() => {
+		const onChange = () => setNavStyle(readNavStyle());
+		window.addEventListener(NAV_STYLE_EVENT, onChange);
+		return () => window.removeEventListener(NAV_STYLE_EVENT, onChange);
+	}, []);
+	return {
+		// Mobile app hides labels by default; desktop/web always shows them.
+		hideLabels: isMobilePlatform && !navStyle.showLabels,
+		// Full-width edge-to-edge bar in the mobile app, unless the user opted
+		// into the floating card that desktop/web always use.
+		fullWidth: isMobilePlatform && !navStyle.floating,
+	};
+}
+
+/**
  * Extracts and validates chat messages from a variety of possible realtime envelope formats.
  * WebSocket events from the API can wrap messages in several ways (e.g., direct payload,
  * nested in a 'message' field, or as an array of 'messages').
@@ -94,18 +117,7 @@ export function NavBar() {
 	const { isExploreActive } = useExploreMode();
 	// A live (public) Right Now session takes the grid tab's color over everything, explore included.
 	const isRightNowLive = useIsRightNowLive();
-	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
-	const [navStyle, setNavStyle] = useState(readNavStyle);
-	useEffect(() => {
-		const onChange = () => setNavStyle(readNavStyle());
-		window.addEventListener(NAV_STYLE_EVENT, onChange);
-		return () => window.removeEventListener(NAV_STYLE_EVENT, onChange);
-	}, []);
-	// Mobile app hides labels by default; desktop/web always shows them.
-	const hideLabels = isMobilePlatform && !navStyle.showLabels;
-	// Full-width edge-to-edge bar in the mobile app, unless the user opted
-	// into the floating card that desktop/web always use.
-	const fullWidth = isMobilePlatform && !navStyle.floating;
+	const { hideLabels, fullWidth } = useNavStyle();
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
