@@ -386,6 +386,7 @@
     "view_map": "Map",
     "map_recenter": "Show everyone",
     "map_center": "Center",
+    "map_you": "You",
     "map_no_positions": "Nobody nearby is sharing their location on the map right now."
   },
   "right_now_filters": {

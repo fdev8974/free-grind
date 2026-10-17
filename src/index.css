@@ -723,6 +723,208 @@
 		text-shadow: 0 0 20px color-mix(in srgb, var(--right-now) 85%, transparent), 0 0 60px color-mix(in srgb, var(--right-now) 55%, transparent);
 	}
 
+	/* Right Now map markers (game style): countdown ring, pop-in, selection,
+	   name plates and the viewer's own radar. Built as plain DOM in RightNowMap. */
+	/* No `position` on the marker roots (.rn-marker, .rn-cluster, .rn-radar):
+	   maplibre places them via .maplibregl-marker { position: absolute } plus a
+	   transform; overriding it to relative stacks them in normal flow, so they
+	   drift away from their coordinates when zooming. Absolute already makes
+	   them the containing block for their positioned children. */
+	.rn-marker-pop {
+		width: 100%;
+		height: 100%;
+		animation: rn-marker-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+	}
+	.rn-marker-inner {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		transition: transform 200ms ease, opacity 200ms ease, filter 200ms ease;
+	}
+	.rn-marker[data-selected="true"] {
+		z-index: 10;
+	}
+	.rn-marker[data-selected="true"] .rn-marker-inner {
+		transform: scale(1.25);
+		animation: rn-marker-bounce 0.5s ease-out;
+		filter: drop-shadow(0 0 10px color-mix(in srgb, var(--right-now) 70%, transparent));
+	}
+	.rn-map-has-selection .rn-marker:not([data-selected="true"]) .rn-marker-inner,
+	.rn-map-has-selection .rn-cluster .rn-marker-inner {
+		opacity: 0.45;
+		filter: saturate(0.6);
+	}
+	/* SVG is a replaced element: `inset` alone doesn't stretch it (it keeps its
+	   300x150 default box), so position and size it explicitly around the avatar. */
+	.rn-ring {
+		position: absolute;
+		left: -3px;
+		top: -3px;
+		width: calc(100% + 6px);
+		height: calc(100% + 6px);
+		display: block;
+		pointer-events: none;
+		overflow: visible;
+	}
+	.rn-ring-progress {
+		filter: drop-shadow(0 0 3px var(--right-now));
+	}
+	.rn-ring-fresh .rn-ring-progress {
+		animation: rn-ring-glow 1.6s ease-in-out infinite;
+	}
+	.rn-ring-low .rn-ring-progress {
+		animation: rn-ring-blink 1s ease-in-out infinite;
+	}
+	.rn-nameplate {
+		position: absolute;
+		top: calc(100% + 8px);
+		left: 50%;
+		transform: translateX(-50%) translateY(-4px);
+		white-space: nowrap;
+		border-radius: 9999px;
+		padding: 2px 8px;
+		font-size: 11px;
+		font-weight: 700;
+		line-height: 16px;
+		color: #fff;
+		background: color-mix(in srgb, var(--right-now) 85%, black);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 200ms ease, transform 200ms ease;
+	}
+	.rn-map-zoomed .rn-nameplate,
+	.rn-marker[data-selected="true"] .rn-nameplate {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
+	}
+	.rn-map-has-selection .rn-marker:not([data-selected="true"]) .rn-nameplate {
+		opacity: 0;
+	}
+	.rn-radar {
+		width: 22px;
+		height: 22px;
+		pointer-events: none;
+	}
+	.rn-radar-dot {
+		position: absolute;
+		inset: 3px;
+		border-radius: 9999px;
+		background: var(--right-now);
+		border: 3px solid #fff;
+		box-shadow: 0 0 12px var(--right-now);
+	}
+	.rn-radar-ring {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		width: 22px;
+		height: 22px;
+		margin: -11px 0 0 -11px;
+		border-radius: 9999px;
+		border: 2px solid var(--right-now);
+		animation: rn-radar 3s ease-out infinite;
+	}
+	.rn-radar-ring:nth-child(2) { animation-delay: 1s; }
+	.rn-radar-ring:nth-child(3) { animation-delay: 2s; }
+	.rn-radar-label {
+		position: absolute;
+		top: calc(100% + 6px);
+		left: 50%;
+		transform: translateX(-50%);
+		border-radius: 9999px;
+		padding: 1px 7px;
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: #fff;
+		background: var(--right-now);
+		white-space: nowrap;
+	}
+	/* Cluster: looks like a profile marker (same size and ring) showing the
+	   newest member's photo dimmed, the member count in the middle and two
+	   offset circles peeking out behind it as a "stack". */
+	.rn-cluster {
+		cursor: pointer;
+	}
+	.rn-cluster-stack {
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		border: 2px solid var(--bg);
+		background: color-mix(in srgb, var(--right-now) 45%, var(--surface-2));
+		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+	}
+	.rn-cluster-stack:nth-child(1) { transform: translate(7px, -6px) scale(0.9); opacity: 0.55; }
+	.rn-cluster-stack:nth-child(2) { transform: translate(3.5px, -3px) scale(0.95); opacity: 0.8; }
+	.rn-cluster-face {
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		border: 2px solid var(--bg);
+		background: var(--surface-2);
+		color: var(--text-muted);
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 14px color-mix(in srgb, var(--right-now) 55%, transparent);
+	}
+	.rn-cluster-face img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		filter: blur(1.5px) brightness(0.5) saturate(1.2);
+		transform: scale(1.1);
+	}
+	.rn-cluster-count {
+		position: relative;
+		color: #fff;
+		font-size: 16px;
+		font-weight: 900;
+		letter-spacing: -0.02em;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+	}
+	.rn-cluster:active .rn-marker-inner {
+		transform: scale(0.94);
+	}
+	@keyframes rn-marker-pop {
+		0% { opacity: 0; transform: scale(0.2) translateY(12px); }
+		70% { opacity: 1; transform: scale(1.12) translateY(-2px); }
+		100% { opacity: 1; transform: scale(1) translateY(0); }
+	}
+	@keyframes rn-marker-bounce {
+		0% { transform: scale(1); }
+		40% { transform: scale(1.38) translateY(-6px); }
+		70% { transform: scale(1.18) translateY(0); }
+		100% { transform: scale(1.25); }
+	}
+	@keyframes rn-ring-glow {
+		0%, 100% { filter: drop-shadow(0 0 3px var(--right-now)); }
+		50% { filter: drop-shadow(0 0 9px var(--right-now)); }
+	}
+	@keyframes rn-ring-blink {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.35; }
+	}
+	@keyframes rn-radar {
+		0% { transform: scale(1); opacity: 0.8; }
+		100% { transform: scale(7); opacity: 0; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.rn-marker-pop,
+		.rn-marker[data-selected="true"] .rn-marker-inner,
+		.rn-ring-fresh .rn-ring-progress,
+		.rn-ring-low .rn-ring-progress,
+		.rn-radar-ring {
+			animation: none;
+		}
+		.rn-radar-ring { display: none; }
+	}
+
 	.tab-menu {
 		background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 80%);
 		backdrop-filter: blur(12px);

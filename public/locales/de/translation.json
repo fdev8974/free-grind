@@ -386,6 +386,7 @@
         "view_map": "",
         "map_recenter": "",
         "map_center": "",
+        "map_you": "",
         "map_no_positions": ""
     },
     "right_now_filters": {

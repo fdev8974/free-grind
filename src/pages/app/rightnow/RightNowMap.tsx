@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
+import { useTranslation } from "react-i18next";
 import type { RightNowFeedItem } from "../../../services/apiFunctions";
 import { useEffectiveColorScheme } from "../../../hooks/useEffectiveColorScheme";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { decodeGeohash } from "../../../utils/geohash";
 import { getThumbImageUrl, validateMediaHash } from "../../../utils/media";
 import { applyDarkMapTheme, getMapStyleUrl, relaxRoadZoomThresholds } from "../gridpage/components/mapStyles";
+import { formatDistance } from "../gridpage/utils";
 
 export type RightNowMapItem = RightNowFeedItem & { lat: number; lon: number };
 
@@ -53,56 +55,124 @@ function isOnline(item: RightNowFeedItem): boolean {
 const HOME_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="11" height="11" fill="white"><path d="M11.47 3.84a.75.75 0 0 1 1.06 0l8.69 8.69a.75.75 0 1 0 1.06-1.06l-8.69-8.69a2.25 2.25 0 0 0-3.18 0l-8.69 8.69a.75.75 0 0 0 1.06 1.06l8.69-8.69Z"/><path d="m12 5.43 8.16 8.16c.03.03.06.06.09.08v6.2c0 1.04-.84 1.88-1.88 1.88H15a.75.75 0 0 1-.75-.75v-4.5a.75.75 0 0 0-.75-.75h-3a.75.75 0 0 0-.75.75V21a.75.75 0 0 1-.75.75H5.63a1.88 1.88 0 0 1-1.88-1.88v-6.2l.09-.08L12 5.43Z"/></svg>`;
 const USER_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.42 0-8 2.24-8 5v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1c0-2.76-3.58-5-8-5Z"/></svg>`;
 
-// Grindr-style avatar pin: round profile photo with a Right Now colored ring,
-// a home badge when hosting and a green dot when online. Built as plain DOM
-// because maplibre markers live outside React's tree.
-function buildMarkerElement(item: RightNowFeedItem, onClick: () => void): HTMLDivElement {
+// Session progress ring around the avatar (SVG, so it can count down).
+// Hugs the avatar: 3px larger on each side, stroke centred on that gap.
+const RING_SIZE = MARKER_SIZE + 6;
+const RING_RADIUS = RING_SIZE / 2 - 1.75;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+/** Freshly posted sessions glow for this long. */
+const FRESH_MS = 5 * 60_000;
+/** Below this share of the session left, the ring blinks. */
+const LOW_FRACTION = 0.15;
+/** Zoom level from which every marker shows its name plate. */
+const NAMEPLATE_ZOOM = 13;
+/** Stagger between markers popping in, capped so large feeds don't drag. */
+const POP_STAGGER_MS = 45;
+const POP_STAGGER_MAX_MS = 600;
+
+/** Share of the session still left (1 = just posted), or null when unknown. */
+function remainingFraction(item: RightNowFeedItem, now: number): number | null {
+	if (item.postedAt == null || item.expiresAt == null || item.expiresAt <= item.postedAt) return null;
+	return Math.max(0, Math.min(1, (item.expiresAt - now) / (item.expiresAt - item.postedAt)));
+}
+
+/** Updates the countdown ring of a built marker to the current time. */
+function updateMarkerRing(element: HTMLElement, item: RightNowFeedItem, now: number): void {
+	const progress = element.querySelector<SVGCircleElement>("[data-role=ring-progress]");
+	const ring = element.querySelector<SVGSVGElement>("[data-role=ring]");
+	if (!progress || !ring) return;
+	const fraction = remainingFraction(item, now) ?? 1;
+	progress.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - fraction));
+	const isFresh = item.postedAt != null && now - item.postedAt < FRESH_MS;
+	ring.classList.toggle("rn-ring-fresh", isFresh);
+	ring.classList.toggle("rn-ring-low", !isFresh && fraction < LOW_FRACTION);
+}
+
+// Game-style avatar pin: round photo inside a countdown ring showing how much
+// of the session is left, a home badge when hosting, a green dot when online
+// and a name plate below. Built as plain DOM because maplibre markers live
+// outside React's tree; styles are the .rn-* classes in index.css.
+function buildMarkerElement(
+	item: RightNowFeedItem,
+	label: string,
+	popDelayMs: number,
+	onClick: () => void,
+): HTMLDivElement {
 	const el = document.createElement("div");
+	el.className = "rn-marker";
 	el.style.cssText = `width:${MARKER_SIZE}px;height:${MARKER_SIZE}px;cursor:pointer;`;
+
+	const pop = document.createElement("div");
+	pop.className = "rn-marker-pop";
+	pop.style.animationDelay = `${popDelayMs}ms`;
 
 	const inner = document.createElement("div");
 	inner.dataset.role = "inner";
-	inner.style.cssText = [
-		"position:relative",
-		"width:100%",
-		"height:100%",
+	inner.className = "rn-marker-inner";
+
+	const avatar = document.createElement("div");
+	avatar.style.cssText = [
+		"position:absolute",
+		"inset:0",
 		"border-radius:9999px",
-		"border:3px solid var(--right-now)",
+		"border:2px solid var(--bg)",
 		"background:var(--surface-2)",
 		"color:var(--text-muted)",
 		"box-shadow:0 4px 12px rgba(0,0,0,0.35)",
-		"transition:transform 150ms ease",
 		"display:flex",
 		"align-items:center",
 		"justify-content:center",
+		"overflow:hidden",
 	].join(";");
-
 	const imageUrl = getRightNowAvatarUrl(item);
 	if (imageUrl) {
 		const img = document.createElement("img");
 		img.src = imageUrl;
 		img.alt = "";
 		img.draggable = false;
-		img.style.cssText = "width:100%;height:100%;object-fit:cover;border-radius:9999px;";
-		inner.appendChild(img);
+		img.style.cssText = "width:100%;height:100%;object-fit:cover;";
+		avatar.appendChild(img);
 	} else {
-		inner.innerHTML = USER_ICON_SVG;
+		avatar.innerHTML = USER_ICON_SVG;
 	}
+	inner.appendChild(avatar);
+
+	const center = RING_SIZE / 2;
+	const ring = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	ring.dataset.role = "ring";
+	ring.setAttribute("class", "rn-ring");
+	ring.setAttribute("viewBox", `0 0 ${RING_SIZE} ${RING_SIZE}`);
+	ring.innerHTML = [
+		`<circle cx="${center}" cy="${center}" r="${RING_RADIUS}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="3.5"/>`,
+		`<circle data-role="ring-progress" class="rn-ring-progress" cx="${center}" cy="${center}" r="${RING_RADIUS}" fill="none"`,
+		` stroke="var(--right-now)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${RING_CIRCUMFERENCE}"`,
+		` transform="rotate(-90 ${center} ${center})"/>`,
+	].join("");
+	inner.appendChild(ring);
+	updateMarkerRing(inner, item, Date.now());
 
 	if (item.hosting) {
 		const badge = document.createElement("div");
-		badge.style.cssText = "position:absolute;top:-5px;right:-5px;width:19px;height:19px;border-radius:9999px;background:var(--right-now);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;";
+		badge.style.cssText = "position:absolute;top:-6px;right:-6px;width:19px;height:19px;border-radius:9999px;background:var(--right-now);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;";
 		badge.innerHTML = HOME_ICON_SVG;
 		inner.appendChild(badge);
 	}
 
 	if (isOnline(item)) {
 		const dot = document.createElement("div");
-		dot.style.cssText = "position:absolute;bottom:-1px;right:-1px;width:12px;height:12px;border-radius:9999px;background:#22c55e;border:2px solid var(--bg);";
+		dot.style.cssText = "position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:9999px;background:#22c55e;border:2px solid var(--bg);";
 		inner.appendChild(dot);
 	}
 
-	el.appendChild(inner);
+	if (label) {
+		const plate = document.createElement("div");
+		plate.className = "rn-nameplate";
+		plate.textContent = label;
+		inner.appendChild(plate);
+	}
+
+	pop.appendChild(inner);
+	el.appendChild(pop);
 	el.addEventListener("click", (event) => {
 		// Keep the map's own click (which deselects) from firing as well.
 		event.stopPropagation();
@@ -111,18 +181,127 @@ function buildMarkerElement(item: RightNowFeedItem, onClick: () => void): HTMLDi
 	return el;
 }
 
-// Rebuilding a marker is only needed when something it renders changed.
-function markerSignature(item: RightNowMapItem): string {
-	return [item.lat, item.lon, item.profileImageMediaHash ?? "", item.hosting, isOnline(item)].join("|");
+/** Markers closer than this on screen are grouped into one cluster marker. */
+const CLUSTER_RADIUS_PX = 56;
+/** From this zoom on everyone is shown individually. */
+const CLUSTER_MAX_ZOOM = 15;
+
+/** Count shown on a cluster; capped so it fits the circle. */
+function formatClusterCount(count: number): string {
+	return count > 99 ? "99+" : String(count);
+}
+
+// A group of nearby posts, drawn like a profile marker: the newest member's
+// photo (dimmed) inside the usual ring, the member count in the middle and two
+// offset circles behind it hinting at the stack.
+function buildClusterElement(members: RightNowFeedItem[], onClick: () => void): HTMLDivElement {
+	const el = document.createElement("div");
+	el.className = "rn-cluster";
+	el.style.cssText = `width:${MARKER_SIZE}px;height:${MARKER_SIZE}px;`;
+	const pop = document.createElement("div");
+	pop.className = "rn-marker-pop";
+	const inner = document.createElement("div");
+	inner.className = "rn-marker-inner";
+
+	for (let i = 0; i < 2; i++) {
+		const stack = document.createElement("div");
+		stack.className = "rn-cluster-stack";
+		inner.appendChild(stack);
+	}
+
+	const face = document.createElement("div");
+	face.className = "rn-cluster-face";
+	const imageUrl = members.map(getRightNowAvatarUrl).find((url): url is string => url != null);
+	if (imageUrl) {
+		const img = document.createElement("img");
+		img.src = imageUrl;
+		img.alt = "";
+		img.draggable = false;
+		face.appendChild(img);
+	}
+	const count = document.createElement("span");
+	count.className = "rn-cluster-count";
+	count.textContent = formatClusterCount(members.length);
+	face.appendChild(count);
+	inner.appendChild(face);
+
+	const center = RING_SIZE / 2;
+	const ring = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	ring.setAttribute("class", "rn-ring");
+	ring.setAttribute("viewBox", `0 0 ${RING_SIZE} ${RING_SIZE}`);
+	ring.innerHTML = `<circle class="rn-ring-progress" cx="${center}" cy="${center}" r="${RING_RADIUS}" fill="none" stroke="var(--right-now)" stroke-width="3.5"/>`;
+	inner.appendChild(ring);
+
+	pop.appendChild(inner);
+	el.appendChild(pop);
+	el.addEventListener("click", (event) => {
+		event.stopPropagation();
+		onClick();
+	});
+	return el;
+}
+
+// Hotspot heatmap under the markers. maplibre paint needs real color values,
+// so --right-now is resolved once from the document.
+const HOTSPOT_SOURCE = "rn-hotspots";
+const HOTSPOT_LAYER = "rn-hotspots-heat";
+
+function rightNowRgb(): [number, number, number] {
+	const raw = getComputedStyle(document.documentElement).getPropertyValue("--right-now").trim();
+	const hex = /^#([0-9a-f]{6})$/i.exec(raw)?.[1] ?? "9333ea";
+	return [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+}
+
+function hotspotData(items: RightNowMapItem[]) {
+	return {
+		type: "FeatureCollection" as const,
+		features: items.map((item) => ({
+			type: "Feature" as const,
+			properties: {},
+			geometry: { type: "Point" as const, coordinates: [item.lon, item.lat] },
+		})),
+	};
+}
+
+// The viewer's own position: a dot with pulsing radar rings and a "You" tag.
+function buildRadarElement(label: string): HTMLDivElement {
+	const el = document.createElement("div");
+	el.className = "rn-radar";
+	el.innerHTML = `<div class="rn-radar-ring"></div><div class="rn-radar-ring"></div><div class="rn-radar-ring"></div><div class="rn-radar-dot"></div>`;
+	const tag = document.createElement("div");
+	tag.className = "rn-radar-label";
+	tag.textContent = label;
+	el.appendChild(tag);
+	return el;
+}
+
+// Rebuilding a marker is only needed when something it renders changed (the
+// ring is updated in place, see updateMarkerRing).
+function markerSignature(item: RightNowMapItem, label: string): string {
+	return [item.lat, item.lon, getRightNowAvatarUrl(item) ?? "", item.hosting, isOnline(item), label].join("|");
 }
 
 export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset, recenterRef }: Props) {
+	const { t } = useTranslation();
 	const scheme = useEffectiveColorScheme();
-	const { geohash } = usePreferences();
+	const { geohash, unitsPreset } = usePreferences();
+	// Name plate text per marker; read through a ref by syncMarkers.
+	const labelForRef = useRef<(item: RightNowFeedItem) => string>(() => "");
+	labelForRef.current = (item) => {
+		const name = item.displayName?.trim() || t("common.unknown_display_name");
+		const distance = item.distanceMeters != null ? formatDistance(item.distanceMeters, t, unitsPreset) : null;
+		return distance ? `${name} · ${distance}` : name;
+	};
+	const radarRef = useRef<any>(null);
+	// Cluster markers currently on the map, keyed by their sorted member keys
+	// so an unchanged group keeps its marker (and doesn't pop in again).
+	const clustersRef = useRef(new Map<string, any>());
+	const selectedKeyRef = useRef(selectedKey);
+	selectedKeyRef.current = selectedKey;
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<any>(null);
 	const maplibreRef = useRef<any>(null);
-	const markersRef = useRef(new Map<string, { marker: any; signature: string }>());
+	const markersRef = useRef(new Map<string, { marker: any; signature: string; item: RightNowFeedItem }>());
 	const schemeRef = useRef(scheme);
 	schemeRef.current = scheme;
 	const itemsRef = useRef(items);
@@ -187,18 +366,26 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 
 		const markers = markersRef.current;
 		const nextKeys = new Set<string>();
+		let popIndex = 0;
 		for (const item of itemsRef.current) {
 			const key = getRightNowItemKey(item);
 			nextKeys.add(key);
-			const signature = markerSignature(item);
+			const label = labelForRef.current(item);
+			const signature = markerSignature(item, label);
 			const existing = markers.get(key);
-			if (existing && existing.signature === signature) continue;
+			if (existing && existing.signature === signature) {
+				existing.item = item;
+				continue;
+			}
 			existing?.marker.remove();
-			const element = buildMarkerElement(item, () => onSelectKeyRef.current(key));
+			// Only brand-new markers pop in (staggered); rebuilt ones just swap.
+			const popDelay = existing ? 0 : Math.min(popIndex++ * POP_STAGGER_MS, POP_STAGGER_MAX_MS);
+			const element = buildMarkerElement(item, label, popDelay, () => onSelectKeyRef.current(key));
+			if (existing) element.querySelector<HTMLElement>(".rn-marker-pop")!.style.animation = "none";
 			const marker = new maplibregl.Marker({ element, anchor: "center" })
 				.setLngLat([item.lon, item.lat])
 				.addTo(map);
-			markers.set(key, { marker, signature });
+			markers.set(key, { marker, signature, item });
 		}
 		for (const [key, entry] of markers) {
 			if (!nextKeys.has(key)) {
@@ -209,14 +396,163 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 	}, []);
 
 	const applySelection = useCallback((key: string | null) => {
+		let hasSelection = false;
 		for (const [markerKey, entry] of markersRef.current) {
 			const element: HTMLElement = entry.marker.getElement();
-			const inner = element.querySelector<HTMLElement>("[data-role=inner]");
 			const isSelected = markerKey === key;
-			if (inner) inner.style.transform = isSelected ? "scale(1.25)" : "";
+			hasSelection ||= isSelected;
+			// The marker's own element is maplibre's; the selected look lives on
+			// .rn-marker (the first child we built inside it).
+			const marker = element.classList.contains("rn-marker") ? element : element.querySelector<HTMLElement>(".rn-marker");
+			if (marker) marker.dataset.selected = isSelected ? "true" : "false";
 			element.style.zIndex = isSelected ? "10" : "";
 		}
+		containerRef.current?.classList.toggle("rn-map-has-selection", hasSelection);
 	}, []);
+
+	// Groups markers that overlap on screen at the current zoom. Members are
+	// hidden and replaced by one cluster marker at their centroid; tapping it
+	// zooms in until they separate. The selected post always stays on its own.
+	const recluster = useCallback(() => {
+		const map = mapRef.current;
+		const maplibregl = maplibreRef.current;
+		if (!map || !maplibregl) return;
+		const markers = markersRef.current;
+		const entries = [...markers.entries()];
+		const groups: { keys: string[]; items: RightNowFeedItem[] }[] = [];
+
+		if (map.getZoom() < CLUSTER_MAX_ZOOM) {
+			const points = entries.map(([key, entry]) => ({
+				key,
+				item: entry.item,
+				point: map.project(entry.marker.getLngLat()),
+			}));
+			// Newest posts lead their group (and show up front in the stack).
+			points.sort((a, b) => (b.item.postedAt ?? 0) - (a.item.postedAt ?? 0));
+			const assigned = new Set<string>();
+			for (const leader of points) {
+				if (assigned.has(leader.key) || leader.key === selectedKeyRef.current) continue;
+				const members = points.filter(
+					(other) =>
+						!assigned.has(other.key) &&
+						other.key !== selectedKeyRef.current &&
+						Math.hypot(other.point.x - leader.point.x, other.point.y - leader.point.y) < CLUSTER_RADIUS_PX,
+				);
+				if (members.length < 2) continue;
+				for (const member of members) assigned.add(member.key);
+				groups.push({ keys: members.map((m) => m.key), items: members.map((m) => m.item) });
+			}
+		}
+
+		const hidden = new Set(groups.flatMap((group) => group.keys));
+		for (const [key, entry] of entries) {
+			entry.marker.getElement().style.display = hidden.has(key) ? "none" : "";
+		}
+
+		const clusters = clustersRef.current;
+		const nextClusterKeys = new Set<string>();
+		for (const group of groups) {
+			const clusterKey = [...group.keys].sort().join(",");
+			nextClusterKeys.add(clusterKey);
+			const lng = group.items.reduce((sum, item) => sum + (item.lon ?? 0), 0) / group.items.length;
+			const lat = group.items.reduce((sum, item) => sum + (item.lat ?? 0), 0) / group.items.length;
+			const existing = clusters.get(clusterKey);
+			if (existing) {
+				existing.setLngLat([lng, lat]);
+				continue;
+			}
+			const element = buildClusterElement(group.items, () => {
+				const bounds = new maplibregl.LngLatBounds();
+				for (const item of group.items) bounds.extend([item.lon, item.lat]);
+				map.fitBounds(bounds, {
+					padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current },
+					// Never stop short of the level where clustering ends.
+					maxZoom: Math.max(CLUSTER_MAX_ZOOM, map.getZoom() + 2),
+					duration: 600,
+				});
+			});
+			element.style.zIndex = "5";
+			clusters.set(clusterKey, new maplibregl.Marker({ element, anchor: "center" }).setLngLat([lng, lat]).addTo(map));
+		}
+		for (const [clusterKey, marker] of clusters) {
+			if (!nextClusterKeys.has(clusterKey)) {
+				marker.remove();
+				clusters.delete(clusterKey);
+			}
+		}
+	}, []);
+
+	// Hotspots: (re)adds the heatmap after every style load and keeps its data
+	// in sync with the markers.
+	const syncHotspots = useCallback(() => {
+		const map = mapRef.current;
+		if (!map || !map.isStyleLoaded()) return;
+		const data = hotspotData(itemsRef.current);
+		const source = map.getSource(HOTSPOT_SOURCE);
+		if (source) {
+			source.setData(data);
+			return;
+		}
+		map.addSource(HOTSPOT_SOURCE, { type: "geojson", data });
+		const [r, g, b] = rightNowRgb();
+		const color = (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+		// Below the first label layer, so street and place names stay readable.
+		const beforeId = map.getStyle().layers?.find((layer: { type: string }) => layer.type === "symbol")?.id;
+		map.addLayer(
+			{
+				id: HOTSPOT_LAYER,
+				type: "heatmap",
+				source: HOTSPOT_SOURCE,
+				paint: {
+					"heatmap-weight": 1,
+					"heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 14, 1.4],
+					"heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 6, 10, 20, 14, 36],
+					// Fades out up close, where the individual markers take over.
+					"heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.85, 15, 0.3, 16.5, 0],
+					"heatmap-color": [
+						"interpolate", ["linear"], ["heatmap-density"],
+						0, color(0),
+						0.2, color(0.18),
+						0.5, color(0.38),
+						0.8, color(0.58),
+						1, "rgba(236, 72, 153, 0.7)",
+					],
+				},
+			},
+			beforeId,
+		);
+	}, []);
+
+	// Count the rings down without rebuilding the markers.
+	useEffect(() => {
+		const timer = setInterval(() => {
+			const now = Date.now();
+			for (const entry of markersRef.current.values()) {
+				updateMarkerRing(entry.marker.getElement(), entry.item, now);
+			}
+		}, 15_000);
+		return () => clearInterval(timer);
+	}, []);
+
+	// The viewer's own position, radar style.
+	const syncRadar = useCallback(() => {
+		const map = mapRef.current;
+		const maplibregl = maplibreRef.current;
+		const center = fallbackCenterRef.current;
+		if (!map || !maplibregl) return;
+		if (!center) {
+			radarRef.current?.remove();
+			radarRef.current = null;
+			return;
+		}
+		if (radarRef.current) {
+			radarRef.current.setLngLat(center);
+			return;
+		}
+		const element = buildRadarElement(t("right_now.map_you", { defaultValue: "You" }));
+		element.style.zIndex = "0";
+		radarRef.current = new maplibregl.Marker({ element, anchor: "center" }).setLngLat(center).addTo(map);
+	}, [t]);
 
 	useEffect(() => {
 		let mounted = true;
@@ -243,11 +579,22 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 				map.on("style.load", () => {
 					relaxRoadZoomThresholds(map);
 					if (schemeRef.current === "dark") applyDarkMapTheme(map);
+					// setStyle drops custom sources/layers, so re-add the hotspots.
+					syncHotspots();
 				});
+				map.on("moveend", recluster);
 				map.on("click", () => onSelectKeyRef.current(null));
+				// Name plates for everyone once zoomed in close enough.
+				const updateZoomClass = () =>
+					containerRef.current?.classList.toggle("rn-map-zoomed", map.getZoom() >= NAMEPLATE_ZOOM);
+				map.on("zoom", updateZoomClass);
+				map.once("load", updateZoomClass);
 				mapRef.current = map;
 
+				// Radar first, so the post markers stack above it.
+				syncRadar();
 				syncMarkers();
+				recluster();
 				if (itemsRef.current.length > 0) {
 					fitToItems(0);
 					fittedForRef.current = fitKey;
@@ -271,6 +618,10 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 			resizeObserver?.disconnect();
 			for (const entry of markers.values()) entry.marker.remove();
 			markers.clear();
+			radarRef.current?.remove();
+			radarRef.current = null;
+			for (const marker of clustersRef.current.values()) marker.remove();
+			clustersRef.current.clear();
 			mapRef.current?.remove();
 			mapRef.current = null;
 		};
@@ -283,15 +634,22 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 	}, [scheme]);
 
 	useEffect(() => {
+		syncRadar();
+	}, [fallbackCenter, syncRadar]);
+
+	useEffect(() => {
 		syncMarkers();
 		applySelection(selectedKey);
+		recluster();
+		syncHotspots();
 		// Frame the markers once when they first show up and again whenever the
 		// filters change; plain refreshes keep wherever the user panned to.
+		// (Framing ends in a moveend, which reclusters for the new view.)
 		if (items.length > 0 && fittedForRef.current !== fitKey) {
 			fitToItems(fittedForRef.current === null ? 0 : 600);
 			fittedForRef.current = fitKey;
 		}
-	}, [items, fitKey, selectedKey, syncMarkers, applySelection, fitToItems]);
+	}, [items, fitKey, selectedKey, syncMarkers, applySelection, recluster, syncHotspots, fitToItems]);
 
 	return (
 		<div className="relative h-full w-full">

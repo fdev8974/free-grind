@@ -11,6 +11,8 @@ import {
 	MessageSquare,
 	Navigation,
 	Star,
+	UserRound,
+	X,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ClockFilled, HomeFilled } from "../../components/icons/FilledIcons";
@@ -336,6 +338,161 @@ function RightNowRow({
 			>
 				<MessageSquare className="h-4 w-4" />
 			</button>
+		</div>
+	);
+}
+
+/** Preview of the post selected on the map — sheet-style glass card with the
+ * post, its session countdown and profile / message actions. */
+function RightNowMapCard({
+	item,
+	onMessage,
+	onSelect,
+	onOpenPhoto,
+	onClose,
+}: {
+	item: RightNowFeedItem;
+	onMessage: (profileId: string) => void;
+	onSelect: (profileId: string) => void;
+	onOpenPhoto: (photos: string[], index: number, profileId: string) => void;
+	onClose: () => void;
+}) {
+	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
+	const name = getItemName(item, t);
+	const avatarUrl = getItemDisplayImageUrl(item);
+	const timeAgo = formatRelativeTime(item.postedAt);
+	const distance = item.distanceMeters != null ? formatDistance(item.distanceMeters, t, unitsPreset) : null;
+	const isOnline = isItemOnline(item);
+	const isEndingSoon = isOnline && isOnlineEndingSoon(item.onlineUntil);
+	const photos = useMemo(
+		() => (item.media || []).map((m) => m.data?.fullImageUrl || m.data?.thumbnailUrl || "").filter(Boolean),
+		[item.media],
+	);
+	const thumbs = useMemo(
+		() => (item.media || []).map((m) => m.data?.thumbnailUrl || m.data?.fullImageUrl || "").filter(Boolean),
+		[item.media],
+	);
+
+	const now = Date.now();
+	const sessionFraction =
+		item.postedAt != null && item.expiresAt != null && item.expiresAt > item.postedAt
+			? Math.max(0, Math.min(1, (item.expiresAt - now) / (item.expiresAt - item.postedAt)))
+			: null;
+	const minutesLeft = item.expiresAt != null ? Math.max(0, Math.ceil((item.expiresAt - now) / 60_000)) : null;
+
+	return (
+		<div className="relative mx-auto max-w-xl overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+			{/* Right Now glow along the top edge */}
+			<div
+				aria-hidden="true"
+				className="pointer-events-none absolute inset-x-0 top-0 h-24"
+				style={{ background: "radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--right-now) 22%, transparent), transparent)" }}
+			/>
+
+			<div className="relative p-4">
+				{/* Header: avatar, name, meta, close */}
+				<div className="flex items-start gap-3">
+					<button type="button" onClick={() => onSelect(item.profileId)} className="relative shrink-0">
+						<div className="h-14 w-14 overflow-hidden rounded-full bg-[var(--surface-2)] ring-2 ring-[var(--right-now)] ring-offset-2 ring-offset-[var(--surface)]">
+							<ProfileImage src={avatarUrl} alt={name} />
+						</div>
+						{isOnline ? (
+							<span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface)] ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
+						) : null}
+					</button>
+
+					<button type="button" onClick={() => onSelect(item.profileId)} className="min-w-0 flex-1 pt-0.5 text-left">
+						<div className="flex min-w-0 items-center gap-1.5">
+							<p className="truncate text-base font-bold text-[var(--text)]">{name}</p>
+							{item.isFavorite && <Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />}
+						</div>
+						<div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
+							{timeAgo ? (
+								<span className="inline-flex items-center gap-1">
+									<ClockFilled className="h-3 w-3" />
+									{timeAgo}
+								</span>
+							) : null}
+							{distance && distance !== "hidden" ? (
+								<span className="inline-flex items-center gap-1">
+									<Navigation className="h-3 w-3 fill-current" />
+									{distance}
+								</span>
+							) : null}
+							{item.hosting ? (
+								<span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--right-now)_16%,transparent)] px-2 py-0.5 font-semibold text-[var(--right-now)]">
+									<HomeFilled className="h-3 w-3" />
+									{t("right_now.hosting")}
+								</span>
+							) : null}
+						</div>
+					</button>
+
+					<button
+						type="button"
+						onClick={onClose}
+						aria-label={t("common.close")}
+						className="-mr-1 -mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+					>
+						<X className="h-4 w-4" />
+					</button>
+				</div>
+
+				{item.text ? (
+					<p className="mt-3 line-clamp-4 text-sm leading-relaxed text-[var(--text)]">{item.text}</p>
+				) : null}
+
+				{thumbs.length > 0 ? (
+					<div className="mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+						{thumbs.map((src, index) => (
+							<button
+								key={`${src}-${index}`}
+								type="button"
+								onClick={() => onOpenPhoto(photos, index, item.profileId)}
+								className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-[var(--surface-2)] transition active:scale-95"
+							>
+								<img src={src} alt="" className="h-full w-full object-cover" draggable={false} />
+							</button>
+						))}
+					</div>
+				) : null}
+
+				{/* Session countdown */}
+				{sessionFraction != null && minutesLeft != null ? (
+					<div className="mt-3 flex items-center gap-2">
+						<div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+							<div
+								className="h-full rounded-full bg-[var(--right-now)] shadow-[0_0_6px_var(--right-now)]"
+								style={{ width: `${sessionFraction * 100}%` }}
+							/>
+						</div>
+						<span className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--right-now)]">
+							{minutesLeft}m {t("right_now.remaining")}
+						</span>
+					</div>
+				) : null}
+
+				{/* Actions */}
+				<div className="mt-4 flex gap-2">
+					<button
+						type="button"
+						onClick={() => onSelect(item.profileId)}
+						className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text)] transition hover:brightness-110 active:scale-[0.98]"
+					>
+						<UserRound className="h-4 w-4" />
+						{t("chat.view_profile")}
+					</button>
+					<button
+						type="button"
+						onClick={() => onMessage(item.profileId)}
+						className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--right-now)] px-4 text-sm font-semibold text-white shadow-lg shadow-[var(--right-now)]/30 transition hover:brightness-110 active:scale-[0.98]"
+					>
+						<MessageSquare className="h-4 w-4" />
+						{t("profile_details.message")}
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }
@@ -896,16 +1053,14 @@ export function RightNowPage() {
 
 					{selectedMapItem && (
 						<div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+120px)] z-20 px-3">
-							<div className="mx-auto max-w-xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
-								<RightNowRow
-									key={selectedMapKey}
-									item={selectedMapItem}
-									onMessage={handleMessage}
-									onSelect={handleSelect}
-									onOpenPhoto={openPhotoViewer}
-									className="border-b-0"
-								/>
-							</div>
+							<RightNowMapCard
+								key={selectedMapKey}
+								item={selectedMapItem}
+								onMessage={handleMessage}
+								onSelect={handleSelect}
+								onOpenPhoto={openPhotoViewer}
+								onClose={() => setSelectedMapKey(null)}
+							/>
 						</div>
 					)}
 				</div>
