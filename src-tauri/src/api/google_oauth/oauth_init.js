@@ -242,7 +242,9 @@
 				"<title>Sign in with Google</title></head><body></body>";
 		} catch {}
 		injectStyles();
-		ui.mount();
+		// Quiet: the sign-in starts right away below, so the card with its
+		// button never shows; a failure closes the window from Rust anyway.
+		ui.mount({ quiet: true });
 		ui.setPhase("ready");
 		const button = document.querySelector(".grindr-oauth-button");
 		button?.addEventListener("click", requestToken);
