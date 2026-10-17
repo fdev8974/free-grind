@@ -809,6 +809,15 @@ export function GridPage() {
 		feedContainerRef.current?.scrollTo({ top: 0 });
 	}, [gridOrderKey, browseCacheKey]);
 
+	// Same on an account switch while the grid stays mounted (the saved
+	// offsets themselves are dropped by clearAllCaches on account change).
+	const prevUserIdRef = useRef(userId);
+	useEffect(() => {
+		if (prevUserIdRef.current === userId) return;
+		prevUserIdRef.current = userId;
+		feedContainerRef.current?.scrollTo({ top: 0 });
+	}, [userId]);
+
 	// Scroll restore + header-snap now lives inside BrowseGrid (see its
 	// hasRestoredScroll/onRestoredScrollChange props) — with the grid
 	// virtualized, only BrowseGrid knows the real (measured) row size needed
