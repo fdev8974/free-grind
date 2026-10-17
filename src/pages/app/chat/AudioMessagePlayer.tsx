@@ -40,11 +40,13 @@ type Props = {
 	durationHint?: number;
 	hideSpeed?: boolean;
 	compact?: boolean;
+	/** Play button at the composer's button size (40px), e.g. next to its send button. */
+	largeButton?: boolean;
 	initialBars?: number[];
 	recordedFraction?: number;
 };
 
-export function AudioMessagePlayer({ src, messageId, mine, className, durationHint, hideSpeed, compact, initialBars, recordedFraction }: Props) {
+export function AudioMessagePlayer({ src, messageId, mine, className, durationHint, hideSpeed, compact, largeButton, initialBars, recordedFraction }: Props) {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const trackRef = useRef<HTMLDivElement | null>(null);
 	const isDraggingRef = useRef(false);
@@ -226,11 +228,11 @@ export function AudioMessagePlayer({ src, messageId, mine, className, durationHi
 			<button
 				type="button"
 				onClick={togglePlay}
-				className={`flex ${compact ? "h-8 w-8" : "h-9 w-9"} shrink-0 items-center justify-center rounded-full ${btnColor} shadow-sm transition active:scale-95`}
+				className={`flex ${largeButton ? "h-10 w-10" : compact ? "h-8 w-8" : "h-9 w-9"} shrink-0 items-center justify-center rounded-full ${btnColor} shadow-sm transition active:scale-95`}
 			>
 				{isPlaying
-					? <Pause className="h-4 w-4 fill-current" />
-					: <Play className="h-4 w-4 fill-current translate-x-[1px]" />
+					? <Pause className={`${largeButton ? "h-5 w-5" : "h-4 w-4"} fill-current`} />
+					: <Play className={`${largeButton ? "h-5 w-5" : "h-4 w-4"} fill-current translate-x-[1px]`} />
 				}
 			</button>
 

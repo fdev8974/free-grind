@@ -22,7 +22,6 @@ import {
 	MessageCircleOff,
 	Flag,
 	MessageSquarePlus,
-	MessageSquareQuote,
 	Pin,
 	Play,
 	Reply,
@@ -288,7 +287,7 @@ type ChatThreadPanelProps = {
 };
 
 
-function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction }: { blob: Blob; durationMs: number; recordedBars: number[]; recordedFraction: number }) {
+function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction, largeButton }: { blob: Blob; durationMs: number; recordedBars: number[]; recordedFraction: number; largeButton?: boolean }) {
 	const [url, setUrl] = useState<string | null>(null);
 	useEffect(() => {
 		const u = URL.createObjectURL(blob);
@@ -296,7 +295,7 @@ function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction }
 		return () => { setTimeout(() => URL.revokeObjectURL(u), 3000); };
 	}, [blob]);
 	if (!url) return null;
-	return <AudioMessagePlayer src={url} messageId="preview" mine={false} className="w-full" durationHint={durationMs / 1000} hideSpeed compact initialBars={recordedBars} recordedFraction={recordedFraction} />;
+	return <AudioMessagePlayer src={url} messageId="preview" mine={false} className="w-full" durationHint={durationMs / 1000} hideSpeed compact largeButton={largeButton} initialBars={recordedBars} recordedFraction={recordedFraction} />;
 }
 
 type SortableSavedPhraseRowProps = {
@@ -312,7 +311,9 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 		useSortable({ id: phrase });
 
 	const style: React.CSSProperties = {
-		transform: CSS.Transform.toString(transform),
+		// Translate only: Transform also carries a scale when rows differ in
+		// height, which stretched the dragged phrase.
+		transform: CSS.Translate.toString(transform),
 		transition,
 	};
 
@@ -325,26 +326,24 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 			data-sheet-no-drag={isDragging ? "" : undefined}
 			// Inset divider (starts at the text, like native lists), hidden on the
 			// first row and on the row being dragged.
-			className={`group relative flex items-center gap-1 pl-1 pr-2 before:absolute before:right-3 before:top-0 before:h-px before:bg-[var(--border)] before:opacity-60 first:before:hidden ${isDesktop ? "before:left-12" : "before:left-10"} ${isDesktop ? "" : "touch-pan-y no-touch-callout"} ${isDragging ? "z-10 rounded-2xl bg-[color-mix(in_srgb,var(--surface-2)_85%,var(--text)_10%)] shadow-lg before:hidden" : ""}`}
+			className={`group relative flex items-center gap-1 pl-1 pr-2 before:absolute before:right-3 before:top-0 before:h-px before:bg-[var(--border)] before:opacity-60 first:before:hidden before:left-9 ${isDesktop ? "" : "touch-pan-y no-touch-callout"} ${isDragging ? "z-10 rounded-2xl bg-[color-mix(in_srgb,var(--surface-2)_85%,var(--text)_10%)] shadow-lg before:hidden" : ""}`}
 		>
-			{isDesktop && (
-				<button
-					type="button"
-					{...attributes}
-					{...listeners}
-					className="flex h-8 w-6 shrink-0 cursor-grab items-center justify-center text-[var(--text-muted)] opacity-50 transition group-hover:opacity-100 active:cursor-grabbing"
-					aria-label={t("settings_saved_phrases.reorder", { defaultValue: "Reorder phrase" })}
-				>
-					<GripVertical className="h-4 w-4" />
-				</button>
-			)}
+			{/* Drag handle: grabbable on desktop; on touch the whole row reorders
+			    after a long press, so here it only marks the row as movable. */}
+			<span
+				{...(isDesktop ? { ...attributes, ...listeners, role: "button" } : {})}
+				className={`flex h-8 w-6 shrink-0 items-center justify-center text-[var(--text-muted)] ${isDesktop ? "cursor-grab opacity-50 transition group-hover:opacity-100 active:cursor-grabbing" : "opacity-50"}`}
+				aria-label={isDesktop ? t("settings_saved_phrases.reorder", { defaultValue: "Reorder phrase" }) : undefined}
+				aria-hidden={isDesktop ? undefined : true}
+			>
+				<GripVertical className="h-4 w-4" />
+			</span>
 			{/* The whole row sends the phrase, not just its text. */}
 			<SheetClose
 				onClick={onUse}
-				className={`flex min-w-0 flex-1 items-start gap-3 rounded-xl py-3 text-left transition active:bg-[color-mix(in_srgb,var(--text)_6%,transparent)] ${isDesktop ? "pl-1" : "pl-3"}`}
+				className="min-w-0 flex-1 rounded-xl py-3 pl-1 pr-2 text-left transition active:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
 			>
-				<MessageSquareQuote className="mt-[3px] h-4 w-4 shrink-0 text-[var(--accent-readable)]" />
-				<span className="min-w-0 flex-1 break-words text-sm leading-relaxed text-[var(--text)]">{phrase}</span>
+				<span className="block break-words text-sm leading-relaxed text-[var(--text)]">{phrase}</span>
 			</SheetClose>
 			<button
 				type="button"
@@ -2216,16 +2215,18 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-2 ${!isDesktop ? "min-h-[50px] rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))] py-1 pl-1.5 pr-1" : "min-h-[42px] rounded-xl border border-[var(--accent)] bg-[var(--surface-2)] py-1 pl-1.5 pr-1"}`}>
+							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 ${!isDesktop ? "h-[50px] rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "h-[42px] rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
+								{/* Fixed to the composer's exact height (border + py-1 + its 40/32px
+								    buttons), so swapping between the two doesn't shift the layout. */}
 								<div className="flex-1 min-w-0">
-									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} />
+									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} largeButton={!isDesktop} />
 								</div>
 								{/* Same size as the composer's send button, so the two read as a pair. */}
 								<button
 									type="button"
 									onClick={() => { setRecordedWaveform([]); props.cancelAudio(); }}
 									disabled={props.isSendingAudio}
-									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full bg-[color-mix(in_srgb,var(--text)_8%,transparent)] active:scale-90 active:bg-red-500/15" : "h-8 w-8 rounded-lg hover:bg-red-500/10"} items-center justify-center text-[var(--text-muted)] transition hover:text-red-500 active:text-red-500 disabled:opacity-40`}
+									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full active:scale-90" : "h-8 w-8 rounded-lg"} items-center justify-center text-[var(--text-muted)] transition hover:text-red-500 active:text-red-500 disabled:opacity-40`}
 									aria-label={t("chat.actions.cancel")}
 								>
 									<Trash2 className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />
