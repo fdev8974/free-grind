@@ -12,9 +12,8 @@ import com.google.android.recaptcha.RecaptchaException;
  * Mints reCAPTCHA Enterprise tokens for Grindr's site key (ported from the
  * former Free Grind reCAPTCHA helper app).
  *
- * Java on purpose: the SDK is built with Kotlin 2.3 metadata, which this
- * project's Kotlin 1.9 compiler refuses to read. Kotlin code only touches
- * this class, never the SDK.
+ * The SDK is built with Kotlin 2.3 metadata, which this project's Kotlin 1.9
+ * compiler only accepts with -Xskip-metadata-version-check (build.gradle.kts).
  *
  * Only call it from the ":recaptcha" process (RecaptchaMintActivity), where
  * FreeGrindApplication reports Grindr's package name to the SDK.
