@@ -1626,7 +1626,12 @@ export function GridPage() {
 										className="glass-pill relative flex h-10 items-center"
 										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
 									>
-										<UserSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+										<UserSearch
+											className={cn(
+												"pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
+												exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]",
+											)}
+										/>
 										<input
 											type="text"
 											autoFocus={isNameSearchOpen && !nicknameFilter}
