@@ -766,6 +766,15 @@ export function SettingsPage() {
 											</button>
 											<button
 												type="button"
+												onClick={() => navigate("/settings/transfer-account")}
+												aria-label={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
+												title={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
+												className="shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+											>
+												<QrCode className="h-4 w-4" />
+											</button>
+											<button
+												type="button"
 												onClick={() => setLogoutConfirmTarget("active")}
 												aria-label={t("settings.logout")}
 												className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
@@ -837,24 +846,6 @@ export function SettingsPage() {
 										</p>
 										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
 											{t("settings.add_account_desc", { defaultValue: "Sign in with another account" })}
-										</p>
-									</div>
-									<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-								</button>
-								<button
-									type="button"
-									onClick={() => navigate("/settings/transfer-account")}
-									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-								>
-									<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-										<QrCode className="h-5 w-5" />
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">
-											{t("account_transfer.title", { defaultValue: "Sign in on another device" })}
-										</p>
-										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-											{t("account_transfer.settings_desc", { defaultValue: "Show a QR code to sign this account in elsewhere" })}
 										</p>
 									</div>
 									<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
