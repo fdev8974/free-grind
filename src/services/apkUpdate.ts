@@ -2,24 +2,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import i18n from "i18next";
 
 /**
- * In-app APK installs on Android — the native side lives in ApkUpdater.kt
+ * In-app APK self-update on Android — the native side lives in ApkUpdater.kt
  * and reports through `fg:apk-update` window events, tagged with the
- * `target` they belong to: the app's own self-update ("app") or the Google
- * OAuth companion app ("google-oauth").
+ * `target` they belong to ("app").
  */
 type ApkUpdateBridge = {
 	downloadApkUpdate?: (url: string) => boolean;
 	installDownloadedApkUpdate?: () => boolean;
-	downloadGoogleOAuthApp?: () => boolean;
-	installDownloadedGoogleOAuthApp?: () => boolean;
 	canInstallApkUpdates?: () => boolean;
 	openInstallPermissionSettings?: () => boolean;
 };
 
-type ApkInstallTarget = "app" | "google-oauth";
+type ApkInstallTarget = "app";
 
 type NativeEvent = { target?: ApkInstallTarget } & (
-	| { state: "resolving" }
 	| { state: "downloading"; received: number; total: number }
 	| { state: "verifying" | "needs-permission" | "installing" | "installed" }
 	| { state: "error"; code: string; message?: string }
@@ -38,10 +34,6 @@ function getBridge(): ApkUpdateBridge | null {
 
 export function isApkUpdateSupported(): boolean {
 	return getBridge() !== null;
-}
-
-export function isGoogleOAuthAppInstallSupported(): boolean {
-	return typeof getBridge()?.downloadGoogleOAuthApp === "function";
 }
 
 const APK_UPDATE_ERRORS: Record<string, [key: string, english: string]> = {
@@ -77,9 +69,7 @@ function useApkInstall(target: ApkInstallTarget, enabled: boolean, installDownlo
 		const handler = (event: Event) => {
 			const detail = (event as CustomEvent<NativeEvent>).detail;
 			if (!detail || (detail.target ?? "app") !== target) return;
-			if (detail.state === "resolving") {
-				setState({ phase: "downloading", progress: null });
-			} else if (detail.state === "downloading") {
+			if (detail.state === "downloading") {
 				setState({
 					phase: "downloading",
 					progress: detail.total > 0 ? Math.min(1, detail.received / detail.total) : null,
@@ -142,26 +132,6 @@ export function useApkUpdate(apkUrl: string | undefined) {
 			setState({ phase: "error", code: "start-failed" });
 		}
 	}, [apkUrl, setState]);
-
-	return { supported, state, start, installDownloaded, openPermissionSettings };
-}
-
-/** Installs the Google OAuth companion app from its latest release (Android only). */
-export function useGoogleOAuthAppInstall() {
-	const supported = isGoogleOAuthAppInstallSupported();
-	const { state, setState, installDownloaded, openPermissionSettings } = useApkInstall(
-		"google-oauth",
-		supported,
-		() => getBridge()?.installDownloadedGoogleOAuthApp?.(),
-	);
-
-	const start = useCallback(() => {
-		if (getBridge()?.downloadGoogleOAuthApp?.()) {
-			setState({ phase: "downloading", progress: null });
-		} else {
-			setState({ phase: "error", code: "start-failed" });
-		}
-	}, [setState]);
 
 	return { supported, state, start, installDownloaded, openPermissionSettings };
 }

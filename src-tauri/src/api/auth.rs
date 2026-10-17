@@ -1099,7 +1099,8 @@ pub async fn recaptcha_first_party_enabled(
 }
 
 /// Third-party sign-in with a Google OAuth access token, as handed out by the
-/// Free Grind Google OAuth companion app or browser extension. Grindr no longer
+/// Free Grind Google OAuth WebExtension (built into Android's
+/// GoogleOAuthActivity, or the browser extension). Grindr no longer
 /// issues a session JWT for third-party accounts that could be pasted into
 /// a token login, so the provider token is exchanged for a session directly.
 #[tauri::command]

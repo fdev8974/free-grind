@@ -80,7 +80,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
+          # src-tauri/vendor/freegrind-google-oauth-webextension (Google sign-in,
+          # bundled into the APK for GoogleOAuthActivity)
           submodules: true
 
       - name: Setup Bun
@@ -153,14 +154,17 @@ jobs:
           mkdir -p src-tauri/certs
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > src-tauri/certs/free-grind-dev.jks
 
-      - name: Build Android APK
-        run: bunx tauri android build --apk -v
+      # One APK per ABI, like release.yml.
+      - name: Build Android APKs
+        run: bunx tauri android build --apk --split-per-abi --target aarch64 --target x86_64 -v
 
-      - name: Upload Android APK
+      - name: Upload Android APKs
         uses: actions/upload-artifact@v4
         with:
           name: free-grind-android
-          path: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk
+            src-tauri/gen/android/app/build/outputs/apk/x86_64/release/app-x86_64-release.apk
           retention-days: 14
           if-no-files-found: error
 

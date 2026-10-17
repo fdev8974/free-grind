@@ -114,17 +114,8 @@ class MainActivity : TauriActivity() {
 
     private var pendingRefreshedFcmToken: String? = null
 
-    /** Token from TokenHandoffActivity, held until the WebView can take it. */
+    /** Token from GoogleOAuthActivity, held until the WebView can take it. */
     private var pendingGoogleToken: String? = null
-
-    fun deliverGoogleToken(token: String) {
-      val activity = activityRef?.get()
-      if (activity?.webViewRef != null) {
-        activity.dispatchGoogleTokenToWebview(token, 0)
-      } else {
-        pendingGoogleToken = token
-      }
-    }
   }
 
   private var webViewRef: WebView? = null
@@ -152,9 +143,6 @@ class MainActivity : TauriActivity() {
   // normal-but-slow launch instead of only on a genuinely broken one.
   private var splashDialog: Dialog? = null
 
-  // Result of JsBridge.requestGoogleToken(). The companion app answers
-  // RESULT_OK with the token, RESULT_CANCELED when the user backed out, and
-  // RESULT_FIRST_USER when it refused us (signature mismatch).
   // JsBridge.mintRecaptchaToken() allows one request at a time; this is the
   // id the frontend will match the `fg:recaptcha-result` event against.
   @Volatile private var pendingRecaptchaRequestId: String? = null
@@ -179,14 +167,16 @@ class MainActivity : TauriActivity() {
     dispatchRecaptchaResultToWebview(outcome.toString())
   }
 
+  // Result of JsBridge.requestGoogleToken(): GoogleOAuthActivity answers
+  // RESULT_OK with the token, RESULT_CANCELED when the user backed out.
   private val googleTokenLauncher = registerForActivityResult(
     ActivityResultContracts.StartActivityForResult()
   ) { result ->
-    val token = result.data?.getStringExtra(GoogleOAuthApp.EXTRA_TOKEN)?.trim().orEmpty()
-    when {
-      result.resultCode == RESULT_OK && token.isNotEmpty() -> dispatchGoogleTokenToWebview(token, 0)
-      result.resultCode == RESULT_FIRST_USER -> dispatchGoogleTokenErrorToWebview("refused")
-      else -> dispatchGoogleTokenErrorToWebview("cancelled")
+    val token = result.data?.getStringExtra(GoogleOAuthActivity.EXTRA_TOKEN)?.trim().orEmpty()
+    if (result.resultCode == RESULT_OK && token.isNotEmpty()) {
+      dispatchGoogleTokenToWebview(token, 0)
+    } else {
+      dispatchGoogleTokenErrorToWebview("cancelled")
     }
   }
   private var splashSpinnerAnimator: Animator? = null
@@ -467,29 +457,28 @@ class MainActivity : TauriActivity() {
       return AppDisguise.currentDisguise(this@MainActivity).id
     }
 
-    /** Whether the Free Grind Google OAuth app is installed and signed like us. */
-    @JavascriptInterface
-    fun isGoogleOAuthAppInstalled(): Boolean {
-      return GoogleOAuthApp.isTrusted(this@MainActivity, GoogleOAuthApp.PACKAGE)
-    }
-
     /**
-     * Opens the Google OAuth app to sign in. The outcome arrives as a
-     * `fg:google-token` or `fg:google-token-error` window event. Returns
-     * "ok", or "not_installed" when no trusted companion app is present.
+     * Opens GoogleOAuthActivity to sign in with Google. The outcome arrives
+     * as a `fg:google-token` or `fg:google-token-error` window event.
+     * Returns "ok".
      */
     @JavascriptInterface
     fun requestGoogleToken(): String {
-      if (!GoogleOAuthApp.isTrusted(this@MainActivity, GoogleOAuthApp.PACKAGE)) return "not_installed"
       runOnUiThread {
         try {
-          googleTokenLauncher.launch(GoogleOAuthApp.requestTokenIntent())
+          googleTokenLauncher.launch(Intent(this@MainActivity, GoogleOAuthActivity::class.java))
         } catch (e: Exception) {
-          Log.e("GoogleOAuth", "Failed to launch Google OAuth app", e)
+          Log.e("GoogleOAuth", "Failed to launch GoogleOAuthActivity", e)
           dispatchGoogleTokenErrorToWebview("launch_failed")
         }
       }
       return "ok"
+    }
+
+    /** Device ABIs in order of preference, comma-separated, to pick the matching release APK. */
+    @JavascriptInterface
+    fun supportedAbis(): String {
+      return Build.SUPPORTED_ABIS.joinToString(",")
     }
 
     /**
@@ -517,21 +506,6 @@ class MainActivity : TauriActivity() {
     @JavascriptInterface
     fun openInstallPermissionSettings(): Boolean {
       return ApkUpdater.openInstallPermissionSettings(this@MainActivity)
-    }
-
-    /**
-     * Installs the Google OAuth companion app from its latest GitHub release
-     * (see ApkUpdater.Target.GOOGLE_OAUTH). Reports through the same
-     * `fg:apk-update` events, with `target: "google-oauth"`.
-     */
-    @JavascriptInterface
-    fun downloadGoogleOAuthApp(): Boolean {
-      return ApkUpdater.downloadAndInstallGoogleOAuthApp(this@MainActivity)
-    }
-
-    @JavascriptInterface
-    fun installDownloadedGoogleOAuthApp(): Boolean {
-      return ApkUpdater.installDownloaded(this@MainActivity, ApkUpdater.Target.GOOGLE_OAUTH)
     }
 
     /**

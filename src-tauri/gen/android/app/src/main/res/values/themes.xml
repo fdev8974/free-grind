@@ -18,6 +18,11 @@
         <item name="postSplashScreenTheme">@style/Theme.free_grind</item>
     </style>
 
+    <!-- GoogleOAuthActivity: black until GeckoView paints the sign-in page. -->
+    <style name="Theme.free_grind.GoogleOAuth" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+
     <!-- RecaptchaMintActivity shows nothing while it mints a token. -->
     <style name="Theme.free_grind.RecaptchaMint" parent="@android:style/Theme.Translucent.NoTitleBar">
         <item name="android:windowAnimationStyle">@null</item>

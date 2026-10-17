@@ -17,7 +17,9 @@ class FreeGrindApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        if (isRecaptchaProcess) return
+        // Pushes belong to the main process only, not to ":recaptcha" or
+        // ":google_oauth" (GoogleOAuthActivity).
+        if (currentProcessName() != applicationInfo.processName) return
         PushFirebase.initialize(this)
     }
 

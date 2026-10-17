@@ -18,8 +18,6 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
-        <!-- Google OAuth companion app, see GoogleOAuthApp.kt -->
-        <package android:name="dev.estopia.free_grind.google_oauth" />
         <!-- Must be installed to mint reCAPTCHA tokens, see RecaptchaMintActivity.kt -->
         <package android:name="com.grindrapp.android" />
     </queries>
@@ -173,14 +171,16 @@
             android:excludeFromRecents="true"
             android:theme="@style/Theme.free_grind.RecaptchaMint" />
 
-        <!-- Receives a token from the Google OAuth app; the caller is checked
-             against our own signature in TokenHandoffActivity. -->
+        <!-- "Sign in with Google" in GeckoView, in its own process so Gecko
+             never shares one with the app's WebView; not reachable from
+             outside the app. See GoogleOAuthActivity.kt. -->
         <activity
-            android:name=".TokenHandoffActivity"
-            android:exported="true"
+            android:name=".GoogleOAuthActivity"
+            android:process=":google_oauth"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection"
+            android:exported="false"
             android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+            android:theme="@style/Theme.free_grind.GoogleOAuth" />
 
         <provider
           android:name="androidx.core.content.FileProvider"

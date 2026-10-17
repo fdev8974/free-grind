@@ -7,8 +7,7 @@ import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, KeyRound, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
-import { describeApkUpdateError, useGoogleOAuthAppInstall } from "../../services/apkUpdate";
+import { Mail, Lock, KeyRound, ExternalLink, Eye, EyeOff, Puzzle, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 import { isAndroid, isIos } from "../../services/saveMedia";
@@ -17,28 +16,21 @@ import { isQrScanSupported, QrScanError, scanQrCode } from "../../services/qrSca
 import { cn } from "../../utils/cn";
 import { SlidingTabs } from "../../components/ui/sliding-tabs";
 
-const GOOGLE_OAUTH_APP_RELEASES = "https://github.com/fdev8974/free-grind-oauth-app/releases";
-
 /**
- * Android-only native side of the Free Grind Google OAuth companion app (see
- * GoogleOAuthApp.kt). requestGoogleToken() answers through the
- * `fg:google-token` / `fg:google-token-error` window events; a token the app
- * handed over on its own before this page mounted waits in __FG_GOOGLE_TOKEN.
+ * Android-only native Google sign-in (GoogleOAuthActivity.kt).
+ * requestGoogleToken() answers through the `fg:google-token` /
+ * `fg:google-token-error` window events; a token that arrived before this
+ * page mounted waits in __FG_GOOGLE_TOKEN.
  */
 type GoogleOAuthWindow = Window & {
 	FreeGrindBridge?: {
-		isGoogleOAuthAppInstalled?: () => boolean;
 		requestGoogleToken?: () => string;
 	};
 	__FG_GOOGLE_TOKEN?: string;
 };
 
-function isGoogleOAuthAppInstalled(): boolean {
-	try {
-		return (window as GoogleOAuthWindow).FreeGrindBridge?.isGoogleOAuthAppInstalled?.() === true;
-	} catch {
-		return false;
-	}
+function isNativeGoogleSignInSupported(): boolean {
+	return typeof (window as GoogleOAuthWindow).FreeGrindBridge?.requestGoogleToken === "function";
 }
 
 function takePendingGoogleToken(): string | null {
@@ -73,7 +65,7 @@ function isFacebookSignInSupported(): boolean {
 }
 
 // Desktop opens its own Google sign-in window (api/google_oauth); Android
-// goes through the companion app instead.
+// has GoogleOAuthActivity instead.
 function isGoogleWindowSupported(): boolean {
 	return isTauriRuntime() && !isIos() && !isAndroid();
 }
@@ -140,96 +132,6 @@ function TokenSourceLink({
 	);
 }
 
-/**
- * Android: installs a companion app (the Google OAuth app) in place, like the in-app update (see useGoogleOAuthAppInstall), instead of
- * linking to its releases page.
- */
-export function AppInstallCard({
-	install,
-	icon,
-	title,
-	installHint,
-}: {
-	install: ReturnType<typeof useGoogleOAuthAppInstall>;
-	icon: ReactNode;
-	title: string;
-	installHint: string;
-}) {
-	const { t } = useTranslation();
-	const { state } = install;
-	const busy = state.phase === "downloading" || state.phase === "verifying" || state.phase === "installing";
-
-	const status =
-		state.phase === "downloading"
-			? state.progress === null
-				? t("auth.sign_in.google_app_downloading", { defaultValue: "Downloading…" })
-				: `${t("auth.sign_in.google_app_downloading", { defaultValue: "Downloading…" })} ${Math.round(state.progress * 100)}%`
-			: state.phase === "verifying"
-				? t("auth.sign_in.google_app_verifying", { defaultValue: "Verifying…" })
-				: state.phase === "installing"
-					? t("auth.sign_in.google_app_installing", { defaultValue: "Installing…" })
-					: state.phase === "installed"
-						? t("auth.sign_in.google_app_installed", { defaultValue: "Installed" })
-						: state.phase === "needs-permission"
-							? t("auth.sign_in.google_app_needs_permission", {
-									defaultValue: "Allow Free Grind to install apps, then come back here",
-								})
-							: state.phase === "error"
-								? describeApkUpdateError(state.code)
-								: installHint;
-
-	const onClick = () => {
-		if (state.phase === "needs-permission") install.openPermissionSettings();
-		else if (state.phase === "error" && state.code === "canceled") install.installDownloaded();
-		else install.start();
-	};
-
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={busy || state.phase === "installed"}
-			className="group relative flex w-full items-center gap-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-left transition-all duration-150 hover:border-[var(--accent)] active:scale-[0.99] disabled:active:scale-100"
-		>
-			<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)]">
-				{icon}
-			</span>
-			<span className="min-w-0 flex-1">
-				<span className="block truncate text-sm font-medium text-[var(--text)]">{title}</span>
-				<span
-					className={cn(
-						"block text-xs",
-						state.phase === "error" ? "text-[#f87171]" : "text-[var(--text-muted)]",
-						state.phase === "error" || state.phase === "needs-permission" ? "leading-relaxed" : "truncate",
-					)}
-				>
-					{status}
-				</span>
-			</span>
-			{busy ? (
-				<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--accent)]" />
-			) : state.phase === "installed" ? (
-				<Check className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-			) : state.phase === "needs-permission" ? (
-				<ShieldAlert className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-			) : (
-				<Download className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]" />
-			)}
-			{state.phase === "downloading" ? (
-				<span className="absolute inset-x-0 bottom-0 h-0.5 bg-[color-mix(in_srgb,var(--accent)_18%,transparent)]">
-					<span
-						className={cn(
-							"block h-full bg-[var(--accent)] transition-[width] duration-200",
-							state.progress === null && "w-1/3 animate-pulse",
-						)}
-						style={state.progress === null ? undefined : { width: `${Math.round(state.progress * 100)}%` }}
-					/>
-				</span>
-			) : null}
-		</button>
-	);
-}
-
 /** "— or —" divider plus a secondary button to the other auth page. */
 
 export function SignInPage() {
@@ -245,14 +147,12 @@ export function SignInPage() {
 
 	const [googleToken, setGoogleToken] = useState("");
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-	const [hasGoogleOAuthApp, setHasGoogleOAuthApp] = useState(isGoogleOAuthAppInstalled);
+	const [hasNativeGoogle] = useState(isNativeGoogleSignInSupported);
 	// Desktop signs in through its own window only; the token flow is mobile-only.
 	const [hasGoogleWindow] = useState(isGoogleWindowSupported);
 	const [googleAppError, setGoogleAppError] = useState<string | null>(null);
-	// With the companion app installed, the manual token flow stays folded away.
+	// With native Google sign-in, the manual token flow stays folded away.
 	const [showManualToken, setShowManualToken] = useState(false);
-	const googleAppInstall = useGoogleOAuthAppInstall();
-	const [isAndroidDevice] = useState(isAndroid);
 	const [hasFacebookSignIn] = useState(isFacebookSignInSupported);
 	const [isFacebookLoading, setIsFacebookLoading] = useState(false);
 
@@ -408,39 +308,24 @@ export function SignInPage() {
 			const reason = (event as CustomEvent<{ reason?: string }>).detail?.reason;
 			if (reason && reason !== "cancelled") {
 				setGoogleAppError(
-					t("auth.sign_in.google_app_error", {
-						defaultValue: "The Google OAuth app could not sign you in. Make sure it is the Free Grind version.",
+					t("auth.sign_in.google_native_error", {
+						defaultValue: "Google sign-in couldn't be opened. Please try again.",
 					}),
 				);
 			}
 		};
-		// The app may get installed while this page sits in the background.
-		const onVisible = () => {
-			if (document.visibilityState === "visible") setHasGoogleOAuthApp(isGoogleOAuthAppInstalled());
-		};
 		window.addEventListener("fg:google-token", onToken);
 		window.addEventListener("fg:google-token-error", onError);
-		document.addEventListener("visibilitychange", onVisible);
 		return () => {
 			window.removeEventListener("fg:google-token", onToken);
 			window.removeEventListener("fg:google-token-error", onError);
-			document.removeEventListener("visibilitychange", onVisible);
 		};
 	}, [t]);
-
-	// Freshly installed in place: switch to the one-tap sign-in right away.
-	useEffect(() => {
-		if (googleAppInstall.state.phase === "installed") setHasGoogleOAuthApp(isGoogleOAuthAppInstalled());
-	}, [googleAppInstall.state.phase]);
 
 	const handleGoogleAppSignIn = () => {
 		setGoogleAppError(null);
 		const result = (window as GoogleOAuthWindow).FreeGrindBridge?.requestGoogleToken?.();
-		if (result === "ok") {
-			setIsGoogleLoading(true);
-		} else {
-			setHasGoogleOAuthApp(false);
-		}
+		if (result === "ok") setIsGoogleLoading(true);
 	};
 
 	if (verification) {
@@ -678,7 +563,7 @@ export function SignInPage() {
 				</form>
 			) : (
 				<form key="google" onSubmit={handleGoogleSubmit} className="animate-fade-in space-y-5">
-					{hasGoogleOAuthApp ? (
+					{hasNativeGoogle ? (
 						<section className="space-y-2.5">
 							<Button
 								type="button"
@@ -688,7 +573,7 @@ export function SignInPage() {
 								leftIcon={<GoogleIcon className="h-4 w-4" />}
 								className="w-full"
 							>
-								{t("auth.sign_in.google_app_sign_in", { defaultValue: "Sign in with the Google app" })}
+								{t("auth.sign_in.google_window_sign_in", { defaultValue: "Sign in with Google" })}
 							</Button>
 							{googleAppError ? <AuthErrorBox message={googleAppError} /> : null}
 							{!showManualToken && error ? <AuthErrorBox message={error.message} detail={error.detail} /> : null}
@@ -705,7 +590,7 @@ export function SignInPage() {
 							</button>
 						</section>
 					) : null}
-					{hasGoogleOAuthApp && !showManualToken ? null : (
+					{hasNativeGoogle && !showManualToken ? null : (
 						<div className="animate-fade-in space-y-5">
 							<div>
 								<Step
@@ -715,32 +600,12 @@ export function SignInPage() {
 										defaultValue: "Sign in with Google there, then tap \"Copy token\".",
 									})}
 								>
-									<div className="space-y-2">
-										{/* The browser extension is desktop-only; the companion app is shown everywhere. */}
-										{isAndroidDevice ? null : (
-											<TokenSourceLink
-												href="https://github.com/fdev8974/freegrind-google-oauth-webextension#install"
-												icon={<Puzzle className="h-4 w-4" />}
-												title={t("auth.sign_in.google_extension_link", { defaultValue: "Browser extension" })}
-												description={t("auth.sign_in.google_extension_desc", { defaultValue: "Firefox, Chrome and other desktop browsers" })}
-											/>
-										)}
-										{isAndroidDevice && googleAppInstall.supported && !hasGoogleOAuthApp ? (
-											<AppInstallCard
-												install={googleAppInstall}
-												icon={<Smartphone className="h-4 w-4" />}
-												title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
-												installHint={t("auth.sign_in.google_app_install_hint", { defaultValue: "Android · Tap to install" })}
-											/>
-										) : (
-											<TokenSourceLink
-												href={GOOGLE_OAUTH_APP_RELEASES}
-												icon={<Smartphone className="h-4 w-4" />}
-												title={t("auth.sign_in.google_app_link", { defaultValue: "Google OAuth app" })}
-												description={t("auth.sign_in.google_app_desc", { defaultValue: "Android" })}
-											/>
-										)}
-									</div>
+									<TokenSourceLink
+										href="https://github.com/fdev8974/freegrind-google-oauth-webextension#install"
+										icon={<Puzzle className="h-4 w-4" />}
+										title={t("auth.sign_in.google_extension_link", { defaultValue: "Browser extension" })}
+										description={t("auth.sign_in.google_extension_desc", { defaultValue: "Firefox, Chrome and other desktop browsers" })}
+									/>
 								</Step>
 								<Step
 									step={2}

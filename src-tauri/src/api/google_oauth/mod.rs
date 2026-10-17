@@ -6,7 +6,7 @@
 //!
 //! The page scripts come from the Free Grind Google OAuth web extension
 //! (git submodule `src-tauri/vendor/freegrind-google-oauth-webextension`).
-//! Android keeps using the companion app (see GoogleOAuthApp.kt).
+//! Android runs the same extension in GeckoView (see GoogleOAuthActivity.kt).
 //!
 //! Adapted from Open Grind (MIT, https://git.opengrind.org/open-grind/open-grind).
 
