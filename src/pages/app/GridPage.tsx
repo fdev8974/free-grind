@@ -1,7 +1,7 @@
 import { useAuth } from "../../contexts/useAuth";
-import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, Check, UserSearch } from "lucide-react";
+import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, Check, UserSearch, ChevronRight } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { EyeFilled, EyeOffFilled, MapPinFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
+import { EyeFilled, EyeOffFilled, MapPinFilled, UserFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -204,18 +204,6 @@ export function GridPage() {
 	const [isActiveProfileBlockedByOther, setIsActiveProfileBlockedByOther] = useState(false);
 	const [isLoadingActiveProfile, setIsLoadingActiveProfile] = useState(false);
 	const [activeProfileError, setActiveProfileError] = useState<string | null>(null);
-	const [isProfileSearchOpen, setIsProfileSearchOpen] = useState(false);
-	const [profileSearchInput, setProfileSearchInput] = useState("");
-	const profileSearchDialogRef = useRef<HTMLDialogElement | null>(null);
-	useEffect(() => {
-		const dialog = profileSearchDialogRef.current;
-		if (!dialog) return;
-		if (isProfileSearchOpen) {
-			if (!dialog.open) dialog.showModal();
-		} else if (dialog.open) {
-			dialog.close();
-		}
-	}, [isProfileSearchOpen]);
 
 	const { data: managedGenders } = useManagedGenders();
 	const { data: managedPronouns } = useManagedPronouns();
@@ -404,6 +392,11 @@ export function GridPage() {
 	// why the grid is narrowed down.
 	const [isNameSearchOpen, setIsNameSearchOpen] = useState(false);
 	const showNameSearch = isNameSearchOpen || Boolean(nicknameFilter);
+	// The same field also opens a profile by ID: a purely numeric entry is
+	// taken as an ID (offered below the field) and doesn't filter the grid by
+	// name, which would only page through it for a match that can't exist.
+	const profileIdQuery = /^\d{5,}$/.test(nicknameFilter.trim()) ? nicknameFilter.trim() : null;
+	const effectiveNicknameFilter = profileIdQuery ? "" : nicknameFilter;
 
 	// Fades the quick-filter row's right edge while more chips are off-screen.
 	const chipRowFade = useScrollRowFade();
@@ -796,8 +789,8 @@ export function GridPage() {
 	// reordered, so the old offset points at unrelated profiles. Also drop the
 	// saved offset for the new cache key so BrowseGrid doesn't restore it.
 	const gridOrderKey = useMemo(
-		() => JSON.stringify([browseRequestFilters, browseFilters, sortBy, nicknameFilter, searchTerm]),
-		[browseRequestFilters, browseFilters, sortBy, nicknameFilter, searchTerm],
+		() => JSON.stringify([browseRequestFilters, browseFilters, sortBy, effectiveNicknameFilter, searchTerm]),
+		[browseRequestFilters, browseFilters, sortBy, effectiveNicknameFilter, searchTerm],
 	);
 	const prevGridOrderKeyRef = useRef(gridOrderKey);
 	useEffect(() => {
@@ -960,7 +953,7 @@ export function GridPage() {
 
 	const handleLoadMoreCards = async () => {
 		if (!geohash || !nextPage || isLoadingMoreCards) return;
-		if (nicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES) return;
+		if (effectiveNicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES) return;
 		setIsLoadingMoreCards(true);
 		let cancelled = false;
 		try {
@@ -1131,8 +1124,8 @@ export function GridPage() {
 			results = results.filter((card) => card.isVisiting === true);
 		}
 
-		if (nicknameFilter) {
-			const lower = nicknameFilter.toLowerCase();
+		if (effectiveNicknameFilter) {
+			const lower = effectiveNicknameFilter.toLowerCase();
 			results = results.filter((card) =>
 				card.displayName?.toLowerCase().includes(lower),
 			);
@@ -1162,7 +1155,7 @@ export function GridPage() {
 		}
 
 		return results;
-	}, [cards, sortBy, showDebugInfo, hiddenProfileIds, browseFilters.isVisiting, nicknameFilter, searchTerm, favoriteNotes, selfCard]);
+	}, [cards, sortBy, showDebugInfo, hiddenProfileIds, browseFilters.isVisiting, effectiveNicknameFilter, searchTerm, favoriteNotes, selfCard]);
 
 	const selectedBrowseCard = useMemo(() => {
 		if (!activeProfileId) {
@@ -1239,6 +1232,12 @@ export function GridPage() {
 		}
 
 		setActiveProfileId(profileId);
+	};
+
+	const openProfileFromSearch = (profileId: string) => {
+		setNicknameFilter("");
+		setIsNameSearchOpen(false);
+		handleSelectProfile(profileId);
 	};
 
 	const handleMessageProfile = (profileId: string) => {
@@ -1633,9 +1632,14 @@ export function GridPage() {
 											value={nicknameFilter}
 											onChange={(e) => setNicknameFilter(e.target.value)}
 											onBlur={() => { if (!nicknameFilter) setIsNameSearchOpen(false); }}
-											placeholder={t("browse_filters.local_filters.nickname_placeholder")}
+											placeholder={t("grid.name_or_id_placeholder")}
+											enterKeyHint={profileIdQuery ? "go" : "search"}
 											className="h-full w-full bg-transparent pl-9 pr-8 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
 											onKeyDown={(e) => {
+												if (e.key === "Enter" && profileIdQuery) {
+													openProfileFromSearch(profileIdQuery);
+													return;
+												}
 												if (e.key === "Escape" || e.key === "Enter") {
 													e.currentTarget.blur();
 												}
@@ -1653,6 +1657,25 @@ export function GridPage() {
 											<X className="h-3.5 w-3.5" />
 										</button>
 									</div>
+									{profileIdQuery && (
+										<button
+											type="button"
+											// Keep focus on the input (its onBlur would otherwise run first).
+											onMouseDown={(e) => e.preventDefault()}
+											onClick={() => openProfileFromSearch(profileIdQuery)}
+											className={cn(
+												"glass-pill mt-2 flex h-10 w-full items-center gap-2.5 px-3 text-left text-sm transition active:scale-[0.98]",
+												exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]",
+											)}
+											style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
+										>
+											<UserFilled className="h-4 w-4 shrink-0" />
+											<span className="min-w-0 flex-1 truncate font-semibold">
+												{t("grid.open_profile_id", { id: profileIdQuery })}
+											</span>
+											<ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
+										</button>
+									)}
 								</div>
 							)}
 
@@ -1791,14 +1814,6 @@ export function GridPage() {
 										</button>
 									) : null}
 
-									<FilterPill
-										icon={<Search className="h-3.5 w-3.5" />}
-										label={t("grid.open_profile_by_id", { defaultValue: "Open Profile by ID" })}
-										active={false}
-										onClick={() => { setProfileSearchInput(""); setIsProfileSearchOpen(true); }}
-										color={exploreLocation ? "explore" : "accent"}
-									/>
-
 									{isDesktop && (
 										<FilterPill
 											variant="icon"
@@ -1887,7 +1902,7 @@ export function GridPage() {
 							onMessageProfile={handleMessageProfile}
 							onOpenContextMenu={handleOpenTileContextMenu}
 							hidePopular={sortBy === "distance"}
-							hasMore={nextPage !== null && !(nicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}
+							hasMore={nextPage !== null && !(effectiveNicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}
 							isLoadingMore={isLoadingMoreCards}
 							onLoadMore={() => {
 								void handleLoadMoreCards();
@@ -2079,54 +2094,6 @@ export function GridPage() {
 				/>
 			)}
 
-			<dialog
-				ref={profileSearchDialogRef}
-				className="fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
-				onClick={(e) => { if (e.target === profileSearchDialogRef.current) setIsProfileSearchOpen(false); }}
-				onKeyDown={(e) => { if (e.key === "Escape") setIsProfileSearchOpen(false); }}
-			>
-				<form
-					onSubmit={(e) => {
-						e.preventDefault();
-						const id = profileSearchInput.trim();
-						if (!id) return;
-						setIsProfileSearchOpen(false);
-						handleSelectProfile(id);
-					}}
-					className="p-4"
-				>
-					<p className="text-sm font-semibold text-[var(--text)]">Open Profile by ID</p>
-					<p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-						Got a profile ID from a link? Paste it here to jump straight to that profile.
-					</p>
-					<input
-						autoFocus
-						type="number"
-						inputMode="numeric"
-						value={profileSearchInput}
-						onChange={(e) => setProfileSearchInput(e.target.value)}
-						placeholder="123456789"
-						className="input-field mt-4"
-					/>
-					<div className="mt-4 flex gap-2">
-						<button
-							type="button"
-							onClick={() => setIsProfileSearchOpen(false)}
-							className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
-						>
-							Cancel
-						</button>
-						<button
-							type="submit"
-							disabled={!profileSearchInput.trim()}
-							className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-						>
-							<Search className="h-4 w-4" />
-							Open Profile
-						</button>
-					</div>
-				</form>
-			</dialog>
 		</div>
 	);
 }

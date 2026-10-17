@@ -2179,8 +2179,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "Odpri profil po ID-ju",
-        "refresh": "Osveži mrežo"
+        "refresh": "Osveži mrežo",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "Čas za pregled?",

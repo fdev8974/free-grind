@@ -2147,8 +2147,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "Profil per ID öffnen",
-        "refresh": "Grid aktualisieren"
+        "refresh": "Grid aktualisieren",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "Zeit für einen Test?",

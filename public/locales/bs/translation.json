@@ -2163,8 +2163,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "Otvori profil putem ID-a",
-        "refresh": "Osvježi Grid"
+        "refresh": "Osvježi Grid",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "Vrijeme za pregled?",

@@ -2165,8 +2165,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "Отвори профил по ID-ју",
-        "refresh": "Освежи мрежу"
+        "refresh": "Освежи мрежу",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "Време за преглед?",

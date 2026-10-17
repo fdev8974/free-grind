@@ -2163,8 +2163,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "Ouvrir le profil par ID",
-        "refresh": "Actualiser la grille"
+        "refresh": "Actualiser la grille",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "L'heure d'un test ?",

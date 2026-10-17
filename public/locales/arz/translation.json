@@ -2179,8 +2179,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "فتح البروفايل بواسطة المعرف",
-        "refresh": "تحديث"
+        "refresh": "تحديث",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "وقت الفحص؟",

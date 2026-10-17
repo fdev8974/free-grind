@@ -2163,8 +2163,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "Abrir perfil por ID",
-        "refresh": "Actualizar cuadrícula"
+        "refresh": "Actualizar cuadrícula",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "¿Hora de hacerte una prueba?",

@@ -2147,8 +2147,9 @@
     "close": "Close"
   },
   "grid": {
-    "open_profile_by_id": "Open Profile by ID",
-    "refresh": "Refresh grid"
+    "refresh": "Refresh grid",
+    "name_or_id_placeholder": "Name or profile ID…",
+    "open_profile_id": "Open profile {{id}}"
   },
   "test_reminder": {
     "title": "Time for a check-up?",

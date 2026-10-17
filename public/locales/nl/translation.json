@@ -2147,8 +2147,9 @@
         "close": ""
     },
     "grid": {
-        "open_profile_by_id": "Profiel openen via ID",
-        "refresh": "Grid vernieuwen"
+        "refresh": "Grid vernieuwen",
+        "name_or_id_placeholder": "",
+        "open_profile_id": ""
     },
     "test_reminder": {
         "title": "Tijd voor een check-up?",
