@@ -486,7 +486,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -526,12 +526,12 @@ jobs:
           mkdir -p src-tauri/certs
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > src-tauri/certs/free-grind-dev.jks
 
-      # One APK per ABI: GeckoView (Google sign-in) adds ~60 MB of native
-      # libs per ABI, too much for a universal APK.
-      - name: Build Android APKs
-        run: bunx tauri android build --apk --split-per-abi --target aarch64 --target x86_64 -v
+      # arm64-v8a only: GeckoView (Google sign-in) adds ~85 MB per ABI, and
+      # 32-bit or x86 phones are practically extinct.
+      - name: Build Android APK
+        run: bunx tauri android build --apk --split-per-abi --target aarch64 -v
 
-      - name: Upload Android APKs to release
+      - name: Upload Android APK to release
         uses: actions/github-script@v8
         env:
           RELEASE_NAME: ${{ needs.create-release.outputs.release_name }}
@@ -539,39 +539,31 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const apkPath = 'src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk';
+
+            if (!fs.existsSync(apkPath)) {
+              throw new Error(`APK not found at ${apkPath}`);
+            }
 
             const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
             const version = pkg.version;
+            const apkName = `free-grind-v${version}.apk`;
 
-            // arm64 first: app versions before the ABI split take the first
-            // `free-grind-v*.apk` asset, and nearly every phone is arm64.
-            const apks = [
-              { flavor: 'arm64', abi: 'arm64-v8a' },
-              { flavor: 'x86_64', abi: 'x86_64' },
-            ];
-            for (const { flavor, abi } of apks) {
-              const apkPath = `src-tauri/gen/android/app/build/outputs/apk/${flavor}/release/app-${flavor}-release.apk`;
-              if (!fs.existsSync(apkPath)) {
-                throw new Error(`APK not found at ${apkPath}`);
+            const fileData = fs.readFileSync(apkPath);
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: ${{ needs.create-release.outputs.release_id }},
+              name: apkName,
+              data: fileData,
+              headers: {
+                'content-type': 'application/vnd.android.package-archive',
+                'content-length': fileData.length
               }
+            });
 
-              const apkName = `free-grind-v${version}-${abi}.apk`;
-              const fileData = fs.readFileSync(apkPath);
-
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: ${{ needs.create-release.outputs.release_id }},
-                name: apkName,
-                data: fileData,
-                headers: {
-                  'content-type': 'application/vnd.android.package-archive',
-                  'content-length': fileData.length
-                }
-              });
-
-              console.log(`✓ APK uploaded to release as ${apkName}`);
-            }
+            console.log(`✓ APK uploaded to release as ${apkName}`);
 
   build-ios:
     needs: create-release

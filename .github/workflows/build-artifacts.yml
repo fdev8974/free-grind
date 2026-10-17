@@ -114,7 +114,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,x86_64-linux-android
+          targets: aarch64-linux-android
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -154,17 +154,15 @@ jobs:
           mkdir -p src-tauri/certs
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > src-tauri/certs/free-grind-dev.jks
 
-      # One APK per ABI, like release.yml.
-      - name: Build Android APKs
-        run: bunx tauri android build --apk --split-per-abi --target aarch64 --target x86_64 -v
+      # arm64-v8a only, like release.yml.
+      - name: Build Android APK
+        run: bunx tauri android build --apk --split-per-abi --target aarch64 -v
 
-      - name: Upload Android APKs
+      - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: free-grind-android
-          path: |
-            src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk
-            src-tauri/gen/android/app/build/outputs/apk/x86_64/release/app-x86_64-release.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk
           retention-days: 14
           if-no-files-found: error
 

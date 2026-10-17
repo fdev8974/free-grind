@@ -475,12 +475,6 @@ class MainActivity : TauriActivity() {
       return "ok"
     }
 
-    /** Device ABIs in order of preference, comma-separated, to pick the matching release APK. */
-    @JavascriptInterface
-    fun supportedAbis(): String {
-      return Build.SUPPORTED_ABIS.joinToString(",")
-    }
-
     /**
      * In-app self-update (see ApkUpdater.kt): downloads the release APK and
      * hands it to Android's installer. Progress arrives as `fg:apk-update`

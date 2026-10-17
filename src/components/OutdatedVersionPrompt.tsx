@@ -66,25 +66,11 @@ function buildDismissStorageKey(appVersion: string): string {
     return `outdated-version-dismissed-${normalizeVersion(appVersion)}`;
 }
 
-const APK_NAME = /^free-grind-v\d+(\.\d+)*(-[0-9A-Za-z.-]+)?\.apk$/;
-const ABI_SUFFIX = /-(arm64-v8a|armeabi-v7a|x86_64|x86)\.apk$/;
-
-/** This device's ABIs in order of preference (Android only, else empty). */
-function deviceAbis(): string[] {
-    try {
-        const bridge = (window as unknown as { FreeGrindBridge?: { supportedAbis?: () => string } }).FreeGrindBridge;
-        return bridge?.supportedAbis?.().split(",").filter(Boolean) ?? [];
-    } catch {
-        return [];
-    }
-}
-
 /**
- * The main app's APKs are published per ABI as
- * `free-grind-v<version>-<abi>.apk`; releases before the split had one
- * universal `free-grind-v<version>.apk`. Prefers this device's ABIs in order,
- * the exact name for this release before any other `free-grind-v<x.y.z[-pre]>`
- * one — never some other `.apk` that might get attached to a release later.
+ * The main app's APK (arm64-v8a only) is published as
+ * `free-grind-v<version>.apk`. Prefers the exact name for this release, then
+ * any `free-grind-v<x.y.z[-pre]>.apk` — never some other `.apk` that might
+ * get attached to a release later.
  */
 function pickApkAsset(
     assets: { name?: string; browser_download_url?: string }[],
@@ -92,22 +78,12 @@ function pickApkAsset(
 ): string | undefined {
     const usable = assets.filter(
         (asset): asset is { name: string; browser_download_url: string } =>
-            typeof asset.name === "string" &&
-            typeof asset.browser_download_url === "string" &&
-            APK_NAME.test(asset.name),
+            typeof asset.name === "string" && typeof asset.browser_download_url === "string",
     );
-    const byName = (name: string) => usable.find((asset) => asset.name === name)?.browser_download_url;
-
-    for (const abi of deviceAbis()) {
-        const url =
-            byName(`free-grind-v${version}-${abi}.apk`) ??
-            usable.find((asset) => asset.name.endsWith(`-${abi}.apk`))?.browser_download_url;
-        if (url) return url;
-    }
-    return (
-        byName(`free-grind-v${version}.apk`) ??
-        usable.find((asset) => !ABI_SUFFIX.test(asset.name))?.browser_download_url
-    );
+    const exact = usable.find((asset) => asset.name === `free-grind-v${version}.apk`);
+    if (exact) return exact.browser_download_url;
+    return usable.find((asset) => /^free-grind-v\d+(\.\d+)*(-[0-9A-Za-z.-]+)?\.apk$/.test(asset.name))
+        ?.browser_download_url;
 }
 
 type GitHubRelease = {

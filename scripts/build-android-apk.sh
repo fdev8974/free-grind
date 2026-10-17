@@ -2,6 +2,7 @@
 set -eu
 
 sh scripts/tauri.sh android init --ci --skip-targets-install
-sh scripts/tauri.sh android build --apk -v
+# arm64-v8a only, like the release workflow.
+sh scripts/tauri.sh android build --apk --split-per-abi --target aarch64 -v
 
-echo "APK output: src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk"
+echo "APK output: src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk"

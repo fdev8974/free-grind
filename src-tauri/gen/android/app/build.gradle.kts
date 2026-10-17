@@ -129,8 +129,8 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx:24.1.2")
     // Proprietary; only RecaptchaMint.java may touch it (Kotlin 2.3 metadata).
     implementation("com.google.android.recaptcha:recaptcha:18.9.2")
-    // Google sign-in, see GoogleOAuthActivity.kt. Native libs only for
-    // arm64-v8a, armeabi-v7a and x86_64 (no 32-bit x86).
+    // Google sign-in, see GoogleOAuthActivity.kt. ~85 MB of the APK; releases
+    // ship arm64-v8a only (see release.yml).
     implementation("org.mozilla.geckoview:geckoview:152.0.20260629141727")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")

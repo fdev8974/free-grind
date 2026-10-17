@@ -97,3 +97,8 @@ webkit2gtk = "2"
 # makes cmake-rs pick RelWithDebInfo instead, which uses the matching /MD CRT.
 [profile.dev.package.boring-sys2]
 opt-level = 1
+
+# Symbol tables were a third of the Android library (14 of 44 MB) and ship in
+# every APK and desktop bundle; nothing symbolicates release crashes from them.
+[profile.release]
+strip = true
