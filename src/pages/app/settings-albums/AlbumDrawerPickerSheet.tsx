@@ -128,6 +128,7 @@ export function AlbumDrawerPickerSheet({
 			{upload.step ?? (
 			<>
 			<DrawerBody
+				isDesktop={isDesktop}
 				isLoading={isLoading && media.length === 0}
 				error={media.length === 0 ? error : null}
 				onRetry={() => void onLoadMedia()}

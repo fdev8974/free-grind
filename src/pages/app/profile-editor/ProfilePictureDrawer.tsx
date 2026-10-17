@@ -146,6 +146,7 @@ export function ProfilePictureDrawer({
 			</div>
 
 			<DrawerBody
+				isDesktop={isDesktop}
 				isLoading={isLoading}
 				error={error}
 				onRetry={onRetry}

@@ -148,6 +148,7 @@ export function DrawerCollectionEditorSheet({
 			<p className="mb-3 text-xs text-[var(--text-muted)]">{t("settings_albums.collections_editor_hint")}</p>
 
 			<DrawerBody
+				isDesktop={isDesktop}
 				className="max-h-[50vh]"
 				isLoading={isLoading && media.length === 0}
 				error={media.length === 0 ? error : null}

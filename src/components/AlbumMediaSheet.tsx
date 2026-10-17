@@ -50,6 +50,7 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 			<DrawerHeader title={albumName?.trim() || t("shared_albums.album_label")} className="mb-3 gap-3" />
 
 			<DrawerBody
+				isDesktop={isDesktop}
 				className={isDesktop ? "min-h-[60vh] pb-4" : "pb-4"}
 				empty={content.length === 0 ? (
 					<div className="flex h-full items-center justify-center py-8">

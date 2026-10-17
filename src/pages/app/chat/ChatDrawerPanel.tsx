@@ -27,6 +27,7 @@ import {
 	DrawerActionButton,
 	DrawerActionBar,
 	DrawerBody,
+	DrawerGridSkeleton,
 	DrawerEmptyState,
 	DrawerFooter,
 	DrawerGrid,
@@ -592,13 +593,11 @@ export function ChatDrawerPanel({
 						})()}
 
 						{/* Content Grid */}
-						<DrawerBody isLoading={isLoading || !hasSlidIn} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
+						<DrawerBody isLoading={isLoading || !hasSlidIn} isDesktop={isDesktop} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
 								<div className="flex flex-col gap-3">
 								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (
-										<div className="flex justify-center py-8">
-											<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-										</div>
+										<DrawerGridSkeleton isDesktop={isDesktop} />
 									) : (
 										<DrawerEmptyState
 											icon={<Album className="h-5 w-5" />}
@@ -619,9 +618,7 @@ export function ChatDrawerPanel({
 											{renderCreateButton(t("chat_drawer.collections_create", { defaultValue: "Create collection" }))}
 										</DrawerEmptyState>
 									) : (
-										<div className="flex justify-center py-8">
-											<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-										</div>
+										<DrawerGridSkeleton isDesktop={isDesktop} />
 									)
 								)}
 								{!combined && ((activeTab === "albums" && albums.length > 0) || (activeTab === "collections" && collections.length > 0)) && (

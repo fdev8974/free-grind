@@ -92,6 +92,41 @@ async function fetchGiphy(path: string): Promise<unknown> {
 	return res.json();
 }
 
+// Mixed heights, so the placeholder reads like the masonry it stands in for.
+const GIF_SKELETON_RATIOS = ["1 / 1", "4 / 3", "3 / 4", "16 / 9", "1 / 1", "4 / 5", "16 / 10", "1 / 1"];
+
+function GifGridSkeleton() {
+	return (
+		<div className="flex gap-2" aria-busy="true">
+			{[0, 1].map((ci) => (
+				<div key={ci} className="flex flex-1 flex-col gap-2">
+					{GIF_SKELETON_RATIOS.filter((_, i) => i % 2 === ci).concat(GIF_SKELETON_RATIOS.filter((_, i) => i % 2 !== ci)).map((ratio, i) => (
+						<div key={i} className="w-full animate-pulse rounded-xl bg-[var(--surface-2)]" style={{ aspectRatio: ratio }} />
+					))}
+				</div>
+			))}
+		</div>
+	);
+}
+
+/** Pulses like the skeleton until the GIF itself has loaded. */
+function GifImage({ src }: { src: string }) {
+	const [loaded, setLoaded] = useState(false);
+	return (
+		<>
+			{!loaded && <div className="absolute inset-0 animate-pulse bg-[var(--surface-2)]" />}
+			<img
+				src={src}
+				alt=""
+				loading="lazy"
+				onLoad={() => setLoaded(true)}
+				onError={() => setLoaded(true)}
+				className={`h-full w-full object-cover transition group-hover:scale-105 ${loaded ? "opacity-100" : "opacity-0"}`}
+			/>
+		</>
+	);
+}
+
 function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId: string | null; onToggle: (gif: GiphyItem) => void }) {
 	const col1: GiphyItem[] = [];
 	const col2: GiphyItem[] = [];
@@ -113,12 +148,7 @@ function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId
 									aspectRatio: gif.width > 0 && gif.height > 0 ? `${gif.width} / ${gif.height}` : "1 / 1",
 								}}
 							>
-								<img
-									src={gif.previewWebpUrl ?? gif.previewUrl}
-									alt=""
-									loading="lazy"
-									className="h-full w-full object-cover transition group-hover:scale-105"
-								/>
+								<GifImage key={gif.id} src={gif.previewWebpUrl ?? gif.previewUrl} />
 								{isSelected && (
 									<>
 										<div className="pointer-events-none absolute inset-0 rounded-xl bg-[color-mix(in_srgb,var(--accent)_25%,transparent)] ring-2 ring-inset ring-[var(--accent)]" />
@@ -264,9 +294,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent {...tabSwipe}>
 				{tab === "trending" ? (
 					isLoading ? (
-						<div className="flex items-center justify-center py-12">
-							<Loader2 className="h-6 w-6 animate-spin text-[var(--accent)]" />
-						</div>
+						<GifGridSkeleton />
 					) : error ? (
 						<div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
 							<p className="text-sm text-[var(--text-muted)]">{error}</p>

@@ -304,10 +304,23 @@ export function DrawerHeader({
 	);
 }
 
+/** Placeholder tiles in the drawer grid's layout, shown while it loads. */
+export function DrawerGridSkeleton({ isDesktop = false, count }: { isDesktop?: boolean; count?: number }) {
+	const tiles = count ?? (isDesktop ? 12 : 9);
+	return (
+		<div className={drawerGridClass(isDesktop)} aria-busy="true">
+			{Array.from({ length: tiles }, (_, i) => (
+				<div key={i} className="aspect-square animate-pulse rounded-lg bg-[var(--surface-2)]" />
+			))}
+		</div>
+	);
+}
+
 /** Scrollable drawer content with the shared loading, error (with retry) and
  * empty states; renders `children` (usually a DrawerGrid) otherwise. */
 export function DrawerBody({
 	isLoading,
+	isDesktop = false,
 	error,
 	onRetry,
 	retryLabel,
@@ -317,6 +330,8 @@ export function DrawerBody({
 	children,
 }: {
 	isLoading?: boolean;
+	/** Column count of the loading skeleton, matching the DrawerGrid. */
+	isDesktop?: boolean;
 	error?: string | null;
 	onRetry?: () => void;
 	retryLabel?: string;
@@ -333,11 +348,7 @@ export function DrawerBody({
 	const isDetented = useIsBottomSheetDetented();
 	let content: ReactNode;
 	if (isLoading) {
-		content = (
-			<div className="flex h-full items-center justify-center py-8">
-				<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-			</div>
-		);
+		content = <DrawerGridSkeleton isDesktop={isDesktop} />;
 	} else if (error) {
 		content = (
 			<div className="flex flex-col items-center justify-center gap-3 p-6 py-8 text-center">
