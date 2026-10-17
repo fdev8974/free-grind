@@ -22,6 +22,7 @@ import { SlidingTabs } from "../../../components/ui/sliding-tabs";
 import {
 	DRAWER_ICON_BUTTON_CLASS,
 	DRAWER_TILE_CLASS,
+	drawerGridClass,
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
 	DrawerActionTile,
@@ -404,7 +405,7 @@ export function ChatDrawerPanel({
 				</div>
 				{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-md" style={{ border: "2px solid var(--accent)" }} />}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
 				{!isSelected && !dimmed && (
 					<>
 						<DrawerTileCornerButton
@@ -498,7 +499,7 @@ export function ChatDrawerPanel({
 				</div>
 				<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-md" style={{ border: "2px solid var(--accent)" }} />}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
 				{!isSelected && !dimmed && (
 					<>
 						<DrawerTileCornerButton
@@ -614,7 +615,7 @@ export function ChatDrawerPanel({
 									)
 								)}
 								{!combined && ((activeTab === "albums" && albums.length > 0) || (activeTab === "collections" && collections.length > 0)) && (
-									<div className={`grid gap-2 ${isDesktop ? "grid-cols-4" : "grid-cols-3"}`}>
+									<div className={drawerGridClass(isDesktop)}>
 										{activeTab === "albums" ? albumTiles : collectionTiles}
 									</div>
 								)}

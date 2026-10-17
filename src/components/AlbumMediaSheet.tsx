@@ -1,7 +1,17 @@
 import { Images, Loader2, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, SheetCloseButton } from "./ui/bottom-sheet";
+import { BottomSheet } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import {
+	DRAWER_TILE_CLASS,
+	DrawerBody,
+	DrawerEmptyState,
+	DrawerGrid,
+	DrawerHeader,
+	DrawerMediaPreview,
+	DrawerMediaTile,
+	useDrawerMediaPreview,
+} from "../pages/app/chat/drawerUi";
 
 export type AlbumMediaSheetItem = {
 	contentId: number;
@@ -21,75 +31,91 @@ type Props = {
 	locked?: boolean;
 };
 
-/** Browse-first grid for an album's content — mirrors ChatMediaSheet's grid, but for a single album. Tapping an item opens it in the full-screen album viewer at that index. */
+/** Browse-first grid for an album's content — the same tiles, spacing and
+ * hold-to-peek as the media drawers, but for a single album. Tapping an item
+ * opens it in the full-screen album viewer at that index. */
 export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked = false }: Props) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
+	const { preview, bind, consumeClick } = useDrawerMediaPreview();
 
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} isProcessing={locked} panelClassName="max-h-[82dvh]">
-			<div className="flex flex-col" style={{ minHeight: "60vh" }}>
-				<div className="flex items-center justify-between px-4 pb-3">
-					<p className="truncate text-sm font-semibold text-[var(--text)]">
-						{albumName?.trim() || t("shared_albums.album_label")}
-					</p>
-					<SheetCloseButton label={t("shared_albums.close_viewer")} />
-				</div>
+		<BottomSheet
+			onClose={onClose}
+			isDesktop={isDesktop}
+			isProcessing={locked}
+			expandable
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
+		>
+			<DrawerHeader title={albumName?.trim() || t("shared_albums.album_label")} className="mb-3 gap-3" />
 
-				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4" data-lenis-prevent>
-					{content.length > 0 ? (
-						<div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-							{content.map((item, idx) => {
-								const isVideo = item.contentType?.startsWith("video/") ?? false;
-								// thumbUrl/coverUrl are always static preview images; `url` is
-								// the raw media file (the actual video for video items), so it
-								// only works as an <img> fallback for images — a <video src>
-								// without a poster/seek hack renders blank (see PhotoViewer's
-								// currentTime-seek workaround), so the grid always uses a still
-								// image + a Play badge for videos instead of a <video> tag.
-								const src = item.thumbUrl ?? item.coverUrl ?? (isVideo ? null : item.url);
-								return (
-									<button
-										key={item.contentId}
-										type="button"
-										disabled={item.processing}
-										onClick={() => onSelect(idx)}
-										className="group relative aspect-square overflow-hidden rounded-lg bg-[var(--surface-2)] disabled:opacity-50"
-									>
-										{src ? (
-											<img
-												src={src}
-												alt={t("shared_albums.content_alt", { index: idx + 1 })}
-												className="h-full w-full object-cover transition group-hover:scale-105"
-											/>
-										) : (
-											<div className="absolute inset-0 flex items-center justify-center">
-												<Images className="h-6 w-6 text-[var(--text-muted)] opacity-40" />
-											</div>
-										)}
-										{isVideo && !item.processing && (
-											<div className="absolute inset-0 flex items-center justify-center bg-black/15">
-												<Play className="h-6 w-6 text-white drop-shadow" fill="white" />
-											</div>
-										)}
-										{item.processing && (
-											<div className="absolute inset-0 flex items-center justify-center bg-black/40">
-												<Loader2 className="h-5 w-5 animate-spin text-white" />
-											</div>
-										)}
-									</button>
-								);
-							})}
-						</div>
-					) : (
-						<div className="flex flex-1 flex-col items-center justify-center gap-3 text-[var(--text-muted)]">
-							<Images className="h-10 w-10 opacity-30" />
-							<p className="text-sm font-medium">{t("shared_albums.empty_album_title")}</p>
-							<p className="text-xs opacity-60">{t("shared_albums.empty_album_desc")}</p>
-						</div>
-					)}
-				</div>
-			</div>
+			<DrawerBody
+				className={isDesktop ? "min-h-[60vh] pb-4" : "pb-4"}
+				empty={content.length === 0 ? (
+					<div className="flex h-full items-center justify-center py-8">
+						<DrawerEmptyState
+							icon={<Images className="h-5 w-5" />}
+							title={t("shared_albums.empty_album_title")}
+							hint={t("shared_albums.empty_album_desc")}
+						/>
+					</div>
+				) : undefined}
+			>
+				<DrawerGrid isDesktop={isDesktop}>
+					{content.map((item, idx) => {
+						const isVideo = item.contentType?.startsWith("video/") ?? false;
+						// thumbUrl/coverUrl are always static preview images; `url` is
+						// the raw media file (the actual video for video items), so it
+						// only works as an <img> fallback for images — a <video src>
+						// without a poster/seek hack renders blank (see PhotoViewer's
+						// currentTime-seek workaround), so the grid always uses a still
+						// image + a Play badge for videos instead of a <video> tag.
+						const src = item.thumbUrl ?? item.coverUrl ?? (isVideo ? null : item.url);
+						if (!src) {
+							return (
+								<button
+									key={item.contentId}
+									type="button"
+									disabled={item.processing}
+									onClick={() => onSelect(idx)}
+									className={`${DRAWER_TILE_CLASS} flex items-center justify-center disabled:opacity-50`}
+									aria-label={t("shared_albums.content_alt", { index: idx + 1 })}
+								>
+									<Images className="h-6 w-6 text-[var(--text-muted)] opacity-40" />
+								</button>
+							);
+						}
+						// The peek plays the real file when there is one (the video itself).
+						const peekSrc = item.url ?? src;
+						return (
+							<DrawerMediaTile
+								key={item.contentId}
+								src={src}
+								alt={t("shared_albums.content_alt", { index: idx + 1 })}
+								busy={item.processing}
+								onSelect={item.processing ? undefined : () => onSelect(idx)}
+								previewProps={item.processing ? undefined : bind({ src: peekSrc, isVideo: isVideo && !!item.url })}
+								consumePreviewClick={consumeClick}
+							>
+								{isVideo && !item.processing && (
+									<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
+										<div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
+											<Play className="h-4 w-4 fill-white text-white" />
+										</div>
+									</div>
+								)}
+								{item.processing && (
+									<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/40">
+										<Loader2 className="h-5 w-5 animate-spin text-white" />
+									</div>
+								)}
+							</DrawerMediaTile>
+						);
+					})}
+				</DrawerGrid>
+			</DrawerBody>
+
+			<DrawerMediaPreview media={preview} />
 		</BottomSheet>
 	);
 }

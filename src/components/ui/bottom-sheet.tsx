@@ -16,6 +16,22 @@ export const useIsBottomSheetDetented = () => useContext(BottomSheetDetentedCont
 // sheet opens another on top of itself.
 const openSheets: object[] = [];
 
+// Active holds that keep sheets from taking a touch drag (see holdSheetDrag).
+let sheetDragHolds = 0;
+
+/** Keeps every sheet from starting a touch drag until the returned release
+ * is called — for gestures that own the finger for a while, like the drawer's
+ * hold-to-peek. Safe to release more than once. */
+export function holdSheetDrag(): () => void {
+	sheetDragHolds++;
+	let released = false;
+	return () => {
+		if (released) return;
+		released = true;
+		sheetDragHolds--;
+	};
+}
+
 /** Lets other back-button handlers (useAndroidBackToGrid) stand aside while a sheet handles it. */
 export const isAnyBottomSheetOpen = () => openSheets.length > 0;
 
@@ -367,6 +383,10 @@ export function BottomSheet({
 			const state = layoutRef.current;
 
 			if (mode === "pending") {
+				if (sheetDragHolds > 0) {
+					mode = "ignore";
+					return;
+				}
 				if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
 				// Content hands over an upward drag only while the sheet can
 				// still grow; otherwise that's a normal scroll.

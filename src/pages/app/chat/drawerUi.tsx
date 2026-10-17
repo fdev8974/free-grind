@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
-import { SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
+import { holdSheetDrag, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 
@@ -12,9 +12,9 @@ import freegrindLogo from "../../../images/freegrind-logo.webp";
 // change the look here, not in each sheet.
 
 export const drawerGridClass = (isDesktop: boolean) =>
-	`grid gap-0.5 ${isDesktop ? "grid-cols-4" : "grid-cols-3"}`;
+	`grid gap-1.5 ${isDesktop ? "grid-cols-4" : "grid-cols-3"}`;
 
-export const DRAWER_TILE_CLASS = "relative aspect-square overflow-hidden rounded-md";
+export const DRAWER_TILE_CLASS = "relative aspect-square overflow-hidden rounded-lg bg-[var(--surface-2)]";
 
 type DrawerActionButtonProps = {
 	icon: ReactNode;
@@ -135,6 +135,14 @@ export function useDrawerMediaPreview() {
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const startRef = useRef<{ x: number; y: number } | null>(null);
 	const suppressClickRef = useRef(false);
+	// While a peek is open the finger belongs to it: moving it mustn't start
+	// dragging (or dismissing) the sheet underneath.
+	const releaseSheetDragRef = useRef<(() => void) | null>(null);
+
+	const releaseSheetDrag = useCallback(() => {
+		releaseSheetDragRef.current?.();
+		releaseSheetDragRef.current = null;
+	}, []);
 
 	const cancelTimer = useCallback(() => {
 		if (timerRef.current) {
@@ -146,10 +154,14 @@ export function useDrawerMediaPreview() {
 	const end = useCallback(() => {
 		cancelTimer();
 		startRef.current = null;
+		releaseSheetDrag();
 		setPreview(null);
-	}, [cancelTimer]);
+	}, [cancelTimer, releaseSheetDrag]);
 
-	useEffect(() => cancelTimer, [cancelTimer]);
+	useEffect(() => () => {
+		cancelTimer();
+		releaseSheetDrag();
+	}, [cancelTimer, releaseSheetDrag]);
 
 	const bind = useCallback(
 		(media: DrawerPreviewContent) => ({
@@ -162,6 +174,8 @@ export function useDrawerMediaPreview() {
 					timerRef.current = null;
 					suppressClickRef.current = true;
 					haptic(20);
+					releaseSheetDrag();
+					releaseSheetDragRef.current = holdSheetDrag();
 					setPreview(media);
 				}, LONG_PRESS_MS);
 			},
@@ -181,7 +195,7 @@ export function useDrawerMediaPreview() {
 			},
 			onContextMenu: (event: MouseEvent<HTMLElement>) => event.preventDefault(),
 		}),
-		[cancelTimer, end],
+		[cancelTimer, end, releaseSheetDrag],
 	);
 
 	/** True (once) when the click that follows a peek should be ignored. */
@@ -261,8 +275,8 @@ export function DrawerHeader({
 	const { t } = useTranslation();
 	return (
 		<div className={`flex items-center justify-between ${className}`}>
-			<h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
-			<div className="flex items-center gap-2">
+			<h3 className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{title}</h3>
+			<div className="flex shrink-0 items-center gap-2">
 				{actions}
 				{onClose ? (
 					<button type="button" onClick={onClose} className={DRAWER_ICON_BUTTON_CLASS} aria-label={t("common.close")}>
@@ -467,7 +481,7 @@ export function DrawerTileCornerButton({
 			// Keeps a press on the button from starting the tile's hold-to-peek.
 			onPointerDown={(event) => event.stopPropagation()}
 			disabled={disabled}
-			className={`absolute top-0.5 z-[1] inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60 ${corner === "left" ? "left-0.5" : "right-0.5"}`}
+			className={`absolute top-1 z-[1] inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 disabled:opacity-60 ${corner === "left" ? "left-1" : "right-1"}`}
 			aria-label={label}
 			title={label}
 		>
