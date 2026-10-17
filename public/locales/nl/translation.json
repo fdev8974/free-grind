@@ -1626,6 +1626,7 @@
         "media_alt": "Galerijmedia",
         "take_photo": "Foto maken",
         "upload_photo": "Foto uploaden",
+        "add_media": "",
         "add_to_drawer": "Toevoegen aan galerij",
         "invalid_file_type": "Kies een foto.",
         "delete_confirm_title": "Verwijderen uit galerij?",

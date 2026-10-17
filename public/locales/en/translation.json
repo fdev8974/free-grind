@@ -1626,6 +1626,7 @@
     "media_alt": "Drawer media",
     "take_photo": "Take photo",
     "upload_photo": "Upload photo",
+    "add_media": "Add media",
     "add_to_drawer": "Add to drawer",
     "invalid_file_type": "Please choose a photo.",
     "delete_confirm_title": "Delete from drawer?",

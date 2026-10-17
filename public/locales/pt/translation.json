@@ -1640,6 +1640,7 @@
         "media_alt": "Pasta de multimédia",
         "take_photo": "Tirar foto",
         "upload_photo": "Carregar foto",
+        "add_media": "",
         "add_to_drawer": "Adicionar à pasta",
         "invalid_file_type": "Por favor, escolha uma foto.",
         "delete_confirm_title": "Eliminar da pasta?",

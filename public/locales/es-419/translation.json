@@ -1640,6 +1640,7 @@
         "media_alt": "Contenido de la galería",
         "take_photo": "Tomar foto",
         "upload_photo": "Subir foto",
+        "add_media": "",
         "add_to_drawer": "Añadir a la galería",
         "invalid_file_type": "Por favor, selecciona una foto.",
         "delete_confirm_title": "¿Borrar de la galería?",

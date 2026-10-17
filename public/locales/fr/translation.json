@@ -1640,6 +1640,7 @@
         "media_alt": "Dossier multimédia",
         "take_photo": "Prendre une photo",
         "upload_photo": "Importer une photo",
+        "add_media": "",
         "add_to_drawer": "Ajouter au dossier multimédia",
         "invalid_file_type": "Veuillez choisir une photo.",
         "delete_confirm_title": "Supprimer du dossier multimédia ?",

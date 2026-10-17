@@ -525,7 +525,7 @@ export function useDrawerAddActions({
 		...(allowVideo
 			? [{ key: "video", label: t("chat_drawer.record_video", { defaultValue: "Record video" }), icon: <Video className="h-4 w-4 fill-current" />, input: cameraVideoInputRef }]
 			: []),
-		{ key: "upload", label: t("chat_drawer.upload_photo"), icon: <CameraPlusFilled className="h-4 w-4" />, input: uploadInputRef },
+		{ key: "upload", label: t("chat_drawer.add_media", { defaultValue: "Add media" }), icon: <CameraPlusFilled className="h-4 w-4" />, input: uploadInputRef },
 	].map(({ key, label, icon, input }) => {
 		const isBusyHere = busy && key === (usedKey ?? "upload");
 		return {

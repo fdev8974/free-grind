@@ -1626,6 +1626,7 @@
         "media_alt": "Galerie-Medien",
         "take_photo": "Foto aufnehmen",
         "upload_photo": "Foto hochladen",
+        "add_media": "",
         "add_to_drawer": "Zur Galerie hinzufügen",
         "invalid_file_type": "Bitte wähle ein Foto aus.",
         "delete_confirm_title": "Aus Galerie löschen?",
