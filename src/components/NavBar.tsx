@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "../utils/cn";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useTranslation } from "react-i18next";
@@ -452,6 +452,24 @@ export function NavBar() {
 		}
 	};
 
+	// Publish the bar's rendered height (safe-area padding included) as
+	// --nav-height, so floating UI (FABs, map cards) can sit right above it
+	// regardless of full-width/floating style or hidden labels.
+	const navRef = useRef<HTMLElement>(null);
+	useLayoutEffect(() => {
+		const nav = navRef.current;
+		if (!nav) return;
+		const root = document.documentElement;
+		const publish = () => root.style.setProperty("--nav-height", `${nav.offsetHeight}px`);
+		publish();
+		const observer = "ResizeObserver" in window ? new ResizeObserver(publish) : null;
+		observer?.observe(nav);
+		return () => {
+			observer?.disconnect();
+			root.style.removeProperty("--nav-height");
+		};
+	}, []);
+
 	// Determine the grid column class safely based on exactly how many tabs remain
 	const gridColsClass = 
 		navItems.length === 2 ? "grid-cols-2" : 
@@ -461,6 +479,7 @@ export function NavBar() {
 
 	return (
 		<nav
+			ref={navRef}
 			className={cn(
 				"fixed inset-x-0 bottom-0",
 				// While the account switcher is open, lift the bar (and the switcher

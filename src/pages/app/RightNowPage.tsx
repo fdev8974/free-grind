@@ -1075,10 +1075,10 @@ export function RightNowPage() {
 						<div
 							className={cn(
 								"absolute inset-x-0 z-20 px-3",
-								// Sits a bit above the nav: the full-width bar is lower than the floating card.
+								// Flush on the full-width bar, a small gap above the floating card.
 								navFullWidth
-									? "bottom-[calc(env(safe-area-inset-bottom,0px)+76px)]"
-									: "bottom-[calc(env(safe-area-inset-bottom,0px)+96px)]",
+									? "bottom-[var(--nav-height,env(safe-area-inset-bottom,0px))]"
+									: "bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.5rem)]",
 							)}
 						>
 							<RightNowMapCard
@@ -1136,7 +1136,7 @@ export function RightNowPage() {
 			)}
 		</PullToRefreshContainer>
 
-		<div className="fixed inset-x-0 bottom-36 z-[60] pointer-events-none md:bottom-40">
+		<div className="fixed inset-x-0 bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.75rem)] z-[60] pointer-events-none">
 			<div className="relative mx-auto h-full w-full max-w-4xl px-4 md:px-10">
 				{developerMode && showDebugInfo && (
 					<div
