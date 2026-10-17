@@ -193,14 +193,12 @@ export function relaxRoadZoomThresholds(map: any): void {
 			if (/^roadname_/.test(layer.id) && typeof layer.minzoom === "number") {
 				map.setLayerZoomRange(layer.id, Math.max(0, layer.minzoom - 2), layer.maxzoom ?? 24);
 			} else if (layer.id === "housenumber" || layer["source-layer"] === "housenumber") {
-				// The underlying tile source's real data tops out at zoom 14
-				// (everything past that is the same tile overzoomed), so 14 is
-				// the earliest this layer can show anything regardless of the
-				// style's declared minzoom. Its default text-size is also a
-				// zoom-stop function starting at 17 (9px), which clamps to
-				// that same tiny size for any zoom below it — fix the size too
-				// so house numbers are actually legible once they appear.
-				map.setLayerZoomRange(layer.id, 14, layer.maxzoom ?? 24);
+				// Shown from zoom 16: earlier (14, the first level the tile data
+				// has them) they cluttered the map. Its default text-size is a
+				// zoom-stop function starting at 17 (9px), which clamps to that
+				// same tiny size for any zoom below it — fix the size too so
+				// house numbers are actually legible once they appear.
+				map.setLayerZoomRange(layer.id, 16, layer.maxzoom ?? 24);
 				try {
 					map.setLayoutProperty(layer.id, "text-size", 11);
 				} catch {
