@@ -59,6 +59,72 @@ export function applyDarkMapTheme(map: any): void {
 }
 
 /**
+ * Futuristic "neon night" look for the Right Now map, built on CARTO's
+ * dark-matter style: near-black violet land, deep water, major roads as
+ * softly glowing lines in the Right Now color, minor roads in a muted violet
+ * and lavender labels. `accent` is a hex color (the resolved --right-now).
+ * Call after the style has (re)loaded, e.g. on the MapLibre "style.load" event.
+ */
+export function applyRightNowMapTheme(map: any, accent: string): void {
+	const LAND = "#0c0918";
+	const PARK = "#110d22";
+	const BUILDING = "#16102b";
+	const WATER = "#05040f";
+	const ROAD_CASE = "#08060f";
+	const ROAD_MINOR = "#2a1f47";
+	const RAIL = "#3a2c62";
+	const BOUNDARY = "#3b2d66";
+	const LABEL = "#c4b5fd";
+	const LABEL_HALO = "#0a0714";
+
+	try {
+		for (const layer of map.getStyle()?.layers ?? []) {
+			const id: string = layer.id;
+			try {
+				if (layer.type === "background") {
+					map.setPaintProperty(id, "background-color", LAND);
+				} else if (layer.type === "fill") {
+					if (/water/i.test(id)) {
+						map.setPaintProperty(id, "fill-color", WATER);
+					} else if (/building/i.test(id)) {
+						map.setPaintProperty(id, "fill-color", BUILDING);
+					} else if (/^park|landcover|landuse/.test(id)) {
+						map.setPaintProperty(id, "fill-color", /^park/.test(id) ? PARK : LAND);
+					}
+				} else if (layer.type === "line") {
+					if (layer["source-layer"] === "transportation") {
+						if (/rail/.test(id)) {
+							map.setPaintProperty(id, "line-color", RAIL);
+						} else if (/case/.test(id)) {
+							map.setPaintProperty(id, "line-color", ROAD_CASE);
+						} else if (/service|path|minor/.test(id)) {
+							map.setPaintProperty(id, "line-color", ROAD_MINOR);
+						} else {
+							// Major roads: neon lines with a slight blur for the glow.
+							map.setPaintProperty(id, "line-color", accent);
+							map.setPaintProperty(id, "line-opacity", 0.55);
+							map.setPaintProperty(id, "line-blur", 0.6);
+						}
+					} else if (/water/i.test(id)) {
+						map.setPaintProperty(id, "line-color", WATER);
+					} else if (/boundary/i.test(id)) {
+						map.setPaintProperty(id, "line-color", BOUNDARY);
+					}
+				} else if (layer.type === "symbol" && layer.layout?.["text-field"] != null) {
+					map.setPaintProperty(id, "text-color", LABEL);
+					map.setPaintProperty(id, "text-halo-color", LABEL_HALO);
+					map.setPaintProperty(id, "text-opacity", 0.75);
+				}
+			} catch {
+				// skip a layer that doesn't take this property
+			}
+		}
+	} catch {
+		// best-effort theming; skip if the upstream style schema changed
+	}
+}
+
+/**
  * CARTO's basemap styles only switch on street-name labels quite late
  * (minor roads need zoom 16+), and house numbers later still (zoom 17+,
  * the "housenumber" layer). Lower both thresholds so they become visible

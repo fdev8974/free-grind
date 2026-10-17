@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { RightNowFeedItem } from "../../../services/apiFunctions";
-import { useEffectiveColorScheme } from "../../../hooks/useEffectiveColorScheme";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { decodeGeohash } from "../../../utils/geohash";
 import { getThumbImageUrl, validateMediaHash } from "../../../utils/media";
-import { applyDarkMapTheme, getMapStyleUrl, relaxRoadZoomThresholds } from "../gridpage/components/mapStyles";
+import { MAP_STYLE_DARK, applyRightNowMapTheme, relaxRoadZoomThresholds } from "../gridpage/components/mapStyles";
 import { formatDistance } from "../gridpage/utils";
 
 export type RightNowMapItem = RightNowFeedItem & { lat: number; lon: number };
@@ -294,7 +293,6 @@ function markerSignature(item: RightNowMapItem, label: string): string {
 
 export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset, recenterRef }: Props) {
 	const { t } = useTranslation();
-	const scheme = useEffectiveColorScheme();
 	const { geohash, unitsPreset } = usePreferences();
 	// Name plate text per marker; read through a ref by syncMarkers.
 	const labelForRef = useRef<(item: RightNowFeedItem) => string>(() => "");
@@ -313,8 +311,6 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 	const mapRef = useRef<any>(null);
 	const maplibreRef = useRef<any>(null);
 	const markersRef = useRef(new Map<string, { marker: any; signature: string; item: RightNowFeedItem }>());
-	const schemeRef = useRef(scheme);
-	schemeRef.current = scheme;
 	const itemsRef = useRef(items);
 	itemsRef.current = items;
 	const topInsetRef = useRef(topInset);
@@ -593,14 +589,16 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 					: fallbackCenterRef.current;
 				const map = new maplibregl.Map({
 					container: containerRef.current,
-					style: getMapStyleUrl(schemeRef.current),
+					// Always the dark base: the neon Right Now theme is drawn on top of it.
+					style: MAP_STYLE_DARK,
 					center: startCenter ?? [10, 50],
 					zoom: startCenter ? 12 : 3,
 					attributionControl: false,
 				});
 				map.on("style.load", () => {
 					relaxRoadZoomThresholds(map);
-					if (schemeRef.current === "dark") applyDarkMapTheme(map);
+					const [r, g, b] = rightNowRgb();
+					applyRightNowMapTheme(map, `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`);
 					// setStyle drops custom sources/layers, so re-add the hotspots.
 					syncHotspots();
 				});
@@ -661,10 +659,6 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 		// Map is created once; theme/items updates are applied to the live instance below.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
-
-	useEffect(() => {
-		mapRef.current?.setStyle(getMapStyleUrl(scheme));
-	}, [scheme]);
 
 	useEffect(() => {
 		syncRadar();
