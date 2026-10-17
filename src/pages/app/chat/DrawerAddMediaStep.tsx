@@ -151,7 +151,7 @@ export function DrawerAddMediaStep({
 						}
 						.logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
 					`}</style>
-					<div className="relative rounded-xl border border-[var(--border)] overflow-hidden">
+					<div data-sheet-no-drag className="relative rounded-xl border border-[var(--border)] overflow-hidden">
 					<ReactCrop
 						crop={crop}
 						onChange={(c) => {

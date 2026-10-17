@@ -213,9 +213,10 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 	return (
 		<BottomSheet
 			onClose={onClose}
+			expandable
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="max-h-[70dvh] px-4"
+			panelClassName={isDesktop ? "max-h-[70dvh] px-4" : "px-4"}
 		>
 			<div className="mb-3 flex items-center justify-between gap-3">
 				<h3 className="text-sm font-semibold text-[var(--text)]">{t("chat.giphy.title")}</h3>

@@ -125,6 +125,7 @@ export function ProfilePictureDrawer({
 			onClose={onClose}
 			closeRef={closeRef}
 			isProcessing={isSelecting}
+			expandable
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"

@@ -112,6 +112,8 @@ export function AlbumDrawerPickerSheet({
 			onClose={onClose}
 			closeRef={closeRef}
 			isProcessing={isBusy}
+			// The add-media step (crop) needs its natural height.
+			expandable={!upload.step}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 			panelClassName="px-4"

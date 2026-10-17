@@ -27,9 +27,10 @@ export function ChatFiltersOverlay({
 	return (
 		<BottomSheet
 			onClose={onClose}
+			expandable
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="max-h-[92dvh] px-4"
+			panelClassName={isDesktop ? "max-h-[92dvh] px-4" : "px-4"}
 		>
 			<div className="mb-3 flex items-center justify-between gap-3">
 				<h3 className="text-sm font-semibold text-[var(--text)]">{t("right_now.filters")}</h3>

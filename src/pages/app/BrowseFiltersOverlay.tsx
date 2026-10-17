@@ -56,9 +56,10 @@ export function BrowseFiltersOverlay({ onClose, isDesktop, ...props }: BrowseFil
 	return (
 		<BottomSheet
 			onClose={onClose}
+			expandable
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="max-h-[92dvh] px-4"
+			panelClassName={isDesktop ? "max-h-[92dvh] px-4" : "px-4"}
 		>
 			<BrowseFiltersSheetContent {...props} />
 		</BottomSheet>

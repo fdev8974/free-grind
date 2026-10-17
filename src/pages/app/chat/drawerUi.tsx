@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
-import { SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon } from "../../../components/ui/bottom-sheet";
+import { SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 
@@ -297,6 +297,9 @@ export function DrawerBody({
 	children?: ReactNode;
 }) {
 	const { t } = useTranslation();
+	// In an expandable sheet the body fills whatever height the sheet has, so
+	// a height cap passed for the fixed-size layout no longer applies.
+	const isDetented = useIsBottomSheetDetented();
 	let content: ReactNode;
 	if (isLoading) {
 		content = (
@@ -326,7 +329,7 @@ export function DrawerBody({
 	}
 	// min-h-0 + data-lenis-prevent: both are needed for the inner scroll to work in a sheet.
 	return (
-		<div data-lenis-prevent className={`min-h-0 flex-1 overflow-y-auto ${className}`}>
+		<div data-lenis-prevent className={`min-h-0 flex-1 overflow-y-auto ${isDetented ? "" : className}`}>
 			{content}
 		</div>
 	);

@@ -5,6 +5,12 @@ import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const BottomSheetContext = createContext<() => void>(() => {});
+// Whether the enclosing sheet has detents (a fixed height its content fills).
+const BottomSheetDetentedContext = createContext(false);
+
+/** True inside an `expandable` sheet on mobile: the panel has a fixed height,
+ * so a scroll area should fill it (`min-h-0 flex-1`) rather than cap itself. */
+export const useIsBottomSheetDetented = () => useContext(BottomSheetDetentedContext);
 
 // Open sheets in mount order, so Escape only closes the topmost one when a
 // sheet opens another on top of itself.
@@ -411,6 +417,7 @@ export function BottomSheet({
 
 	return (
 		<BottomSheetContext.Provider value={animateClose}>
+		<BottomSheetDetentedContext.Provider value={isDetented}>
 			<div
 				ref={rootRef}
 				className={`fixed inset-0 ${zIndex} flex flex-col justify-end no-touch-callout`}
@@ -450,6 +457,7 @@ export function BottomSheet({
 					{children}
 				</div>
 			</div>
+		</BottomSheetDetentedContext.Provider>
 		</BottomSheetContext.Provider>
 	);
 }
