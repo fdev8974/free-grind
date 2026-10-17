@@ -5,6 +5,9 @@ import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
 	ArrowUpDown,
+	Crosshair,
+	List,
+	Map as MapIcon,
 	MessageSquare,
 	Navigation,
 	Star,
@@ -12,8 +15,10 @@ import {
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ClockFilled, HomeFilled } from "../../components/icons/FilledIcons";
 import { useRightNowFeed } from "../../hooks/queries/useRightNowQueries";
+import { useFeatureFlag } from "../../services/assignmentsStore";
+import { decodeGeohash } from "../../utils/geohash";
+import { simulateRightNowMapFeed } from "./rightnow/rightnow-simulation";
 import type { RightNowFeedItem } from "../../services/apiFunctions";
-import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
 import { formatDistance, isOnlineEndingSoon } from "./gridpage/utils";
 import { formatRelativeTime } from "../../utils/relativeTime";
 import { cn } from "../../utils/cn";
@@ -24,6 +29,7 @@ import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import {
 	type RightNowFiltersDraft,
 	type RightNowSortOption,
+	type RightNowViewMode,
 	loadRightNowFiltersDraft,
 	saveRightNowFiltersDraft,
 } from "./rightnow/rightnow-filters-storage";
@@ -39,8 +45,15 @@ import {
 } from "../../config/ui-constants";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
+import { RightNowMap, getRightNowAvatarUrl, getRightNowItemKey, hasMapPosition } from "./rightnow/RightNowMap";
 
 type SortOption = RightNowSortOption;
+
+// Stable fallback while the feed is loading/failed: a fresh `[]` per render
+// would rebuild `items` every render (test mode then fills it with synthetic
+// posts stamped with Date.now()), and the "mark as seen" effect below would
+// set state on each one — an infinite render loop.
+const EMPTY_FEED: RightNowFeedItem[] = [];
 
 function parseFiltersFromLocationState(
 	state: unknown,
@@ -72,6 +85,8 @@ function parseFiltersFromLocationState(
 			typeof draft.positionFilter === "string"
 				? draft.positionFilter
 				: current.positionFilter,
+		hostingOnly: typeof draft.hostingOnly === "boolean" ? draft.hostingOnly : current.hostingOnly,
+		favoritesOnly: typeof draft.favoritesOnly === "boolean" ? draft.favoritesOnly : current.favoritesOnly,
 	};
 }
 
@@ -81,14 +96,9 @@ function getItemName(item: RightNowFeedItem, t: TFunction): string {
 	return t("profile_details.profile_fallback", { id: item.profileId });
 }
 
-function getItemImageUrl(item: RightNowFeedItem): string | null {
-	return item.profileImageMediaHash && validateMediaHash(item.profileImageMediaHash)
-		? getThumbImageUrl(item.profileImageMediaHash, "320x320")
-		: null;
-}
 
 function getItemDisplayImageUrl(item: RightNowFeedItem): string | null {
-	return getItemImageUrl(item);
+	return getRightNowAvatarUrl(item);
 }
 
 function isItemOnline(item: RightNowFeedItem): boolean {
@@ -206,11 +216,13 @@ function RightNowRow({
 	onMessage,
 	onSelect,
 	onOpenPhoto,
+	className,
 }: {
 	item: RightNowFeedItem;
 	onMessage: (profileId: string) => void;
 	onSelect: (profileId: string) => void;
 	onOpenPhoto: (photos: string[], index: number, profileId: string) => void;
+	className?: string;
 }) {
 	const { t } = useTranslation();
 	const { unitsPreset } = usePreferences();
@@ -238,7 +250,8 @@ function RightNowRow({
 			ref={ref}
 			className={cn(
 				"flex items-center gap-4 pl-4 pr-4 py-3 border-b border-[var(--surface-2)]",
-				revealClass
+				revealClass,
+				className,
 			)}
 		>
 			<button
@@ -351,6 +364,9 @@ export function RightNowPage() {
 
 	const [sort, setSort] = useState<SortOption>(persistedFilters.sort);
 	const [hostingOnly, setHostingOnly] = useState(persistedFilters.hostingOnly);
+	const [favoritesOnly, setFavoritesOnly] = useState(persistedFilters.favoritesOnly);
+	const [viewMode, setViewMode] = useState<RightNowViewMode>(persistedFilters.viewMode);
+	const [selectedMapKey, setSelectedMapKey] = useState<string | null>(null);
 	const [ageMin, setAgeMin] = useState(persistedFilters.ageMin);
 	const [ageMax, setAgeMax] = useState(persistedFilters.ageMax);
 	const [positionFilter, setPositionFilter] = useState<string>(
@@ -367,7 +383,27 @@ export function RightNowPage() {
 		sexualPositions: positionFilter || undefined,
 	}), [sort, hostingOnly, ageMin, ageMax, positionFilter]);
 
-	const { data: items = [], isLoading, error, refetch } = useRightNowFeed(queryParams);
+	const { data: feedItems = EMPTY_FEED, isLoading, error, refetch } = useRightNowFeed(queryParams);
+	const { activeRightNowId, activeRightNowExpiresAt, rightNowRemaining, setPreferences, developerMode, showDebugInfo, rightNowTestMode, geohash } = usePreferences();
+
+	// Test mode feeds the map simulated positions around the browse location
+	// so its UI can be checked without real posts that share a location.
+	const testModeCenter = useMemo(() => {
+		if (geohash) {
+			try {
+				const { lat, lon } = decodeGeohash(geohash);
+				return { lat: (lat[0] + lat[1]) / 2, lon: (lon[0] + lon[1]) / 2 };
+			} catch {
+				// fall through
+			}
+		}
+		return { lat: 52.52, lon: 13.405 };
+	}, [geohash]);
+	const items = useMemo(() => {
+		const source = rightNowTestMode ? simulateRightNowMapFeed(feedItems, testModeCenter, hostingOnly) : feedItems;
+		// Favorites is filtered here — the feed API has no parameter for it.
+		return favoritesOnly ? source.filter((item) => item.isFavorite) : source;
+	}, [rightNowTestMode, feedItems, testModeCenter, hostingOnly, favoritesOnly]);
 	const queryClient = useQueryClient();
 
 	const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
@@ -415,6 +451,25 @@ export function RightNowPage() {
 	const [isFiltersMounted, setIsFiltersMounted] = useState(false);
 	const [fabPhase, setFabPhase] = useState<RightNowFABPhase>("idle");
 	const feedContainerRef = useRef<HTMLDivElement | null>(null);
+	const headerRef = useRef<HTMLElement | null>(null);
+	// Viewport y of the header's bottom edge. The map is pulled up by exactly
+	// this much so it reaches the screen top (behind .app-screen's top padding
+	// and the header, whose pill row can wrap), and its overlays sit below it.
+	const [headerBottom, setHeaderBottom] = useState(0);
+
+	useLayoutEffect(() => {
+		const header = headerRef.current;
+		if (!header) return;
+		const measure = () => setHeaderBottom(Math.round(header.getBoundingClientRect().bottom));
+		measure();
+		const observer = "ResizeObserver" in window ? new ResizeObserver(measure) : null;
+		observer?.observe(header);
+		window.addEventListener("resize", measure);
+		return () => {
+			observer?.disconnect();
+			window.removeEventListener("resize", measure);
+		};
+	}, []);
 
 	const handlePostClick = useCallback(() => {
 		setIsPosting(true);
@@ -450,7 +505,13 @@ export function RightNowPage() {
 	const activePositionFilter =
 		positionFilterOptions.find((option) => option.value === positionFilter) ??
 		positionFilterOptions[0];
-	const hasAdvancedFilters = positionFilter.length > 0 || ageMin !== 18 || ageMax !== 99;
+	const hasAdvancedFilters =
+		hostingOnly || favoritesOnly || positionFilter.length > 0 || ageMin !== 18 || ageMax !== 99;
+	const activeFilterCount =
+		(hostingOnly ? 1 : 0) +
+		(favoritesOnly ? 1 : 0) +
+		(positionFilter.length > 0 ? 1 : 0) +
+		(ageMin !== 18 || ageMax !== 99 ? 1 : 0);
 	const filterSummary = useMemo(
 		() =>
 			t("right_now.filter_summary", {
@@ -465,16 +526,22 @@ export function RightNowPage() {
 			ageMin,
 			ageMax,
 			positionFilter,
+			hostingOnly,
+			favoritesOnly,
 		});
 
 		if (
 			next.ageMin !== ageMin ||
 			next.ageMax !== ageMax ||
-			next.positionFilter !== positionFilter
+			next.positionFilter !== positionFilter ||
+			next.hostingOnly !== hostingOnly ||
+			next.favoritesOnly !== favoritesOnly
 		) {
 			setAgeMin(next.ageMin);
 			setAgeMax(next.ageMax);
 			setPositionFilter(next.positionFilter);
+			setHostingOnly(next.hostingOnly);
+			setFavoritesOnly(next.favoritesOnly);
 
 			const safeState =
 				typeof location.state === "object" && location.state !== null
@@ -485,19 +552,38 @@ export function RightNowPage() {
 				state: { ...safeState, rightNowFiltersDraft: undefined },
 			});
 		}
-	}, [location.key, location.state, navigate, location.pathname, location.search, ageMin, ageMax, positionFilter]);
+	}, [location.key, location.state, navigate, location.pathname, location.search, ageMin, ageMax, positionFilter, hostingOnly, favoritesOnly]);
 
 	useEffect(() => {
 		saveRightNowFiltersDraft({
 			sort,
 			hostingOnly,
+			favoritesOnly,
+			viewMode,
 			ageMin,
 			ageMax,
 			positionFilter,
 		});
-	}, [sort, hostingOnly, ageMin, ageMax, positionFilter]);
+	}, [sort, hostingOnly, favoritesOnly, viewMode, ageMin, ageMax, positionFilter]);
 
-	const { activeRightNowId, activeRightNowExpiresAt, rightNowRemaining, setPreferences, developerMode, showDebugInfo, rightNowTestMode } = usePreferences();
+	// Only posts shared with "Show me on map" carry lat/lon; everyone else is
+	// list-only.
+	const mapItems = useMemo(() => items.filter(hasMapPosition), [items]);
+	const mapFitKey = useMemo(() => JSON.stringify(queryParams), [queryParams]);
+	const selectedMapItem = useMemo(
+		() => (selectedMapKey ? mapItems.find((item) => getRightNowItemKey(item) === selectedMapKey) ?? null : null),
+		[mapItems, selectedMapKey],
+	);
+	// Grindr rolls the map out per account; without the assignment (or test
+	// mode) the page stays list-only (the stored choice is kept for when it
+	// turns on).
+	const isMapFlagOn = useFeatureFlag("right-now-map");
+	const isMapAvailable = isMapFlagOn || rightNowTestMode;
+	const isMapView = isMapAvailable && viewMode === "map";
+	const isMapCardOpen = isMapView && selectedMapItem !== null;
+	// Set by RightNowMap; the header's Center pill frames all markers through it.
+	const mapRecenterRef = useRef<(() => void) | null>(null);
+
 
 	const isSessionActive = useMemo(() => {
 		if (!activeRightNowId || !activeRightNowExpiresAt) return false;
@@ -561,7 +647,7 @@ export function RightNowPage() {
 
 		container.addEventListener("scroll", handleScroll, { passive: true });
 		return () => container.removeEventListener("scroll", handleScroll);
-	}, []);
+	}, [viewMode]);
 
 	useLayoutEffect(() => {
 		if (items.length > 0 && !isLoading && !hasRestoredScroll && feedContainerRef.current) {
@@ -640,6 +726,11 @@ export function RightNowPage() {
 		feedContainerRef.current?.scrollTo(0, 0);
 	}, []);
 
+	const toggleViewMode = useCallback(() => {
+		setViewMode((previous) => (previous === "map" ? "list" : "map"));
+		setSelectedMapKey(null);
+	}, []);
+
 	const openFilters = useCallback(() => {
 		setIsFiltersOpen(true);
 		setIsFiltersMounted(true);
@@ -649,14 +740,17 @@ export function RightNowPage() {
 		setAgeMin(draft.ageMin);
 		setAgeMax(draft.ageMax);
 		setPositionFilter(draft.positionFilter);
+		setHostingOnly(draft.hostingOnly);
+		setFavoritesOnly(draft.favoritesOnly);
 		sessionStorage.removeItem("rightnow-scroll");
 		setHasRestoredScroll(true);
 		feedContainerRef.current?.scrollTo(0, 0);
 	}, []);
 
+	// The sheet only calls this once its close animation has finished.
 	const handleCloseFilters = useCallback(() => {
 		setIsFiltersOpen(false);
-		setTimeout(() => setIsFiltersMounted(false), 300);
+		setIsFiltersMounted(false);
 	}, []);
 
 	return (
@@ -671,18 +765,63 @@ export function RightNowPage() {
 				feedContainerRef.current?.scrollTo(0, 0);
 				void refetch();
 			}}
-			isDisabled={isLoading}
+			isDisabled={isLoading || isMapView}
 			isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
 			refreshingLabel={t("right_now.refreshing")}
 			spinnerColor="var(--right-now)"
 			spinnerIconColor="white"
 		>
-			<header className="relative z-20 grid gap-3 pointer-events-none">
+			<header ref={headerRef} className="relative z-20 grid gap-3 pointer-events-none">
 				<PageHeaderBackground color="var(--right-now)" />
 				<div className="pointer-events-auto grid gap-3 mx-auto w-full max-w-4xl px-[var(--app-px)]">
 					<h1 className="app-title">{t("right_now.title")}</h1>
 
 					<div className="flex flex-wrap items-center gap-2 pb-4">
+						{isMapAvailable && (
+						<button
+							type="button"
+							onClick={toggleViewMode}
+							title={isMapView ? t("right_now.view_list", { defaultValue: "List" }) : t("right_now.view_map", { defaultValue: "Map" })}
+							aria-label={isMapView ? t("right_now.view_list", { defaultValue: "List" }) : t("right_now.view_map", { defaultValue: "Map" })}
+							// Icon-only, keeping the text line height so it matches the label pills.
+							className="glass-pill inline-flex shrink-0 items-center justify-center px-[11px] py-2 text-sm font-bold text-[var(--right-now)] hover:border-[var(--right-now)]/60 hover:bg-[var(--right-now)]/20 active:scale-95"
+							style={{ "--pill-color": "var(--right-now)" } as React.CSSProperties}
+						>
+							<span className="flex h-5 items-center">
+								{isMapView ? <List className="h-3.5 w-3.5" /> : <MapIcon className="h-3.5 w-3.5" />}
+							</span>
+						</button>
+						)}
+
+						<button
+							type="button"
+							onClick={openFilters}
+							title={t("right_now.filters")}
+							aria-label={hasAdvancedFilters ? `${t("right_now.filters")}: ${filterSummary}` : t("right_now.filters")}
+							className={cn(
+								"glass-pill inline-flex shrink-0 items-center justify-center gap-1.5 py-2 text-sm font-bold active:scale-95",
+								// Icon-only keeps the text line height so it matches the label pills (same as the grid).
+								hasAdvancedFilters ? "px-3" : "px-[11px]",
+								hasAdvancedFilters
+									? "bg-[var(--right-now)] border-[var(--right-now)] text-white shadow-lg shadow-[var(--right-now)]/40"
+									: "text-[var(--right-now)] hover:border-[var(--right-now)]/60 hover:bg-[var(--right-now)]/20",
+							)}
+							style={!hasAdvancedFilters ? {
+								"--pill-color": "var(--right-now)",
+							} as React.CSSProperties : undefined}
+						>
+							<span className="flex h-5 items-center">
+								<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
+							</span>
+							{hasAdvancedFilters ? (
+								<span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-white px-1 text-[9px] font-bold text-[var(--right-now)]">
+									{activeFilterCount}
+								</span>
+							) : null}
+						</button>
+
+						{/* Order only matters in the list; the map shows everyone at once. */}
+						{!isMapView && (
 						<button
 							type="button"
 							onClick={toggleSort}
@@ -694,6 +833,7 @@ export function RightNowPage() {
 							<ArrowUpDown className="h-3.5 w-3.5" />
 							{sort === "DISTANCE" ? t("right_now.distance") : t("right_now.recent")}
 						</button>
+						)}
 
 						<button
 							type="button"
@@ -712,26 +852,64 @@ export function RightNowPage() {
 							{t("right_now.hosting")}
 						</button>
 
+						{isMapView && mapItems.length > 0 && (
 						<button
 							type="button"
-							onClick={openFilters}
-							className={cn(
-								"glass-pill inline-flex min-h-10 items-center gap-1.5 px-4 text-sm font-bold active:scale-95",
-								hasAdvancedFilters
-									? "bg-[var(--right-now)] border-[var(--right-now)] text-white shadow-lg shadow-[var(--right-now)]/40"
-									: "text-[var(--right-now)] hover:border-[var(--right-now)]/60 hover:bg-[var(--right-now)]/20",
-							)}
-							style={!hasAdvancedFilters ? {
-								"--pill-color": "var(--right-now)",
-							} as React.CSSProperties : undefined}
+							onClick={() => mapRecenterRef.current?.()}
+							title={t("right_now.map_recenter")}
+							className="glass-pill inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold text-[var(--right-now)] hover:border-[var(--right-now)]/60 hover:bg-[var(--right-now)]/20 active:scale-95"
+							style={{ "--pill-color": "var(--right-now)" } as React.CSSProperties}
 						>
-							<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
-							{hasAdvancedFilters ? filterSummary : t("right_now.filters")}
+							<Crosshair className="h-3.5 w-3.5" />
+							{t("right_now.map_center", { defaultValue: "Center" })}
 						</button>
+						)}
 					</div>
 				</div>
 			</header>
 
+			{isMapView && !error ? (
+				<div
+					className="relative flex-1 min-h-0"
+					style={{ marginTop: -headerBottom }}
+				>
+					<RightNowMap
+						items={mapItems}
+						selectedKey={selectedMapItem ? selectedMapKey : null}
+						onSelectKey={setSelectedMapKey}
+						fitKey={mapFitKey}
+						topInset={headerBottom}
+						recenterRef={mapRecenterRef}
+					/>
+
+					{!isLoading && mapItems.length === 0 && (
+						<div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-8">
+							<p className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]/90 px-4 py-3 text-center text-sm text-[var(--text-muted)] shadow-lg backdrop-blur">
+								{items.length === 0
+									? t("right_now.empty")
+									: t("right_now.map_no_positions", {
+										defaultValue: "Nobody nearby is sharing their location on the map right now.",
+									})}
+							</p>
+						</div>
+					)}
+
+					{selectedMapItem && (
+						<div className="absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+120px)] z-20 px-3">
+							<div className="mx-auto max-w-xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
+								<RightNowRow
+									key={selectedMapKey}
+									item={selectedMapItem}
+									onMessage={handleMessage}
+									onSelect={handleSelect}
+									onOpenPhoto={openPhotoViewer}
+									className="border-b-0"
+								/>
+							</div>
+						</div>
+					)}
+				</div>
+			) : (
 			<FeedScrollContainer ref={feedContainerRef}>
 				{isLoading ? (
 					<div className="mx-auto max-w-4xl divide-y divide-[var(--surface-2)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)]">
@@ -772,6 +950,7 @@ export function RightNowPage() {
 					</div>
 				)}
 			</FeedScrollContainer>
+			)}
 		</PullToRefreshContainer>
 
 		<div className="fixed inset-x-0 bottom-36 z-[60] pointer-events-none md:bottom-40">
@@ -780,7 +959,7 @@ export function RightNowPage() {
 					<div
 						className={cn(
 							"absolute bottom-0 left-4 transition-all duration-300 pointer-events-auto",
-							(isPosting || isFiltersOpen) ? "pointer-events-none opacity-0 translate-y-4" : "opacity-100 translate-y-0",
+							(isPosting || isFiltersOpen || isMapCardOpen) ? "pointer-events-none opacity-0 translate-y-4" : "opacity-100 translate-y-0",
 						)}
 					>
 						<button
@@ -805,7 +984,7 @@ export function RightNowPage() {
 				<div
 					className={cn(
 						"absolute bottom-0 right-[16%] translate-x-1/2 transition-opacity duration-300 pointer-events-auto",
-						(isPosting || isFiltersOpen) ? "pointer-events-none opacity-0" : "opacity-100",
+						(isPosting || isFiltersOpen || isMapCardOpen) ? "pointer-events-none opacity-0" : "opacity-100",
 					)}
 				>
 					<RightNowPostFAB
@@ -828,7 +1007,7 @@ export function RightNowPage() {
 		)}
 		{isFiltersMounted && (
 			<RightNowFiltersPage
-				initialDraft={{ ageMin, ageMax, positionFilter }}
+				initialDraft={{ ageMin, ageMax, positionFilter, hostingOnly, favoritesOnly }}
 				onClose={handleCloseFilters}
 				onApply={handleApplyFilters}
 			/>

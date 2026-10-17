@@ -1,14 +1,19 @@
 export type RightNowSortOption = "DISTANCE" | "RECENCY";
 
+export type RightNowViewMode = "list" | "map";
+
 export type RightNowFiltersDraft = {
 	ageMin: number;
 	ageMax: number;
 	positionFilter: string;
+	hostingOnly: boolean;
+	/** Client-side only: the feed API has no favorites filter, but each post carries isFavorite. */
+	favoritesOnly: boolean;
 };
 
 export type RightNowFiltersPersisted = RightNowFiltersDraft & {
 	sort: RightNowSortOption;
-	hostingOnly: boolean;
+	viewMode: RightNowViewMode;
 };
 
 const STORAGE_KEY = "open-grind:right-now-filters";
@@ -21,6 +26,8 @@ export function getDefaultRightNowFilters(): RightNowFiltersPersisted {
 	return {
 		sort: "DISTANCE",
 		hostingOnly: false,
+		favoritesOnly: false,
+		viewMode: "list",
 		ageMin: 18,
 		ageMax: 99,
 		positionFilter: "",
@@ -59,6 +66,14 @@ export function loadRightNowFiltersDraft(): RightNowFiltersPersisted {
 				typeof parsed.hostingOnly === "boolean"
 					? parsed.hostingOnly
 					: defaults.hostingOnly,
+			favoritesOnly:
+				typeof parsed.favoritesOnly === "boolean"
+					? parsed.favoritesOnly
+					: defaults.favoritesOnly,
+			viewMode:
+				parsed.viewMode === "list" || parsed.viewMode === "map"
+					? parsed.viewMode
+					: defaults.viewMode,
 			ageMin: nextAgeMin,
 			ageMax: Math.max(nextAgeMin, nextAgeMaxRaw),
 			positionFilter:

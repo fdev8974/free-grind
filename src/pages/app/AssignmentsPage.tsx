@@ -1,27 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, Copy, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { PageHeader } from "../../components/PageHeader";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { EmptyState, ErrorState } from "../../components/ui/states";
-import { useApi } from "../../hooks/useApi";
-import { useApiFunctions } from "../../hooks/useApiFunctions";
+import { useRefreshAssignments } from "../../components/AssignmentsBridge";
 import { usePreferences } from "../../contexts/PreferencesContext";
-import { assertSuccess, parseJsonSafe } from "../../services/apiHelpers";
-
-type Assignment = {
-	key: string;
-	value: string;
-	type: string | null;
-	payload: unknown;
-};
-
-type SourceId = "jwt" | "account" | "public" | "anonymous";
-
-type SourceState = {
-	assignments: Assignment[];
-	error: string | null;
-};
+import { type AssignmentSourceId as SourceId, useAssignmentsSnapshot } from "../../services/assignmentsStore";
 
 // See docs/content/grindr-api/analytics/assignments.md. `anonymous` is the
 // endpoint the Rust client reads for the reCAPTCHA switches at sign-in.
@@ -41,63 +26,6 @@ const TYPE_FILTERS: { id: TypeFilter; label: string }[] = [
 	{ id: "FEATURE", label: "Features" },
 	{ id: "other", label: "Other" },
 ];
-
-function parseAssignments(raw: unknown): Assignment[] {
-	const list =
-		raw && typeof raw === "object" && Array.isArray((raw as { assignments?: unknown }).assignments)
-			? (raw as { assignments: unknown[] }).assignments
-			: [];
-	const result: Assignment[] = [];
-	for (const item of list) {
-		if (!item || typeof item !== "object") continue;
-		const a = item as Record<string, unknown>;
-		if (typeof a.key !== "string") continue;
-		result.push({
-			key: a.key,
-			value: a.value == null ? "" : String(a.value),
-			type: typeof a.type === "string" ? a.type : null,
-			payload: a.payload ?? null,
-		});
-	}
-	return result.sort((x, y) => x.key.localeCompare(y.key));
-}
-
-// Claims are not verified — the token is only read for display. Layout per
-// docs/content/grindr-api/authentication.md#session-id.
-function parseJwtAssignments(token: string): Assignment[] {
-	const part = token.split(".")[1];
-	if (!part) throw new Error("Session token is not a JWT");
-	const base64 = part.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(part.length / 4) * 4, "=");
-	const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-	const claims = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
-
-	const result: Assignment[] = [];
-	const pushList = (raw: unknown, type: string) => {
-		if (!Array.isArray(raw)) return;
-		for (const item of raw) {
-			if (typeof item === "string") {
-				result.push({ key: item, value: "on", type, payload: null });
-			} else if (item != null) {
-				result.push({ key: JSON.stringify(item), value: "on", type, payload: item });
-			}
-		}
-	};
-	pushList(claims.featureFlags, "FEATURE_FLAG");
-	pushList(claims.features, "FEATURE");
-	pushList(claims.roles, "ROLE");
-	if (claims.experiments && typeof claims.experiments === "object") {
-		for (const [key, value] of Object.entries(claims.experiments as Record<string, unknown>)) {
-			const isScalar = value == null || typeof value !== "object";
-			result.push({
-				key,
-				value: isScalar ? String(value ?? "") : "…",
-				type: "EXPERIMENT",
-				payload: isScalar ? null : value,
-			});
-		}
-	}
-	return result.sort((x, y) => x.key.localeCompare(y.key));
-}
 
 function hasPayload(payload: unknown): boolean {
 	if (payload == null) return false;
@@ -125,56 +53,13 @@ function typeLabel(type: string | null): string {
 }
 
 export function AssignmentsPage() {
-	const { callMethod } = useApi();
-	const apiFunctions = useApiFunctions();
 	const { geohash } = usePreferences();
-
-	const [sources, setSources] = useState<Record<SourceId, SourceState> | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
+	const { sources, isLoading } = useAssignmentsSnapshot();
+	const refresh = useRefreshAssignments();
 	const [activeSource, setActiveSource] = useState<SourceId>("jwt");
 	const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
 	const [query, setQuery] = useState("");
 	const [expandedKey, setExpandedKey] = useState<string | null>(null);
-
-	const load = useCallback(async () => {
-		setIsLoading(true);
-
-		const fetchSource = async (path: string): Promise<SourceState> => {
-			try {
-				const response = await apiFunctions.request(path, { method: "GET" });
-				await assertSuccess(response, "Failed to load assignments");
-				return { assignments: parseAssignments(await parseJsonSafe(response)), error: null };
-			} catch (error) {
-				return { assignments: [], error: error instanceof Error ? error.message : String(error) };
-			}
-		};
-
-		const fetchJwt = async (): Promise<SourceState> => {
-			try {
-				const token = await callMethod("websocket_token");
-				if (!token) return { assignments: [], error: "No active session token" };
-				return { assignments: parseJwtAssignments(token), error: null };
-			} catch (error) {
-				return { assignments: [], error: error instanceof Error ? error.message : String(error) };
-			}
-		};
-
-		const accountPath = geohash
-			? `/v3/assignment?geohash=${encodeURIComponent(geohash)}`
-			: "/v3/assignment";
-		const [jwt, account, publicFeatures, anonymous] = await Promise.all([
-			fetchJwt(),
-			fetchSource(accountPath),
-			fetchSource("/public/v1/public-features"),
-			fetchSource("/public/v1/assignments"),
-		]);
-		setSources({ jwt, account, public: publicFeatures, anonymous });
-		setIsLoading(false);
-	}, [apiFunctions, callMethod, geohash]);
-
-	useEffect(() => {
-		void load();
-	}, [load]);
 
 	const current = sources?.[activeSource] ?? null;
 
@@ -204,7 +89,7 @@ export function AssignmentsPage() {
 	return (
 		<PullToRefreshContainer
 			className="app-screen"
-			onRefresh={() => load()}
+			onRefresh={() => refresh()}
 			isDisabled={isLoading}
 			refreshingLabel="Refreshing…"
 		>
@@ -286,7 +171,7 @@ export function AssignmentsPage() {
 					<ErrorState
 						title="Couldn't load assignments"
 						description={current.error}
-						onRetry={() => void load()}
+						onRetry={() => void refresh()}
 					/>
 				) : filtered.length === 0 ? (
 					<EmptyState

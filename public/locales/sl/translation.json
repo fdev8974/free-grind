@@ -391,7 +391,12 @@
         "create_session_subtitle": "",
         "section_message": "",
         "section_photo": "",
-        "section_options": ""
+        "section_options": "",
+        "view_list": "",
+        "view_map": "",
+        "map_recenter": "",
+        "map_center": "",
+        "map_no_positions": ""
     },
     "right_now_filters": {
         "title": "Filtri Right Now",

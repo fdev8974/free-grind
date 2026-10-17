@@ -54,6 +54,7 @@ import { VideoCallManager } from "./components/VideoCallManager";
 import { ActiveRouteBridge } from "./components/ActiveRouteBridge";
 import { KeepScreenOnBridge } from "./components/KeepScreenOnBridge";
 import { EntitlementsBridge } from "./components/EntitlementsBridge";
+import { AssignmentsBridge } from "./components/AssignmentsBridge";
 import { HondurasRecoveryBridge } from "./components/HondurasRecoveryBridge";
 import { ManagedOptionsCacheBridge } from "./components/ManagedOptionsCacheBridge";
 import { SplashReadyBridge } from "./components/SplashReadyBridge";
@@ -224,6 +225,7 @@ export default function App() {
 					{renderPhase >= 2 && <PushNotificationBridge />}
 					{renderPhase >= 2 && <ShareTargetBridge />}
 					{renderPhase >= 2 && <ManagedOptionsCacheBridge />}
+					{renderPhase >= 2 && <AssignmentsBridge />}
 					{renderPhase >= 3 && <ChatRealtimeBridge />}
 					{renderPhase >= 3 && <VideoCallManager />}
 					{renderPhase >= 3 && <GridAutoRefreshBridge />}
