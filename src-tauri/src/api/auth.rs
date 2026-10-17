@@ -927,7 +927,7 @@ pub async fn login(
             .map_err(AppError::from)?;
     }
 
-    // With a reCAPTCHA token (minted by the Free Grind reCAPTCHA helper)
+    // With a reCAPTCHA token (minted on Android by RecaptchaMintActivity)
     // the crate signs in via /v9/sessions, which accounts with first-party
     // reCAPTCHA require; otherwise via /v8/sessions.
     let result = match captcha_token.as_deref() {

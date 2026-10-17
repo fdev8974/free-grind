@@ -4,21 +4,19 @@ import i18n from "i18next";
 /**
  * In-app APK installs on Android — the native side lives in ApkUpdater.kt
  * and reports through `fg:apk-update` window events, tagged with the
- * `target` they belong to: the app's own self-update ("app"), the Google
- * OAuth companion app ("google-oauth") or the reCAPTCHA helper ("recaptcha").
+ * `target` they belong to: the app's own self-update ("app") or the Google
+ * OAuth companion app ("google-oauth").
  */
 type ApkUpdateBridge = {
 	downloadApkUpdate?: (url: string) => boolean;
 	installDownloadedApkUpdate?: () => boolean;
 	downloadGoogleOAuthApp?: () => boolean;
 	installDownloadedGoogleOAuthApp?: () => boolean;
-	downloadRecaptchaHelper?: () => boolean;
-	installDownloadedRecaptchaHelper?: () => boolean;
 	canInstallApkUpdates?: () => boolean;
 	openInstallPermissionSettings?: () => boolean;
 };
 
-type ApkInstallTarget = "app" | "google-oauth" | "recaptcha";
+type ApkInstallTarget = "app" | "google-oauth";
 
 type NativeEvent = { target?: ApkInstallTarget } & (
 	| { state: "resolving" }
@@ -44,10 +42,6 @@ export function isApkUpdateSupported(): boolean {
 
 export function isGoogleOAuthAppInstallSupported(): boolean {
 	return typeof getBridge()?.downloadGoogleOAuthApp === "function";
-}
-
-export function isRecaptchaHelperInstallSupported(): boolean {
-	return typeof getBridge()?.downloadRecaptchaHelper === "function";
 }
 
 const APK_UPDATE_ERRORS: Record<string, [key: string, english: string]> = {
@@ -163,26 +157,6 @@ export function useGoogleOAuthAppInstall() {
 
 	const start = useCallback(() => {
 		if (getBridge()?.downloadGoogleOAuthApp?.()) {
-			setState({ phase: "downloading", progress: null });
-		} else {
-			setState({ phase: "error", code: "start-failed" });
-		}
-	}, [setState]);
-
-	return { supported, state, start, installDownloaded, openPermissionSettings };
-}
-
-/** Installs the reCAPTCHA helper from its latest release (Android only). */
-export function useRecaptchaHelperInstall() {
-	const supported = isRecaptchaHelperInstallSupported();
-	const { state, setState, installDownloaded, openPermissionSettings } = useApkInstall(
-		"recaptcha",
-		supported,
-		() => getBridge()?.installDownloadedRecaptchaHelper?.(),
-	);
-
-	const start = useCallback(() => {
-		if (getBridge()?.downloadRecaptchaHelper?.()) {
 			setState({ phase: "downloading", progress: null });
 		} else {
 			setState({ phase: "error", code: "start-failed" });

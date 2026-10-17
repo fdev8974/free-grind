@@ -7,9 +7,8 @@ import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, KeyRound, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, ShieldCheck, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
-import { describeApkUpdateError, useGoogleOAuthAppInstall, useRecaptchaHelperInstall } from "../../services/apkUpdate";
-import { RecaptchaError } from "../../services/recaptcha";
+import { Mail, Lock, KeyRound, ExternalLink, Eye, EyeOff, Smartphone, Puzzle, Download, Loader2, Check, ShieldAlert, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
+import { describeApkUpdateError, useGoogleOAuthAppInstall } from "../../services/apkUpdate";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 import { isAndroid, isIos } from "../../services/saveMedia";
@@ -142,8 +141,7 @@ function TokenSourceLink({
 }
 
 /**
- * Android: installs a companion app (Google OAuth app, reCAPTCHA helper) in
- * place, like the in-app update (see useGoogleOAuthAppInstall), instead of
+ * Android: installs a companion app (the Google OAuth app) in place, like the in-app update (see useGoogleOAuthAppInstall), instead of
  * linking to its releases page.
  */
 export function AppInstallCard({
@@ -257,9 +255,6 @@ export function SignInPage() {
 	const [isAndroidDevice] = useState(isAndroid);
 	const [hasFacebookSignIn] = useState(isFacebookSignInSupported);
 	const [isFacebookLoading, setIsFacebookLoading] = useState(false);
-	// Set once a sign-in needed a reCAPTCHA token but the helper isn't installed.
-	const [needsRecaptchaHelper, setNeedsRecaptchaHelper] = useState(false);
-	const recaptchaHelperInstall = useRecaptchaHelperInstall();
 
 	// Signing in with a code from another device: a secondary flow, so it
 	// replaces the method tabs instead of being one of them.
@@ -282,7 +277,6 @@ export function SignInPage() {
 		setMethod(next);
 		clearError();
 		setGoogleAppError(null);
-		setNeedsRecaptchaHelper(false);
 		setScanError(null);
 	};
 	const toggleTransfer = (next: boolean) => {
@@ -304,8 +298,6 @@ export function SignInPage() {
 			// AuthContext updates `error`, which is rendered in the form.
 			if (error instanceof SmsVerificationRequiredError) {
 				setVerification({ profileId: error.profileId });
-			} else if (error instanceof RecaptchaError && error.reason === "addonUnavailable") {
-				setNeedsRecaptchaHelper(true);
 			}
 		} finally {
 			setIsPasswordLoading(false);
@@ -316,16 +308,6 @@ export function SignInPage() {
 		e.preventDefault();
 		await submitPassword();
 	};
-
-	// The helper was just installed for this sign-in: retry it right away.
-	const submitPasswordRef = useRef(submitPassword);
-	submitPasswordRef.current = submitPassword;
-	useEffect(() => {
-		if (needsRecaptchaHelper && recaptchaHelperInstall.state.phase === "installed") {
-			setNeedsRecaptchaHelper(false);
-			void submitPasswordRef.current();
-		}
-	}, [needsRecaptchaHelper, recaptchaHelperInstall.state.phase]);
 
 	const submitGoogleToken = async (token: string) => {
 		setGoogleAppError(null);
@@ -625,16 +607,6 @@ export function SignInPage() {
 						loadingLabel={t("auth.sign_in.signing_in")}
 						label={t("auth.sign_in.submit")}
 					/>
-					{recaptchaHelperInstall.supported && needsRecaptchaHelper ? (
-						<AppInstallCard
-							install={recaptchaHelperInstall}
-							icon={<ShieldCheck className="h-4 w-4" />}
-							title={t("auth.sign_in.recaptcha_helper_link", { defaultValue: "reCAPTCHA helper" })}
-							installHint={t("auth.sign_in.recaptcha_helper_install_hint", {
-								defaultValue: "Needed to sign in to this account · Tap to install",
-							})}
-						/>
-					) : null}
 				</form>
 			) : method === "facebook" ? (
 				<form

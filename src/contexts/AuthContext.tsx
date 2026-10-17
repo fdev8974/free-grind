@@ -108,16 +108,13 @@ function isInvalidCredentials(appError: AppError | null): boolean {
 	);
 }
 
-// Shown when an account needs a reCAPTCHA token to sign in (Grindr's
-// first-party reCAPTCHA) but the helper couldn't mint one.
-const CAPTCHA_SIGN_IN_MESSAGES: Partial<Record<RecaptchaFailure, string>> = {
-	unsupportedPlatform:
-		"This account needs captcha verification, available through the Free Grind reCAPTCHA helper on Android.",
-	addonUnavailable: "Install the Free Grind reCAPTCHA helper to sign in to this account.",
-	addonUntrusted: "The installed reCAPTCHA helper isn't the official Free Grind build.",
-	untrustedCaller: "The reCAPTCHA helper doesn't trust this Free Grind build. Install both from the same source.",
-	grindrMissing: "The reCAPTCHA helper needs the Grindr app installed to verify this sign-in.",
+// Shown when a sign-in or sign-up needs a reCAPTCHA token (Grindr's
+// first-party reCAPTCHA) but none could be minted.
+const CAPTCHA_MESSAGES: Partial<Record<RecaptchaFailure, string>> = {
+	unsupportedPlatform: "This account needs captcha verification, which is only available on Android.",
+	grindrMissing: "Captcha verification needs the Grindr app installed on this device.",
 };
+const CAPTCHA_FAILED_MESSAGE = "Captcha verification failed. Please try again.";
 
 type AuthAction =
 	| { type: "SET_USER"; payload: number }
@@ -296,8 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			if (error instanceof RecaptchaError) {
 				appLog.warn("[Auth] login: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
 				if (error.reason !== "cancelled") {
-					const message =
-						CAPTCHA_SIGN_IN_MESSAGES[error.reason] ?? "Captcha verification failed. Please try again.";
+					const message = CAPTCHA_MESSAGES[error.reason] ?? CAPTCHA_FAILED_MESSAGE;
 					dispatch({ type: "SET_ERROR", payload: { message } });
 				}
 				throw error;
@@ -457,7 +453,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_LOADING", payload: true });
 			dispatch({ type: "SET_ERROR", payload: null });
 
-			// Sign-up is helper-only: rejects with a RecaptchaError without one.
+			// Sign-up is Android-only: rejects with a RecaptchaError elsewhere.
 			const captchaToken = await mintRecaptchaToken("sign_up");
 			const profileId = await callMethod("create_account", {
 				email,
@@ -471,9 +467,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		} catch (error) {
 			if (error instanceof RecaptchaError) {
 				appLog.warn("[Auth] signUp: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
-				// A missing helper is answered by SignUpPage's install card instead.
-				if (error.reason !== "cancelled" && error.reason !== "addonUnavailable") {
-					dispatch({ type: "SET_ERROR", payload: { message: "Captcha verification failed. Please try again." } });
+				if (error.reason !== "cancelled") {
+					const message = CAPTCHA_MESSAGES[error.reason] ?? CAPTCHA_FAILED_MESSAGE;
+					dispatch({ type: "SET_ERROR", payload: { message } });
 				}
 				throw error;
 			}

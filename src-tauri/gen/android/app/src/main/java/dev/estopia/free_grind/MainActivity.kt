@@ -165,16 +165,16 @@ class MainActivity : TauriActivity() {
     val requestId = pendingRecaptchaRequestId ?: return@registerForActivityResult
     pendingRecaptchaRequestId = null
     val data = result.data
-    val token = data?.getStringExtra(RecaptchaHelper.EXTRA_TOKEN)?.trim().orEmpty()
+    val token = data?.getStringExtra(RecaptchaMintActivity.EXTRA_TOKEN)?.trim().orEmpty()
     val outcome = JSONObject().put("requestId", requestId)
     if (result.resultCode == RESULT_OK && token.isNotEmpty()) {
       outcome.put("token", token)
     } else {
-      // The helper names its refusal ("untrusted-caller", "grindr-missing",
+      // RecaptchaMintActivity names its refusal ("grindr-missing",
       // "mint-failed", ...); no marker means the user backed out.
-      val refusal = data?.getStringExtra(RecaptchaHelper.EXTRA_ERROR)
+      val refusal = data?.getStringExtra(RecaptchaMintActivity.EXTRA_ERROR)
       outcome.put("error", if (refusal.isNullOrEmpty()) "cancelled" else refusal)
-      data?.getStringExtra(RecaptchaHelper.EXTRA_ERROR_DETAIL)?.let { outcome.put("detail", it) }
+      data?.getStringExtra(RecaptchaMintActivity.EXTRA_ERROR_DETAIL)?.let { outcome.put("detail", it) }
     }
     dispatchRecaptchaResultToWebview(outcome.toString())
   }
@@ -535,48 +535,29 @@ class MainActivity : TauriActivity() {
     }
 
     /**
-     * Installs the reCAPTCHA helper from its latest GitHub release (see
-     * ApkUpdater.Target.RECAPTCHA), with `target: "recaptcha"` events.
-     */
-    @JavascriptInterface
-    fun downloadRecaptchaHelper(): Boolean {
-      return ApkUpdater.downloadAndInstallRecaptchaHelper(this@MainActivity)
-    }
-
-    @JavascriptInterface
-    fun installDownloadedRecaptchaHelper(): Boolean {
-      return ApkUpdater.installDownloaded(this@MainActivity, ApkUpdater.Target.RECAPTCHA)
-    }
-
-    /** "available", "addonUnavailable" or "addonUntrusted" — see RecaptchaHelper.Availability. */
-    @JavascriptInterface
-    fun recaptchaHelperAvailability(): String {
-      return RecaptchaHelper.availability(this@MainActivity).wire
-    }
-
-    /**
-     * Asks the reCAPTCHA helper for a token for one of Grindr's actions
-     * ("login", "report", ...). The outcome arrives as a
+     * Mints a reCAPTCHA token for one of Grindr's actions ("login",
+     * "report", ...) in RecaptchaMintActivity. The outcome arrives as a
      * `fg:recaptcha-result` window event carrying [requestId]. Returns "ok",
-     * "busy" while another request is in flight, or the availability wire
-     * value when the helper can't be used.
+     * or "busy" while another request is in flight.
      */
     @JavascriptInterface
     fun mintRecaptchaToken(action: String, requestId: String): String {
-      val availability = RecaptchaHelper.availability(this@MainActivity)
-      if (availability != RecaptchaHelper.Availability.AVAILABLE) return availability.wire
       synchronized(this@MainActivity) {
         if (pendingRecaptchaRequestId != null) return "busy"
         pendingRecaptchaRequestId = requestId
       }
       runOnUiThread {
         try {
-          recaptchaLauncher.launch(RecaptchaHelper.mintIntent(action))
+          recaptchaLauncher.launch(
+            Intent(this@MainActivity, RecaptchaMintActivity::class.java)
+              .putExtra(RecaptchaMintActivity.EXTRA_ACTION, action)
+          )
         } catch (e: Exception) {
-          Log.e("Recaptcha", "Failed to launch reCAPTCHA helper", e)
+          Log.e("Recaptcha", "Failed to launch RecaptchaMintActivity", e)
           pendingRecaptchaRequestId = null
           dispatchRecaptchaResultToWebview(
-            JSONObject().put("requestId", requestId).put("error", "addonUnavailable").toString()
+            JSONObject().put("requestId", requestId).put("error", "mint-failed")
+              .put("detail", e.javaClass.simpleName).toString()
           )
         }
       }

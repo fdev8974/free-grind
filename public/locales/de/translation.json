@@ -1159,8 +1159,6 @@
             "facebook_waiting": "Warte auf Facebook…",
             "google_help": "Für Konten, die mit Google erstellt wurden.",
             "google_app_link": "Google-OAuth-App",
-            "recaptcha_helper_link": "reCAPTCHA-Helfer",
-            "recaptcha_helper_install_hint": "Für die Anmeldung bei diesem Konto erforderlich · Zum Installieren tippen",
             "google_app_sign_in": "Mit der Google-App anmelden",
             "google_app_or_manual": "oder ein Token manuell einfügen",
             "google_app_error": "Die Google-OAuth-App konnte dich nicht anmelden. Stelle sicher, dass es die Free-Grind-Version ist.",
@@ -1221,11 +1219,10 @@
             "too_young": "Du musst mindestens {{age}} Jahre alt sein.",
             "creating": "Konto wird erstellt...",
             "submit": "Konto erstellen",
-            "recaptcha_helper_install_hint": "Zum Erstellen eines Kontos erforderlich · Zum Installieren tippen",
-            "recaptcha_helper_unsupported": "Zum Erstellen eines Kontos wird der Free-Grind-reCAPTCHA-Helfer benötigt, der nur für Android verfügbar ist.",
             "limit_reached_title": "Kontolimit erreicht",
             "limit_reached_desc": "Diese App hat bereits {{limit}} Konten erstellt. Um Missbrauch zu verhindern, können keine weiteren Konten erstellt werden.",
             "android_only_title": "Nur unter Android verfügbar",
+            "android_only_desc": "",
             "back": "Zurück"
         },
         "sms_verification": {

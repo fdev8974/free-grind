@@ -1167,8 +1167,6 @@
             "facebook_waiting": "Čeka se Facebook…",
             "google_help": "Za račune napravljene putem Googlea.",
             "google_app_link": "Google OAuth aplikacija",
-            "recaptcha_helper_link": "reCAPTCHA pomoćnik",
-            "recaptcha_helper_install_hint": "Potrebno za prijavu na ovaj račun · Dodirni za instalaciju",
             "google_app_sign_in": "Prijavi se putem Google aplikacije",
             "google_app_or_manual": "ili ručno zalijepi token",
             "google_app_error": "Google OAuth aplikacija te nije mogla prijaviti. Provjeri da je to Free Grind verzija.",
@@ -1229,11 +1227,10 @@
             "too_young": "Moraš imati najmanje {{age}} godina.",
             "creating": "Pravljenje računa...",
             "submit": "Napravi račun",
-            "recaptcha_helper_install_hint": "Potrebno za pravljenje računa · Dodirni za instalaciju",
-            "recaptcha_helper_unsupported": "Za pravljenje računa potreban je Free Grind reCAPTCHA pomoćnik, koji je dostupan samo na Androidu.",
             "limit_reached_title": "Dostignuto ograničenje računa",
             "limit_reached_desc": "Ova aplikacija je već napravila {{limit}} računa. Kako bi se spriječila zloupotreba, ne mogu se praviti novi računi.",
             "android_only_title": "Dostupno samo na Androidu",
+            "android_only_desc": "",
             "back": "Nazad"
         },
         "sms_verification": {

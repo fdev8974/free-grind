@@ -22,7 +22,7 @@ import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, pa
 import { awaitEntitlementGrant } from "../entitlementBypass";
 import { getIncognitoMode, isRecordProfileViewsEnabled } from "../../utils/privacy";
 import { appLog } from "../../utils/logger";
-import { isRecaptchaHelperAvailable, mintRecaptchaToken } from "../recaptcha";
+import { isRecaptchaAvailable, mintRecaptchaToken } from "../recaptcha";
 
 export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, options?: { defaultValue?: string }) => string) {
 	return {
@@ -84,12 +84,12 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 
 		/**
 		 * Files a report with Grindr's moderation. Like Open Grind: v5 with a
-		 * reCAPTCHA token when the reCAPTCHA helper can mint one, otherwise —
-		 * or when v5 refuses it with a 4xx — the ungated v3.1 endpoint.
+		 * reCAPTCHA token when one can be minted (Android), otherwise — or
+		 * when v5 refuses it with a 4xx — the ungated v3.1 endpoint.
 		 */
 		async reportProfile(profileId: string, report: ProfileReportRequest): Promise<{ ok: true }> {
 			const id = encodeURIComponent(profileId);
-			if (isRecaptchaHelperAvailable()) {
+			if (isRecaptchaAvailable()) {
 				const captchaToken = await mintRecaptchaToken("report").catch((error) => {
 					appLog.warn("[Report] reCAPTCHA token unavailable, using v3.1", error);
 					return null;

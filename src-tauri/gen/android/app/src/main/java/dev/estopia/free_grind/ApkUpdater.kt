@@ -25,13 +25,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  * shows its own install/update confirmation; the outcome comes back through
  * [ApkUpdateResultReceiver].
  *
- * Three targets share this: the app's own self-update, the Google OAuth
- * companion app (see GoogleOAuthApp.kt) and the reCAPTCHA helper (see
- * RecaptchaHelper.kt), both signed with the same key.
+ * Two targets share this: the app's own self-update and the Google OAuth
+ * companion app (see GoogleOAuthApp.kt), signed with the same key.
  *
  * Progress/outcome is reported through [emit] as `fg:apk-update` window
  * events with a `target` (see [Target.key]) and a `state` of resolving
- * (looking up the release, companion apps only) | downloading | verifying |
+ * (looking up the release, companion app only) | downloading | verifying |
  * needs-permission | installing | installed | error (+ `code`).
  */
 object ApkUpdater {
@@ -54,17 +53,11 @@ object ApkUpdater {
       "google-oauth",
       "free-grind-google-oauth.apk",
       "https://github.com/fdev8974/free-grind-oauth-app/releases/download/",
-    ),
-    RECAPTCHA(
-      "recaptcha",
-      "free-grind-recaptcha-helper.apk",
-      "https://github.com/fdev8974/free-grind-recaptcha-helper/releases/download/",
     );
 
     fun packageName(context: Context): String = when (this) {
       SELF -> context.packageName
       GOOGLE_OAUTH -> GoogleOAuthApp.PACKAGE
-      RECAPTCHA -> RecaptchaHelper.PACKAGE
     }
 
     companion object {
@@ -74,11 +67,6 @@ object ApkUpdater {
 
   private const val GOOGLE_OAUTH_LATEST_RELEASE =
     "https://api.github.com/repos/fdev8974/free-grind-oauth-app/releases/latest"
-  private const val RECAPTCHA_LATEST_RELEASE =
-    "https://api.github.com/repos/fdev8974/free-grind-recaptcha-helper/releases/latest"
-
-  /** The helper ships one APK for every ABI, named like this by its CI. */
-  private const val RECAPTCHA_ASSET_SUFFIX = "-android.apk"
 
   /** Release asset suffix per Android ABI, as the OAuth app's CI names them. */
   private val ABI_ASSET_SUFFIXES = mapOf(
@@ -144,17 +132,6 @@ object ApkUpdater {
           val suffix = ABI_ASSET_SUFFIXES[abi] ?: return@firstNotNullOfOrNull null
           urls.firstOrNull { it.endsWith(suffix) }
         }
-      }
-    }
-
-  /**
-   * Installs (or updates) the reCAPTCHA helper from its latest GitHub
-   * release. Returns false while another install is running.
-   */
-  fun downloadAndInstallRecaptchaHelper(context: Context): Boolean =
-    downloadAndInstall(context, Target.RECAPTCHA) { target ->
-      resolveLatestReleaseApk(target, RECAPTCHA_LATEST_RELEASE) { urls ->
-        urls.firstOrNull { it.endsWith(RECAPTCHA_ASSET_SUFFIX) }
       }
     }
 
@@ -351,9 +328,8 @@ object ApkUpdater {
       return false
     }
     // Every target is signed with this build's key: the self-update by
-    // definition, the companion apps because they only answer (and are only
-    // trusted by) a same-signer Free Grind — see GoogleOAuthApp.isTrusted
-    // and RecaptchaHelper.availability.
+    // definition, the companion app because it only answers (and is only
+    // trusted by) a same-signer Free Grind — see GoogleOAuthApp.isTrusted.
     val ours = installedInfo(pm, context.packageName)?.let(::signerDigests).orEmpty()
     val theirs = signerDigests(archive)
     // Android would refuse a foreign signer on update too, but only after the

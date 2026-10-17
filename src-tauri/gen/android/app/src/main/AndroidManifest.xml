@@ -20,8 +20,8 @@
         </intent>
         <!-- Google OAuth companion app, see GoogleOAuthApp.kt -->
         <package android:name="dev.estopia.free_grind.google_oauth" />
-        <!-- reCAPTCHA helper, see RecaptchaHelper.kt -->
-        <package android:name="dev.estopia.free_grind.recaptcha" />
+        <!-- Must be installed to mint reCAPTCHA tokens, see RecaptchaMintActivity.kt -->
+        <package android:name="com.grindrapp.android" />
     </queries>
 
     <!-- AndroidTV support -->
@@ -161,6 +161,17 @@
             android:name=".FacebookOAuthActivity"
             android:exported="false"
             android:excludeFromRecents="true" />
+
+        <!-- Mints reCAPTCHA tokens in its own process, where
+             FreeGrindApplication poses as Grindr; not reachable from outside
+             the app. See RecaptchaMintActivity.kt. -->
+        <activity
+            android:name=".RecaptchaMintActivity"
+            android:process=":recaptcha"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.free_grind.RecaptchaMint" />
 
         <!-- Receives a token from the Google OAuth app; the caller is checked
              against our own signature in TokenHandoffActivity. -->

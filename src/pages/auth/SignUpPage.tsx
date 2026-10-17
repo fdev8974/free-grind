@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, Cake, Eye, EyeOff, ShieldCheck, LogIn, ShieldAlert, Smartphone } from "lucide-react";
+import { Mail, Lock, Cake, Eye, EyeOff, LogIn, ShieldAlert, Smartphone } from "lucide-react";
 import { AuthShell } from "../../components/ui/auth-shell";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import { useAuth } from "../../contexts/useAuth";
 import { useApi } from "../../hooks/useApi";
-import { useRecaptchaHelperInstall } from "../../services/apkUpdate";
-import { isRecaptchaHelperAvailable, RecaptchaError } from "../../services/recaptcha";
+import { isRecaptchaAvailable } from "../../services/recaptcha";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { AuthAltAction, AuthSubmitSection, IconInput } from "./auth-form";
-import { AppInstallCard } from "./SignInPage";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 
 const MIN_AGE = 18;
@@ -53,27 +51,13 @@ export function SignUpPage() {
 	const [isLoading, setIsLoading] = useState(false);
 	// Set when the sign-in after creating the account asks for SMS verification.
 	const [verification, setVerification] = useState<{ profileId: string } | null>(null);
-	// Sign-up always sends a reCAPTCHA token, so it needs the helper.
-	const [hasRecaptchaHelper, setHasRecaptchaHelper] = useState(isRecaptchaHelperAvailable);
-	const recaptchaHelperInstall = useRecaptchaHelperInstall();
-
-	// Freshly installed in place, or installed while the page sat in the background.
-	useEffect(() => {
-		if (recaptchaHelperInstall.state.phase === "installed") setHasRecaptchaHelper(isRecaptchaHelperAvailable());
-	}, [recaptchaHelperInstall.state.phase]);
-	useEffect(() => {
-		const onVisible = () => {
-			if (document.visibilityState === "visible") setHasRecaptchaHelper(isRecaptchaHelperAvailable());
-		};
-		document.addEventListener("visibilitychange", onVisible);
-		return () => document.removeEventListener("visibilitychange", onVisible);
-	}, []);
+	// Sign-up always sends a reCAPTCHA token, which only Android can mint.
+	const [hasRecaptcha] = useState(isRecaptchaAvailable);
 
 	const maxBirthday = latestAllowedBirthday();
 	const birthdayMillis = birthdayToMillis(birthday);
 	const isTooYoung = birthday !== "" && birthday > maxBirthday;
 	const isFormValid =
-		hasRecaptchaHelper &&
 		email.trim().length > 0 &&
 		password.length > 0 &&
 		birthdayMillis !== null &&
@@ -90,8 +74,6 @@ export function SignUpPage() {
 			// AuthContext updates `error`, which is rendered in the form.
 			if (error instanceof SmsVerificationRequiredError) {
 				setVerification({ profileId: error.profileId });
-			} else if (error instanceof RecaptchaError && error.reason === "addonUnavailable") {
-				setHasRecaptchaHelper(false);
 			}
 		} finally {
 			setIsLoading(false);
@@ -112,8 +94,8 @@ export function SignUpPage() {
 		);
 	}
 
-	// The helper only exists on Android; elsewhere the form could never submit.
-	if (!hasRecaptchaHelper && !recaptchaHelperInstall.supported) {
+	// Elsewhere than on Android the form could never submit.
+	if (!hasRecaptcha) {
 		return (
 			<AuthShell
 				title={t("auth.sign_up.title")}
@@ -129,8 +111,8 @@ export function SignUpPage() {
 							{t("auth.sign_up.android_only_title", { defaultValue: "Only available on Android" })}
 						</p>
 						<p className="leading-relaxed text-[var(--text-muted)]">
-							{t("auth.sign_up.recaptcha_helper_unsupported", {
-								defaultValue: "Creating an account needs the Free Grind reCAPTCHA helper, which is only available on Android.",
+							{t("auth.sign_up.android_only_desc", {
+								defaultValue: "Creating an account needs captcha verification, which is only available on Android.",
 							})}
 						</p>
 					</div>
@@ -164,16 +146,6 @@ export function SignUpPage() {
 				</div>
 			) : (
 				<form onSubmit={handleSubmit} className="animate-fade-in space-y-3">
-					{hasRecaptchaHelper ? null : (
-						<AppInstallCard
-							install={recaptchaHelperInstall}
-							icon={<ShieldCheck className="h-4 w-4" />}
-							title={t("auth.sign_in.recaptcha_helper_link", { defaultValue: "reCAPTCHA helper" })}
-							installHint={t("auth.sign_up.recaptcha_helper_install_hint", {
-								defaultValue: "Needed to create an account · Tap to install",
-							})}
-						/>
-					)}
 					<IconInput
 						icon={<Mail className="h-4 w-4" />}
 						type="email"

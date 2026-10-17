@@ -18,6 +18,11 @@
         <item name="postSplashScreenTheme">@style/Theme.free_grind</item>
     </style>
 
+    <!-- RecaptchaMintActivity shows nothing while it mints a token. -->
+    <style name="Theme.free_grind.RecaptchaMint" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
     <!-- Hosts splash_overlay.xml in its own Dialog window (see MainActivity's
          splashDialog) rather than as a View added into the Activity's own
          window — a hardware-accelerated WebView's surface can composite

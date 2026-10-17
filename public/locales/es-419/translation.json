@@ -1167,8 +1167,6 @@
             "facebook_waiting": "Esperando a Facebook…",
             "google_help": "Para cuentas creadas con Google.",
             "google_app_link": "App de Google OAuth",
-            "recaptcha_helper_link": "Asistente de reCAPTCHA",
-            "recaptcha_helper_install_hint": "Necesario para iniciar sesión en esta cuenta · Toca para instalar",
             "google_app_sign_in": "Iniciar sesión con la app de Google",
             "google_app_or_manual": "o pega un token manualmente",
             "google_app_error": "La app de Google OAuth no pudo iniciar tu sesión. Asegúrate de que sea la versión de Free Grind.",
@@ -1229,11 +1227,10 @@
             "too_young": "Debes tener al menos {{age}} años.",
             "creating": "Creando cuenta...",
             "submit": "Crear cuenta",
-            "recaptcha_helper_install_hint": "Necesario para crear una cuenta · Toca para instalar",
-            "recaptcha_helper_unsupported": "Crear una cuenta requiere el asistente de reCAPTCHA de Free Grind, que solo está disponible en Android.",
             "limit_reached_title": "Límite de cuentas alcanzado",
             "limit_reached_desc": "Esta app ya ha creado {{limit}} cuentas. Para evitar abusos, no se pueden crear más.",
             "android_only_title": "Solo disponible en Android",
+            "android_only_desc": "",
             "back": "Atrás"
         },
         "sms_verification": {

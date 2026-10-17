@@ -1159,8 +1159,6 @@
             "facebook_waiting": "Wachten op Facebook…",
             "google_help": "Voor accounts die met Google zijn aangemaakt.",
             "google_app_link": "Google OAuth-app",
-            "recaptcha_helper_link": "reCAPTCHA-hulp",
-            "recaptcha_helper_install_hint": "Nodig om bij dit account in te loggen · Tik om te installeren",
             "google_app_sign_in": "Inloggen met de Google-app",
             "google_app_or_manual": "of plak handmatig een token",
             "google_app_error": "De Google OAuth-app kon je niet inloggen. Controleer of het de Free Grind-versie is.",
@@ -1221,11 +1219,10 @@
             "too_young": "Je moet minstens {{age}} jaar oud zijn.",
             "creating": "Account aanmaken...",
             "submit": "Account aanmaken",
-            "recaptcha_helper_install_hint": "Nodig om een account aan te maken · Tik om te installeren",
-            "recaptcha_helper_unsupported": "Voor het aanmaken van een account is de reCAPTCHA-hulp van Free Grind nodig, die alleen op Android beschikbaar is.",
             "limit_reached_title": "Accountlimiet bereikt",
             "limit_reached_desc": "Deze app heeft al {{limit}} accounts aangemaakt. Om misbruik te voorkomen kunnen er geen accounts meer worden aangemaakt.",
             "android_only_title": "Alleen beschikbaar op Android",
+            "android_only_desc": "",
             "back": "Terug"
         },
         "sms_verification": {

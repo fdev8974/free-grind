@@ -75,6 +75,8 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.0.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("com.google.firebase:firebase-messaging-ktx:24.1.2")
+    // Proprietary; only RecaptchaMint.java may touch it (Kotlin 2.3 metadata).
+    implementation("com.google.android.recaptcha:recaptcha:18.9.2")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
