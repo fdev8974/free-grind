@@ -4,6 +4,7 @@ import { usePreferences } from "../contexts/PreferencesContext";
 import { useApi } from "../hooks/useApi";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { hydrateAssignments, refreshAssignments } from "../services/assignmentsStore";
+import { getIncognitoMode } from "../utils/privacy";
 
 /** Returns a function that refetches every assignment source into the store. */
 export function useRefreshAssignments() {
@@ -16,7 +17,10 @@ export function useRefreshAssignments() {
 			refreshAssignments({
 				request: (path, init) => apiFunctions.request(path, init),
 				getSessionToken: () => callMethod("websocket_token"),
-				geohash,
+				// A geohash-tagged request updates the account's server-side
+				// location and with it the "online" status — skip it while
+				// incognito, the untagged endpoint still returns the flags.
+				geohash: getIncognitoMode() ? null : geohash,
 			}),
 		[apiFunctions, callMethod, geohash],
 	);
@@ -28,14 +32,16 @@ export function useRefreshAssignments() {
  * browse location changes (the account assignments are per geohash).
  */
 export function AssignmentsBridge() {
-	const { userId, isLoading: isAuthLoading } = useAuth();
+	const { userId, isLoading: isAuthLoading, settingsReady } = useAuth();
 	const refresh = useRefreshAssignments();
 
 	useEffect(() => {
 		if (isAuthLoading) return;
 		hydrateAssignments(userId ? String(userId) : null);
-		if (userId) void refresh();
-	}, [userId, isAuthLoading, refresh]);
+		// Waits for settingsReady so the privacy cache (incognito) is loaded
+		// before the first fetch decides whether to send the geohash.
+		if (userId && settingsReady) void refresh();
+	}, [userId, isAuthLoading, settingsReady, refresh]);
 
 	return null;
 }
