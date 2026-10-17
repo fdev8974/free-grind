@@ -9,6 +9,7 @@ import {
 	List,
 	Map as MapIcon,
 	MessageSquare,
+	Hourglass,
 	Navigation,
 	Star,
 	UserRound,
@@ -95,7 +96,7 @@ function parseFiltersFromLocationState(
 function getItemName(item: RightNowFeedItem, t: TFunction): string {
 	const name = item.displayName?.trim();
 	if (name) return name;
-	return t("profile_details.profile_fallback", { id: item.profileId });
+	return t("common.unknown_display_name");
 }
 
 
@@ -342,6 +343,8 @@ function RightNowRow({
 	);
 }
 
+const AVATAR_RING_CIRCUMFERENCE = 2 * Math.PI * 30.75;
+
 /** Preview of the post selected on the map — sheet-style glass card with the
  * post, its session countdown and profile / message actions. */
 function RightNowMapCard({
@@ -426,9 +429,25 @@ function RightNowMapCard({
 				{/* Header: avatar, name, meta, close */}
 				<div className="flex items-end gap-3">
 					<button type="button" onClick={() => onSelect(item.profileId)} className="relative shrink-0">
-						<div className="h-14 w-14 overflow-hidden rounded-full bg-[var(--surface-2)] ring-2 ring-[var(--right-now)] ring-offset-2 ring-offset-[var(--surface)] shadow-lg">
+						<div className="h-14 w-14 overflow-hidden rounded-full border-2 border-[var(--surface)] bg-[var(--surface-2)] shadow-lg">
 							<ProfileImage src={headerAvatarUrl} alt={name} />
 						</div>
+						{/* Session countdown ring, same as the map markers */}
+						<svg className="pointer-events-none absolute -inset-1 h-[calc(100%+0.5rem)] w-[calc(100%+0.5rem)] -rotate-90" viewBox="0 0 64 64" aria-hidden="true">
+							<circle cx="32" cy="32" r="30.75" fill="none" stroke="color-mix(in srgb, var(--right-now) 22%, transparent)" strokeWidth="2.5" />
+							<circle
+								cx="32"
+								cy="32"
+								r="30.75"
+								fill="none"
+								stroke="var(--right-now)"
+								strokeWidth="2.5"
+								strokeLinecap="round"
+								strokeDasharray={AVATAR_RING_CIRCUMFERENCE}
+								strokeDashoffset={AVATAR_RING_CIRCUMFERENCE * (1 - (sessionFraction ?? 1))}
+								style={{ filter: "drop-shadow(0 0 3px var(--right-now))" }}
+							/>
+						</svg>
 						{isOnline ? (
 							<span className={`absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface)] ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 						) : null}
@@ -440,6 +459,12 @@ function RightNowMapCard({
 							{item.isFavorite && <Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />}
 						</div>
 						<div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-[var(--text-muted)]">
+							{minutesLeft != null ? (
+								<span className="inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--right-now)_16%,transparent)] px-2 py-0.5 font-semibold tabular-nums text-[var(--right-now)]">
+									<Hourglass className="h-3 w-3" />
+									{minutesLeft}m
+								</span>
+							) : null}
 							{distance && distance !== "hidden" ? (
 								<span className="inline-flex items-center gap-1">
 									<Navigation className="h-3 w-3 fill-current" />
@@ -458,21 +483,6 @@ function RightNowMapCard({
 
 				{item.text ? (
 					<p className="mt-3 line-clamp-4 text-sm leading-relaxed text-[var(--text)]">{item.text}</p>
-				) : null}
-
-				{/* Session countdown */}
-				{sessionFraction != null && minutesLeft != null ? (
-					<div className="mt-3 flex items-center gap-2">
-						<div className="h-1 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
-							<div
-								className="h-full rounded-full bg-[var(--right-now)] shadow-[0_0_6px_var(--right-now)]"
-								style={{ width: `${sessionFraction * 100}%` }}
-							/>
-						</div>
-						<span className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--right-now)]">
-							{minutesLeft}m {t("right_now.remaining")}
-						</span>
-					</div>
 				) : null}
 
 				{/* Actions */}
