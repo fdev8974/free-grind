@@ -7,7 +7,7 @@ import { Button } from "../../components/ui/button";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
-import { Mail, Lock, KeyRound, ExternalLink, Eye, EyeOff, Puzzle, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
+import { Mail, Lock, KeyRound, Eye, EyeOff, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 import { isAndroid } from "../../services/saveMedia";
@@ -103,36 +103,6 @@ function Step({
 	);
 }
 
-function TokenSourceLink({
-	href,
-	icon,
-	title,
-	description,
-}: {
-	href: string;
-	icon: ReactNode;
-	title: string;
-	description: string;
-}) {
-	return (
-		<a
-			href={href}
-			target="_blank"
-			rel="noreferrer"
-			className="group flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 transition-all duration-150 hover:border-[var(--accent)] active:scale-[0.99]"
-		>
-			<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)]">
-				{icon}
-			</span>
-			<span className="min-w-0 flex-1">
-				<span className="block truncate text-sm font-medium text-[var(--text)]">{title}</span>
-				<span className="block truncate text-xs text-[var(--text-muted)]">{description}</span>
-			</span>
-			<ExternalLink className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-colors group-hover:text-[var(--accent)]" />
-		</a>
-	);
-}
-
 /** "— or —" divider plus a secondary button to the other auth page. */
 
 export function SignInPage() {
@@ -146,14 +116,12 @@ export function SignInPage() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 
-	const [googleToken, setGoogleToken] = useState("");
 	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+	// Android signs in through GoogleOAuthActivity, desktop and iOS through
+	// their own window; a plain browser has neither, so no Google tab.
 	const [hasNativeGoogle] = useState(isNativeGoogleSignInSupported);
-	// Desktop signs in through its own window only; the token flow is mobile-only.
-	const [hasGoogleWindow] = useState(isGoogleWindowSupported);
+	const [hasGoogleSignIn] = useState(() => isNativeGoogleSignInSupported() || isGoogleWindowSupported());
 	const [googleAppError, setGoogleAppError] = useState<string | null>(null);
-	// With native Google sign-in, the manual token flow stays folded away.
-	const [showManualToken, setShowManualToken] = useState(false);
 	const [hasFacebookSignIn] = useState(isFacebookSignInSupported);
 	const [isFacebookLoading, setIsFacebookLoading] = useState(false);
 
@@ -189,7 +157,6 @@ export function SignInPage() {
 	useEffect(() => clearError, [clearError]);
 
 	const isPasswordFormValid = email.trim().length > 0 && password.trim().length > 0;
-	const isGoogleFormValid = googleToken.trim().length > 0;
 
 	const submitPassword = async () => {
 		setIsPasswordLoading(true);
@@ -296,11 +263,6 @@ export function SignInPage() {
 		await submitTransferCode(transferCode.trim());
 	};
 
-	const handleGoogleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		await submitGoogleToken(googleToken.trim());
-	};
-
 	// The listeners below outlive renders; always submit through the latest closure.
 	const submitGoogleTokenRef = useRef(submitGoogleToken);
 	submitGoogleTokenRef.current = submitGoogleToken;
@@ -308,7 +270,6 @@ export function SignInPage() {
 	useEffect(() => {
 		const receiveToken = (token: string) => {
 			setMethod("google");
-			setGoogleToken(token);
 			void submitGoogleTokenRef.current(token);
 		};
 		const pending = takePendingGoogleToken();
@@ -369,7 +330,9 @@ export function SignInPage() {
 						onChange={changeMethod}
 						tabs={[
 							{ value: "password", icon: <Mail className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_password") },
-							{ value: "google", icon: <GoogleIcon className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_google", { defaultValue: "Google" }) },
+							...(hasGoogleSignIn
+								? [{ value: "google" as const, icon: <GoogleIcon className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_google", { defaultValue: "Google" }) }]
+								: []),
 							...(hasFacebookSignIn
 								? [{ value: "facebook" as const, icon: <FacebookIcon className="h-3.5 w-3.5" />, label: t("auth.sign_in.method_facebook", { defaultValue: "Facebook" }) }]
 								: []),
@@ -549,12 +512,13 @@ export function SignInPage() {
 						label={t("auth.sign_in.facebook_sign_in", { defaultValue: "Sign in with Facebook" })}
 					/>
 				</form>
-			) : hasGoogleWindow ? (
+			) : (
 				<form
-					key="google-window"
+					key="google"
 					onSubmit={(e) => {
 						e.preventDefault();
-						void handleGoogleWindowSignIn();
+						if (hasNativeGoogle) handleGoogleAppSignIn();
+						else void handleGoogleWindowSignIn();
 					}}
 					className="animate-fade-in space-y-5"
 				>
@@ -576,84 +540,12 @@ export function SignInPage() {
 						/>
 					</div>
 					<AuthSubmitSection
-						error={error}
+						error={googleAppError ?? error}
 						loading={isGoogleLoading}
 						disabled={false}
 						loadingLabel={t("auth.sign_in.google_window_waiting", { defaultValue: "Waiting for Google…" })}
 						label={t("auth.sign_in.google_window_sign_in", { defaultValue: "Sign in with Google" })}
 					/>
-				</form>
-			) : (
-				<form key="google" onSubmit={handleGoogleSubmit} className="animate-fade-in space-y-5">
-					{hasNativeGoogle ? (
-						<section className="space-y-2.5">
-							<Button
-								type="button"
-								variant="primary"
-								loading={isGoogleLoading}
-								onClick={handleGoogleAppSignIn}
-								leftIcon={<GoogleIcon className="h-4 w-4" />}
-								className="w-full"
-							>
-								{t("auth.sign_in.google_window_sign_in", { defaultValue: "Sign in with Google" })}
-							</Button>
-							{googleAppError ? <AuthErrorBox message={googleAppError} /> : null}
-							{!showManualToken && error ? <AuthErrorBox message={error.message} detail={error.detail} /> : null}
-							<button
-								type="button"
-								onClick={() => setShowManualToken((prev) => !prev)}
-								aria-expanded={showManualToken}
-								className="mx-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-							>
-								{t("auth.sign_in.google_app_or_manual", { defaultValue: "or paste a token manually" })}
-								<ChevronDown
-									className={cn("h-3.5 w-3.5 transition-transform duration-200", showManualToken && "rotate-180")}
-								/>
-							</button>
-						</section>
-					) : null}
-					{hasNativeGoogle && !showManualToken ? null : (
-						<div className="animate-fade-in space-y-5">
-							<div>
-								<Step
-									step={1}
-									title={t("auth.sign_in.google_step_get", { defaultValue: "Get a sign-in token" })}
-									hint={t("auth.sign_in.google_step_get_hint", {
-										defaultValue: "Sign in with Google there, then tap \"Copy token\".",
-									})}
-								>
-									<TokenSourceLink
-										href="https://github.com/fdev8974/freegrind-google-oauth-webextension#install"
-										icon={<Puzzle className="h-4 w-4" />}
-										title={t("auth.sign_in.google_extension_link", { defaultValue: "Browser extension" })}
-										description={t("auth.sign_in.google_extension_desc", { defaultValue: "Firefox, Chrome and other desktop browsers" })}
-									/>
-								</Step>
-								<Step
-									step={2}
-									title={t("auth.sign_in.google_step_paste", { defaultValue: "Paste the token" })}
-									last
-								>
-									<IconInput
-										icon={<KeyRound className="h-4 w-4" />}
-										type="password"
-										value={googleToken}
-										onChange={(e) => setGoogleToken(e.target.value)}
-										required
-										placeholder={t("auth.sign_in.google_token_placeholder", { defaultValue: "Google OAuth token" })}
-										autoComplete="off"
-									/>
-								</Step>
-							</div>
-							<AuthSubmitSection
-								error={error}
-								loading={isGoogleLoading}
-								disabled={!isGoogleFormValid}
-								loadingLabel={t("auth.sign_in.signing_in")}
-								label={t("auth.sign_in.submit")}
-							/>
-						</div>
-					)}
 				</form>
 			)}
 			<button
