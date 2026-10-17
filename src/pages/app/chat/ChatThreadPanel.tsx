@@ -2216,28 +2216,30 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-1 py-1.5 pl-1.5 pr-1 ${!isDesktop ? "min-h-[50px] rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "min-h-[42px] rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
+							<div className={`mb-2 flex items-center gap-2 ${!isDesktop ? "min-h-[50px] rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))] py-1 pl-1.5 pr-1" : "min-h-[42px] rounded-xl border border-[var(--accent)] bg-[var(--surface-2)] py-1 pl-1.5 pr-1"}`}>
 								<div className="flex-1 min-w-0">
 									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} />
 								</div>
+								{/* Same size as the composer's send button, so the two read as a pair. */}
 								<button
 									type="button"
 									onClick={() => { setRecordedWaveform([]); props.cancelAudio(); }}
-									className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:text-red-500"
+									disabled={props.isSendingAudio}
+									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full bg-[color-mix(in_srgb,var(--text)_8%,transparent)] active:scale-90 active:bg-red-500/15" : "h-8 w-8 rounded-lg hover:bg-red-500/10"} items-center justify-center text-[var(--text-muted)] transition hover:text-red-500 active:text-red-500 disabled:opacity-40`}
 									aria-label={t("chat.actions.cancel")}
 								>
-									<Trash2 className="h-3.5 w-3.5" />
+									<Trash2 className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />
 								</button>
 								<button
 									type="button"
 									onClick={() => { setRecordedWaveform([]); void props.confirmAudio(); }}
 									disabled={props.isSendingAudio}
-									className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--accent)] transition hover:opacity-80 disabled:opacity-40"
+									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] active:scale-90" : "h-8 w-8 rounded-lg text-[var(--accent)]"} items-center justify-center transition hover:opacity-80 disabled:opacity-60`}
 									aria-label={t("chat.attachments.send")}
 								>
 									{props.isSendingAudio
-										? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-										: <SendHorizontalFilled className="h-3.5 w-3.5" />}
+										? <Loader2 className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-spin`} />
+										: <SendHorizontalFilled className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />}
 								</button>
 							</div>
 						) : null}
