@@ -78,6 +78,8 @@ function useApkInstall(target: ApkInstallTarget, enabled: boolean, installDownlo
 				setState({ phase: "error", code: detail.code, message: detail.message });
 			} else {
 				setState({ phase: detail.state });
+
+                
 			}
 		};
 		window.addEventListener("fg:apk-update", handler);

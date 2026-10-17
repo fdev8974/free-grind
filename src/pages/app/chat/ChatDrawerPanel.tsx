@@ -151,6 +151,14 @@ export function ChatDrawerPanel({
 	const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
 	const [collectionsLoaded, setCollectionsLoaded] = useState(false);
 	const [activeTab, setActiveTab] = useState<DrawerTab>("media");
+	// The grid only renders once the sheet has slid in: rendering every tile
+	// mid-animation blocked the main thread, so the drawer seemed to open late.
+	// Until then the body shows its loading spinner.
+	const [hasSlidIn, setHasSlidIn] = useState(false);
+	useEffect(() => {
+		const timer = setTimeout(() => setHasSlidIn(true), 350);
+		return () => clearTimeout(timer);
+	}, []);
 	// Split into categories off (appearance setting): no tabs, one grid of
 	// actions, albums, collections, then media.
 	const combined = !splitDrawerCategories;
@@ -584,7 +592,7 @@ export function ChatDrawerPanel({
 						})()}
 
 						{/* Content Grid */}
-						<DrawerBody isLoading={isLoading} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
+						<DrawerBody isLoading={isLoading || !hasSlidIn} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
 								<div className="flex flex-col gap-3">
 								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (
