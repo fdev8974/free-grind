@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { onBackButtonPress } from "@tauri-apps/api/app";
 import { platform } from "@tauri-apps/plugin-os";
 import { X } from "lucide-react";
@@ -105,8 +105,6 @@ export function BottomSheet({
 	closeRef,
 	children,
 }: BottomSheetProps) {
-	const [dragY, setDragY] = useState(0);
-	const [isDragging, setIsDragging] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
 	const [isClosing, setIsClosing] = useState(false);
 	const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -231,12 +229,10 @@ export function BottomSheet({
 	}, [isProcessing, animateClose]);
 
 	const rootRef = useRef<HTMLDivElement>(null);
+	const scrimRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const lastDragEndRef = useRef(0);
-	const dragYRef = useRef(0);
 	const isDetented = expandable && !isDesktop;
-	const [isExpanded, setIsExpanded] = useState(false);
-	const isExpandedRef = useRef(false);
 	const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight);
 
 	useEffect(() => {
@@ -246,12 +242,65 @@ export function BottomSheet({
 		return () => window.removeEventListener("resize", onResize);
 	}, [isDetented]);
 
-	// Detent heights, like iOS's medium/large: half the screen, and full
-	// height minus a strip at the top so the page behind still peeks out.
-	const mediumHeight = Math.round(viewportHeight * 0.55);
-	const largeHeight = Math.round(Math.min(viewportHeight * 0.94, viewportHeight - 48));
-	const detentsRef = useRef({ medium: mediumHeight, large: largeHeight });
-	detentsRef.current = { medium: mediumHeight, large: largeHeight };
+	// Position state lives in refs and is written straight to the DOM, not
+	// rendered: a drag moves the sheet every frame, and a React render per
+	// touchmove (plus transitions toggling under it) made it stutter.
+	const layoutRef = useRef({
+		detented: isDetented,
+		// Detent heights, like iOS's medium/large: half the screen, and full
+		// height minus a strip at the top so the page behind still peeks out.
+		medium: 0,
+		large: 0,
+		expanded: false,
+		visible: false,
+		dragY: 0,
+		// Height of a non-detented sheet, measured when a drag starts.
+		naturalHeight: 1,
+	});
+	const layout = layoutRef.current;
+	layout.detented = isDetented;
+	layout.visible = isVisible;
+	layout.medium = Math.round(viewportHeight * 0.55);
+	layout.large = Math.round(Math.min(viewportHeight * 0.94, viewportHeight - 48));
+
+	const applyLayout = useCallback((animate: boolean) => {
+		const panel = panelRef.current;
+		const scrim = scrimRef.current;
+		if (!panel || !scrim) return;
+		const { detented, medium, large, expanded, visible, dragY } = layoutRef.current;
+		const shown = visible && !closingRef.current;
+
+		// An expandable sheet's drag first changes its height between the
+		// detents and only slides it down once it's below medium. Past full
+		// height it rubber-bands instead of following the finger 1:1.
+		let height: number | null = null;
+		let offsetY = Math.max(0, dragY);
+		if (detented) {
+			const target = (expanded ? large : medium) - dragY;
+			if (target >= medium) {
+				height = target > large ? large + Math.sqrt(target - large) * 3 : target;
+				offsetY = 0;
+			} else {
+				height = medium;
+				offsetY = medium - target;
+			}
+		}
+
+		const easing = "0.32s cubic-bezier(0.32, 0.72, 0, 1)";
+		panel.style.transition = animate ? `transform ${easing}, height ${easing}` : "none";
+		panel.style.height = height === null ? "" : `${height}px`;
+		panel.style.transform = shown ? `translateY(${offsetY}px)` : "translateY(110%)";
+		// Scrim follows the sheet while dragging, like the native ones do.
+		const visibleHeight = height ?? layoutRef.current.naturalHeight;
+		scrim.style.transition = animate ? "opacity 0.3s ease" : "none";
+		scrim.style.opacity = shown ? String(1 - Math.min(1, offsetY / visibleHeight)) : "0";
+	}, []);
+
+	// Before paint, so the sheet never shows a frame at its final position
+	// before sliding in. Animated once it's visible (open, close, resize).
+	useLayoutEffect(() => {
+		applyLayout(isVisible);
+	}, [applyLayout, isVisible, isClosing, isDetented, viewportHeight]);
 
 	// Native-style drag: the whole sheet follows the finger, not just the
 	// handle, and so does a drag that starts on the scrim above it. A
@@ -273,6 +322,7 @@ export function BottomSheet({
 		let mode: "pending" | "drag" | "ignore" = "ignore";
 		// Recent finger positions, for the release velocity.
 		let samples: { t: number; y: number }[] = [];
+		let frame = 0;
 
 		const isScrolledAncestor = (target: EventTarget | null) => {
 			for (let el = target as HTMLElement | null; el && el !== panel; el = el.parentElement) {
@@ -286,14 +336,13 @@ export function BottomSheet({
 			return false;
 		};
 
-		const setDrag = (y: number) => {
-			dragYRef.current = y;
-			setDragY(y);
-		};
-
-		const setExpanded = (expanded: boolean) => {
-			isExpandedRef.current = expanded;
-			setIsExpanded(expanded);
+		// At most one layout write per frame, however many touchmoves arrive.
+		const scheduleLayout = () => {
+			if (frame) return;
+			frame = requestAnimationFrame(() => {
+				frame = 0;
+				applyLayout(false);
+			});
 		};
 
 		const onStart = (e: TouchEvent) => {
@@ -315,26 +364,27 @@ export function BottomSheet({
 			const touch = e.touches[0];
 			const dx = touch.clientX - startX;
 			const dy = touch.clientY - startY;
+			const state = layoutRef.current;
 
 			if (mode === "pending") {
 				if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
 				// Content hands over an upward drag only while the sheet can
 				// still grow; otherwise that's a normal scroll.
-				const canGrow = isDetented && !isExpandedRef.current;
+				const canGrow = state.detented && !state.expanded;
 				if (Math.abs(dx) > Math.abs(dy) || (!fromHandle && dy < 0 && !canGrow)) {
 					mode = "ignore";
 					return;
 				}
 				mode = "drag";
 				startY = touch.clientY;
-				setIsDragging(true);
+				state.naturalHeight = panel.offsetHeight || 1;
 			}
 
 			e.preventDefault();
 			samples.push({ t: e.timeStamp, y: touch.clientY });
 			if (samples.length > 8) samples.shift();
-			const delta = touch.clientY - startY;
-			setDrag(isDetented ? delta : Math.max(0, delta));
+			state.dragY = touch.clientY - startY;
+			scheduleLayout();
 		};
 
 		const releaseVelocity = (now: number) => {
@@ -354,29 +404,38 @@ export function BottomSheet({
 			}
 			mode = "ignore";
 			lastDragEndRef.current = performance.now();
-			const y = dragYRef.current;
+			if (frame) {
+				cancelAnimationFrame(frame);
+				frame = 0;
+			}
+			const state = layoutRef.current;
+			const y = state.dragY;
 			const velocity = releaseVelocity(e.timeStamp);
 			const isFlick = Math.abs(velocity) > 0.6;
 
-			if (isDetented) {
-				const { medium, large } = detentsRef.current;
-				const startHeight = isExpandedRef.current ? large : medium;
-				const height = startHeight - y;
+			// Decide first, then animate once from where the finger left the
+			// sheet, so closing doesn't bounce back to rest on the way out.
+			let close = false;
+			if (state.detented) {
+				const { medium, large } = state;
+				const height = (state.expanded ? large : medium) - y;
 				const closeLine = medium - Math.min(medium * 0.3, 180);
-				if (isFlick && velocity < 0) setExpanded(true);
+				if (isFlick && velocity < 0) state.expanded = true;
 				// A downward flick from full height settles at medium first,
 				// like iOS, unless it was already dragged past it.
 				else if (isFlick && velocity > 0) {
-					if (isExpandedRef.current && height > medium - 40) setExpanded(false);
-					else animateCloseRef.current();
-				} else if (height < closeLine) animateCloseRef.current();
-				else setExpanded(height > (medium + large) / 2);
+					if (state.expanded && height > medium - 40) state.expanded = false;
+					else close = true;
+				} else if (height < closeLine) close = true;
+				else state.expanded = height > (medium + large) / 2;
 			} else {
-				const panelHeight = panel.offsetHeight || 1;
-				if ((isFlick && velocity > 0 && y > 20) || y > Math.min(panelHeight * 0.3, 180)) animateCloseRef.current();
+				close = (isFlick && velocity > 0 && y > 20) || y > Math.min(state.naturalHeight * 0.3, 180);
 			}
-			setDrag(0);
-			setIsDragging(false);
+
+			if (close) animateCloseRef.current();
+			// When the close was refused (isProcessing) this settles it back.
+			if (!close || !closingRef.current) state.dragY = 0;
+			applyLayout(true);
 		};
 
 		root.addEventListener("touchstart", onStart, { passive: true });
@@ -384,36 +443,13 @@ export function BottomSheet({
 		root.addEventListener("touchend", onEnd);
 		root.addEventListener("touchcancel", onEnd);
 		return () => {
+			if (frame) cancelAnimationFrame(frame);
 			root.removeEventListener("touchstart", onStart);
 			root.removeEventListener("touchmove", onMove);
 			root.removeEventListener("touchend", onEnd);
 			root.removeEventListener("touchcancel", onEnd);
 		};
-	}, [isDesktop, isDetented]);
-
-	const isShown = isVisible && !isClosing;
-	const isAnimating = isVisible && !isDragging;
-
-	// An expandable sheet's drag first changes its height between the detents
-	// and only slides it down once it's below medium. Past full height it
-	// rubber-bands instead of following the finger 1:1.
-	let panelHeight: number | undefined;
-	let offsetY = dragY;
-	if (isDetented) {
-		const target = (isExpanded ? largeHeight : mediumHeight) - dragY;
-		if (target >= mediumHeight) {
-			panelHeight = target > largeHeight ? largeHeight + Math.sqrt(target - largeHeight) * 3 : target;
-			offsetY = 0;
-		} else {
-			panelHeight = mediumHeight;
-			offsetY = mediumHeight - target;
-		}
-	}
-	const transform = isShown ? `translateY(${offsetY}px)` : "translateY(110%)";
-	// Scrim follows the sheet while dragging, like the native ones do.
-	const visibleHeight = panelHeight ?? (panelRef.current?.offsetHeight || 1);
-	const scrimOpacity = isShown ? 1 - Math.min(1, offsetY / visibleHeight) : 0;
-	const easing = "0.32s cubic-bezier(0.32, 0.72, 0, 1)";
+	}, [isDesktop, applyLayout]);
 
 	return (
 		<BottomSheetContext.Provider value={animateClose}>
@@ -428,20 +464,15 @@ export function BottomSheet({
 				}}
 			>
 				<div
+					ref={scrimRef}
 					aria-hidden
-					className={`absolute inset-0 ${isDesktop ? "bg-black/45 backdrop-blur-sm" : "bg-black/50"}`}
-					style={{
-						opacity: scrimOpacity,
-						transition: isAnimating ? "opacity 0.3s ease" : "none",
-					}}
+					className="absolute inset-0 bg-black/45 backdrop-blur-sm"
 				/>
 				<div
 					ref={panelRef}
-					className={`relative flex flex-col ${bg} shadow-2xl overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl border-x border-t border-[var(--border)]" : `w-full border-t border-[var(--border)] ${isDetented && isExpanded && dragY <= 0 ? "rounded-t-[16px]" : "rounded-t-[24px]"}`} ${panelClassName}`}
+					className={`relative flex flex-col ${bg} overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl border-x border-t border-[var(--border)] shadow-2xl" : "w-full rounded-t-[24px] shadow-[0_-8px_32px_rgba(0,0,0,0.35)]"} ${panelClassName}`}
+					// transform, height and transition are set by applyLayout.
 					style={{
-						transform,
-						height: panelHeight,
-						transition: isAnimating ? `transform ${easing}, height ${easing}, border-radius ${easing}` : "none",
 						willChange: "transform",
 						paddingBottom: "max(16px, env(safe-area-inset-bottom))",
 						minHeight: isDesktop || isDetented ? undefined : "50dvh",
