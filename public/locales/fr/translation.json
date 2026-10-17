@@ -1190,7 +1190,19 @@
             "submit": "Se connecter",
             "add_profile_title": "Ajouter un profil",
             "add_profile_subtitle": "Connectez-vous avec le compte que vous souhaitez ajouter.",
-            "forgot_password": "Mot de passe oublié ?"
+            "forgot_password": "Mot de passe oublié ?",
+            "qr_camera_denied": "",
+            "qr_scan_failed": "",
+            "qr_step_show": "",
+            "qr_step_show_hint": "",
+            "qr_step_scan": "",
+            "qr_step_paste": "",
+            "qr_step_paste_hint": "",
+            "qr_scan": "",
+            "qr_or_paste": "",
+            "qr_code_placeholder": "",
+            "qr_back": "",
+            "qr_entry": ""
         },
         "reset": {
             "title": "Réinitialiser le mot de passe",
@@ -2567,5 +2579,25 @@
             "conflict": "Une version signée différemment est déjà installée. Désinstallez-la d'abord, puis réessayez.",
             "generic": "La mise à jour n'a pas pu être installée."
         }
+    },
+    "account_transfer": {
+        "unsupported": "",
+        "create_failed": "",
+        "copied": "",
+        "copy_failed": "",
+        "title": "",
+        "subtitle": "",
+        "warning_title": "",
+        "warning_desc": "",
+        "qr_alt": "",
+        "hides_in": "",
+        "copy": "",
+        "hide": "",
+        "show": "",
+        "howto_title": "",
+        "howto_desc": "",
+        "settings_desc": "",
+        "backup_title": "",
+        "backup_desc": ""
     }
 }

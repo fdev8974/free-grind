@@ -1206,7 +1206,19 @@
             "submit": "تسجيل الدخول",
             "add_profile_title": "إضافة حساب شخصي",
             "add_profile_subtitle": "بتسجيل الدخول باستخدام الحساب الذي تريد إضافته.",
-            "forgot_password": "نسيت كلمة المرور؟"
+            "forgot_password": "نسيت كلمة المرور؟",
+            "qr_camera_denied": "",
+            "qr_scan_failed": "",
+            "qr_step_show": "",
+            "qr_step_show_hint": "",
+            "qr_step_scan": "",
+            "qr_step_paste": "",
+            "qr_step_paste_hint": "",
+            "qr_scan": "",
+            "qr_or_paste": "",
+            "qr_code_placeholder": "",
+            "qr_back": "",
+            "qr_entry": ""
         },
         "reset": {
             "title": "إعادة تعيين كلمة المرور",
@@ -2581,5 +2593,25 @@
             "conflict": "فيه نسخة متوقّعة بشكل مختلف متسطّبة أصلًا. امسحها الأول وجرّب تاني.",
             "generic": "معرفناش نسطّب التحديث."
         }
+    },
+    "account_transfer": {
+        "unsupported": "",
+        "create_failed": "",
+        "copied": "",
+        "copy_failed": "",
+        "title": "",
+        "subtitle": "",
+        "warning_title": "",
+        "warning_desc": "",
+        "qr_alt": "",
+        "hides_in": "",
+        "copy": "",
+        "hide": "",
+        "show": "",
+        "howto_title": "",
+        "howto_desc": "",
+        "settings_desc": "",
+        "backup_title": "",
+        "backup_desc": ""
     }
 }

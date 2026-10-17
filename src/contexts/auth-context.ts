@@ -78,6 +78,8 @@ export interface AuthContextType extends AuthState {
 	loginWithGoogleWindow: () => Promise<void>;
 	/** Opens Facebook's sign-in window; resolves without signing in when the user closes it. */
 	loginWithFacebook: () => Promise<void>;
+	/** Signs in with a code from another device's "Sign in on another device" screen. */
+	loginWithTransferCode: (code: string) => Promise<void>;
 	signUp: (account: SignUpData) => Promise<void>;
 	logout: () => Promise<void>;
 	checkAuth: () => Promise<void>;

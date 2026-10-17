@@ -5,6 +5,7 @@
 	"platforms": ["iOS"],
 	"windows": ["main"],
 	"permissions": [
+		"barcode-scanner:default",
 		"ios-photos:default",
 		"ios-app-disguise:default",
 		{

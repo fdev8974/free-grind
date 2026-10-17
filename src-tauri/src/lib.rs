@@ -191,6 +191,8 @@ pub fn run() {
                 api::auth::list_saved_accounts,
                 api::auth::switch_account,
                 api::auth::remove_saved_account,
+                api::auth::create_transfer_code,
+                api::auth::sign_in_with_transfer_code,
                 api::rest::request,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,
@@ -252,7 +254,8 @@ pub fn run() {
             .plugin(tauri_plugin_sql::Builder::default().build())
             .plugin(tauri_plugin_opener::init())
             .plugin(api::facebook_oauth::plugin())
-            .plugin(api::google_oauth::plugin());
+            .plugin(api::google_oauth::plugin())
+            .plugin(tauri_plugin_barcode_scanner::init());
 
         #[cfg(target_os = "ios")]
         let builder = builder
@@ -305,6 +308,8 @@ pub fn run() {
                 api::auth::list_saved_accounts,
                 api::auth::switch_account,
                 api::auth::remove_saved_account,
+                api::auth::create_transfer_code,
+                api::auth::sign_in_with_transfer_code,
                 api::rest::request,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,

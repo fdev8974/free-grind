@@ -24,6 +24,7 @@ import { AboutPage } from "./pages/app/AboutPage.tsx";
 import { SettingsAlbumsPage } from "./pages/app/SettingsAlbumsPage.tsx";
 import { SettingsBlockedPage } from "./pages/app/SettingsBlockedPage.tsx";
 import { SettingsHiddenPage } from "./pages/app/SettingsHiddenPage.tsx";
+import { SettingsTransferAccountPage } from "./pages/app/SettingsTransferAccountPage.tsx";
 import { SettingsBlockHistoryPage } from "./pages/app/SettingsBlockHistoryPage.tsx";
 import { AgeVerificationPage } from "./pages/app/AgeVerificationPage.tsx";
 import { SharedAlbumsPage } from "./pages/app/SharedAlbumsPage.tsx";
@@ -273,6 +274,7 @@ export default function App() {
 								<Route path="/settings/albums" element={<SettingsAlbumsPage />} />
 								<Route path="/settings/blocked" element={<SettingsBlockedPage />} />
 								<Route path="/settings/hidden" element={<SettingsHiddenPage />} />
+								<Route path="/settings/transfer-account" element={<SettingsTransferAccountPage />} />
 								<Route path="/settings/block-history" element={<SettingsBlockHistoryPage />} />
 								<Route path="/settings/sexual-health" element={<SexualHealthPage />} />
 								<Route

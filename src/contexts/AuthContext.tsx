@@ -66,6 +66,12 @@ const GOOGLE_CANCELED = "google-canceled";
 const FACEBOOK_CANCELED = "facebook-canceled";
 const FACEBOOK_DIALOG_ERROR = "facebook-dialog-error";
 const FACEBOOK_HANDOFF_REFUSED = "facebook-handoff-refused";
+// Error markers from sign_in_with_transfer_code (api/auth.rs), matched verbatim.
+const TRANSFER_CODE_MESSAGES: Record<string, string> = {
+	"transfer-code-invalid": "This isn't a Free Grind sign-in code.",
+	"transfer-code-expired": "This sign-in code has expired. Show a new one on the other device.",
+	"transfer-code-revoked": "The other device's session is no longer valid. Sign in there again, then show a new code.",
+};
 
 function describeLoginError(
 	appError: AppError | null,
@@ -366,6 +372,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 			const message = describeLoginError(appError, "Google sign-in failed. Please try again.", "Google sign-in failed. Please try again.");
 			appLog.error("[Auth] loginWithGoogleWindow failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+	};
+
+	// Signs in with a code shown on another device (create_transfer_code
+	// there), scanned as a QR code or pasted as text.
+	const loginWithTransferCode = async (code: string) => {
+		try {
+			appLog.info("[Auth] loginWithTransferCode: attempting");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			const result = await callMethod("sign_in_with_transfer_code", { code });
+			appLog.info("[Auth] loginWithTransferCode: succeeded");
+			dispatch({ type: "SET_USER", payload: result.profileId });
+			void refreshSavedAccounts();
+			if (!showRestriction(result.restriction)) {
+				toast.success("Login successful");
+			}
+		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
+			const appError = asAppError(error);
+			const transferMessage =
+				appError?.kind === "Auth" && typeof appError.message === "string"
+					? TRANSFER_CODE_MESSAGES[appError.message]
+					: undefined;
+			const message: AuthError = transferMessage
+				? { message: transferMessage }
+				: describeLoginError(appError, "Sign-in failed. Please try again.", "Sign-in failed. Please try again.");
+			appLog.error("[Auth] loginWithTransferCode failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
 			throw error;
 		} finally {
@@ -807,6 +848,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		loginWithGoogle,
 		loginWithGoogleWindow,
 		loginWithFacebook,
+		loginWithTransferCode,
 		signUp,
 		logout,
 		checkAuth,

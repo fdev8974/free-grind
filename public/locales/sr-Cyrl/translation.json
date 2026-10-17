@@ -1192,7 +1192,19 @@
             "submit": "Пријави се",
             "add_profile_title": "Додај профил",
             "add_profile_subtitle": "Пријавите се налогом који желите да додате.",
-            "forgot_password": "Заборављена лозинка?"
+            "forgot_password": "Заборављена лозинка?",
+            "qr_camera_denied": "",
+            "qr_scan_failed": "",
+            "qr_step_show": "",
+            "qr_step_show_hint": "",
+            "qr_step_scan": "",
+            "qr_step_paste": "",
+            "qr_step_paste_hint": "",
+            "qr_scan": "",
+            "qr_or_paste": "",
+            "qr_code_placeholder": "",
+            "qr_back": "",
+            "qr_entry": ""
         },
         "reset": {
             "title": "Ресетовање лозинке",
@@ -2565,5 +2577,25 @@
             "conflict": "Већ је инсталирана другачије потписана верзија. Прво је деинсталирајте, па покушајте поново.",
             "generic": "Ажурирање није могло да се инсталира."
         }
+    },
+    "account_transfer": {
+        "unsupported": "",
+        "create_failed": "",
+        "copied": "",
+        "copy_failed": "",
+        "title": "",
+        "subtitle": "",
+        "warning_title": "",
+        "warning_desc": "",
+        "qr_alt": "",
+        "hides_in": "",
+        "copy": "",
+        "hide": "",
+        "show": "",
+        "howto_title": "",
+        "howto_desc": "",
+        "settings_desc": "",
+        "backup_title": "",
+        "backup_desc": ""
     }
 }

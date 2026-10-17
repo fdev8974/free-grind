@@ -1190,7 +1190,19 @@
             "submit": "Iniciar sesión",
             "add_profile_title": "Añadir perfil",
             "add_profile_subtitle": "Inicia sesión con la cuenta que quieres añadir.",
-            "forgot_password": "¿Has olvidado tu contraseña?"
+            "forgot_password": "¿Has olvidado tu contraseña?",
+            "qr_camera_denied": "",
+            "qr_scan_failed": "",
+            "qr_step_show": "",
+            "qr_step_show_hint": "",
+            "qr_step_scan": "",
+            "qr_step_paste": "",
+            "qr_step_paste_hint": "",
+            "qr_scan": "",
+            "qr_or_paste": "",
+            "qr_code_placeholder": "",
+            "qr_back": "",
+            "qr_entry": ""
         },
         "reset": {
             "title": "Restablecer contraseña",
@@ -2567,5 +2579,25 @@
             "conflict": "Ya hay instalada una versión con otra firma. Desinstálala primero y vuelve a intentarlo.",
             "generic": "No se pudo instalar la actualización."
         }
+    },
+    "account_transfer": {
+        "unsupported": "",
+        "create_failed": "",
+        "copied": "",
+        "copy_failed": "",
+        "title": "",
+        "subtitle": "",
+        "warning_title": "",
+        "warning_desc": "",
+        "qr_alt": "",
+        "hides_in": "",
+        "copy": "",
+        "hide": "",
+        "show": "",
+        "howto_title": "",
+        "howto_desc": "",
+        "settings_desc": "",
+        "backup_title": "",
+        "backup_desc": ""
     }
 }

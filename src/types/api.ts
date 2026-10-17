@@ -175,6 +175,25 @@ export const methodSchemas = {
 		}),
 		response: z.undefined(),
 	},
+	create_transfer_code: {
+		request: z.undefined(),
+		response: z.object({
+			code: z.string(),
+			/** The code as a QR code, an SVG document. */
+			qrSvg: z.string(),
+			/** Unix seconds. */
+			expiresAt: z.number(),
+		}),
+	},
+	sign_in_with_transfer_code: {
+		request: z.object({
+			code: z.string(),
+		}),
+		response: z.object({
+			profileId: z.coerce.number().int().nonnegative(),
+			restriction: restrictionSchema.nullish(),
+		}),
+	},
 } as const satisfies Record<
 	string,
 	{ request: z.ZodType; response: z.ZodType }

@@ -1182,7 +1182,19 @@
             "submit": "Inloggen",
             "add_profile_title": "Profiel toevoegen",
             "add_profile_subtitle": "Log in met het account dat je wilt toevoegen.",
-            "forgot_password": "Wachtwoord vergeten?"
+            "forgot_password": "Wachtwoord vergeten?",
+            "qr_camera_denied": "",
+            "qr_scan_failed": "",
+            "qr_step_show": "",
+            "qr_step_show_hint": "",
+            "qr_step_scan": "",
+            "qr_step_paste": "",
+            "qr_step_paste_hint": "",
+            "qr_scan": "",
+            "qr_or_paste": "",
+            "qr_code_placeholder": "",
+            "qr_back": "",
+            "qr_entry": ""
         },
         "reset": {
             "title": "Wachtwoord resetten",
@@ -2549,5 +2561,25 @@
             "conflict": "Er is al een anders ondertekende versie geïnstalleerd. Verwijder die eerst en probeer het opnieuw.",
             "generic": "De update kon niet worden geïnstalleerd."
         }
+    },
+    "account_transfer": {
+        "unsupported": "",
+        "create_failed": "",
+        "copied": "",
+        "copy_failed": "",
+        "title": "",
+        "subtitle": "",
+        "warning_title": "",
+        "warning_desc": "",
+        "qr_alt": "",
+        "hides_in": "",
+        "copy": "",
+        "hide": "",
+        "show": "",
+        "howto_title": "",
+        "howto_desc": "",
+        "settings_desc": "",
+        "backup_title": "",
+        "backup_desc": ""
     }
 }

@@ -1190,7 +1190,19 @@
             "submit": "Entrar",
             "add_profile_title": "Adicionar perfil",
             "add_profile_subtitle": "Entre com a conta que você deseja adicionar.",
-            "forgot_password": "Esqueceu a senha?"
+            "forgot_password": "Esqueceu a senha?",
+            "qr_camera_denied": "",
+            "qr_scan_failed": "",
+            "qr_step_show": "",
+            "qr_step_show_hint": "",
+            "qr_step_scan": "",
+            "qr_step_paste": "",
+            "qr_step_paste_hint": "",
+            "qr_scan": "",
+            "qr_or_paste": "",
+            "qr_code_placeholder": "",
+            "qr_back": "",
+            "qr_entry": ""
         },
         "reset": {
             "title": "Redefinir senha",
@@ -2567,5 +2579,25 @@
             "conflict": "Uma versão com outra assinatura já está instalada. Desinstale-a primeiro e tente novamente.",
             "generic": "Não foi possível instalar a atualização."
         }
+    },
+    "account_transfer": {
+        "unsupported": "",
+        "create_failed": "",
+        "copied": "",
+        "copy_failed": "",
+        "title": "",
+        "subtitle": "",
+        "warning_title": "",
+        "warning_desc": "",
+        "qr_alt": "",
+        "hides_in": "",
+        "copy": "",
+        "hide": "",
+        "show": "",
+        "howto_title": "",
+        "howto_desc": "",
+        "settings_desc": "",
+        "backup_title": "",
+        "backup_desc": ""
     }
 }

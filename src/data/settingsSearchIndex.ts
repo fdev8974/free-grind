@@ -46,6 +46,7 @@ import {
 	Puzzle,
 	Bot,
 	Bug,
+	QrCode,
 	type LucideIcon,
 } from "lucide-react";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL } from "../utils/githubIssues";
@@ -91,6 +92,15 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			description: t("settings.profile_editor_desc"),
 			section: "Profile",
 			icon: UserCircle,
+			iconClass: "bg-[var(--surface-2)] text-[var(--text-muted)]",
+		},
+		{
+			id: "nav-transfer-account",
+			route: "/settings/transfer-account",
+			label: t("account_transfer.title", { defaultValue: "Sign in on another device" }),
+			description: t("account_transfer.settings_desc", { defaultValue: "Show a QR code to sign this account in elsewhere" }),
+			section: "Profile",
+			icon: QrCode,
 			iconClass: "bg-[var(--surface-2)] text-[var(--text-muted)]",
 		},
 

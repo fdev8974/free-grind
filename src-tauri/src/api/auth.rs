@@ -1263,6 +1263,157 @@ pub async fn remove_saved_account(profile_id: String) -> Result<(), AppError> {
     AuthStorage::remove_saved_account(&profile_id)
 }
 
+// ---------------------------------------------------------------------------
+// Account transfer — signs the active account in on another device by QR code
+// (or the same code pasted as text on desktop). There's no Free Grind server
+// to broker it, so the code carries the account's credentials themselves:
+// whoever reads it can sign in as this account. The receiving device mints its
+// own device identity and signing key; the sending device stays signed in.
+// ---------------------------------------------------------------------------
+
+const TRANSFER_CODE_PREFIX: &str = "FGLOGIN1:";
+/// How long a code is accepted after it was created. Only the receiving device
+/// checks it, so it keeps an old screenshot from working, nothing more.
+const TRANSFER_CODE_TTL_SECS: u64 = 10 * 60;
+/// Leeway for a receiving device whose clock runs behind the sender's.
+const TRANSFER_CLOCK_SKEW_SECS: u64 = 5 * 60;
+
+// Error markers for the frontend, matched verbatim (AuthContext.tsx).
+const TRANSFER_CODE_INVALID: &str = "transfer-code-invalid";
+const TRANSFER_CODE_EXPIRED: &str = "transfer-code-expired";
+const TRANSFER_CODE_REVOKED: &str = "transfer-code-revoked";
+const TRANSFER_UNSUPPORTED: &str = "transfer-unsupported";
+
+#[derive(Serialize, Deserialize)]
+struct TransferPayload {
+    credentials: grindr::Credentials,
+    issued_at: u64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransferCode {
+    code: String,
+    /// `code` as a QR code, an SVG document.
+    qr_svg: String,
+    /// Unix seconds.
+    expires_at: u64,
+}
+
+fn encode_transfer_code(payload: &TransferPayload) -> Result<String, AppError> {
+    use base64::Engine;
+    let bytes = rmp_serde::encode::to_vec_named(payload)
+        .map_err(|e| AppError::Auth(format!("transfer code encode failed: {e}")))?;
+    Ok(format!(
+        "{TRANSFER_CODE_PREFIX}{}",
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+    ))
+}
+
+fn decode_transfer_code(code: &str) -> Result<TransferPayload, AppError> {
+    use base64::Engine;
+    let invalid = || AppError::Auth(TRANSFER_CODE_INVALID.to_owned());
+    // Pasted text may come with line breaks or stray spaces.
+    let compact: String = code.chars().filter(|c| !c.is_whitespace()).collect();
+    let encoded = compact.strip_prefix(TRANSFER_CODE_PREFIX).ok_or_else(invalid)?;
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(encoded)
+        .map_err(|_| invalid())?;
+    let payload: TransferPayload = rmp_serde::from_slice(&bytes).map_err(|_| invalid())?;
+    if payload.credentials.profile_id.is_none() || payload.credentials.auth_token.is_empty() {
+        return Err(invalid());
+    }
+    Ok(payload)
+}
+
+fn render_qr_svg(code: &str) -> Result<String, AppError> {
+    use qrcode::render::svg;
+    let qr = qrcode::QrCode::with_error_correction_level(code.as_bytes(), qrcode::EcLevel::M)
+        .map_err(|e| AppError::Auth(format!("QR code encode failed: {e}")))?;
+    // Always dark on light, whatever the app theme: scanners expect it.
+    Ok(qr
+        .render::<svg::Color>()
+        .min_dimensions(256, 256)
+        .dark_color(svg::Color("#000000"))
+        .light_color(svg::Color("#ffffff"))
+        .build())
+}
+
+/// A sign-in code for the active account, to scan or paste on another device.
+#[tauri::command]
+pub async fn create_transfer_code(state: tauri::State<'_, AppState>) -> Result<TransferCode, AppError> {
+    let client = state.client()?;
+    let credentials = client
+        .session_receiver()
+        .borrow()
+        .as_ref()
+        .map(|session| session.credentials.clone())
+        .ok_or(AppError::NotSignedIn)?;
+    // A session without a refreshable auth token can't be resumed elsewhere.
+    if credentials.profile_id.is_none() || credentials.auth_token.is_empty() {
+        return Err(AppError::Auth(TRANSFER_UNSUPPORTED.to_owned()));
+    }
+
+    let issued_at = chrono::Utc::now().timestamp() as u64;
+    let code = encode_transfer_code(&TransferPayload {
+        credentials,
+        issued_at,
+    })?;
+    let qr_svg = render_qr_svg(&code)?;
+    Ok(TransferCode {
+        code,
+        qr_svg,
+        expires_at: issued_at + TRANSFER_CODE_TTL_SECS,
+    })
+}
+
+/// Signs in with a code from `create_transfer_code` on another device, then
+/// makes that account the active one here.
+#[tauri::command]
+pub async fn sign_in_with_transfer_code(app: tauri::AppHandle, code: String) -> Result<LoginResult, AppError> {
+    let payload = decode_transfer_code(&code)?;
+    let now = chrono::Utc::now().timestamp() as u64;
+    if now > payload.issued_at + TRANSFER_CODE_TTL_SECS
+        || payload.issued_at > now + TRANSFER_CLOCK_SKEW_SECS
+    {
+        return Err(AppError::Auth(TRANSFER_CODE_EXPIRED.to_owned()));
+    }
+
+    // A device identity of its own, so the account shows up as a second
+    // device instead of one device in two places at once.
+    let session = grindr::Session {
+        credentials: payload.credentials,
+        token: None,
+    };
+    // Minted on a client of its own first: a refused code then leaves the
+    // account signed in here (add-profile mode) untouched.
+    let probe = super::client::build_client(Some(grindr::DeviceInfo::generate()), Some(session))?;
+    let result = match probe.refresh_session().await {
+        Ok(result) => result,
+        Err(grindr::GrindrError::Unauthorized { .. }) => {
+            return Err(AppError::Auth(TRANSFER_CODE_REVOKED.to_owned()));
+        }
+        Err(e) => return Err(AppError::from_client_error(e, &probe)),
+    };
+    let session = probe
+        .session_receiver()
+        .borrow()
+        .clone()
+        .ok_or(AppError::SessionCleared)?;
+    let device = probe.current_device().await;
+    probe.sign_out().await;
+
+    // A key stored for this account belongs to the device it had here before.
+    SigningKeyStorage::delete(&result.profile_id);
+    AuthStorage::set_session(&session)?;
+    let _ = DeviceStorage::save(&device);
+    if let Err(e) = AuthStorage::save_account(&session, &device) {
+        eprintln!("[auth] failed to register account in switcher: {e}");
+    }
+    let client = adopt_client(&app, Some(device), Some(session))?;
+    Ok(login_result(&client, result))
+}
+
 #[tauri::command]
 pub async fn websocket_token(state: tauri::State<'_, AppState>) -> Result<Option<String>, AppError> {
     let client = state.client()?;

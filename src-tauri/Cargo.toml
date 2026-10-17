@@ -53,6 +53,8 @@ tauri-plugin-hotswap = { path = "hotswap-patched" }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 base64 = "0.22"
+# Account-transfer QR code (api/auth.rs), rendered as SVG for the frontend.
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 # Upload normalization (media/photo): decode, orient, downscale, sRGB, re-encode
 # as metadata-free JPEG — same pipeline as open-grind.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp", "tiff"] }
@@ -65,6 +67,10 @@ windows-native-keyring-store = "0.5.1"
 # pulls in, so the ICoreWebView2 types in lib.rs line up with what's actually loaded.
 webview2-com = "0.39"
 windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Threading"] }
+
+# Scans account-transfer QR codes; desktop pastes the code as text instead.
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri-plugin-barcode-scanner = "2"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android-native-keyring-store = "0.5.0"

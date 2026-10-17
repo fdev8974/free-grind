@@ -1182,7 +1182,19 @@
       "submit": "Sign In",
       "add_profile_title": "Add Profile",
       "add_profile_subtitle": "Sign in with the account you want to add.",
-      "forgot_password": "Forgot password?"
+      "forgot_password": "Forgot password?",
+      "qr_camera_denied": "Free Grind needs camera access to scan the code.",
+      "qr_scan_failed": "Couldn't scan the code. Please try again.",
+      "qr_step_show": "Show the code on your signed-in device",
+      "qr_step_show_hint": "In Free Grind on that device, open Settings and tap \"Sign in on another device\".",
+      "qr_step_scan": "Scan it here",
+      "qr_step_paste": "Paste the code here",
+      "qr_step_paste_hint": "Tap \"Copy code\" under the QR code there and send it to this device.",
+      "qr_scan": "Scan QR code",
+      "qr_or_paste": "or paste the code",
+      "qr_code_placeholder": "Sign-in code",
+      "qr_back": "Back to the other sign-in options",
+      "qr_entry": "Signed in on another device? Use a QR code"
     },
     "reset": {
       "title": "Reset password",
@@ -2547,5 +2559,25 @@
       "conflict": "A differently signed version is already installed. Uninstall it first, then try again.",
       "generic": "The update couldn't be installed."
     }
+  },
+  "account_transfer": {
+    "unsupported": "This sign-in can't be moved to another device. Sign in with email and password or Google instead.",
+    "create_failed": "Couldn't create a sign-in code.",
+    "copied": "Code copied",
+    "copy_failed": "Couldn't copy the code.",
+    "title": "Sign in on another device",
+    "subtitle": "Sign this account in on another device without typing your password.",
+    "warning_title": "This code is your login",
+    "warning_desc": "Anyone who scans or copies it can sign in to your account for the next 10 minutes. Only show it to a device you own, and never send it to anyone.",
+    "qr_alt": "Sign-in QR code",
+    "hides_in": "Hides in {{time}}",
+    "copy": "Copy code",
+    "hide": "Hide",
+    "show": "Show sign-in code",
+    "howto_title": "On the other device",
+    "howto_desc": "On the Free Grind sign-in screen, tap \"Use a QR code\" and scan this code. On a computer, copy the code instead and paste it there. Both devices stay signed in.",
+    "settings_desc": "Show a QR code to sign this account in elsewhere",
+    "backup_title": "Bring your data along",
+    "backup_desc": "Chat history, albums, saved phrases, saved locations and settings are stored on this device only. Export them under Backup & Restore and import the file on the new device to have everything there too."
   }
 }
