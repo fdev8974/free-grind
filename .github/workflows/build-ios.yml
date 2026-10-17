@@ -17,7 +17,7 @@ jobs:
       # on Stable, every other branch (beta builds) on Development.
       VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
           submodules: true
@@ -292,7 +292,7 @@ jobs:
 
       - name: Upload iOS IPA as artifact
         if: ${{ !inputs.release_id }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: free-grind-ios
           path: ${{ steps.ios_ipa.outputs.ipa_path }}
