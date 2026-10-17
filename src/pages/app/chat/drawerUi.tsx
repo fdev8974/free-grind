@@ -43,19 +43,33 @@ export function DrawerActionButton({ icon, label, onClick, disabled, layout = "c
 	);
 }
 
-/** Capture/upload action as a tile at the start of a media grid, same size as the media tiles. */
-export function DrawerActionTile({ icon, label, onClick, disabled }: Omit<DrawerActionButtonProps, "layout">) {
+/** Capture/upload actions as one flat row across the top of a media grid
+ * (it spans all columns): much lower than a square tile, borderless, on a
+ * fill a step darker than the sheet, like native media pickers. */
+export function DrawerActionBar({
+	actions,
+	disabled,
+}: {
+	actions: { key: string; icon: ReactNode; label: string; onClick: () => void }[];
+	disabled?: boolean;
+}) {
+	if (actions.length === 0) return null;
 	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={disabled}
-			className={`${DRAWER_TILE_CLASS} flex flex-col items-center justify-center gap-2 border border-[var(--border)] bg-[var(--surface-2)] px-1.5 text-[var(--accent-readable)] transition active:scale-95 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] disabled:pointer-events-none disabled:opacity-40`}
-		>
-			{/* Icon sized here rather than by the caller, so the tile doesn't depend on the icon's own classes. */}
-			<span className="flex shrink-0 items-center justify-center [&_svg]:h-6 [&_svg]:w-6">{icon}</span>
-			<span className="line-clamp-2 max-w-full text-center text-[10.5px] font-medium leading-snug text-[var(--text-muted)]">{label}</span>
-		</button>
+		<div className="col-span-full flex gap-1.5">
+			{actions.map((action) => (
+				<button
+					key={action.key}
+					type="button"
+					onClick={action.onClick}
+					disabled={disabled}
+					className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--surface-2)_70%,black_30%)] px-2 text-[var(--text)] transition active:scale-[0.97] hover:bg-[color-mix(in_srgb,var(--surface-2)_60%,black_40%)] disabled:pointer-events-none disabled:opacity-40"
+				>
+					{/* Icon sized here rather than by the caller, so the bar doesn't depend on the icon's own classes. */}
+					<span className="flex shrink-0 items-center justify-center text-[var(--accent-readable)] [&_svg]:h-[18px] [&_svg]:w-[18px]">{action.icon}</span>
+					<span className="truncate text-[12.5px] font-semibold">{action.label}</span>
+				</button>
+			))}
+		</div>
 	);
 }
 
@@ -505,7 +519,7 @@ export type DrawerAddAction = { key: string; label: string; icon: ReactNode; onC
 
 /**
  * The drawer's add actions (take photo, record video, upload from device):
- * render `inputs` once in the sheet and `actions` as DrawerActionTile /
+ * render `inputs` once in the sheet and `actions` as DrawerActionBar /
  * DrawerActionButton. `onFiles` gets whatever was picked.
  */
 export function useDrawerAddActions({

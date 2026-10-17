@@ -25,7 +25,7 @@ import {
 	drawerGridClass,
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
-	DrawerActionTile,
+	DrawerActionBar,
 	DrawerBody,
 	DrawerEmptyState,
 	DrawerFooter,
@@ -623,15 +623,7 @@ export function ChatDrawerPanel({
 								)}
 								{showSection("media") && (media.length > 0 || hasCombinedGroups) && (
 								<DrawerGrid isDesktop={isDesktop}>
-									{drawerActions.map((action) => (
-										<DrawerActionTile
-											key={action.key}
-											icon={action.icon}
-											label={action.label}
-											onClick={action.onClick}
-											disabled={actionsDisabled}
-										/>
-									))}
+									<DrawerActionBar actions={drawerActions} disabled={actionsDisabled} />
 									{/* Not split into categories: albums and collections share the media grid. */}
 									{combined && albumTiles}
 									{combined && collectionTiles}

@@ -2,7 +2,7 @@ import { AlertTriangle, ImageIcon, Loader2, Plus } from "lucide-react";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
-	DrawerActionTile,
+	DrawerActionBar,
 	DrawerBody,
 	DrawerEmptyState,
 	DrawerFooter,
@@ -165,10 +165,8 @@ export function ProfilePictureDrawer({
 				) : undefined}
 			>
 				<DrawerGrid isDesktop={isDesktop}>
-					{/* Add actions as the first tiles, like the chat drawer. */}
-					{addActions.map((action) => (
-						<DrawerActionTile key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isSelecting || hasSelection} />
-					))}
+					{/* Add actions as the grid's first row, like the chat drawer. */}
+					<DrawerActionBar actions={addActions} disabled={isSelecting || hasSelection} />
 					{visibleImages.map((image) => {
 						const isPending = image.state === MEDIA_MODERATION_STATE.PENDING;
 						const isRejected = image.state === MEDIA_MODERATION_STATE.REJECTED;

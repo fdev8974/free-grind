@@ -3,7 +3,7 @@ import { ImagesFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
-	DrawerActionTile,
+	DrawerActionBar,
 	DrawerBody,
 	DrawerEmptyState,
 	DrawerFooter,
@@ -146,10 +146,8 @@ export function AlbumDrawerPickerSheet({
 				) : undefined}
 			>
 				<DrawerGrid isDesktop={isDesktop}>
-					{/* Add actions as the first tiles, like the chat drawer. */}
-					{upload.actions.map((action) => (
-						<DrawerActionTile key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
-					))}
+					{/* Add actions as the grid's first row, like the chat drawer. */}
+					<DrawerActionBar actions={upload.actions} disabled={isBusy} />
 					{media.map((item) => {
 						const isVideo = item.contentType.startsWith("video/");
 						const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
