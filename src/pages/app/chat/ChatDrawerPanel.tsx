@@ -14,7 +14,7 @@ import {
 	Video,
 	X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useDrawerMediaDelete } from "./useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "./useDrawerUploadQueue";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
@@ -38,7 +38,6 @@ import {
 	useDrawerMediaPreview,
 } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
-import { ProfileImage } from "../../../components/ui/profile-image";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -53,23 +52,33 @@ import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { appLog } from "../../../utils/logger";
 
-/** Bottom-left photo/video count on album and collection tiles. */
-function TileMediaCount({ images, videos }: AlbumMediaCount) {
+/** Bottom caption of an album / collection tile, like the album chat bubble:
+ * type icon and name over a fade, with the media counts below. */
+function GroupTileCaption({ icon, name, counts, badge }: { icon: ReactNode; name: string; counts?: AlbumMediaCount; badge?: ReactNode }) {
 	return (
-		<span className="pointer-events-none absolute bottom-1 left-1.5 inline-flex items-center gap-2 text-[10px] font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-			{images > 0 || videos === 0 ? (
-				<span className="inline-flex items-center gap-1">
-					<Images className="h-3 w-3" />
-					{images}
+		<div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-1.5 pb-1.5 pt-6 text-white">
+			<p className="flex min-w-0 items-center gap-1 text-[11px] font-semibold leading-tight drop-shadow">
+				<span className="shrink-0 opacity-90">{icon}</span>
+				<span className="truncate">{name}</span>
+			</p>
+			<div className="flex items-center justify-between gap-1 text-[10px] font-medium tabular-nums text-white/85">
+				<span className="inline-flex min-w-0 items-center gap-2">
+					{counts && (counts.images > 0 || counts.videos === 0) ? (
+						<span className="inline-flex items-center gap-0.5">
+							<Images className="h-3 w-3" />
+							{counts.images}
+						</span>
+					) : null}
+					{counts && counts.videos > 0 ? (
+						<span className="inline-flex items-center gap-0.5">
+							<Video className="h-3 w-3" />
+							{counts.videos}
+						</span>
+					) : null}
 				</span>
-			) : null}
-			{videos > 0 ? (
-				<span className="inline-flex items-center gap-1">
-					<Video className="h-3 w-3" />
-					{videos}
-				</span>
-			) : null}
-		</span>
+				{badge}
+			</div>
+		</div>
 	);
 }
 
@@ -111,7 +120,6 @@ interface ChatDrawerPanelProps {
 	isSharingAlbum?: boolean;
 	onStopAlbumShare?: (albumId: number) => Promise<void>;
 	noConversation?: boolean;
-	ownProfilePhotoUrl?: string | null;
 }
 
 export function ChatDrawerPanel({
@@ -134,7 +142,6 @@ export function ChatDrawerPanel({
 	isSharingAlbum = false,
 	onStopAlbumShare,
 	noConversation = false,
-	ownProfilePhotoUrl,
 }: ChatDrawerPanelProps) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
@@ -404,17 +411,25 @@ export function ChatDrawerPanel({
 				onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
 				className={`${DRAWER_TILE_CLASS} cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
-				{cover ? <img src={cover} alt="" className="h-full w-full object-cover scale-110" style={{ filter: "blur(3px)" }} /> : (
-					<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]"><Album className="h-6 w-6 opacity-50" /></div>
-				)}
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
-					<div className="h-10 w-10 overflow-hidden rounded-full ring-2 ring-white/60" style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}>
-						<ProfileImage src={ownProfilePhotoUrl} />
+				{cover ? <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover" /> : (
+					<div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_28%,var(--surface)),var(--surface))] text-[var(--text-muted)]">
+						<Album className="mb-6 h-6 w-6 opacity-60" />
 					</div>
-					<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{album.albumName || t("chat_drawer.album_fallback", { defaultValue: "My Album" })}</p>
-					{isShared && <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold text-[var(--accent-contrast)]">{t("chat_drawer.sharing", { defaultValue: "Sharing" })}</span>}
-				</div>
-				{mediaCount ? <TileMediaCount {...mediaCount} /> : null}
+				)}
+				<GroupTileCaption
+					icon={<Album className="h-3 w-3" />}
+					name={album.albumName || t("chat_drawer.album_fallback", { defaultValue: "My Album" })}
+					counts={mediaCount}
+					badge={isShared ? (
+						<span
+							className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]"
+							title={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
+							aria-label={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
+						>
+							<Share2 className="h-2.5 w-2.5" />
+						</span>
+					) : null}
+				/>
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
 				{!isSelected && !dimmed && (
@@ -476,7 +491,7 @@ export function ChatDrawerPanel({
 				className={`${DRAWER_TILE_CLASS} no-touch-callout cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
 				{coverItems.length > 0 ? (
-					<div className={`absolute inset-0 grid gap-px bg-black ${mosaicClass} ${mosaicRows}`}>
+					<div className={`absolute inset-0 grid gap-0.5 bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] ${mosaicClass} ${mosaicRows}`}>
 						{coverItems.map((item, index) => {
 							const src = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
 							// With three items the first spans the full left column.
@@ -496,19 +511,15 @@ export function ChatDrawerPanel({
 						})}
 					</div>
 				) : (
-					<div className="absolute inset-0 bg-[var(--surface)]" />
-				)}
-				<div className="absolute inset-0 bg-black/35" />
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
-					<div
-						className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 ring-2 ring-white/60 backdrop-blur-sm"
-						style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
-					>
-						<Layers className="h-5 w-5 text-white" />
+					<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]">
+						<Layers className="mb-6 h-6 w-6 opacity-60" />
 					</div>
-					<p className="truncate text-[11px] font-medium text-white leading-tight drop-shadow px-1 max-w-full">{collection.name}</p>
-				</div>
-				<TileMediaCount images={presentIds.length - presentVideoCount} videos={presentVideoCount} />
+				)}
+				<GroupTileCaption
+					icon={<Layers className="h-3 w-3" />}
+					name={collection.name}
+					counts={{ images: presentIds.length - presentVideoCount, videos: presentVideoCount }}
+				/>
 				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
 				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
 				{!isSelected && !dimmed && (

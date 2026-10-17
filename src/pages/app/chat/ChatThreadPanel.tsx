@@ -234,7 +234,6 @@ type ChatThreadPanelProps = {
 	shareableAlbums: AlbumListItem[];
 	albumCoverMap?: Map<number, string>;
 	albumMediaCountMap?: Map<number, AlbumMediaCount>;
-	ownProfilePhotoUrl?: string | null;
 	isSharingAlbum: boolean;
 	pendingAlbumShare: {
 		albumId: number;
@@ -703,7 +702,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		shareableAlbums,
 		albumCoverMap: externalAlbumCoverMap,
 		albumMediaCountMap,
-		ownProfilePhotoUrl,
 		isSharingAlbum,
 		pendingAlbumShare,
 		shareAlbumToCurrentConversation: _shareAlbumToCurrentConversation,
@@ -2758,7 +2756,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							isSharingAlbum={isSharingAlbum}
 							isDesktop={isDesktop}
 							noConversation={!selectedConversation && !targetProfileId}
-							ownProfilePhotoUrl={ownProfilePhotoUrl}
 						/>
 					) : null}
 

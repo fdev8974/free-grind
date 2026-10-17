@@ -68,7 +68,10 @@ export function InterestViewsGrid({
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
 		getScrollElement: () => scrollContainerRef.current,
-		estimateSize: () => rowMetrics.rowSizePx,
+		// Rows are measured (measureElement below), so the row spacing is
+		// exactly the grid gap instead of an estimate of tile height + gap.
+		estimateSize: () => rowMetrics.rowSizePx - rowMetrics.rowGapPx,
+		gap: rowMetrics.rowGapPx,
 		overscan: 3,
 		scrollMargin,
 		getItemKey: (index) => rows[index]?.[0]?.profileId ?? index,
@@ -90,6 +93,7 @@ export function InterestViewsGrid({
 					<div
 						key={virtualRow.key}
 						data-index={virtualRow.index}
+						ref={rowVirtualizer.measureElement}
 						className={cn(gridClassName, "absolute inset-x-0 top-0")}
 						style={{
 							gridTemplateColumns,

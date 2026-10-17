@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export type RowMetrics = { columnCount: number; rowSizePx: number };
+export type RowMetrics = { columnCount: number; rowSizePx: number; rowGapPx: number };
 
 /**
  * Column count and row height of a square-tile CSS grid (tiles are always
@@ -10,6 +10,10 @@ export type RowMetrics = { columnCount: number; rowSizePx: number };
  * grid that shares the exact same template/className as a real row, rather
  * than re-deriving the CSS math (which would drift from actual layout on odd
  * viewport widths). Attach `probeRef` to that probe element.
+ *
+ * `rowSizePx` is only an estimate: virtualized rows should still be measured
+ * (measureElement) with `rowGapPx` as the virtualizer's gap, so the vertical
+ * spacing always matches the grid's column gap exactly.
  */
 export function useGridRowMetrics(gridTemplateColumns: string, gridClassName: string, initialColumnCount: number) {
 	const probeElRef = useRef<HTMLDivElement | null>(null);
@@ -17,6 +21,7 @@ export function useGridRowMetrics(gridTemplateColumns: string, gridClassName: st
 	const [rowMetrics, setRowMetrics] = useState<RowMetrics>(() => ({
 		columnCount: initialColumnCount,
 		rowSizePx: 140,
+		rowGapPx: 0,
 	}));
 
 	const measureProbe = useCallback((el: HTMLDivElement) => {
@@ -28,9 +33,9 @@ export function useGridRowMetrics(gridTemplateColumns: string, gridClassName: st
 		if (columnCount > 0 && columnWidthPx > 0) {
 			const rowSizePx = columnWidthPx + rowGapPx;
 			setRowMetrics((prev) =>
-				prev.columnCount === columnCount && prev.rowSizePx === rowSizePx
+				prev.columnCount === columnCount && prev.rowSizePx === rowSizePx && prev.rowGapPx === rowGapPx
 					? prev
-					: { columnCount, rowSizePx },
+					: { columnCount, rowSizePx, rowGapPx },
 			);
 		}
 	}, []);

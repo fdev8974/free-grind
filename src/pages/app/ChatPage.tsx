@@ -6667,7 +6667,6 @@ export function ChatPage() {
 			shareableAlbums={shareableAlbums}
 			albumCoverMap={albumCoverMap}
 			albumMediaCountMap={albumMediaCountMap}
-			ownProfilePhotoUrl={ownProfilePhotoUrl}
 			isSharingAlbum={isSharingAlbum}
 			pendingAlbumShare={pendingAlbumShare}
 			shareAlbumToCurrentConversation={shareAlbumToCurrentConversation}
