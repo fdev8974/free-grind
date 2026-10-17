@@ -40,7 +40,9 @@ class GoogleOAuthActivity : ComponentActivity() {
     const val EXTRA_TOKEN = "dev.estopia.free_grind.google_oauth.extra.TOKEN"
 
     private const val TAG = "GoogleOAuth"
-    private const val HELPER_URL = "https://web.grindr.com/"
+    // #autostart: the extension opens Google's sign-in right away instead of
+    // waiting for a tap on its button (popupPromptDelegate allows the popup).
+    private const val HELPER_URL = "https://web.grindr.com/#autostart"
     private const val NATIVE_APP = "grindr_google_oauth"
     private const val EXTENSION_ID = "freegrind-google-oauth-webextension@estopia.dev"
     private const val EXTENSION_URL = "resource://android/assets/grindr-google-oauth/"

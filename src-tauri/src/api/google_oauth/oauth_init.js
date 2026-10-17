@@ -22,6 +22,29 @@
 	const reportError = (message) =>
 		reportToRust(`error=${encodeURIComponent(String(message))}`);
 
+	// iOS: the window covers the app without any chrome to close it.
+	const CANCEL_BUTTON_ID = "__free-grind-oauth-cancel";
+	const addCancelButton = () => {
+		if (!config.cancelButton || window.top !== window) return;
+		const add = () => {
+			if (!document.body || document.getElementById(CANCEL_BUTTON_ID)) return;
+			const button = document.createElement("button");
+			button.id = CANCEL_BUTTON_ID;
+			button.type = "button";
+			button.textContent = "Cancel";
+			button.setAttribute(
+				"style",
+				"position:fixed;z-index:2147483647;top:max(8px,env(safe-area-inset-top));right:12px;" +
+					"padding:6px 14px;border:0;border-radius:999px;background:rgba(0,0,0,.7);" +
+					"color:#fff;font:600 14px -apple-system,system-ui,sans-serif;",
+			);
+			button.addEventListener("click", () => reportError(config.canceledError));
+			document.body.appendChild(button);
+		};
+		if (document.body) add();
+		else document.addEventListener("DOMContentLoaded", add);
+	};
+
 	const maskRequestedWithHeader = () => {
 		const HEADER = "X-Requested-With";
 		try {
@@ -223,9 +246,15 @@
 		ui.setPhase("ready");
 		const button = document.querySelector(".grindr-oauth-button");
 		button?.addEventListener("click", requestToken);
+		// The page was just replaced, together with any earlier button.
+		addCancelButton();
+		// The window exists only to sign in: go straight to Google. window.open
+		// is a navigation here (installPopupPolyfill), so no tap is needed.
+		requestToken();
 	};
 
 	maskRequestedWithHeader();
+	addCancelButton();
 	if (location.origin === GOOGLE_ORIGIN) {
 		captureTokenFromGoogleRelay();
 	} else if (location.origin === HELPER_ORIGIN) {

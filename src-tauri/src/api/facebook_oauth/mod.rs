@@ -5,14 +5,14 @@
 //! The dialog uses Grindr's own Facebook app id and its registered redirect
 //! (`https://web.grindr.com/`); the redirect is intercepted in `on_navigation`
 //! and never actually loads. On Android the window lives in its own Activity
-//! (`FacebookOAuthActivity`, isolated WebView profile).
+//! (`FacebookOAuthActivity`, isolated WebView profile); on iOS it is a
+//! full-screen WKWebView over the app (tao attaches it to the main scene).
 //!
 //! Adapted from Open Grind (MIT, https://git.opengrind.org/open-grind/open-grind).
 
 #[cfg(target_os = "android")]
 mod android;
 mod dialog;
-#[cfg(any(desktop, target_os = "android"))]
 mod web;
 
 use std::sync::Arc;
@@ -52,7 +52,6 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 }
 
 /// Opens the Facebook dialog and waits for the user access token.
-#[cfg(any(desktop, target_os = "android"))]
 pub async fn fetch_access_token(app: &tauri::AppHandle) -> Result<String, AppError> {
     use tauri::Manager;
 
@@ -61,13 +60,6 @@ pub async fn fetch_access_token(app: &tauri::AppHandle) -> Result<String, AppErr
     web::run_flow(app, &bridge, rx)
         .await
         .inspect_err(|_| bridge.abort())
-}
-
-#[cfg(not(any(desktop, target_os = "android")))]
-pub async fn fetch_access_token(_app: &tauri::AppHandle) -> Result<String, AppError> {
-    Err(AppError::Auth(
-        "Facebook sign-in is not supported on this platform".into(),
-    ))
 }
 
 /// Drops the Facebook cookies of the sign-in WebView profile, so the next

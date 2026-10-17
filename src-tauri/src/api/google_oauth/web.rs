@@ -11,14 +11,26 @@ use super::{GoogleOauthBridge, CANCELED};
 const HELPER_URL: &str = "https://web.grindr.com/";
 const HELPER_HOST: &str = "web.grindr.com";
 const WINDOW_LABEL: &str = "google-oauth";
+#[cfg(desktop)]
 const WINDOW_INNER_SIZE: (f64, f64) = (800.0, 560.0);
 
 const FLOW_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10 * 60);
 
 /// Google refuses sign-in from some embedded desktop webviews (WebKitGTK,
 /// WebView2) but accepts a regular Safari.
+#[cfg(desktop)]
 const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) \
      AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+
+/// WKWebView's own user agent lacks Safari's `Version/… Safari/…` tokens,
+/// which is how Google tells an embedded webview from mobile Safari.
+#[cfg(target_os = "ios")]
+const USER_AGENT: &str = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) \
+     AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+
+/// iOS shows the window full screen without any chrome to close it, so the
+/// init script adds a button that reports this error (see `CANCELED`).
+const SHOW_CANCEL_BUTTON: bool = cfg!(target_os = "ios");
 
 /// The init script reports here; the navigation never actually loads.
 const RESULT_PATH: &str = "/__free_grind_oauth__";
@@ -42,7 +54,12 @@ const PRELUDE: &str = concat!(vendored!("gis-core.js"), "\n", vendored!("oauth-u
 const OAUTH_INIT: &str = include_str!("oauth_init.js");
 
 fn init_script(nonce: &str) -> String {
-    let config = serde_json::json!({ "css": OAUTH_UI_CSS, "nonce": nonce });
+    let config = serde_json::json!({
+        "css": OAUTH_UI_CSS,
+        "nonce": nonce,
+        "cancelButton": SHOW_CANCEL_BUTTON,
+        "canceledError": CANCELED,
+    });
     format!("{PRELUDE}\n({OAUTH_INIT})({config});")
 }
 
@@ -81,14 +98,12 @@ pub(super) async fn run_flow(
         Url::parse(HELPER_URL).map_err(|e| AppError::Http(format!("invalid helper URL: {e}")))?;
 
     let nonce = new_nonce();
-    let (window_width, window_height) = WINDOW_INNER_SIZE;
     let bridge_for_nav = bridge.clone();
     let nonce_for_nav = nonce.clone();
 
     #[allow(unused_mut)]
     let mut builder = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::External(url))
         .title("Sign in with Google")
-        .inner_size(window_width, window_height)
         .user_agent(USER_AGENT)
         .initialization_script(init_script(&nonce))
         .incognito(true)
@@ -106,6 +121,13 @@ pub(super) async fn run_flow(
             }
             false
         });
+
+    // On iOS tao sizes the UIWindow to inner_size; left out, it fills the screen.
+    #[cfg(desktop)]
+    {
+        let (window_width, window_height) = WINDOW_INNER_SIZE;
+        builder = builder.inner_size(window_width, window_height);
+    }
 
     #[cfg(target_os = "windows")]
     {

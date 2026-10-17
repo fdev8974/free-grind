@@ -16,16 +16,52 @@ const WINDOW_LABEL: &str = "facebook-oauth";
 
 const FLOW_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10 * 60);
 
+// None on iOS: tao sizes the UIWindow to it, left out it fills the screen.
 #[cfg(desktop)]
 const WINDOW_INNER_SIZE: (f64, f64) = (600.0, 700.0);
-#[cfg(mobile)]
+#[cfg(target_os = "android")]
 const WINDOW_INNER_SIZE: (f64, f64) = (500.0, 720.0);
 
 /// Facebook's dialog refuses some embedded desktop webviews (WebKitGTK,
 /// WebView2) but accepts a regular Safari.
-#[cfg(not(target_os = "android"))]
-const DESKTOP_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) \
+#[cfg(desktop)]
+const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) \
      AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+
+/// WKWebView's own user agent lacks Safari's `Version/… Safari/…` tokens.
+#[cfg(target_os = "ios")]
+const USER_AGENT: &str = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) \
+     AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+
+/// iOS shows the window full screen without any chrome to close it: a
+/// button on every page of the dialog navigates to [`cancel_url`].
+#[cfg(target_os = "ios")]
+fn cancel_button_script(state: &str) -> Result<String, AppError> {
+    let cancel = super::dialog::cancel_url(state)
+        .map_err(|e| AppError::Http(format!("invalid cancel URL: {e}")))?;
+    let cancel = serde_json::to_string(cancel.as_str()).unwrap_or_default();
+    Ok(format!(
+        r#"(() => {{
+  if (window.top !== window) return;
+  const ID = "__free-grind-oauth-cancel";
+  const add = () => {{
+    if (!document.body || document.getElementById(ID)) return;
+    const button = document.createElement("button");
+    button.id = ID;
+    button.type = "button";
+    button.textContent = "Cancel";
+    button.setAttribute("style",
+      "position:fixed;z-index:2147483647;top:max(8px,env(safe-area-inset-top));right:12px;" +
+      "padding:6px 14px;border:0;border-radius:999px;background:rgba(0,0,0,.7);" +
+      "color:#fff;font:600 14px -apple-system,system-ui,sans-serif;");
+    button.addEventListener("click", () => location.assign({cancel}));
+    document.body.appendChild(button);
+  }};
+  if (document.body) add();
+  else document.addEventListener("DOMContentLoaded", add);
+}})();"#
+    ))
+}
 
 pub(super) async fn run_flow(
     app: &AppHandle,
@@ -37,7 +73,6 @@ pub(super) async fn run_flow(
     }
 
     let state = new_nonce();
-    let (window_width, window_height) = WINDOW_INNER_SIZE;
     let bridge_for_nav = bridge.clone();
     let state_for_nav = state.clone();
     let url = dialog_url(&state).map_err(|e| AppError::Http(format!("invalid dialog URL: {e}")))?;
@@ -45,7 +80,6 @@ pub(super) async fn run_flow(
     #[allow(unused_mut)]
     let mut builder = WebviewWindowBuilder::new(app, WINDOW_LABEL, WebviewUrl::External(url))
         .title("Sign in with Facebook")
-        .inner_size(window_width, window_height)
         .incognito(true)
         .general_autofill_enabled(false)
         .on_navigation(move |url| {
@@ -63,9 +97,20 @@ pub(super) async fn run_flow(
             false
         });
 
+    #[cfg(not(target_os = "ios"))]
+    {
+        let (window_width, window_height) = WINDOW_INNER_SIZE;
+        builder = builder.inner_size(window_width, window_height);
+    }
+
     #[cfg(not(target_os = "android"))]
     {
-        builder = builder.user_agent(DESKTOP_USER_AGENT);
+        builder = builder.user_agent(USER_AGENT);
+    }
+
+    #[cfg(target_os = "ios")]
+    {
+        builder = builder.initialization_script(cancel_button_script(&state)?);
     }
 
     // tao matches the parent against each Activity's getLocalClassName(), and

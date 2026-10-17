@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import { Mail, Lock, KeyRound, ExternalLink, Eye, EyeOff, Puzzle, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
 import { SmsVerificationRequiredError } from "../../contexts/auth-context";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
-import { isAndroid, isIos } from "../../services/saveMedia";
+import { isAndroid } from "../../services/saveMedia";
 import { isTauriRuntime } from "../../services/tauriWebSocket";
 import { isQrScanSupported, QrScanError, scanQrCode } from "../../services/qrScanner";
 import { cn } from "../../utils/cn";
@@ -58,16 +58,16 @@ function FacebookIcon({ className }: { className?: string }) {
 	);
 }
 
-// The sign-in window (api/facebook_oauth) needs a second webview, which the
-// iOS build doesn't set up.
+// The sign-in window (api/facebook_oauth) is a second webview, on every
+// platform of the app.
 function isFacebookSignInSupported(): boolean {
-	return isTauriRuntime() && !isIos();
+	return isTauriRuntime();
 }
 
-// Desktop opens its own Google sign-in window (api/google_oauth); Android
-// has GoogleOAuthActivity instead.
+// Desktop and iOS open their own Google sign-in window (api/google_oauth);
+// Android has GoogleOAuthActivity instead.
 function isGoogleWindowSupported(): boolean {
-	return isTauriRuntime() && !isIos() && !isAndroid();
+	return isTauriRuntime() && !isAndroid();
 }
 
 function Step({

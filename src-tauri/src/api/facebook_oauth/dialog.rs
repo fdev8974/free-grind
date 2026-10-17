@@ -32,6 +32,17 @@ pub fn dialog_url(state: &str) -> Result<Url, String> {
     .map_err(|e| e.to_string())
 }
 
+/// A redirect the dialog itself sends when the user declines: navigating
+/// there cancels the sign-in like that (see `result_from_redirect`).
+#[cfg_attr(not(any(target_os = "ios", test)), allow(dead_code))]
+pub fn cancel_url(state: &str) -> Result<Url, String> {
+    let mut url = Url::parse(REDIRECT_URI).map_err(|e| e.to_string())?;
+    let fragment = Url::parse_with_params("x:/", &[("error", "access_denied"), ("state", state)])
+        .map_err(|e| e.to_string())?;
+    url.set_fragment(fragment.query());
+    Ok(url)
+}
+
 /// The app's own origins (tauri.localhost, ipc.localhost, ...) must never load
 /// in the sign-in window.
 fn is_served_locally(host: &str) -> bool {
@@ -196,5 +207,13 @@ mod tests {
         ] {
             assert!(!is_allowed_target(&url(refused)), "{refused} must not load");
         }
+    }
+
+    #[test]
+    fn the_cancel_url_is_a_redirect_that_cancels() {
+        let cancel = cancel_url("st4te").unwrap();
+        assert!(is_redirect_url(&cancel));
+        assert!(is_allowed_target(&cancel));
+        assert_eq!(result_from_redirect(&cancel, "st4te"), Some(Err(CANCELED.to_owned())));
     }
 }
