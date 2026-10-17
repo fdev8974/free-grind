@@ -93,7 +93,7 @@ import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import {
 	DndContext,
 	MouseSensor,
@@ -425,7 +425,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 	const closeReportDialog = useCallback(() => setIsReportDialogOpen(false), []);
 	const [showSexualHealth] = useState(isSexualHealthEnabled);
-	const [phrasesExpanded, setPhrasesExpanded] = useState(false);
 	const [isGiphyPickerOpen, setIsGiphyPickerOpen] = useState(false);
 	const [newPhraseInput, setNewPhraseInput] = useState("");
 	const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
@@ -2768,12 +2767,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					{isSavedPhrasesOpen ? (
 						<BottomSheet
 							onClose={() => {
-								setPhrasesExpanded(false);
 								setIsSavedPhrasesOpen(false);
 								runAfterSheetClose();
 							}}
 							closeRef={savedPhrasesSheetCloseRef}
-							onExpand={() => setPhrasesExpanded(true)}
+							expandable
 							isDesktop={isDesktop}
 							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 						>
@@ -2796,15 +2794,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												afterSheetCloseRef.current = () => navigate("/settings/data");
 												savedPhrasesSheetCloseRef.current?.();
 											}}
-											className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+											className={SHEET_ICON_BUTTON_CLASS}
 											aria-label={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
 											title={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
 										>
 											<Settings2 className="h-4 w-4" />
 										</button>
-										<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-											<X className="h-4 w-4" />
-										</SheetClose>
+										<SheetCloseButton />
 									</div>
 								</div>
 
@@ -2834,7 +2830,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<div className="border-t border-[var(--border)]" />
 
 								{/* Phrases list */}
-								<div data-lenis-prevent className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: phrasesExpanded ? "72dvh" : "40dvh", transition: "max-height 0.25s ease" }}>
+								<div data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: isDesktop ? "40dvh" : undefined }}>
 									{savedPhrases.length === 0 ? (
 										<div className="flex flex-col items-center justify-center gap-2.5 text-center text-[var(--text-muted)]" style={{ minHeight: "40dvh" }}>
 											<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
@@ -2882,9 +2878,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<p className="text-sm font-semibold text-[var(--text)]">
 									{t("chat.merge_conversation_dialog_title", { defaultValue: "Merge into…" })}
 								</p>
-								<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-									<X className="h-4 w-4" />
-								</SheetClose>
+								<SheetCloseButton />
 							</div>
 
 							<div className="px-3 pb-3">
@@ -2960,9 +2954,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<p className="text-sm font-semibold text-[var(--text)]">
 									{t("chat.actions.title")}
 								</p>
-								<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-									<X className="h-4 w-4" />
-								</SheetClose>
+								<SheetCloseButton />
 							</div>
 							<div className="divide-y divide-[var(--border)] pb-1">
 								{(() => {

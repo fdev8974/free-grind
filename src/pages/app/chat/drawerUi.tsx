@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
-import { SheetClose } from "../../../components/ui/bottom-sheet";
+import { SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 
@@ -243,8 +243,7 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 	);
 }
 
-export const DRAWER_ICON_BUTTON_CLASS =
-	"inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]";
+export const DRAWER_ICON_BUTTON_CLASS = SHEET_ICON_BUTTON_CLASS;
 
 /** Sheet title row: title on the left, optional extra buttons, then close.
  * Pass `onClose` to close through your own handler instead of the sheet's. */
@@ -259,19 +258,18 @@ export function DrawerHeader({
 	onClose?: () => void;
 	className?: string;
 }) {
+	const { t } = useTranslation();
 	return (
 		<div className={`flex items-center justify-between ${className}`}>
 			<h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
-			<div className="flex items-center gap-1">
+			<div className="flex items-center gap-2">
 				{actions}
 				{onClose ? (
-					<button type="button" onClick={onClose} className={DRAWER_ICON_BUTTON_CLASS}>
-						<X className="h-4 w-4" />
+					<button type="button" onClick={onClose} className={DRAWER_ICON_BUTTON_CLASS} aria-label={t("common.close")}>
+						<SheetCloseIcon />
 					</button>
 				) : (
-					<SheetClose className={DRAWER_ICON_BUTTON_CLASS}>
-						<X className="h-4 w-4" />
-					</SheetClose>
+					<SheetCloseButton />
 				)}
 			</div>
 		</div>

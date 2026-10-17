@@ -1,6 +1,6 @@
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { BottomSheet, SheetClose } from "./bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "./bottom-sheet";
 
 interface BottomDrawerProps {
 	title: string;
@@ -36,12 +36,7 @@ export function BottomDrawer({
 		>
 			<div className="flex items-center justify-between px-4 pb-3">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
-				<SheetClose
-					disabled={isProcessing}
-					className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-40"
-				>
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton disabled={isProcessing} />
 			</div>
 			{children}
 			<div className="flex gap-2 px-3">

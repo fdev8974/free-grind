@@ -2207,7 +2207,8 @@
         "cancel": "إلغاء",
         "save": "حفظ",
         "edit": "تعديل",
-        "unknown_display_name": "حد"
+        "unknown_display_name": "حد",
+        "close": ""
     },
     "grid": {
         "open_profile_by_id": "فتح البروفايل بواسطة المعرف",

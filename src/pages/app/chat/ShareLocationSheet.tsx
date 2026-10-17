@@ -1,8 +1,8 @@
-import { Send, X } from "lucide-react";
+import { Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../../components/icons/FilledIcons";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useHomeLocation } from "../../../hooks/queries/useProfileQueries";
@@ -63,9 +63,7 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 				<h3 className="text-sm font-semibold text-[var(--text)]">
 					{t("chat.share_location_label")}
 				</h3>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 
 			<div className="relative overflow-hidden rounded-2xl" style={{ height: isDesktop ? "45vh" : "40dvh" }}>

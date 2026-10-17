@@ -2159,7 +2159,8 @@
         "cancel": "Annuler",
         "save": "Enregistrer",
         "edit": "Modifier",
-        "unknown_display_name": "Quelqu'un"
+        "unknown_display_name": "Quelqu'un",
+        "close": ""
     },
     "grid": {
         "open_profile_by_id": "Ouvrir le profil par ID",

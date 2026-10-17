@@ -1,11 +1,11 @@
 import { useRef, useState } from "react";
-import { FileArchive, FileUp, Loader2, Lock, UploadCloud, X } from "lucide-react";
+import { FileArchive, FileUp, Loader2, Lock, UploadCloud } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
 import { BackupProgressBar } from "./BackupProgressBar";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
-import { BottomSheet, SheetClose } from "./ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import * as chatDb from "../services/chatDb";
 import {
@@ -206,12 +206,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 						<p className="text-sm font-semibold text-[var(--text)]">
 							{t("restore_offer.categories_title", { defaultValue: "What do you want to restore?" })}
 						</p>
-						<SheetClose
-							disabled={isBusy}
-							className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-60"
-						>
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton disabled={isBusy} />
 					</div>
 					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
 						<p className="mb-3 px-4 text-xs leading-relaxed text-[var(--text-muted)]">

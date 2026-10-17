@@ -2,7 +2,7 @@ import { Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
-import { BottomSheet, SheetClose, useBottomSheetClose } from "../../components/ui/bottom-sheet";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import { SheetChip, SheetSection } from "../../components/ui/sheet-section";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
@@ -294,9 +294,7 @@ function BrowseFiltersSheetContent({
 		<>
 			<div className="mb-3 flex items-center justify-between gap-3">
 				<h3 className="text-sm font-semibold text-[var(--text)]">{t("browse_filters.title")}</h3>
-				<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>

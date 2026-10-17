@@ -2143,7 +2143,8 @@
         "cancel": "Abbrechen",
         "save": "Speichern",
         "edit": "Bearbeiten",
-        "unknown_display_name": "Jemand"
+        "unknown_display_name": "Jemand",
+        "close": ""
     },
     "grid": {
         "open_profile_by_id": "Profil per ID öffnen",

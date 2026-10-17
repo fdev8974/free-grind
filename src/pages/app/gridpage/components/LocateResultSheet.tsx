@@ -1,8 +1,8 @@
-import { Check, Copy, Loader2, TriangleAlert, X } from "lucide-react";
+import { Check, Copy, Loader2, TriangleAlert } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { BottomSheet, SheetClose } from "../../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton } from "../../../../components/ui/bottom-sheet";
 import { isIos } from "../../../../services/saveMedia";
 import { appLog } from "../../../../utils/logger";
 import { MapLocationPreview } from "./MapLocationPreview";
@@ -102,9 +102,7 @@ export function LocateResultSheet({ progress, onClose, onCancel, isDesktop }: Pr
 				<p className="text-sm font-semibold text-[var(--text)]">
 					{t("profile_details.location_finder", { defaultValue: "Location finder" })}
 				</p>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 
 			<div className="px-3 pb-3">

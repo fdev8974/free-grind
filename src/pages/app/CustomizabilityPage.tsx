@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronRight, Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate, X } from "lucide-react";
+import { Check, ChevronRight, Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -10,7 +10,7 @@ import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/tim
 import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
 import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
-import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
@@ -106,9 +106,7 @@ function SelectRow({
 				<BottomSheet onClose={() => setIsOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
 					<div className="flex items-center justify-between px-4 pb-3">
 						<p className="text-sm font-semibold text-[var(--text)]">{label}</p>
-						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton />
 					</div>
 					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
 						{options.map((option) => (

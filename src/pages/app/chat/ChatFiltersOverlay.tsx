@@ -1,8 +1,7 @@
-import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { ChatFiltersPanel } from "./ChatFiltersPanel";
 import { buildChatFiltersDraft, type ChatFiltersDraft } from "./chatUtils";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 
 type Props = {
 	isDesktop: boolean;
@@ -34,9 +33,7 @@ export function ChatFiltersOverlay({
 		>
 			<div className="mb-3 flex items-center justify-between gap-3">
 				<h3 className="text-sm font-semibold text-[var(--text)]">{t("right_now.filters")}</h3>
-				<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 
 			{/* The panel brings its own horizontal padding (the scroll area spans the full sheet width). */}

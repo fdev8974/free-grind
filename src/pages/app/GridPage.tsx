@@ -37,7 +37,7 @@ import {
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FilterPill } from "../../components/ui/FilterPill";
-import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { useGridTapStatus } from "./gridpage/hooks/useGridTapStatus";
@@ -2029,9 +2029,7 @@ export function GridPage() {
 				<BottomSheet onClose={() => setIsSortSheetOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
 					<div className="flex items-center justify-between px-4 pb-3">
 						<p className="text-sm font-semibold text-[var(--text)]">{t("browse_page.sort")}</p>
-						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton />
 					</div>
 					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
 						{sortOptions.map((option) => (

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { appLog } from "../../../utils/logger";
 import toast from "react-hot-toast";
 import { cn } from "../../../utils/cn";
-import { BottomSheet, SheetClose, useBottomSheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { usePreferences } from "../../../contexts/PreferencesContext";
@@ -408,9 +408,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							{rightNowRemaining}/{weeklyMax}
 						</span>
 					</div>
-					<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-						<X className="h-4 w-4" />
-					</SheetClose>
+					<SheetCloseButton />
 				</div>
 			</div>
 

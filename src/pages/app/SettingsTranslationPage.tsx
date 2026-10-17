@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { AlertCircle, Bot, BrainCircuit, Check, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, KeyRound, Languages, Sparkles, X } from "lucide-react";
+import { AlertCircle, Bot, BrainCircuit, Check, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, KeyRound, Languages, Sparkles } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
-import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -435,9 +435,7 @@ export function SettingsTranslationPage() {
 						<p className="text-sm font-semibold text-[var(--text)]">
 							{t("auto_translate.provider_sheet_title", { defaultValue: "Translation provider" })}
 						</p>
-						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton />
 					</div>
 					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
 						{TRANSLATION_PROVIDERS.map((option) => {

@@ -2159,7 +2159,8 @@
         "cancel": "Otkaži",
         "save": "Sačuvaj",
         "edit": "Uredi",
-        "unknown_display_name": "Neko"
+        "unknown_display_name": "Neko",
+        "close": ""
     },
     "grid": {
         "open_profile_by_id": "Otvori profil putem ID-a",

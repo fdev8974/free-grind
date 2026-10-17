@@ -2161,7 +2161,8 @@
         "cancel": "Откажи",
         "save": "Сачувај",
         "edit": "Уреди",
-        "unknown_display_name": "Неко"
+        "unknown_display_name": "Неко",
+        "close": ""
     },
     "grid": {
         "open_profile_by_id": "Отвори профил по ID-ју",

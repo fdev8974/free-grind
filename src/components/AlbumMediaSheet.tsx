@@ -1,6 +1,6 @@
-import { Images, Loader2, Play, X } from "lucide-react";
+import { Images, Loader2, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, SheetClose } from "./ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 
 export type AlbumMediaSheetItem = {
@@ -33,12 +33,7 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 					<p className="truncate text-sm font-semibold text-[var(--text)]">
 						{albumName?.trim() || t("shared_albums.album_label")}
 					</p>
-					<SheetClose
-						className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-						aria-label={t("shared_albums.close_viewer")}
-					>
-						<X className="h-4 w-4" />
-					</SheetClose>
+					<SheetCloseButton label={t("shared_albums.close_viewer")} />
 				</div>
 
 				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4" data-lenis-prevent>

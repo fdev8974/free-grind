@@ -2143,7 +2143,8 @@
     "cancel": "Cancel",
     "save": "Save",
     "edit": "Edit",
-    "unknown_display_name": "Someone"
+    "unknown_display_name": "Someone",
+    "close": "Close"
   },
   "grid": {
     "open_profile_by_id": "Open Profile by ID",

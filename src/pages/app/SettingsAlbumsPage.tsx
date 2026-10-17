@@ -35,7 +35,7 @@ import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
-import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import {
 	EmptyState,
 	ErrorState,
@@ -1248,9 +1248,7 @@ export function SettingsAlbumsPage() {
 				<BottomSheet onClose={() => setAddSheetAlbumId(null)} isDesktop={isDesktop}>
 					<div className="flex items-center justify-between px-4 pb-3">
 						<p className="text-sm font-semibold text-[var(--text)]">{t("settings_albums.upload")}</p>
-						<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton />
 					</div>
 					<div className="divide-y divide-[var(--border)] pb-2">
 						<SheetClose
@@ -1319,9 +1317,7 @@ export function SettingsAlbumsPage() {
 									</span>
 								)}
 							</p>
-							<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-								<X className="h-4 w-4" />
-							</SheetClose>
+							<SheetCloseButton />
 						</div>
 						<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 							{isLoadingShares ? (

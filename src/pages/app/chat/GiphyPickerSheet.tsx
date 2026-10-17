@@ -1,7 +1,7 @@
 import { Check, Clock, Loader2, Search, Send, Sticker, TrendingUp, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { SlidingTabs } from "../../../components/ui/sliding-tabs";
 import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
@@ -219,9 +219,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 		>
 			<div className="mb-3 flex items-center justify-between gap-3">
 				<h3 className="text-sm font-semibold text-[var(--text)]">{t("chat.giphy.title")}</h3>
-				<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 
 			<SlidingTabs<Tab>

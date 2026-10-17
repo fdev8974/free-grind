@@ -1,7 +1,7 @@
-import { CalendarClock, Check, Info, Repeat, X } from "lucide-react";
+import { CalendarClock, Check, Info, Repeat } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import type { PrepScheme } from "../../../services/prepTracking";
 
@@ -53,9 +53,7 @@ export function SexualHealthPrepSettingsSheet({
 				<p className="text-sm font-semibold text-[var(--text)]">
 					{t("sexualHealth.info.sheet_title", { defaultValue: "PrEP settings" })}
 				</p>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 
 			<div className="grid max-h-[75dvh] gap-4 overflow-y-auto px-4 pb-4" data-lenis-prevent>

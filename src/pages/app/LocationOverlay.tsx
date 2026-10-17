@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import z from "zod";
-import { BottomSheet, SheetClose, useBottomSheetClose } from "../../components/ui/bottom-sheet";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../components/ui/bottom-sheet";
 import { SlidingTabs } from "../../components/ui/sliding-tabs";
 import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../components/icons/FilledIcons";
 import { usePreferences } from "../../contexts/PreferencesContext";
@@ -414,21 +414,19 @@ function LocationSheetContent({
 						</p>
 					) : null}
 				</div>
-				<div className="flex shrink-0 items-center gap-1">
+				<div className="flex shrink-0 items-center gap-2">
 					{!isExploreTab && (
 						<button
 							type="button"
 							onClick={() => setIsVisitingModeOpen(true)}
 							title={t("profile_editor.sections.visiting_mode.title")}
 							aria-label={t("profile_editor.sections.visiting_mode.title")}
-							className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+							className={SHEET_ICON_BUTTON_CLASS}
 						>
 							<VisitingModeIcon className="h-4 w-4" />
 						</button>
 					)}
-					<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-						<X className="h-4 w-4" />
-					</SheetClose>
+					<SheetCloseButton />
 				</div>
 			</div>
 
@@ -726,9 +724,7 @@ function VisitingModeSheetContent() {
 		<>
 			<div className="flex items-center justify-between px-4 pb-3">
 				<p className="text-sm font-semibold text-[var(--text)]">{t("profile_editor.sections.visiting_mode.title")}</p>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 			<div
 				role="radiogroup"

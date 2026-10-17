@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Download, Images, LayoutGrid, Loader2, Play, X } from "lucide-react";
+import { Download, Images, LayoutGrid, Loader2, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { ProfileImage } from "../../../components/ui/profile-image";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { PhotoViewer, type PhotoViewerMedia } from "../../../components/PhotoViewer";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { isIos, saveMediaBytesBatch } from "../../../services/saveMedia";
@@ -390,16 +390,14 @@ export function ChatMediaSheet({
 								type="button"
 								onClick={() => void handleSaveAll()}
 								disabled={isSavingAll}
-								className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-50"
+								className={SHEET_ICON_BUTTON_CLASS}
 								aria-label={t("profile_details.save_all")}
 								title={t("profile_details.save_all")}
 							>
 								<Download className="h-4 w-4" />
 							</button>
 						)}
-						<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton />
 					</div>
 				</div>
 

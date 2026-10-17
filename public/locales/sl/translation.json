@@ -2175,7 +2175,8 @@
         "cancel": "Prekliči",
         "save": "Shrani",
         "edit": "Uredi",
-        "unknown_display_name": "Nekdo"
+        "unknown_display_name": "Nekdo",
+        "close": ""
     },
     "grid": {
         "open_profile_by_id": "Odpri profil po ID-ju",

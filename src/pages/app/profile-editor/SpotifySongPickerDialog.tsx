@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Check, Loader2, Music, Search, X } from "lucide-react";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { useSpotifyTrackSearch } from "../../../hooks/queries/useProfileQueries";
 import type { SpotifyTrack } from "../../../services/spotify";
@@ -43,9 +43,7 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 				<p className="text-sm font-semibold text-[var(--text)]">
 					{t("profile_editor.spotify.picker_title", { count: selected.length, max: MAX_SPOTIFY_FAVORITES })}
 				</p>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 			<div className="px-4 pb-4">
 				<label className="relative block">

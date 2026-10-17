@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff, X } from "lucide-react";
-import { BottomSheet, SheetClose } from "../../../../components/ui/bottom-sheet";
+import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff } from "lucide-react";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../../../components/ui/bottom-sheet";
 import { menuTransitionStyle } from "../../../../hooks/usePresence";
 
 type GridTileContextMenuProps = {
@@ -95,9 +95,7 @@ export function GridTileContextMenu({
 			>
 				<div className="flex items-center justify-between gap-2 px-4 pb-3">
 					<p className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{title}</p>
-					<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-						<X className="h-4 w-4" />
-					</SheetClose>
+					<SheetCloseButton />
 				</div>
 				<div className="divide-y divide-[var(--border)] pb-1">
 					{actions.map((action) => (

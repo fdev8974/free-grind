@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Search, X } from "lucide-react";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { Chip } from "../../../components/ui/chip";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import type { ManagedOption } from "../GridPage.types";
@@ -53,9 +53,7 @@ export function ManagedOptionsPickerDialog({
 		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
 			<div className="flex items-center justify-between px-4 pb-3">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton />
 			</div>
 			<div className="px-4 pb-4">
 				<label className="relative block">

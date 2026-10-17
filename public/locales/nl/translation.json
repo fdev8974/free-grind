@@ -2143,7 +2143,8 @@
         "cancel": "Annuleren",
         "save": "Opslaan",
         "edit": "Bewerken",
-        "unknown_display_name": "Iemand"
+        "unknown_display_name": "Iemand",
+        "close": ""
     },
     "grid": {
         "open_profile_by_id": "Profiel openen via ID",

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { FlaskConical, Plus, Trash2, X } from "lucide-react";
+import { FlaskConical, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { Button } from "../../../components/ui/button";
 import { Chip } from "../../../components/ui/chip";
 import { LoadingState } from "../../../components/ui/states";
@@ -153,9 +153,7 @@ function TestFormSheet({
 						? t("sexualHealth.tests.edit_title", { defaultValue: "Edit test" })
 						: t("sexualHealth.tests.add_title", { defaultValue: "Add test" })}
 				</p>
-				<SheetClose disabled={isSaving} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-40">
-					<X className="h-4 w-4" />
-				</SheetClose>
+				<SheetCloseButton disabled={isSaving} />
 			</div>
 			<div className="grid gap-4 px-4 pb-4">
 				<label className="grid gap-1.5">
