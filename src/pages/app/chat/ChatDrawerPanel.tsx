@@ -33,6 +33,7 @@ import {
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
+	DRAWER_TILE_CLASS,
 	DrawerTileCornerButton,
 	useDrawerMediaPreview,
 } from "./drawerUi";
@@ -51,37 +52,19 @@ import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { appLog } from "../../../utils/logger";
 
-// Album / collection tiles: no tile background of their own, the stack fills it.
-const GROUP_TILE_CLASS = "relative aspect-square";
-
-/** Album and collection tiles look like a small stack of cards (two offset
- * cards peeking out above the front one), so they read as "several items"
- * and stand apart from the flat media tiles. Albums are accent-tinted. */
-function GroupTileStack({ tone, children }: { tone: "album" | "collection"; children: ReactNode }) {
-	const back = tone === "album"
-		? ["color-mix(in srgb, var(--accent) 30%, var(--surface))", "color-mix(in srgb, var(--accent) 55%, var(--surface))"]
-		: ["color-mix(in srgb, var(--text) 14%, var(--surface))", "color-mix(in srgb, var(--text) 26%, var(--surface))"];
+/** Album / collection tile overlay: a glass badge with the type icon and
+ * the name in the middle (so these read differently from plain media
+ * tiles), media counts along the bottom. */
+function GroupTileOverlay({ icon, name, counts, badge }: { icon: ReactNode; name: string; counts?: AlbumMediaCount; badge?: ReactNode }) {
 	return (
 		<>
-			<div className="pointer-events-none absolute inset-x-3 top-0 bottom-3 rounded-lg" style={{ background: back[0] }} />
-			<div className="pointer-events-none absolute inset-x-1.5 top-[3px] bottom-1.5 rounded-lg" style={{ background: back[1] }} />
-			<div className="absolute inset-x-0 top-1.5 bottom-0 overflow-hidden rounded-lg bg-[var(--surface-2)] shadow-[0_-1px_3px_rgba(0,0,0,0.35)]">
-				{children}
+			<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2 pb-3 text-white">
+				<div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/35 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+					{icon}
+				</div>
+				<p className="max-w-full truncate text-[11px] font-semibold leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{name}</p>
 			</div>
-		</>
-	);
-}
-
-/** Bottom caption of an album / collection tile, like the album chat bubble:
- * type icon and name over a fade, with the media counts below. */
-function GroupTileCaption({ icon, name, counts, badge }: { icon: ReactNode; name: string; counts?: AlbumMediaCount; badge?: ReactNode }) {
-	return (
-		<div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-0.5 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-1.5 pb-1.5 pt-6 text-white">
-			<p className="flex min-w-0 items-center gap-1 text-[11px] font-semibold leading-tight drop-shadow">
-				<span className="shrink-0 opacity-90">{icon}</span>
-				<span className="truncate">{name}</span>
-			</p>
-			<div className="flex items-center justify-between gap-1 text-[10px] font-medium tabular-nums text-white/85">
+			<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 px-1.5 pb-1 text-[10px] font-semibold tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
 				<span className="inline-flex min-w-0 items-center gap-2">
 					{counts && (counts.images > 0 || counts.videos === 0) ? (
 						<span className="inline-flex items-center gap-0.5">
@@ -98,7 +81,7 @@ function GroupTileCaption({ icon, name, counts, badge }: { icon: ReactNode; name
 				</span>
 				{badge}
 			</div>
-		</div>
+		</>
 	);
 }
 
@@ -429,36 +412,36 @@ export function ChatDrawerPanel({
 				tabIndex={0}
 				onClick={() => { if (hasSelection) return; setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); }}
 				onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
-				className={`${GROUP_TILE_CLASS} cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+				className={`${DRAWER_TILE_CLASS} cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
-				<GroupTileStack tone="album">
-					{cover ? <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover" /> : (
-						<div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_28%,var(--surface)),var(--surface))] text-[var(--text-muted)]">
-							<Album className="mb-6 h-6 w-6 opacity-60" />
-						</div>
-					)}
-					<GroupTileCaption
-						icon={<Album className="h-3 w-3" />}
-						name={album.albumName || t("chat_drawer.album_fallback", { defaultValue: "My Album" })}
-						counts={mediaCount}
-						badge={isShared ? (
-							<span
-								className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]"
-								title={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
-								aria-label={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
-							>
-								<Share2 className="h-2.5 w-2.5" />
-							</span>
-						) : null}
-					/>
-					{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-					{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
-				</GroupTileStack>
+				{cover ? (
+					<>
+						<img src={cover} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover" style={{ filter: "blur(3px)" }} />
+						<div className="absolute inset-0 bg-black/25" />
+					</>
+				) : (
+					<div className="absolute inset-0 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_45%,var(--surface)),color-mix(in_srgb,var(--accent)_12%,var(--surface)))]" />
+				)}
+				<GroupTileOverlay
+					icon={<Album className="h-5 w-5 drop-shadow" />}
+					name={album.albumName || t("chat_drawer.album_fallback", { defaultValue: "My Album" })}
+					counts={mediaCount}
+					badge={isShared ? (
+						<span
+							className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]"
+							title={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
+							aria-label={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
+						>
+							<Share2 className="h-2.5 w-2.5" />
+						</span>
+					) : null}
+				/>
+				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
 				{!isSelected && !dimmed && (
 					<>
 						<DrawerTileCornerButton
 							corner="left"
-							stacked
 							icon={deletingAlbumId === album.albumId ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
 							label={t("chat_drawer.album_delete", { defaultValue: "Delete album" })}
 							onClick={() => setConfirmDeleteAlbumId(album.albumId)}
@@ -466,7 +449,6 @@ export function ChatDrawerPanel({
 						/>
 						<DrawerTileCornerButton
 							corner="right"
-							stacked
 							icon={<Pencil className="h-2.5 w-2.5" />}
 							label={t("chat_drawer.album_edit", { defaultValue: "Edit album" })}
 							onClick={() => {
@@ -512,54 +494,49 @@ export function ChatDrawerPanel({
 				})}
 				onClick={() => { if (consumePreviewClick()) return; if (!dimmed) toggleCollectionSelection(collection); }}
 				onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
-				className={`${GROUP_TILE_CLASS} no-touch-callout cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+				className={`${DRAWER_TILE_CLASS} no-touch-callout cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
-				<GroupTileStack tone="collection">
-					{coverItems.length > 0 ? (
-						<div className={`absolute inset-0 grid gap-0.5 bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] ${mosaicClass} ${mosaicRows}`}>
-							{coverItems.map((item, index) => {
-								const src = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
-								// With three items the first spans the full left column.
-								const span = coverItems.length === 3 && index === 0 ? "row-span-2" : "";
-								return item.contentType.startsWith("video/") ? (
-									<video
-										key={item.id}
-										src={src}
-										preload="metadata"
-										muted
-										onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-										className={`h-full w-full min-h-0 object-cover ${span}`}
-									/>
-								) : (
-									<img key={item.id} src={src} alt="" className={`h-full w-full min-h-0 object-cover ${span}`} />
-								);
-							})}
-						</div>
-					) : (
-						<div className="absolute inset-0 flex items-center justify-center bg-[var(--surface)] text-[var(--text-muted)]">
-							<Layers className="mb-6 h-6 w-6 opacity-60" />
-						</div>
-					)}
-					<GroupTileCaption
-						icon={<Layers className="h-3 w-3" />}
-						name={collection.name}
-						counts={{ images: presentIds.length - presentVideoCount, videos: presentVideoCount }}
-					/>
-					{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
-					{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
-				</GroupTileStack>
+				{coverItems.length > 0 ? (
+					<div className={`absolute inset-0 grid gap-0.5 bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] ${mosaicClass} ${mosaicRows}`}>
+						{coverItems.map((item, index) => {
+							const src = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+							// With three items the first spans the full left column.
+							const span = coverItems.length === 3 && index === 0 ? "row-span-2" : "";
+							return item.contentType.startsWith("video/") ? (
+								<video
+									key={item.id}
+									src={src}
+									preload="metadata"
+									muted
+									onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
+									className={`h-full w-full min-h-0 object-cover ${span}`}
+								/>
+							) : (
+								<img key={item.id} src={src} alt="" className={`h-full w-full min-h-0 object-cover ${span}`} />
+							);
+						})}
+					</div>
+				) : (
+					<div className="absolute inset-0 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--text)_22%,var(--surface)),var(--surface))]" />
+				)}
+				<div className="absolute inset-0 bg-black/40" />
+				<GroupTileOverlay
+					icon={<Layers className="h-5 w-5 drop-shadow" />}
+					name={collection.name}
+					counts={{ images: presentIds.length - presentVideoCount, videos: presentVideoCount }}
+				/>
+				{isSelected ? <div className="absolute inset-0 flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--accent) 45%, transparent)" }}><Check className="h-5 w-5 text-white drop-shadow" /></div> : null}
+				{isSelected && <div className="absolute inset-0 pointer-events-none rounded-lg" style={{ border: "2px solid var(--accent)" }} />}
 				{!isSelected && !dimmed && (
 					<>
 						<DrawerTileCornerButton
 							corner="left"
-							stacked
 							icon={<X className="h-3 w-3" />}
 							label={t("chat_drawer.collection_delete", { defaultValue: "Delete collection" })}
 							onClick={() => setConfirmDeleteCollectionId(collection.id)}
 						/>
 						<DrawerTileCornerButton
 							corner="right"
-							stacked
 							icon={<Pencil className="h-2.5 w-2.5" />}
 							label={t("chat_drawer.collection_edit", { defaultValue: "Edit collection" })}
 							onClick={() => {
