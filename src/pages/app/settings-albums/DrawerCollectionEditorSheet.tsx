@@ -1,4 +1,4 @@
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Trash2 } from "lucide-react";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
@@ -16,7 +16,7 @@ import {
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { BottomSheet } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
@@ -35,6 +35,10 @@ interface DrawerCollectionEditorSheetProps {
 	onReloadMedia: () => Promise<void>;
 	onClose: () => void;
 	onSaved: (collections: StoredDrawerCollection[]) => void;
+	/** Shows a delete button in the header (existing collections only). */
+	onDelete?: () => void;
+	/** Receives the sheet's animated close, e.g. to close it after a delete. */
+	closeRef?: React.MutableRefObject<(() => void) | null>;
 	isDesktop: boolean;
 }
 
@@ -46,6 +50,8 @@ export function DrawerCollectionEditorSheet({
 	onReloadMedia,
 	onClose,
 	onSaved,
+	onDelete,
+	closeRef,
 	isDesktop,
 }: DrawerCollectionEditorSheetProps) {
 	const { t } = useTranslation();
@@ -89,7 +95,8 @@ export function DrawerCollectionEditorSheet({
 	}, [onReloadMedia]);
 	const deletion = useDrawerMediaDelete({ onDeleted: removeDeleted });
 
-	const sheetCloseRef = useRef<(() => void) | null>(null);
+	const internalCloseRef = useRef<(() => void) | null>(null);
+	const sheetCloseRef = closeRef ?? internalCloseRef;
 	const handleSave = useCallback(async () => {
 		const trimmed = name.trim();
 		// Prune deleted drawer media only when the drawer actually loaded, so a
@@ -130,6 +137,18 @@ export function DrawerCollectionEditorSheet({
 			<DrawerHeader
 				title={upload.stepTitle ?? (collection ? t("settings_albums.collections_edit") : t("settings_albums.collections_new"))}
 				onClose={upload.step ? upload.stop : undefined}
+				actions={collection && onDelete && !upload.step ? (
+					<button
+						type="button"
+						onClick={onDelete}
+						disabled={isBusy}
+						className={`${SHEET_ICON_BUTTON_CLASS} hover:!text-red-400`}
+						aria-label={t("settings_albums.collections_delete")}
+						title={t("settings_albums.collections_delete")}
+					>
+						<Trash2 className="h-4 w-4" />
+					</button>
+				) : undefined}
 			/>
 
 			{upload.inputs}

@@ -1,9 +1,8 @@
-import { ChevronRight, FolderPlus, Images, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, FolderPlus, Images, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
@@ -11,7 +10,6 @@ import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaSto
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { DrawerCollectionEditorSheet } from "./DrawerCollectionEditorSheet";
-import { SheetActionList, afterSheetClose } from "./SheetActionList";
 
 interface DrawerCollectionsSectionProps {
 	drawerMedia: DrawerMedia[];
@@ -39,7 +37,7 @@ export function DrawerCollectionsSection({
 	const [editing, setEditing] = useState<StoredDrawerCollection | null | undefined>(undefined);
 	const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
-	const [actionSheetId, setActionSheetId] = useState<string | null>(null);
+	const editorCloseRef = useRef<(() => void) | null>(null);
 
 	// Reloads on changes from elsewhere too, e.g. a collection emptied by
 	// deleting its last media in a drawer sheet.
@@ -90,7 +88,10 @@ export function DrawerCollectionsSection({
 		if (!confirmDeleteId) return;
 		setIsDeleting(true);
 		try {
-			setCollections(await chatDb.deleteDrawerCollection(confirmDeleteId));
+			const next = await chatDb.deleteDrawerCollection(confirmDeleteId);
+			// Deleted from inside its editor: close that (animated) first; its onClose clears `editing`.
+			if (editing?.id === confirmDeleteId) editorCloseRef.current?.();
+			setCollections(next);
 		} catch (error) {
 			appLog.error("[DrawerCollectionsSection] failed to delete collection", error);
 			toast.error(t("settings_albums.collections_delete_failed"));
@@ -146,13 +147,12 @@ export function DrawerCollectionsSection({
 							const count = drawerMedia.length > 0 ? presentIds.length : collection.mediaIds.length;
 
 							return (
-								<div key={collection.id} className="flex items-center gap-3 p-4">
-									{/* Tap the row to edit; ⋯ opens the collection's action sheet. */}
-									<button
-										type="button"
-										onClick={() => openEditor(collection)}
-										className="-m-2 flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-2 text-left transition active:bg-[var(--surface-2)]"
-									>
+								<button
+									key={collection.id}
+									type="button"
+									onClick={() => openEditor(collection)}
+									className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+								>
 									{coverSrc && coverItem?.contentType.startsWith("image/") ? (
 										<img src={coverSrc} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
 									) : coverSrc ? (
@@ -169,16 +169,7 @@ export function DrawerCollectionsSection({
 											</p>
 										</div>
 										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-									</button>
-									<button
-										type="button"
-										onClick={() => setActionSheetId(collection.id)}
-										className={SHEET_ICON_BUTTON_CLASS}
-										aria-label={t("settings_albums.collections_actions", { defaultValue: "Collection actions" })}
-									>
-										<MoreHorizontal className="h-4 w-4" />
-									</button>
-								</div>
+								</button>
 							);
 						})}
 					</div>
@@ -195,37 +186,11 @@ export function DrawerCollectionsSection({
 					onClose={() => setEditing(undefined)}
 					// The sheet closes itself (animated) after saving; onClose then clears `editing`.
 					onSaved={(items) => setCollections(items)}
+					onDelete={editing ? () => setConfirmDeleteId(editing.id) : undefined}
+					closeRef={editorCloseRef}
 					isDesktop={isDesktop}
 				/>
 			) : null}
-
-			{actionSheetId && (() => {
-				const collection = collections.find((item) => item.id === actionSheetId);
-				if (!collection) return null;
-				return (
-					<SheetActionList
-						title={collection.name}
-						onClose={() => setActionSheetId(null)}
-						isDesktop={isDesktop}
-						actions={[
-							{
-								key: "edit",
-								icon: Pencil,
-								iconClassName: "bg-sky-500/15 text-sky-400",
-								label: t("settings_albums.collections_edit"),
-								onSelect: () => afterSheetClose(() => openEditor(collection)),
-							},
-							{
-								key: "delete",
-								icon: Trash2,
-								tone: "danger",
-								label: t("settings_albums.collections_delete"),
-								onSelect: () => setConfirmDeleteId(collection.id),
-							},
-						]}
-					/>
-				);
-			})()}
 
 			<ConfirmDialog
 				isOpen={confirmDeleteId !== null}
