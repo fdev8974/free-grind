@@ -1000,7 +1000,7 @@ export function ChatThreadMessages({
             <div className={`flex flex-col gap-2 ${!isDesktop ? "px-[var(--app-px)] pt-4" : ""}`}>
             {(() => {
                 const renderDateSeparator = (label: string) => (
-                    <div className="sticky top-2 z-10 my-3 flex justify-center">
+                    <div className="sticky top-2 z-30 my-3 flex justify-center">
                         <span className="rounded-full bg-[color-mix(in_srgb,var(--surface-2)_88%,transparent)] px-3 py-1 text-[11px] font-semibold text-[var(--text-muted)] shadow-sm backdrop-blur-sm">
                             {label}
                         </span>
