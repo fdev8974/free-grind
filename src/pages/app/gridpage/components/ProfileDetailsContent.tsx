@@ -40,6 +40,7 @@ import { reverseGeocodeCityDistrictForGeohash } from "../geocoding";
 import { getProfileImageUrl, getThumbImageUrl } from "../../../../utils/media";
 import { resolveAvatarSrc } from "../../../../services/avatarStore";
 import { ProfileImage } from "../../../../components/ui/profile-image";
+import { Chip } from "../../../../components/ui/chip";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { TapSelector } from "./TapSelector";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
@@ -632,20 +633,15 @@ export function ProfileDetailsContent({
 										(own) => own.toLowerCase() === tag.toLowerCase(),
 									);
 									return (
-										<button
+										<Chip
 											key={tag}
-											type="button"
+											size="sm"
+											selected={isMatch}
 											onClick={() => onTagClick?.(tag)}
-											className={`rounded-full border px-3 py-1.5 text-sm transition-opacity ${
-												onTagClick ? "cursor-pointer hover:opacity-80" : ""
-											} ${
-												isMatch
-												? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold"
-												: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]"
-											}`}
+											className={onTagClick ? undefined : "cursor-default"}
 										>
 											{tag}
-										</button>
+										</Chip>
 									);
 								})}
 							</div>

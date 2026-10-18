@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
+import { Chip } from "../../components/ui/chip";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -203,19 +204,16 @@ export function SettingsPrivacyPage() {
 								<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">{t("privacy.app_disguise_desc")}</p>
 								<div className="mt-3 flex flex-wrap gap-2">
 									{DISGUISE_OPTIONS.map(({ id, icon: Icon, labelKey }) => (
-										<button
+										<Chip
 											key={id}
-											type="button"
+											size="sm"
+											selected={disguise === id}
 											onClick={() => handleSelectDisguise(id)}
-											className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-												disguise === id
-													? "border-transparent bg-[var(--accent)] text-[var(--accent-contrast)]"
-													: "border-[var(--border)] bg-[var(--surface)] text-[var(--text)] hover:bg-[var(--surface-2)]"
-											}`}
+											className="inline-flex items-center gap-1.5"
 										>
 											<Icon className="h-3.5 w-3.5" />
 											{t(labelKey)}
-										</button>
+										</Chip>
 									))}
 								</div>
 							</div>

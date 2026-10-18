@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getSexualPositionOptions } from "./profile-option-builders";
 import { Slider } from "../../components/ui/range-slider";
+import { Chip } from "../../components/ui/chip";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { formatDistanceForUnits } from "../../utils/units";
 
@@ -162,18 +163,14 @@ export function ChatFiltersPage() {
 							{inboxFilterOptions.map((filter) => {
 								const active = filters[filter.key];
 								return (
-									<button
+									<Chip
 										key={filter.key}
-										type="button"
+										size="sm"
+										selected={Boolean(active)}
 										onClick={() => toggleFilter(filter.key)}
-										className={`rounded-full border px-3 py-1 font-medium transition ${
-											active
-												? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
-												: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
-										}`}
 									>
 										{filter.label}
-									</button>
+									</Chip>
 								);
 							})}
 						</div>
@@ -204,18 +201,14 @@ export function ChatFiltersPage() {
 								{positionFilterOptions.map(({ value: positionId, label }) => {
 								const active = filters.positions.includes(positionId);
 								return (
-									<button
+									<Chip
 										key={positionId}
-										type="button"
+										size="sm"
+										selected={active}
 										onClick={() => togglePosition(positionId)}
-										className={`rounded-full border px-3 py-1 font-medium transition ${
-											active
-												? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
-												: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
-										}`}
 									>
 										{label}
-									</button>
+									</Chip>
 								);
 							})}
 						</div>

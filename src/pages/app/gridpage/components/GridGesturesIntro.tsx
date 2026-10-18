@@ -93,21 +93,21 @@ export function GridGesturesIntro({ isDesktop, onConfirm }: { isDesktop: boolean
 				>
 					<div className="mt-2.5 flex flex-wrap gap-2">
 						<Chip
-							className="min-h-8 px-3 py-1 text-xs"
+							size="sm"
 							selected={!isDoubleTapOff && doubleTapAction === "tap"}
 							onClick={() => void setPreferences({ doubleTapTapType: tapTypeForAction, doubleTapAction: "tap" })}
 						>
 							{getTapEmoji(tapTypeForAction)} {t("browse_page.gestures_intro.double_tap_send_tap", { defaultValue: "Send Tap" })}
 						</Chip>
 						<Chip
-							className="min-h-8 px-3 py-1 text-xs"
+							size="sm"
 							selected={!isDoubleTapOff && doubleTapAction === "chat"}
 							onClick={() => void setPreferences({ doubleTapTapType: tapTypeForAction, doubleTapAction: "chat" })}
 						>
 							<MessageCircle className="inline h-3.5 w-3.5 -mt-0.5" /> {t("behavior.double_tap_open_chat", { defaultValue: "Open Chat" })}
 						</Chip>
 						<Chip
-							className="min-h-8 px-3 py-1 text-xs"
+							size="sm"
 							selected={isDoubleTapOff}
 							onClick={() => void setPreferences({ doubleTapTapType: null })}
 						>

@@ -11,7 +11,6 @@ import {
 	Ruler,
 	ShieldPlus,
 	Sparkles,
-	Tag,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -35,7 +34,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { getThumbImageUrl } from "../../../utils/media";
 import { type UnitsPreset } from "../../../utils/units";
-import { SheetActionChip, SheetChip, SheetMoreButton } from "../../../components/ui/sheet-section";
+import { SheetChip, SheetMoreButton } from "../../../components/ui/sheet-section";
 import { LastTestedMonthPicker } from "../../../components/LastTestedMonthPicker";
 import { CategoryHeader, ChipGroup, ToggleRow } from "./ProfileEditorComponents";
 import { TravelPlansSection } from "./TravelPlansSection";
@@ -430,44 +429,29 @@ export function ProfileEditorFormSections({
 						{tagsError && (
 							<p className="mb-2 text-xs text-red-400 sm:text-sm">{tagsError}</p>
 						)}
-						<div className="flex flex-wrap gap-2.5">
-							{tagList.length > 0 ? (
-								<>
-									{tagList.map((tag) => (
-										<SheetChip
-											key={tag}
-											active
-											size="sm"
-											onClick={() =>
-												onDraftChange(
-													"profileTagsText",
-													toggleProfileTagText(draft.profileTagsText, tag),
-												)
-											}
-										>
-											<span className="inline-flex items-center gap-1">
-												{tagLabelByKey.get(tag) ?? tag}
-												<X className="h-3 w-3" />
-											</span>
-										</SheetChip>
-									))}
-									<SheetActionChip
-										size="sm"
-										onClick={() => setIsTagsDialogOpen(true)}
-										icon={<Tag className="h-3.5 w-3.5" />}
-									>
-										{t("profile_editor.sections.profile.my_tags_manage")}
-									</SheetActionChip>
-								</>
-							) : (
-								<SheetActionChip
-									size="sm"
-									onClick={() => setIsTagsDialogOpen(true)}
-									icon={<Plus className="h-3.5 w-3.5" />}
+						<div className="flex flex-wrap gap-2">
+							{tagList.map((tag) => (
+								<SheetChip
+									key={tag}
+									active
+									onClick={() =>
+										onDraftChange(
+											"profileTagsText",
+											toggleProfileTagText(draft.profileTagsText, tag),
+										)
+									}
 								>
-									{t("profile_editor.sections.profile.no_tags_added")}
-								</SheetActionChip>
-							)}
+									<span className="inline-flex items-center gap-1.5">
+										{tagLabelByKey.get(tag) ?? tag}
+										<X className="h-3.5 w-3.5" />
+									</span>
+								</SheetChip>
+							))}
+							<SheetMoreButton onClick={() => setIsTagsDialogOpen(true)}>
+								{tagList.length > 0
+									? t("profile_editor.sections.profile.my_tags_manage")
+									: t("profile_editor.sections.profile.no_tags_added")}
+							</SheetMoreButton>
 						</div>
 					</div>
 				</div>

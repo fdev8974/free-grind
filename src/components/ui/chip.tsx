@@ -1,24 +1,35 @@
-import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, HTMLAttributes } from "react";
 import { cn } from "../../utils/cn";
+import { sheetChipClassName } from "./sheet-section";
 
 interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	selected?: boolean;
+	size?: "sm" | "md";
+	/** Sitting on a surface-2 card, so the resting chip needs a different fill. */
+	onCard?: boolean;
+	/** Ring/tint color for the selected state. */
+	accentColor?: string;
 }
 
+/** Same look as SheetChip (see sheetChipClassName), for toggle chips outside sheets. */
 export function Chip({
 	selected = false,
+	size = "md",
+	onCard = false,
+	accentColor = "var(--accent)",
 	className,
+	style,
 	type = "button",
 	...props
 }: ChipProps) {
 	return (
 		<button
 			type={type}
+			aria-pressed={selected}
+			style={{ "--chip-accent": accentColor, ...style } as CSSProperties}
 			className={cn(
-				"min-h-10 rounded-full border px-3.5 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
-				selected
-					? "border-transparent bg-[var(--accent)] font-semibold text-[var(--accent-contrast)]"
-					: "border-[var(--border)] bg-[var(--surface-2)] font-medium text-[var(--text-muted)] hover:border-[var(--text-muted)] hover:text-[var(--text)]",
+				sheetChipClassName({ active: selected, size, onCard }),
+				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--chip-accent)] disabled:pointer-events-none disabled:opacity-50",
 				className,
 			)}
 			{...props}

@@ -32,6 +32,31 @@ export function SheetSection({
 	);
 }
 
+/** Shared look of every toggle chip in the app (SheetChip and ui/chip's Chip):
+ * surface-2 at rest, tinted with an inset ring in `--chip-accent` when active. */
+export function sheetChipClassName({
+	active,
+	size = "md",
+	onCard = false,
+}: {
+	active: boolean;
+	size?: "sm" | "md";
+	onCard?: boolean;
+}) {
+	return cn(
+		"shrink-0 rounded-xl font-semibold transition active:scale-95",
+		size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
+		active
+			? "bg-[color-mix(in_srgb,var(--chip-accent)_16%,var(--surface-2))] text-[var(--text)] ring-2 ring-inset ring-[var(--chip-accent)]"
+			: cn(
+					"text-[var(--text-muted)] hover:text-[var(--text)]",
+					onCard
+						? "bg-[var(--surface)] hover:bg-[color-mix(in_srgb,var(--surface)_80%,var(--text)_8%)]"
+						: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]",
+				),
+	);
+}
+
 /** Toggle chip matching the location sheet's LocationChip: surface-2 at rest,
  * tinted with an inset accent ring when active. */
 export function SheetChip({
@@ -57,18 +82,7 @@ export function SheetChip({
 			onClick={onClick}
 			aria-pressed={active}
 			style={{ "--chip-accent": accentColor } as CSSProperties}
-			className={cn(
-				"shrink-0 rounded-xl font-semibold transition active:scale-95",
-				size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
-				active
-					? "bg-[color-mix(in_srgb,var(--chip-accent)_16%,var(--surface-2))] text-[var(--text)] ring-2 ring-inset ring-[var(--chip-accent)]"
-					: cn(
-							"text-[var(--text-muted)] hover:text-[var(--text)]",
-							onCard
-								? "bg-[var(--surface)] hover:bg-[color-mix(in_srgb,var(--surface)_80%,var(--text)_8%)]"
-								: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]",
-						),
-			)}
+			className={sheetChipClassName({ active, size, onCard })}
 		>
 			{children}
 		</button>
@@ -78,34 +92,6 @@ export function SheetChip({
 /** Plain surface-2 container for list-style rows in a sheet section. */
 export function SheetCard({ className, children }: { className?: string; children: ReactNode }) {
 	return <div className={cn("rounded-2xl bg-[var(--surface-2)] px-4 py-3", className)}>{children}</div>;
-}
-
-/** Secondary "more…" action that sits at the end of a chip row — same shape
- * as SheetChip, dashed outline so it doesn't read as a selectable option. */
-export function SheetActionChip({
-	onClick,
-	icon,
-	children,
-	size = "md",
-}: {
-	onClick: () => void;
-	icon?: ReactNode;
-	children: ReactNode;
-	size?: "sm" | "md";
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			className={cn(
-				"inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--text)_22%,transparent)] font-semibold text-[var(--text-muted)] transition hover:border-[color-mix(in_srgb,var(--text)_40%,transparent)] hover:text-[var(--text)] active:scale-95",
-				size === "sm" ? "px-[11px] py-[5px] text-xs" : "px-[13px] py-[7px] text-sm",
-			)}
-		>
-			{icon}
-			{children}
-		</button>
-	);
 }
 
 /** Search field for a sheet: surface-2 fill, leading search icon, clear button. */

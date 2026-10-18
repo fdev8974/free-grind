@@ -399,31 +399,45 @@ export function SettingsTranslationPage() {
 					</p>
 					<div className="surface-card overflow-hidden">
 						<ol className="divide-y divide-[var(--border)]">
-							{SETUP_STEPS[provider].map((step, index) => (
-								<li key={step.key} className="flex items-start gap-3 px-4 py-3.5">
-									<span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-xs font-semibold text-cyan-400">
-										{index + 1}
-									</span>
-									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">
-											{t(`auto_translate.guide_${step.key}_title`, { defaultValue: step.title })}
-										</p>
-										<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">
-											{t(`auto_translate.guide_${step.key}_desc`, { defaultValue: step.desc })}
-										</p>
-										{step.url && (
+							{SETUP_STEPS[provider].map((step, index) => {
+								const content = (
+									<>
+										<span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-xs font-semibold text-cyan-400">
+											{index + 1}
+										</span>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-semibold leading-snug">
+												{t(`auto_translate.guide_${step.key}_title`, { defaultValue: step.title })}
+											</p>
+											<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">
+												{t(`auto_translate.guide_${step.key}_desc`, { defaultValue: step.desc })}
+											</p>
+											{step.url && (
+												<p className="mt-1.5 text-xs font-semibold text-[var(--accent)]">
+													{t(`auto_translate.guide_${step.key}_link`, { defaultValue: step.linkLabel })}
+												</p>
+											)}
+										</div>
+									</>
+								);
+								return (
+									<li key={step.key}>
+										{/* Steps with a link are a whole tappable row, like the settings list's external entries. */}
+										{step.url ? (
 											<button
 												type="button"
 												onClick={() => void openExternalUrl(step.url!)}
-												className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs font-medium text-[var(--text)] transition hover:border-[var(--accent)]/50"
+												className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 											>
-												<ExternalLink className="h-3.5 w-3.5" />
-												{t(`auto_translate.guide_${step.key}_link`, { defaultValue: step.linkLabel })}
+												{content}
+												<ExternalLink className="mt-1.5 h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 											</button>
+										) : (
+											<div className="flex items-start gap-3 px-4 py-3.5">{content}</div>
 										)}
-									</div>
-								</li>
-							))}
+									</li>
+								);
+							})}
 						</ol>
 					</div>
 				</div>

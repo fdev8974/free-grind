@@ -203,7 +203,7 @@ export function EncounterLogSheet({
 										key={tag}
 										selected={tags.includes(tag)}
 										onClick={() => toggleTag(tag)}
-										className="min-h-0 px-3 py-1"
+										size="sm"
 									>
 										{tag}
 									</Chip>
