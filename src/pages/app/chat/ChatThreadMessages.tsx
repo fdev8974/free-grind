@@ -149,7 +149,7 @@ function ReadStatusRelativeTime({ readAt, t }: { readAt: number; t: any }) {
 /** Glass pill in a media bubble's top-left corner (Album, View once, Replay, GIF). */
 function MediaBadge({ icon, label }: { icon: React.ReactNode; label: React.ReactNode }) {
 	return (
-		<div className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/45 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-white ring-1 ring-white/15 backdrop-blur-md">
+		<div className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/50 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md">
 			{icon}
 			{label}
 		</div>
@@ -198,7 +198,7 @@ function AlbumExpirationCountdown({ expiresAt, isOnce, t, className = "mt-1" }: 
 				`}
 			</style>
 			<div className={`flex items-center ${className}`}>
-				<span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2 py-1 text-[10px] font-bold tracking-wide text-[var(--accent)] shadow-lg backdrop-blur-sm sm:text-[11px] uppercase">
+				<span className="inline-flex items-center gap-1.5 rounded-full bg-black/50 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold tracking-wide text-[var(--accent)] shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md uppercase">
 					<Hourglass className="h-3 w-3 animate-hourglass-rotate" />
 					<span>
 						{isOnce ? t("chat.expiration.once") : `${parts.join(" ")} ${t("chat.expiration.remaining")}`}
