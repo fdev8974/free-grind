@@ -1,9 +1,8 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { Plus, Search, X } from "lucide-react";
-import { BottomSheet, SheetCloseButton } from "../../../components/ui/bottom-sheet";
-import { Chip } from "../../../components/ui/chip";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
+import { SheetChip, SheetMoreButton, SheetSection, SheetSearchInput } from "../../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { useManagedTagCategories } from "../../../hooks/queries/useProfileQueries";
 import type { ManagedTagCategory } from "../../../types/api-functions";
@@ -45,34 +44,23 @@ function TagCategorySection({
 	const hiddenCount = showAll ? 0 : orderedTags.length - visibleTags.length;
 
 	return (
-		<div>
-			<p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-				{category.possessiveText ?? category.text}
-			</p>
+		<SheetSection title={category.possessiveText ?? category.text}>
 			{/* Blocks the search input's blur on mousedown — otherwise clicking a
 			    tag that's only visible because of showAll would collapse the
 			    list back to 7 before the click could land on it. */}
-			<div className="flex flex-wrap gap-2.5" onMouseDown={(event) => event.preventDefault()}>
-				{visibleTags.map((tag) => {
-					const active = selected.includes(tag.key);
-					return (
-						<Chip key={tag.tagId} selected={active} onClick={() => onToggle(tag.key)}>
-							{tag.text}
-						</Chip>
-					);
-				})}
+			<div className="flex flex-wrap gap-2" onMouseDown={(event) => event.preventDefault()}>
+				{visibleTags.map((tag) => (
+					<SheetChip key={tag.tagId} active={selected.includes(tag.key)} onClick={() => onToggle(tag.key)}>
+						{tag.text}
+					</SheetChip>
+				))}
 				{hiddenCount > 0 && (
-					<button
-						type="button"
-						onClick={() => setExpanded(true)}
-						className="inline-flex min-h-10 items-center gap-1 rounded-full border border-dashed border-[var(--border)] px-3.5 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)]"
-					>
-						<Plus className="h-3.5 w-3.5" />
+					<SheetMoreButton onClick={() => setExpanded(true)}>
 						{t("profile_editor.tags_dialog.see_more", { count: hiddenCount })}
-					</button>
+					</SheetMoreButton>
 				)}
 			</div>
-		</div>
+		</SheetSection>
 	);
 }
 
@@ -114,43 +102,35 @@ export function TagsPickerDialog({ tagsText, onChange, onClose }: TagsPickerDial
 	};
 
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
-			<div className="flex items-center justify-between px-4 pb-3">
-				<p className="text-sm font-semibold text-[var(--text)]">
+		<BottomSheet
+			onClose={onClose}
+			expandable
+			isDesktop={isDesktop}
+			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
+		>
+			<div className="mb-3 flex items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">
 					{t("profile_editor.tags_dialog.title")}
-				</p>
+				</h3>
 				<SheetCloseButton />
 			</div>
-			<div className="px-4 pb-4">
-				<label className="relative block">
-					<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-					<input
-						type="text"
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						onFocus={() => setIsSearchFocused(true)}
-						onBlur={() => setIsSearchFocused(false)}
-						placeholder={t("profile_editor.tags_dialog.search_placeholder")}
-						className="input-field pl-9 pr-9"
-					/>
-					{query && (
-						<button
-							type="button"
-							onClick={() => setQuery("")}
-							className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-						>
-							<X className="h-4 w-4" />
-						</button>
-					)}
-				</label>
+			<div className="mb-4">
+				<SheetSearchInput
+					value={query}
+					onChange={setQuery}
+					onFocus={() => setIsSearchFocused(true)}
+					onBlur={() => setIsSearchFocused(false)}
+					placeholder={t("profile_editor.tags_dialog.search_placeholder")}
+				/>
 			</div>
-			<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3" data-lenis-prevent>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				{isLoading ? (
 					<p className="py-6 text-center text-sm text-[var(--text-muted)]">
 						{t("profile_editor.loading")}
 					</p>
 				) : filteredCategories.length > 0 ? (
-					<div className="grid gap-4">
+					<div className="space-y-5">
 						{filteredCategories.map((category) => (
 							<TagCategorySection
 								key={category.text}
@@ -168,6 +148,11 @@ export function TagsPickerDialog({ tagsText, onChange, onClose }: TagsPickerDial
 							: t("profile_editor.tags_dialog.unavailable")}
 					</p>
 				)}
+			</div>
+			<div className="-mx-4 mt-3 flex shrink-0 border-t border-[var(--border)] px-4 pt-3">
+				<SheetClose className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98]">
+					{t("common.done", { defaultValue: "Done" })}
+				</SheetClose>
 			</div>
 		</BottomSheet>
 	);

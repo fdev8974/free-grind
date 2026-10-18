@@ -1,10 +1,10 @@
-import { type LucideIcon, Search, Users, X } from "lucide-react";
+import { type LucideIcon, Search, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
 import { BottomSheet, useBottomSheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
-import { SheetChip, SheetSection } from "../../components/ui/sheet-section";
+import { SheetChip, SheetMoreButton, SheetSection } from "../../components/ui/sheet-section";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useManagedGenders, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { cn } from "../../utils/cn";
@@ -413,14 +413,9 @@ function BrowseFiltersSheetContent({
 						genders,
 						(value) => toggleMultiSelect(value, setGenders),
 						undefined,
-						<button
-							type="button"
-							onClick={() => setIsGenderPickerOpen(true)}
-							className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3.5 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-						>
-							<Users className="h-3.5 w-3.5" />
+						<SheetMoreButton onClick={() => setIsGenderPickerOpen(true)} accentColor={accentColor}>
 							{t("profile_editor.sections.identity.gender_more")}
-						</button>,
+						</SheetMoreButton>,
 					)}
 					{renderChipSection(
 						t("profile_editor.sections.states.tribes"),
@@ -562,6 +557,8 @@ function BrowseFiltersSheetContent({
 					noMatchesLabel={t("profile_editor.sections.identity.gender_no_matches")}
 					options={genderFilterOptions}
 					selected={genders}
+					confirmLabel={t("browse_filters.apply")}
+					accentColor={accentColor}
 					onToggle={(value) => toggleMultiSelect(value, setGenders)}
 					onClose={() => setIsGenderPickerOpen(false)}
 				/>,

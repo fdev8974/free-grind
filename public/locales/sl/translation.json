@@ -2169,7 +2169,8 @@
         "save": "Shrani",
         "edit": "Uredi",
         "unknown_display_name": "Nekdo",
-        "close": ""
+        "close": "",
+        "done": ""
     },
     "grid": {
         "refresh": "Osveži mrežo",

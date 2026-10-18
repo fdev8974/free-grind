@@ -2137,7 +2137,8 @@
         "save": "Opslaan",
         "edit": "Bewerken",
         "unknown_display_name": "Iemand",
-        "close": ""
+        "close": "",
+        "done": ""
     },
     "grid": {
         "refresh": "Grid vernieuwen",

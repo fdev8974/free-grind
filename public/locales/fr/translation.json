@@ -2153,7 +2153,8 @@
         "save": "Enregistrer",
         "edit": "Modifier",
         "unknown_display_name": "Quelqu'un",
-        "close": ""
+        "close": "",
+        "done": ""
     },
     "grid": {
         "refresh": "Actualiser la grille",

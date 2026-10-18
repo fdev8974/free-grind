@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MutableRefObject, type ReactNode } from "react";
 import { onBackButtonPress } from "@tauri-apps/api/app";
 import { platform } from "@tauri-apps/plugin-os";
 import { X } from "lucide-react";
@@ -54,18 +54,20 @@ export const useBottomSheetClose = () => useContext(BottomSheetContext);
 interface SheetCloseProps {
 	children: ReactNode;
 	className?: string;
+	style?: CSSProperties;
 	disabled?: boolean;
 	onClick?: () => void;
 	"aria-label"?: string;
 }
 
-export function SheetClose({ children, className, disabled, onClick, "aria-label": ariaLabel }: SheetCloseProps) {
+export function SheetClose({ children, className, style, disabled, onClick, "aria-label": ariaLabel }: SheetCloseProps) {
 	const close = useBottomSheetClose();
 	return (
 		<button
 			type="button"
 			disabled={disabled}
 			className={className}
+			style={style}
 			aria-label={ariaLabel}
 			onClick={() => { onClick?.(); close(); }}
 		>

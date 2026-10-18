@@ -2155,7 +2155,8 @@
         "save": "Сачувај",
         "edit": "Уреди",
         "unknown_display_name": "Неко",
-        "close": ""
+        "close": "",
+        "done": ""
     },
     "grid": {
         "refresh": "Освежи мрежу",

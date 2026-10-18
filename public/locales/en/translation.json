@@ -2137,7 +2137,8 @@
     "save": "Save",
     "edit": "Edit",
     "unknown_display_name": "Someone",
-    "close": "Close"
+    "close": "Close",
+    "done": "Done"
   },
   "grid": {
     "refresh": "Refresh grid",

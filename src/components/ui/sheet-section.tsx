@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { Search, X } from "lucide-react";
 import { cn } from "../../utils/cn";
 
 /** A labelled group inside a bottom sheet: small muted heading (plus an
@@ -77,4 +78,96 @@ export function SheetChip({
 /** Plain surface-2 container for list-style rows in a sheet section. */
 export function SheetCard({ className, children }: { className?: string; children: ReactNode }) {
 	return <div className={cn("rounded-2xl bg-[var(--surface-2)] px-4 py-3", className)}>{children}</div>;
+}
+
+/** Secondary "more…" action that sits at the end of a chip row — same shape
+ * as SheetChip, dashed outline so it doesn't read as a selectable option. */
+export function SheetActionChip({
+	onClick,
+	icon,
+	children,
+	size = "md",
+}: {
+	onClick: () => void;
+	icon?: ReactNode;
+	children: ReactNode;
+	size?: "sm" | "md";
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className={cn(
+				"inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-dashed border-[color-mix(in_srgb,var(--text)_22%,transparent)] font-semibold text-[var(--text-muted)] transition hover:border-[color-mix(in_srgb,var(--text)_40%,transparent)] hover:text-[var(--text)] active:scale-95",
+				size === "sm" ? "px-[11px] py-[5px] text-xs" : "px-[13px] py-[7px] text-sm",
+			)}
+		>
+			{icon}
+			{children}
+		</button>
+	);
+}
+
+/** Search field for a sheet: surface-2 fill, leading search icon, clear button. */
+export function SheetSearchInput({
+	value,
+	onChange,
+	placeholder,
+	accentColor = "var(--accent)",
+	onFocus,
+	onBlur,
+}: {
+	value: string;
+	onChange: (value: string) => void;
+	placeholder?: string;
+	accentColor?: string;
+	onFocus?: () => void;
+	onBlur?: () => void;
+}) {
+	return (
+		<div className="relative" style={{ "--chip-accent": accentColor } as CSSProperties}>
+			<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+			<input
+				type="text"
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+				onFocus={onFocus}
+				onBlur={onBlur}
+				placeholder={placeholder}
+				className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-10 pr-10 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--chip-accent)]"
+			/>
+			{value && (
+				<button
+					type="button"
+					onClick={() => onChange("")}
+					className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+				>
+					<X className="h-3.5 w-3.5" />
+				</button>
+			)}
+		</div>
+	);
+}
+
+/** "More…" text action under a chip row: centered, small bold uppercase in the
+ * accent color. Takes its own full line even inside a flex-wrap chip row. */
+export function SheetMoreButton({
+	onClick,
+	children,
+	accentColor = "var(--accent)",
+}: {
+	onClick: () => void;
+	children: ReactNode;
+	accentColor?: string;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			style={{ color: accentColor }}
+			className="w-full basis-full py-1.5 text-center text-xs font-bold uppercase tracking-wider transition hover:brightness-110 active:scale-[0.98]"
+		>
+			{children}
+		</button>
+	);
 }

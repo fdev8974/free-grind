@@ -1,6 +1,6 @@
 import React from "react";
 import { Ruler } from "lucide-react";
-import { Chip } from "../../../components/ui/chip";
+import { SheetChip } from "../../../components/ui/sheet-section";
 
 export function CategoryHeader({
 	title,
@@ -41,21 +41,16 @@ export function ChipGroup({
 	onToggle: (value: number) => void;
 }) {
 	return (
-		<div className="flex flex-wrap gap-2.5">
-			{options.map((option) => {
-				const active = selected.includes(option.value);
-
-				return (
-					<Chip
-						key={option.value}
-						selected={active}
-						onClick={() => onToggle(option.value)}
-						className={active ? "hover:brightness-[1.02]" : undefined}
-					>
-						{option.label}
-					</Chip>
-				);
-			})}
+		<div className="flex flex-wrap gap-2">
+			{options.map((option) => (
+				<SheetChip
+					key={option.value}
+					active={selected.includes(option.value)}
+					onClick={() => onToggle(option.value)}
+				>
+					{option.label}
+				</SheetChip>
+			))}
 		</div>
 	);
 }

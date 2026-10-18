@@ -13,7 +13,6 @@ import {
 	Sparkles,
 	Tag,
 	Trash2,
-	Users,
 	X,
 } from "lucide-react";
 import {
@@ -36,7 +35,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { getThumbImageUrl } from "../../../utils/media";
 import { type UnitsPreset } from "../../../utils/units";
-import { Chip } from "../../../components/ui/chip";
+import { SheetActionChip, SheetChip, SheetMoreButton } from "../../../components/ui/sheet-section";
 import { LastTestedMonthPicker } from "../../../components/LastTestedMonthPicker";
 import { CategoryHeader, ChipGroup, ToggleRow } from "./ProfileEditorComponents";
 import { TravelPlansSection } from "./TravelPlansSection";
@@ -435,39 +434,39 @@ export function ProfileEditorFormSections({
 							{tagList.length > 0 ? (
 								<>
 									{tagList.map((tag) => (
-										<button
+										<SheetChip
 											key={tag}
-											type="button"
+											active
+											size="sm"
 											onClick={() =>
 												onDraftChange(
 													"profileTagsText",
 													toggleProfileTagText(draft.profileTagsText, tag),
 												)
 											}
-											className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-sm font-medium transition-colors hover:border-[var(--accent)]"
 										>
-											{tagLabelByKey.get(tag) ?? tag}
-											<X className="h-3 w-3 text-[var(--text-muted)] transition-colors group-hover:text-[var(--text)]" />
-										</button>
+											<span className="inline-flex items-center gap-1">
+												{tagLabelByKey.get(tag) ?? tag}
+												<X className="h-3 w-3" />
+											</span>
+										</SheetChip>
 									))}
-									<button
-										type="button"
+									<SheetActionChip
+										size="sm"
 										onClick={() => setIsTagsDialogOpen(true)}
-										className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)]"
+										icon={<Tag className="h-3.5 w-3.5" />}
 									>
-										<Tag className="h-3.5 w-3.5" />
 										{t("profile_editor.sections.profile.my_tags_manage")}
-									</button>
+									</SheetActionChip>
 								</>
 							) : (
-								<button
-									type="button"
+								<SheetActionChip
+									size="sm"
 									onClick={() => setIsTagsDialogOpen(true)}
-									className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)]"
+									icon={<Plus className="h-3.5 w-3.5" />}
 								>
-									<Plus className="h-3.5 w-3.5" />
 									{t("profile_editor.sections.profile.no_tags_added")}
-								</button>
+								</SheetActionChip>
 							)}
 						</div>
 					</div>
@@ -736,7 +735,7 @@ export function ProfileEditorFormSections({
 							{t("profile_editor.sections.identity.gender")}
 						</p>
 						{genderOptions.length > 0 ? (
-							<div className="flex flex-wrap gap-2.5">
+							<div className="flex flex-wrap gap-2">
 								{[
 									...defaultGenderIds,
 									...draft.genders.filter((value) => !defaultGenderIds.includes(value)),
@@ -745,23 +744,18 @@ export function ProfileEditorFormSections({
 									if (!option) return null;
 									const active = draft.genders.includes(value);
 									return (
-										<Chip
+										<SheetChip
 											key={value}
-											selected={active}
+											active={active}
 											onClick={() => onToggleMultiValue("genders", value)}
 										>
 											{option.label}
-										</Chip>
+										</SheetChip>
 									);
 								})}
-								<button
-									type="button"
-									onClick={() => setIsGenderDialogOpen(true)}
-									className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3.5 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)]"
-								>
-									<Users className="h-3.5 w-3.5" />
+								<SheetMoreButton onClick={() => setIsGenderDialogOpen(true)}>
 									{t("profile_editor.sections.identity.gender_more")}
-								</button>
+								</SheetMoreButton>
 							</div>
 						) : (
 							<p className="text-sm text-[var(--text-muted)]">
@@ -950,6 +944,7 @@ export function ProfileEditorFormSections({
 					selected={draft.genders}
 					max={MAX_GENDERS}
 					maxMessage={t("profile_editor.errors.max_selection", { count: MAX_GENDERS })}
+					confirmLabel={t("common.done", { defaultValue: "Done" })}
 					onToggle={(value) => onToggleMultiValue("genders", value)}
 					onClose={() => setIsGenderDialogOpen(false)}
 				/>

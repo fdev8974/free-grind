@@ -2153,7 +2153,8 @@
         "save": "Guardar",
         "edit": "Editar",
         "unknown_display_name": "Alguien",
-        "close": ""
+        "close": "",
+        "done": ""
     },
     "grid": {
         "refresh": "Actualizar",

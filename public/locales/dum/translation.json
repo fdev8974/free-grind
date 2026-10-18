@@ -2169,7 +2169,8 @@
         "save": "حفظ",
         "edit": "تعديل",
         "unknown_display_name": "حد",
-        "close": ""
+        "close": "",
+        "done": ""
     },
     "grid": {
         "refresh": "تم",

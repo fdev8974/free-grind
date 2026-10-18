@@ -2153,7 +2153,8 @@
         "save": "Sačuvaj",
         "edit": "Uredi",
         "unknown_display_name": "Neko",
-        "close": ""
+        "close": "",
+        "done": ""
     },
     "grid": {
         "refresh": "Osvježi Grid",
