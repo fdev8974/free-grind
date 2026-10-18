@@ -706,6 +706,7 @@
         "collections_edit": "Modifier la collection",
         "collections_delete": "Supprimer la collection",
         "collections_name_placeholder": "Nom de la collection",
+        "name_label": "",
         "collections_editor_hint": "Touchez les médias dans l'ordre où ils doivent être envoyés. Les nouveaux imports sont ajoutés à votre dossier multimédia.",
         "collections_save": "Enregistrer la collection ({{count}})",
         "collections_item_count_one": "{{count}} élément",

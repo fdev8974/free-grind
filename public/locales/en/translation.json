@@ -701,6 +701,7 @@
     "collections_edit": "Edit collection",
     "collections_delete": "Delete collection",
     "collections_name_placeholder": "Collection name",
+    "name_label": "Name",
     "collections_editor_hint": "Tap media in the order it should be sent. New uploads are added to your drawer.",
     "collections_save": "Save collection ({{count}})",
     "collections_item_count_one": "{{count}} item",

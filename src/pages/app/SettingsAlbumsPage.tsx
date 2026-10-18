@@ -10,7 +10,6 @@ import {
 	Images,
 	Inbox,
 	Loader2,
-	Pencil,
 	Play,
 	Plus,
 	Share2,
@@ -55,6 +54,7 @@ import {
 import { AlbumDrawerPickerSheet } from "./settings-albums/AlbumDrawerPickerSheet";
 import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSection";
 import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "./settings-albums/SheetActionList";
+import { SheetSection, SheetTextInput } from "../../components/ui/sheet-section";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerFooter,
@@ -240,7 +240,6 @@ export function SettingsAlbumsPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [createName, setCreateName] = useState("");
 	const [isCreating, setIsCreating] = useState(false);
-	const [editingAlbumId, setEditingAlbumId] = useState<string | null>(null);
 	const [editingName, setEditingName] = useState("");
 	const [isSavingEdit, setIsSavingEdit] = useState(false);
 	const [deletingAlbumId, setDeletingAlbumId] = useState<string | null>(null);
@@ -253,7 +252,6 @@ export function SettingsAlbumsPage() {
 	const [confirmDeleteAlbumId, setConfirmDeleteAlbumId] = useState<string | null>(null);
 	const [confirmDeleteContentKey, setConfirmDeleteContentKey] = useState<string | null>(null);
 	const albumSheetCloseRef = useRef<(() => void) | null>(null);
-	const renameSheetCloseRef = useRef<(() => void) | null>(null);
 
 	// Drawer picker state ("add to album" from own chat drawer media)
 	const [drawerMedia, setDrawerMedia] = useState<DrawerMedia[]>([]);
@@ -371,30 +369,28 @@ export function SettingsAlbumsPage() {
 		}
 	};
 
-	const startEditingAlbum = (album: Album) => {
-		setEditingAlbumId(album.albumId);
-		setEditingName(album.albumName?.trim() ?? "");
-	};
-
-	const cancelEditing = () => {
-		setEditingAlbumId(null);
-		setEditingName("");
-	};
-
-	const saveEditingAlbum = async (albumId: string) => {
-		if (isSavingEdit) return;
+	// The album sheet's name field: saved when it loses focus (or on Enter);
+	// an empty or failed rename falls back to the current name.
+	const saveAlbumName = async (album: Album) => {
+		const current = album.albumName?.trim() ?? "";
+		const next = editingName.trim();
+		if (!next) {
+			setEditingName(current);
+			return;
+		}
+		if (next === current || isSavingEdit) return;
 		setIsSavingEdit(true);
 		try {
-			await apiFunctions.renameOwnAlbum({ albumId, albumName: editingName.trim() });
+			await apiFunctions.renameOwnAlbum({ albumId: album.albumId, albumName: next });
 			setAlbums((previous) =>
-				previous.map((album) =>
-					album.albumId === albumId ? { ...album, albumName: editingName.trim() } : album,
+				previous.map((item) =>
+					item.albumId === album.albumId ? { ...item, albumName: next } : item,
 				),
 			);
+			setEditingName(next);
 			toast.success(t("settings_albums.toast_renamed"));
-			// Animated close; the rename sheet's onClose then resets the editing state.
-			renameSheetCloseRef.current?.();
 		} catch (saveError) {
+			setEditingName(current);
 			toast.error(saveError instanceof Error ? saveError.message : t("settings_albums.error_rename_fallback"));
 		} finally {
 			setIsSavingEdit(false);
@@ -627,8 +623,10 @@ export function SettingsAlbumsPage() {
 		const fromNavigation = typeof requestedId === "string" || typeof requestedId === "number";
 		const savedId = fromNavigation ? String(requestedId) : sessionStorage.getItem("settings-albums-open");
 		if (!savedId || !albums.some((a) => String(a.albumId) === savedId)) return;
-		const albumId = albums.find((a) => String(a.albumId) === savedId)!.albumId;
+		const restored = albums.find((a) => String(a.albumId) === savedId)!;
+		const albumId = restored.albumId;
 		setOpenAlbumId(albumId);
+		setEditingName(restored.albumName?.trim() ?? "");
 		void loadAlbumDetails(albumId);
 		void loadAlbumShares(albumId);
 	}, [isLoading, albums, loadAlbumDetails, loadAlbumShares, location.state]);
@@ -687,6 +685,7 @@ export function SettingsAlbumsPage() {
 
 	const openAlbum = (albumId: string) => {
 		setOpenAlbumId(albumId);
+		setEditingName(albums.find((album) => album.albumId === albumId)?.albumName?.trim() ?? "");
 		void loadAlbumDetails(albumId);
 		void loadAlbumShares(albumId);
 	};
@@ -1101,15 +1100,6 @@ export function SettingsAlbumsPage() {
 								<>
 									<button
 										type="button"
-										onClick={() => startEditingAlbum(album)}
-										className={SHEET_ICON_BUTTON_CLASS}
-										aria-label={t("settings_albums.rename")}
-										title={t("settings_albums.rename")}
-									>
-										<Pencil className="h-4 w-4" />
-									</button>
-									<button
-										type="button"
 										onClick={() => setConfirmDeleteAlbumId(albumId)}
 										disabled={deletingAlbumId === albumId}
 										className={`${SHEET_ICON_BUTTON_CLASS} hover:!text-red-400`}
@@ -1121,9 +1111,21 @@ export function SettingsAlbumsPage() {
 								</>
 							}
 						/>
-						<p className="mb-3 text-xs text-[var(--text-muted)]">
+						<p className="mb-4 text-xs text-[var(--text-muted)]">
 							{formatAlbumMeta(detail ? mediaCounts : null, null) || `#${albumId}`}
 						</p>
+
+						<SheetSection title={t("settings_albums.name_label", { defaultValue: "Name" })} className="mb-4">
+							<SheetTextInput
+								value={editingName}
+								onChange={setEditingName}
+								onCommit={() => void saveAlbumName(album)}
+								placeholder={t("settings_albums.new_album_placeholder")}
+								maxLength={255}
+								disabled={isSavingEdit}
+								trailing={isSavingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+							/>
+						</SheetSection>
 
 						{/* Who can see this album — its own row, the list itself lives in a stacked sheet. */}
 						<button
@@ -1240,48 +1242,6 @@ export function SettingsAlbumsPage() {
 						},
 					]}
 				/>
-			)}
-
-			{editingAlbumId && (
-				<BottomSheet
-					onClose={cancelEditing}
-					closeRef={renameSheetCloseRef}
-					isDesktop={isDesktop}
-					isProcessing={isSavingEdit}
-					bg={NATIVE_SHEET_BG}
-					panelClassName="px-4"
-				>
-					<div className="mb-3 flex items-center justify-between gap-3">
-						<h3 className="text-sm font-semibold text-[var(--text)]">{t("settings_albums.rename")}</h3>
-						<SheetCloseButton disabled={isSavingEdit} />
-					</div>
-					<form
-						onSubmit={(event) => {
-							event.preventDefault();
-							void saveEditingAlbum(editingAlbumId);
-						}}
-					>
-						<input
-							type="text"
-							value={editingName}
-							onChange={(e) => setEditingName(e.target.value)}
-							placeholder={t("settings_albums.new_album_placeholder")}
-							autoFocus
-							maxLength={255}
-							className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
-						/>
-						<div className="-mx-4 mt-4 flex border-t border-[var(--border)] px-4 pt-3">
-							<button
-								type="submit"
-								disabled={isSavingEdit || !editingName.trim()}
-								className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
-							>
-								{isSavingEdit && <Loader2 className="h-4 w-4 animate-spin" />}
-								{t("settings_albums.save")}
-							</button>
-						</div>
-					</form>
-				</BottomSheet>
 			)}
 
 			{sharesSheetAlbumId && (() => {

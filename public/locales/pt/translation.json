@@ -706,6 +706,7 @@
         "collections_edit": "Editar coleção",
         "collections_delete": "Eliminar coleção",
         "collections_name_placeholder": "Nome da coleção",
+        "name_label": "",
         "collections_editor_hint": "Toque nas multimédia na ordem em que devem ser enviadas. Novos envios são adicionados à sua pasta.",
         "collections_save": "Guardar coleção ({{count}})",
         "collections_item_count_one": "{{count}} item",

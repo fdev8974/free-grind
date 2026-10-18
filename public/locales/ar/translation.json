@@ -721,6 +721,7 @@
         "collections_edit": "تعديل المجموعة",
         "collections_delete": "حذف المجموعة",
         "collections_name_placeholder": "اسم المجموعة",
+        "name_label": "",
         "collections_editor_hint": "اضغط على الوسائط بالترتيب الذي يجب إرسالها به. تُضاف الملفات المرفوعة الجديدة إلى درجك.",
         "collections_save": "حفظ المجموعة ({{count}})",
         "collections_item_count_one": "عنصر واحد",

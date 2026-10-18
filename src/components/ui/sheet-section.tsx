@@ -157,3 +157,57 @@ export function SheetMoreButton({
 		</button>
 	);
 }
+
+/** Plain text field for a sheet (e.g. a name), same look as SheetSearchInput.
+ * Enter or leaving the field calls `onCommit`; `trailing` sits inside on the right. */
+export function SheetTextInput({
+	value,
+	onChange,
+	onCommit,
+	placeholder,
+	maxLength,
+	disabled,
+	autoFocus,
+	trailing,
+	accentColor = "var(--accent)",
+}: {
+	value: string;
+	onChange: (value: string) => void;
+	onCommit?: () => void;
+	placeholder?: string;
+	maxLength?: number;
+	disabled?: boolean;
+	autoFocus?: boolean;
+	trailing?: ReactNode;
+	accentColor?: string;
+}) {
+	return (
+		<div className="relative" style={{ "--chip-accent": accentColor } as CSSProperties}>
+			<input
+				type="text"
+				value={value}
+				onChange={(event) => onChange(event.target.value)}
+				onBlur={onCommit}
+				onKeyDown={(event) => {
+					if (event.key === "Enter" && onCommit) {
+						event.preventDefault();
+						event.currentTarget.blur();
+					}
+				}}
+				placeholder={placeholder}
+				maxLength={maxLength}
+				disabled={disabled}
+				autoFocus={autoFocus}
+				className={cn(
+					"h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--chip-accent)] disabled:opacity-60",
+					trailing ? "pr-10" : undefined,
+				)}
+			/>
+			{trailing && (
+				<div className="pointer-events-none absolute right-3 top-1/2 flex -translate-y-1/2 items-center text-[var(--text-muted)]">
+					{trailing}
+				</div>
+			)}
+		</div>
+	);
+}

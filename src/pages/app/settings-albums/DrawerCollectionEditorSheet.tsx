@@ -17,6 +17,7 @@ import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
+import { SheetSection, SheetTextInput } from "../../../components/ui/sheet-section";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
@@ -155,16 +156,16 @@ export function DrawerCollectionEditorSheet({
 
 			{upload.step ?? (
 			<>
-			<input
-				type="text"
-				value={name}
-				onChange={(e) => setName(e.target.value)}
-				placeholder={t("settings_albums.collections_name_placeholder")}
-				className="input-field mb-2 w-full !min-h-0 !py-2 !px-3 text-sm"
-				maxLength={100}
-				disabled={isBusy}
-			/>
-			<p className="mb-3 text-xs text-[var(--text-muted)]">{t("settings_albums.collections_editor_hint")}</p>
+			<SheetSection title={t("settings_albums.name_label", { defaultValue: "Name" })} className="mb-4">
+				<SheetTextInput
+					value={name}
+					onChange={setName}
+					placeholder={t("settings_albums.collections_name_placeholder")}
+					maxLength={100}
+					disabled={isBusy}
+				/>
+				<p className="mt-2 px-1 text-xs text-[var(--text-muted)]">{t("settings_albums.collections_editor_hint")}</p>
+			</SheetSection>
 
 			<DrawerBody
 				isDesktop={isDesktop}
