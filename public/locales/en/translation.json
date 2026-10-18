@@ -700,6 +700,8 @@
     "collections_create": "Create",
     "collections_edit": "Edit collection",
     "collections_delete": "Delete collection",
+    "album_actions": "Album actions",
+    "collections_actions": "Collection actions",
     "collections_name_placeholder": "Collection name",
     "collections_editor_hint": "Tap media in the order it should be sent. New uploads are added to your drawer.",
     "collections_save": "Save collection ({{count}})",

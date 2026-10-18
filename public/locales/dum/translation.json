@@ -724,6 +724,8 @@
         "collections_create": "إنشاء",
         "collections_edit": "تعديل المجموعة",
         "collections_delete": "حذف المجموعة",
+        "album_actions": "",
+        "collections_actions": "",
         "collections_name_placeholder": "اسم المجموعة",
         "collections_editor_hint": "اضغط على الوسائط بالترتيب الذي يجب إرسالها به. تُضاف البروفايلات المرفوعة الجديدة إلى درجك.",
         "collections_save": "حفظ المجموعة ({{count}})",

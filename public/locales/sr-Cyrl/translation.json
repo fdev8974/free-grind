@@ -708,6 +708,8 @@
         "collections_create": "Направи",
         "collections_edit": "Уреди колекцију",
         "collections_delete": "Обриши колекцију",
+        "album_actions": "",
+        "collections_actions": "",
         "collections_name_placeholder": "Назив колекције",
         "collections_editor_hint": "Додирните медије редом којим треба да буду послати. Нова отпремања се додају у вашу фиоку.",
         "collections_save": "Сачувај колекцију ({{count}})",

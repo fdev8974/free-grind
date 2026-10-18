@@ -1,8 +1,9 @@
-import { FolderPlus, Images, Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, FolderPlus, Images, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
@@ -10,6 +11,7 @@ import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaSto
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { DrawerCollectionEditorSheet } from "./DrawerCollectionEditorSheet";
+import { SheetActionList, afterSheetClose } from "./SheetActionList";
 
 interface DrawerCollectionsSectionProps {
 	drawerMedia: DrawerMedia[];
@@ -37,6 +39,7 @@ export function DrawerCollectionsSection({
 	const [editing, setEditing] = useState<StoredDrawerCollection | null | undefined>(undefined);
 	const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
+	const [actionSheetId, setActionSheetId] = useState<string | null>(null);
 
 	// Reloads on changes from elsewhere too, e.g. a collection emptied by
 	// deleting its last media in a drawer sheet.
@@ -123,7 +126,7 @@ export function DrawerCollectionsSection({
 						<button
 							type="button"
 							onClick={() => openEditor(null)}
-							className="btn-accent mt-3 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold"
+							className="mt-3 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98]"
 						>
 							<Plus className="h-3.5 w-3.5" />
 							{t("settings_albums.collections_create")}
@@ -144,6 +147,12 @@ export function DrawerCollectionsSection({
 
 							return (
 								<div key={collection.id} className="flex items-center gap-3 p-4">
+									{/* Tap the row to edit; ⋯ opens the collection's action sheet. */}
+									<button
+										type="button"
+										onClick={() => openEditor(collection)}
+										className="-m-2 flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-2 text-left transition active:bg-[var(--surface-2)]"
+									>
 									{coverSrc && coverItem?.contentType.startsWith("image/") ? (
 										<img src={coverSrc} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
 									) : coverSrc ? (
@@ -153,32 +162,22 @@ export function DrawerCollectionsSection({
 											<Images className="h-5 w-5 opacity-40" />
 										</div>
 									)}
-									<div className="min-w-0 flex-1">
-										<p className="truncate text-sm font-semibold">{collection.name}</p>
-										<p className="text-xs text-[var(--text-muted)]">
-											{t("settings_albums.collections_item_count", { count })}
-										</p>
-									</div>
-									<div className="flex shrink-0 items-center gap-1.5">
-										<button
-											type="button"
-											onClick={() => openEditor(collection)}
-											className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-											aria-label={t("settings_albums.collections_edit")}
-											title={t("settings_albums.collections_edit")}
-										>
-											<Pencil className="h-3.5 w-3.5" />
-										</button>
-										<button
-											type="button"
-											onClick={() => setConfirmDeleteId(collection.id)}
-											className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-red-400 hover:text-red-400"
-											aria-label={t("settings_albums.collections_delete")}
-											title={t("settings_albums.collections_delete")}
-										>
-											<Trash2 className="h-3.5 w-3.5" />
-										</button>
-									</div>
+										<div className="min-w-0 flex-1">
+											<p className="truncate text-sm font-semibold">{collection.name}</p>
+											<p className="text-xs text-[var(--text-muted)]">
+												{t("settings_albums.collections_item_count", { count })}
+											</p>
+										</div>
+										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+									</button>
+									<button
+										type="button"
+										onClick={() => setActionSheetId(collection.id)}
+										className={SHEET_ICON_BUTTON_CLASS}
+										aria-label={t("settings_albums.collections_actions", { defaultValue: "Collection actions" })}
+									>
+										<MoreHorizontal className="h-4 w-4" />
+									</button>
 								</div>
 							);
 						})}
@@ -199,6 +198,34 @@ export function DrawerCollectionsSection({
 					isDesktop={isDesktop}
 				/>
 			) : null}
+
+			{actionSheetId && (() => {
+				const collection = collections.find((item) => item.id === actionSheetId);
+				if (!collection) return null;
+				return (
+					<SheetActionList
+						title={collection.name}
+						onClose={() => setActionSheetId(null)}
+						isDesktop={isDesktop}
+						actions={[
+							{
+								key: "edit",
+								icon: Pencil,
+								iconClassName: "bg-sky-500/15 text-sky-400",
+								label: t("settings_albums.collections_edit"),
+								onSelect: () => afterSheetClose(() => openEditor(collection)),
+							},
+							{
+								key: "delete",
+								icon: Trash2,
+								tone: "danger",
+								label: t("settings_albums.collections_delete"),
+								onSelect: () => setConfirmDeleteId(collection.id),
+							},
+						]}
+					/>
+				);
+			})()}
 
 			<ConfirmDialog
 				isOpen={confirmDeleteId !== null}

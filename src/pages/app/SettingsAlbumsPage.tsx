@@ -1,8 +1,8 @@
 import {
 	AlertTriangle,
-	Check,
 	ChevronDown,
 	ChevronRight,
+	MoreHorizontal,
 	Clock,
 	Film,
 	FolderPlus,
@@ -19,7 +19,6 @@ import {
 	Trash2,
 	Upload,
 	UserMinus,
-	X,
 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import {
@@ -35,7 +34,7 @@ import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import {
 	EmptyState,
 	ErrorState,
@@ -56,6 +55,7 @@ import {
 } from "./settings-albums/settingsAlbumsUtils";
 import { AlbumDrawerPickerSheet } from "./settings-albums/AlbumDrawerPickerSheet";
 import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSection";
+import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "./settings-albums/SheetActionList";
 import type { DrawerMedia } from "./chat/ChatDrawerPanel";
 import { sortDrawerMediaByUsage } from "./chat/chatUtils";
 import * as chatDb from "../../services/chatDb";
@@ -247,7 +247,8 @@ export function SettingsAlbumsPage() {
 	const [deletingContentKey, setDeletingContentKey] = useState<string | null>(null);
 	const [confirmDeleteAlbumId, setConfirmDeleteAlbumId] = useState<string | null>(null);
 	const [confirmDeleteContentKey, setConfirmDeleteContentKey] = useState<string | null>(null);
-	const [editOpenedAlbumId, setEditOpenedAlbumId] = useState<string | null>(null);
+	const [actionSheetAlbumId, setActionSheetAlbumId] = useState<string | null>(null);
+	const renameSheetCloseRef = useRef<(() => void) | null>(null);
 
 	// Drawer picker state ("add to album" from own chat drawer media)
 	const [drawerMedia, setDrawerMedia] = useState<DrawerMedia[]>([]);
@@ -371,10 +372,6 @@ export function SettingsAlbumsPage() {
 	};
 
 	const cancelEditing = () => {
-		if (editOpenedAlbumId) {
-			setOpenAlbumId((prev) => prev === editOpenedAlbumId ? null : prev);
-			setEditOpenedAlbumId(null);
-		}
 		setEditingAlbumId(null);
 		setEditingName("");
 	};
@@ -390,7 +387,8 @@ export function SettingsAlbumsPage() {
 				),
 			);
 			toast.success(t("settings_albums.toast_renamed"));
-			cancelEditing();
+			// Animated close; the rename sheet's onClose then resets the editing state.
+			renameSheetCloseRef.current?.();
 		} catch (saveError) {
 			toast.error(saveError instanceof Error ? saveError.message : t("settings_albums.error_rename_fallback"));
 		} finally {
@@ -970,7 +968,7 @@ export function SettingsAlbumsPage() {
 									value={createName}
 									onChange={(e) => setCreateName(e.target.value)}
 									placeholder={t("settings_albums.new_album_placeholder")}
-									className="input-field min-w-0 flex-1 !min-h-0 !py-2 !px-3 text-sm"
+									className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
 									maxLength={255}
 									onKeyDown={(e) => {
 										if (e.key === "Enter") {
@@ -983,7 +981,7 @@ export function SettingsAlbumsPage() {
 									type="button"
 									onClick={() => void handleCreateAlbum()}
 									disabled={!canCreateAlbum || isCreating}
-									className="btn-accent inline-flex shrink-0 items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+									className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
 								>
 									<Plus className="h-3.5 w-3.5" />
 									{isCreating ? t("settings_albums.creating") : t("settings_albums.create")}
@@ -1015,7 +1013,6 @@ export function SettingsAlbumsPage() {
 					) : (
 						<div className="grid gap-3">
 							{albums.map((album) => {
-								const isEditing = editingAlbumId === album.albumId;
 								const isOpen = openAlbumId === album.albumId;
 								const detail = albumDetails[album.albumId];
 								const isLoadingDetails = loadingAlbumDetailsId === album.albumId;
@@ -1027,35 +1024,26 @@ export function SettingsAlbumsPage() {
 
 								return (
 									<div key={album.albumId} id={`settings-album-${album.albumId}`} className="surface-card overflow-hidden">
-										{/* Album row */}
-										<div
-											className="flex cursor-pointer items-center gap-3 p-4 transition-colors hover:bg-[var(--surface-2)]"
-											onClick={() => !isEditing && toggleAlbumOpen(album.albumId)}
-										>
-											{coverUrl ? (
-												<img src={coverUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
-											) : (
-												<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-													<Images className="h-5 w-5 opacity-40" />
-												</div>
-											)}
-											<div className="min-w-0 flex-1">
-												{isEditing ? (
-													<input
-														type="text"
-														value={editingName}
-														onChange={(e) => setEditingName(e.target.value)}
-														onClick={(e) => e.stopPropagation()}
-														className="input-field w-full !py-1.5 h-9 [min-height:0]"
-														maxLength={255}
-													/>
+										{/* Album row — tap to expand; ⋯ opens the album's action sheet. */}
+										<div className="flex items-center gap-3 p-4">
+											<button
+												type="button"
+												onClick={() => toggleAlbumOpen(album.albumId)}
+												aria-expanded={isOpen}
+												className="-m-2 flex min-w-0 flex-1 items-center gap-3 rounded-2xl p-2 text-left transition active:bg-[var(--surface-2)]"
+											>
+												{coverUrl ? (
+													<img src={coverUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
 												) : (
+													<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+														<Images className="h-5 w-5 opacity-40" />
+													</div>
+												)}
+												<div className="min-w-0 flex-1">
 													<p className="truncate font-semibold">
 														{album.albumName?.trim() || t("settings_albums.untitled")}
 													</p>
-												)}
-												{!isEditing && (
-													<p className="text-xs text-[var(--text-muted)]">
+													<p className="truncate text-xs text-[var(--text-muted)]">
 														{detail
 															? [
 																limits?.maxContentItemsPerAlbum != null
@@ -1070,57 +1058,24 @@ export function SettingsAlbumsPage() {
 															].filter(Boolean).join(" · ") || `#${album.albumId}`
 															: `#${album.albumId}`}
 													</p>
-												)}
-											</div>
-											<div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-												{isEditing ? (
-													<>
-														<button
-															type="button"
-															onClick={() => void saveEditingAlbum(album.albumId)}
-															disabled={isSavingEdit}
-															className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-															title={t("settings_albums.save")}
-														>
-															<Check className="h-4 w-4" />
-														</button>
-														<button
-															type="button"
-															onClick={cancelEditing}
-															className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-[var(--text-muted)]"
-															title={t("settings_albums.cancel")}
-														>
-															<X className="h-4 w-4" />
-														</button>
-													</>
+												</div>
+												<ChevronDown
+													className={`h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-60 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+												/>
+											</button>
+											<button
+												type="button"
+												onClick={() => setActionSheetAlbumId(album.albumId)}
+												disabled={deletingAlbumId === album.albumId}
+												className={SHEET_ICON_BUTTON_CLASS}
+												aria-label={t("settings_albums.album_actions", { defaultValue: "Album actions" })}
+											>
+												{deletingAlbumId === album.albumId ? (
+													<Loader2 className="h-4 w-4 animate-spin" />
 												) : (
-													<>
-														<button
-															type="button"
-															onClick={() => {
-																startEditingAlbum(album);
-																if (!isOpen) {
-																	toggleAlbumOpen(album.albumId);
-																	setEditOpenedAlbumId(album.albumId);
-																}
-															}}
-															className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
-															title={t("settings_albums.rename")}
-														>
-															<Pencil className="h-3.5 w-3.5" />
-														</button>
-														<button
-															type="button"
-															onClick={() => setConfirmDeleteAlbumId(album.albumId)}
-															disabled={deletingAlbumId === album.albumId}
-															className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-red-400 hover:text-red-400 disabled:opacity-50"
-															title={t("settings_albums.delete")}
-														>
-															<Trash2 className="h-3.5 w-3.5" />
-														</button>
-													</>
+													<MoreHorizontal className="h-4 w-4" />
 												)}
-											</div>
+											</button>
 										</div>
 
 										{/* Expanded content */}
@@ -1144,7 +1099,7 @@ export function SettingsAlbumsPage() {
 															type="button"
 															onClick={() => setAddSheetAlbumId(album.albumId)}
 															disabled={uploadingAlbumId === album.albumId}
-															className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:opacity-60"
+															className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-3 text-xs font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] active:scale-95 disabled:opacity-60"
 														>
 															{uploadingAlbumId === album.albumId ? (
 																<>
@@ -1164,8 +1119,9 @@ export function SettingsAlbumsPage() {
 																void loadAlbumDetails(album.albumId, true);
 																void loadAlbumShares(album.albumId, true);
 															}}
-															className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+															className={SHEET_ICON_BUTTON_CLASS}
 															title={t("settings_albums.refresh")}
+															aria-label={t("settings_albums.refresh")}
 														>
 															<RefreshCcw className="h-3.5 w-3.5" />
 														</button>
@@ -1245,50 +1201,102 @@ export function SettingsAlbumsPage() {
 			</div>
 
 			{addSheetAlbumId && (
-				<BottomSheet onClose={() => setAddSheetAlbumId(null)} isDesktop={isDesktop}>
-					<div className="flex items-center justify-between px-4 pb-3">
-						<p className="text-sm font-semibold text-[var(--text)]">{t("settings_albums.upload")}</p>
-						<SheetCloseButton />
-					</div>
-					<div className="divide-y divide-[var(--border)] pb-2">
-						<SheetClose
+				<SheetActionList
+					title={t("settings_albums.upload")}
+					onClose={() => setAddSheetAlbumId(null)}
+					isDesktop={isDesktop}
+					actions={[
+						{
+							key: "upload",
+							icon: Upload,
+							iconClassName: "bg-sky-500/15 text-sky-400",
+							label: t("settings_albums.add_upload", { defaultValue: "Upload from device" }),
+							description: t("settings_albums.add_upload_desc", { defaultValue: "Photos and videos stored on this device" }),
 							// The album's hidden file input; clicked synchronously so it still counts as a user gesture.
-							onClick={() => document.getElementById(`album-upload-${addSheetAlbumId}`)?.click()}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
-						>
-							<div className="shrink-0 rounded-2xl bg-sky-500/15 p-2.5 text-sky-400">
-								<Upload className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold leading-snug">
-									{t("settings_albums.add_upload", { defaultValue: "Upload from device" })}
-								</p>
-								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
-									{t("settings_albums.add_upload_desc", { defaultValue: "Photos and videos stored on this device" })}
-								</p>
-							</div>
-						</SheetClose>
-						<SheetClose
-							onClick={() => {
+							onSelect: () => document.getElementById(`album-upload-${addSheetAlbumId}`)?.click(),
+						},
+						{
+							key: "drawer",
+							icon: Inbox,
+							iconClassName: "bg-violet-500/15 text-violet-400",
+							label: t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" }),
+							description: t("settings_albums.add_drawer_desc", { defaultValue: "Media saved in your chat drawer" }),
+							onSelect: () => {
 								const albumId = addSheetAlbumId;
-								// Let this sheet pop its history entry before the picker sheet pushes its own.
-								window.setTimeout(() => openDrawerPicker(albumId), 340);
-							}}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
-						>
-							<div className="shrink-0 rounded-2xl bg-violet-500/15 p-2.5 text-violet-400">
-								<Inbox className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold leading-snug">
-									{t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" })}
-								</p>
-								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
-									{t("settings_albums.add_drawer_desc", { defaultValue: "Media saved in your chat drawer" })}
-								</p>
-							</div>
-						</SheetClose>
+								afterSheetClose(() => openDrawerPicker(albumId));
+							},
+						},
+					]}
+				/>
+			)}
+
+			{actionSheetAlbumId && (() => {
+				const album = albums.find((item) => item.albumId === actionSheetAlbumId);
+				if (!album) return null;
+				return (
+					<SheetActionList
+						title={album.albumName?.trim() || t("settings_albums.untitled")}
+						onClose={() => setActionSheetAlbumId(null)}
+						isDesktop={isDesktop}
+						actions={[
+							{
+								key: "rename",
+								icon: Pencil,
+								iconClassName: "bg-sky-500/15 text-sky-400",
+								label: t("settings_albums.rename"),
+								onSelect: () => afterSheetClose(() => startEditingAlbum(album)),
+							},
+							{
+								key: "delete",
+								icon: Trash2,
+								tone: "danger",
+								label: t("settings_albums.delete"),
+								onSelect: () => setConfirmDeleteAlbumId(album.albumId),
+							},
+						]}
+					/>
+				);
+			})()}
+
+			{editingAlbumId && (
+				<BottomSheet
+					onClose={cancelEditing}
+					closeRef={renameSheetCloseRef}
+					isDesktop={isDesktop}
+					isProcessing={isSavingEdit}
+					bg={NATIVE_SHEET_BG}
+					panelClassName="px-4"
+				>
+					<div className="mb-3 flex items-center justify-between gap-3">
+						<h3 className="text-sm font-semibold text-[var(--text)]">{t("settings_albums.rename")}</h3>
+						<SheetCloseButton disabled={isSavingEdit} />
 					</div>
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							void saveEditingAlbum(editingAlbumId);
+						}}
+					>
+						<input
+							type="text"
+							value={editingName}
+							onChange={(e) => setEditingName(e.target.value)}
+							placeholder={t("settings_albums.new_album_placeholder")}
+							autoFocus
+							maxLength={255}
+							className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+						/>
+						<div className="-mx-4 mt-4 flex border-t border-[var(--border)] px-4 pt-3">
+							<button
+								type="submit"
+								disabled={isSavingEdit || !editingName.trim()}
+								className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+							>
+								{isSavingEdit && <Loader2 className="h-4 w-4 animate-spin" />}
+								{t("settings_albums.save")}
+							</button>
+						</div>
+					</form>
 				</BottomSheet>
 			)}
 
@@ -1306,20 +1314,21 @@ export function SettingsAlbumsPage() {
 							next?.();
 						}}
 						isDesktop={isDesktop}
-						panelClassName="max-h-[82dvh]"
+						bg={NATIVE_SHEET_BG}
+						panelClassName="max-h-[82dvh] px-4"
 					>
-						<div className="flex items-center justify-between px-4 pb-3">
-							<p className="text-sm font-semibold text-[var(--text)]">
+						<div className="mb-3 flex items-center justify-between gap-3">
+							<h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text)]">
 								{t("settings_albums.shared_with", { defaultValue: "Shared With" })}
 								{shareProfiles && shareProfiles.length > 0 && (
-									<span className="ml-2 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums">
+									<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
 										{shareProfiles.length}
 									</span>
 								)}
-							</p>
+							</h3>
 							<SheetCloseButton />
 						</div>
-						<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+						<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 							{isLoadingShares ? (
 								<div className="space-y-2">
 									{[0, 1].map((i) => (
@@ -1365,7 +1374,7 @@ export function SettingsAlbumsPage() {
 													type="button"
 													onClick={() => void unshareAlbumFromProfile(albumId, profile.profileId)}
 													disabled={isUnsharing}
-													className="shrink-0 inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-[var(--border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-red-400/60 hover:bg-red-500/5 hover:text-red-400 disabled:opacity-50"
+													className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-red-500/10 px-3 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 active:scale-95 disabled:opacity-50"
 												>
 													<UserMinus className="h-3.5 w-3.5" />
 													{isUnsharing
@@ -1379,12 +1388,12 @@ export function SettingsAlbumsPage() {
 							)}
 						</div>
 						{shareProfiles && shareProfiles.length > 0 && !isLoadingShares && (
-							<div className="px-4 pt-2">
+							<div className="-mx-4 mt-3 flex shrink-0 border-t border-[var(--border)] px-4 pt-3">
 								<button
 									type="button"
 									onClick={() => setConfirmUnshareAllAlbumId(albumId)}
 									disabled={unsharingAllAlbumId === albumId}
-									className="w-full inline-flex items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+									className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-red-500/10 px-4 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 active:scale-[0.98] disabled:opacity-50"
 								>
 									{unsharingAllAlbumId === albumId
 										? t("settings_albums.unsharing_all", { defaultValue: "Removing…" })

@@ -700,6 +700,8 @@
         "collections_create": "Maken",
         "collections_edit": "Collectie bewerken",
         "collections_delete": "Collectie verwijderen",
+        "album_actions": "",
+        "collections_actions": "",
         "collections_name_placeholder": "Naam collectie",
         "collections_editor_hint": "Tik op media in de volgorde waarin ze verstuurd moeten worden. Nieuwe uploads worden aan je galerij toegevoegd.",
         "collections_save": "Collectie opslaan ({{count}})",

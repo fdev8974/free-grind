@@ -710,6 +710,8 @@
         "collections_create": "Ustvari",
         "collections_edit": "Uredi zbirko",
         "collections_delete": "Izbriši zbirko",
+        "album_actions": "",
+        "collections_actions": "",
         "collections_name_placeholder": "Ime zbirke",
         "collections_editor_hint": "Tapni medije v vrstnem redu, v katerem naj bodo poslani. Novo naloženi mediji se dodajo v tvojo galerijo.",
         "collections_save": "Shrani zbirko ({{count}})",

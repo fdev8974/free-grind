@@ -700,6 +700,8 @@
         "collections_create": "Erstellen",
         "collections_edit": "Sammlung bearbeiten",
         "collections_delete": "Sammlung löschen",
+        "album_actions": "",
+        "collections_actions": "",
         "collections_name_placeholder": "Name der Sammlung",
         "collections_editor_hint": "Tippe die Medien in der Reihenfolge an, in der sie gesendet werden sollen. Neue Uploads werden zu deiner Galerie hinzugefügt.",
         "collections_save": "Sammlung speichern ({{count}})",

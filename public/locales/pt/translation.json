@@ -705,6 +705,8 @@
         "collections_create": "Criar",
         "collections_edit": "Editar coleção",
         "collections_delete": "Eliminar coleção",
+        "album_actions": "",
+        "collections_actions": "",
         "collections_name_placeholder": "Nome da coleção",
         "collections_editor_hint": "Toque nas multimédia na ordem em que devem ser enviadas. Novos envios são adicionados à sua pasta.",
         "collections_save": "Guardar coleção ({{count}})",

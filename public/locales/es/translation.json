@@ -705,6 +705,8 @@
         "collections_create": "Crear",
         "collections_edit": "Editar colección",
         "collections_delete": "Eliminar colección",
+        "album_actions": "",
+        "collections_actions": "",
         "collections_name_placeholder": "Nombre de la colección",
         "collections_editor_hint": "Toca el contenido en el orden en que debe enviarse. Lo nuevo que subas se añade a tu galería.",
         "collections_save": "Guardar colección ({{count}})",
