@@ -1875,7 +1875,7 @@ export function ChatThreadMessages({
                                                         )
                                                     )}
                                                     <div
-                                                        className={`js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 ${shouldBlurIncomingMedia ? "hidden" : ""}`}
+                                                        className={`js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200`}
                                                     >
                                                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm transition group-hover/media:bg-black/80">
                                                             <Play className="h-5 w-5 fill-white text-white" />
