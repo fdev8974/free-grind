@@ -6831,7 +6831,7 @@ export function ChatPage() {
 					const label = meta ? meta.createdAtLabel ?? (meta.timestamp ? formatDateTime24(meta.timestamp) : null) : null;
 					if (!label) return null;
 					return (
-						<p className="inline-flex items-center gap-1 rounded-full bg-black/65 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
+						<p className="inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md">
 							<span>{label}</span>
 						</p>
 					);

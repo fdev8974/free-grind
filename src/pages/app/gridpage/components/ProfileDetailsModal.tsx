@@ -1002,7 +1002,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			if (hash === RIGHT_NOW_SLIDE_HASH) {
 				return (
 					<p
-						className="inline-flex items-center gap-1 rounded-full bg-black/65 px-3 py-1 text-xs font-semibold ring-1 ring-white/25"
+						className="inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md"
 						style={{ color: "var(--right-now)" }}
 					>
 						<RightNowIcon className="h-3.5 w-3.5" />
@@ -1015,7 +1015,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			if (!meta?.takenOnGrindr && !meta?.createdAt) return null;
 
 			return (
-				<p className="inline-flex items-center gap-1 rounded-full bg-black/65 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
+				<p className="inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md">
                     <style>{`
                         @keyframes logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
                         .logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }

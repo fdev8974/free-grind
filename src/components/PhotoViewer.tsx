@@ -983,7 +983,7 @@ export function PhotoViewer({
 				// right where it does) would sit right underneath/against it instead
 				// of clearing it.
 				<p
-					className={`absolute left-1/2 z-[83] -translate-x-1/2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-md ${chromeFadeClass} ${
+					className={`absolute left-1/2 z-[83] -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md ${chromeFadeClass} ${
 						isCurrentVideo
 							? footerContent
 								? "bottom-[calc(env(safe-area-inset-bottom,0px)+9.25rem)]"
