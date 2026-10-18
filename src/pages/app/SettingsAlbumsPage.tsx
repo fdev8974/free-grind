@@ -906,7 +906,8 @@ export function SettingsAlbumsPage() {
 								{albums.length}
 							</span>
 						)}
-						{!isLoading && !error && (
+						{/* The empty state has its own create button. */}
+						{!isLoading && !error && albums.length > 0 && (
 							<SectionAddButton
 								label={t("settings_albums.new_short", { defaultValue: "New" })}
 								onClick={() => setIsCreateSheetOpen(true)}

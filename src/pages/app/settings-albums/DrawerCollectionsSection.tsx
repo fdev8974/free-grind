@@ -114,10 +114,13 @@ export function DrawerCollectionsSection({
 						{collections.length}
 					</span>
 				)}
-				<SectionAddButton
-					label={t("settings_albums.new_short", { defaultValue: "New" })}
-					onClick={() => openEditor(null)}
-				/>
+				{/* The empty state has its own create button. */}
+				{collections.length > 0 && (
+					<SectionAddButton
+						label={t("settings_albums.new_short", { defaultValue: "New" })}
+						onClick={() => openEditor(null)}
+					/>
+				)}
 			</div>
 
 			{collections.length > 0 && (
