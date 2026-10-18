@@ -799,6 +799,8 @@ export function ChatPage() {
 	const [drawerError, setDrawerError] = useState<string | null>(null);
 	const [drawerMedia, setDrawerMedia] = useState<DrawerMedia[]>([]);
 	const [isSendingDrawerMedia, setIsSendingDrawerMedia] = useState(false);
+	// Items of the current drawer send already through, for the composer's send button.
+	const [drawerSendProgress, setDrawerSendProgress] = useState<{ done: number; total: number } | null>(null);
 	const [nowTimestamp, setNowTimestamp] = useState(() => Date.now());
 	const searchQuery = "";
 	const imageViewerHistoryPushedRef = useRef(false);
@@ -6324,38 +6326,93 @@ export function ChatPage() {
 				return;
 			}
 
+			const views = maxViews ?? 2147483647;
+			const items = mediaIds.flatMap((mediaId) => {
+				const media = drawerMedia.find((m) => m.id === mediaId);
+				if (!media) return [];
+				const isVideo = media.contentType.startsWith("video");
+				const isOnceImage = !isVideo && views === 1;
+				const isUnlimitedVideo = isVideo && views > 2;
+				const messageType = isVideo ? (isUnlimitedVideo ? "NonExpiringVideo" : "Video") : isOnceImage ? "ExpiringImage" : "Image";
+				const body = {
+					mediaId,
+					width: null,
+					height: null,
+					url: media.url,
+					...(isOnceImage ? { viewsRemaining: 1, maxViews: 1, duration: 10 } : {}),
+					...(isVideo ? { viewsRemaining: views, maxViews: views } : {}),
+				};
+				return [{ mediaId, url: media.url, messageType, body }];
+			});
+			if (items.length === 0) return;
+
+			// Show every item right away as a "sending" bubble — sends run one
+			// after another and can take a while — and swap each for the real
+			// message as it goes through.
+			const baseTimestamp = Date.now();
+			const localItems = items.map((item, index) => ({
+				...item,
+				localMessageId: `local:${baseTimestamp}:${index}:${Math.random()}`,
+			}));
+			const localConversationId =
+				selectedConversation?.data.conversationId ?? `direct:${targetProfileIdValue}`;
+			setThreadMessages((previous) => [
+				...previous,
+				...localItems.map((item, index): UiMessage => ({
+					messageId: item.localMessageId,
+					conversationId: localConversationId,
+					senderId: userId,
+					timestamp: baseTimestamp + index,
+					unsent: false,
+					reactions: [],
+					type: item.messageType,
+					chat1Type: item.messageType.toLowerCase().includes("video") ? "video" : "image",
+					body: item.body,
+					replyToMessage: null,
+					replyPreview: null,
+					dynamic: false,
+					clientState: "pending",
+				})),
+			]);
+			scrollThreadToBottom();
+
 			setIsSendingDrawerMedia(true);
+			setDrawerSendProgress({ done: 0, total: localItems.length });
 			let finalSentMessage: UiMessage | undefined;
 			let pendingReplyId = replyTargetMessageId;
+			const unsentLocalIds = new Set(localItems.map((item) => item.localMessageId));
 			try {
 				// Send each media item as a separate image/video message
-				for (const mediaId of mediaIds) {
-					const media = drawerMedia.find((m) => m.id === mediaId);
-					if (!media) continue;
-
-					const isVideo = media.contentType.startsWith("video");
-					const views = maxViews ?? 2147483647;
-					const isOnceImage = !isVideo && views === 1;
-                    const isUnlimitedVideo = isVideo && views > 2;
-				    const messageType = isVideo ? (isUnlimitedVideo ? "NonExpiringVideo" : "Video") : isOnceImage ? "ExpiringImage" : "Image";
-
+				for (const item of localItems) {
+					const { mediaId } = item;
 					const sentMessage = await service.sendMessage({
-						type: messageType,
+						type: item.messageType,
 						target: {
 							type: "Direct",
 							targetId: targetProfileIdValue,
 						},
-						body: {
-							mediaId,
-							width: null,
-							height: null,
-							url: media.url,
-							...(isOnceImage ? { viewsRemaining: 1, maxViews: 1, duration: 10 } : {}),
-							...(isVideo ? { viewsRemaining: views, maxViews: views } : {}),
-						},
+						body: item.body,
 						replyToMessageId: pendingReplyId,
 					});
 					pendingReplyId = null;
+
+					// The send response doesn't always echo the URL back — keep the
+					// one we already have so the bubble doesn't blank out.
+					const shownMessage: UiMessage =
+						getMessageImageUrl(sentMessage) || getMessageVideoUrl(sentMessage)
+							? sentMessage
+							: { ...sentMessage, body: { ...((sentMessage.body as Record<string, unknown>) ?? {}), url: item.url } };
+					unsentLocalIds.delete(item.localMessageId);
+					setThreadMessages((previous) => {
+						const map = new Map<string, UiMessage>();
+						for (const message of previous) {
+							if (message.messageId !== item.localMessageId) map.set(message.messageId, message);
+						}
+						map.set(shownMessage.messageId, shownMessage);
+						return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
+					});
+					captureMediaForMessages([shownMessage], shownMessage.conversationId);
+					setDrawerSendProgress((progress) => (progress ? { ...progress, done: progress.done + 1 } : progress));
 
 					// Track the last sent message for preview update
 					finalSentMessage = sentMessage;
@@ -6394,20 +6451,22 @@ export function ChatPage() {
 				}
 
 				setReplyTargetMessageId(null);
-				toast.success(t("chat.toasts.media_sent"));
-				// Don't close the drawer here: ChatDrawerPanel closes its sheet
-				// itself after this resolves, which also pops the sheet's history
-				// entry. Unmounting it from here would leave that entry behind, so
-				// the next back press would do nothing.
+				// The bubbles themselves already show each item landing — no
+				// success toast on top. The drawer closes itself (ChatDrawerPanel)
+				// as soon as the send starts, which also pops the sheet's history
+				// entry; unmounting it from here would leave that entry behind.
 
 				// Reload drawer media to update "used" status
 				void loadDrawerMedia();
 			} catch (error) {
+				// Drop the bubbles that never went out; the toast says why.
+				setThreadMessages((previous) => previous.filter((message) => !unsentLocalIds.has(message.messageId)));
 				toast.error(
 					error instanceof Error ? error.message : t("chat.errors.send_drawer_media"),
 				);
 			} finally {
 				setIsSendingDrawerMedia(false);
+				setDrawerSendProgress(null);
 			}
 		},
 		[
@@ -6419,6 +6478,7 @@ export function ChatPage() {
 			t,
 			syncConversation,
 			loadDrawerMedia,
+			scrollThreadToBottom,
 			replyTargetMessageId,
 			setReplyTargetMessageId,
 		],
@@ -6804,6 +6864,7 @@ export function ChatPage() {
 			drawerError={drawerError}
 			drawerMedia={drawerMedia}
 			isSendingDrawerMedia={isSendingDrawerMedia}
+			drawerSendProgress={drawerSendProgress}
 			onLoadDrawerMedia={loadDrawerMedia}
 			onSendDrawerMedia={sendDrawerMedia}
 			onDrawerMediaDeleted={removeDrawerMediaFromList}

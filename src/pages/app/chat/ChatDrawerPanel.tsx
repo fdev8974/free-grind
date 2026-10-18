@@ -341,12 +341,17 @@ export function ChatDrawerPanel({
 			);
 			return;
 		}
+		// Close right away: the thread shows each item as a "sending" bubble and
+		// the composer's send button carries the progress, so there's no reason
+		// to keep the sheet up for the whole (sequential, often slow) send.
+		const ids = sendIds;
+		const maxViews = mediaMaxViews;
+		setSelectedIds(new Set());
+		setSelectedCollectionId(null);
+		setMediaMaxViews(defaultImageMaxViews);
+		closeSheet();
 		try {
-			await onSendMedia(sendIds, mediaMaxViews);
-			setSelectedIds(new Set());
-			setSelectedCollectionId(null);
-			setMediaMaxViews(defaultImageMaxViews);
-			closeSheet();
+			await onSendMedia(ids, maxViews);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : t("chat_drawer.error_send_failed");
 			toast.error(message);

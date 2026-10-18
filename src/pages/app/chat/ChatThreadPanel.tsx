@@ -250,6 +250,8 @@ type ChatThreadPanelProps = {
 	drawerError: string | null;
 	drawerMedia: DrawerMedia[];
 	isSendingDrawerMedia: boolean;
+	/** Progress of a running drawer send, shown on the composer's send button. */
+	drawerSendProgress?: { done: number; total: number } | null;
 	onLoadDrawerMedia: () => void | Promise<void>;
 	onSendDrawerMedia: (mediaIds: number[], maxViews?: number) => Promise<void>;
 	onDrawerMediaDeleted: (mediaId: number) => void;
@@ -724,6 +726,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		drawerError,
 		drawerMedia,
 		isSendingDrawerMedia,
+		drawerSendProgress = null,
 		onLoadDrawerMedia,
 		onSendDrawerMedia,
 		onDrawerMediaDeleted,
@@ -2436,6 +2439,23 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									aria-label={t("chat.stop_recording", { defaultValue: "Stop recording" })}
 								>
 									<Square className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} fill-current`} />
+								</button>
+							) : isSendingDrawerMedia && draft.trim().length === 0 && !isSending ? (
+								// Drawer send in flight (its sheet is already closed): the send
+								// button doubles as the progress indicator until it's done.
+								<button
+									key="drawer-send"
+									type="button"
+									disabled
+									className={`relative shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "h-8 w-8 rounded-lg text-[var(--accent)]"} items-center justify-center`}
+									aria-label={t("chat.sending")}
+								>
+									<Loader2 className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-spin`} />
+									{drawerSendProgress && drawerSendProgress.total > 1 ? (
+										<span className="absolute -right-1 -top-1 min-w-[1.25rem] rounded-full bg-[var(--surface)] px-1 text-center text-[10px] font-semibold leading-4 tabular-nums text-[var(--text)] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+											{Math.min(drawerSendProgress.done + 1, drawerSendProgress.total)}/{drawerSendProgress.total}
+										</span>
+									) : null}
 								</button>
 							) : draft.trim().length > 0 || isSending ? (
 								// Distinct keys: if React reused one <button> across these
