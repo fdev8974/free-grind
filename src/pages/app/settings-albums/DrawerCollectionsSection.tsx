@@ -1,4 +1,4 @@
-import { ChevronRight, Images } from "lucide-react";
+import { ChevronRight, Images, Layers } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,8 @@ import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaSto
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { DrawerCollectionEditorSheet } from "./DrawerCollectionEditorSheet";
-import { SectionAddButton } from "./SheetActionList";
+import { DrawerEmptyState } from "../chat/drawerUi";
+import { EmptyStateCreateButton, SectionAddButton } from "./SheetActionList";
 
 interface DrawerCollectionsSectionProps {
 	drawerMedia: DrawerMedia[];
@@ -159,6 +160,21 @@ export function DrawerCollectionsSection({
 						})}
 					</div>
 			</div>
+			)}
+			{collections.length === 0 && (
+				// Same empty state as the chat drawer's Collections tab.
+				<div className="surface-card overflow-hidden px-4">
+					<DrawerEmptyState
+						icon={<Layers className="h-5 w-5" />}
+						title={t("chat_drawer.collections_empty", { defaultValue: "You don't have any collections yet." })}
+						hint={t("chat_drawer.collections_empty_hint", { defaultValue: "Collections group drawer photos so you can send them together in one tap." })}
+					>
+						<EmptyStateCreateButton
+							label={t("chat_drawer.collections_create", { defaultValue: "Create collection" })}
+							onClick={() => openEditor(null)}
+						/>
+					</DrawerEmptyState>
+				</div>
 			)}
 			<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
 				{t("settings_albums.collections_description")}

@@ -100,3 +100,26 @@ export function SectionAddButton({
 		</button>
 	);
 }
+
+/** Primary button under a DrawerEmptyState, same as the chat drawer's empty-state create button. */
+export function EmptyStateCreateButton({
+	label,
+	onClick,
+	disabled,
+}: {
+	label: string;
+	onClick: () => void;
+	disabled?: boolean;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={disabled}
+			className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+		>
+			<Plus className="h-4 w-4" />
+			{label}
+		</button>
+	);
+}

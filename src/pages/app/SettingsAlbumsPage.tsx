@@ -1,4 +1,5 @@
 import {
+	Album as AlbumIcon,
 	AlertTriangle,
 	ChevronRight,
 	Clock,
@@ -50,10 +51,11 @@ import {
 } from "./settings-albums/settingsAlbumsUtils";
 import { AlbumDrawerPickerSheet } from "./settings-albums/AlbumDrawerPickerSheet";
 import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSection";
-import { NATIVE_SHEET_BG, SectionAddButton, SheetActionList, afterSheetClose } from "./settings-albums/SheetActionList";
+import { EmptyStateCreateButton, NATIVE_SHEET_BG, SectionAddButton, SheetActionList, afterSheetClose } from "./settings-albums/SheetActionList";
 import { SheetSection, SheetTextInput } from "../../components/ui/sheet-section";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
+	DrawerEmptyState,
 	DrawerFooter,
 	DrawerGridSkeleton,
 	DrawerHeader,
@@ -956,9 +958,19 @@ export function SettingsAlbumsPage() {
 							})}
 						</div>
 						) : (
-							<div className="surface-card flex flex-col items-center gap-2 px-4 py-8 text-center text-[var(--text-muted)]">
-								<Images className="h-7 w-7 opacity-30" />
-								<p className="text-sm">{t("settings_albums.empty")}</p>
+							// Same empty state as the chat drawer's Albums tab.
+							<div className="surface-card overflow-hidden px-4">
+								<DrawerEmptyState
+									icon={<AlbumIcon className="h-5 w-5" />}
+									title={t("chat_drawer.albums_empty", { defaultValue: "You don't have any albums yet." })}
+									hint={t("chat_drawer.albums_empty_hint", { defaultValue: "Albums let you share several photos at once, and stop sharing any time." })}
+								>
+									<EmptyStateCreateButton
+										label={t("chat_drawer.albums_create", { defaultValue: "Create album" })}
+										onClick={() => setIsCreateSheetOpen(true)}
+										disabled={!canCreateAlbum}
+									/>
+								</DrawerEmptyState>
 							</div>
 						)}
 						<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
