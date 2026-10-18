@@ -54,7 +54,8 @@ import { appLog } from "../../../utils/logger";
 
 /** Album / collection tile overlay: a glass badge with the type icon and
  * the name in the middle (so these read differently from plain media
- * tiles), media counts along the bottom. */
+ * tiles), media counts along the bottom — inset and sized like the corner
+ * buttons up top, so a badge there lines up with them. */
 function GroupTileOverlay({ icon, name, counts, badge }: { icon: ReactNode; name: string; counts?: AlbumMediaCount; badge?: ReactNode }) {
 	return (
 		<>
@@ -64,7 +65,7 @@ function GroupTileOverlay({ icon, name, counts, badge }: { icon: ReactNode; name
 				</div>
 				<p className="max-w-full truncate text-[11px] font-semibold leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{name}</p>
 			</div>
-			<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 px-1.5 pb-1 text-[10px] font-semibold tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+			<div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex h-5 items-center justify-between gap-1 text-[10px] font-semibold tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
 				<span className="inline-flex min-w-0 items-center gap-2">
 					{counts && (counts.images > 0 || counts.videos === 0) ? (
 						<span className="inline-flex items-center gap-0.5">
@@ -428,11 +429,11 @@ export function ChatDrawerPanel({
 					counts={mediaCount}
 					badge={isShared ? (
 						<span
-							className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]"
+							className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]"
 							title={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
 							aria-label={t("chat_drawer.sharing", { defaultValue: "Sharing" })}
 						>
-							<Share2 className="h-2.5 w-2.5" />
+							<Share2 className="h-3 w-3" />
 						</span>
 					) : null}
 				/>
