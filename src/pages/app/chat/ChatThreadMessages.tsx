@@ -939,7 +939,9 @@ export function ChatThreadMessages({
 	// or closing), keep the distance to the end constant so the visible messages
 	// slide with the composer instead of disappearing behind it. The distance is
 	// tracked from scroll events rather than derived at resize time, because on
-	// grow the browser may already have clamped scrollTop.
+	// grow the browser may already have clamped scrollTop. Content that lands
+	// without a scroll (incoming message while reading history, media finishing
+	// loading) also refreshes it, otherwise the next keyboard toggle would jump.
 	useEffect(() => {
 		const container = threadScrollContainerRef.current;
 		if (!container || typeof ResizeObserver === "undefined") return;
@@ -949,6 +951,10 @@ export function ChatThreadMessages({
 		const onScroll = () => {
 			distanceFromEnd = readDistance();
 		};
+		const contentObserver = new MutationObserver(onScroll);
+		contentObserver.observe(container, { childList: true, subtree: true, characterData: true });
+		container.addEventListener("load", onScroll, true);
+		container.addEventListener("loadedmetadata", onScroll, true);
 		const observer = new ResizeObserver(() => {
 			const height = container.clientHeight;
 			if (height === previousHeight) return;
@@ -960,6 +966,9 @@ export function ChatThreadMessages({
 		observer.observe(container);
 		return () => {
 			container.removeEventListener("scroll", onScroll);
+			container.removeEventListener("load", onScroll, true);
+			container.removeEventListener("loadedmetadata", onScroll, true);
+			contentObserver.disconnect();
 			observer.disconnect();
 		};
 	}, [threadScrollContainerRef]);
