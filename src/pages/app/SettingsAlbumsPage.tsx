@@ -1,6 +1,5 @@
 import {
 	AlertTriangle,
-	ChevronDown,
 	ChevronRight,
 	Clock,
 	Film,
@@ -90,7 +89,7 @@ function LimitRow({ icon, label, value }: { icon: React.ReactNode; label: string
 		<div className="flex items-center gap-3 px-4 py-3">
 			<span className="shrink-0 text-[var(--text-muted)]">{icon}</span>
 			<p className="min-w-0 flex-1 text-sm text-[var(--text-muted)]">{label}</p>
-			<span className="shrink-0 rounded-lg bg-[var(--surface-2)] px-2.5 py-1 text-xs font-semibold tabular-nums">
+			<span className="shrink-0 rounded-lg bg-[var(--surface)] px-2.5 py-1 text-xs font-semibold tabular-nums">
 				{value}
 			</span>
 		</div>
@@ -226,7 +225,7 @@ export function SettingsAlbumsPage() {
 	const location = useLocation();
 	const [albums, setAlbums] = useState<Album[]>([]);
 	const [limits, setLimits] = useState<AlbumLimits | null>(null);
-	const [limitsExpanded, setLimitsExpanded] = useState(false);
+	const [isLimitsSheetOpen, setIsLimitsSheetOpen] = useState(false);
 	const maxAlbums = limits?.maxAlbums ?? 1;
 	const subscriptionType = limits?.subscriptionType ?? null;
 
@@ -881,10 +880,21 @@ export function SettingsAlbumsPage() {
 					title={t("settings_albums.title")}
 					subtitle={t("settings_albums.subtitle", { defaultValue: "Manage your private albums." })}
 					subtitleClassName="-mt-4 mb-0"
+					actions={limits ? (
+						<button
+							type="button"
+							onClick={() => setIsLimitsSheetOpen(true)}
+							className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+							aria-label={t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
+							title={t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
+						>
+							<HardDrive className="h-4 w-4" />
+						</button>
+					) : undefined}
 				/>
 
 				{/* Albums list */}
-				<div>
+				<div className="min-w-0">
 					<div className="mb-2 flex items-center gap-2 px-1">
 						<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("settings_albums.your_albums")}
@@ -957,94 +967,6 @@ export function SettingsAlbumsPage() {
 					loadDrawerMedia={loadDrawerMedia}
 					isDesktop={isDesktop}
 				/>
-
-				{/* Plan limits — reference info, so it sits at the end of the page. */}
-				{limits && (
-					<div>
-						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-							{t("settings_albums.plan_section", { defaultValue: "Plan" })}
-						</p>
-						<div className="surface-card overflow-hidden">
-							<button
-								type="button"
-								onClick={() => setLimitsExpanded((p) => !p)}
-								className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)]"
-							>
-								<div className="shrink-0 rounded-2xl bg-amber-500/15 p-2.5 text-amber-400">
-									<HardDrive className="h-5 w-5" />
-								</div>
-								<div className="min-w-0 flex-1">
-									<div className="flex items-center gap-2">
-										<p className="text-sm font-semibold leading-snug">
-											{t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
-										</p>
-										{planLabel && (
-											<span className="rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent-contrast)]">
-												{planLabel}
-											</span>
-										)}
-									</div>
-									<div className="mt-2 space-y-1.5">
-										<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
-											<div
-												className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
-												style={{ width: `${Math.min(100, (albums.length / maxAlbums) * 100)}%` }}
-											/>
-										</div>
-										<div className="flex items-center justify-between gap-3">
-											<p className="min-w-0 truncate text-xs text-[var(--text-muted)]">
-												{[
-													limits.maxContentItemsPerAlbum != null && t("settings_albums.limits_items_short", { defaultValue: "{{n}} items/album", n: limits.maxContentItemsPerAlbum }),
-													limits.maxContentSizeHumanReadable != null && limits.maxContentSizeHumanReadable,
-													limits.maxVideosPerAlbum != null && t("settings_albums.limits_videos_short", { defaultValue: "{{n}} videos/album", n: limits.maxVideosPerAlbum }),
-												].filter(Boolean).join(" · ")}
-											</p>
-											<span className="shrink-0 text-xs tabular-nums text-[var(--text-muted)]">
-												{albums.length} / {maxAlbums} {t("settings_albums.limits_albums", { defaultValue: "albums" })}
-											</span>
-										</div>
-									</div>
-								</div>
-								<ChevronDown
-									className={`h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform duration-200 ${limitsExpanded ? "rotate-180" : ""}`}
-								/>
-							</button>
-
-							{limitsExpanded && (
-								<div className="divide-y divide-[var(--border)]">
-									{limits.maxContentItemsPerAlbum != null && (
-										<LimitRow icon={<Images className="h-4 w-4" />} label={t("settings_albums.limits_items_per_album", { defaultValue: "Items per Album" })} value={String(limits.maxContentItemsPerAlbum)} />
-									)}
-									{limits.maxVideosPerAlbum != null && (
-										<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_videos_per_album", { defaultValue: "Videos per Album" })} value={String(limits.maxVideosPerAlbum)} />
-									)}
-									{limits.maxVideoLength != null && (
-										<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_max_video_length", { defaultValue: "Max Video Length" })} value={formatMs(limits.maxVideoLength)} />
-									)}
-									{limits.minVideoLength != null && (
-										<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_min_video_length", { defaultValue: "Min Video Length" })} value={formatMs(limits.minVideoLength)} />
-									)}
-									{limits.maxContentSizeHumanReadable != null && (
-										<LimitRow icon={<HardDrive className="h-4 w-4" />} label={t("settings_albums.limits_storage", { defaultValue: "Max File Size" })} value={limits.maxContentSizeHumanReadable} />
-									)}
-									{limits.maxShares != null && (
-										<LimitRow icon={<Share2 className="h-4 w-4" />} label={t("settings_albums.limits_shares", { defaultValue: "Shares" })} value={String(limits.maxShares)} />
-									)}
-									{limits.maxShareableAlbums != null && (
-										<LimitRow icon={<Share2 className="h-4 w-4" />} label={t("settings_albums.limits_shareable_albums", { defaultValue: "Shareable Albums" })} value={String(limits.maxShareableAlbums)} />
-									)}
-									{limits.maxViewableAlbums != null && (
-										<LimitRow icon={<Images className="h-4 w-4" />} label={t("settings_albums.limits_viewable_albums", { defaultValue: "Viewable Albums (others)" })} value={String(limits.maxViewableAlbums)} />
-									)}
-									{limits.maxViewableVideos != null && (
-										<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_viewable_videos", { defaultValue: "Viewable Videos (others)" })} value={String(limits.maxViewableVideos)} />
-									)}
-								</div>
-							)}
-
-						</div>
-					</div>
-				)}
 			</div>
 
 			{openAlbumId && (() => {
@@ -1186,6 +1108,73 @@ export function SettingsAlbumsPage() {
 					</BottomSheet>
 				);
 			})()}
+
+			{isLimitsSheetOpen && limits && (
+				<BottomSheet
+					onClose={() => setIsLimitsSheetOpen(false)}
+					expandable
+					isDesktop={isDesktop}
+					bg={NATIVE_SHEET_BG}
+					panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
+				>
+					<DrawerHeader
+						title={
+							<span className="flex items-center gap-2">
+								{t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
+								{planLabel && (
+									<span className="rounded-full bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
+										{planLabel}
+									</span>
+								)}
+							</span>
+						}
+					/>
+					<div className="-mx-4 min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+						<SheetSection
+							title={t("settings_albums.limits_albums_used", { defaultValue: "Albums" })}
+							value={`${albums.length} / ${maxAlbums}`}
+						>
+							<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+								<div
+									className="h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+									style={{ width: `${Math.min(100, (albums.length / maxAlbums) * 100)}%` }}
+								/>
+							</div>
+						</SheetSection>
+						<SheetSection title={t("settings_albums.limits_details", { defaultValue: "Details" })}>
+					<div className="divide-y divide-[var(--border)] overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+						{limits.maxContentItemsPerAlbum != null && (
+							<LimitRow icon={<Images className="h-4 w-4" />} label={t("settings_albums.limits_items_per_album", { defaultValue: "Items per Album" })} value={String(limits.maxContentItemsPerAlbum)} />
+						)}
+						{limits.maxVideosPerAlbum != null && (
+							<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_videos_per_album", { defaultValue: "Videos per Album" })} value={String(limits.maxVideosPerAlbum)} />
+						)}
+						{limits.maxVideoLength != null && (
+							<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_max_video_length", { defaultValue: "Max Video Length" })} value={formatMs(limits.maxVideoLength)} />
+						)}
+						{limits.minVideoLength != null && (
+							<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_min_video_length", { defaultValue: "Min Video Length" })} value={formatMs(limits.minVideoLength)} />
+						)}
+						{limits.maxContentSizeHumanReadable != null && (
+							<LimitRow icon={<HardDrive className="h-4 w-4" />} label={t("settings_albums.limits_storage", { defaultValue: "Max File Size" })} value={limits.maxContentSizeHumanReadable} />
+						)}
+						{limits.maxShares != null && (
+							<LimitRow icon={<Share2 className="h-4 w-4" />} label={t("settings_albums.limits_shares", { defaultValue: "Shares" })} value={String(limits.maxShares)} />
+						)}
+						{limits.maxShareableAlbums != null && (
+							<LimitRow icon={<Share2 className="h-4 w-4" />} label={t("settings_albums.limits_shareable_albums", { defaultValue: "Shareable Albums" })} value={String(limits.maxShareableAlbums)} />
+						)}
+						{limits.maxViewableAlbums != null && (
+							<LimitRow icon={<Images className="h-4 w-4" />} label={t("settings_albums.limits_viewable_albums", { defaultValue: "Viewable Albums (others)" })} value={String(limits.maxViewableAlbums)} />
+						)}
+						{limits.maxViewableVideos != null && (
+							<LimitRow icon={<Film className="h-4 w-4" />} label={t("settings_albums.limits_viewable_videos", { defaultValue: "Viewable Videos (others)" })} value={String(limits.maxViewableVideos)} />
+						)}
+					</div>
+						</SheetSection>
+					</div>
+				</BottomSheet>
+			)}
 
 			{isCreateSheetOpen && (
 				<BottomSheet

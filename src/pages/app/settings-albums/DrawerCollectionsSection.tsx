@@ -103,7 +103,7 @@ export function DrawerCollectionsSection({
 	};
 
 	return (
-		<div>
+		<div className="min-w-0">
 			<div className="mb-2 flex items-center gap-2 px-1">
 				<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 					{t("settings_albums.collections_title")}
