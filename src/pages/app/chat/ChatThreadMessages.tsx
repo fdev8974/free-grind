@@ -935,6 +935,25 @@ export function ChatThreadMessages({
 		}
 	}, [bottomInset, threadScrollContainerRef]);
 
+	// When the thread viewport itself shrinks or grows (mobile keyboard opening
+	// or closing), keep the bottom edge anchored so the visible messages slide
+	// up with the composer instead of disappearing behind it.
+	useEffect(() => {
+		const container = threadScrollContainerRef.current;
+		if (!container || typeof ResizeObserver === "undefined") return;
+		let previousHeight = container.clientHeight;
+		const observer = new ResizeObserver(() => {
+			const height = container.clientHeight;
+			const delta = previousHeight - height;
+			previousHeight = height;
+			if (delta !== 0) {
+				container.scrollTop += delta;
+			}
+		});
+		observer.observe(container);
+		return () => observer.disconnect();
+	}, [threadScrollContainerRef]);
+
 	return (
 		<div
 			ref={threadScrollContainerRef}
