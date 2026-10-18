@@ -269,6 +269,24 @@ function mergeMessagePreservingUnsendWipe(
 	if (incoming.unsent && !newBody && prevBody) {
 		return { ...previous, unsent: true, localHistory: true };
 	}
+	// _videoExpired/_imageExpired are client-only flags set by the hydration
+	// passes, so every poll's fresh server copy drops them — the bubble then
+	// flips to the plain "shared video" text until hydration re-flags it.
+	// Carry them over as long as the incoming copy still has no URL.
+	if (newBody && (prevBody?._videoExpired === true || prevBody?._imageExpired === true)) {
+		const carryVideo = prevBody?._videoExpired === true && !getMessageVideoUrl(incoming);
+		const carryImage = prevBody?._imageExpired === true && !getMessageImageUrl(incoming);
+		if (carryVideo || carryImage) {
+			return {
+				...incoming,
+				body: {
+					...newBody,
+					...(carryVideo ? { _videoExpired: true } : {}),
+					...(carryImage ? { _imageExpired: true } : {}),
+				},
+			};
+		}
+	}
 	return incoming;
 }
 
