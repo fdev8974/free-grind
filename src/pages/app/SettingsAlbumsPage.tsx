@@ -1186,7 +1186,9 @@ export function SettingsAlbumsPage() {
 					panelClassName="px-4"
 				>
 					<DrawerHeader title={t("settings_albums.create")} />
+					{/* Fills the sheet (min 50dvh on mobile) so the footer sits at the bottom, not under the field. */}
 					<form
+						className="flex min-h-0 flex-1 flex-col"
 						onSubmit={(event) => {
 							event.preventDefault();
 							void handleCreateAlbum();
@@ -1205,16 +1207,18 @@ export function SettingsAlbumsPage() {
 								{t("settings_albums.usage", { count: albums.length, max: maxAlbums })}
 							</p>
 						</SheetSection>
-						<DrawerFooter>
-							<button
-								type="submit"
-								disabled={!canCreateAlbum || isCreating}
-								className={DRAWER_PRIMARY_BUTTON_CLASS}
-							>
-								{isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-								<span>{isCreating ? t("settings_albums.creating") : t("settings_albums.create")}</span>
-							</button>
-						</DrawerFooter>
+						<div className="mt-auto">
+							<DrawerFooter>
+								<button
+									type="submit"
+									disabled={!canCreateAlbum || isCreating}
+									className={DRAWER_PRIMARY_BUTTON_CLASS}
+								>
+									{isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+									<span>{isCreating ? t("settings_albums.creating") : t("settings_albums.create")}</span>
+								</button>
+							</DrawerFooter>
+						</div>
 					</form>
 				</BottomSheet>
 			)}
