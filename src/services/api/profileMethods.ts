@@ -203,6 +203,7 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 				heightCmMax?: number;
 				weightGramsMin?: number;
 				weightGramsMax?: number;
+				genders?: string;
 				tribes?: string;
 				lookingFor?: string;
 				relationshipStatuses?: string;
@@ -256,6 +257,7 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			if (typeof params.filters?.weightGramsMax === "number") {
 				queryParams.set("weightGramsMax", String(params.filters.weightGramsMax));
 			}
+			if (params.filters?.genders) queryParams.set("genders", params.filters.genders);
 			if (params.filters?.tribes) queryParams.set("tribes", params.filters.tribes);
 			if (params.filters?.lookingFor)
 				queryParams.set("lookingFor", params.filters.lookingFor);

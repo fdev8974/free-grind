@@ -1,11 +1,11 @@
-import { Search, X } from "lucide-react";
+import { type LucideIcon, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
 import { BottomSheet, useBottomSheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import { SheetChip, SheetSection } from "../../components/ui/sheet-section";
 import { usePreferences } from "../../contexts/PreferencesContext";
-import { useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
+import { useManagedGenders, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { cn } from "../../utils/cn";
 import { buildTagLabelMap } from "../../utils/tags";
 import { type ManagedOption } from "./GridPage.types";
@@ -24,6 +24,7 @@ import {
 	getRelationshipStatusOptions,
 	getSexualPositionOptions,
 	getTribeOptions,
+	SEXUAL_POSITION_ICONS,
 } from "./profile-option-builders";
 import {
 	cmToInches,
@@ -74,6 +75,7 @@ function BrowseFiltersSheetContent({
 	const { t, i18n } = useTranslation();
 	const { unitsPreset } = usePreferences();
 	const { data: managedTagCategories } = useManagedTagCategories(i18n.language);
+	const { data: managedGenders } = useManagedGenders();
 	// Closes through the sheet so it animates out and pops its history entry.
 	const handleClose = useBottomSheetClose();
 
@@ -91,6 +93,7 @@ function BrowseFiltersSheetContent({
 	const [heightCmMax, setHeightCmMax] = useState(normalized.heightCmMax);
 	const [weightGramsMin, setWeightGramsMin] = useState(normalized.weightGramsMin);
 	const [weightGramsMax, setWeightGramsMax] = useState(normalized.weightGramsMax);
+	const [genders, setGenders] = useState<number[]>(normalized.genders);
 	const [tribes, setTribes] = useState<number[]>(normalized.tribes);
 	const [lookingFor, setLookingFor] = useState<number[]>(normalized.lookingFor);
 	const [relationshipStatuses, setRelationshipStatuses] = useState<number[]>(normalized.relationshipStatuses);
@@ -146,6 +149,10 @@ function BrowseFiltersSheetContent({
 		{ key: "isVisiting", label: t("browse_filters.local_filters.is_visiting") },
 	], [t]);
 
+	const genderFilterOptions = useMemo<ManagedOption[]>(
+		() => managedGenders?.map((item) => ({ value: item.genderId, label: item.gender })) ?? [],
+		[managedGenders],
+	);
 	const tribeFilterOptions = useMemo<ManagedOption[]>(
 		() => [{ value: -1, label: t("browse_filters.not_specified") }, ...getTribeOptions(t)],
 		[t],
@@ -229,7 +236,7 @@ function BrowseFiltersSheetContent({
 			ageMin, ageMax,
 			heightCmMin, heightCmMax,
 			weightGramsMin, weightGramsMax,
-			tribes, lookingFor, relationshipStatuses,
+			genders, tribes, lookingFor, relationshipStatuses,
 			bodyTypes, sexualPositions, meetAt,
 			nsfwPics, tags,
 			nicknameFilter,
@@ -253,6 +260,7 @@ function BrowseFiltersSheetContent({
 		options: ManagedOption[],
 		selectedValues: number[],
 		onToggle: (value: number) => void,
+		icons?: Record<number, LucideIcon>,
 	) => (
 		<SheetSection title={title}>
 			<div className="flex flex-wrap gap-2">
@@ -263,7 +271,15 @@ function BrowseFiltersSheetContent({
 						onClick={() => onToggle(option.value)}
 						accentColor={accentColor}
 					>
-						{option.label}
+						{(() => {
+							const Icon = icons?.[option.value];
+							return Icon ? (
+								<span className="inline-flex items-center gap-1.5">
+									<Icon className="h-3.5 w-3.5 shrink-0" />
+									{option.label}
+								</span>
+							) : option.label;
+						})()}
 					</SheetChip>
 				))}
 			</div>
@@ -377,6 +393,13 @@ function BrowseFiltersSheetContent({
 						sexualPositionFilterOptions,
 						sexualPositions,
 						(value) => toggleMultiSelect(value, setSexualPositions),
+						SEXUAL_POSITION_ICONS,
+					)}
+					{genderFilterOptions.length > 0 && renderChipSection(
+						t("profile_editor.sections.identity.gender"),
+						genderFilterOptions,
+						genders,
+						(value) => toggleMultiSelect(value, setGenders),
 					)}
 					{renderChipSection(
 						t("profile_editor.sections.states.tribes"),

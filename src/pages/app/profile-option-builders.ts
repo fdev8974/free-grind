@@ -1,4 +1,13 @@
 import type { TFunction } from "i18next";
+import {
+	ArrowDown,
+	ArrowLeftRight,
+	ArrowUp,
+	ArrowUpDown,
+	ChevronsDown,
+	ChevronsUp,
+	type LucideIcon,
+} from "lucide-react";
 import type { ManagedOption } from "./GridPage.types";
 
 type OptionDef = {
@@ -161,6 +170,15 @@ export function getEthnicityLabelMap(t: TFunction): Record<number, string> {
 export function getSexualPositionOptions(t: TFunction): ManagedOption[] {
 	return buildManagedOptions(t, SEXUAL_POSITION_DEFS);
 }
+
+export const SEXUAL_POSITION_ICONS: Record<number, LucideIcon> = {
+	1: ArrowUp,        // Top
+	2: ArrowDown,      // Bottom
+	3: ArrowUpDown,    // Versatile
+	4: ChevronsDown,   // Vers Bottom
+	5: ChevronsUp,     // Vers Top
+	6: ArrowLeftRight, // Side
+};
 
 export function getSexualPositionLabelMap(t: TFunction): Record<number, string> {
 	return toLabelMap(getSexualPositionOptions(t));

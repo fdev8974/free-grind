@@ -1,11 +1,5 @@
 import {
-	ArrowDown,
-	ArrowLeftRight,
-	ArrowUp,
-	ArrowUpDown,
 	Pencil,
-	ChevronsDown,
-	ChevronsUp,
 	Compass,
 	ExternalLink,
 	Globe,
@@ -13,7 +7,6 @@ import {
 	Heart,
 	MessageCircle,
 	MessageSquare,
-	type LucideIcon,
 	Music,
 	Plane,
 	Ruler,
@@ -55,6 +48,7 @@ import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { formatTravelDateRange } from "../utils";
 import { decodeGeohash } from "../../../../utils/geohash";
 import { appLog } from "../../../../utils/logger";
+import { SEXUAL_POSITION_ICONS } from "../../profile-option-builders";
 import { isIos } from "../../../../services/saveMedia";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useProfileSpotifyFavorites } from "../../../../hooks/queries/useProfileQueries";
@@ -347,16 +341,8 @@ export function ProfileDetailsContent({
 		};
 	}, [activeProfilePhotoHashes.length, showMobileCarousel, isDesktopLike]);
 
-	const positionIconMap: Record<number, LucideIcon> = {
-		1: ArrowUp,        // Top
-		2: ArrowDown,      // Bottom
-		3: ArrowUpDown,    // Versatile
-		4: ChevronsDown,   // Vers Bottom
-		5: ChevronsUp,     // Vers Top
-		6: ArrowLeftRight, // Side
-	};
 	const PositionIcon = activeProfile?.sexualPosition != null
-		? (positionIconMap[activeProfile.sexualPosition] ?? Compass)
+		? (SEXUAL_POSITION_ICONS[activeProfile.sexualPosition] ?? Compass)
 		: null;
 
 
