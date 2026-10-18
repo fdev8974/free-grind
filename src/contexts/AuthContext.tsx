@@ -26,6 +26,7 @@ import {
 } from "./auth-context";
 import { appLog } from "../utils/logger";
 import { setActiveChatDbUser, migrateLegacySettingsIfNeeded } from "../services/chatDb";
+import { setActiveChatContactIndexAccount } from "../services/chatContactIndex";
 import { setActiveInterestStoreUser } from "../services/interestViewsStore";
 import { clearAllCaches } from "../pages/app/gridpage/cache";
 import { loadAutomationCache } from "../utils/autoblock";
@@ -600,6 +601,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		dispatch({ type: "SET_SETTINGS_READY", payload: false });
 		setActiveInterestStoreUser(state.userId);
+		setActiveChatContactIndexAccount(state.userId);
 
 		void (async () => {
 			await setActiveChatDbUser(state.userId);
