@@ -1355,7 +1355,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					<>
 						<div
 							ref={!isDesktop ? headerRef : undefined}
-							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-30 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
+							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-40 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? {
@@ -1529,7 +1529,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									{headerMenuPresence.rendered ? (
 										<div
 											data-lenis-prevent
-											className="absolute right-0 top-full z-30 mt-1 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
+											className="absolute right-0 top-full z-40 mt-1 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
 											// Mobile: stay within the space between the floating header and composer.
 											style={{
 												...menuTransitionStyle(headerMenuPresence.visible),
