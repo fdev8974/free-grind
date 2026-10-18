@@ -1,6 +1,7 @@
-import { Plus, type LucideIcon } from "lucide-react";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
-import { cn } from "../../../utils/cn";
+import { Plus } from "lucide-react";
+import type { ComponentType } from "react";
+import { BottomSheet, SheetClose, SheetCloseButton } from "./bottom-sheet";
+import { cn } from "../../utils/cn";
 
 /** Same bg as the app's other native-style sheets (filters, location, chat drawer). */
 export const NATIVE_SHEET_BG = "bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]";
@@ -13,7 +14,8 @@ export function afterSheetClose(fn: () => void) {
 
 export interface SheetAction {
 	key: string;
-	icon: LucideIcon;
+	/** Lucide or one of the app's filled icons. */
+	icon: ComponentType<{ className?: string }>;
 	label: string;
 	description?: string;
 	/** Tile color classes, e.g. "bg-sky-500/15 text-sky-400". Ignored for danger actions. */

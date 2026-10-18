@@ -1,5 +1,5 @@
 import { AlertCircle, Bell, CheckCircle2, Copy, Loader2, Radar, RefreshCcw } from "lucide-react";
-import type { ReactNode, RefObject } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import toast from "react-hot-toast";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { RowActionPill } from "../../../components/ui/row-action-pill";
@@ -8,32 +8,9 @@ import type { useFingerprintCheck } from "../../../components/FingerprintCheckBu
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
 import { DRAWER_PRIMARY_BUTTON_CLASS, DrawerFooter, DrawerHeader } from "../chat/drawerUi";
-import { NATIVE_SHEET_BG } from "../settings-albums/SheetActionList";
+import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
 
-export type DiagnosticTone = "ok" | "warn" | "error" | "idle";
-
-const TONE_BADGE: Record<Exclude<DiagnosticTone, "idle">, string> = {
-	ok: "bg-emerald-500",
-	warn: "bg-amber-500",
-	error: "bg-red-500",
-};
-
-/** Status dot on a settings row's icon tile (green / amber / red). */
-export function DiagnosticBadge({ tone, loading }: { tone: DiagnosticTone; loading?: boolean }) {
-	if (loading) {
-		return (
-			<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] ring-2 ring-[var(--surface)]">
-				<Loader2 className="h-3 w-3 animate-spin" />
-			</div>
-		);
-	}
-	if (tone === "idle") return null;
-	return (
-		<div className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-white ring-2 ring-[var(--surface)] ${TONE_BADGE[tone]}`}>
-			{tone === "ok" ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-		</div>
-	);
-}
+type DiagnosticTone = "ok" | "warn" | "error" | "idle";
 
 const TONE_HERO: Record<DiagnosticTone, string> = {
 	ok: "bg-emerald-500/15 text-emerald-400",
@@ -73,7 +50,7 @@ function sheetPanelClass(isDesktop: boolean) {
 	return isDesktop ? "max-h-[82dvh] px-4" : "px-4";
 }
 
-export function fingerprintTone(check: ReturnType<typeof useFingerprintCheck>): DiagnosticTone {
+function fingerprintTone(check: ReturnType<typeof useFingerprintCheck>): DiagnosticTone {
 	if (check.ok) return "ok";
 	if (check.result || check.error) return "error";
 	return "idle";
@@ -89,6 +66,16 @@ export function FingerprintCheckSheet({
 	const isDesktop = useDesktopBreakpoint();
 	const tone = fingerprintTone(check);
 	const { result, error, loading } = check;
+
+	// Run a fresh check every time the sheet opens. The ref keeps StrictMode's
+	// double effect run (and a check already in flight) from starting a second one.
+	const startedRef = useRef(false);
+	const checkFingerprint = check.checkFingerprint;
+	useEffect(() => {
+		if (startedRef.current || loading) return;
+		startedRef.current = true;
+		void checkFingerprint();
+	}, [checkFingerprint, loading]);
 
 	return (
 		<BottomSheet onClose={onClose} expandable isDesktop={isDesktop} bg={NATIVE_SHEET_BG} panelClassName={sheetPanelClass(isDesktop)}>

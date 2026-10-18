@@ -28,7 +28,7 @@ import {
 	QrCode,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { ArchiveRestoreFilled, BotFilled, BugFilled, ClipboardListFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, UserPlusFilled, UserXFilled } from "../../components/icons/FilledIcons";
+import { ArchiveRestoreFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, UserPlusFilled, UserXFilled } from "../../components/icons/FilledIcons";
 import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -56,7 +56,9 @@ import {
 import { Chip } from "../../components/ui/chip";
 import { RowActionPill } from "../../components/ui/row-action-pill";
 import { ToggleRow } from "../../components/ui/toggle-row";
-import { DiagnosticBadge, FingerprintCheckSheet, PushTokenSheet, fingerprintTone } from "./settings-dev/DiagnosticsSheets";
+import { FingerprintCheckSheet, PushTokenSheet } from "./settings-dev/DiagnosticsSheets";
+import { SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
@@ -351,6 +353,8 @@ export function SettingsPage() {
 	const [manualToken, setManualToken] = useState("");
 	const [isPushTokenSheetOpen, setIsPushTokenSheetOpen] = useState(false);
 	const [isFingerprintSheetOpen, setIsFingerprintSheetOpen] = useState(false);
+	const [isPreviewsSheetOpen, setIsPreviewsSheetOpen] = useState(false);
+	const isDesktop = useDesktopBreakpoint();
 	// Sync marker is `${token}::${userId}` (see AuthContext) since the device
 	// token is shared across saved accounts but sync is per-account.
 	const isFcmSynced = fcmToken != null && fcmSyncedToken === `${fcmToken}::${userId}`;
@@ -1187,99 +1191,26 @@ export function SettingsPage() {
 										"Assignments & Feature Flags",
 										"Server-side flags and A/B experiments assigned to this account.",
 									)}
-									{navRow(
-										replayOnboarding,
-										<RotateCcw className="h-5 w-5" />,
+									{isAndroid() && navRow(
+										() => setIsPushTokenSheetOpen(true),
+										<Bell className="h-5 w-5 fill-current" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
-										"Replay Onboarding",
-										"Shows the first-launch setup flow again.",
+										"Push Token (FCM)",
+										"Inspect the device push token and re-sync it to Grindr.",
 									)}
 									{navRow(
-										replayRestoreOffer,
-										<FileUpFilled className="h-5 w-5" />,
+										() => setIsFingerprintSheetOpen(true),
+										<Radar className="h-5 w-5" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
-										"Show Restore Offer",
-										"Opens the first-login backup restore dialog.",
+										"Fingerprint Check",
+										"Verify your HTTP/TLS fingerprint matches OkHttp.",
 									)}
 									{navRow(
-										showLegalAgreementsPrompt,
-										<ScrollText className="h-5 w-5" />,
+										() => setIsPreviewsSheetOpen(true),
+										<EyeFilled className="h-5 w-5" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
-										"Show Legal Agreements",
-										"Opens the Terms of Service / Privacy Policy dialog, even if already accepted.",
-									)}
-									{navRow(
-										() => void showSharePickerDebug(),
-										<Share2 className="h-5 w-5 fill-current" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
-										"Show Share Picker",
-										"Opens the \"Send to…\" chat picker with sample images, as if shared from another app.",
-									)}
-									{isAndroid() && (
-										<button
-											type="button"
-											onClick={() => setIsPushTokenSheetOpen(true)}
-											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-										>
-											<div className="relative shrink-0">
-												<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-													<Bell className="h-5 w-5 fill-current" />
-												</div>
-												<DiagnosticBadge tone={!fcmToken ? "warn" : isFcmSynced ? "ok" : "warn"} loading={isSyncingFcm} />
-											</div>
-											<div className="min-w-0 flex-1">
-												<p className="text-sm font-semibold leading-snug">Push Token (FCM)</p>
-												<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-													{!fcmToken ? "No token received yet" : isFcmSynced ? "Synced to Grindr" : "Not synced to Grindr"}
-												</p>
-											</div>
-											<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-										</button>
-									)}
-									<button
-										type="button"
-										onClick={() => setIsFingerprintSheetOpen(true)}
-										className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-									>
-										<div className="relative shrink-0">
-											<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-												<Radar className="h-5 w-5" />
-											</div>
-											<DiagnosticBadge tone={fingerprintTone(fingerprintCheck)} loading={fingerprintCheck.loading} />
-										</div>
-										<div className="min-w-0 flex-1">
-											<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
-											<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-												{fingerprintCheck.loading
-													? "Checking…"
-													: fingerprintCheck.ok
-														? "Matches OkHttp"
-														: fingerprintCheck.result
-															? "Fingerprint mismatch"
-															: fingerprintCheck.error
-																? "Check failed"
-																: "Verify your HTTP/TLS fingerprint matches OkHttp."}
-											</p>
-										</div>
-										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-									</button>
-									{navRow(
-										() => setPreviewAnnouncement(true),
-										<MegaphoneFilled className="h-5 w-5" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
-										"Preview Version Announcement",
-										LATEST_ANNOUNCEMENT
-											? `View the "${LATEST_ANNOUNCEMENT.headline}" screen (v${LATEST_ANNOUNCEMENT.version}).`
-											: "No version announcement configured yet.",
-										undefined,
-										!LATEST_ANNOUNCEMENT,
-									)}
-									{navRow(
-										() => setPreviewOutdatedPrompt(true),
-										<Download className="h-5 w-5" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
-										"Preview Outdated Update Prompt",
-										"View the \"Update Available\" screen shown when the app is out of date.",
+										"UI Previews",
+										"Open onboarding, prompts and other one-off screens on demand.",
 									)}
 								</div>
 							</div>
@@ -1353,6 +1284,32 @@ export function SettingsPage() {
 					onManualTokenChange={setManualToken}
 					onSync={(override) => void handleForceSyncFcm(override)}
 					onClose={() => setIsPushTokenSheetOpen(false)}
+				/>
+			)}
+
+			{isPreviewsSheetOpen && (
+				<SheetActionList
+					title="UI Previews"
+					onClose={() => setIsPreviewsSheetOpen(false)}
+					isDesktop={isDesktop}
+					// Each preview opens after this sheet has closed (and popped its history entry).
+					actions={[
+						{ key: "onboarding", icon: RotateCcw, label: "Replay Onboarding", description: "The first-launch setup flow.", onSelect: () => afterSheetClose(replayOnboarding) },
+						{ key: "restore", icon: FileUpFilled, label: "Restore Offer", description: "The first-login backup restore dialog.", onSelect: () => afterSheetClose(replayRestoreOffer) },
+						{ key: "legal", icon: ScrollText, label: "Legal Agreements", description: "Terms of Service / Privacy Policy, even if already accepted.", onSelect: () => afterSheetClose(showLegalAgreementsPrompt) },
+						{ key: "share", icon: Share2, label: "Share Picker", description: "The \"Send to…\" chat picker with sample images.", onSelect: () => afterSheetClose(() => void showSharePickerDebug()) },
+						{
+							key: "announcement",
+							icon: MegaphoneFilled,
+							label: "Version Announcement",
+							description: LATEST_ANNOUNCEMENT
+								? `"${LATEST_ANNOUNCEMENT.headline}" (v${LATEST_ANNOUNCEMENT.version}).`
+								: "No version announcement configured yet.",
+							disabled: !LATEST_ANNOUNCEMENT,
+							onSelect: () => afterSheetClose(() => setPreviewAnnouncement(true)),
+						},
+						{ key: "outdated", icon: Download, label: "Outdated Update Prompt", description: "The \"Update Available\" screen for outdated apps.", onSelect: () => afterSheetClose(() => setPreviewOutdatedPrompt(true)) },
+					]}
 				/>
 			)}
 

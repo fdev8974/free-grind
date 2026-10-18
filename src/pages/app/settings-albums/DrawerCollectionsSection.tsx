@@ -11,7 +11,7 @@ import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { DrawerCollectionEditorSheet } from "./DrawerCollectionEditorSheet";
 import { DrawerEmptyState } from "../chat/drawerUi";
-import { EmptyStateCreateButton, SectionAddButton } from "./SheetActionList";
+import { EmptyStateCreateButton, SectionAddButton } from "../../../components/ui/action-sheet";
 
 interface DrawerCollectionsSectionProps {
 	drawerMedia: DrawerMedia[];

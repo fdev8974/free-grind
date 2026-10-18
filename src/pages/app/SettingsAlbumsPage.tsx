@@ -51,7 +51,7 @@ import {
 } from "./settings-albums/settingsAlbumsUtils";
 import { AlbumDrawerPickerSheet } from "./settings-albums/AlbumDrawerPickerSheet";
 import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSection";
-import { EmptyStateCreateButton, NATIVE_SHEET_BG, SectionAddButton, SheetActionList, afterSheetClose } from "./settings-albums/SheetActionList";
+import { EmptyStateCreateButton, NATIVE_SHEET_BG, SectionAddButton, SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
 import { SheetSection, SheetTextInput } from "../../components/ui/sheet-section";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
