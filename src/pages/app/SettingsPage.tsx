@@ -10,7 +10,6 @@ import {
 	ChevronRight,
 	Download,
 	GitBranch,
-	HelpCircle,
 	Languages,
 	Loader2,
 	LogOut,
@@ -54,8 +53,9 @@ import {
 	getContributorHandle,
 	type HotswapChannel,
 } from "../../services/hotswap";
-import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
+import { RowActionPill } from "../../components/ui/row-action-pill";
+import { ToggleRow } from "../../components/ui/toggle-row";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
@@ -1062,16 +1062,9 @@ export function SettingsPage() {
 													})}
 										</p>
 									</div>
-									<span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-3 text-xs font-semibold text-[var(--accent)]">
-										{isCheckingUpdates ? (
-											<>
-												<Loader2 className="h-3.5 w-3.5 animate-spin" />
-												{t("settings.checking")}
-											</>
-										) : (
-											t("settings.check_now")
-										)}
-									</span>
+									<RowActionPill loading={isCheckingUpdates} loadingLabel={t("settings.checking")}>
+										{t("settings.check_now")}
+									</RowActionPill>
 								</button>
 
 								{hotswapProgress.phase !== "idle" && hotswapProgress.phase !== "checking" && (() => {
@@ -1166,22 +1159,14 @@ export function SettingsPage() {
 							<div>
 								<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Developer</p>
 								<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-									<div className="flex w-full items-center gap-3 px-4 py-3.5">
-										<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-											<BugFilled className="h-5 w-5" />
-										</div>
-										<div className="min-w-0 flex-1">
-											<p className="text-sm font-semibold leading-snug">Show Debug Overlays</p>
-											<p className="text-xs text-[var(--text-muted)] mt-0.5">Displays source (cache/network) info in the grid.</p>
-										</div>
-										<button
-											type="button"
-											onClick={() => void setPreferences({ showDebugInfo: !showDebugInfo })}
-											className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${showDebugInfo ? "bg-[var(--accent)]" : "bg-[var(--surface-2)]"}`}
-										>
-											<span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${showDebugInfo ? "translate-x-5" : "translate-x-0"}`} />
-										</button>
-									</div>
+									<ToggleRow
+										checked={showDebugInfo}
+										onChange={(checked) => void setPreferences({ showDebugInfo: checked })}
+										icon={<BugFilled className="h-5 w-5" />}
+										iconClass="bg-[var(--surface-2)] text-[var(--text-muted)]"
+										label="Show Debug Overlays"
+										description="Displays source (cache/network) info in the grid."
+									/>
 									{navRow(
 										() => navigate("/settings/api-inspector"),
 										<Terminal className="h-5 w-5" />,
@@ -1224,92 +1209,97 @@ export function SettingsPage() {
 										"Show Share Picker",
 										"Opens the \"Send to…\" chat picker with sample images, as if shared from another app.",
 									)}
-									{isAndroid() && (
-									<div className="p-4 sm:p-5">
-										<div className="flex items-start gap-3">
-											<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-												<Bell className="h-5 w-5 fill-current" />
-											</div>
-											<div className="grid gap-3 min-w-0 flex-1">
-												<div className="flex items-center gap-2 flex-wrap">
-													<p className="text-sm font-semibold">Push Token (FCM)</p>
-													{fcmToken && (() => {
-														// Sync marker is `${token}::${userId}` (see AuthContext) since the
-														// device token is shared across saved accounts but sync is per-account.
-														const isSynced = fcmSyncedToken === `${fcmToken}::${userId}`;
-														return (
-															<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isSynced ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-																{isSynced ? "✓ Synced" : "⚠ Not synced"}
-															</span>
-														);
-													})()}
-												</div>
-												{fcmToken ? (
-													<div className="grid gap-2">
-														<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-															<p className="text-xs text-[var(--text-muted)] mb-1">Token (tap to select)</p>
-															<p className="break-all font-mono text-xs select-all">{fcmToken}</p>
+									{isAndroid() && (() => {
+										// Sync marker is `${token}::${userId}` (see AuthContext) since the
+										// device token is shared across saved accounts but sync is per-account.
+										const isSynced = fcmToken != null && fcmSyncedToken === `${fcmToken}::${userId}`;
+										return (
+											<div className="px-4 py-3.5">
+												<div className="flex items-center gap-3">
+													<div className="relative shrink-0">
+														<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
+															<Bell className="h-5 w-5 fill-current" />
 														</div>
-														<Button type="button" size="sm" disabled={isSyncingFcm} onClick={() => void handleForceSyncFcm()} className="w-full justify-center">
-															{isSyncingFcm ? "Syncing..." : "Force re-sync"}
-														</Button>
-		                                            </div>
-												) : (
-													<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
-														<p className="font-medium mb-0.5">No token received yet</p>
-														<p className="text-xs opacity-80">Android delivers the FCM token via the <code>fg:fcm-token</code> event after Firebase initialises on launch.</p>
-													</div>
-												)}
-												<div>
-													<p className="text-xs font-medium text-[var(--text-muted)] mb-1">
-														Live event log {fcmEventLog.length > 0 ? `(${fcmEventLog.length} received this session)` : "(waiting…)"}
-													</p>
-													<div ref={fcmLogRef} className="rounded-lg bg-[var(--surface-2)] px-3 py-2 max-h-32 overflow-y-auto">
-														{fcmEventLog.length === 0 ? (
-															<p className="font-mono text-xs text-[var(--text-muted)] italic">No fg:fcm-token events fired since this page opened</p>
-														) : (
-															fcmEventLog.map((entry, i) => (
-																<p key={i} className="font-mono text-xs break-all">
-																	<span className="text-[var(--text-muted)]">[{entry.time}] </span>
-																	{entry.token.slice(0, 20)}…{entry.token.slice(-8)}
-																</p>
-															))
+														{fcmToken && (
+															<div className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-white ring-2 ring-[var(--surface)] ${isSynced ? "bg-emerald-500" : "bg-amber-500"}`}>
+																{isSynced ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+															</div>
 														)}
 													</div>
+													<div className="min-w-0 flex-1">
+														<p className="text-sm font-semibold leading-snug">Push Token (FCM)</p>
+														<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+															{!fcmToken ? "No token received yet" : isSynced ? "Synced to Grindr" : "Not synced to Grindr"}
+														</p>
+													</div>
+													{fcmToken && (
+														<RowActionPill onClick={() => void handleForceSyncFcm()} loading={isSyncingFcm} loadingLabel="Syncing…">
+															Re-sync
+														</RowActionPill>
+													)}
 												</div>
-												<div className="grid gap-1.5">
-													<p className="text-xs font-medium text-[var(--text-muted)]">Manual token (paste to force-sync)</p>
-													<div className="flex gap-2">
+
+												{/* Details, indented to line up with the row's text. */}
+												<div className="mt-3 grid gap-2 pl-[52px]">
+													{fcmToken ? (
+														<div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
+															<p className="mb-1 text-xs text-[var(--text-muted)]">Token (tap to select)</p>
+															<p className="break-all font-mono text-xs select-all">{fcmToken}</p>
+														</div>
+													) : (
+														<p className="text-xs leading-relaxed text-[var(--text-muted)]">
+															Android delivers the FCM token via the <code>fg:fcm-token</code> event after Firebase initialises on launch.
+														</p>
+													)}
+													<div>
+														<p className="mb-1 text-xs font-medium text-[var(--text-muted)]">
+															Live event log {fcmEventLog.length > 0 ? `(${fcmEventLog.length} received this session)` : "(waiting…)"}
+														</p>
+														<div ref={fcmLogRef} className="max-h-32 overflow-y-auto rounded-xl bg-[var(--surface-2)] px-3 py-2" data-lenis-prevent>
+															{fcmEventLog.length === 0 ? (
+																<p className="font-mono text-xs italic text-[var(--text-muted)]">No fg:fcm-token events fired since this page opened</p>
+															) : (
+																fcmEventLog.map((entry, i) => (
+																	<p key={i} className="break-all font-mono text-xs">
+																		<span className="text-[var(--text-muted)]">[{entry.time}] </span>
+																		{entry.token.slice(0, 20)}…{entry.token.slice(-8)}
+																	</p>
+																))
+															)}
+														</div>
+													</div>
+													<div className="flex items-center gap-2">
 														<input
 															type="text"
 															value={manualToken}
 															onChange={(e) => setManualToken(e.target.value)}
-															placeholder="Paste FCM token here…"
-															className="input-field min-w-0 flex-1 font-mono text-xs"
+															placeholder="Paste FCM token to force-sync…"
+															className="h-10 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 font-mono text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
 														/>
-														<Button type="button" size="sm" disabled={isSyncingFcm || !manualToken.trim()} onClick={() => void handleForceSyncFcm(manualToken.trim())}>
+														<RowActionPill
+															onClick={() => void handleForceSyncFcm(manualToken.trim())}
+															disabled={!manualToken.trim()}
+															loading={isSyncingFcm}
+														>
 															Sync
-														</Button>
+														</RowActionPill>
 													</div>
 												</div>
 											</div>
-										</div>
-									</div>
-									)}
-									<div className="p-4 sm:p-5">
-										<div className="flex items-start gap-3">
+										);
+									})()}
+									<div className="px-4 py-3.5">
+										<button
+											type="button"
+											onClick={() => void fingerprintCheck.checkFingerprint()}
+											disabled={fingerprintCheck.loading}
+											className="-mx-4 -my-3.5 flex w-[calc(100%+2rem)] items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default disabled:hover:bg-transparent"
+										>
 											<div className="relative shrink-0">
 												<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
 													<Radar className="h-5 w-5" />
 												</div>
-												{fingerprintCheck.loading ? (
-													<div
-														className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)]"
-														style={{ backgroundColor: "var(--accent)", color: "var(--accent-contrast)" }}
-													>
-														<Loader2 className="h-3 w-3 animate-spin" />
-													</div>
-												) : fingerprintCheck.ok ? (
+												{fingerprintCheck.ok ? (
 													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-[var(--surface)]">
 														<CheckCircle2 className="h-3 w-3" />
 													</div>
@@ -1317,25 +1307,19 @@ export function SettingsPage() {
 													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-[var(--surface)]">
 														<AlertCircle className="h-3 w-3" />
 													</div>
-												) : (
-													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-2 ring-[var(--surface)]">
-														<HelpCircle className="h-3 w-3" />
-													</div>
-												)}
+												) : null}
 											</div>
-											<div className="grid gap-3 min-w-0 flex-1">
-												<div className="grid grid-cols-[1fr_auto] gap-x-3">
-													<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
-													<div className="row-span-2 flex items-start">
-														<Button type="button" disabled={fingerprintCheck.loading} onClick={() => void fingerprintCheck.checkFingerprint()}>
-															Check
-														</Button>
-													</div>
-													<p className="mt-0.5 text-xs text-[var(--text-muted)]">Verify your HTTP/TLS fingerprint matches OkHttp configuration.</p>
-												</div>
+											<div className="min-w-0 flex-1">
+												<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
+												<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">Verify your HTTP/TLS fingerprint matches OkHttp configuration.</p>
+											</div>
+											<RowActionPill loading={fingerprintCheck.loading} loadingLabel="Checking…">Check</RowActionPill>
+										</button>
+										{(fingerprintCheck.result || fingerprintCheck.error) && (
+											<div className="mt-3 grid gap-2 pl-[52px]">
 												{fingerprintCheck.result && (
-													<div className="grid gap-2">
-														<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
+													<>
+														<div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
 															<div className="mb-1 flex items-center justify-between gap-2">
 																<p className="text-xs text-[var(--text-muted)]">JA3 Hash</p>
 																<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.ja3_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
@@ -1344,7 +1328,7 @@ export function SettingsPage() {
 															</div>
 															<p className="break-all font-mono text-xs">{fingerprintCheck.result.ja3_hash}</p>
 														</div>
-														<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
+														<div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
 															<div className="mb-1 flex items-center justify-between gap-2">
 																<p className="text-xs text-[var(--text-muted)]">Akamai Fingerprint</p>
 																<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.akamai_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
@@ -1354,16 +1338,16 @@ export function SettingsPage() {
 															<p className="break-all font-mono text-xs">{fingerprintCheck.result.akamai_fingerprint}</p>
 														</div>
 														<p className="text-xs text-[var(--text-muted)]">HTTP Version <span className="font-mono text-[var(--text)]">{fingerprintCheck.result.http_version}</span></p>
-													</div>
+													</>
 												)}
 												{fingerprintCheck.error && (
-													<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
-														<p className="font-medium mb-0.5">Fingerprint check failed</p>
+													<div className="rounded-xl bg-red-500/10 px-3 py-2 text-red-400">
+														<p className="mb-0.5 text-xs font-semibold">Fingerprint check failed</p>
 														<p className="text-xs opacity-80">{fingerprintCheck.error}</p>
 													</div>
 												)}
 											</div>
-										</div>
+										)}
 									</div>
 									{navRow(
 										() => setPreviewAnnouncement(true),
