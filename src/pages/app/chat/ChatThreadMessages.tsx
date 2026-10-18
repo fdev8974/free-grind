@@ -1786,13 +1786,13 @@ export function ChatThreadMessages({
                                         ) : null}
 
                                         {isExpiredImage ? (
-                                            <div className={`relative flex items-center justify-center overflow-hidden bg-black/80 ${isImageOnlyBubble ? `w-full ${hasReply ? "" : `rounded-2xl ${tailCorner}`}` : "mb-2 rounded-xl border border-black/10"}`} style={{ minHeight: "12rem", minWidth: "12rem" }}>
-                                                <div className="flex flex-col items-center gap-1.5 text-white/60">
+                                            <div className={`relative flex items-center justify-center overflow-hidden bg-[var(--surface-2)] ${isImageOnlyBubble ? `w-full ${hasReply ? "" : `rounded-2xl ${tailCorner}`}` : "mb-2 rounded-xl border border-black/10"}`} style={{ minHeight: "12rem", minWidth: "12rem" }}>
+                                                <div className="flex flex-col items-center gap-1.5 text-[var(--text-muted)]">
                                                     <ImageOff className="h-6 w-6" />
                                                     <span className="text-xs font-medium">{t("chat.thread.image_expired")}</span>
                                                 </div>
                                                 {isImageOnlyBubble && (
-                                                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2 text-[10px] text-white">
+                                                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-2 px-3 py-2 text-[10px] text-[var(--text-muted)]">
                                                         <span>{formatMessageTime(message.timestamp, nowTimestamp, t)}</span>
                                                     </div>
                                                 )}
@@ -1800,13 +1800,13 @@ export function ChatThreadMessages({
                                         ) : null}
 
                                         {isExpiredVideo ? (
-                                            <div className={`relative flex items-center justify-center overflow-hidden bg-black/80 ${isVideoOnlyBubble ? `w-full ${hasReply ? "" : `rounded-2xl ${tailCorner}`}` : "mb-2 rounded-xl border border-black/10"}`} style={{ minHeight: "12rem", minWidth: "16rem" }}>
-                                                <div className="flex flex-col items-center gap-1.5 text-white/60">
+                                            <div className={`relative flex items-center justify-center overflow-hidden bg-[var(--surface-2)] ${isVideoOnlyBubble ? `w-full ${hasReply ? "" : `rounded-2xl ${tailCorner}`}` : "mb-2 rounded-xl border border-black/10"}`} style={{ minHeight: "12rem", minWidth: "16rem" }}>
+                                                <div className="flex flex-col items-center gap-1.5 text-[var(--text-muted)]">
                                                     <VideoOff className="h-6 w-6" />
                                                     <span className="text-xs font-medium">{t("chat.thread.video_expired")}</span>
                                                 </div>
                                                 {isVideoOnlyBubble && (
-                                                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2 text-[10px] text-white">
+                                                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-end gap-2 px-3 py-2 text-[10px] text-[var(--text-muted)]">
                                                         <span>{formatMessageTime(message.timestamp, nowTimestamp, t)}</span>
                                                     </div>
                                                 )}
