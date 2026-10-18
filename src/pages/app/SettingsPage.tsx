@@ -56,6 +56,7 @@ import {
 import { Chip } from "../../components/ui/chip";
 import { RowActionPill } from "../../components/ui/row-action-pill";
 import { ToggleRow } from "../../components/ui/toggle-row";
+import { DiagnosticBadge, FingerprintCheckSheet, PushTokenSheet, fingerprintTone } from "./settings-dev/DiagnosticsSheets";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
@@ -348,6 +349,11 @@ export function SettingsPage() {
 	const [fcmSyncedToken, setFcmSyncedToken] = useState<string | null>(() => window.localStorage.getItem(PUSH_TOKEN_SYNCED_STORAGE_KEY));
 	const [fcmEventLog, setFcmEventLog] = useState<{ time: string; token: string }[]>([]);
 	const [manualToken, setManualToken] = useState("");
+	const [isPushTokenSheetOpen, setIsPushTokenSheetOpen] = useState(false);
+	const [isFingerprintSheetOpen, setIsFingerprintSheetOpen] = useState(false);
+	// Sync marker is `${token}::${userId}` (see AuthContext) since the device
+	// token is shared across saved accounts but sync is per-account.
+	const isFcmSynced = fcmToken != null && fcmSyncedToken === `${fcmToken}::${userId}`;
 	const fcmLogRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -1209,146 +1215,54 @@ export function SettingsPage() {
 										"Show Share Picker",
 										"Opens the \"Send to…\" chat picker with sample images, as if shared from another app.",
 									)}
-									{isAndroid() && (() => {
-										// Sync marker is `${token}::${userId}` (see AuthContext) since the
-										// device token is shared across saved accounts but sync is per-account.
-										const isSynced = fcmToken != null && fcmSyncedToken === `${fcmToken}::${userId}`;
-										return (
-											<div className="px-4 py-3.5">
-												<div className="flex items-center gap-3">
-													<div className="relative shrink-0">
-														<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-															<Bell className="h-5 w-5 fill-current" />
-														</div>
-														{fcmToken && (
-															<div className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-white ring-2 ring-[var(--surface)] ${isSynced ? "bg-emerald-500" : "bg-amber-500"}`}>
-																{isSynced ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-															</div>
-														)}
-													</div>
-													<div className="min-w-0 flex-1">
-														<p className="text-sm font-semibold leading-snug">Push Token (FCM)</p>
-														<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-															{!fcmToken ? "No token received yet" : isSynced ? "Synced to Grindr" : "Not synced to Grindr"}
-														</p>
-													</div>
-													{fcmToken && (
-														<RowActionPill onClick={() => void handleForceSyncFcm()} loading={isSyncingFcm} loadingLabel="Syncing…">
-															Re-sync
-														</RowActionPill>
-													)}
-												</div>
-
-												{/* Details, indented to line up with the row's text. */}
-												<div className="mt-3 grid gap-2 pl-[52px]">
-													{fcmToken ? (
-														<div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
-															<p className="mb-1 text-xs text-[var(--text-muted)]">Token (tap to select)</p>
-															<p className="break-all font-mono text-xs select-all">{fcmToken}</p>
-														</div>
-													) : (
-														<p className="text-xs leading-relaxed text-[var(--text-muted)]">
-															Android delivers the FCM token via the <code>fg:fcm-token</code> event after Firebase initialises on launch.
-														</p>
-													)}
-													<div>
-														<p className="mb-1 text-xs font-medium text-[var(--text-muted)]">
-															Live event log {fcmEventLog.length > 0 ? `(${fcmEventLog.length} received this session)` : "(waiting…)"}
-														</p>
-														<div ref={fcmLogRef} className="max-h-32 overflow-y-auto rounded-xl bg-[var(--surface-2)] px-3 py-2" data-lenis-prevent>
-															{fcmEventLog.length === 0 ? (
-																<p className="font-mono text-xs italic text-[var(--text-muted)]">No fg:fcm-token events fired since this page opened</p>
-															) : (
-																fcmEventLog.map((entry, i) => (
-																	<p key={i} className="break-all font-mono text-xs">
-																		<span className="text-[var(--text-muted)]">[{entry.time}] </span>
-																		{entry.token.slice(0, 20)}…{entry.token.slice(-8)}
-																	</p>
-																))
-															)}
-														</div>
-													</div>
-													<div className="flex items-center gap-2">
-														<input
-															type="text"
-															value={manualToken}
-															onChange={(e) => setManualToken(e.target.value)}
-															placeholder="Paste FCM token to force-sync…"
-															className="h-10 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 font-mono text-xs text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
-														/>
-														<RowActionPill
-															onClick={() => void handleForceSyncFcm(manualToken.trim())}
-															disabled={!manualToken.trim()}
-															loading={isSyncingFcm}
-														>
-															Sync
-														</RowActionPill>
-													</div>
-												</div>
-											</div>
-										);
-									})()}
-									<div className="px-4 py-3.5">
+									{isAndroid() && (
 										<button
 											type="button"
-											onClick={() => void fingerprintCheck.checkFingerprint()}
-											disabled={fingerprintCheck.loading}
-											className="-mx-4 -my-3.5 flex w-[calc(100%+2rem)] items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default disabled:hover:bg-transparent"
+											onClick={() => setIsPushTokenSheetOpen(true)}
+											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 										>
 											<div className="relative shrink-0">
 												<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-													<Radar className="h-5 w-5" />
+													<Bell className="h-5 w-5 fill-current" />
 												</div>
-												{fingerprintCheck.ok ? (
-													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-[var(--surface)]">
-														<CheckCircle2 className="h-3 w-3" />
-													</div>
-												) : fingerprintCheck.result || fingerprintCheck.error ? (
-													<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-[var(--surface)]">
-														<AlertCircle className="h-3 w-3" />
-													</div>
-												) : null}
+												<DiagnosticBadge tone={!fcmToken ? "warn" : isFcmSynced ? "ok" : "warn"} loading={isSyncingFcm} />
 											</div>
 											<div className="min-w-0 flex-1">
-												<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
-												<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">Verify your HTTP/TLS fingerprint matches OkHttp configuration.</p>
+												<p className="text-sm font-semibold leading-snug">Push Token (FCM)</p>
+												<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+													{!fcmToken ? "No token received yet" : isFcmSynced ? "Synced to Grindr" : "Not synced to Grindr"}
+												</p>
 											</div>
-											<RowActionPill loading={fingerprintCheck.loading} loadingLabel="Checking…">Check</RowActionPill>
+											<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 										</button>
-										{(fingerprintCheck.result || fingerprintCheck.error) && (
-											<div className="mt-3 grid gap-2 pl-[52px]">
-												{fingerprintCheck.result && (
-													<>
-														<div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
-															<div className="mb-1 flex items-center justify-between gap-2">
-																<p className="text-xs text-[var(--text-muted)]">JA3 Hash</p>
-																<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.ja3_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-																	{fingerprintCheck.result.ja3_match ? "✓ Match" : "✗ Mismatch"}
-																</span>
-															</div>
-															<p className="break-all font-mono text-xs">{fingerprintCheck.result.ja3_hash}</p>
-														</div>
-														<div className="rounded-xl bg-[var(--surface-2)] px-3 py-2">
-															<div className="mb-1 flex items-center justify-between gap-2">
-																<p className="text-xs text-[var(--text-muted)]">Akamai Fingerprint</p>
-																<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.akamai_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-																	{fingerprintCheck.result.akamai_match ? "✓ Match" : "✗ Mismatch"}
-																</span>
-															</div>
-															<p className="break-all font-mono text-xs">{fingerprintCheck.result.akamai_fingerprint}</p>
-														</div>
-														<p className="text-xs text-[var(--text-muted)]">HTTP Version <span className="font-mono text-[var(--text)]">{fingerprintCheck.result.http_version}</span></p>
-													</>
-												)}
-												{fingerprintCheck.error && (
-													<div className="rounded-xl bg-red-500/10 px-3 py-2 text-red-400">
-														<p className="mb-0.5 text-xs font-semibold">Fingerprint check failed</p>
-														<p className="text-xs opacity-80">{fingerprintCheck.error}</p>
-													</div>
-												)}
+									)}
+									<button
+										type="button"
+										onClick={() => setIsFingerprintSheetOpen(true)}
+										className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+									>
+										<div className="relative shrink-0">
+											<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
+												<Radar className="h-5 w-5" />
 											</div>
-										)}
-									</div>
+											<DiagnosticBadge tone={fingerprintTone(fingerprintCheck)} loading={fingerprintCheck.loading} />
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
+											<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+												{fingerprintCheck.loading
+													? "Checking…"
+													: fingerprintCheck.ok
+														? "Matches OkHttp"
+														: fingerprintCheck.result
+															? "Fingerprint mismatch"
+															: fingerprintCheck.error
+																? "Check failed"
+																: "Verify your HTTP/TLS fingerprint matches OkHttp."}
+											</p>
+										</div>
+										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+									</button>
 									{navRow(
 										() => setPreviewAnnouncement(true),
 										<MegaphoneFilled className="h-5 w-5" />,
@@ -1427,6 +1341,24 @@ export function SettingsPage() {
 				}}
 				onCancel={() => setLogoutConfirmTarget(null)}
 			/>
+
+			{isPushTokenSheetOpen && (
+				<PushTokenSheet
+					token={fcmToken}
+					isSynced={isFcmSynced}
+					isSyncing={isSyncingFcm}
+					eventLog={fcmEventLog}
+					logRef={fcmLogRef}
+					manualToken={manualToken}
+					onManualTokenChange={setManualToken}
+					onSync={(override) => void handleForceSyncFcm(override)}
+					onClose={() => setIsPushTokenSheetOpen(false)}
+				/>
+			)}
+
+			{isFingerprintSheetOpen && (
+				<FingerprintCheckSheet check={fingerprintCheck} onClose={() => setIsFingerprintSheetOpen(false)} />
+			)}
 
 			<ContributorChannelDialog
 				isOpen={isContributorDialogOpen}
