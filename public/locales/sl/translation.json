@@ -712,6 +712,7 @@
         "collections_delete": "Izbriši zbirko",
         "collections_name_placeholder": "Ime zbirke",
         "name_label": "",
+        "new_short": "",
         "limits_albums_used": "",
         "limits_details": "",
         "collections_editor_hint": "Tapni medije v vrstnem redu, v katerem naj bodo poslani. Novo naloženi mediji se dodajo v tvojo galerijo.",

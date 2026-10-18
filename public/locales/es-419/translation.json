@@ -707,6 +707,7 @@
         "collections_delete": "Eliminar colección",
         "collections_name_placeholder": "Nombre de la colección",
         "name_label": "",
+        "new_short": "",
         "limits_albums_used": "",
         "limits_details": "",
         "collections_editor_hint": "Toca el contenido en el orden en que debe enviarse. Lo nuevo que subas se agrega a tu galería.",

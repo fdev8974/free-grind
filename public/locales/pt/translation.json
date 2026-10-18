@@ -707,6 +707,7 @@
         "collections_delete": "Eliminar coleção",
         "collections_name_placeholder": "Nome da coleção",
         "name_label": "",
+        "new_short": "",
         "limits_albums_used": "",
         "limits_details": "",
         "collections_editor_hint": "Toque nas multimédia na ordem em que devem ser enviadas. Novos envios são adicionados à sua pasta.",

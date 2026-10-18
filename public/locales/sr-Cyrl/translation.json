@@ -710,6 +710,7 @@
         "collections_delete": "Обриши колекцију",
         "collections_name_placeholder": "Назив колекције",
         "name_label": "",
+        "new_short": "",
         "limits_albums_used": "",
         "limits_details": "",
         "collections_editor_hint": "Додирните медије редом којим треба да буду послати. Нова отпремања се додају у вашу фиоку.",

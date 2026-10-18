@@ -78,8 +78,8 @@ export function SheetActionList({
 	);
 }
 
-/** "New …" row at the end of a list card: accent plus tile and accent label. */
-export function SheetCreateRow({
+/** Compact "+ New" pill for the right end of a section heading (Albums, Collections). */
+export function SectionAddButton({
 	label,
 	onClick,
 	disabled,
@@ -93,12 +93,10 @@ export function SheetCreateRow({
 			type="button"
 			onClick={onClick}
 			disabled={disabled}
-			className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:pointer-events-none disabled:opacity-50"
+			className="ml-auto inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-2.5 text-xs font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] active:scale-95 disabled:pointer-events-none disabled:opacity-40"
 		>
-			<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
-				<Plus className="h-5 w-5" strokeWidth={2.5} />
-			</div>
-			<p className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--accent)]">{label}</p>
+			<Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+			{label}
 		</button>
 	);
 }

@@ -50,7 +50,7 @@ import {
 } from "./settings-albums/settingsAlbumsUtils";
 import { AlbumDrawerPickerSheet } from "./settings-albums/AlbumDrawerPickerSheet";
 import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSection";
-import { NATIVE_SHEET_BG, SheetActionList, SheetCreateRow, afterSheetClose } from "./settings-albums/SheetActionList";
+import { NATIVE_SHEET_BG, SectionAddButton, SheetActionList, afterSheetClose } from "./settings-albums/SheetActionList";
 import { SheetSection, SheetTextInput } from "../../components/ui/sheet-section";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
@@ -904,6 +904,13 @@ export function SettingsAlbumsPage() {
 								{albums.length}
 							</span>
 						)}
+						{!isLoading && !error && (
+							<SectionAddButton
+								label={t("settings_albums.new_short", { defaultValue: "New" })}
+								onClick={() => setIsCreateSheetOpen(true)}
+								disabled={!canCreateAlbum}
+							/>
+						)}
 					</div>
 
 					{isLoading ? (
@@ -912,6 +919,7 @@ export function SettingsAlbumsPage() {
 						<ErrorState title={t("settings_albums.error_load")} description={error} onRetry={() => void loadAlbumsAndLimits()} />
 					) : (
 						<>
+						{albums.length > 0 ? (
 						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 							{albums.map((album) => {
 								const detail = albumDetails[album.albumId];
@@ -924,20 +932,21 @@ export function SettingsAlbumsPage() {
 										key={album.albumId}
 										type="button"
 										onClick={() => openAlbum(album.albumId)}
-										className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+										className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 									>
+										{/* Same 40px tile as the settings list's icons. */}
 										{coverUrl ? (
-											<img src={coverUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+											<img src={coverUrl} alt="" className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
 										) : (
-											<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-												<Images className="h-5 w-5 opacity-40" />
+											<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+												<Images className="h-5 w-5 opacity-50" />
 											</div>
 										)}
 										<div className="min-w-0 flex-1">
-											<p className="truncate font-semibold">
+											<p className="truncate text-sm font-semibold leading-snug">
 												{album.albumName?.trim() || t("settings_albums.untitled")}
 											</p>
-											<p className="truncate text-xs text-[var(--text-muted)]">
+											<p className="mt-0.5 truncate text-xs leading-snug text-[var(--text-muted)]">
 												{formatAlbumMeta(detail ? mediaCounts : null, shareProfiles?.length ?? 0) || `#${album.albumId}`}
 											</p>
 										</div>
@@ -945,12 +954,13 @@ export function SettingsAlbumsPage() {
 									</button>
 								);
 							})}
-							<SheetCreateRow
-								label={t("settings_albums.create")}
-								onClick={() => setIsCreateSheetOpen(true)}
-								disabled={!canCreateAlbum}
-							/>
 						</div>
+						) : (
+							<div className="surface-card flex flex-col items-center gap-2 px-4 py-8 text-center text-[var(--text-muted)]">
+								<Images className="h-7 w-7 opacity-30" />
+								<p className="text-sm">{t("settings_albums.empty")}</p>
+							</div>
+						)}
 						<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
 							{canCreateAlbum
 								? t("settings_albums.usage", { count: albums.length, max: maxAlbums })

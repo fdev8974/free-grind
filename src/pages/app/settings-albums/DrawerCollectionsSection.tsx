@@ -10,7 +10,7 @@ import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaSto
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { DrawerCollectionEditorSheet } from "./DrawerCollectionEditorSheet";
-import { SheetCreateRow } from "./SheetActionList";
+import { SectionAddButton } from "./SheetActionList";
 
 interface DrawerCollectionsSectionProps {
 	drawerMedia: DrawerMedia[];
@@ -113,10 +113,14 @@ export function DrawerCollectionsSection({
 						{collections.length}
 					</span>
 				)}
+				<SectionAddButton
+					label={t("settings_albums.new_short", { defaultValue: "New" })}
+					onClick={() => openEditor(null)}
+				/>
 			</div>
 
-			<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-				{collections.length > 0 && (
+			{collections.length > 0 && (
+			<div className="surface-card overflow-hidden">
 					<div className="divide-y divide-[var(--border)]">
 						{collections.map((collection) => {
 							const presentIds = collection.mediaIds.filter((id) => drawerMedia.some((m) => m.id === id));
@@ -132,31 +136,30 @@ export function DrawerCollectionsSection({
 									key={collection.id}
 									type="button"
 									onClick={() => openEditor(collection)}
-									className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 								>
 									{coverSrc && coverItem?.contentType.startsWith("image/") ? (
-										<img src={coverSrc} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+										<img src={coverSrc} alt="" className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
 									) : coverSrc ? (
-										<video src={coverSrc} preload="metadata" muted className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+										<video src={coverSrc} preload="metadata" muted className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
 									) : (
-										<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-											<Images className="h-5 w-5 opacity-40" />
+										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+											<Images className="h-5 w-5 opacity-50" />
 										</div>
 									)}
-										<div className="min-w-0 flex-1">
-											<p className="truncate text-sm font-semibold">{collection.name}</p>
-											<p className="text-xs text-[var(--text-muted)]">
-												{t("settings_albums.collections_item_count", { count })}
-											</p>
-										</div>
-										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+									<div className="min-w-0 flex-1">
+										<p className="truncate text-sm font-semibold leading-snug">{collection.name}</p>
+										<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+											{t("settings_albums.collections_item_count", { count })}
+										</p>
+									</div>
+									<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 								</button>
 							);
 						})}
 					</div>
-				)}
-				<SheetCreateRow label={t("settings_albums.collections_new")} onClick={() => openEditor(null)} />
 			</div>
+			)}
 			<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
 				{t("settings_albums.collections_description")}
 			</p>

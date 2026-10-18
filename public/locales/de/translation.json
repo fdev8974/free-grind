@@ -702,6 +702,7 @@
         "collections_delete": "Sammlung löschen",
         "collections_name_placeholder": "Name der Sammlung",
         "name_label": "",
+        "new_short": "",
         "limits_albums_used": "",
         "limits_details": "",
         "collections_editor_hint": "Tippe die Medien in der Reihenfolge an, in der sie gesendet werden sollen. Neue Uploads werden zu deiner Galerie hinzugefügt.",
