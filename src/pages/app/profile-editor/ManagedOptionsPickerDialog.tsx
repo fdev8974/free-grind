@@ -12,8 +12,9 @@ interface ManagedOptionsPickerDialogProps {
 	noMatchesLabel: string;
 	options: ManagedOption[];
 	selected: number[];
-	max: number;
-	maxMessage: string;
+	/** Omit for an unlimited selection (e.g. a browse filter). */
+	max?: number;
+	maxMessage?: string;
 	onToggle: (value: number) => void;
 	onClose: () => void;
 }
@@ -42,8 +43,8 @@ export function ManagedOptionsPickerDialog({
 
 	const handleToggle = (value: number) => {
 		const alreadySelected = selected.includes(value);
-		if (!alreadySelected && selected.length >= max) {
-			toast.error(maxMessage);
+		if (!alreadySelected && max !== undefined && selected.length >= max) {
+			if (maxMessage) toast.error(maxMessage);
 			return;
 		}
 		onToggle(value);

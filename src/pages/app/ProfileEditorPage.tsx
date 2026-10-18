@@ -33,6 +33,8 @@ import {
 	getSexualPositionOptions,
 	getTribeOptions,
 	getVaccineOptions,
+	buildGenderOptions,
+	getPrimaryGenderIds,
 } from "./profile-option-builders";
 import { ProfileEditorFormSections, type ToggleMultiValueKey } from "./profile-editor/ProfileEditorFormSections";
 import { ProfilePictureDrawer, type ProfilePoolImage } from "./profile-editor/ProfilePictureDrawer";
@@ -63,11 +65,6 @@ const MULTI_VALUE_MAX: Partial<Record<ToggleMultiValueKey, number>> = {
 	grindrTribes: 3,
 	tribesImInto: 3,
 };
-
-// The curated inline quick-pick order (man, cis man, trans man, woman, cis
-// woman, trans woman, non-binary) — genderId is stable across the API, unlike
-// displayGroup ordering, which the server doesn't otherwise rank.
-const DEFAULT_GENDER_ORDER = [1, 4, 5, 2, 6, 7, 3];
 
 export function ProfileEditorPage() {
 	const { t, i18n } = useTranslation();
@@ -157,27 +154,8 @@ export function ProfileEditorPage() {
 		[managedTagCategories],
 	);
 
-	// sortFilter ranks most genders (ascending = intended order); the rest
-	// (sortFilter === null) just sort to the end, no special grouping.
-	const genderOptions = useMemo(() => {
-		const sorted = [...(managedGenders ?? [])].sort((a, b) => {
-			const left = a.sortFilter ?? Number.POSITIVE_INFINITY;
-			const right = b.sortFilter ?? Number.POSITIVE_INFINITY;
-			return left - right;
-		});
-		return sorted.map((item) => ({ value: item.genderId, label: item.gender }));
-	}, [managedGenders]);
-
-	const defaultGenderIds = useMemo(() => {
-		const groupOneIds = new Set(
-			(managedGenders ?? [])
-				.filter((item) => item.displayGroup === 1)
-				.map((item) => item.genderId),
-		);
-		const ordered = DEFAULT_GENDER_ORDER.filter((id) => groupOneIds.has(id));
-		const extra = [...groupOneIds].filter((id) => !DEFAULT_GENDER_ORDER.includes(id));
-		return [...ordered, ...extra];
-	}, [managedGenders]);
+	const genderOptions = useMemo(() => buildGenderOptions(managedGenders), [managedGenders]);
+	const defaultGenderIds = useMemo(() => getPrimaryGenderIds(managedGenders), [managedGenders]);
 
 	const pronounOptions = useMemo(() => {
 		if (!userId) return [];

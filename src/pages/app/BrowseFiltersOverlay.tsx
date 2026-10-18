@@ -1,4 +1,5 @@
-import { type LucideIcon, Search, X } from "lucide-react";
+import { type LucideIcon, Search, Users, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
@@ -25,7 +26,10 @@ import {
 	getSexualPositionOptions,
 	getTribeOptions,
 	SEXUAL_POSITION_ICONS,
+	buildGenderOptions,
+	getPrimaryGenderIds,
 } from "./profile-option-builders";
+import { ManagedOptionsPickerDialog } from "./profile-editor/ManagedOptionsPickerDialog";
 import {
 	cmToInches,
 	gramsToKg,
@@ -149,10 +153,16 @@ function BrowseFiltersSheetContent({
 		{ key: "isVisiting", label: t("browse_filters.local_filters.is_visiting") },
 	], [t]);
 
-	const genderFilterOptions = useMemo<ManagedOption[]>(
-		() => managedGenders?.map((item) => ({ value: item.genderId, label: item.gender })) ?? [],
-		[managedGenders],
-	);
+	const genderFilterOptions = useMemo(() => buildGenderOptions(managedGenders), [managedGenders]);
+	const primaryGenderIds = useMemo(() => getPrimaryGenderIds(managedGenders), [managedGenders]);
+	// Primary genders inline, plus any selected non-primary ones so they stay visible/removable.
+	const inlineGenderOptions = useMemo(() => {
+		const inlineIds = [...primaryGenderIds, ...genders.filter((id) => !primaryGenderIds.includes(id))];
+		return inlineIds
+			.map((id) => genderFilterOptions.find((option) => option.value === id))
+			.filter((option): option is ManagedOption => option !== undefined);
+	}, [genderFilterOptions, primaryGenderIds, genders]);
+	const [isGenderPickerOpen, setIsGenderPickerOpen] = useState(false);
 	const tribeFilterOptions = useMemo<ManagedOption[]>(
 		() => [{ value: -1, label: t("browse_filters.not_specified") }, ...getTribeOptions(t)],
 		[t],
@@ -261,6 +271,7 @@ function BrowseFiltersSheetContent({
 		selectedValues: number[],
 		onToggle: (value: number) => void,
 		icons?: Record<number, LucideIcon>,
+		trailing?: React.ReactNode,
 	) => (
 		<SheetSection title={title}>
 			<div className="flex flex-wrap gap-2">
@@ -282,6 +293,7 @@ function BrowseFiltersSheetContent({
 						})()}
 					</SheetChip>
 				))}
+				{trailing}
 			</div>
 		</SheetSection>
 	);
@@ -397,9 +409,18 @@ function BrowseFiltersSheetContent({
 					)}
 					{genderFilterOptions.length > 0 && renderChipSection(
 						t("profile_editor.sections.identity.gender"),
-						genderFilterOptions,
+						inlineGenderOptions,
 						genders,
 						(value) => toggleMultiSelect(value, setGenders),
+						undefined,
+						<button
+							type="button"
+							onClick={() => setIsGenderPickerOpen(true)}
+							className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3.5 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+						>
+							<Users className="h-3.5 w-3.5" />
+							{t("profile_editor.sections.identity.gender_more")}
+						</button>,
 					)}
 					{renderChipSection(
 						t("profile_editor.sections.states.tribes"),
@@ -532,6 +553,20 @@ function BrowseFiltersSheetContent({
 					{t("browse_filters.apply")}
 				</button>
 			</div>
+
+			{/* Portaled so the filter sheet's panel transform can't clip this stacked sheet. */}
+			{isGenderPickerOpen && createPortal(
+				<ManagedOptionsPickerDialog
+					title={t("profile_editor.sections.identity.gender_dialog_title")}
+					searchPlaceholder={t("profile_editor.sections.identity.gender_search_placeholder")}
+					noMatchesLabel={t("profile_editor.sections.identity.gender_no_matches")}
+					options={genderFilterOptions}
+					selected={genders}
+					onToggle={(value) => toggleMultiSelect(value, setGenders)}
+					onClose={() => setIsGenderPickerOpen(false)}
+				/>,
+				document.body,
+			)}
 		</>
 	);
 }
