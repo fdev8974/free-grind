@@ -707,6 +707,7 @@
         "collections_delete": "Obriši kolekciju",
         "collections_name_placeholder": "Naziv kolekcije",
         "name_label": "",
+        "plan_section": "",
         "collections_editor_hint": "Dodirni medije redoslijedom kojim ih treba poslati. Novi otpremljeni fajlovi dodaju se u tvoju galeriju.",
         "collections_save": "Sačuvaj kolekciju ({{count}})",
         "collections_item_count_one": "{{count}} stavka",

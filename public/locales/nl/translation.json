@@ -702,6 +702,7 @@
         "collections_delete": "Collectie verwijderen",
         "collections_name_placeholder": "Naam collectie",
         "name_label": "",
+        "plan_section": "",
         "collections_editor_hint": "Tik op media in de volgorde waarin ze verstuurd moeten worden. Nieuwe uploads worden aan je galerij toegevoegd.",
         "collections_save": "Collectie opslaan ({{count}})",
         "collections_item_count_one": "{{count}} item",

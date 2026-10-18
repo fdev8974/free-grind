@@ -4,7 +4,6 @@ import {
 	ChevronRight,
 	Clock,
 	Film,
-	FolderPlus,
 	GripVertical,
 	HardDrive,
 	Images,
@@ -34,7 +33,6 @@ import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import {
-	EmptyState,
 	ErrorState,
 	LoadingState,
 } from "../../components/ui/states";
@@ -53,7 +51,7 @@ import {
 } from "./settings-albums/settingsAlbumsUtils";
 import { AlbumDrawerPickerSheet } from "./settings-albums/AlbumDrawerPickerSheet";
 import { DrawerCollectionsSection } from "./settings-albums/DrawerCollectionsSection";
-import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "./settings-albums/SheetActionList";
+import { NATIVE_SHEET_BG, SheetActionList, SheetCreateRow, afterSheetClose } from "./settings-albums/SheetActionList";
 import { SheetSection, SheetTextInput } from "../../components/ui/sheet-section";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
@@ -240,6 +238,8 @@ export function SettingsAlbumsPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [createName, setCreateName] = useState("");
 	const [isCreating, setIsCreating] = useState(false);
+	const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+	const createSheetCloseRef = useRef<(() => void) | null>(null);
 	const [editingName, setEditingName] = useState("");
 	const [isSavingEdit, setIsSavingEdit] = useState(false);
 	const [deletingAlbumId, setDeletingAlbumId] = useState<string | null>(null);
@@ -357,6 +357,7 @@ export function SettingsAlbumsPage() {
 			await apiFunctions.createOwnAlbum({ albumName });
 			setCreateName("");
 			toast.success(t("settings_albums.toast_created"));
+			createSheetCloseRef.current?.();
 			await loadAlbumsAndLimits();
 		} catch (createError) {
 			if (createError instanceof ApiFunctionError && createError.status === 402) {
@@ -882,10 +883,88 @@ export function SettingsAlbumsPage() {
 					subtitleClassName="-mt-4 mb-0"
 				/>
 
-				{/* Combined plan summary + create album */}
-				<div className="surface-card overflow-hidden">
-					{limits && (
+				{/* Albums list */}
+				<div>
+					<div className="mb-2 flex items-center gap-2 px-1">
+						<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+							{t("settings_albums.your_albums")}
+						</p>
+						{albums.length > 0 && (
+							<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
+								{albums.length}
+							</span>
+						)}
+					</div>
+
+					{isLoading ? (
+						<LoadingState title={t("settings_albums.loading")} description={t("settings_albums.loading_desc")} compact />
+					) : error ? (
+						<ErrorState title={t("settings_albums.error_load")} description={error} onRetry={() => void loadAlbumsAndLimits()} />
+					) : (
 						<>
+						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							{albums.map((album) => {
+								const detail = albumDetails[album.albumId];
+								const mediaCounts = countAlbumMedia(detail);
+								const coverUrl = detail?.content[0]?.thumbUrl || detail?.content[0]?.url || detail?.content[0]?.coverUrl;
+								const shareProfiles = albumShareProfiles[album.albumId];
+
+								return (
+									<button
+										key={album.albumId}
+										type="button"
+										onClick={() => openAlbum(album.albumId)}
+										className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+									>
+										{coverUrl ? (
+											<img src={coverUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+										) : (
+											<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+												<Images className="h-5 w-5 opacity-40" />
+											</div>
+										)}
+										<div className="min-w-0 flex-1">
+											<p className="truncate font-semibold">
+												{album.albumName?.trim() || t("settings_albums.untitled")}
+											</p>
+											<p className="truncate text-xs text-[var(--text-muted)]">
+												{formatAlbumMeta(detail ? mediaCounts : null, shareProfiles?.length ?? 0) || `#${album.albumId}`}
+											</p>
+										</div>
+										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+									</button>
+								);
+							})}
+							<SheetCreateRow
+								label={t("settings_albums.create")}
+								onClick={() => setIsCreateSheetOpen(true)}
+								disabled={!canCreateAlbum}
+							/>
+						</div>
+						<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
+							{canCreateAlbum
+								? t("settings_albums.usage", { count: albums.length, max: maxAlbums })
+								: t("settings_albums.limit_reached")}
+						</p>
+						</>
+					)}
+				</div>
+
+				<DrawerCollectionsSection
+					drawerMedia={drawerMedia}
+					isLoadingDrawerMedia={isLoadingDrawerMedia}
+					drawerMediaError={drawerMediaError}
+					loadDrawerMedia={loadDrawerMedia}
+					isDesktop={isDesktop}
+				/>
+
+				{/* Plan limits — reference info, so it sits at the end of the page. */}
+				{limits && (
+					<div>
+						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+							{t("settings_albums.plan_section", { defaultValue: "Plan" })}
+						</p>
+						<div className="surface-card overflow-hidden">
 							<button
 								type="button"
 								onClick={() => setLimitsExpanded((p) => !p)}
@@ -963,115 +1042,9 @@ export function SettingsAlbumsPage() {
 								</div>
 							)}
 
-							<div className="border-t border-[var(--border)]" />
-						</>
-					)}
-
-					{/* Create album */}
-					<div className="flex items-start gap-3 p-4">
-						<div className="shrink-0 rounded-2xl bg-pink-500/15 p-2.5 text-pink-400">
-							<FolderPlus className="h-5 w-5" />
-						</div>
-						<div className="min-w-0 flex-1">
-							<p className="text-sm font-semibold leading-snug">{t("settings_albums.create")}</p>
-							<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
-								{canCreateAlbum
-									? t("settings_albums.usage", { count: albums.length, max: maxAlbums })
-									: t("settings_albums.limit_reached")}
-							</p>
-							<div className="mt-3 flex gap-2">
-								<input
-									type="text"
-									value={createName}
-									onChange={(e) => setCreateName(e.target.value)}
-									placeholder={t("settings_albums.new_album_placeholder")}
-									className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
-									maxLength={255}
-									onKeyDown={(e) => {
-										if (e.key === "Enter") {
-											e.preventDefault();
-											void handleCreateAlbum();
-										}
-									}}
-								/>
-								<button
-									type="button"
-									onClick={() => void handleCreateAlbum()}
-									disabled={!canCreateAlbum || isCreating}
-									className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-								>
-									<Plus className="h-3.5 w-3.5" />
-									{isCreating ? t("settings_albums.creating") : t("settings_albums.create")}
-								</button>
-							</div>
 						</div>
 					</div>
-				</div>
-
-				{/* Albums list */}
-				<div>
-					<div className="mb-2 flex items-center gap-2 px-1">
-						<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-							{t("settings_albums.your_albums")}
-						</p>
-						{albums.length > 0 && (
-							<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
-								{albums.length}
-							</span>
-						)}
-					</div>
-
-					{isLoading ? (
-						<LoadingState title={t("settings_albums.loading")} description={t("settings_albums.loading_desc")} compact />
-					) : error ? (
-						<ErrorState title={t("settings_albums.error_load")} description={error} onRetry={() => void loadAlbumsAndLimits()} />
-					) : albums.length === 0 ? (
-						<EmptyState title={t("settings_albums.empty")} description={t("settings_albums.empty_desc")} />
-					) : (
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-							{albums.map((album) => {
-								const detail = albumDetails[album.albumId];
-								const mediaCounts = countAlbumMedia(detail);
-								const coverUrl = detail?.content[0]?.thumbUrl || detail?.content[0]?.url || detail?.content[0]?.coverUrl;
-								const shareProfiles = albumShareProfiles[album.albumId];
-
-								return (
-									<button
-										key={album.albumId}
-										type="button"
-										onClick={() => openAlbum(album.albumId)}
-										className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-									>
-										{coverUrl ? (
-											<img src={coverUrl} alt="" className="h-12 w-12 shrink-0 rounded-xl object-cover" />
-										) : (
-											<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-												<Images className="h-5 w-5 opacity-40" />
-											</div>
-										)}
-										<div className="min-w-0 flex-1">
-											<p className="truncate font-semibold">
-												{album.albumName?.trim() || t("settings_albums.untitled")}
-											</p>
-											<p className="truncate text-xs text-[var(--text-muted)]">
-												{formatAlbumMeta(detail ? mediaCounts : null, shareProfiles?.length ?? 0) || `#${album.albumId}`}
-											</p>
-										</div>
-										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-									</button>
-								);
-							})}
-						</div>
-					)}
-				</div>
-
-				<DrawerCollectionsSection
-					drawerMedia={drawerMedia}
-					isLoadingDrawerMedia={isLoadingDrawerMedia}
-					drawerMediaError={drawerMediaError}
-					loadDrawerMedia={loadDrawerMedia}
-					isDesktop={isDesktop}
-				/>
+				)}
 			</div>
 
 			{openAlbumId && (() => {
@@ -1213,6 +1186,49 @@ export function SettingsAlbumsPage() {
 					</BottomSheet>
 				);
 			})()}
+
+			{isCreateSheetOpen && (
+				<BottomSheet
+					onClose={() => setIsCreateSheetOpen(false)}
+					closeRef={createSheetCloseRef}
+					isProcessing={isCreating}
+					isDesktop={isDesktop}
+					bg={NATIVE_SHEET_BG}
+					panelClassName="px-4"
+				>
+					<DrawerHeader title={t("settings_albums.create")} />
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							void handleCreateAlbum();
+						}}
+					>
+						<SheetSection title={t("settings_albums.name_label", { defaultValue: "Name" })}>
+							<SheetTextInput
+								value={createName}
+								onChange={setCreateName}
+								placeholder={t("settings_albums.new_album_placeholder")}
+								maxLength={255}
+								disabled={isCreating}
+								autoFocus
+							/>
+							<p className="mt-2 px-1 text-xs text-[var(--text-muted)]">
+								{t("settings_albums.usage", { count: albums.length, max: maxAlbums })}
+							</p>
+						</SheetSection>
+						<DrawerFooter>
+							<button
+								type="submit"
+								disabled={!canCreateAlbum || isCreating}
+								className={DRAWER_PRIMARY_BUTTON_CLASS}
+							>
+								{isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+								<span>{isCreating ? t("settings_albums.creating") : t("settings_albums.create")}</span>
+							</button>
+						</DrawerFooter>
+					</form>
+				</BottomSheet>
+			)}
 
 			{addSheetAlbumId && (
 				<SheetActionList

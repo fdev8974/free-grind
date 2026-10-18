@@ -1,4 +1,4 @@
-import { ChevronRight, FolderPlus, Images, Plus } from "lucide-react";
+import { ChevronRight, Images } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaSto
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { DrawerCollectionEditorSheet } from "./DrawerCollectionEditorSheet";
+import { SheetCreateRow } from "./SheetActionList";
 
 interface DrawerCollectionsSectionProps {
 	drawerMedia: DrawerMedia[];
@@ -114,29 +115,9 @@ export function DrawerCollectionsSection({
 				)}
 			</div>
 
-			<div className="surface-card overflow-hidden">
-				<div className="flex items-start gap-3 p-4">
-					<div className="shrink-0 rounded-2xl bg-sky-500/15 p-2.5 text-sky-400">
-						<FolderPlus className="h-5 w-5" />
-					</div>
-					<div className="min-w-0 flex-1">
-						<p className="text-sm font-semibold leading-snug">{t("settings_albums.collections_new")}</p>
-						<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
-							{t("settings_albums.collections_description")}
-						</p>
-						<button
-							type="button"
-							onClick={() => openEditor(null)}
-							className="mt-3 inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98]"
-						>
-							<Plus className="h-3.5 w-3.5" />
-							{t("settings_albums.collections_create")}
-						</button>
-					</div>
-				</div>
-
+			<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 				{collections.length > 0 && (
-					<div className="divide-y divide-[var(--border)] border-t border-[var(--border)]">
+					<div className="divide-y divide-[var(--border)]">
 						{collections.map((collection) => {
 							const presentIds = collection.mediaIds.filter((id) => drawerMedia.some((m) => m.id === id));
 							const coverItem = drawerMedia.find((m) => m.id === presentIds[0]);
@@ -174,7 +155,11 @@ export function DrawerCollectionsSection({
 						})}
 					</div>
 				)}
+				<SheetCreateRow label={t("settings_albums.collections_new")} onClick={() => openEditor(null)} />
 			</div>
+			<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
+				{t("settings_albums.collections_description")}
+			</p>
 
 			{editing !== undefined ? (
 				<DrawerCollectionEditorSheet

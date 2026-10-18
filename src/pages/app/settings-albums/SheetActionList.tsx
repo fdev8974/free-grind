@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { Plus, type LucideIcon } from "lucide-react";
 import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { cn } from "../../../utils/cn";
 
@@ -75,5 +75,30 @@ export function SheetActionList({
 				))}
 			</div>
 		</BottomSheet>
+	);
+}
+
+/** "New …" row at the end of a list card: accent plus tile and accent label. */
+export function SheetCreateRow({
+	label,
+	onClick,
+	disabled,
+}: {
+	label: string;
+	onClick: () => void;
+	disabled?: boolean;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			disabled={disabled}
+			className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:pointer-events-none disabled:opacity-50"
+		>
+			<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]">
+				<Plus className="h-5 w-5" strokeWidth={2.5} />
+			</div>
+			<p className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--accent)]">{label}</p>
+		</button>
 	);
 }
