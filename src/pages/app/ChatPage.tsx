@@ -222,6 +222,11 @@ function captureMediaForMessages(
 					viewOnce: target.viewOnce,
 				}),
 			);
+			// Locally stored bytes always win over the live URL (which may
+			// already be expired server-side), and the primary key can miss
+			// them when a re-issued URL maps to a different key — so always
+			// also load the message-id copy for the bubble.
+			pending.push(hydrateMediaByMessageId(message.messageId));
 		} else if (canHaveOwnMedia(message)) {
 			// No live URL on this message anymore (expired, archived
 			// conversation, server stopped refreshing it) — fall back to

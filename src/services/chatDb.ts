@@ -2039,7 +2039,10 @@ export async function getMediaFileByMessageId(
 ): Promise<StoredMediaFile | null> {
 	const db = await getDb();
 	const rows = await db.select<MediaFileRow[]>(
-		"SELECT * FROM media_files WHERE message_id = $1 LIMIT 1",
+		// Only 'ok' rows: an expired signed URL leaves a 'failed' row for the
+		// same message under a different media_key, which LIMIT 1 would
+		// otherwise happily pick over the one that actually has the bytes.
+		"SELECT * FROM media_files WHERE message_id = $1 AND fetch_status = 'ok' ORDER BY fetched_at DESC LIMIT 1",
 		[messageId],
 	);
 	const row = rows[0];

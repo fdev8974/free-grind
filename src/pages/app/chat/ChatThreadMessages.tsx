@@ -1103,9 +1103,13 @@ export function ChatThreadMessages({
                     // view-once limits) over the remote URL once it's available.
                     if (imageUrl || videoUrl || audioUrl) {
                         const captureTarget = getMediaCaptureTarget(message);
-                        const cachedUri = captureTarget
-                            ? getCachedMediaUri(captureTarget.mediaKey)
-                            : null;
+                        // The primary key can miss even though the bytes are stored —
+                        // e.g. a re-issued URL resolving to a different media key —
+                        // so also try the message-id copy before the remote URL,
+                        // which may already be expired.
+                        const cachedUri =
+                            (captureTarget ? getCachedMediaUri(captureTarget.mediaKey) : null) ??
+                            getCachedMediaUri(getMessageFallbackMediaKey(message.messageId));
                         if (cachedUri) {
                             if (imageUrl) imageUrl = cachedUri;
                             else if (videoUrl) videoUrl = cachedUri;
