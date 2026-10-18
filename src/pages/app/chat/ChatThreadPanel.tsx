@@ -2429,6 +2429,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							)}
 							{isRecording && (isDesktop || !showRecordCircle) ? (
 								<button
+									key="stop"
 									type="button"
 									onClick={() => stopRecording()}
 									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center rounded-lg text-red-500 hover:opacity-80 transition`}
@@ -2437,7 +2438,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									<Square className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} fill-current`} />
 								</button>
 							) : draft.trim().length > 0 || isSending ? (
+								// Distinct keys: if React reused one <button> across these
+								// branches, the accent background would fade out over the
+								// mic button's square corners right after sending.
 								<button
+									key="send"
 									type="submit"
 									disabled={isSending || !!pendingLocationShare || draft.trim().length === 0}
 									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center transition hover:opacity-80 disabled:opacity-30 ${!isDesktop ? "rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "rounded-lg text-[var(--accent)]"}`}
@@ -2446,6 +2451,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								</button>
 							) : (
 								<button
+									key="record"
 									type="button"
 									onClick={isDesktop ? () => void startRecording() : undefined}
 									onPointerDown={!isDesktop ? (e) => {
