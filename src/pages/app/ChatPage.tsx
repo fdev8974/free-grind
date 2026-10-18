@@ -4,6 +4,7 @@ import {
 	type FormEvent,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -237,6 +238,46 @@ function captureMediaForMessages(
 	return Promise.all(pending).then(() => {});
 }
 
+type ScrollAnchor = { messageId: string; offset: number };
+
+/**
+ * The topmost message still (partly) visible in the thread, and how far its
+ * top edge sits from the container's top. Restoring that exact offset after
+ * older messages are prepended keeps the reader on the same message no
+ * matter how much height landed above it, or whether the browser's own
+ * scroll anchoring already shifted scrollTop in the meantime.
+ */
+function findScrollAnchor(
+	container: HTMLElement,
+	messages: UiMessage[],
+	elements: Map<string, HTMLElement>,
+): ScrollAnchor | null {
+	const containerTop = container.getBoundingClientRect().top;
+	for (const message of messages) {
+		const element = elements.get(message.messageId);
+		if (!element) continue;
+		const rect = element.getBoundingClientRect();
+		if (rect.bottom > containerTop) {
+			return { messageId: message.messageId, offset: rect.top - containerTop };
+		}
+	}
+	return null;
+}
+
+/** Scrolls so `anchor`'s message sits at its recorded offset again; false if it's not rendered. */
+function restoreScrollAnchor(
+	container: HTMLElement,
+	anchor: ScrollAnchor,
+	elements: Map<string, HTMLElement>,
+): boolean {
+	const element = elements.get(anchor.messageId);
+	if (!element) return false;
+	const offset = element.getBoundingClientRect().top - container.getBoundingClientRect().top;
+	const delta = offset - anchor.offset;
+	if (Math.abs(delta) >= 1) container.scrollTop += delta;
+	return true;
+}
+
 /**
  * In-memory counterpart to chatLog.ts's DB-level merge rule: when an
  * incoming update wipes a message's body via unsend but we already had real
@@ -326,10 +367,16 @@ export function ChatPage() {
 	const olderLoadSnapshotRef = useRef<{
 		scrollTop: number;
 		scrollHeight: number;
+		// Message the reader is looking at — kept current by scroll events
+		// while the load is in flight; scrollTop/scrollHeight are only the
+		// fallback when it isn't rendered anymore.
+		anchor: ScrollAnchor | null;
 		// Oldest message shown when the snapshot was taken — the restore only
 		// applies once something older has actually been prepended.
 		firstMessageId: string | null;
 	} | null>(null);
+	// Cancels the post-restore hold (see the older-load restore effect).
+	const olderLoadHoldCleanupRef = useRef<(() => void) | null>(null);
 	const selectedConversationUnreadCountRef = useRef(0);
 	// Per-conversation result of loadInbox's server-side preview fallback,
 	// keyed by the lastActivityTimestamp it was fetched for.
@@ -1885,6 +1932,7 @@ export function ChatPage() {
 						olderLoadSnapshotRef.current = {
 							scrollTop: container.scrollTop,
 							scrollHeight: container.scrollHeight,
+							anchor: findScrollAnchor(container, threadMessagesRef.current, messageElementRefs.current),
 							firstMessageId: threadMessagesRef.current[0]?.messageId ?? null,
 						};
 					}
@@ -1989,6 +2037,7 @@ export function ChatPage() {
 					olderLoadSnapshotRef.current = {
 						scrollTop: container.scrollTop,
 						scrollHeight: container.scrollHeight,
+						anchor: findScrollAnchor(container, threadMessagesRef.current, messageElementRefs.current),
 						firstMessageId: threadMessagesRef.current[0]?.messageId ?? null,
 					};
 				}
@@ -3301,6 +3350,17 @@ export function ChatPage() {
 
 	const handleThreadScroll = useCallback(() => {
 		const container = threadScrollContainerRef.current;
+		const snapshot = olderLoadSnapshotRef.current;
+		if (container && snapshot && preserveThreadScrollRef.current) {
+			// The reader may keep scrolling (or momentum may carry on) while the
+			// older page is in flight — restore to where they are when it lands,
+			// not to where they were when it was requested.
+			snapshot.scrollTop = container.scrollTop;
+			snapshot.scrollHeight = container.scrollHeight;
+			snapshot.anchor =
+				findScrollAnchor(container, threadMessagesRef.current, messageElementRefs.current) ??
+				snapshot.anchor;
+		}
 		if (
 			!container ||
 			isLoadingOlderMessagesRef.current ||
@@ -3683,6 +3743,66 @@ export function ChatPage() {
 		}
 	}, [replyTargetMessageId, threadMessages]);
 
+	// Older-page restore runs as a layout effect so the prepended messages are
+	// never painted at the wrong scroll position first.
+	const skipNextThreadScrollEffectRef = useRef(false);
+	useLayoutEffect(() => {
+		if (!preserveThreadScrollRef.current || !threadMessages.length) return;
+		const snapshot = olderLoadSnapshotRef.current;
+		if (lastLoadedConversationIdRef.current !== selectedConversationId || !snapshot) {
+			olderLoadSnapshotRef.current = null;
+			preserveThreadScrollRef.current = false;
+			return;
+		}
+		// Nothing older has landed yet (still in flight, or the load came back
+		// empty) and this update is something else — e.g. a realtime message
+		// appended at the bottom. Restoring the snapshot here would yank the
+		// view back up, so leave it armed.
+		if (threadMessages[0].messageId === snapshot.firstMessageId) return;
+
+		olderLoadSnapshotRef.current = null;
+		preserveThreadScrollRef.current = false;
+		skipNextThreadScrollEffectRef.current = true;
+		const container = threadScrollContainerRef.current;
+		if (!container) return;
+
+		const elements = messageElementRefs.current;
+		const anchor = snapshot.anchor;
+		if (!anchor || !restoreScrollAnchor(container, anchor, elements)) {
+			container.scrollTop = snapshot.scrollTop + (container.scrollHeight - snapshot.scrollHeight);
+			return;
+		}
+
+		// Prepended images/videos finish loading after this and grow the
+		// content above the anchor — keep re-pinning it for a moment, until
+		// the reader touches the list themselves.
+		olderLoadHoldCleanupRef.current?.();
+		const reapply = () => {
+			restoreScrollAnchor(container, anchor, elements);
+		};
+		const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(reapply) : null;
+		for (const child of Array.from(container.children)) resizeObserver?.observe(child);
+		const stop = () => {
+			window.clearTimeout(timer);
+			resizeObserver?.disconnect();
+			container.removeEventListener("load", reapply, true);
+			container.removeEventListener("loadedmetadata", reapply, true);
+			container.removeEventListener("touchstart", stop);
+			container.removeEventListener("wheel", stop);
+			container.removeEventListener("pointerdown", stop);
+			if (olderLoadHoldCleanupRef.current === stop) olderLoadHoldCleanupRef.current = null;
+		};
+		const timer = window.setTimeout(stop, 1500);
+		container.addEventListener("load", reapply, true);
+		container.addEventListener("loadedmetadata", reapply, true);
+		container.addEventListener("touchstart", stop, { passive: true });
+		container.addEventListener("wheel", stop, { passive: true });
+		container.addEventListener("pointerdown", stop);
+		olderLoadHoldCleanupRef.current = stop;
+	}, [threadMessages, selectedConversationId]);
+
+	useEffect(() => () => olderLoadHoldCleanupRef.current?.(), [selectedConversationId]);
+
 	useEffect(() => {
 		if (!threadMessages.length) {
 			lastMessageIdRef.current = null;
@@ -3697,26 +3817,10 @@ export function ChatPage() {
 		const isNewConversation =
 			lastLoadedConversationIdRef.current !== selectedConversationId;
 
-		if (preserveThreadScrollRef.current) {
-			const snapshot = olderLoadSnapshotRef.current;
-			if (isNewConversation || !snapshot) {
-				olderLoadSnapshotRef.current = null;
-				preserveThreadScrollRef.current = false;
-			} else if (threadMessages[0].messageId !== snapshot.firstMessageId) {
-				if (container) {
-					const heightDelta = container.scrollHeight - snapshot.scrollHeight;
-					container.scrollTop = snapshot.scrollTop + heightDelta;
-				}
-				olderLoadSnapshotRef.current = null;
-				preserveThreadScrollRef.current = false;
-				return;
-			}
-			// Otherwise nothing older has landed yet (still in flight, or the
-			// load came back empty) and this update is something else — e.g. a
-			// realtime message appended at the bottom. Restoring the snapshot
-			// here would yank the view back up to wherever it was when the
-			// older-load started, so leave it armed and handle this update
-			// normally below.
+		// The layout effect above just restored an older-page prepend.
+		if (skipNextThreadScrollEffectRef.current) {
+			skipNextThreadScrollEffectRef.current = false;
+			return;
 		}
 
 		const isNearBottom = container
