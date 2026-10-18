@@ -936,22 +936,32 @@ export function ChatThreadMessages({
 	}, [bottomInset, threadScrollContainerRef]);
 
 	// When the thread viewport itself shrinks or grows (mobile keyboard opening
-	// or closing), keep the bottom edge anchored so the visible messages slide
-	// up with the composer instead of disappearing behind it.
+	// or closing), keep the distance to the end constant so the visible messages
+	// slide with the composer instead of disappearing behind it. The distance is
+	// tracked from scroll events rather than derived at resize time, because on
+	// grow the browser may already have clamped scrollTop.
 	useEffect(() => {
 		const container = threadScrollContainerRef.current;
 		if (!container || typeof ResizeObserver === "undefined") return;
+		const readDistance = () => Math.max(0, container.scrollHeight - container.scrollTop - container.clientHeight);
+		let distanceFromEnd = readDistance();
 		let previousHeight = container.clientHeight;
+		const onScroll = () => {
+			distanceFromEnd = readDistance();
+		};
 		const observer = new ResizeObserver(() => {
 			const height = container.clientHeight;
-			const delta = previousHeight - height;
+			if (height === previousHeight) return;
 			previousHeight = height;
-			if (delta !== 0) {
-				container.scrollTop += delta;
-			}
+			container.scrollTop = container.scrollHeight - height - distanceFromEnd;
+			distanceFromEnd = readDistance();
 		});
+		container.addEventListener("scroll", onScroll, { passive: true });
 		observer.observe(container);
-		return () => observer.disconnect();
+		return () => {
+			container.removeEventListener("scroll", onScroll);
+			observer.disconnect();
+		};
 	}, [threadScrollContainerRef]);
 
 	return (
