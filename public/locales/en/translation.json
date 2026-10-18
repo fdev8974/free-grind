@@ -45,6 +45,8 @@
     "installed_version": "Version {{version}}",
     "installed_versions": "Frontend {{frontend}} · App {{app}}",
     "check_now": "Check Now",
+    "update_channel": "Update Channel",
+    "update_channel_desc": "Which release track this app gets updates from.",
     "environment": "Environment",
     "switching": "Switching…",
     "checking": "Checking…",

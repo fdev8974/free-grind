@@ -45,6 +45,8 @@
         "installed_version": "الإصدار {{version}}",
         "installed_versions": "الواجهة {{frontend}} · التطبيق {{app}}",
         "check_now": "تحقق دلوقتي",
+        "update_channel": "",
+        "update_channel_desc": "",
         "environment": "البيئة",
         "switching": "بيحوّل…",
         "checking": "بيتحقق…",

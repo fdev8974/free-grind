@@ -45,6 +45,8 @@
         "installed_version": "Verzija {{version}}",
         "installed_versions": "Frontend {{frontend}} · Aplikacija {{app}}",
         "check_now": "Provjeri sada",
+        "update_channel": "",
+        "update_channel_desc": "",
         "environment": "Okruženje",
         "switching": "Prebacivanje…",
         "checking": "Provjeravanje…",

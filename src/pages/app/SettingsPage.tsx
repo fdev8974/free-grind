@@ -55,6 +55,7 @@ import {
 	type HotswapChannel,
 } from "../../services/hotswap";
 import { Button } from "../../components/ui/button";
+import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
@@ -1025,11 +1026,17 @@ export function SettingsPage() {
 							</div>
 						</div>
 
-						{/* Updates */}
-						<div>
+						{/* Updates — same row pattern as the rest of the settings list. */}
+						<div className="min-w-0">
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
-							<div className="surface-card overflow-hidden">
-								<div className="flex items-start gap-3 px-4 py-3.5">
+							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								{/* The whole row checks; the pill on the right is the visible affordance. */}
+								<button
+									type="button"
+									onClick={() => void handleCheckUpdates()}
+									disabled={isCheckingUpdates || isSwitchingChannel}
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default disabled:hover:bg-transparent"
+								>
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
 											<RefreshCcw className={`h-5 w-5 ${isCheckingUpdates || isSwitchingChannel ? "animate-spin" : ""}`} />
@@ -1041,16 +1048,8 @@ export function SettingsPage() {
 										)}
 									</div>
 									<div className="min-w-0 flex-1">
-										<div className="grid grid-cols-[1fr_auto] gap-x-3">
-											<p className="text-sm font-semibold leading-snug">{t("settings.check_updates")}</p>
-											<div className="row-span-2 flex items-start">
-												<Button type="button" onClick={() => void handleCheckUpdates()} disabled={isCheckingUpdates || isSwitchingChannel}>
-													{t("settings.check_now")}
-												</Button>
-											</div>
-											<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("settings.check_updates_desc")}</p>
-										</div>
-										<p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+										<p className="text-sm font-semibold leading-snug">{t("settings.check_updates")}</p>
+										<p className="mt-0.5 truncate text-xs leading-snug tabular-nums text-[var(--text-muted)]">
 											{nativeVersion && nativeVersion !== frontendVersion
 												? t("settings.installed_versions", {
 														defaultValue: "Frontend {{frontend}} · App {{app}}",
@@ -1062,7 +1061,20 @@ export function SettingsPage() {
 														version: frontendVersion,
 													})}
 										</p>
-										{hotswapProgress.phase !== "idle" && hotswapProgress.phase !== "checking" && (() => {
+									</div>
+									<span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-3 text-xs font-semibold text-[var(--accent)]">
+										{isCheckingUpdates ? (
+											<>
+												<Loader2 className="h-3.5 w-3.5 animate-spin" />
+												{t("settings.checking")}
+											</>
+										) : (
+											t("settings.check_now")
+										)}
+									</span>
+								</button>
+
+								{hotswapProgress.phase !== "idle" && hotswapProgress.phase !== "checking" && (() => {
 											const percent =
 												hotswapProgress.phase === "downloading" && hotswapProgress.total
 													? Math.min(100, Math.round((hotswapProgress.downloaded / hotswapProgress.total) * 100))
@@ -1081,7 +1093,7 @@ export function SettingsPage() {
 														? t("settings.ota_progress_installing", { defaultValue: "Installing update…" })
 														: t("settings.ota_progress_done", { defaultValue: "Update installed. Reloading…" });
 											return (
-												<div className="mt-3">
+												<div className="px-4 py-3">
 													<div className="flex items-center justify-between gap-2">
 														<p className="text-xs leading-snug tabular-nums text-[var(--text-muted)]">{label}</p>
 														{percent != null && (
@@ -1105,43 +1117,47 @@ export function SettingsPage() {
 												</div>
 											);
 										})()}
-										{visibleChannels.length > 0 && (
-											<div className="mt-3 flex flex-wrap items-center gap-1">
-												{visibleChannels.map((channel) => (
-													<button
-														key={channel}
-														type="button"
-														disabled={isSwitchingChannel || isCheckingUpdates}
-														onClick={() => void handleSwitchUpdateChannel(channel)}
-														className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${
-															channel === updateChannel
-																? "border-[var(--accent)] bg-[var(--accent)] text-black"
-																: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--accent)]/50"
-														}`}
-													>
-														{getHotswapChannelLabel(channel)}
-													</button>
-												))}
-												{isContributorChannel(updateChannel) ? (
-													<span className="rounded-full border border-[var(--accent)] bg-[var(--accent)] px-2.5 py-0.5 text-xs font-semibold text-black">
-														{getContributorHandle(updateChannel)}
-													</span>
-												) : developerMode ? (
-													<button
-														type="button"
-														onClick={() => setIsContributorDialogOpen(true)}
-														disabled={isSwitchingChannel || isCheckingUpdates}
-														aria-label="Add contributor channel"
-														title="Add contributor channel"
-														className="flex h-[22px] w-[22px] items-center justify-center rounded-full border border-dashed border-[var(--border)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/50 hover:text-[var(--accent)] disabled:opacity-50"
-													>
-														<Plus className="h-3 w-3" />
-													</button>
-												) : null}
-											</div>
-										)}
+
+								{visibleChannels.length > 0 && (
+									<div className="px-4 py-3.5">
+										<p className="text-sm font-semibold leading-snug">
+											{t("settings.update_channel", { defaultValue: "Update Channel" })}
+										</p>
+										<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+											{t("settings.update_channel_desc", { defaultValue: "Which release track this app gets updates from." })}
+										</p>
+										<div className="mt-3 flex flex-wrap items-center gap-2">
+											{visibleChannels.map((channel) => (
+												<Chip
+													key={channel}
+													size="sm"
+													selected={channel === updateChannel}
+													disabled={isSwitchingChannel || isCheckingUpdates}
+													onClick={() => void handleSwitchUpdateChannel(channel)}
+												>
+													{getHotswapChannelLabel(channel)}
+												</Chip>
+											))}
+											{isContributorChannel(updateChannel) ? (
+												<Chip size="sm" selected className="inline-flex items-center gap-1.5">
+													<GitBranch className="h-3.5 w-3.5" />
+													{getContributorHandle(updateChannel)}
+												</Chip>
+											) : developerMode ? (
+												<Chip
+													size="sm"
+													onClick={() => setIsContributorDialogOpen(true)}
+													disabled={isSwitchingChannel || isCheckingUpdates}
+													aria-label="Add contributor channel"
+													title="Add contributor channel"
+													className="inline-flex items-center"
+												>
+													<Plus className="h-3.5 w-3.5" />
+												</Chip>
+											) : null}
+										</div>
 									</div>
-								</div>
+								)}
 							</div>
 						</div>
 

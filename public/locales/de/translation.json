@@ -45,6 +45,8 @@
         "installed_version": "Version {{version}}",
         "installed_versions": "Frontend {{frontend}} · App {{app}}",
         "check_now": "Jetzt prüfen",
+        "update_channel": "",
+        "update_channel_desc": "",
         "environment": "Umgebung",
         "switching": "Wechsle…",
         "checking": "Prüfe…",

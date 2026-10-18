@@ -46,6 +46,8 @@
         "installed_version": "Верзија {{version}}",
         "installed_versions": "Frontend {{frontend}} · Апликација {{app}}",
         "check_now": "Провери сада",
+        "update_channel": "",
+        "update_channel_desc": "",
         "environment": "Окружење",
         "switching": "Пребацивање…",
         "checking": "Провера…",

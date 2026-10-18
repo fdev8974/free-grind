@@ -45,6 +45,8 @@
         "installed_version": "Različica {{version}}",
         "installed_versions": "Frontend {{frontend}} · Aplikacija {{app}}",
         "check_now": "Preveri zdaj",
+        "update_channel": "",
+        "update_channel_desc": "",
         "environment": "Okolje",
         "switching": "Preklapljanje…",
         "checking": "Preverjanje…",
