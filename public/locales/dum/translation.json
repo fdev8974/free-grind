@@ -620,42 +620,38 @@
         "visibility": "الرؤية"
     },
     "about_page": {
-        "badge": "حول جرندر الحر",
-        "title": "Free Grind هو طبّق عميل يضع الخصوصية في المقام الأول، وقد تم بناؤه بواسطة المجتمع.",
         "description": "صُمم للاستخدام الشخصي بواجهة مستخدم أنيقة، وخالية من الإعلانات، مع توثيق مفتوح يشرح آلية عملها. الهدف هو الحرية العملية، وليس التقييد بمنصة معينة",
-        "platform": "منصة",
-        "licence": "رخصة",
         "licence_value": "MIT",
-        "maintainer": "المسؤول عن الصيانة",
-        "maintainer_credit": "تبقى حقوق الملكية مرئية داخل الطبّق احتراماً للملكية والنسب.",
         "commercial_note": "الشيفرة المصدرية متاحة بموجب ترخيص MIT، لذا يحق لأي شخص استخدامها وتعديلها وعمل fork منها بحرية.",
-        "principles_title": "المبادئ الأساسية",
-        "principles": {
-            "privacy_title": "حيل الخصوصية على حساب التفاعل",
-            "privacy_desc": "تُعطي واجهة المستخدم الأولوية للتحكم والوضوح بدلاً من الحلقات المدفوعة بالإعلانات",
-            "community_title": "توثيق يضع المجتمع في المقام الأول",
-            "community_desc": "تبقى الملاحظات التي تم تحليلها عكسيًا متاحة للعامة حتى يتمكن المستخدمون والمساهمون من التعلم معًا.",
-            "roadmap_title": "خارطة طريق عملية",
-            "roadmap_desc": "تشمل مجالات التركيز الحالية التصفح، وإدارة البروفايلات الشخصية، وأساسيات المراسلة، والموثوقية."
-        },
-        "support_title": "ادعم المشروع",
-        "support_text": "روابط التبرع المدرجة دلوقتي من قبل فريق المشروع:",
         "resources": {
-            "external": "خارجي",
-            "local": "محلي",
-            "documentation_title": "الوثائق",
-            "documentation_desc": "ملاحظات واجهة برمجة الطبّقات (API) التي تم تحليلها عكسيًا، ومرجع موجه للمطورين.",
             "source_code_title": "شفرة المصدر",
             "source_code_desc": "تتبع التقدم، وافحص الكود، وتابع الإصدارات.",
             "contributing_title": "المساهمة",
             "contributing_desc": "هيكل المشروع، وقواعد المساهمة، وملاحظات التعاون.",
             "licence_title": "رخصة",
-            "licence_desc": "ترخيص MIT وإشعار حقوق النشر.",
             "discord_title": "ديسكورد",
-            "discord_desc": "انضم إلى خادم Discord الخاص بالمجتمع للحصول على الدعم والمناقشة.",
-            "telegram_title": "تيليجرام",
-            "telegram_desc": "تابعوا التحديثات والإعلانات على طبّق تيليجرام."
-        }
+            "telegram_title": "تيليجرام"
+        },
+        "section_community": "",
+        "founder_credit": "",
+        "discord_cta": "",
+        "telegram_cta": "",
+        "section_project": "",
+        "whats_new": "",
+        "whats_new_desc": "",
+        "built_with": "",
+        "highlights": {
+            "privacy_title": "",
+            "privacy_desc": "",
+            "open_source_title": "",
+            "open_source_desc": "",
+            "no_ads_title": "",
+            "no_ads_desc": "",
+            "free_title": "",
+            "free_desc": ""
+        },
+        "version_value": "",
+        "section_principles": ""
     },
     "settings_albums": {
         "label": "ألبومات",

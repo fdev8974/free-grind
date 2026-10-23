@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye } from "lucide-react";
+import { EyeOffFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -256,7 +257,7 @@ export function SettingsHiddenPage() {
 					<div className="surface-card overflow-hidden">
 						<div className="flex items-start gap-3 p-4">
 							<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-								<EyeOff className="h-5 w-5" />
+								<EyeOffFilled className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
 								<div className="grid grid-cols-[1fr_auto] gap-x-3">

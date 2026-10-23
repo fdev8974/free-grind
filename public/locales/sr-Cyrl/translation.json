@@ -606,42 +606,38 @@
         "visibility": "Видљивост"
     },
     "about_page": {
-        "badge": "О апликацији Free Grind",
-        "title": "Free Grind је клијент који ставља приватност на прво место, а гради га заједница.",
         "description": "Направљен за личну употребу, са чистијим интерфејсом, без реклама и са отвореном документацијом о томе како ствари функционишу. Циљ је практична слобода, а не везаност за платформу.",
-        "platform": "Платформа",
-        "licence": "Лиценца",
         "licence_value": "MIT",
-        "maintainer": "Одржавалац",
-        "maintainer_credit": "Заслуге остају видљиве у апликацији из поштовања према ауторству.",
         "commercial_note": "Изворни код је доступан под MIT лиценцом, па свако може слободно да га користи, мења и форкује.",
-        "principles_title": "Основни принципи",
-        "principles": {
-            "privacy_title": "Приватност уместо трикова за ангажовање",
-            "privacy_desc": "Интерфејс даје предност контроли и јасноћи уместо петљи вођених рекламама.",
-            "community_title": "Документација на првом месту за заједницу",
-            "community_desc": "Белешке добијене реверзним инжењерингом остају јавне како би корисници и сарадници учили заједно.",
-            "roadmap_title": "Практичан план развоја",
-            "roadmap_desc": "Тренутни фокус обухвата преглед, управљање профилом, основе дописивања и поузданост."
-        },
-        "support_title": "Подржите пројекат",
-        "support_text": "Линкови за донације које тренутно наводи тим пројекта:",
         "resources": {
-            "external": "Спољно",
-            "local": "Локално",
-            "documentation_title": "Документација",
-            "documentation_desc": "Белешке о API-ју добијене реверзним инжењерингом и референца за програмере.",
             "source_code_title": "Изворни код",
             "source_code_desc": "Пратите напредак, прегледајте код и пратите издања.",
             "contributing_title": "Допринос",
             "contributing_desc": "Структура пројекта, правила за допринос и напомене о сарадњи.",
             "licence_title": "Лиценца",
-            "licence_desc": "MIT лиценца и обавештење о ауторским правима.",
             "discord_title": "Discord",
-            "discord_desc": "Придружите се Discord серверу заједнице за подршку и дискусију.",
-            "telegram_title": "Telegram",
-            "telegram_desc": "Пратите новости и обавештења на Telegram-у."
-        }
+            "telegram_title": "Telegram"
+        },
+        "section_community": "",
+        "founder_credit": "",
+        "discord_cta": "",
+        "telegram_cta": "",
+        "section_project": "",
+        "whats_new": "",
+        "whats_new_desc": "",
+        "built_with": "",
+        "highlights": {
+            "privacy_title": "",
+            "privacy_desc": "",
+            "open_source_title": "",
+            "open_source_desc": "",
+            "no_ads_title": "",
+            "no_ads_desc": "",
+            "free_title": "",
+            "free_desc": ""
+        },
+        "version_value": "",
+        "section_principles": ""
     },
     "settings_albums": {
         "label": "Албуми",

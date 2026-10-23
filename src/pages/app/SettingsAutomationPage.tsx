@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Download, LockKeyhole, Plus, Save, Tag, Upload, Workflow } from "lucide-react";
+import { Download, LockKeyhole, Plus, Save, Upload, Workflow } from "lucide-react";
+import { TagFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { PageHeader } from "../../components/PageHeader";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
@@ -320,7 +321,7 @@ export function SettingsAutomationPage() {
 					<div className="surface-card overflow-hidden">
 						<div className="flex items-start gap-3 p-4">
 							<div className="shrink-0 rounded-2xl bg-orange-500/15 p-2.5 text-orange-400">
-								<Tag className="h-5 w-5" />
+								<TagFilled className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
 								<p className="mt-0.5 break-words text-xs leading-relaxed text-[var(--text-muted)]">

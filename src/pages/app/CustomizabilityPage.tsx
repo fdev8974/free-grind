@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
+import { Languages, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
+import { ClockFilled, FlameFilled, ImagesFilled, LayoutGridFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -400,7 +401,7 @@ export function CustomizabilityPage() {
 							>
 								<div className="flex items-start gap-3">
 									<div className="rounded-2xl bg-blue-500/15 p-2.5 text-blue-400 shrink-0">
-										<LayoutGrid className="h-5 w-5" />
+										<LayoutGridFilled className="h-5 w-5" />
 									</div>
 									<div className="min-w-0 flex-1">
 										<p className="text-sm font-semibold leading-snug">{t("customizability.grid_layout")}</p>
@@ -433,7 +434,7 @@ export function CustomizabilityPage() {
 						<ToggleRow
 							id="cust-grid-tap-status"
 							highlighted={highlightId === "cust-grid-tap-status"}
-							icon={<Flame className="h-5 w-5" />}
+							icon={<FlameFilled className="h-5 w-5" />}
 							iconClass="bg-orange-500/15 text-orange-400"
 							label={t("customizability.show_grid_tap_status", { defaultValue: "Show Taps on the Grid" })}
 							description={t("customizability.show_grid_tap_status_desc", {
@@ -499,7 +500,7 @@ export function CustomizabilityPage() {
 						<ToggleRow
 							id="cust-show-interest"
 							highlighted={highlightId === "cust-show-interest"}
-							icon={<Flame className="h-5 w-5" />}
+							icon={<FlameFilled className="h-5 w-5" />}
 							iconClass="bg-yellow-500/15 text-yellow-400"
 							label={t("customizability.show_interest")}
 							description={t("customizability.show_interest_desc")}
@@ -519,7 +520,7 @@ export function CustomizabilityPage() {
 						<SectionLabel>{t("customizability.interest_page")}</SectionLabel>
 						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 							<SelectRow
-								icon={<Flame className="h-5 w-5 opacity-50" />}
+								icon={<FlameFilled className="h-5 w-5 opacity-50" />}
 								iconClass="bg-yellow-500/10 text-yellow-400"
 								label={t("customizability.default_view")}
 								value={defaultInterestTab}
@@ -540,7 +541,7 @@ export function CustomizabilityPage() {
 								>
 									<div className="flex items-start gap-3">
 										<div className="rounded-2xl bg-blue-500/15 p-2.5 text-blue-400 shrink-0">
-											<LayoutGrid className="h-5 w-5" />
+											<LayoutGridFilled className="h-5 w-5" />
 										</div>
 										<div className="min-w-0 flex-1">
 											<p className="text-sm font-semibold leading-snug">{t("customizability.views_grid_layout")}</p>
@@ -581,7 +582,7 @@ export function CustomizabilityPage() {
 						<ToggleRow
 							id="cust-drawer-layout"
 							highlighted={highlightId === "cust-drawer-layout"}
-							icon={<Images className="h-5 w-5" />}
+							icon={<ImagesFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("customizability.drawer_layout", { defaultValue: "Split Media Drawer into Categories" })}
 							description={t("customizability.drawer_layout_desc", {
@@ -684,7 +685,7 @@ export function CustomizabilityPage() {
 						<SelectRow
 							id="cust-time-format"
 							highlighted={highlightId === "cust-time-format"}
-							icon={<Clock className="h-5 w-5" />}
+							icon={<ClockFilled className="h-5 w-5" />}
 							iconClass="bg-indigo-500/15 text-indigo-400"
 							label={t("customizability.time_format")}
 							value={timeFormat}

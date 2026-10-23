@@ -3,14 +3,13 @@ import {
 	CalendarDays,
 	Download,
 	FileDown,
-	FileUp,
 	Loader2,
-	MessageSquareQuote,
 	RotateCcw,
 	ShieldCheck,
 	Trash2,
 	Upload,
 } from "lucide-react";
+import { FileUpFilled, MessageSquareQuoteFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
@@ -475,7 +474,7 @@ export function SettingsDataPage() {
 							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
 						>
 							<div className="shrink-0 rounded-2xl bg-violet-500/15 p-2.5 text-violet-400">
-								<FileUp className="h-5 w-5" />
+								<FileUpFilled className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
 								<p className="text-sm font-semibold leading-snug">
@@ -568,7 +567,7 @@ export function SettingsDataPage() {
 								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${savedPhrases.length === 0 ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-phrases-export" ? "animate-settings-highlight" : ""}`}
 							>
 								<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
-									<MessageSquareQuote className="h-5 w-5" />
+									<MessageSquareQuoteFilled className="h-5 w-5" />
 								</div>
 								<div className="min-w-0 flex-1">
 									<p className="text-sm font-semibold leading-snug">

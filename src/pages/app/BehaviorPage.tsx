@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, ExternalLink, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
+import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
@@ -143,7 +144,7 @@ export function BehaviorPage() {
 						<SelectRow
 							id="behavior-default-album-expiration"
 							highlighted={highlightId === "behavior-default-album-expiration"}
-							icon={<Images className="h-5 w-5" />}
+							icon={<ImagesFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("behavior.default_album_expiration")}
 							description={t("behavior.default_album_expiration_desc")}
@@ -160,7 +161,7 @@ export function BehaviorPage() {
 						<ToggleRow
 							id="behavior-open-album-as-bottom-sheet"
 							highlighted={highlightId === "behavior-open-album-as-bottom-sheet"}
-							icon={<LayoutGrid className="h-5 w-5" />}
+							icon={<LayoutGridFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("behavior.open_album_as_bottom_sheet")}
 							description={t("behavior.open_album_as_bottom_sheet_desc")}
@@ -192,7 +193,7 @@ export function BehaviorPage() {
 						<SelectRow
 							id="behavior-double-tap-tap-type"
 							highlighted={highlightId === "behavior-double-tap-tap-type"}
-							icon={<Flame className="h-5 w-5" />}
+							icon={<FlameFilled className="h-5 w-5" />}
 							iconClass="bg-orange-500/15 text-orange-400"
 							label={t("behavior.double_tap_action", { defaultValue: "Double Tap Action" })}
 							description={t("behavior.double_tap_action_desc", {
@@ -223,7 +224,7 @@ export function BehaviorPage() {
 						<ToggleRow
 							id="behavior-auto-focus-location-search"
 							highlighted={highlightId === "behavior-auto-focus-location-search"}
-							icon={<MapPin className="h-5 w-5" />}
+							icon={<MapPinFilled className="h-5 w-5" />}
 							iconClass="bg-rose-500/15 text-rose-400"
 							label={t("behavior.auto_focus_location_search")}
 							description={t("behavior.auto_focus_location_search_desc")}

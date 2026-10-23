@@ -605,42 +605,38 @@
         "visibility": "Vidljivost"
     },
     "about_page": {
-        "badge": "O aplikaciji Free Grind",
-        "title": "Free Grind je klijent koji stavlja privatnost na prvo mjesto, a gradi ga zajednica.",
         "description": "Napravljen za ličnu upotrebu, s čišćim interfejsom, bez reklama i s otvorenom dokumentacijom o tome kako stvari rade. Cilj je praktična sloboda, a ne zaključavanje u platformu.",
-        "platform": "Platforma",
-        "licence": "Licenca",
         "licence_value": "MIT",
-        "maintainer": "Održavalac",
-        "maintainer_credit": "Zasluge ostaju vidljive u aplikaciji radi poštovanja vlasništva i autorstva.",
         "commercial_note": "Izvorni kod je dostupan pod MIT licencom, pa ga svako može slobodno koristiti, mijenjati i forkati.",
-        "principles_title": "Osnovni principi",
-        "principles": {
-            "privacy_title": "Privatnost umjesto trikova za angažman",
-            "privacy_desc": "Interfejs daje prednost kontroli i jasnoći umjesto petlji vođenih reklamama.",
-            "community_title": "Dokumentacija za zajednicu",
-            "community_desc": "Bilješke iz reverznog inženjeringa ostaju javne kako bi korisnici i saradnici mogli učiti zajedno.",
-            "roadmap_title": "Praktičan plan razvoja",
-            "roadmap_desc": "Trenutni fokus uključuje pregledanje, upravljanje profilom, osnove poruka i pouzdanost."
-        },
-        "support_title": "Podrži projekat",
-        "support_text": "Linkovi za donacije koje trenutno navodi tim projekta:",
         "resources": {
-            "external": "Vanjsko",
-            "local": "Lokalno",
-            "documentation_title": "Dokumentacija",
-            "documentation_desc": "Bilješke o API-ju iz reverznog inženjeringa i referenca za programere.",
             "source_code_title": "Izvorni kod",
             "source_code_desc": "Prati napredak, pregledaj kod i prati izdanja.",
             "contributing_title": "Doprinos",
             "contributing_desc": "Struktura projekta, pravila za doprinos i bilješke o saradnji.",
             "licence_title": "Licenca",
-            "licence_desc": "MIT licenca i obavještenje o autorskim pravima.",
             "discord_title": "Discord",
-            "discord_desc": "Pridruži se Discord serveru zajednice za podršku i diskusiju.",
-            "telegram_title": "Telegram",
-            "telegram_desc": "Prati novosti i obavještenja na Telegramu."
-        }
+            "telegram_title": "Telegram"
+        },
+        "section_community": "",
+        "founder_credit": "",
+        "discord_cta": "",
+        "telegram_cta": "",
+        "section_project": "",
+        "whats_new": "",
+        "whats_new_desc": "",
+        "built_with": "",
+        "highlights": {
+            "privacy_title": "",
+            "privacy_desc": "",
+            "open_source_title": "",
+            "open_source_desc": "",
+            "no_ads_title": "",
+            "no_ads_desc": "",
+            "free_title": "",
+            "free_desc": ""
+        },
+        "version_value": "",
+        "section_principles": ""
     },
     "settings_albums": {
         "label": "Albumi",

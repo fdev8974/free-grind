@@ -605,42 +605,38 @@
         "visibility": "Visibilidad"
     },
     "about_page": {
-        "badge": "Sobre Free Grind",
-        "title": "Free Grind es un cliente desarrollado por la comunidad, que prioriza la privacidad.",
         "description": "Diseñado para uso personal, con una interfaz más limpia, sin anuncios y documentación abierta sobre su funcionamiento. El objetivo es la libertad práctica, no la dependencia de una plataforma.",
-        "platform": "Plataforma",
-        "licence": "Licencia",
         "licence_value": "MIT",
-        "maintainer": "Mantenedor",
-        "maintainer_credit": "Los créditos permanecen visibles en la aplicación para honorar la propiedad y la atribución.",
         "commercial_note": "El código fuente está disponible bajo la licencia MIT, así que cualquiera puede usarlo, modificarlo y hacer un fork libremente.",
-        "principles_title": "Principios fundamentales",
-        "principles": {
-            "privacy_title": "Privacidad por encima de trucos de marketing",
-            "privacy_desc": "La interfaz prioriza el control y la claridad en lugar de los bucles de anuncios.",
-            "community_title": "Documentación centrada en la comunidad",
-            "community_desc": "Las notas obtenidas mediante ingeniería inversa permanecen públicas para que los usuarios y los colaboradores puedan aprender juntos.",
-            "roadmap_title": "Hoja de ruta práctica",
-            "roadmap_desc": "Actualmente, nos enfocamos en la navegación, la gestión de perfiles, los fundamentos de la mensajería y la fiabilidad."
-        },
-        "support_title": "Apoya el proyecto",
-        "support_text": "Enlaces de donación actualmente listadas por el equipo del proyecto:",
         "resources": {
-            "external": "Externo",
-            "local": "Local",
-            "documentation_title": "Documentación",
-            "documentation_desc": "Notas sobre la API obtenidas mediante ingeniería inversa y documentación de referencia para desarrolladores.",
             "source_code_title": "Código fuente",
             "source_code_desc": "Sigue el progreso, inspecciona el código, y mantente al tanto de las versiones.",
             "contributing_title": "Contribuyendo",
             "contributing_desc": "Estructura del proyecto, reglas de contribución, y notas de colaboración.",
             "licence_title": "Licencia",
-            "licence_desc": "Licencia MIT y aviso de copyright.",
             "discord_title": "Discord",
-            "discord_desc": "Únete al servidor de Discord de la comunidad para obtener ayuda y participar en debates.",
-            "telegram_title": "Telegram",
-            "telegram_desc": "Sigue la actualizaciones y anuncios en Telegram."
-        }
+            "telegram_title": "Telegram"
+        },
+        "section_community": "",
+        "founder_credit": "",
+        "discord_cta": "",
+        "telegram_cta": "",
+        "section_project": "",
+        "whats_new": "",
+        "whats_new_desc": "",
+        "built_with": "",
+        "highlights": {
+            "privacy_title": "",
+            "privacy_desc": "",
+            "open_source_title": "",
+            "open_source_desc": "",
+            "no_ads_title": "",
+            "no_ads_desc": "",
+            "free_title": "",
+            "free_desc": ""
+        },
+        "version_value": "",
+        "section_principles": ""
     },
     "settings_albums": {
         "label": "Álbumes",

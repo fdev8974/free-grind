@@ -600,42 +600,38 @@
         "visibility": "Sichtbarkeit"
     },
     "about_page": {
-        "badge": "Über Free Grind",
-        "title": "Free Grind ist ein privatsphäre-orientierter, Community-basierter Client.",
         "description": "Entwickelt für den persönlichen Gebrauch mit einer aufgeräumteren Oberfläche, ohne Werbung und mit offener Dokumentation dazu, wie alles funktioniert. Es geht um echte Unabhängigkeit statt Bindung an eine Plattform.",
-        "platform": "Plattform",
-        "licence": "Lizenz",
         "licence_value": "MIT",
-        "maintainer": "Betreuer",
-        "maintainer_credit": "Die Credits bleiben in der App sichtbar, um die Urheberschaft zu würdigen.",
         "commercial_note": "Der Quellcode steht unter der MIT-Lizenz, jeder darf ihn also frei nutzen, verändern und forken.",
-        "principles_title": "Kernprinzipien",
-        "principles": {
-            "privacy_title": "Privatsphäre vor Engagement-Tricks",
-            "privacy_desc": "Die Oberfläche setzt auf Kontrolle und Klarheit statt auf Tricks, die dich möglichst lange in der App halten sollen.",
-            "community_title": "Community-orientierte Dokumentation",
-            "community_desc": "Reverse-Engineering-Notizen bleiben öffentlich, damit Nutzer und Mitwirkende gemeinsam lernen können.",
-            "roadmap_title": "Praktische Roadmap",
-            "roadmap_desc": "Der aktuelle Fokus umfasst Browse, Profilverwaltung, Messaging-Grundlagen und Zuverlässigkeit."
-        },
-        "support_title": "Projekt unterstützen",
-        "support_text": "Spendenlinks, die derzeit vom Projektteam gelistet werden:",
         "resources": {
-            "external": "Extern",
-            "local": "Lokal",
-            "documentation_title": "Dokumentation",
-            "documentation_desc": "Reverse-Engineering-API-Notizen und Referenz für Entwickler.",
             "source_code_title": "Quellcode",
             "source_code_desc": "Fortschritte verfolgen, Code inspizieren und Releases folgen.",
             "contributing_title": "Mitwirken",
             "contributing_desc": "Projektstruktur, Beitragsregeln und Zusammenarbeitshinweise.",
             "licence_title": "Lizenz",
-            "licence_desc": "MIT-Lizenz und Urheberrechtshinweis.",
             "discord_title": "Discord",
-            "discord_desc": "Tritt dem Community-Discord-Server für Support und Diskussionen bei.",
-            "telegram_title": "Telegram",
-            "telegram_desc": "Folge Updates und Ankündigungen auf Telegram."
-        }
+            "telegram_title": "Telegram"
+        },
+        "section_community": "",
+        "founder_credit": "",
+        "discord_cta": "",
+        "telegram_cta": "",
+        "section_project": "",
+        "whats_new": "",
+        "whats_new_desc": "",
+        "built_with": "",
+        "highlights": {
+            "privacy_title": "",
+            "privacy_desc": "",
+            "open_source_title": "",
+            "open_source_desc": "",
+            "no_ads_title": "",
+            "no_ads_desc": "",
+            "free_title": "",
+            "free_desc": ""
+        },
+        "version_value": "",
+        "section_principles": ""
     },
     "settings_albums": {
         "label": "Alben",

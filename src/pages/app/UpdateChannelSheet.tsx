@@ -1,4 +1,5 @@
-import { FlaskConical, GitBranch, Plus, ShieldCheck } from "lucide-react";
+import { GitBranch, Plus } from "lucide-react";
+import { FlaskConicalFilled, ShieldCheckFilled } from "../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { afterSheetClose } from "../../components/ui/action-sheet";
 import { SelectSheet, type SelectSheetOption } from "../../components/ui/select-sheet";
@@ -12,8 +13,8 @@ import {
 const ADD_CONTRIBUTOR = "add-contributor";
 
 const CHANNEL_ICONS: Record<string, Pick<SelectSheetOption<string>, "icon" | "iconClassName">> = {
-	main: { icon: ShieldCheck, iconClassName: "bg-green-500/15 text-green-400" },
-	development: { icon: FlaskConical, iconClassName: "bg-amber-500/15 text-amber-400" },
+	main: { icon: ShieldCheckFilled, iconClassName: "bg-green-500/15 text-green-400" },
+	development: { icon: FlaskConicalFilled, iconClassName: "bg-amber-500/15 text-amber-400" },
 };
 
 /**

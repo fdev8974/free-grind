@@ -5,13 +5,12 @@ import {
 	Calculator,
 	CheckCheck,
 	CloudSun,
-	Eye,
-	EyeOff,
 	Ghost,
 	ImageOff,
 	StickyNote,
 	ToggleRight,
 } from "lucide-react";
+import { EyeFilled, EyeOffFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { Chip } from "../../components/ui/chip";
@@ -144,7 +143,7 @@ export function SettingsPrivacyPage() {
 						<ToggleRow
 							id="privacy-record-profile-views"
 							highlighted={highlightId === "privacy-record-profile-views"}
-							icon={<Eye className="h-5 w-5" />}
+							icon={<EyeFilled className="h-5 w-5" />}
 							iconClass="bg-amber-500/15 text-amber-400"
 							label={t("privacy.record_profile_views")}
 							description={t("privacy.record_profile_views_desc")}
@@ -174,7 +173,7 @@ export function SettingsPrivacyPage() {
 						<ToggleRow
 							id="privacy-blur-grid-profile-pictures"
 							highlighted={highlightId === "privacy-blur-grid-profile-pictures"}
-							icon={<EyeOff className="h-5 w-5" />}
+							icon={<EyeOffFilled className="h-5 w-5" />}
 							iconClass="bg-sky-500/15 text-sky-400"
 							label={t("privacy.blur_grid_profile_pictures")}
 							description={t("privacy.blur_grid_profile_pictures_desc")}

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Clapperboard, HeartPulse } from "lucide-react";
-import { LocateFixedFilled } from "../../components/icons/FilledIcons";
+import { Clapperboard } from "lucide-react";
+import { HeartPulseFilled, LocateFixedFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { useTranslation } from "react-i18next";
@@ -52,7 +52,7 @@ export function OptionalFeaturesPage() {
 					<ToggleRow
 						id="cust-show-sexual-health"
 						highlighted={highlightId === "cust-show-sexual-health"}
-						icon={<HeartPulse className="h-5 w-5" />}
+						icon={<HeartPulseFilled className="h-5 w-5" />}
 						iconClass="bg-rose-500/15 text-rose-400"
 						label={t("customizability.show_sexual_health", { defaultValue: "Sexual Health" })}
 						description={t("customizability.show_sexual_health_desc", {

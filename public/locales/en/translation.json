@@ -600,42 +600,38 @@
     "visibility": "Visibility"
   },
   "about_page": {
-    "badge": "About Free Grind",
-    "title": "Free Grind is a privacy-first, community-built client.",
     "description": "Built for personal use with a cleaner interface, no ads, and open documentation around how things work. The goal is practical freedom, not platform lock-in.",
-    "platform": "Platform",
-    "licence": "Licence",
     "licence_value": "MIT",
-    "maintainer": "Maintainer",
-    "maintainer_credit": "Credit stays visible in-app to honor ownership and attribution.",
     "commercial_note": "The source is available under the MIT licence, so anyone is free to use, modify, and fork it.",
-    "principles_title": "Core Principles",
-    "principles": {
-      "privacy_title": "Privacy over engagement tricks",
-      "privacy_desc": "The interface prioritizes control and clarity instead of ad-driven loops.",
-      "community_title": "Community-first documentation",
-      "community_desc": "Reverse-engineered notes stay public so users and contributors can learn together.",
-      "roadmap_title": "Practical roadmap",
-      "roadmap_desc": "Current focus includes browse, profile management, messaging foundations, and reliability."
-    },
-    "support_title": "Support the project",
-    "support_text": "Donation links currently listed by the project team:",
     "resources": {
-      "external": "External",
-      "local": "Local",
-      "documentation_title": "Documentation",
-      "documentation_desc": "Reverse-engineered API notes and developer-facing reference.",
       "source_code_title": "Source Code",
       "source_code_desc": "Track progress, inspect the code, and follow releases.",
       "contributing_title": "Contributing",
       "contributing_desc": "Project structure, contribution rules, and collaboration notes.",
       "licence_title": "Licence",
-      "licence_desc": "MIT licence and copyright notice.",
       "discord_title": "Discord",
-      "discord_desc": "Join the community Discord server for support and discussion.",
-      "telegram_title": "Telegram",
-      "telegram_desc": "Follow updates and announcements on Telegram."
-    }
+      "telegram_title": "Telegram"
+    },
+    "section_community": "Community",
+    "founder_credit": "Originally created by {{name}}.",
+    "discord_cta": "Join the server",
+    "telegram_cta": "Follow updates",
+    "section_project": "Project",
+    "whats_new": "What's New",
+    "whats_new_desc": "Highlights of version {{version}}",
+    "built_with": "Built with {{stack}}",
+    "highlights": {
+      "privacy_title": "Privacy first",
+      "privacy_desc": "No tracking, no engagement tricks.",
+      "open_source_title": "Open source",
+      "open_source_desc": "All code is public on GitHub.",
+      "no_ads_title": "No ads",
+      "no_ads_desc": "A clean interface, nothing in the way.",
+      "free_title": "Free forever",
+      "free_desc": "If someone asks you to pay, it's a scam."
+    },
+    "version_value": "Version {{version}}",
+    "section_principles": "Why Free Grind"
   },
   "settings_albums": {
     "label": "Albums",

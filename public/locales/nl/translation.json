@@ -600,42 +600,38 @@
         "visibility": "Zichtbaarheid"
     },
     "about_page": {
-        "badge": "Over Free Grind",
-        "title": "Free Grind is een privacygerichte client, gebouwd door de community.",
         "description": "Gemaakt voor persoonlijk gebruik met een overzichtelijkere interface, geen advertenties en open documentatie over hoe alles werkt. Het doel is praktische vrijheid, geen platform-lock-in.",
-        "platform": "Platform",
-        "licence": "Licentie",
         "licence_value": "MIT",
-        "maintainer": "Beheerder",
-        "maintainer_credit": "De vermelding blijft zichtbaar in de app om eigendom en naamsvermelding te respecteren.",
         "commercial_note": "De broncode is beschikbaar onder de MIT-licentie, dus iedereen mag hem vrij gebruiken, aanpassen en forken.",
-        "principles_title": "Kernprincipes",
-        "principles": {
-            "privacy_title": "Privacy boven engagement-trucs",
-            "privacy_desc": "De interface geeft voorrang aan controle en duidelijkheid in plaats van door advertenties gedreven lussen.",
-            "community_title": "Documentatie voor de community",
-            "community_desc": "Notities uit reverse engineering blijven openbaar, zodat gebruikers en bijdragers samen kunnen leren.",
-            "roadmap_title": "Praktische roadmap",
-            "roadmap_desc": "De huidige focus ligt op bladeren, profielbeheer, de basis van berichten en betrouwbaarheid."
-        },
-        "support_title": "Steun het project",
-        "support_text": "Donatielinks die momenteel door het projectteam worden vermeld:",
         "resources": {
-            "external": "Extern",
-            "local": "Lokaal",
-            "documentation_title": "Documentatie",
-            "documentation_desc": "API-notities uit reverse engineering en naslag voor ontwikkelaars.",
             "source_code_title": "Broncode",
             "source_code_desc": "Volg de voortgang, bekijk de code en volg releases.",
             "contributing_title": "Bijdragen",
             "contributing_desc": "Projectstructuur, regels voor bijdragen en samenwerkingsnotities.",
             "licence_title": "Licentie",
-            "licence_desc": "MIT-licentie en copyrightvermelding.",
             "discord_title": "Discord",
-            "discord_desc": "Word lid van de Discord-server van de community voor hulp en discussie.",
-            "telegram_title": "Telegram",
-            "telegram_desc": "Volg updates en aankondigingen op Telegram."
-        }
+            "telegram_title": "Telegram"
+        },
+        "section_community": "",
+        "founder_credit": "",
+        "discord_cta": "",
+        "telegram_cta": "",
+        "section_project": "",
+        "whats_new": "",
+        "whats_new_desc": "",
+        "built_with": "",
+        "highlights": {
+            "privacy_title": "",
+            "privacy_desc": "",
+            "open_source_title": "",
+            "open_source_desc": "",
+            "no_ads_title": "",
+            "no_ads_desc": "",
+            "free_title": "",
+            "free_desc": ""
+        },
+        "version_value": "",
+        "section_principles": ""
     },
     "settings_albums": {
         "label": "Albums",

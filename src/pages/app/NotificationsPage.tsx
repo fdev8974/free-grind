@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Bell, Flame, MessageCircle } from "lucide-react";
+import { Bell, MessageCircle } from "lucide-react";
+import { FlameFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { useTranslation } from "react-i18next";
@@ -52,7 +53,7 @@ export function NotificationsPage() {
 					<ToggleRow
 						id="notif-taps-enabled"
 						highlighted={highlightId === "notif-taps-enabled"}
-						icon={<Flame className="h-5 w-5" />}
+						icon={<FlameFilled className="h-5 w-5" />}
 						iconClass="bg-orange-500/15 text-orange-400"
 						label={t("notifications_page.taps_enabled")}
 						description={t("notifications_page.taps_enabled_desc")}
