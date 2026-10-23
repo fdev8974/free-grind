@@ -1923,7 +1923,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							travelPlans={travelPlans}
 							profileStatusLabel={profileStatusLabel}
 							profileStatusLevel={profileStatusLevel}
-							ownTags={ownTags}
+							// No "in common" highlight on your own profile — every tag would match.
+							ownTags={isOwnProfile ? undefined : ownTags}
 							profileDistance={profileDistance}
 							chatContactStatus={chatContactStatus ?? null}
 							messageProfileId={messageProfileId}
@@ -2432,7 +2433,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											travelPlans={travelPlans}
 											profileStatusLabel={profileStatusLabel}
 											profileStatusLevel={profileStatusLevel}
-											ownTags={ownTags}
+											// No "in common" highlight on your own profile — every tag would match.
+											ownTags={isOwnProfile ? undefined : ownTags}
 											profileDistance={profileDistance}
 											chatContactStatus={chatContactStatus ?? null}
 											messageProfileId={messageProfileId}
