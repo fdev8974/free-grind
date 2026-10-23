@@ -65,7 +65,14 @@
         "translation_desc": "Übersetze Chatnachrichten in deine App-Sprache, einzeln oder automatisch pro Chat.",
         "ota_progress_downloading": "Update wird heruntergeladen… {{size}}",
         "ota_progress_installing": "Update wird installiert…",
-        "ota_progress_done": "Update installiert. Wird neu geladen…"
+        "ota_progress_done": "Update installiert. Wird neu geladen…",
+        "auto_update": "",
+        "auto_update_desc": "",
+        "update_checks": "",
+        "update_checks_desc": "",
+        "update_channel_main_desc": "",
+        "update_channel_development_desc": "",
+        "update_channel_contributor_desc": ""
     },
     "settings_blocked": {
         "title": "Blockierte Konten",
@@ -2543,7 +2550,17 @@
         "download_install": "Herunterladen & installieren",
         "open_github": "Auf GitHub öffnen",
         "dismiss": "Schließen",
-        "get_version": "{{version}} holen"
+        "get_version": "{{version}} holen",
+        "app_update": ""
+    },
+    "ota_prompt": {
+        "title": "",
+        "description": "",
+        "description_version": "",
+        "auto_hint": "",
+        "failed": "",
+        "update_now": "",
+        "later": ""
     },
     "apk_update": {
         "errors": {

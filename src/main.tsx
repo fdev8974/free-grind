@@ -6,7 +6,7 @@ import "@fontsource-variable/inter/index.css";
 import App from "./App";
 import ManagerApp from "./ManagerApp";
 import "./i18n";
-import { markHotswapStartupReady, autoCheckAndInstallUpdate } from "./services/hotswap";
+import { markHotswapStartupReady, startupCheckForUpdate } from "./services/hotswap";
 import { initChatContactIndex } from "./services/chatContactIndex";
 import { initChatDb } from "./services/chatDb";
 import { isTauri } from "@tauri-apps/api/core";
@@ -42,7 +42,7 @@ void (async () => {
 		// Only enable Hotswap OTA updates for child app mode in production.
 		// Manager mode should stay on the local manager UI bundle.
 		if (import.meta.env.PROD) {
-			void markHotswapStartupReady().then(() => autoCheckAndInstallUpdate());
+			void markHotswapStartupReady().then(() => startupCheckForUpdate());
 		}
 
 		if (isTauri()) {

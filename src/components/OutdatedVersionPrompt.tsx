@@ -5,6 +5,7 @@ import semver from "semver";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
 import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
 import { getCurrentHotswapChannel, isHotswapAvailable, whenStartupHotswapSettled } from "../services/hotswap";
+import { areUpdateChecksEnabled } from "../services/updateChecks";
 
 const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
 // Used when the release lookup fails: assume the running version is current,
@@ -44,7 +45,7 @@ function normalizeVersion(value: string): string {
  * Coercion tolerates loose release names like `1.0`; unparseable versions
  * never count as outdated.
  */
-function isOlderVersion(currentVersion: string, latestVersion: string): boolean {
+export function isOlderVersion(currentVersion: string, latestVersion: string): boolean {
     const current = semver.coerce(currentVersion, { includePrerelease: true });
     const latest = semver.coerce(latestVersion, { includePrerelease: true });
     if (!current || !latest) return false;
@@ -107,7 +108,7 @@ function parseReleaseVersion(release: GitHubRelease): string | null {
  * pre-releases entirely, so this walks the release list instead and only lets
  * pre-releases through when `includePrerelease` is set (non-stable channels).
  */
-async function fetchLatestRelease(signal: AbortSignal, includePrerelease: boolean): Promise<ReleaseInfo> {
+export async function fetchLatestRelease(signal: AbortSignal, includePrerelease: boolean): Promise<ReleaseInfo> {
     const response = await fetch(
         "https://api.github.com/repos/fdev8974/free-grind/releases?per_page=30",
         {
@@ -153,10 +154,13 @@ export function OutdatedVersionPromptView({
 	appVersion,
 	releaseInfo,
 	onDismiss,
+	manual = false,
 }: {
 	appVersion: string;
 	releaseInfo: ReleaseInfo;
 	onDismiss: () => void;
+	/** Opened from a manual check in Settings — plain "new version" wording instead of "outdated". */
+	manual?: boolean;
 }) {
 	const { t } = useTranslation();
 	const apkUpdate = useApkUpdate(releaseInfo.apkUrl);
@@ -179,10 +183,15 @@ export function OutdatedVersionPromptView({
 					<h1 className="text-2xl font-bold text-[var(--text)]">{t("update_prompt.title", { defaultValue: "Update Available" })}</h1>
 					<div className="flex flex-col items-center overflow-hidden">
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							{t("update_prompt.outdated", {
-								defaultValue: "You're using Free Grind {{version}}, which is outdated. Outdated versions no longer receive over-the-air updates, so you'll miss new features and fixes until you install the latest version.",
-								version: appVersion,
-							})}
+							{manual
+								? t("update_prompt.app_update", {
+										defaultValue: "A new version of the app is available. You're using Free Grind {{version}}.",
+										version: appVersion,
+									})
+								: t("update_prompt.outdated", {
+										defaultValue: "You're using Free Grind {{version}}, which is outdated. Outdated versions no longer receive over-the-air updates, so you'll miss new features and fixes until you install the latest version.",
+										version: appVersion,
+									})}
 						</p>
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 							{t("update_prompt.latest", {
@@ -317,8 +326,9 @@ export function OutdatedVersionGate({ children }: { children: ReactNode }) {
         [appVersion],
     );
     
+    // With update checks turned off, no release lookup goes out at startup.
     const [isDismissed, setIsDismissed] = useState(() =>
-        processDismissCountdown(dismissStorageKey)
+        !areUpdateChecksEnabled() || processDismissCountdown(dismissStorageKey)
     );
     
     const [releaseInfo, setReleaseInfo] = useState<ReleaseInfo | null>(null);

@@ -67,7 +67,14 @@
         "ota_progress_installing": "Nameščanje posodobitve…",
         "ota_progress_done": "Posodobitev nameščena. Ponovno nalaganje…",
         "search_results_count_two": "{{count}} rezultata",
-        "search_results_count_few": "{{count}} rezultati"
+        "search_results_count_few": "{{count}} rezultati",
+        "auto_update": "",
+        "auto_update_desc": "",
+        "update_checks": "",
+        "update_checks_desc": "",
+        "update_channel_main_desc": "",
+        "update_channel_development_desc": "",
+        "update_channel_contributor_desc": ""
     },
     "settings_blocked": {
         "title": "Blokirani računi",
@@ -2579,7 +2586,17 @@
         "download_install": "Prenesi in namesti",
         "open_github": "Odpri na GitHubu",
         "dismiss": "Opusti",
-        "get_version": "Prenesi {{version}}"
+        "get_version": "Prenesi {{version}}",
+        "app_update": ""
+    },
+    "ota_prompt": {
+        "title": "",
+        "description": "",
+        "description_version": "",
+        "auto_hint": "",
+        "failed": "",
+        "update_now": "",
+        "later": ""
     },
     "apk_update": {
         "errors": {

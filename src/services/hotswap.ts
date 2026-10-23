@@ -7,6 +7,7 @@ import {
 	notifyReady,
 } from "tauri-plugin-hotswap-api";
 import { appLog } from "../utils/logger";
+import { areUpdateChecksEnabled } from "./updateChecks";
 
 export type HotswapProgress =
 	| { phase: "idle" }
@@ -109,6 +110,7 @@ let currentChannel: HotswapChannel = readStoredChannel() ?? resolveDefaultChanne
 
 export interface HotswapCheckResult {
 	available: boolean;
+	version: string | null;
 	requiresBinaryUpdate: boolean;
 	notes: string | null;
 }
@@ -177,8 +179,80 @@ export function whenStartupHotswapSettled(): Promise<void> {
 	return startupCheckSettled;
 }
 
-export async function autoCheckAndInstallUpdate(): Promise<void> {
-	if (!isHotswapAvailable()) {
+// Opt-in: only when enabled are OTA bundles downloaded and applied without asking.
+// Otherwise an available update waits in `pendingUpdate` for the user to confirm.
+const HOTSWAP_AUTO_UPDATE_STORAGE_KEY = "hotswap-auto-update";
+
+function readAutoUpdateEnabled(): boolean {
+	try {
+		return window.localStorage.getItem(HOTSWAP_AUTO_UPDATE_STORAGE_KEY) === "true";
+	} catch {
+		return false;
+	}
+}
+
+let autoUpdateEnabled = typeof window !== "undefined" && readAutoUpdateEnabled();
+const autoUpdateListeners = new Set<() => void>();
+
+export function isHotswapAutoUpdateEnabled(): boolean {
+	return autoUpdateEnabled;
+}
+
+export function subscribeHotswapAutoUpdate(listener: () => void): () => void {
+	autoUpdateListeners.add(listener);
+	return () => autoUpdateListeners.delete(listener);
+}
+
+export function setHotswapAutoUpdateEnabled(enabled: boolean): void {
+	autoUpdateEnabled = enabled;
+	try {
+		window.localStorage.setItem(HOTSWAP_AUTO_UPDATE_STORAGE_KEY, String(enabled));
+	} catch {
+		// Storage unavailable — the choice only lasts for this session.
+	}
+	for (const listener of autoUpdateListeners) listener();
+}
+
+export interface PendingHotswapUpdate {
+	version: string | null;
+	notes: string | null;
+}
+
+// An update found by the startup check that waits for the user's confirmation.
+let pendingUpdate: PendingHotswapUpdate | null = null;
+const pendingUpdateListeners = new Set<() => void>();
+
+function setPendingUpdate(next: PendingHotswapUpdate | null): void {
+	pendingUpdate = next;
+	for (const listener of pendingUpdateListeners) listener();
+}
+
+export function getPendingHotswapUpdate(): PendingHotswapUpdate | null {
+	return pendingUpdate;
+}
+
+export function subscribePendingHotswapUpdate(listener: () => void): () => void {
+	pendingUpdateListeners.add(listener);
+	return () => pendingUpdateListeners.delete(listener);
+}
+
+/** Shows the OTA update prompt for an update found by a manual check. */
+export function showHotswapUpdatePrompt(update: PendingHotswapUpdate): void {
+	setPendingUpdate(update);
+}
+
+/** Drops the pending update until the next app start ("Later"). */
+export function dismissPendingHotswapUpdate(): void {
+	setPendingUpdate(null);
+}
+
+/**
+ * Startup check (skipped when update checks are turned off): with auto-update enabled an available bundle is installed and
+ * the page reloads right away; otherwise it becomes the pending update the
+ * OTA update prompt asks about.
+ */
+export async function startupCheckForUpdate(): Promise<void> {
+	if (!isHotswapAvailable() || !areUpdateChecksEnabled()) {
 		settleStartupCheck();
 		return;
 	}
@@ -197,6 +271,13 @@ export async function autoCheckAndInstallUpdate(): Promise<void> {
 		}
 
 		if (result.available) {
+			if (!autoUpdateEnabled) {
+				appLog.debug("[hotswap] Update available, waiting for confirmation:", result.version);
+				setPendingUpdate({ version: result.version, notes: result.notes });
+				settleStartupCheck();
+				return;
+			}
+
 			appLog.debug("[hotswap] Auto-installing available update...");
 			await installHotswapUpdate();
 
@@ -227,7 +308,7 @@ export async function clearContributorChannel(): Promise<void> {
 
 export async function checkForHotswapUpdate(): Promise<HotswapCheckResult> {
 	if (!isHotswapAvailable()) {
-		return { available: false, requiresBinaryUpdate: false, notes: null };
+		return { available: false, version: null, requiresBinaryUpdate: false, notes: null };
 	}
 
 	setProgress({ phase: "checking" });
@@ -241,6 +322,7 @@ export async function checkForHotswapUpdate(): Promise<HotswapCheckResult> {
 
 	return {
 		available: result.available,
+		version: result.version,
 		requiresBinaryUpdate: parsedNotes.requiresBinaryUpdate,
 		notes: parsedNotes.message,
 	};

@@ -65,7 +65,14 @@
         "translation_desc": "Vertaal chatberichten naar je app-taal, één voor één of automatisch per chat.",
         "ota_progress_downloading": "Update downloaden… {{size}}",
         "ota_progress_installing": "Update installeren…",
-        "ota_progress_done": "Update geïnstalleerd. Herladen…"
+        "ota_progress_done": "Update geïnstalleerd. Herladen…",
+        "auto_update": "",
+        "auto_update_desc": "",
+        "update_checks": "",
+        "update_checks_desc": "",
+        "update_channel_main_desc": "",
+        "update_channel_development_desc": "",
+        "update_channel_contributor_desc": ""
     },
     "settings_blocked": {
         "title": "Geblokkeerde accounts",
@@ -2543,7 +2550,17 @@
         "download_install": "Downloaden en installeren",
         "open_github": "Openen op GitHub",
         "dismiss": "Sluiten",
-        "get_version": "{{version}} downloaden"
+        "get_version": "{{version}} downloaden",
+        "app_update": ""
+    },
+    "ota_prompt": {
+        "title": "",
+        "description": "",
+        "description_version": "",
+        "auto_hint": "",
+        "failed": "",
+        "update_now": "",
+        "later": ""
     },
     "apk_update": {
         "errors": {

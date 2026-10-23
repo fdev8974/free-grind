@@ -65,7 +65,14 @@
     "translation_desc": "Translate chat messages into your app language, one at a time or automatically per chat.",
     "ota_progress_downloading": "Downloading update… {{size}}",
     "ota_progress_installing": "Installing update…",
-    "ota_progress_done": "Update installed. Reloading…"
+    "ota_progress_done": "Update installed. Reloading…",
+    "auto_update": "Install Automatically",
+    "auto_update_desc": "Installs new frontend versions (OTA) from GitHub Actions right away and reloads the app. When off, you'll be asked first.",
+    "update_checks": "Check Automatically",
+    "update_checks_desc": "Looks for new app and frontend versions on GitHub at every app start. When off, no request is sent to GitHub unless you check manually above.",
+    "update_channel_main_desc": "Tested releases. Recommended.",
+    "update_channel_development_desc": "The newest changes as soon as they're built. May be unstable.",
+    "update_channel_contributor_desc": "Contributor channel"
   },
   "settings_blocked": {
     "title": "Blocked Accounts",
@@ -2541,7 +2548,17 @@
     "download_install": "Download & install",
     "open_github": "Open on GitHub",
     "dismiss": "Dismiss",
-    "get_version": "Get {{version}}"
+    "get_version": "Get {{version}}",
+    "app_update": "A new version of the app is available. You're using Free Grind {{version}}."
+  },
+  "ota_prompt": {
+    "title": "Update Available",
+    "description": "A new version of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
+    "description_version": "Version {{version}} of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
+    "auto_hint": "Turn on automatic updates in Settings to skip this screen.",
+    "failed": "The update couldn't be downloaded. Check your connection and try again.",
+    "update_now": "Update now",
+    "later": "Later"
   },
   "apk_update": {
     "errors": {

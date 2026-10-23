@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, Camera, Check, ChevronRight, Loader2, MapPin, Mic, Monitor, Moon, Sun, X } from "lucide-react";
+import { AlertTriangle, Bell, Camera, Check, ChevronRight, Loader2, MapPin, Mic, Monitor, Moon, RefreshCcw, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	isPermissionGranted,
@@ -13,6 +13,7 @@ import { isTauriRuntime } from "../services/tauriWebSocket";
 import { getCurrentLocation } from "../services/currentLocation";
 import { appLog } from "../utils/logger";
 import { markOnboardingComplete } from "../utils/onboardingStorage";
+import { isHotswapAvailable, setHotswapAutoUpdateEnabled } from "../services/hotswap";
 import { usePreferences, ACCENT_PRESETS } from "../contexts/PreferencesContext";
 import type { ColorScheme } from "../contexts/PreferencesContext";
 import { LoadingScreen } from "./LoadingScreen";
@@ -86,11 +87,16 @@ function classifyMediaError(
 
 const PERM_STEPS = ["notifications", "location", "microphone", "camera"] as const;
 type PermStep = typeof PERM_STEPS[number];
-type Step = "loading" | "welcome" | "theme" | "accent" | PermStep | "scam";
+type Step = "loading" | "welcome" | "theme" | "accent" | PermStep | "updates" | "scam";
 
-const STEP_ORDER: Step[] = ["welcome", "theme", "accent", "notifications", "location", "microphone", "camera", "scam"];
+// OTA updates only exist in the native app, so the web build skips that step.
+const DOT_STEPS: Step[] = [
+	"theme", "accent", "notifications", "location", "microphone", "camera",
+	...(isHotswapAvailable() ? (["updates"] as const) : []),
+	"scam",
+];
 
-const DOT_STEPS: Step[] = ["theme", "accent", "notifications", "location", "microphone", "camera", "scam"];
+const STEP_ORDER: Step[] = ["welcome", ...DOT_STEPS];
 
 function StepDots({ current }: { current: Step }) {
 	const currentIdx = DOT_STEPS.indexOf(current);
@@ -509,6 +515,54 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						>
 							Continue
 							<ChevronRight className="h-4 w-4" />
+						</button>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// ── Automatic Updates ────────────────────────────────────────────────────
+	if (step === "updates") {
+		const choose = (enabled: boolean) => {
+			setHotswapAutoUpdateEnabled(enabled);
+			advance();
+		};
+		return (
+			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
+				<div className="fs-card-inner fs-card-lg flex flex-col">
+					<TopDots current="updates" />
+
+					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+						<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
+							<RefreshCcw className="h-9 w-9 text-[var(--accent)]" />
+						</div>
+						<h2 className="text-xl font-bold text-[var(--text)]">Automatic Updates</h2>
+						<div className="flex h-24 flex-col items-center overflow-hidden">
+							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
+								Automatically downloads the newest app interface from GitHub Actions and reloads as soon as it's available. When off, you'll be asked before each update.
+							</p>
+						</div>
+					</div>
+
+					<div
+						className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
+						style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
+					>
+						<button
+							type="button"
+							onClick={() => choose(true)}
+							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+						>
+							Turn On
+							<ChevronRight className="h-4 w-4" />
+						</button>
+						<button
+							type="button"
+							onClick={() => choose(false)}
+							className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
+						>
+							Ask me each time
 						</button>
 					</div>
 				</div>

@@ -69,7 +69,14 @@
         "translation_desc": "ترجم رسائل الدردشة إلى لغة التطبيق، رسالةً تلو الأخرى أو تلقائيًا لكل شات.",
         "ota_progress_downloading": "بينزّل التحديث… {{size}}",
         "ota_progress_installing": "بيثبّت التحديث…",
-        "ota_progress_done": "التحديث اتثبّت. بيعيد التحميل…"
+        "ota_progress_done": "التحديث اتثبّت. بيعيد التحميل…",
+        "auto_update": "",
+        "auto_update_desc": "",
+        "update_checks": "",
+        "update_checks_desc": "",
+        "update_channel_main_desc": "",
+        "update_channel_development_desc": "",
+        "update_channel_contributor_desc": ""
     },
     "settings_blocked": {
         "title": "الحسابات المحظورة",
@@ -2575,7 +2582,17 @@
         "download_install": "حمّل وسطّب",
         "open_github": "افتح على GitHub",
         "dismiss": "اقفل",
-        "get_version": "هات {{version}}"
+        "get_version": "هات {{version}}",
+        "app_update": ""
+    },
+    "ota_prompt": {
+        "title": "",
+        "description": "",
+        "description_version": "",
+        "auto_hint": "",
+        "failed": "",
+        "update_now": "",
+        "later": ""
     },
     "apk_update": {
         "errors": {

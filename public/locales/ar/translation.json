@@ -69,7 +69,14 @@
         "search_results_count_zero": "مفيش نتايج",
         "search_results_count_two": "نتيجتين",
         "search_results_count_few": "{{count}} نتايج",
-        "search_results_count_many": "{{count}} نتيجة"
+        "search_results_count_many": "{{count}} نتيجة",
+        "auto_update": "",
+        "auto_update_desc": "",
+        "update_checks": "",
+        "update_checks_desc": "",
+        "update_channel_main_desc": "",
+        "update_channel_development_desc": "",
+        "update_channel_contributor_desc": ""
     },
     "settings_blocked": {
         "title": "الحسابات المحظورة",
@@ -2615,7 +2622,17 @@
         "download_install": "حمّل وسطّب",
         "open_github": "افتح على GitHub",
         "dismiss": "اقفل",
-        "get_version": "هات {{version}}"
+        "get_version": "هات {{version}}",
+        "app_update": ""
+    },
+    "ota_prompt": {
+        "title": "",
+        "description": "",
+        "description_version": "",
+        "auto_hint": "",
+        "failed": "",
+        "update_now": "",
+        "later": ""
     },
     "apk_update": {
         "errors": {

@@ -43,6 +43,7 @@ import { SexualHealthPage } from "./pages/app/sexual-health/SexualHealthPage.tsx
 import { PermissionsOnboarding } from "./components/PermissionsOnboarding";
 import { VersionAnnouncement } from "./components/VersionAnnouncement";
 import { OutdatedVersionGate } from "./components/OutdatedVersionPrompt";
+import { OtaUpdateGate } from "./components/OtaUpdatePrompt";
 import { TestReminderGate } from "./components/TestReminderPrompt";
 import { TokenExpiredGate } from "./components/TokenExpiredPrompt";
 import { AccountStatusGate } from "./components/AccountStatusPrompt";
@@ -208,6 +209,7 @@ export default function App() {
 				<RightNowStartedOverlay />
 				<EntitlementBypassPrompt />
 				<SmoothScroll>
+					<OtaUpdateGate>
 					{showOnboarding ? (
 						<div className="app-shell">
 							<PermissionsOnboarding onComplete={handleOnboardingComplete} />
@@ -328,6 +330,7 @@ export default function App() {
 						</Route>
 					</Routes>
 					</TestReminderGate></OutdatedVersionGate></TokenExpiredGate></AccountStatusGate>)}
+					</OtaUpdateGate>
 				</SmoothScroll>
 			</ExploreModeProvider>
 			</PreferencesProvider>

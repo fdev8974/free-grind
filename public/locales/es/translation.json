@@ -66,7 +66,14 @@
         "ota_progress_downloading": "Descargando actualización… {{size}}",
         "ota_progress_installing": "Instalando actualización…",
         "ota_progress_done": "Actualización instalada. Recargando…",
-        "search_results_count_many": "{{count}} resultados"
+        "search_results_count_many": "{{count}} resultados",
+        "auto_update": "",
+        "auto_update_desc": "",
+        "update_checks": "",
+        "update_checks_desc": "",
+        "update_channel_main_desc": "",
+        "update_channel_development_desc": "",
+        "update_channel_contributor_desc": ""
     },
     "settings_blocked": {
         "title": "Cuentas bloqueadas",
@@ -2561,7 +2568,17 @@
         "download_install": "Descargar e instalar",
         "open_github": "Abrir en GitHub",
         "dismiss": "Descartar",
-        "get_version": "Obtener {{version}}"
+        "get_version": "Obtener {{version}}",
+        "app_update": ""
+    },
+    "ota_prompt": {
+        "title": "",
+        "description": "",
+        "description_version": "",
+        "auto_hint": "",
+        "failed": "",
+        "update_now": "",
+        "later": ""
     },
     "apk_update": {
         "errors": {

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useLogoutToNextAccount } from "../../hooks/useLogoutToNextAccount";
 import { getVersion } from "@tauri-apps/api/app";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
@@ -10,11 +11,11 @@ import {
 	ChevronRight,
 	Download,
 	GitBranch,
+	Globe,
 	Languages,
 	Loader2,
 	LogOut,
 	History,
-	Plus,
 	Radar,
 	RotateCcw,
 	RefreshCcw,
@@ -26,6 +27,7 @@ import {
 	Share2,
 	Puzzle,
 	QrCode,
+	Zap,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ArchiveRestoreFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, UserPlusFilled, UserXFilled } from "../../components/icons/FilledIcons";
@@ -48,14 +50,18 @@ import {
 	getHotswapChannelLabel,
 	installHotswapUpdate,
 	isHotswapAvailable,
+	isHotswapAutoUpdateEnabled,
+	setHotswapAutoUpdateEnabled,
+	subscribeHotswapAutoUpdate,
+	showHotswapUpdatePrompt,
 	setHotswapChannel,
 	isContributorChannel,
 	getContributorHandle,
 	type HotswapChannel,
 } from "../../services/hotswap";
-import { Chip } from "../../components/ui/chip";
 import { RowActionPill } from "../../components/ui/row-action-pill";
 import { ToggleRow } from "../../components/ui/toggle-row";
+import { UpdateChannelSheet } from "./UpdateChannelSheet";
 import { FingerprintCheckSheet, PushTokenSheet } from "./settings-dev/DiagnosticsSheets";
 import { SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
@@ -63,7 +69,8 @@ import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
 import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
-import { OutdatedVersionPromptView } from "../../components/OutdatedVersionPrompt";
+import { OutdatedVersionPromptView, fetchLatestRelease, isOlderVersion, type ReleaseInfo } from "../../components/OutdatedVersionPrompt";
+import { areUpdateChecksEnabled, setUpdateChecksEnabled, subscribeUpdateChecks } from "../../services/updateChecks";
 import { Avatar } from "../../components/ui/avatar";
 import { getThumbImageUrl } from "../../utils/media";
 import { getSavedAccountProfile, removeSavedAccountProfile } from "../../services/savedAccountProfiles";
@@ -310,7 +317,7 @@ function ContributorChannelDialog({
 
 export function SettingsPage() {
 	const { t } = useTranslation();
-	const { userId, logout, savedAccounts, switchAccount, removeSavedAccount } = useAuth();
+	const { userId, savedAccounts, switchAccount, removeSavedAccount } = useAuth();
 	const inboxSyncStatus = useInboxSyncStatus(userId);
 	const inboxSyncDisplay = describeInboxSyncStatus(inboxSyncStatus, t);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -333,13 +340,18 @@ export function SettingsPage() {
 	// confirmation) even though only the active one is a "real" logout.
 	const [logoutConfirmTarget, setLogoutConfirmTarget] = useState<"active" | string | null>(null);
 	const navigate = useNavigate();
+	const logoutToNextAccount = useLogoutToNextAccount();
 	const { callMethod, asAppError } = useApi();
 	const { developerMode, showDebugInfo, setPreferences } = usePreferences();
 	const [previewAnnouncement, setPreviewAnnouncement] = useState(false);
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+	// App release found by a manual check — shown as the APK update prompt.
+	const [appUpdateRelease, setAppUpdateRelease] = useState<ReleaseInfo | null>(null);
+	const updateChecksEnabled = useSyncExternalStore(subscribeUpdateChecks, areUpdateChecksEnabled);
 	const [isSwitchingChannel, setIsSwitchingChannel] = useState(false);
 	const hotswapProgress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
+	const hotswapAutoUpdate = useSyncExternalStore(subscribeHotswapAutoUpdate, isHotswapAutoUpdateEnabled);
 	const fingerprintCheck = useFingerprintCheck();
 	const [isSyncingFcm, setIsSyncingFcm] = useState(false);
 	const [fcmToken, setFcmToken] = useState<string | null>(() => {
@@ -354,6 +366,7 @@ export function SettingsPage() {
 	const [isPushTokenSheetOpen, setIsPushTokenSheetOpen] = useState(false);
 	const [isFingerprintSheetOpen, setIsFingerprintSheetOpen] = useState(false);
 	const [isPreviewsSheetOpen, setIsPreviewsSheetOpen] = useState(false);
+	const [isChannelSheetOpen, setIsChannelSheetOpen] = useState(false);
 	const isDesktop = useDesktopBreakpoint();
 	// Sync marker is `${token}::${userId}` (see AuthContext) since the device
 	// token is shared across saved accounts but sync is per-account.
@@ -417,22 +430,8 @@ export function SettingsPage() {
 
 	const handleLogout = async () => {
 		setIsLoggingOut(true);
-		const loggedOutProfileId = userId != null ? String(userId) : null;
 		try {
-			await logout();
-			// An explicit logout also forgets the account in the switcher;
-			// plain account switches and expired-token prompts keep it.
-			if (loggedOutProfileId) {
-				await removeSavedAccount(loggedOutProfileId);
-				removeSavedAccountProfile(loggedOutProfileId);
-			}
-			const nextAccount = savedAccounts.find((account) => account.profileId !== loggedOutProfileId);
-			if (nextAccount) {
-				await switchAccount(nextAccount.profileId);
-				navigate("/");
-			} else {
-				navigate("/auth/sign-in");
-			}
+			await logoutToNextAccount();
 		} catch (error) {
 			const message = getErrorMessage(error, "Failed to log out.");
 			toast.error(message);
@@ -469,31 +468,53 @@ export function SettingsPage() {
 		}
 	};
 
+	// Checks the app release first, then the frontend OTA bundle (native app only).
 	const handleCheckUpdates = async () => {
-		if (!isHotswapAvailable()) {
-			toast.error(t("settings.ota_available_only_tauri"));
-			return;
-		}
-
 		setIsCheckingUpdates(true);
 		try {
-			const result = await checkForHotswapUpdate();
-			if (result.requiresBinaryUpdate) {
+			// A failed release lookup doesn't block the frontend check; it's only
+			// reported when nothing else turned up.
+			let appCheckError: unknown = null;
+			const appRelease = await fetchLatestRelease(
+				new AbortController().signal,
+				getCurrentHotswapChannel() !== "main",
+			).catch((error: unknown) => {
+				appCheckError = error;
+				return null;
+			});
+			const frontend = isHotswapAvailable() ? await checkForHotswapUpdate() : null;
+
+			const installedAppVersion = nativeVersion ?? frontendVersion;
+			const appUpdate =
+				appRelease && isOlderVersion(installedAppVersion, appRelease.latestVersion) ? appRelease : null;
+			const frontendUpdate = frontend && frontend.available && !frontend.requiresBinaryUpdate ? frontend : null;
+
+			if (frontend?.requiresBinaryUpdate && !appUpdate) {
 				toast.error(
-					result.notes ??
+					frontend.notes ??
 						"This build is no longer compatible. Please download and install the latest APK.",
 				);
 				return;
 			}
 
-			if (!result.available) {
+			if (!appUpdate && !frontendUpdate) {
+				if (appCheckError) throw appCheckError;
 				toast.success(t("settings.latest_version"));
 				return;
 			}
 
-			await installHotswapUpdate();
-			toast.success(t("settings.update_installed"));
-			window.location.reload();
+			// Both found: the OTA prompt overlays everything first; the APK prompt
+			// is still here once it's dismissed with "Later".
+			if (appUpdate) setAppUpdateRelease(appUpdate);
+			if (frontendUpdate) {
+				if (hotswapAutoUpdate) {
+					await installHotswapUpdate();
+					toast.success(t("settings.update_installed"));
+					window.location.reload();
+					return;
+				}
+				showHotswapUpdatePrompt({ version: frontendUpdate.version, notes: frontendUpdate.notes });
+			}
 		} catch (error) {
 			const msg = getErrorMessage(error, t("settings.failed_update_check"));
 			if (import.meta.env.DEV) {
@@ -620,6 +641,19 @@ export function SettingsPage() {
 					announcement={LATEST_ANNOUNCEMENT}
 					buttonLabel="Close"
 					onClose={() => setPreviewAnnouncement(false)}
+				/>
+			</div>
+		);
+	}
+
+	if (appUpdateRelease) {
+		return (
+			<div className="app-shell z-[110]">
+				<OutdatedVersionPromptView
+					appVersion={nativeVersion ?? frontendVersion}
+					releaseInfo={appUpdateRelease}
+					onDismiss={() => setAppUpdateRelease(null)}
+					manual
 				/>
 			</div>
 		);
@@ -1058,7 +1092,9 @@ export function SettingsPage() {
 										)}
 									</div>
 									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">{t("settings.check_updates")}</p>
+										<p className="text-sm font-semibold leading-snug">
+											{t("settings.check_updates")}
+										</p>
 										<p className="mt-0.5 truncate text-xs leading-snug tabular-nums text-[var(--text-muted)]">
 											{nativeVersion && nativeVersion !== frontendVersion
 												? t("settings.installed_versions", {
@@ -1121,46 +1157,44 @@ export function SettingsPage() {
 											);
 										})()}
 
-								{visibleChannels.length > 0 && (
-									<div className="px-4 py-3.5">
-										<p className="text-sm font-semibold leading-snug">
-											{t("settings.update_channel", { defaultValue: "Update Channel" })}
-										</p>
-										<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-											{t("settings.update_channel_desc", { defaultValue: "Which release track this app gets updates from." })}
-										</p>
-										<div className="mt-3 flex flex-wrap items-center gap-2">
-											{visibleChannels.map((channel) => (
-												<Chip
-													key={channel}
-													size="sm"
-													selected={channel === updateChannel}
-													disabled={isSwitchingChannel || isCheckingUpdates}
-													onClick={() => void handleSwitchUpdateChannel(channel)}
-												>
-													{getHotswapChannelLabel(channel)}
-												</Chip>
-											))}
-											{isContributorChannel(updateChannel) ? (
-												<Chip size="sm" selected className="inline-flex items-center gap-1.5">
-													<GitBranch className="h-3.5 w-3.5" />
-													{getContributorHandle(updateChannel)}
-												</Chip>
-											) : developerMode ? (
-												<Chip
-													size="sm"
-													onClick={() => setIsContributorDialogOpen(true)}
-													disabled={isSwitchingChannel || isCheckingUpdates}
-													aria-label="Add contributor channel"
-													title="Add contributor channel"
-													className="inline-flex items-center"
-												>
-													<Plus className="h-3.5 w-3.5" />
-												</Chip>
-											) : null}
-										</div>
-									</div>
+								<ToggleRow
+									checked={updateChecksEnabled}
+									onChange={setUpdateChecksEnabled}
+									icon={<Globe className="h-5 w-5" />}
+									iconClass="bg-amber-500/15 text-amber-400"
+									label={t("settings.update_checks", { defaultValue: "Check Automatically" })}
+									description={t("settings.update_checks_desc", {
+										defaultValue: "Looks for new app and frontend versions on GitHub at every app start. When off, no request is sent to GitHub unless you check manually above.",
+									})}
+								/>
+								{updateChecksEnabled && (
+									<ToggleRow
+										checked={hotswapAutoUpdate}
+										onChange={setHotswapAutoUpdateEnabled}
+										icon={<Zap className="h-5 w-5" />}
+										iconClass="bg-sky-500/15 text-sky-400"
+										label={t("settings.auto_update", { defaultValue: "Install Automatically" })}
+										description={t("settings.auto_update_desc", {
+											defaultValue: "Installs new frontend versions (OTA) from GitHub Actions right away and reloads the app. When off, you'll be asked first.",
+										})}
+									/>
 								)}
+
+								{visibleChannels.length > 0 &&
+									navRow(
+										() => setIsChannelSheetOpen(true),
+										<GitBranch className="h-5 w-5" />,
+										"bg-violet-500/15 text-violet-400",
+										t("settings.update_channel", { defaultValue: "Update Channel" }),
+										t("settings.update_channel_desc", { defaultValue: "Which release track this app gets updates from." }),
+										<span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--text-muted)]">
+											{isContributorChannel(updateChannel)
+												? getContributorHandle(updateChannel)
+												: getHotswapChannelLabel(updateChannel)}
+											<ChevronRight className="h-4 w-4 opacity-50" />
+										</span>,
+										isSwitchingChannel || isCheckingUpdates,
+									)}
 							</div>
 						</div>
 
@@ -1284,6 +1318,19 @@ export function SettingsPage() {
 					onManualTokenChange={setManualToken}
 					onSync={(override) => void handleForceSyncFcm(override)}
 					onClose={() => setIsPushTokenSheetOpen(false)}
+				/>
+			)}
+
+			{isChannelSheetOpen && (
+				<UpdateChannelSheet
+					channels={visibleChannels}
+					current={updateChannel}
+					canAddContributor={developerMode}
+					disabled={isSwitchingChannel || isCheckingUpdates}
+					isDesktop={isDesktop}
+					onSelect={(channel) => void handleSwitchUpdateChannel(channel)}
+					onAddContributor={() => setIsContributorDialogOpen(true)}
+					onClose={() => setIsChannelSheetOpen(false)}
 				/>
 			)}
 

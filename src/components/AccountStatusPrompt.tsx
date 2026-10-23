@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import { BotFilled, TagFilled } from "./icons/FilledIcons";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { useAuth } from "../contexts/useAuth";
+import { useLogoutToNextAccount } from "../hooks/useLogoutToNextAccount";
 import type { AccountStatus } from "../contexts/auth-context";
 import type { AppError } from "../types/api";
 import { hourCycleOptions } from "../utils/timeFormat";
@@ -367,7 +368,8 @@ export function AccountStatusPromptView({
  * an asynchronous auth:banned event pushed mid-session.
  */
 export function AccountStatusGate({ children }: { children: ReactNode }) {
-	const { accountStatus, logout, acceptBanAgreement } = useAuth();
+	const { accountStatus, acceptBanAgreement } = useAuth();
+	const logoutToNextAccount = useLogoutToNextAccount();
 
 	if (!accountStatus) {
 		return <>{children}</>;
@@ -377,7 +379,7 @@ export function AccountStatusGate({ children }: { children: ReactNode }) {
 		<div className="app-shell">
 			<AccountStatusPromptView
 				status={accountStatus}
-				onSignOut={() => void logout()}
+				onSignOut={() => void logoutToNextAccount().catch(() => {})}
 				onAcceptBanAgreement={acceptBanAgreement}
 			/>
 		</div>

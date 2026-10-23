@@ -66,7 +66,14 @@
         "translation_desc": "Преведите поруке у чету на језик апликације, појединачно или аутоматски по чету.",
         "ota_progress_downloading": "Преузимање ажурирања… {{size}}",
         "ota_progress_installing": "Инсталирање ажурирања…",
-        "ota_progress_done": "Ажурирање је инсталирано. Поновно учитавање…"
+        "ota_progress_done": "Ажурирање је инсталирано. Поновно учитавање…",
+        "auto_update": "",
+        "auto_update_desc": "",
+        "update_checks": "",
+        "update_checks_desc": "",
+        "update_channel_main_desc": "",
+        "update_channel_development_desc": "",
+        "update_channel_contributor_desc": ""
     },
     "settings_blocked": {
         "title": "Блокирани налози",
@@ -2559,7 +2566,17 @@
         "download_install": "Преузми и инсталирај",
         "open_github": "Отвори на GitHub-у",
         "dismiss": "Затвори",
-        "get_version": "Преузми {{version}}"
+        "get_version": "Преузми {{version}}",
+        "app_update": ""
+    },
+    "ota_prompt": {
+        "title": "",
+        "description": "",
+        "description_version": "",
+        "auto_hint": "",
+        "failed": "",
+        "update_now": "",
+        "later": ""
     },
     "apk_update": {
         "errors": {
