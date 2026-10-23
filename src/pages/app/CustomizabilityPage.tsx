@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { ChevronRight, Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
+import { Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -10,8 +9,7 @@ import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/tim
 import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
 import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
-import { SelectSheet } from "../../components/ui/select-sheet";
-import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { SelectRow } from "../../components/ui/select-row";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -61,61 +59,6 @@ function getContrastForHex(hexColor: string): "#1a1a1a" | "#ffffff" {
 	return contrastWithDark >= contrastWithLight ? "#1a1a1a" : "#ffffff";
 }
 
-
-/** Settings row that picks one of several options from a bottom sheet — same
- * pattern as the translation provider picker, instead of a native <select>. */
-function SelectRow({
-	icon,
-	iconClass,
-	label,
-	value,
-	onChange,
-	options,
-	id,
-	highlighted,
-}: {
-	icon: React.ReactNode;
-	iconClass: string;
-	label: string;
-	value: string;
-	onChange: (v: string) => void;
-	options: { value: string; label: string }[];
-	id?: string;
-	highlighted?: boolean;
-}) {
-	const isDesktop = useDesktopBreakpoint();
-	const [isOpen, setIsOpen] = useState(false);
-	const selectedLabel = options.find((o) => o.value === value)?.label ?? value;
-
-	return (
-		<>
-			<button
-				id={id}
-				type="button"
-				onClick={() => setIsOpen(true)}
-				className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] ${highlighted ? "animate-settings-highlight" : ""}`}
-			>
-				<div className={`rounded-2xl p-2.5 shrink-0 ${iconClass}`}>{icon}</div>
-				<p className="min-w-0 flex-1 text-sm font-semibold">{label}</p>
-				<span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-[var(--text-muted)]">{selectedLabel}</span>
-				<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-			</button>
-			{/* Portaled out of the card: as a child of its divide-y list the fullscreen
-			    overlay would pick up the divider border (a stray line while it fades in). */}
-			{isOpen && createPortal(
-				<SelectSheet
-					title={label}
-					value={value}
-					options={options}
-					onSelect={onChange}
-					onClose={() => setIsOpen(false)}
-					isDesktop={isDesktop}
-				/>,
-				document.body,
-			)}
-		</>
-	);
-}
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
 	return (

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, MessageCircle, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, ExternalLink, Flame, Images, LayoutGrid, MapPin, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
-import { Chip } from "../../components/ui/chip";
+import { SelectRow } from "../../components/ui/select-row";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
@@ -19,6 +19,8 @@ import {
 
 const ALBUM_EXPIRATION_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"] as const;
 const DOUBLE_TAP_TAP_TYPES = [0, 1, 2] as const;
+type DoubleTapTapType = (typeof DOUBLE_TAP_TAP_TYPES)[number];
+type DoubleTapChoice = "off" | "chat" | `tap-${DoubleTapTapType}`;
 
 // Wake Lock support varies by webview, not by platform: WebView2 (Windows)
 // and the Android/iOS system webviews support it, WebKitGTK (Linux desktop)
@@ -41,6 +43,8 @@ export function BehaviorPage() {
 		chatRowSwipeActions,
 		setPreferences,
 	} = usePreferences();
+	const doubleTapChoice: DoubleTapChoice =
+		doubleTapTapType === null ? "off" : doubleTapAction === "chat" ? "chat" : `tap-${doubleTapTapType as DoubleTapTapType}`;
 	const albumExpirationLabels: Record<(typeof ALBUM_EXPIRATION_OPTIONS)[number], string> = {
 		INDEFINITE: t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" }),
 		ONCE: t("chat_drawer.expiry.once", { defaultValue: "Once" }),
@@ -136,29 +140,17 @@ export function BehaviorPage() {
 							checked={defaultExpiringPhotos}
 							onChange={(checked) => void setPreferences({ defaultExpiringPhotos: checked })}
 						/>
-						<div
+						<SelectRow
 							id="behavior-default-album-expiration"
-							className={`flex items-start gap-3 px-4 py-3.5 ${highlightId === "behavior-default-album-expiration" ? "animate-settings-highlight" : ""}`}
-						>
-							<div className="rounded-2xl p-2.5 shrink-0 bg-violet-500/15 text-violet-400">
-								<Images className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold">{t("behavior.default_album_expiration")}</p>
-								<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("behavior.default_album_expiration_desc")}</p>
-								<div className="mt-3 flex flex-wrap gap-2">
-									{ALBUM_EXPIRATION_OPTIONS.map((option) => (
-										<Chip
-											key={option}
-											selected={defaultAlbumExpirationType === option}
-											onClick={() => void setPreferences({ defaultAlbumExpirationType: option })}
-										>
-											{albumExpirationLabels[option]}
-										</Chip>
-									))}
-								</div>
-							</div>
-						</div>
+							highlighted={highlightId === "behavior-default-album-expiration"}
+							icon={<Images className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("behavior.default_album_expiration")}
+							description={t("behavior.default_album_expiration_desc")}
+							value={defaultAlbumExpirationType}
+							onChange={(option) => void setPreferences({ defaultAlbumExpirationType: option })}
+							options={ALBUM_EXPIRATION_OPTIONS.map((option) => ({ value: option, label: albumExpirationLabels[option] }))}
+						/>
 					</div>
 				</div>
 
@@ -197,46 +189,31 @@ export function BehaviorPage() {
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.grid", { defaultValue: "Grid" })}</p>
 					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						<div
+						<SelectRow
 							id="behavior-double-tap-tap-type"
-							className={`flex items-start gap-3 px-4 py-3.5 ${highlightId === "behavior-double-tap-tap-type" ? "animate-settings-highlight" : ""}`}
-						>
-							<div className="rounded-2xl p-2.5 shrink-0 bg-orange-500/15 text-orange-400">
-								<Flame className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold">{t("behavior.double_tap_action", { defaultValue: "Double Tap Action" })}</p>
-								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
-									{t("behavior.double_tap_action_desc", {
-										defaultValue: "Double tap a profile in the grid to send a tap or open the chat directly. Turn off to open profiles instantly on a single tap.",
-									})}
-								</p>
-								<div className="mt-3 flex flex-wrap gap-2">
-									<Chip
-										selected={doubleTapTapType === null}
-										onClick={() => void setPreferences({ doubleTapTapType: null })}
-									>
-										{t("behavior.double_tap_off", { defaultValue: "Off" })}
-									</Chip>
-									{DOUBLE_TAP_TAP_TYPES.map((tapType) => (
-										<Chip
-											key={tapType}
-											selected={doubleTapTapType === tapType && doubleTapAction === "tap"}
-											onClick={() => void setPreferences({ doubleTapTapType: tapType, doubleTapAction: "tap" })}
-										>
-											{getTapEmoji(tapType)} {tapLabel(tapType, t)}
-										</Chip>
-									))}
-									{/* Off is stored as a null tap type, so keep a tap type around while chat is picked. */}
-									<Chip
-										selected={doubleTapTapType !== null && doubleTapAction === "chat"}
-										onClick={() => void setPreferences({ doubleTapTapType: doubleTapTapType ?? 1, doubleTapAction: "chat" })}
-									>
-										<MessageCircle className="inline h-3.5 w-3.5 -mt-0.5" /> {t("behavior.double_tap_open_chat", { defaultValue: "Open Chat" })}
-									</Chip>
-								</div>
-							</div>
-						</div>
+							highlighted={highlightId === "behavior-double-tap-tap-type"}
+							icon={<Flame className="h-5 w-5" />}
+							iconClass="bg-orange-500/15 text-orange-400"
+							label={t("behavior.double_tap_action", { defaultValue: "Double Tap Action" })}
+							description={t("behavior.double_tap_action_desc", {
+								defaultValue: "Double tap a profile in the grid to send a tap or open the chat directly. Turn off to open profiles instantly on a single tap.",
+							})}
+							value={doubleTapChoice}
+							onChange={(choice) => {
+								if (choice === "off") void setPreferences({ doubleTapTapType: null });
+								// Off is stored as a null tap type, so keep a tap type around while chat is picked.
+								else if (choice === "chat") void setPreferences({ doubleTapTapType: doubleTapTapType ?? 1, doubleTapAction: "chat" });
+								else void setPreferences({ doubleTapTapType: Number(choice.slice("tap-".length)) as DoubleTapTapType, doubleTapAction: "tap" });
+							}}
+							options={[
+								{ value: "off", label: t("behavior.double_tap_off", { defaultValue: "Off" }) },
+								...DOUBLE_TAP_TAP_TYPES.map((tapType) => ({
+									value: `tap-${tapType}` as const,
+									label: `${getTapEmoji(tapType)} ${tapLabel(tapType, t)}`,
+								})),
+								{ value: "chat", label: `💬 ${t("behavior.double_tap_open_chat", { defaultValue: "Open Chat" })}` },
+							]}
+						/>
 					</div>
 				</div>
 
