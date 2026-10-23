@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import type { ComponentType } from "react";
+import { cloneElement, isValidElement, type ComponentType, type ReactElement } from "react";
 import { BottomSheet, SheetClose, SheetCloseButton } from "./bottom-sheet";
 import { cn } from "../../utils/cn";
 
@@ -14,8 +14,9 @@ export function afterSheetClose(fn: () => void) {
 
 export interface SheetAction {
 	key: string;
-	/** Lucide or one of the app's filled icons. */
-	icon: ComponentType<{ className?: string }>;
+	/** Lucide or one of the app's filled icons — as a component, or an element
+	 * (e.g. shared with a desktop context menu); either way it's sized to the tile. */
+	icon: ComponentType<{ className?: string }> | ReactElement<{ className?: string }>;
 	label: string;
 	description?: string;
 	/** Tile color classes, e.g. "bg-sky-500/15 text-sky-400". Ignored for danger actions. */
@@ -41,7 +42,11 @@ export function SheetActionRow({ action }: { action: SheetAction }) {
 					isDanger ? "bg-red-500/15 text-red-400" : action.iconClassName ?? "bg-[var(--surface-2)] text-[var(--text-muted)]",
 				)}
 			>
-				<action.icon className="h-5 w-5" />
+				{isValidElement(action.icon) ? (
+					cloneElement(action.icon, { className: cn(action.icon.props.className, "h-5 w-5") })
+				) : (
+					<action.icon className="h-5 w-5" />
+				)}
 			</div>
 			<div className="min-w-0 flex-1">
 				<p className={cn("text-sm font-semibold leading-snug", isDanger && "text-red-400")}>{action.label}</p>

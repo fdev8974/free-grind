@@ -605,7 +605,6 @@
         "visibility": "Visibilité"
     },
     "about_page": {
-        "description": "Conçu pour un usage personnel, avec une interface plus épurée, sans publicités et une documentation ouverte sur son fonctionnement. L'objectif est la liberté pratique, pas la dépendance à une plateforme.",
         "licence_value": "MIT",
         "commercial_note": "Le code source est disponible sous licence MIT : chacun est libre de l'utiliser, de le modifier et de le forker.",
         "resources": {
@@ -635,8 +634,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Albums",
@@ -2454,7 +2453,6 @@
         "expiring_album_no_bypass": "Les albums éphémères sont une fonctionnalité payante de Grindr, et il n'existe aucun contournement."
     },
     "auto_translate": {
-        "api_section": "Fournisseur et clé API",
         "api_key_desc": "Utilisée pour toutes les traductions du chat. Une seule clé pour toute l'app, stockée uniquement sur cet appareil.",
         "api_key_placeholder": "Collez votre clé API",
         "show_key": "Afficher la clé",
@@ -2487,7 +2485,6 @@
         "guide_key_desc": "Allez dans API et services → Identifiants, cliquez sur Créer des identifiants → Clé API et copiez-la. Recommandé : modifiez la clé et limitez-la à l'API Cloud Translation.",
         "guide_key_link": "Ouvrir les identifiants",
         "guide_paste_title": "Collez-la ici",
-        "guide_paste_desc": "Collez la clé dans le champ ci-dessus, touchez Enregistrer puis Tester la clé pour vérifier qu'elle fonctionne.",
         "key_saved_invalid": "Enregistrée, mais {{provider}} a refusé cette clé : {{message}}",
         "key_saved_unverified": "Enregistrée, mais la clé n'a pas pu être vérifiée : {{message}}",
         "key_status_invalid": "Cette clé ne fonctionne pas. Les options de traduction dans les chats sont masquées jusqu'à ce que ce soit corrigé.",
@@ -2535,7 +2532,13 @@
         "provider_google_tagline": "Traduction rapide et littérale",
         "provider_gemini_tagline": "Comprend l'argot · offre gratuite",
         "provider_openai_tagline": "Comprend l'argot · payant",
-        "provider_claude_tagline": "Comprend l'argot · payant"
+        "provider_claude_tagline": "Comprend l'argot · payant",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Fournisseur et clé API"
     },
     "legal_agreements": {
         "title": "Conditions mises à jour",

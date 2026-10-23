@@ -620,7 +620,6 @@
         "visibility": "الرؤية"
     },
     "about_page": {
-        "description": "صُمم للاستخدام الشخصي بواجهة مستخدم أنيقة، وخالية من الإعلانات، مع توثيق مفتوح يشرح آلية عملها. الهدف هو الحرية العملية، وليس التقييد بمنصة معينة",
         "licence_value": "MIT",
         "commercial_note": "الشيفرة المصدرية متاحة بموجب ترخيص MIT، لذا يحق لأي شخص استخدامها وتعديلها وعمل fork منها بحرية.",
         "resources": {
@@ -650,8 +649,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "ألبومات",
@@ -2468,7 +2467,6 @@
         "expiring_album_no_bypass": "الألبومات المؤقتة ميزة مدفوعة في Grindr، ولا يوجد تجاوز لها."
     },
     "auto_translate": {
-        "api_section": "المزوّد ومفتاح API",
         "api_key_desc": "يُستخدم لكل ترجمات الدردشة. مفتاح واحد للتطبيق كله، مخزّن على الجهاز ده فقط.",
         "api_key_placeholder": "الصق مفتاح API",
         "show_key": "إظهار المفتاح",
@@ -2501,7 +2499,6 @@
         "guide_key_desc": "انتقل إلى واجهات API والخدمات ← بيانات الاعتماد، واضغط إنشاء بيانات اعتماد ← مفتاح API وانسخه. يُنصح بتعديل المفتاح وتقييده بـ Cloud Translation API.",
         "guide_key_link": "فتح بيانات الاعتماد",
         "guide_paste_title": "الصقه هنا",
-        "guide_paste_desc": "الصق المفتاح في الحقل أعلاه، واضغط حفظ ثم اختبار المفتاح للتأكد من أنه يعمل.",
         "key_saved_invalid": "تم الحفظ، لكن {{provider}} رفض المفتاح ده: {{message}}",
         "key_saved_unverified": "تم الحفظ، لكن تعذّر التحقق من المفتاح: {{message}}",
         "key_status_invalid": "المفتاح ده لا يعمل. خيارات الترجمة في الشاتات مخفية حتى يتم إصلاحه.",
@@ -2549,7 +2546,13 @@
         "provider_google_tagline": "ترجمة سريعة وحرفية",
         "provider_gemini_tagline": "يفهم العامية · مستوى مجاني",
         "provider_openai_tagline": "يفهم العامية · مدفوع",
-        "provider_claude_tagline": "يفهم العامية · مدفوع"
+        "provider_claude_tagline": "يفهم العامية · مدفوع",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "المزوّد ومفتاح API"
     },
     "legal_agreements": {
         "title": "شروط محدّثة",

@@ -606,7 +606,6 @@
         "visibility": "Видљивост"
     },
     "about_page": {
-        "description": "Направљен за личну употребу, са чистијим интерфејсом, без реклама и са отвореном документацијом о томе како ствари функционишу. Циљ је практична слобода, а не везаност за платформу.",
         "licence_value": "MIT",
         "commercial_note": "Изворни код је доступан под MIT лиценцом, па свако може слободно да га користи, мења и форкује.",
         "resources": {
@@ -636,8 +635,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Албуми",
@@ -2452,7 +2451,6 @@
         "expiring_album_no_bypass": "Нестајући албуми су плаћена Grindr функција и за њих не постоји заобилажење."
     },
     "auto_translate": {
-        "api_section": "Провајдер и API кључ",
         "api_key_desc": "Користи се за све преводе у чету. Један кључ за целу апликацију, чува се само на овом уређају.",
         "api_key_placeholder": "Налепите свој API кључ",
         "show_key": "Прикажи кључ",
@@ -2485,7 +2483,6 @@
         "guide_key_desc": "Идите на APIs & Services → Credentials, кликните на Create credentials → API key и копирајте га. Препорука: уредите кључ и ограничите га на Cloud Translation API.",
         "guide_key_link": "Отвори креденцијале",
         "guide_paste_title": "Налепите га овде",
-        "guide_paste_desc": "Налепите кључ у поље изнад, додирните Сачувај, а затим Тестирај кључ да проверите да ли ради.",
         "key_saved_invalid": "Сачувано, али {{provider}} је одбио овај кључ: {{message}}",
         "key_saved_unverified": "Сачувано, али кључ није могао да се провери: {{message}}",
         "key_status_invalid": "Овај кључ не ради. Опције превода у четовима су сакривене док се не поправи.",
@@ -2533,7 +2530,13 @@
         "provider_google_tagline": "Брз, дослован превод",
         "provider_gemini_tagline": "Разуме сленг · бесплатни ниво",
         "provider_openai_tagline": "Разуме сленг · плаћено",
-        "provider_claude_tagline": "Разуме сленг · плаћено"
+        "provider_claude_tagline": "Разуме сленг · плаћено",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Провајдер и API кључ"
     },
     "legal_agreements": {
         "title": "Ажурирани услови",

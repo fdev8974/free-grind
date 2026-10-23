@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Bell, MessageCircle } from "lucide-react";
-import { FlameFilled } from "../../components/icons/FilledIcons";
+import { BellFilled, FlameFilled, MessageCircleFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { useTranslation } from "react-i18next";
@@ -40,7 +39,7 @@ export function NotificationsPage() {
 					<ToggleRow
 						id="notif-chat-enabled"
 						highlighted={highlightId === "notif-chat-enabled"}
-						icon={<MessageCircle className="h-5 w-5" />}
+						icon={<MessageCircleFilled className="h-5 w-5" />}
 						iconClass="bg-blue-500/15 text-blue-400"
 						label={t("notifications_page.chat_enabled")}
 						description={t("notifications_page.chat_enabled_desc")}
@@ -66,7 +65,7 @@ export function NotificationsPage() {
 					<ToggleRow
 						id="notif-foreground"
 						highlighted={highlightId === "notif-foreground"}
-						icon={<Bell className="h-5 w-5" />}
+						icon={<BellFilled className="h-5 w-5" />}
 						iconClass="bg-[var(--surface-2)] text-[var(--text-muted)]"
 						label={t("notifications_page.foreground")}
 						description={t("notifications_page.foreground_desc")}

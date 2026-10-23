@@ -1,8 +1,8 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff } from "lucide-react";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../../../components/ui/bottom-sheet";
+import { SheetActionList } from "../../../../components/ui/action-sheet";
 import { menuTransitionStyle } from "../../../../hooks/usePresence";
 
 type GridTileContextMenuProps = {
@@ -88,36 +88,18 @@ export function GridTileContextMenu({
 
 	if (!isDesktop) {
 		return (
-			<BottomSheet
+			<SheetActionList
+				title={title}
 				isDesktop={false}
 				onClose={onClose}
-				bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			>
-				<div className="flex items-center justify-between gap-2 px-4 pb-3">
-					<p className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{title}</p>
-					<SheetCloseButton />
-				</div>
-				<div className="divide-y divide-[var(--border)] pb-1">
-					{actions.map((action) => (
-						<SheetClose
-							key={action.key}
-							onClick={action.onClick}
-							className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium transition active:bg-[var(--surface-2)] ${
-								action.danger ? "text-red-400" : "text-[var(--text)]"
-							}`}
-						>
-							<div
-								className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
-									action.danger ? "bg-red-500/10 text-red-400" : "bg-[var(--surface-2)] text-[var(--accent)]"
-								}`}
-							>
-								{action.icon}
-							</div>
-							{action.label}
-						</SheetClose>
-					))}
-				</div>
-			</BottomSheet>
+				actions={actions.map((action) => ({
+					key: action.key,
+					icon: action.icon as ReactElement<{ className?: string }>,
+					label: action.label,
+					tone: action.danger ? "danger" : "default",
+					onSelect: action.onClick,
+				}))}
+			/>
 		);
 	}
 

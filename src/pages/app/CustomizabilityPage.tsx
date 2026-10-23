@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Languages, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
-import { ClockFilled, FlameFilled, ImagesFilled, LayoutGridFilled } from "../../components/icons/FilledIcons";
+import { Languages, PanelBottom, Ruler, Type, Vibrate } from "lucide-react";
+import { ClockFilled, FlameFilled, ImagesFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -104,17 +104,17 @@ export function CustomizabilityPage() {
 			{
 				value: "system",
 				label: t("customizability.schemes.system"),
-				icon: <Monitor className="h-5 w-5" />,
+				icon: <MonitorFilled className="h-5 w-5" />,
 			},
 			{
 				value: "light",
 				label: t("customizability.schemes.light"),
-				icon: <Sun className="h-5 w-5" />,
+				icon: <SunFilled className="h-5 w-5" />,
 			},
 			{
 				value: "dark",
 				label: t("customizability.schemes.dark"),
-				icon: <Moon className="h-5 w-5" />,
+				icon: <MoonFilled className="h-5 w-5" />,
 			},
 		],
 		[t],
@@ -230,7 +230,7 @@ export function CustomizabilityPage() {
 							<ToggleRow
 								id="cust-amoled"
 								highlighted={highlightId === "cust-amoled"}
-								icon={<Moon className="h-5 w-5" />}
+								icon={<MoonFilled className="h-5 w-5" />}
 								iconClass="bg-violet-500/15 text-violet-400"
 								label={t("customizability.amoled.title")}
 								description={t("customizability.amoled.desc")}
@@ -601,7 +601,7 @@ export function CustomizabilityPage() {
 						<ToggleRow
 							id="cust-reveal-effect"
 							highlighted={highlightId === "cust-reveal-effect"}
-							icon={<Sparkles className="h-5 w-5" />}
+							icon={<SparklesFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("customizability.reveal_effect.title")}
 							description={t("customizability.reveal_effect.enable_desc")}

@@ -1,4 +1,5 @@
-import { AlertCircle, Bell, CheckCircle2, Copy, Loader2, Radar, RefreshCcw } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Loader2, Radar, RefreshCcw } from "lucide-react";
+import { BellFilled } from "../../../components/icons/FilledIcons";
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import toast from "react-hot-toast";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
@@ -175,7 +176,7 @@ export function PushTokenSheet({
 			<div className="-mx-4 min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				<StatusHero
 					tone={tone}
-					icon={<Bell className="h-5 w-5 fill-current" />}
+					icon={<BellFilled className="h-5 w-5" />}
 					title={!token ? "No token received yet" : isSynced ? "Synced to Grindr" : "Not synced to Grindr"}
 					description={
 						token

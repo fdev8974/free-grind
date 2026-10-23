@@ -600,7 +600,6 @@
     "visibility": "Visibility"
   },
   "about_page": {
-    "description": "Built for personal use with a cleaner interface, no ads, and open documentation around how things work. The goal is practical freedom, not platform lock-in.",
     "licence_value": "MIT",
     "commercial_note": "The source is available under the MIT licence, so anyone is free to use, modify, and fork it.",
     "resources": {
@@ -630,8 +629,8 @@
       "free_title": "Free forever",
       "free_desc": "If someone asks you to pay, it's a scam."
     },
-    "version_value": "Version {{version}}",
-    "section_principles": "Why Free Grind"
+    "section_principles": "Why Free Grind",
+    "tagline": "The privacy-first, community-built client"
   },
   "settings_albums": {
     "label": "Albums",
@@ -2434,7 +2433,6 @@
     "expiring_album_no_bypass": "Expiring albums are a paid Grindr feature, and there's no bypass for them."
   },
   "auto_translate": {
-    "api_section": "Provider & API key",
     "api_key_desc": "Used for all chat translations. One key for the whole app, stored only on this device.",
     "api_key_placeholder": "Paste your API key",
     "show_key": "Show key",
@@ -2467,7 +2465,6 @@
     "guide_key_desc": "Go to APIs & Services → Credentials, click Create credentials → API key and copy it. Recommended: edit the key and restrict it to the Cloud Translation API.",
     "guide_key_link": "Open credentials",
     "guide_paste_title": "Paste it here",
-    "guide_paste_desc": "Paste the key into the field above, tap Save and then Test key to check that it works.",
     "key_saved_invalid": "Saved, but {{provider}} rejected this key: {{message}}",
     "key_saved_unverified": "Saved, but the key couldn't be checked: {{message}}",
     "key_status_invalid": "This key doesn't work. Translate options in chats are hidden until it's fixed.",
@@ -2515,7 +2512,13 @@
     "provider_google_tagline": "Fast, literal translation",
     "provider_gemini_tagline": "Understands slang · free tier",
     "provider_openai_tagline": "Understands slang · paid",
-    "provider_claude_tagline": "Understands slang · paid"
+    "provider_claude_tagline": "Understands slang · paid",
+    "provider_section": "Provider",
+    "key_badge_missing": "Not set",
+    "key_badge_invalid": "Not working",
+    "key_badge_valid": "Active",
+    "guide_paste_inline_desc": "Paste the key and tap Save. It's checked right away.",
+    "api_section": "Provider & API key"
   },
   "legal_agreements": {
     "title": "Updated Terms",

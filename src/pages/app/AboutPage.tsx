@@ -1,6 +1,6 @@
-import { Ban, ChevronRight, Code2, ExternalLink, GitBranch, Heart, HeartHandshake, LockKeyhole, Scale } from "lucide-react";
+import { Ban, ChevronRight, Code2, ExternalLink, GitBranch, HeartHandshake, Scale } from "lucide-react";
 import { DiscordIcon, TelegramIcon } from "../../components/icons/BrandIcons";
-import { MegaphoneFilled } from "../../components/icons/FilledIcons";
+import { HeartFilled, LockFilled, MegaphoneFilled } from "../../components/icons/FilledIcons";
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -130,7 +130,7 @@ export function AboutPage() {
 
 	return (
 		<section className="app-screen">
-			<PageHeader backTo="/settings" title={t("settings.about")} subtitle={t("about_page.description")} />
+			<PageHeader backTo="/settings" title={t("settings.about")} />
 
 			<div className="grid gap-6">
 				<div className="surface-card overflow-hidden">
@@ -145,10 +145,13 @@ export function AboutPage() {
 						</div>
 						<div className="min-w-0 flex-1">
 							<p className="text-sm font-semibold leading-snug">Free Grind</p>
-							<p className="mt-0.5 text-xs tabular-nums text-[var(--text-muted)]">
-								{t("about_page.version_value", { defaultValue: "Version {{version}}", version: appVersion })}
+							<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+								{t("about_page.tagline", { defaultValue: "The privacy-first, community-built client" })}
 							</p>
 						</div>
+						<span className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
+							v{appVersion}
+						</span>
 					</button>
 				</div>
 
@@ -156,7 +159,7 @@ export function AboutPage() {
 					<SectionLabel>{t("about_page.section_principles", { defaultValue: "Why Free Grind" })}</SectionLabel>
 					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 						<ProjectRow
-							icon={LockKeyhole}
+							icon={LockFilled}
 							iconClass="bg-emerald-500/15 text-emerald-400"
 							label={t("about_page.highlights.privacy_title", { defaultValue: "Privacy first" })}
 							description={t("about_page.highlights.privacy_desc", { defaultValue: "No tracking, no engagement tricks." })}
@@ -174,7 +177,7 @@ export function AboutPage() {
 							description={t("about_page.highlights.no_ads_desc", { defaultValue: "A clean interface, nothing in the way." })}
 						/>
 						<ProjectRow
-							icon={Heart}
+							icon={HeartFilled}
 							iconClass="bg-rose-500/15 text-rose-400"
 							label={t("about_page.highlights.free_title", { defaultValue: "Free forever" })}
 							description={t("about_page.highlights.free_desc", { defaultValue: "If someone asks you to pay, it's a scam." })}

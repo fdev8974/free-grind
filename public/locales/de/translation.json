@@ -600,7 +600,6 @@
         "visibility": "Sichtbarkeit"
     },
     "about_page": {
-        "description": "Entwickelt für den persönlichen Gebrauch mit einer aufgeräumteren Oberfläche, ohne Werbung und mit offener Dokumentation dazu, wie alles funktioniert. Es geht um echte Unabhängigkeit statt Bindung an eine Plattform.",
         "licence_value": "MIT",
         "commercial_note": "Der Quellcode steht unter der MIT-Lizenz, jeder darf ihn also frei nutzen, verändern und forken.",
         "resources": {
@@ -630,8 +629,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Alben",
@@ -2436,7 +2435,6 @@
         "expiring_album_no_bypass": "Ablaufende Alben sind eine kostenpflichtige Grindr-Funktion, und dafür gibt es keine Umgehung."
     },
     "auto_translate": {
-        "api_section": "Anbieter & API-Schlüssel",
         "api_key_desc": "Wird für alle Chat-Übersetzungen verwendet. Ein Schlüssel für die ganze App, nur auf diesem Gerät gespeichert.",
         "api_key_placeholder": "API-Schlüssel einfügen",
         "show_key": "Schlüssel anzeigen",
@@ -2469,7 +2467,6 @@
         "guide_key_desc": "Gehe zu APIs & Dienste → Anmeldedaten, klicke auf Anmeldedaten erstellen → API-Schlüssel und kopiere ihn. Empfohlen: Bearbeite den Schlüssel und beschränke ihn auf die Cloud Translation API.",
         "guide_key_link": "Anmeldedaten öffnen",
         "guide_paste_title": "Hier einfügen",
-        "guide_paste_desc": "Füge den Schlüssel in das Feld oben ein, tippe auf Speichern und dann auf Schlüssel testen, um zu prüfen, ob er funktioniert.",
         "key_saved_invalid": "Gespeichert, aber {{provider}} hat diesen Schlüssel abgelehnt: {{message}}",
         "key_saved_unverified": "Gespeichert, aber der Schlüssel konnte nicht geprüft werden: {{message}}",
         "key_status_invalid": "Dieser Schlüssel funktioniert nicht. Übersetzungsoptionen in Chats sind ausgeblendet, bis das behoben ist.",
@@ -2517,7 +2514,13 @@
         "provider_google_tagline": "Schnelle, wörtliche Übersetzung",
         "provider_gemini_tagline": "Versteht Slang · kostenlose Stufe",
         "provider_openai_tagline": "Versteht Slang · kostenpflichtig",
-        "provider_claude_tagline": "Versteht Slang · kostenpflichtig"
+        "provider_claude_tagline": "Versteht Slang · kostenpflichtig",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Anbieter & API-Schlüssel"
     },
     "legal_agreements": {
         "title": "Aktualisierte Bedingungen",

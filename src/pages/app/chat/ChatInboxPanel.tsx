@@ -1,14 +1,14 @@
 import { Archive, BellOff, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2 } from "lucide-react";
 import { BellOffFilled, EyeOffFilled, HomeFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChatSearchPanel } from "./ChatSearchPanel";
 import { ChatInboxHeader, type ChatInboxHeaderProps } from "./ChatInboxHeader";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { SheetActionList, afterSheetClose } from "../../../components/ui/action-sheet";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -204,39 +204,22 @@ function ConversationActionSheet({
 	actions: ConversationAction[];
 	onClose: () => void;
 }) {
-	// Run the picked action only once the sheet has finished closing — it pops
-	// its own history entry on close, which would otherwise race anything the
-	// action opens (e.g. the delete confirmation).
-	const pendingActionRef = useRef<(() => void) | null>(null);
 	return (
-		<BottomSheet
-			onClose={() => {
-				const action = pendingActionRef.current;
-				pendingActionRef.current = null;
-				onClose();
-				action?.();
-			}}
-		>
-			<p className="truncate px-4 pb-2 text-sm font-semibold text-[var(--text)]">{title}</p>
-			<div className="flex flex-col pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
-				{actions.map((action) => (
-					<SheetClose
-						key={action.key}
-						onClick={() => {
-							pendingActionRef.current = action.onSelect;
-						}}
-						className={`flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-semibold transition ${
-							action.destructive
-								? "mt-1 border-t border-[var(--border)] text-red-500 hover:bg-red-500/10"
-								: "text-[var(--text)] hover:bg-[var(--surface-2)]"
-						}`}
-					>
-						{action.icon}
-						{action.label}
-					</SheetClose>
-				))}
-			</div>
-		</BottomSheet>
+		<SheetActionList
+			title={title}
+			isDesktop={false}
+			onClose={onClose}
+			actions={actions.map((action) => ({
+				key: action.key,
+				icon: action.icon as ReactElement<{ className?: string }>,
+				label: action.label,
+				tone: action.destructive ? "danger" : "default",
+				// Run it once the sheet has finished closing — it pops its own history
+				// entry on close, which would otherwise race anything the action opens
+				// (e.g. the delete confirmation).
+				onSelect: () => afterSheetClose(action.onSelect),
+			}))}
+		/>
 	);
 }
 

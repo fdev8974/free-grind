@@ -605,7 +605,6 @@
         "visibility": "Vidljivost"
     },
     "about_page": {
-        "description": "Napravljen za ličnu upotrebu, s čišćim interfejsom, bez reklama i s otvorenom dokumentacijom o tome kako stvari rade. Cilj je praktična sloboda, a ne zaključavanje u platformu.",
         "licence_value": "MIT",
         "commercial_note": "Izvorni kod je dostupan pod MIT licencom, pa ga svako može slobodno koristiti, mijenjati i forkati.",
         "resources": {
@@ -635,8 +634,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Albumi",
@@ -2454,7 +2453,6 @@
         "expiring_album_no_bypass": "Albumi s istekom su plaćena Grindr funkcija i za njih ne postoji zaobilaženje."
     },
     "auto_translate": {
-        "api_section": "Pružalac i API ključ",
         "api_key_desc": "Koristi se za sve prijevode razgovora. Jedan ključ za cijelu aplikaciju, sačuvan samo na ovom uređaju.",
         "api_key_placeholder": "Zalijepi svoj API ključ",
         "show_key": "Prikaži ključ",
@@ -2487,7 +2485,6 @@
         "guide_key_desc": "Idi na API-ji i usluge → Vjerodajnice, klikni Napravi vjerodajnice → API ključ i kopiraj ga. Preporuka: uredi ključ i ograniči ga na Cloud Translation API.",
         "guide_key_link": "Otvori vjerodajnice",
         "guide_paste_title": "Zalijepi ga ovdje",
-        "guide_paste_desc": "Zalijepi ključ u polje iznad, dodirni Sačuvaj, a zatim Testiraj ključ da provjeriš radi li.",
         "key_saved_invalid": "Sačuvano, ali {{provider}} je odbio ovaj ključ: {{message}}",
         "key_saved_unverified": "Sačuvano, ali ključ nije bilo moguće provjeriti: {{message}}",
         "key_status_invalid": "Ovaj ključ ne radi. Opcije prijevoda u razgovorima su skrivene dok se to ne popravi.",
@@ -2535,7 +2532,13 @@
         "provider_google_tagline": "Brz, doslovan prijevod",
         "provider_gemini_tagline": "Razumije sleng · besplatni nivo",
         "provider_openai_tagline": "Razumije sleng · plaćeno",
-        "provider_claude_tagline": "Razumije sleng · plaćeno"
+        "provider_claude_tagline": "Razumije sleng · plaćeno",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Pružalac i API ključ"
     },
     "legal_agreements": {
         "title": "Ažurirani uslovi",

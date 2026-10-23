@@ -93,6 +93,7 @@ import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
+import { SheetActionList } from "../../../components/ui/action-sheet";
 import {
 	DndContext,
 	MouseSensor,
@@ -2991,19 +2992,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					) : null}
 
 					{!isDesktop && selectedActionMessage && !isAlbumSheetOpen ? (
-						<BottomSheet
+						<SheetActionList
+							title={t("chat.actions.title")}
 							isDesktop={false}
 							onClose={() => setOpenMessageActionId(null)}
-							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-						>
-							<div className="flex items-center justify-between px-4 pb-3">
-								<p className="text-sm font-semibold text-[var(--text)]">
-									{t("chat.actions.title")}
-								</p>
-								<SheetCloseButton />
-							</div>
-							<div className="divide-y divide-[var(--border)] pb-1">
-								{(() => {
+							actions={(() => {
 									const message = selectedActionMessage;
 									const mine = selectedActionMessageMine;
 									const isMutating = isMutatingMessageId === message.messageId;
@@ -3160,28 +3153,16 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										danger: true,
 									});
 
-									return rows.map((row) => (
-										<SheetClose
-											key={row.key}
-											disabled={row.disabled}
-											onClick={row.onClick}
-											className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium transition active:bg-[var(--surface-2)] disabled:opacity-50 ${
-												row.danger ? "text-red-400" : "text-[var(--text)]"
-											}`}
-										>
-											<div
-												className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
-													row.danger ? "bg-red-500/10 text-red-400" : "bg-[var(--surface-2)] text-[var(--accent)]"
-												}`}
-											>
-												{row.icon}
-											</div>
-											{row.label}
-										</SheetClose>
-									));
+									return rows.map((row) => ({
+										key: row.key,
+										icon: row.icon as React.ReactElement<{ className?: string }>,
+										label: row.label,
+										disabled: row.disabled,
+										tone: row.danger ? ("danger" as const) : ("default" as const),
+										onSelect: row.onClick,
+									}));
 								})()}
-							</div>
-						</BottomSheet>
+						/>
 					) : null}
 
 

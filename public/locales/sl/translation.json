@@ -610,7 +610,6 @@
         "visibility": "Vidnost"
     },
     "about_page": {
-        "description": "Narejen za osebno uporabo, s čistejšim vmesnikom, brez oglasov in z odprto dokumentacijo o tem, kako stvari delujejo. Cilj je praktična svoboda, ne zaklenjenost na platformo.",
         "licence_value": "MIT",
         "commercial_note": "Izvorna koda je na voljo pod licenco MIT, zato jo lahko kdor koli prosto uporablja, spreminja in forka.",
         "resources": {
@@ -640,8 +639,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Albumi",
@@ -2472,7 +2471,6 @@
         "expiring_album_no_bypass": "Albumi s potekom so plačljiva funkcija Grindr in zanje obhoda ni."
     },
     "auto_translate": {
-        "api_section": "Ponudnik in ključ API",
         "api_key_desc": "Uporablja se za vse prevode klepetov. En ključ za celotno aplikacijo, shranjen samo v tej napravi.",
         "api_key_placeholder": "Prilepi svoj ključ API",
         "show_key": "Prikaži ključ",
@@ -2505,7 +2503,6 @@
         "guide_key_desc": "Pojdi na API-ji in storitve → Poverilnice, klikni Ustvari poverilnice → Ključ API in ga kopiraj. Priporočeno: uredi ključ in ga omeji na Cloud Translation API.",
         "guide_key_link": "Odpri poverilnice",
         "guide_paste_title": "Prilepi ga sem",
-        "guide_paste_desc": "Prilepi ključ v polje zgoraj, tapni Shrani in nato Preizkusi ključ, da preveriš, ali deluje.",
         "key_saved_invalid": "Shranjeno, vendar je {{provider}} zavrnil ta ključ: {{message}}",
         "key_saved_unverified": "Shranjeno, vendar ključa ni bilo mogoče preveriti: {{message}}",
         "key_status_invalid": "Ta ključ ne deluje. Možnosti prevajanja v klepetih so skrite, dokler to ni popravljeno.",
@@ -2553,7 +2550,13 @@
         "provider_google_tagline": "Hiter, dobeseden prevod",
         "provider_gemini_tagline": "Razume sleng · brezplačna raven",
         "provider_openai_tagline": "Razume sleng · plačljivo",
-        "provider_claude_tagline": "Razume sleng · plačljivo"
+        "provider_claude_tagline": "Razume sleng · plačljivo",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Ponudnik in ključ API"
     },
     "legal_agreements": {
         "title": "Posodobljeni pogoji",

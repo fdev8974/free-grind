@@ -1,16 +1,11 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-	AlertTriangle,
-	Calculator,
 	CheckCheck,
-	CloudSun,
-	Ghost,
 	ImageOff,
-	StickyNote,
 	ToggleRight,
 } from "lucide-react";
-import { EyeFilled, EyeOffFilled } from "../../components/icons/FilledIcons";
+import { CalculatorFilled, CloudSunFilled, EyeFilled, EyeOffFilled, GhostFilled, StickyNoteFilled, TriangleAlertFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { Chip } from "../../components/ui/chip";
@@ -33,11 +28,11 @@ import {
 	setShowReadReceiptToggle as persistShowReadReceiptToggle,
 } from "../../utils/privacy";
 
-const DISGUISE_OPTIONS: { id: AppDisguiseId; icon: typeof Ghost; labelKey: string }[] = [
-	{ id: "default", icon: Ghost, labelKey: "privacy.app_disguise_off" },
-	{ id: "calculator", icon: Calculator, labelKey: "privacy.app_disguise_calculator" },
-	{ id: "notes", icon: StickyNote, labelKey: "privacy.app_disguise_notes" },
-	{ id: "weather", icon: CloudSun, labelKey: "privacy.app_disguise_weather" },
+const DISGUISE_OPTIONS: { id: AppDisguiseId; icon: typeof GhostFilled; labelKey: string }[] = [
+	{ id: "default", icon: GhostFilled, labelKey: "privacy.app_disguise_off" },
+	{ id: "calculator", icon: CalculatorFilled, labelKey: "privacy.app_disguise_calculator" },
+	{ id: "notes", icon: StickyNoteFilled, labelKey: "privacy.app_disguise_notes" },
+	{ id: "weather", icon: CloudSunFilled, labelKey: "privacy.app_disguise_weather" },
 ];
 
 export function SettingsPrivacyPage() {
@@ -77,7 +72,7 @@ export function SettingsPrivacyPage() {
 						<ToggleRow
 							id="privacy-incognito-mode"
 							highlighted={highlightId === "privacy-incognito-mode"}
-							icon={<Ghost className="h-5 w-5" />}
+							icon={<GhostFilled className="h-5 w-5" />}
 							iconClass="bg-fuchsia-500/15 text-fuchsia-400"
 							label={t("privacy.incognito_mode")}
 							description={t("privacy.incognito_mode_desc")}
@@ -183,7 +178,7 @@ export function SettingsPrivacyPage() {
 						<ToggleRow
 							id="privacy-sensitive-warning"
 							highlighted={highlightId === "privacy-sensitive-warning"}
-							icon={<AlertTriangle className="h-5 w-5" />}
+							icon={<TriangleAlertFilled className="h-5 w-5" />}
 							iconClass="bg-orange-500/15 text-orange-400"
 							label={t("privacy.show_sensitive_content_warning")}
 							description={t("privacy.show_sensitive_content_warning_desc")}

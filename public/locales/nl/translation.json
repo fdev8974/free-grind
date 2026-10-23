@@ -600,7 +600,6 @@
         "visibility": "Zichtbaarheid"
     },
     "about_page": {
-        "description": "Gemaakt voor persoonlijk gebruik met een overzichtelijkere interface, geen advertenties en open documentatie over hoe alles werkt. Het doel is praktische vrijheid, geen platform-lock-in.",
         "licence_value": "MIT",
         "commercial_note": "De broncode is beschikbaar onder de MIT-licentie, dus iedereen mag hem vrij gebruiken, aanpassen en forken.",
         "resources": {
@@ -630,8 +629,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Albums",
@@ -2436,7 +2435,6 @@
         "expiring_album_no_bypass": "Verlopende albums zijn een betaalde Grindr-functie en daarvoor bestaat geen omzeiling."
     },
     "auto_translate": {
-        "api_section": "Aanbieder & API-sleutel",
         "api_key_desc": "Wordt gebruikt voor alle chatvertalingen. Eén sleutel voor de hele app, alleen opgeslagen op dit apparaat.",
         "api_key_placeholder": "Plak je API-sleutel",
         "show_key": "Sleutel tonen",
@@ -2469,7 +2467,6 @@
         "guide_key_desc": "Ga naar API's en services → Inloggegevens, klik op Inloggegevens maken → API-sleutel en kopieer hem. Aanbevolen: bewerk de sleutel en beperk hem tot de Cloud Translation API.",
         "guide_key_link": "Inloggegevens openen",
         "guide_paste_title": "Plak hem hier",
-        "guide_paste_desc": "Plak de sleutel in het veld hierboven, tik op Opslaan en daarna op Sleutel testen om te controleren of hij werkt.",
         "key_saved_invalid": "Opgeslagen, maar {{provider}} heeft deze sleutel geweigerd: {{message}}",
         "key_saved_unverified": "Opgeslagen, maar de sleutel kon niet worden gecontroleerd: {{message}}",
         "key_status_invalid": "Deze sleutel werkt niet. Vertaalopties in chats zijn verborgen totdat dit is opgelost.",
@@ -2517,7 +2514,13 @@
         "provider_google_tagline": "Snelle, letterlijke vertaling",
         "provider_gemini_tagline": "Begrijpt slang · gratis niveau",
         "provider_openai_tagline": "Begrijpt slang · betaald",
-        "provider_claude_tagline": "Begrijpt slang · betaald"
+        "provider_claude_tagline": "Begrijpt slang · betaald",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Aanbieder & API-sleutel"
     },
     "legal_agreements": {
         "title": "Bijgewerkte voorwaarden",

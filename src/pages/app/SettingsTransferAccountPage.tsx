@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Copy, DatabaseBackup, EyeOff, QrCode, ShieldAlert, Smartphone } from "lucide-react";
+import { ChevronRight, Copy, DatabaseBackup, EyeOff, QrCode } from "lucide-react";
+import { ShieldAlertFilled, SmartphoneFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { useApi } from "../../hooks/useApi";
@@ -96,7 +97,7 @@ export function SettingsTransferAccountPage() {
 			<div className="grid gap-6">
 				<div className="surface-card flex items-start gap-3 p-4">
 					<div className="shrink-0 rounded-2xl bg-amber-500/15 p-2.5 text-amber-400">
-						<ShieldAlert className="h-5 w-5" />
+						<ShieldAlertFilled className="h-5 w-5" />
 					</div>
 					<div className="min-w-0 flex-1">
 						<p className="text-sm font-semibold leading-snug">
@@ -149,7 +150,7 @@ export function SettingsTransferAccountPage() {
 
 				<div className="surface-card flex items-start gap-3 p-4">
 					<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-						<Smartphone className="h-5 w-5" />
+						<SmartphoneFilled className="h-5 w-5" />
 					</div>
 					<div className="min-w-0 flex-1">
 						<p className="text-sm font-semibold leading-snug">

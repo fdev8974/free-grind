@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { AlertCircle, Bot, BrainCircuit, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, KeyRound, Languages, Sparkles } from "lucide-react";
+import { AlertCircle, Bot, BrainCircuit, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, Languages, Sparkles } from "lucide-react";
+import { KeyRoundFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { SelectSheet } from "../../components/ui/select-sheet";
@@ -189,6 +190,14 @@ const SETUP_STEPS: Record<TranslationProvider, SetupStep[]> = {
 	claude: CLAUDE_SETUP_STEPS,
 };
 
+function StepNumber({ value }: { value: number }) {
+	return (
+		<span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-xs font-semibold text-cyan-400">
+			{value}
+		</span>
+	);
+}
+
 export function SettingsTranslationPage() {
 	const { t, i18n } = useTranslation();
 	const highlightId = useSettingsHighlight();
@@ -204,6 +213,16 @@ export function SettingsTranslationPage() {
 	const isDesktop = useDesktopBreakpoint();
 	const providerInfo = PROVIDER_INFO[provider];
 	const ProviderIcon = providerInfo.icon;
+	// The final "paste" step is rendered as the key field itself.
+	const guideSteps = SETUP_STEPS[provider].filter((step) => step.key !== "paste");
+	const keyInputRef = useRef<HTMLInputElement>(null);
+
+	function focusKeyInput() {
+		const input = keyInputRef.current;
+		if (!input) return;
+		input.scrollIntoView({ behavior: "smooth", block: "center" });
+		input.focus({ preventScroll: true });
+	}
 
 	function handleSelectProvider(next: TranslationProvider) {
 		if (next === provider || isSaving || isTesting) return;
@@ -303,7 +322,7 @@ export function SettingsTranslationPage() {
 			<div className="grid gap-6">
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-						{t("auto_translate.api_section", { defaultValue: "Provider & API key" })}
+						{t("auto_translate.provider_section", { defaultValue: "Provider" })}
 					</p>
 					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
 						<button
@@ -327,69 +346,34 @@ export function SettingsTranslationPage() {
 							</span>
 							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 						</button>
-						<div
-							id="translation-api-key"
-							className={`p-4 ${highlightId === "translation-api-key" ? "animate-settings-highlight" : ""}`}
+						{/* Key status at a glance; jumps to the key field, the last setup step. */}
+						<button
+							type="button"
+							onClick={focusKeyInput}
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
 						>
-							<div className="flex items-start gap-3">
-								<div className="shrink-0 rounded-2xl bg-cyan-500/15 p-2.5 text-cyan-400">
-									<KeyRound className="h-5 w-5" />
-								</div>
-								<div className="min-w-0 flex-1">
-									<p className="text-sm font-semibold leading-snug">{t(`auto_translate.api_key_label_${provider}`, { defaultValue: providerInfo.keyLabel })}</p>
-									<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">
-										{t("auto_translate.api_key_desc", { defaultValue: "Used for all chat translations. One key for the whole app, stored only on this device." })}
-									</p>
-								</div>
+							<div className="shrink-0 rounded-2xl bg-cyan-500/15 p-2.5 text-cyan-400">
+								<KeyRoundFilled className="h-5 w-5" />
 							</div>
-							<div className="mt-3 flex items-stretch gap-2">
-								<div className="relative min-w-0 flex-1">
-									<input
-										type={showApiKey ? "text" : "password"}
-										value={apiKeyDraft}
-										onChange={(event) => setApiKeyDraft(event.target.value)}
-										placeholder={t("auto_translate.api_key_placeholder", { defaultValue: "Paste your API key" })}
-										autoComplete="off"
-										autoCorrect="off"
-										autoCapitalize="off"
-										spellCheck={false}
-										className="input-field pr-10 font-mono text-sm"
-									/>
-									<span className="absolute right-3 top-1/2 -translate-y-1/2">
-										<button
-											type="button"
-											onClick={() => setShowApiKey((value) => !value)}
-											className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
-											tabIndex={-1}
-											aria-label={showApiKey ? t("auto_translate.hide_key", { defaultValue: "Hide key" }) : t("auto_translate.show_key", { defaultValue: "Show key" })}
-										>
-											{showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-										</button>
-									</span>
-								</div>
-								<Button type="button" variant="primary" size="sm" className="h-auto shrink-0" onClick={() => void handleSave()} loading={isSaving} disabled={!isDirty || isSaving}>
-									{t("common.save")}
-								</Button>
-								<Button
-									type="button"
-									size="sm"
-									className="h-auto shrink-0"
-									onClick={() => void handleTest()}
-									loading={isTesting}
-									disabled={!apiKeyDraft.trim() || isTesting}
-								>
-									{t("auto_translate.test_key", { defaultValue: "Test key" })}
-								</Button>
-							</div>
-							{savedApiKey && !isDirty && (
-								<p className={`mt-2 flex items-center gap-1.5 text-xs ${savedKeyInvalid ? "text-red-400" : "text-emerald-400"}`}>
-									{savedKeyInvalid ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
-									{savedKeyInvalid
-										? t("auto_translate.key_status_invalid", { defaultValue: "This key doesn't work. Translate options in chats are hidden until it's fixed." })
-										: t("auto_translate.key_status_valid", { defaultValue: "Key is set up. Translate options are available in chats." })}
+							<div className="min-w-0 flex-1">
+								<p className="text-sm font-semibold leading-snug">{t(`auto_translate.api_key_label_${provider}`, { defaultValue: providerInfo.keyLabel })}</p>
+								<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+									{t("auto_translate.api_key_desc", { defaultValue: "Used for all chat translations. One key for the whole app, stored only on this device." })}
 								</p>
-							)}
-						</div>
+							</div>
+							<span
+								className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold ${
+									!savedApiKey ? "text-[var(--text-muted)]" : savedKeyInvalid ? "text-red-400" : "text-emerald-400"
+								}`}
+							>
+								{savedApiKey && (savedKeyInvalid ? <AlertCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />)}
+								{!savedApiKey
+									? t("auto_translate.key_badge_missing", { defaultValue: "Not set" })
+									: savedKeyInvalid
+										? t("auto_translate.key_badge_invalid", { defaultValue: "Not working" })
+										: t("auto_translate.key_badge_valid", { defaultValue: "Active" })}
+							</span>
+						</button>
 					</div>
 				</div>
 
@@ -399,12 +383,10 @@ export function SettingsTranslationPage() {
 					</p>
 					<div className="surface-card overflow-hidden">
 						<ol className="divide-y divide-[var(--border)]">
-							{SETUP_STEPS[provider].map((step, index) => {
+							{guideSteps.map((step, index) => {
 								const content = (
 									<>
-										<span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-xs font-semibold text-cyan-400">
-											{index + 1}
-										</span>
+										<StepNumber value={index + 1} />
 										<div className="min-w-0 flex-1">
 											<p className="text-sm font-semibold leading-snug">
 												{t(`auto_translate.guide_${step.key}_title`, { defaultValue: step.title })}
@@ -438,6 +420,74 @@ export function SettingsTranslationPage() {
 									</li>
 								);
 							})}
+
+							{/* Last step: the key field itself. */}
+							<li
+								id="translation-api-key"
+								className={`px-4 py-3.5 ${highlightId === "translation-api-key" ? "animate-settings-highlight" : ""}`}
+							>
+								<div className="flex items-start gap-3">
+									<StepNumber value={guideSteps.length + 1} />
+									<div className="min-w-0 flex-1">
+										<p className="text-sm font-semibold leading-snug">
+											{t("auto_translate.guide_paste_title", { defaultValue: "Paste it here" })}
+										</p>
+										<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">
+											{t("auto_translate.guide_paste_inline_desc", {
+												defaultValue: "Paste the key and tap Save. It's checked right away.",
+											})}
+										</p>
+									</div>
+								</div>
+								<div className="relative mt-3">
+									<input
+										ref={keyInputRef}
+										type={showApiKey ? "text" : "password"}
+										value={apiKeyDraft}
+										onChange={(event) => setApiKeyDraft(event.target.value)}
+										placeholder={t("auto_translate.api_key_placeholder", { defaultValue: "Paste your API key" })}
+										autoComplete="off"
+										autoCorrect="off"
+										autoCapitalize="off"
+										spellCheck={false}
+										className="input-field pr-10 font-mono text-sm"
+									/>
+									<span className="absolute right-3 top-1/2 -translate-y-1/2">
+										<button
+											type="button"
+											onClick={() => setShowApiKey((value) => !value)}
+											className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
+											tabIndex={-1}
+											aria-label={showApiKey ? t("auto_translate.hide_key", { defaultValue: "Hide key" }) : t("auto_translate.show_key", { defaultValue: "Show key" })}
+										>
+											{showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+										</button>
+									</span>
+								</div>
+								<div className="mt-2 flex gap-2">
+									<Button
+										type="button"
+										size="sm"
+										className="flex-1"
+										onClick={() => void handleTest()}
+										loading={isTesting}
+										disabled={!apiKeyDraft.trim() || isTesting}
+									>
+										{t("auto_translate.test_key", { defaultValue: "Test key" })}
+									</Button>
+									<Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => void handleSave()} loading={isSaving} disabled={!isDirty || isSaving}>
+										{t("common.save")}
+									</Button>
+								</div>
+								{savedApiKey && !isDirty && (
+									<p className={`mt-2 flex items-center gap-1.5 text-xs ${savedKeyInvalid ? "text-red-400" : "text-emerald-400"}`}>
+										{savedKeyInvalid ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+										{savedKeyInvalid
+											? t("auto_translate.key_status_invalid", { defaultValue: "This key doesn't work. Translate options in chats are hidden until it's fixed." })
+											: t("auto_translate.key_status_valid", { defaultValue: "Key is set up. Translate options are available in chats." })}
+									</p>
+								)}
+							</li>
 						</ol>
 					</div>
 				</div>

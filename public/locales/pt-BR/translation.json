@@ -605,7 +605,6 @@
         "visibility": "Visibilidade"
     },
     "about_page": {
-        "description": "Criado para uso pessoal com uma interface mais limpa, sem anúncios e com documentação aberta sobre o funcionamento. O objetivo é a liberdade prática, não a dependência de uma plataforma específica.",
         "licence_value": "MIT",
         "commercial_note": "O código-fonte está disponível sob a licença MIT, então qualquer pessoa pode usá-lo, modificá-lo e fazer fork livremente.",
         "resources": {
@@ -635,8 +634,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Álbuns",
@@ -2454,7 +2453,6 @@
         "expiring_album_no_bypass": "Álbuns temporários são um recurso pago do Grindr, e não há contorno para eles."
     },
     "auto_translate": {
-        "api_section": "Provedor e chave de API",
         "api_key_desc": "Usada para todas as traduções do chat. Uma chave para o app inteiro, armazenada apenas neste dispositivo.",
         "api_key_placeholder": "Cole sua chave de API",
         "show_key": "Mostrar chave",
@@ -2487,7 +2485,6 @@
         "guide_key_desc": "Vá em APIs e serviços → Credenciais, clique em Criar credenciais → Chave de API e copie-a. Recomendado: edite a chave e restrinja-a à Cloud Translation API.",
         "guide_key_link": "Abrir credenciais",
         "guide_paste_title": "Cole aqui",
-        "guide_paste_desc": "Cole a chave no campo acima, toque em Salvar e depois em Testar chave para verificar se funciona.",
         "key_saved_invalid": "Salva, mas o {{provider}} rejeitou esta chave: {{message}}",
         "key_saved_unverified": "Salva, mas não foi possível verificar a chave: {{message}}",
         "key_status_invalid": "Esta chave não funciona. As opções de tradução nos chats ficam ocultas até isso ser corrigido.",
@@ -2535,7 +2532,13 @@
         "provider_google_tagline": "Tradução rápida e literal",
         "provider_gemini_tagline": "Entende gírias · nível gratuito",
         "provider_openai_tagline": "Entende gírias · pago",
-        "provider_claude_tagline": "Entende gírias · pago"
+        "provider_claude_tagline": "Entende gírias · pago",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Provedor e chave de API"
     },
     "legal_agreements": {
         "title": "Termos atualizados",

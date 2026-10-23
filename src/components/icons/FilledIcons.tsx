@@ -693,3 +693,218 @@ export function VideosFilled(props: IconProps) {
 		</FilledSvg>
 	);
 }
+
+// ── Settings-row icons ──────────────────────────────────────────────────────
+
+export function BellFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326z" />
+			<path d="M10.268 21a2 2 0 0 0 3.464 0" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function SunFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<circle cx="12" cy="12" r="4" />
+			<path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function MoonFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401z" />
+		</FilledSvg>
+	);
+}
+
+const SHIELD_PATH =
+	"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z";
+
+export function ShieldFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d={SHIELD_PATH} />
+		</FilledSvg>
+	);
+}
+
+export function ShieldAlertFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M12 8v3.5" fill="none" />
+				<circle cx="12" cy="15.5" r="1.25" stroke="none" />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d={SHIELD_PATH} />
+		</FilledSvg>
+	);
+}
+
+export function HeartFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5z" />
+		</FilledSvg>
+	);
+}
+
+export function ZapFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+		</FilledSvg>
+	);
+}
+
+export function SparklesFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+			<path d="M20 2v4M22 4h-4" fill="none" />
+			<circle cx="4" cy="20" r="2" />
+		</FilledSvg>
+	);
+}
+
+export function GhostFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<circle cx="9" cy="10" r="1.4" stroke="none" />
+				<circle cx="15" cy="10" r="1.4" stroke="none" />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z" />
+		</FilledSvg>
+	);
+}
+
+export function PuzzleFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z" />
+		</FilledSvg>
+	);
+}
+
+export function MessageCircleFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719z" />
+		</FilledSvg>
+	);
+}
+
+export function SmartphoneFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<circle cx="12" cy="18" r="1.25" stroke="none" />
+			</CutoutMask>
+			<rect mask={`url(#${id})`} width="14" height="20" x="5" y="2" rx="2" ry="2" />
+		</FilledSvg>
+	);
+}
+
+export function MonitorFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<rect width="20" height="14" x="2" y="3" rx="2" />
+			<path d="M8 21h8M12 17v4" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function TriangleAlertFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M12 9v4" fill="none" />
+				<circle cx="12" cy="17" r="1.25" stroke="none" />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" />
+		</FilledSvg>
+	);
+}
+
+export function KeyRoundFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<circle cx="16.5" cy="7.5" r="1.5" stroke="none" />
+			</CutoutMask>
+			<path
+				mask={`url(#${id})`}
+				d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"
+			/>
+		</FilledSvg>
+	);
+}
+
+export function TimerFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="m12 14 3-3" fill="none" />
+			</CutoutMask>
+			<circle mask={`url(#${id})`} cx="12" cy="14" r="8" />
+			<path d="M10 2h4" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function CalendarDaysFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M3 10h18" fill="none" strokeWidth={1.5} />
+				{[8, 12, 16].flatMap((x) => [14, 18].map((y) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.1" stroke="none" />))}
+			</CutoutMask>
+			<rect mask={`url(#${id})`} width="18" height="18" x="3" y="4" rx="2" />
+			<path d="M8 2v4M16 2v4" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function CalculatorFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M8 6h8M16 14v4" fill="none" />
+				{[
+					[8, 10],
+					[12, 10],
+					[16, 10],
+					[8, 14],
+					[12, 14],
+					[8, 18],
+					[12, 18],
+				].map(([x, y]) => (
+					<circle key={`${x}-${y}`} cx={x} cy={y} r="1.1" stroke="none" />
+				))}
+			</CutoutMask>
+			<rect mask={`url(#${id})`} width="16" height="20" x="4" y="2" rx="2" />
+		</FilledSvg>
+	);
+}
+
+export function CloudSunFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M12 2v2m-7.07.93 1.41 1.41M20 12h2m-2.93-7.07-1.41 1.41M15.947 12.65a4 4 0 0 0-5.925-4.128" fill="none" />
+			<path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z" />
+		</FilledSvg>
+	);
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, MoveHorizontal, Sun, Timer, Trash2 } from "lucide-react";
-import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled } from "../../components/icons/FilledIcons";
+import { ArrowDownWideNarrow, Ban, ExternalLink, MoveHorizontal } from "lucide-react";
+import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
@@ -85,7 +85,7 @@ export function BehaviorPage() {
 					<ToggleRow
 						id="behavior-confirm-delete-conversation"
 						highlighted={highlightId === "behavior-confirm-delete-conversation"}
-						icon={<Trash2 className="h-5 w-5" />}
+						icon={<Trash2Filled className="h-5 w-5" />}
 						iconClass="bg-red-500/15 text-red-400"
 						label={t("customizability.confirm_before_delete_conversation")}
 						description={t("customizability.confirm_before_delete_conversation_desc")}
@@ -134,7 +134,7 @@ export function BehaviorPage() {
 						<ToggleRow
 							id="behavior-default-expiring-photos"
 							highlighted={highlightId === "behavior-default-expiring-photos"}
-							icon={<Timer className="h-5 w-5" />}
+							icon={<TimerFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("behavior.default_expiring_photos")}
 							description={t("behavior.default_expiring_photos_desc")}
@@ -259,7 +259,7 @@ export function BehaviorPage() {
 							<ToggleRow
 								id="behavior-keep-screen-on"
 								highlighted={highlightId === "behavior-keep-screen-on"}
-								icon={<Sun className="h-5 w-5" />}
+								icon={<SunFilled className="h-5 w-5" />}
 								iconClass="bg-amber-500/15 text-amber-400"
 								label={t("behavior.keep_screen_on")}
 								description={t("behavior.keep_screen_on_desc")}

@@ -6,7 +6,6 @@ import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import {
 	DatabaseBackup,
 	AlertCircle,
-	Bell,
 	CheckCircle2,
 	ChevronRight,
 	Download,
@@ -20,17 +19,14 @@ import {
 	RotateCcw,
 	RefreshCcw,
 	Search,
-	Shield,
 	Terminal,
 	X,
 	ScrollText,
 	Share2,
-	Puzzle,
 	QrCode,
-	Zap,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { ArchiveRestoreFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, UserPlusFilled, UserXFilled } from "../../components/icons/FilledIcons";
+import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
 import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -992,7 +988,7 @@ export function SettingsPage() {
 								)}
 								{navRow(
 									() => navigate("/settings/privacy"),
-									<Shield className="h-5 w-5 fill-current" />,
+									<ShieldFilled className="h-5 w-5" />,
 									"bg-sky-500/15 text-sky-400",
 									t("settings.privacy"),
 									t("settings.privacy_desc"),
@@ -1030,7 +1026,7 @@ export function SettingsPage() {
 								)}
 								{navRow(
 									() => navigate("/settings/optional-features"),
-									<Puzzle className="h-5 w-5 fill-current" />,
+									<PuzzleFilled className="h-5 w-5" />,
 									"bg-emerald-500/15 text-emerald-400",
 									t("customizability.optional_features", { defaultValue: "Optional Features" }),
 									t("customizability.optional_features_desc", {
@@ -1039,7 +1035,7 @@ export function SettingsPage() {
 								)}
 								{navRow(
 									() => navigate("/settings/notifications"),
-									<Bell className="h-5 w-5 fill-current" />,
+									<BellFilled className="h-5 w-5" />,
 									"bg-blue-500/15 text-blue-400",
 									t("settings.notifications"),
 									t("settings.notifications_desc"),
@@ -1171,7 +1167,7 @@ export function SettingsPage() {
 									<ToggleRow
 										checked={hotswapAutoUpdate}
 										onChange={setHotswapAutoUpdateEnabled}
-										icon={<Zap className="h-5 w-5" />}
+										icon={<ZapFilled className="h-5 w-5" />}
 										iconClass="bg-sky-500/15 text-sky-400"
 										label={t("settings.auto_update", { defaultValue: "Install Automatically" })}
 										description={t("settings.auto_update_desc", {
@@ -1228,7 +1224,7 @@ export function SettingsPage() {
 									)}
 									{isAndroid() && navRow(
 										() => setIsPushTokenSheetOpen(true),
-										<Bell className="h-5 w-5 fill-current" />,
+										<BellFilled className="h-5 w-5" />,
 										"bg-[var(--surface-2)] text-[var(--text-muted)]",
 										"Push Token (FCM)",
 										"Inspect the device push token and re-sync it to Grindr.",

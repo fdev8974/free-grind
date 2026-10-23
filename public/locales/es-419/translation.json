@@ -605,7 +605,6 @@
         "visibility": "Visibilidad"
     },
     "about_page": {
-        "description": "Diseñado para uso personal, con una interfaz más limpia, sin anuncios y documentación abierta sobre su funcionamiento. El objetivo es la libertad práctica, no la dependencia de una plataforma.",
         "licence_value": "MIT",
         "commercial_note": "El código fuente está disponible bajo la licencia MIT, así que cualquiera puede usarlo, modificarlo y hacer un fork libremente.",
         "resources": {
@@ -635,8 +634,8 @@
             "free_title": "",
             "free_desc": ""
         },
-        "version_value": "",
-        "section_principles": ""
+        "section_principles": "",
+        "tagline": ""
     },
     "settings_albums": {
         "label": "Álbumes",
@@ -2454,7 +2453,6 @@
         "expiring_album_no_bypass": "Los álbumes efímeros son una función de pago de Grindr y no hay forma de saltársela."
     },
     "auto_translate": {
-        "api_section": "Proveedor y clave API",
         "api_key_desc": "Se usa para todas las traducciones del chat. Una sola clave para toda la app, guardada solo en este dispositivo.",
         "api_key_placeholder": "Pega tu clave API",
         "show_key": "Mostrar clave",
@@ -2487,7 +2485,6 @@
         "guide_key_desc": "Ve a APIs y servicios → Credenciales, haz clic en Crear credenciales → Clave de API y cópiala. Recomendado: edita la clave y restríngela a la Cloud Translation API.",
         "guide_key_link": "Abrir credenciales",
         "guide_paste_title": "Pégala aquí",
-        "guide_paste_desc": "Pega la clave en el campo de arriba, toca Guardar y luego Probar clave para comprobar que funciona.",
         "key_saved_invalid": "Guardada, pero {{provider}} rechazó esta clave: {{message}}",
         "key_saved_unverified": "Guardada, pero no se pudo comprobar la clave: {{message}}",
         "key_status_invalid": "Esta clave no funciona. Las opciones de traducción en los chats estarán ocultas hasta que se solucione.",
@@ -2535,7 +2532,13 @@
         "provider_google_tagline": "Traducción rápida y literal",
         "provider_gemini_tagline": "Entiende la jerga · nivel gratuito",
         "provider_openai_tagline": "Entiende la jerga · de pago",
-        "provider_claude_tagline": "Entiende la jerga · de pago"
+        "provider_claude_tagline": "Entiende la jerga · de pago",
+        "provider_section": "",
+        "key_badge_missing": "",
+        "key_badge_invalid": "",
+        "key_badge_valid": "",
+        "guide_paste_inline_desc": "",
+        "api_section": "Proveedor y clave API"
     },
     "legal_agreements": {
         "title": "Condiciones actualizadas",

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-	CalendarDays,
 	Download,
 	FileDown,
 	Loader2,
@@ -9,7 +8,7 @@ import {
 	Trash2,
 	Upload,
 } from "lucide-react";
-import { FileUpFilled, MessageSquareQuoteFilled } from "../../components/icons/FilledIcons";
+import { CalendarDaysFilled, FileUpFilled, MessageSquareQuoteFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
@@ -638,7 +637,7 @@ export function SettingsDataPage() {
 								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isExportingEncounters ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-encounters-export" ? "animate-settings-highlight" : ""}`}
 							>
 								<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
-									<CalendarDays className="h-5 w-5" />
+									<CalendarDaysFilled className="h-5 w-5" />
 								</div>
 								<div className="min-w-0 flex-1">
 									<p className="text-sm font-semibold leading-snug">
