@@ -1,6 +1,6 @@
 diff -ruN a/src/auth.rs b/src/auth.rs
---- a/src/auth.rs	2026-10-12 04:21:10.697001519 +0200
-+++ b/src/auth.rs	2026-10-12 04:21:10.697571603 +0200
+--- a/src/auth.rs	2026-10-23 22:39:08.944661597 +0200
++++ b/src/auth.rs	2026-10-23 22:39:08.946190740 +0200
 @@ -7,6 +7,7 @@
  use tokio::time::Instant;
  
@@ -85,7 +85,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  			_ => Self::Session,
  		}
  	}
-@@ -514,6 +575,75 @@
+@@ -522,6 +583,94 @@
  	Ok((session, result))
  }
  
@@ -102,8 +102,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
 +		opt_in: account.opt_in,
 +		session_id: None,
 +	};
-+	// Serialized straight from the struct: Body::json goes through
-+	// serde_json::Value, which would sort the keys.
++
 +	let bytes = serde_json::to_vec(&body)
 +		.map_err(|e| GrindrError::InvalidRequest(e.to_string()))?;
 +	let mut request = Request::new(
@@ -119,9 +118,6 @@ diff -ruN a/src/auth.rs b/src/auth.rs
 +	Ok(resp.profile_id)
 +}
 +
-+/// `POST /v4/sms/verification/{profileId}/{action}` for a profile whose
-+/// sign-in was refused as verification required (code 30). There is no
-+/// session yet, so it goes out without one.
 +pub(crate) async fn sms_verification(
 +	inner: &InnerClient,
 +	profile_id: &str,
@@ -158,10 +154,33 @@ diff -ruN a/src/auth.rs b/src/auth.rs
 +	crate::rest::parse_json(response)
 +}
 +
++#[derive(Debug, Serialize)]
++struct ForgotPasswordRequest<'a> {
++	email: &'a str,
++}
++
++pub(crate) async fn forgot_password(
++	inner: &InnerClient,
++	email: &str,
++) -> Result<(), GrindrError> {
++	let body = ForgotPasswordRequest { email };
++	let mut request = Request::new(
++		wreq::Method::POST,
++		"/v3/users/forgot-password",
++		Body::json(&body)?,
++	);
++	request.required_device_info = Some(crate::rest::RequiredDeviceInfo::Real);
++	let response = inner.send(Access::Anonymous, &request).await?;
++	if (200..300).contains(&response.status) {
++		return Ok(());
++	}
++	Err(crate::rest::parse_api_error(&response.body, response.status))
++}
++
  pub(crate) async fn sign_in_with_email(
  	inner: &InnerClient,
  	auth: &AuthState,
-@@ -862,6 +992,44 @@
+@@ -870,6 +1019,44 @@
  mod tests {
  	use super::*;
  
@@ -207,9 +226,9 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  	const JWT: &str =
  		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTl9.sig";
 diff -ruN a/src/client.rs b/src/client.rs
---- a/src/client.rs	2026-10-12 04:21:10.698221709 +0200
-+++ b/src/client.rs	2026-10-12 04:21:10.698866286 +0200
-@@ -456,6 +456,56 @@
+--- a/src/client.rs	2026-10-23 22:39:08.944697635 +0200
++++ b/src/client.rs	2026-10-23 22:39:08.946225156 +0200
+@@ -456,6 +456,62 @@
  		self.ensure_ws_task();
  	}
  
@@ -221,6 +240,12 @@ diff -ruN a/src/client.rs b/src/client.rs
 +		account: &crate::NewEmailAccount<'_>,
 +	) -> Result<String, GrindrError> {
 +		crate::auth::create_account_with_email(&self.inner, account).await
++	}
++
++	/// Asks Grindr to email a password-reset link to `email`
++	/// (`POST /v3/users/forgot-password`). No session is needed.
++	pub async fn forgot_password(&self, email: &str) -> Result<(), GrindrError> {
++		crate::auth::forgot_password(&self.inner, email).await
 +	}
 +
 +	/// Texts a verification code to a phone number for a profile whose
@@ -267,8 +292,8 @@ diff -ruN a/src/client.rs b/src/client.rs
  	pub async fn sign_in_with_email(
  		&self,
 diff -ruN a/src/error.rs b/src/error.rs
---- a/src/error.rs	2026-10-12 04:21:10.699500220 +0200
-+++ b/src/error.rs	2026-10-12 04:21:10.700018083 +0200
+--- a/src/error.rs	2026-10-23 22:39:08.944732237 +0200
++++ b/src/error.rs	2026-10-23 22:39:08.946254477 +0200
 @@ -94,6 +94,17 @@
  	#[error("banned: {0}")]
  	Banned(BanInfo),
@@ -288,8 +313,8 @@ diff -ruN a/src/error.rs b/src/error.rs
  	#[error("rate limited")]
  	RateLimited,
 diff -ruN a/src/lib.rs b/src/lib.rs
---- a/src/lib.rs	2026-10-12 04:21:10.700502505 +0200
-+++ b/src/lib.rs	2026-10-12 04:21:10.700988565 +0200
+--- a/src/lib.rs	2026-10-23 22:39:08.944750313 +0200
++++ b/src/lib.rs	2026-10-23 22:39:08.946264028 +0200
 @@ -62,8 +62,9 @@
  mod ws;
  
@@ -303,8 +328,8 @@ diff -ruN a/src/lib.rs b/src/lib.rs
  pub use captcha::{CaptchaAction, CaptchaTokenProvider};
  pub use client::{probe_emulation, GrindrClient};
 diff -ruN a/src/rest.rs b/src/rest.rs
---- a/src/rest.rs	2026-10-12 04:21:10.701499580 +0200
-+++ b/src/rest.rs	2026-10-12 04:21:10.701992959 +0200
+--- a/src/rest.rs	2026-10-23 22:39:08.944870636 +0200
++++ b/src/rest.rs	2026-10-23 22:39:08.946271309 +0200
 @@ -94,13 +94,18 @@
  pub(crate) enum RequiredDeviceInfo {
  	Real,

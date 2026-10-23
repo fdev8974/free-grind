@@ -111,6 +111,51 @@ fn platform_media_headers_are_the_dalvik_ua_and_nothing_else() {
 	);
 }
 
+#[test]
+fn plain_headers_are_gzip_then_the_okhttp_ua() {
+	let headers = GrindrHeaders::build_plain(None).unwrap();
+
+	assert_eq!(header_names(&headers), &["accept-encoding", "user-agent"]);
+	assert_eq!(header_value(&headers, "accept-encoding"), Some("gzip"));
+	assert_eq!(header_value(&headers, "user-agent"), Some("okhttp/5.4.0"));
+}
+
+#[test]
+fn a_ranged_plain_request_sends_the_range_before_the_ua() {
+	let headers = GrindrHeaders::build_plain(Some("bytes=0-99")).unwrap();
+
+	assert_eq!(header_names(&headers), &["range", "user-agent"]);
+	assert_eq!(header_value(&headers, "range"), Some("bytes=0-99"));
+	assert_eq!(header_value(&headers, "user-agent"), Some("okhttp/5.4.0"));
+}
+
+#[tokio::test]
+async fn a_plain_fetch_goes_out_as_a_bare_okhttp_client() {
+	let url = media_url(7);
+
+	signed_in_client()
+		.fetch_media(MediaRequest {
+			fetcher: MediaFetcher::Plain,
+			..request(&url)
+		})
+		.await
+		.unwrap();
+
+	let recorded = testserver::requests_to(&format!("{MEDIA_PREFIX}7"));
+	let fetch = recorded.first().expect("the media request was made");
+	assert_eq!(fetch.header("user-agent"), Some("okhttp/5.4.0"));
+	assert_eq!(fetch.header("accept-encoding"), Some("gzip"));
+	assert_eq!(fetch.header("accept"), None);
+	assert_eq!(fetch.header("authorization"), None);
+	let app_headers: Vec<&str> = fetch
+		.headers
+		.iter()
+		.map(|(name, _)| name.as_str())
+		.filter(|name| name.starts_with("l-"))
+		.collect();
+	assert!(app_headers.is_empty(), "sent {app_headers:?}");
+}
+
 #[tokio::test]
 async fn album_video_goes_out_as_the_platform_stack() {
 	let url = media_url(5);
@@ -193,6 +238,35 @@ fn refuses_everything_else() {
 #[test]
 fn the_bare_cdn_apex_is_not_a_distribution() {
 	assert!(!is_media_host(&parsed("https://cloudfront.net/x")));
+}
+
+#[test]
+fn admits_the_giphy_media_and_api_hosts() {
+	for url in [
+		"https://media.giphy.com/x.gif",
+		"https://media0.giphy.com/x.webp",
+		"https://media1.giphy.com/x.mp4",
+		"https://media2.giphy.com/x",
+		"https://media3.giphy.com/x",
+		"https://media4.giphy.com/x",
+		"https://api.giphy.com/x",
+	] {
+		assert!(is_media_host(&parsed(url)), "{url} must be admitted");
+	}
+}
+
+#[test]
+fn refuses_giphy_look_alikes() {
+	for url in [
+		"https://giphy.com/gifs/x",
+		"https://upload.giphy.com/v1/gifs",
+		"https://media5.giphy.com/x",
+		"https://media.giphy.com.evil.test/x",
+		"https://evilmedia.giphy.com/x",
+		"http://media.giphy.com/x",
+	] {
+		assert!(!is_media_host(&parsed(url)), "{url} must be refused");
+	}
 }
 
 #[tokio::test]

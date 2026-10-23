@@ -163,6 +163,7 @@ pub fn run() {
             })
             .invoke_handler(tauri::generate_handler![
                 api::runtime::runtime_context,
+                api::runtime::webview_version,
                 api::runtime::create_child_instance,
                 api::runtime::list_child_instances,
                 api::runtime::rename_child_instance,
@@ -194,6 +195,7 @@ pub fn run() {
                 api::auth::create_transfer_code,
                 api::auth::sign_in_with_transfer_code,
                 api::rest::request,
+                api::rest::fetch_external,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,
                 api::websocket::ws_status,
@@ -280,6 +282,7 @@ pub fn run() {
             })
             .invoke_handler(tauri::generate_handler![
                 api::runtime::runtime_context,
+                api::runtime::webview_version,
                 api::runtime::create_child_instance,
                 api::runtime::list_child_instances,
                 api::runtime::rename_child_instance,
@@ -311,6 +314,7 @@ pub fn run() {
                 api::auth::create_transfer_code,
                 api::auth::sign_in_with_transfer_code,
                 api::rest::request,
+                api::rest::fetch_external,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,
                 api::websocket::ws_status,

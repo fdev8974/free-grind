@@ -96,3 +96,36 @@ pub async fn request(
         rmp_serde::encode::to_vec_named(&raw).map_err(|e| AppError::Http(e.to_string()))?,
     ))
 }
+
+/// GIPHY answers are a few hundred KB; this only guards against a runaway body.
+const MAX_EXTERNAL_BYTES: usize = 4 * 1024 * 1024;
+
+/// GETs a third-party URL the official app also talks to (the GIPHY API) the
+/// way the app does: grindr.rs's TLS fingerprint with a bare OkHttp client's
+/// headers, nothing else. Hosts outside grindr.rs's media allowlist are
+/// refused before a socket opens.
+#[tauri::command]
+pub async fn fetch_external(
+    state: tauri::State<'_, AppState>,
+    url: String,
+    range: Option<String>,
+) -> Result<Response, AppError> {
+    let client = state.client()?;
+    let response = client
+        .fetch_media(grindr::MediaRequest {
+            url: &url,
+            range: range.as_deref(),
+            max_bytes: MAX_EXTERNAL_BYTES,
+            fetcher: grindr::MediaFetcher::Plain,
+        })
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+    let raw = RawResponse {
+        status: response.status,
+        body: response.body.to_vec(),
+    };
+
+    Ok(Response::new(
+        rmp_serde::encode::to_vec_named(&raw).map_err(|e| AppError::Http(e.to_string()))?,
+    ))
+}

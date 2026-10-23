@@ -30,7 +30,7 @@ pub(crate) const MEDIA_TIMEOUT: Duration = Duration::from_secs(20);
 pub(crate) const MEDIA_BODY_TIMEOUT: Duration = Duration::from_secs(120);
 const MAX_REDIRECTS: usize = 5;
 
-/// Which of the app's two HTTP stacks a fetch imitates.
+/// Which of the app's HTTP stacks a fetch imitates.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum MediaFetcher {
 	/// The image loader, used for photos and chat images.
@@ -38,12 +38,14 @@ pub enum MediaFetcher {
 	ImageLoader,
 	/// `android.media.MediaPlayer`, used for album video.
 	MediaPlayer,
+	/// A plain OkHttp client sending only its default headers.
+	Plain,
 }
 
 /// Argument of [`GrindrClient::fetch_media`](crate::GrindrClient::fetch_media).
 #[derive(Debug, Clone, Copy)]
 pub struct MediaRequest<'a> {
-	/// Absolute `https` url on a Grindr CDN.
+	/// Absolute `https` url on a Grindr CDN or a GIPHY host.
 	pub url: &'a str,
 	/// `Range` header value, forwarded verbatim.
 	pub range: Option<&'a str>,
@@ -68,8 +70,20 @@ pub struct MediaResponse {
 	pub body: Bytes,
 }
 
+const GIPHY_HOSTS: [&str; 7] = [
+	"api.giphy.com",
+	"media.giphy.com",
+	"media0.giphy.com",
+	"media1.giphy.com",
+	"media2.giphy.com",
+	"media3.giphy.com",
+	"media4.giphy.com",
+];
+
 fn is_cdn_host(host: &str) -> bool {
-	host == "cdns.grindr.com" || host.ends_with(".cloudfront.net")
+	host == "cdns.grindr.com"
+		|| host.ends_with(".cloudfront.net")
+		|| GIPHY_HOSTS.contains(&host)
 }
 
 fn is_media_host(url: &Url) -> bool {
@@ -120,7 +134,7 @@ impl InnerClient {
 		})?;
 		if !is_allowed(&url) {
 			return Err(GrindrError::InvalidRequest(format!(
-				"media url is not on a Grindr CDN: {:?}",
+				"media url is not on an allowed host: {:?}",
 				target.url
 			)));
 		}
@@ -134,6 +148,7 @@ impl InnerClient {
 			MediaFetcher::MediaPlayer => {
 				GrindrHeaders::build_platform_media(&fp.device, target.range)?
 			}
+			MediaFetcher::Plain => GrindrHeaders::build_plain(target.range)?,
 		};
 
 		let mut request = fp.media_http.request(Method::GET, url);

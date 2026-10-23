@@ -12,7 +12,7 @@ mod tests;
 /// Argument of [`GrindrClient::stream_media`](crate::GrindrClient::stream_media).
 #[derive(Debug, Clone, Copy)]
 pub struct StreamRequest<'a> {
-	/// Absolute `https` url on a Grindr CDN.
+	/// Absolute `https` url on a Grindr CDN or a GIPHY host.
 	pub url: &'a str,
 	/// `Range` header value, forwarded verbatim.
 	pub range: Option<&'a str>,

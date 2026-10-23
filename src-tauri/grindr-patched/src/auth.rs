@@ -140,7 +140,7 @@ pub enum VerificationRegion {
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct BanDetails {
-	/// Unix seconds when the ban expires.
+	/// Unix milliseconds when the ban expires.
 	pub expiry_time: Option<i64>,
 	/// Ban reason.
 	pub reason: Option<String>,
@@ -430,6 +430,7 @@ pub(crate) struct RefreshGate {
 	failures: u32,
 	retry_at: Option<Instant>,
 	reported: bool,
+	client_refused: bool,
 }
 
 const REFRESH_COOLDOWNS: [Duration; 4] = [
@@ -441,13 +442,19 @@ const REFRESH_COOLDOWNS: [Duration; 4] = [
 
 impl RefreshGate {
 	fn blocked(&self) -> bool {
-		self.retry_at.is_some_and(|at| Instant::now() < at)
+		self.client_refused
+			|| self.retry_at.is_some_and(|at| Instant::now() < at)
 	}
 
 	fn record_failure(&mut self) {
 		let index = (self.failures as usize).min(REFRESH_COOLDOWNS.len() - 1);
 		self.retry_at = Instant::now().checked_add(REFRESH_COOLDOWNS[index]);
 		self.failures = self.failures.saturating_add(1);
+	}
+
+	fn record_failure_of(&mut self, error: &GrindrError) {
+		self.record_failure();
+		self.client_refused = error.refuses_client_version();
 	}
 
 	fn clear_backoff(&mut self) {
@@ -457,6 +464,7 @@ impl RefreshGate {
 
 	fn take_owed_recovery(&mut self) -> bool {
 		self.clear_backoff();
+		self.client_refused = false;
 		std::mem::take(&mut self.reported)
 	}
 }
@@ -882,7 +890,7 @@ async fn refresh_gated(
 		Ok(_) => true,
 		Err(e) => {
 			tracing::warn!("{context} token refresh failed: {e}");
-			auth.refresh_gate.lock().unwrap().record_failure();
+			auth.refresh_gate.lock().unwrap().record_failure_of(&e);
 			emit_refresh_failure(auth, e).await;
 			false
 		}
@@ -1364,6 +1372,51 @@ mod tests {
 			 network the process no longer has"
 		);
 		assert!(gate.reported, "a recovery still owed is not forgotten");
+	}
+
+	fn deprecated_client_version() -> GrindrError {
+		GrindrError::Api {
+			code: 8,
+			message: "The client version is deprecated".to_owned(),
+		}
+	}
+
+	#[tokio::test(start_paused = true)]
+	async fn a_refused_client_version_stops_refreshes_until_a_new_session() {
+		let mut gate = RefreshGate::default();
+		gate.record_failure_of(&deprecated_client_version());
+
+		tokio::time::advance(Duration::from_secs(3600)).await;
+		assert!(gate.blocked(), "retrying cannot change the client version");
+
+		gate.take_owed_recovery();
+		assert!(!gate.blocked());
+	}
+
+	#[tokio::test(start_paused = true)]
+	async fn a_foreground_resume_keeps_a_refused_client_version_refused() {
+		let (auth, _rx) = AuthState::new(Some(session_named("a@b.c")));
+		auth.set_active(false);
+		auth.refresh_gate
+			.lock()
+			.unwrap()
+			.record_failure_of(&deprecated_client_version());
+
+		auth.set_active(true);
+
+		assert!(auth.refresh_gate.lock().unwrap().blocked());
+	}
+
+	#[tokio::test(start_paused = true)]
+	async fn other_api_errors_still_retry_after_the_cooldown() {
+		let mut gate = RefreshGate::default();
+		gate.record_failure_of(&GrindrError::Api {
+			code: 500,
+			message: "internal".to_owned(),
+		});
+
+		tokio::time::advance(Duration::from_secs(5)).await;
+		assert!(!gate.blocked());
 	}
 
 	#[test]

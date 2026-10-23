@@ -626,7 +626,7 @@ checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
 name = "grindr"
-version = "0.29.0+26.20.0.187695"
+version = "0.31.1+26.21.0.190550"
 dependencies = [
  "base64",
  "bytes",

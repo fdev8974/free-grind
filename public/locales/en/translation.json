@@ -2594,5 +2594,15 @@
     "settings_desc": "Show a QR code to sign this account in elsewhere",
     "backup_title": "Bring your data along",
     "backup_desc": "Chat history, albums, saved phrases, saved locations and settings are stored on this device only. Export them under Backup & Restore and import the file on the new device to have everything there too."
+  },
+  "unsupported_version": {
+    "title": "Update Required",
+    "description": "Grindr no longer accepts the app version Free Grind identifies as. Update Free Grind to keep using it — until then, sign-in and most features won't work.",
+    "app_version": "App version",
+    "grindr_says": "Grindr says",
+    "check": "Check for Update",
+    "dismiss": "Not Now",
+    "no_update": "No newer version is out yet. Check again later.",
+    "check_failed": "Couldn't check for updates"
   }
 }

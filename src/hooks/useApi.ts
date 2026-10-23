@@ -7,6 +7,10 @@ import {
 	addApiTraceEntry,
 	toTracePreview,
 } from "../services/apiTrace";
+import {
+	noticeUnsupportedVersionInError,
+	noticeUnsupportedVersionInResponse,
+} from "../services/unsupportedVersion";
 
 function traceId(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -50,6 +54,7 @@ export function useApi() {
 				responseBody: null,
 				error: toTracePreview(error),
 			});
+			noticeUnsupportedVersionInError(error);
 			throw error;
 		}
 	}, []);
@@ -204,6 +209,7 @@ export function useApi() {
 					responseBody: toTracePreview(body),
 					error: null,
 				});
+				noticeUnsupportedVersionInResponse(status, body);
 
 				return {
 					status,

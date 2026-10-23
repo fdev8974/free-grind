@@ -166,6 +166,17 @@ fn a_retirement_disarms_until_two_minutes_have_passed() {
 }
 
 #[test]
+fn the_resolver_names_a_giphy_host() {
+	let liveness = MediaLiveness::new();
+
+	drop(liveness.resolve("media.giphy.com".parse().unwrap()));
+
+	let state = liveness.state();
+	assert_eq!(state.named, 1);
+	assert_eq!(state.hosts["media.giphy.com"].dials, 1);
+}
+
+#[test]
 fn progress_on_the_new_generation_rearms() {
 	let (mut state, clock) = warmed();
 	assert!(stalls_at(&mut state, clock.at(1)));

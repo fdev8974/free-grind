@@ -190,10 +190,22 @@ impl std::fmt::Display for BanInfo {
 	}
 }
 
+const DEPRECATED_CLIENT_VERSION: i32 = 8;
+
 impl GrindrError {
 	/// Builds the error for a non-success [`RawResponse`](crate::RawResponse).
 	pub fn from_response(status: u16, body: &[u8]) -> Self {
 		crate::rest::parse_api_error(body, status)
+	}
+
+	pub(crate) fn refuses_client_version(&self) -> bool {
+		matches!(
+			self,
+			Self::Api {
+				code: DEPRECATED_CLIENT_VERSION,
+				..
+			}
+		)
 	}
 }
 

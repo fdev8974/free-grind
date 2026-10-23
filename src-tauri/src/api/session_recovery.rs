@@ -32,6 +32,10 @@ const ATTEMPT_DELAYS: [Duration; 3] = [
 /// Same margin `websocket_token` uses for "needs a refresh".
 const REFRESH_BUFFER_SECS: u64 = 60;
 
+/// Grindr's answer (HTTP 412) once it stops accepting this app version.
+/// grindr.rs stops refreshing on its own after it; only an update helps.
+pub const DEPRECATED_CLIENT_VERSION: i32 = 8;
+
 /// Only one recovery run at a time, process-wide.
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
@@ -43,6 +47,13 @@ pub struct SessionErrorPayload {
     pub unauthorized: bool,
     /// A retry of the same refresh could still succeed.
     pub transient: bool,
+}
+
+/// Body of `auth:unsupported-version`, in the API's own error shape.
+#[derive(Debug, Clone, Serialize)]
+pub struct ApiErrorBody {
+    pub code: i32,
+    pub message: String,
 }
 
 /// Handles a `RefreshFailed` auth event: non-transient failures go straight
@@ -82,6 +93,9 @@ pub fn report_refresh_failure(app: &AppHandle, message: String, transient: bool)
             Outcome::Banned(info) => {
                 let _ = app.emit("auth:banned", info);
             }
+            Outcome::UnsupportedVersion(error) => {
+                let _ = app.emit("auth:unsupported-version", error);
+            }
         }
     });
 }
@@ -90,6 +104,32 @@ enum Outcome {
     Quiet,
     Failed(SessionErrorPayload),
     Banned(crate::error::BanInfo),
+    UnsupportedVersion(ApiErrorBody),
+}
+
+/// The final answer a failed refresh gives, or the error back if retrying
+/// could still help.
+fn settled_by(error: AppError) -> Result<Outcome, AppError> {
+    match error {
+        AppError::Banned(info) => Ok(Outcome::Banned(info)),
+        AppError::Api {
+            code: DEPRECATED_CLIENT_VERSION,
+            message,
+        } => Ok(Outcome::UnsupportedVersion(ApiErrorBody {
+            code: DEPRECATED_CLIENT_VERSION,
+            message,
+        })),
+        AppError::Unauthorized { .. } | AppError::NotSignedIn => {
+            Ok(Outcome::Failed(SessionErrorPayload {
+                message: error.to_string(),
+                unauthorized: true,
+                transient: false,
+            }))
+        }
+        // Signed out or switched accounts mid-run; not ours to report.
+        AppError::SessionCleared => Ok(Outcome::Quiet),
+        other => Err(other),
+    }
 }
 
 async fn supervise(client: &grindr::GrindrClient) -> Outcome {
@@ -108,18 +148,9 @@ async fn supervise(client: &grindr::GrindrClient) -> Outcome {
 
         match client.refresh_session().await {
             Ok(_) => return Outcome::Quiet,
-            Err(error) => match AppError::from_client_error(error, client) {
-                AppError::Banned(info) => return Outcome::Banned(info),
-                mapped @ (AppError::Unauthorized { .. } | AppError::NotSignedIn) => {
-                    return Outcome::Failed(SessionErrorPayload {
-                        message: mapped.to_string(),
-                        unauthorized: true,
-                        transient: false,
-                    });
-                }
-                // Signed out or switched accounts mid-run; not ours to report.
-                AppError::SessionCleared => return Outcome::Quiet,
-                mapped => last = Some(mapped),
+            Err(error) => match settled_by(AppError::from_client_error(error, client)) {
+                Ok(outcome) => return outcome,
+                Err(retryable) => last = Some(retryable),
             },
         }
     }
@@ -143,5 +174,34 @@ fn session_is_stale(client: &grindr::GrindrClient) -> bool {
             .token
             .as_ref()
             .is_none_or(|token| token.expires_at < now + REFRESH_BUFFER_SECS),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_refused_app_version_stops_the_retries_and_asks_for_an_update() {
+        let outcome = settled_by(AppError::Api {
+            code: 8,
+            message: "The client version is deprecated".to_owned(),
+        });
+
+        let Ok(Outcome::UnsupportedVersion(error)) = outcome else {
+            panic!("a refused app version must not be retried");
+        };
+        let json = serde_json::to_value(error).unwrap();
+        assert_eq!(json["code"], 8);
+        assert_eq!(json["message"], "The client version is deprecated");
+    }
+
+    #[test]
+    fn other_api_errors_are_retried() {
+        assert!(settled_by(AppError::Api {
+            code: 500,
+            message: "internal".to_owned(),
+        })
+        .is_err());
     }
 }

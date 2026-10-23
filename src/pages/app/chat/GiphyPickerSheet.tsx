@@ -5,6 +5,7 @@ import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/u
 import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
 import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
+import { fetchExternal, okHttpQueryComponent } from "../../../services/externalFetch";
 import { getRecentGifs, setRecentGifs } from "../../../services/chatDb";
 
 interface GiphyItem {
@@ -84,12 +85,32 @@ function parseGiphyResponse(raw: unknown): GiphyItem[] {
 	});
 }
 
+// Same page size, rating and parameter order as the official app's requests.
+const GIPHY_PAGE_SIZE = 50;
+const GIPHY_RATING = "r";
+
+function systemLanguage(): string {
+	try {
+		return new Intl.Locale(navigator.language).language || "en";
+	} catch {
+		return "en";
+	}
+}
+
+function giphyTrendingPath(): string {
+	return `/trending?limit=${GIPHY_PAGE_SIZE}&rating=${GIPHY_RATING}&api_key=${GIPHY_API_KEY}`;
+}
+
+function giphySearchPath(query: string): string {
+	return `/search?limit=${GIPHY_PAGE_SIZE}&rating=${GIPHY_RATING}&q=${okHttpQueryComponent(query)}&offset=0&api_key=${GIPHY_API_KEY}&lang=${systemLanguage()}`;
+}
+
+/** Through Rust as a plain OkHttp client, like the official app — not the WebView's fetch. */
 async function fetchGiphy(path: string): Promise<unknown> {
 	if (!GIPHY_API_KEY) throw new Error("VITE_GIPHY_API_KEY not set");
-	const sep = path.includes("?") ? "&" : "?";
-	const res = await fetch(`${GIPHY_BASE}${path}${sep}api_key=${GIPHY_API_KEY}`);
-	if (!res.ok) throw new Error(`Giphy ${res.status}`);
-	return res.json();
+	const { status, body } = await fetchExternal(`${GIPHY_BASE}${path}`);
+	if (status < 200 || status >= 300) throw new Error(`Giphy ${status}`);
+	return JSON.parse(new TextDecoder().decode(body));
 }
 
 // Mixed heights, so the placeholder reads like the masonry it stands in for.
@@ -188,7 +209,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 		setIsLoading(true);
 		setError(null);
 		try {
-			const raw = await fetchGiphy("/trending?limit=30");
+			const raw = await fetchGiphy(giphyTrendingPath());
 			setGifs(parseGiphyResponse(raw));
 		} catch {
 			setError(t("chat.giphy.error_load"));
@@ -201,7 +222,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 		setIsLoading(true);
 		setError(null);
 		try {
-			const raw = await fetchGiphy(`/search?q=${encodeURIComponent(q)}&limit=30`);
+			const raw = await fetchGiphy(giphySearchPath(q));
 			setGifs(parseGiphyResponse(raw));
 		} catch {
 			setError(t("chat.giphy.error_search"));

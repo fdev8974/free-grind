@@ -8,10 +8,151 @@
 			content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
 		/>
 		<title>Free Grind</title>
+		<style>
+			#webview-too-old {
+				display: none;
+			}
+			.webview-unsupported #webview-too-old {
+				display: flex;
+				position: fixed;
+				inset: 0;
+				z-index: 2147483647;
+				align-items: center;
+				justify-content: center;
+				padding: 24px;
+				overflow-y: auto;
+				background: #0b0b0d;
+				color: #eee;
+				font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+				text-align: center;
+			}
+			#webview-too-old .wv-inner {
+				max-width: 30rem;
+			}
+			#webview-too-old h1 {
+				margin: 0 0 12px;
+				font-size: 22px;
+			}
+			#webview-too-old p {
+				margin: 0 0 10px;
+				color: #b5b5bd;
+			}
+			#webview-too-old code {
+				color: #eee;
+			}
+			#webview-too-old .wv-found {
+				color: #f5a524;
+			}
+			#webview-too-old .wv-plat {
+				display: none;
+			}
+			#webview-too-old button {
+				margin-top: 14px;
+				padding: 10px 18px;
+				border: 1px solid #3a3a42;
+				border-radius: 12px;
+				background: transparent;
+				color: #b5b5bd;
+				font: inherit;
+				cursor: pointer;
+			}
+		</style>
+		<script>
+			// Tailwind v4 needs Chrome 111 / Safari 16.4: without color-mix and
+			// registered custom properties the app renders broken or blank, so
+			// this runs before the bundle and covers it with a plain notice.
+			(function () {
+				try {
+					if (
+						window.CSS &&
+						CSS.supports &&
+						CSS.supports("color", "color-mix(in srgb, red, blue)") &&
+						typeof CSS.registerProperty === "function"
+					)
+						return;
+				} catch (e) {}
+				document.documentElement.className += " webview-unsupported";
+			})();
+		</script>
 	</head>
 
 	<body>
 		<div id="app"></div>
+		<div id="webview-too-old">
+			<div class="wv-inner">
+				<h1>Your system WebView is too old</h1>
+				<p>Free Grind needs a newer browser engine to display correctly.</p>
+				<p class="wv-found" id="wv-found"></p>
+				<p class="wv-plat" data-platform="linux">
+					Update <code>webkit2gtk</code> (2.42 or newer) via your distribution.
+				</p>
+				<p class="wv-plat" data-platform="macos">
+					Install the latest updates from Software Update (Safari 16.4 or newer).
+				</p>
+				<p class="wv-plat" data-platform="windows">
+					Update the Microsoft Edge WebView2 Runtime (111 or newer).
+				</p>
+				<p class="wv-plat" data-platform="android">
+					Update Android System WebView (or Chrome) from the Play Store (111 or newer).
+				</p>
+				<p class="wv-plat" data-platform="ios">Update to iOS 16.4 or newer.</p>
+				<button type="button" id="wv-continue">Continue anyway</button>
+			</div>
+		</div>
+		<script>
+			(function () {
+				var root = document.documentElement;
+				if (!/(^| )webview-unsupported( |$)/.test(root.className)) return;
+
+				var ua = navigator.userAgent;
+				var platform = /Android/.test(ua)
+					? "android"
+					: /iPhone|iPad|iPod/.test(ua)
+						? "ios"
+						: /Windows/.test(ua)
+							? "windows"
+							: /Macintosh/.test(ua)
+								? "macos"
+								: "linux";
+				var hints = document.querySelectorAll("#webview-too-old .wv-plat");
+				for (var i = 0; i < hints.length; i++) {
+					if (hints[i].getAttribute("data-platform") === platform) hints[i].style.display = "block";
+				}
+
+				var found = document.getElementById("wv-found");
+				function showFound(version) {
+					found.textContent = "Found: " + version;
+				}
+				var chrome = /Chrome\/(\d+(\.\d+)*)/.exec(ua);
+				var safari = /Version\/(\d+(\.\d+)*)/.exec(ua);
+				if (chrome) showFound("Chromium " + chrome[1]);
+				else if (safari) showFound("WebKit (Safari " + safari[1] + ")");
+
+				// The exact engine build from Rust (WebKitGTK 2.40.5, WebView2
+				// 109.0.1518.78, ...); the user agent only approximates it.
+				try {
+					var tauri = window.__TAURI_INTERNALS__;
+					if (tauri && tauri.invoke) {
+						tauri.invoke("webview_version").then(function (version) {
+							if (!version) return;
+							var engine =
+								platform === "linux"
+									? "WebKitGTK "
+									: platform === "windows"
+										? "WebView2 "
+										: platform === "android"
+											? "Android System WebView "
+											: "WebKit ";
+							showFound(engine + version);
+						}, function () {});
+					}
+				} catch (e) {}
+
+				document.getElementById("wv-continue").onclick = function () {
+					root.className = root.className.replace(/(^| )webview-unsupported/, "");
+				};
+			})();
+		</script>
 		<script type="module" src="/src/main.tsx"></script>
 	</body>
 </html>

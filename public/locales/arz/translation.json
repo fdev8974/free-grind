@@ -2628,5 +2628,15 @@
         "settings_desc": "",
         "backup_title": "",
         "backup_desc": ""
+    },
+    "unsupported_version": {
+        "title": "",
+        "description": "",
+        "app_version": "",
+        "grindr_says": "",
+        "check": "",
+        "dismiss": "",
+        "no_update": "",
+        "check_failed": ""
     }
 }
