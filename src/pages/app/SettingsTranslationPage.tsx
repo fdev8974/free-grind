@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { AlertCircle, Bot, BrainCircuit, Check, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, KeyRound, Languages, Sparkles } from "lucide-react";
+import { AlertCircle, Bot, BrainCircuit, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, KeyRound, Languages, Sparkles } from "lucide-react";
 import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { SelectSheet } from "../../components/ui/select-sheet";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -444,41 +444,20 @@ export function SettingsTranslationPage() {
 			</div>
 
 			{isProviderSheetOpen && (
-				<BottomSheet onClose={() => setIsProviderSheetOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
-					<div className="flex items-center justify-between px-4 pb-3">
-						<p className="text-sm font-semibold text-[var(--text)]">
-							{t("auto_translate.provider_sheet_title", { defaultValue: "Translation provider" })}
-						</p>
-						<SheetCloseButton />
-					</div>
-					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
-						{TRANSLATION_PROVIDERS.map((option) => {
-							const info = PROVIDER_INFO[option];
-							const Icon = info.icon;
-							const selected = option === provider;
-							return (
-								<SheetClose
-									key={option}
-									onClick={() => handleSelectProvider(option)}
-									className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
-								>
-									<div className={`shrink-0 rounded-2xl p-2.5 ${PROVIDER_ICON_CLASSES[option]}`}>
-										<Icon className="h-5 w-5" />
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">
-											{t(`auto_translate.provider_${option}`, { defaultValue: info.label })}
-										</p>
-										<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">
-											{t(`auto_translate.provider_${option}_desc`, { defaultValue: info.desc })}
-										</p>
-									</div>
-									{selected && <Check className="mt-0.5 h-5 w-5 shrink-0 text-[var(--accent)]" />}
-								</SheetClose>
-							);
-						})}
-					</div>
-				</BottomSheet>
+				<SelectSheet
+					title={t("auto_translate.provider_sheet_title", { defaultValue: "Translation provider" })}
+					value={provider}
+					options={TRANSLATION_PROVIDERS.map((option) => ({
+						value: option,
+						label: t(`auto_translate.provider_${option}`, { defaultValue: PROVIDER_INFO[option].label }),
+						description: t(`auto_translate.provider_${option}_desc`, { defaultValue: PROVIDER_INFO[option].desc }),
+						icon: PROVIDER_INFO[option].icon,
+						iconClassName: PROVIDER_ICON_CLASSES[option],
+					}))}
+					onSelect={handleSelectProvider}
+					onClose={() => setIsProviderSheetOpen(false)}
+					isDesktop={isDesktop}
+				/>
 			)}
 		</section>
 	);

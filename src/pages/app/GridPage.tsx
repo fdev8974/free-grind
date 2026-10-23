@@ -1,5 +1,5 @@
 import { useAuth } from "../../contexts/useAuth";
-import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, Check, UserSearch, ChevronRight } from "lucide-react";
+import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, UserSearch, ChevronRight } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { EyeFilled, EyeOffFilled, MapPinFilled, UserFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
@@ -37,7 +37,7 @@ import {
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FilterPill } from "../../components/ui/FilterPill";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { SelectSheet } from "../../components/ui/select-sheet";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { useGridTapStatus } from "./gridpage/hooks/useGridTapStatus";
@@ -2048,28 +2048,16 @@ export function GridPage() {
 			)}
 
 			{isSortSheetOpen && (
-				<BottomSheet onClose={() => setIsSortSheetOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
-					<div className="flex items-center justify-between px-4 pb-3">
-						<p className="text-sm font-semibold text-[var(--text)]">{t("browse_page.sort")}</p>
-						<SheetCloseButton />
-					</div>
-					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
-						{sortOptions.map((option) => (
-							<SheetClose
-								key={option.value}
-								onClick={() => {
-									if (option.value !== sortBy) setSortBy(option.value);
-								}}
-								className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
-							>
-								<p className="min-w-0 flex-1 text-sm font-semibold leading-snug">{option.label}</p>
-								{option.value === sortBy && (
-									<Check className={cn("h-5 w-5 shrink-0", exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]")} />
-								)}
-							</SheetClose>
-						))}
-					</div>
-				</BottomSheet>
+				<SelectSheet
+					title={t("browse_page.sort")}
+					value={sortBy}
+					options={sortOptions}
+					onSelect={setSortBy}
+					onClose={() => setIsSortSheetOpen(false)}
+					isDesktop={isDesktop}
+					accentColor={exploreLocation ? "var(--explore)" : undefined}
+					accentContrast={exploreLocation ? "#fff" : undefined}
+				/>
 			)}
 
 			{isFiltersOpen && (

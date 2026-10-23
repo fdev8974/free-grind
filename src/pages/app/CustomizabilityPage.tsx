@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Check, ChevronRight, Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
+import { ChevronRight, Clock, Flame, Images, Languages, LayoutGrid, Monitor, Moon, PanelBottom, Ruler, Sparkles, Sun, Type, Vibrate } from "lucide-react";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -10,7 +10,7 @@ import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/tim
 import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
 import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { SelectSheet } from "../../components/ui/select-sheet";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
@@ -103,26 +103,14 @@ function SelectRow({
 			{/* Portaled out of the card: as a child of its divide-y list the fullscreen
 			    overlay would pick up the divider border (a stray line while it fades in). */}
 			{isOpen && createPortal(
-				<BottomSheet onClose={() => setIsOpen(false)} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
-					<div className="flex items-center justify-between px-4 pb-3">
-						<p className="text-sm font-semibold text-[var(--text)]">{label}</p>
-						<SheetCloseButton />
-					</div>
-					<div className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-4" data-lenis-prevent>
-						{options.map((option) => (
-							<SheetClose
-								key={option.value}
-								onClick={() => {
-									if (option.value !== value) onChange(option.value);
-								}}
-								className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
-							>
-								<p className="min-w-0 flex-1 text-sm font-semibold leading-snug">{option.label}</p>
-								{option.value === value && <Check className="h-5 w-5 shrink-0 text-[var(--accent)]" />}
-							</SheetClose>
-						))}
-					</div>
-				</BottomSheet>,
+				<SelectSheet
+					title={label}
+					value={value}
+					options={options}
+					onSelect={onChange}
+					onClose={() => setIsOpen(false)}
+					isDesktop={isDesktop}
+				/>,
 				document.body,
 			)}
 		</>

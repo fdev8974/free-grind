@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import z from "zod";
 import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../components/ui/bottom-sheet";
 import { SlidingTabs } from "../../components/ui/sliding-tabs";
+import { SelectSheet } from "../../components/ui/select-sheet";
 import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../components/icons/FilledIcons";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { appLog } from "../../utils/logger";
@@ -693,88 +694,44 @@ const VISITING_MODE_ICONS: Record<VisitingMode, typeof MapPin> = { AUTO: Compass
 // Profile mode: Auto/Home/Visiting. Only applies to your real location, not
 // the explore tab's local-only browsing. Saves immediately on tap.
 function VisitingModeSheet({ isDesktop, onClose }: { isDesktop: boolean; onClose: () => void }) {
-	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} zIndex="z-[70]" panelClassName="max-h-[82dvh]">
-			<VisitingModeSheetContent />
-		</BottomSheet>
-	);
-}
-
-function VisitingModeSheetContent() {
 	const { t } = useTranslation();
-	const close = useBottomSheetClose();
 	const { data: visitingMode, isLoading, isError } = useVisitingMode();
 	const updateVisitingModeMutation = useUpdateVisitingMode();
-	const disabled = isLoading || isError || updateVisitingModeMutation.isPending;
 
 	const handleChange = async (mode: VisitingMode) => {
-		if (mode === visitingMode) {
-			close();
-			return;
-		}
 		try {
 			await updateVisitingModeMutation.mutateAsync(mode);
-			close();
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : t("api.errors.save_visiting_mode"));
+			throw error;
 		}
 	};
 
 	return (
-		<>
-			<div className="flex items-center justify-between px-4 pb-3">
-				<p className="text-sm font-semibold text-[var(--text)]">{t("profile_editor.sections.visiting_mode.title")}</p>
-				<SheetCloseButton />
-			</div>
-			<div
-				role="radiogroup"
-				aria-label={t("profile_editor.sections.visiting_mode.title")}
-				className="min-h-0 flex-1 divide-y divide-[var(--border)] overflow-y-auto pb-2"
-				data-lenis-prevent
-			>
-				{VISITING_MODES.map((mode) => {
-					const active = mode === visitingMode;
-					const Icon = VISITING_MODE_ICONS[mode];
-					const modeKey = getVisitingModeTranslationKey(mode);
-					return (
-						<button
-							key={mode}
-							type="button"
-							role="radio"
-							aria-checked={active}
-							disabled={disabled}
-							onClick={() => void handleChange(mode)}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-60"
-						>
-							<span
-								className={`shrink-0 rounded-2xl p-2.5 ${
-									active ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "bg-[var(--surface-2)] text-[var(--text-muted)]"
-								}`}
-							>
-								<Icon className="h-5 w-5" strokeWidth={2.1} />
-							</span>
-							<span className="min-w-0 flex-1">
-								<span className="block text-sm font-semibold leading-snug text-[var(--text)]">
-									{t(`profile_editor.sections.visiting_mode.options.${modeKey}.label`)}
-								</span>
-								<span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-muted)]">
-									{t(`profile_editor.sections.visiting_mode.options.${modeKey}.description`)}
-								</span>
-							</span>
-							{updateVisitingModeMutation.isPending && updateVisitingModeMutation.variables === mode ? (
-								<Loader2 className="h-5 w-5 shrink-0 animate-spin text-[var(--text-muted)]" />
-							) : active ? (
-								<Check className="h-5 w-5 shrink-0 text-[var(--accent)]" />
-							) : null}
-						</button>
-					);
-				})}
-			</div>
-			{isLoading || isError ? (
-				<p className={`px-4 pb-2 text-xs leading-relaxed ${isError ? "text-red-400" : "text-[var(--text-muted)]"}`}>
-					{isError ? t("profile_editor.sections.visiting_mode.error") : t("profile_editor.sections.visiting_mode.loading")}
-				</p>
-			) : null}
-		</>
+		<SelectSheet
+			title={t("profile_editor.sections.visiting_mode.title")}
+			value={visitingMode}
+			options={VISITING_MODES.map((mode) => {
+				const modeKey = getVisitingModeTranslationKey(mode);
+				return {
+					value: mode,
+					label: t(`profile_editor.sections.visiting_mode.options.${modeKey}.label`),
+					description: t(`profile_editor.sections.visiting_mode.options.${modeKey}.description`),
+					icon: VISITING_MODE_ICONS[mode],
+				};
+			})}
+			onSelect={handleChange}
+			onClose={onClose}
+			isDesktop={isDesktop}
+			zIndex="z-[70]"
+			disabled={isLoading || isError}
+			footer={
+				isLoading || isError ? (
+					<p className={`pb-2 text-xs leading-relaxed ${isError ? "text-red-400" : "text-[var(--text-muted)]"}`}>
+						{isError ? t("profile_editor.sections.visiting_mode.error") : t("profile_editor.sections.visiting_mode.loading")}
+					</p>
+				) : null
+			}
+		/>
 	);
 }
