@@ -34,13 +34,14 @@ interface SliderProps {
 	onCommit?: (value: number) => void;
 }
 
-// Matches the 20px thumb defined in sliderStyles below. The native thumb's
-// travel range is inset by half its own width at each end (so it never
-// overflows the track), which a naive `left: {percent}%` doesn't account
-// for — this offset keeps the value bubble centered exactly over it.
-const THUMB_SIZE_PX = 20;
+// Matches the 24px thumb in sliderStyles below. The native thumb's travel is
+// inset by half its own width at each end (so it never overflows the track),
+// so a thumb's center sits at `HALF + percent * (100% - THUMB)` — the filled
+// range and the value bubble use the same formula to line up with it exactly.
+const THUMB_SIZE_PX = 24;
+const HALF_THUMB_PX = THUMB_SIZE_PX / 2;
 function thumbCenterOffset(percent: number): string {
-	return `calc(${percent}% + ${THUMB_SIZE_PX / 2 - (percent / 100) * THUMB_SIZE_PX}px)`;
+	return `calc(${HALF_THUMB_PX}px + ${percent / 100} * (100% - ${THUMB_SIZE_PX}px))`;
 }
 
 /**
@@ -50,20 +51,27 @@ function thumbCenterOffset(percent: number): string {
  * Styling range inputs across different WebViews (WebKit on iOS/Android, WebView2 on Windows)
  * requires vendor-specific pseudo-elements. We use pointer-events: none on the container
  * and pointer-events: all on the thumb to allow overlapping inputs in the RangeSlider.
+ * The native track is made exactly thumb-tall and transparent, so the thumb is centered
+ * by construction in every engine; the visible track is drawn by .slider below.
+ * No color-mix() here: webviews without it would get Tailwind-style solid fallbacks.
  */
 const sliderStyles = `
-	/* Resetting default browser range styles */
 	.thumb,
 	.thumb::-webkit-slider-thumb {
 		-webkit-appearance: none;
+		appearance: none;
 		-webkit-tap-highlight-color: transparent;
 	}
 
 	.thumb {
 		pointer-events: none; /* Disable interaction on the container track */
 		position: absolute;
-		height: 0;
+		left: 0;
+		top: 50%;
+		transform: translateY(-50%);
+		height: ${THUMB_SIZE_PX}px;
 		width: 100%;
+		margin: 0;
 		outline: none;
 		background: none;
 	}
@@ -80,58 +88,94 @@ const sliderStyles = `
 		z-index: 5;
 	}
 
-	/* Webkit (Chrome, Safari, Edge) Thumb styling */
+	.thumb::-webkit-slider-runnable-track {
+		height: ${THUMB_SIZE_PX}px;
+		background: transparent;
+		border: none;
+	}
+
+	.thumb::-moz-range-track {
+		height: ${THUMB_SIZE_PX}px;
+		background: transparent;
+		border: none;
+	}
+
 	.thumb::-webkit-slider-thumb {
-		background-color: var(--slider-color, var(--accent));
-		border: 2px solid color-mix(in srgb, var(--slider-color, var(--accent)), black 30%);
+		width: ${THUMB_SIZE_PX}px;
+		height: ${THUMB_SIZE_PX}px;
+		margin-top: 0;
+		border: none;
 		border-radius: 50%;
-		box-shadow: 0 0 1px 1px var(--border);
-		cursor: pointer;
-		height: 20px;
-		width: 20px;
-		margin-top: 4px;
+		background: #fff;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+		cursor: grab;
 		pointer-events: all; /* Re-enable interaction specifically for the thumb */
-		position: relative;
+		transition: transform 120ms ease;
 	}
 
-	/* Firefox Thumb styling */
 	.thumb::-moz-range-thumb {
-		background-color: var(--slider-color, var(--accent));
-		border: 2px solid color-mix(in srgb, var(--slider-color, var(--accent)), black 30%);
+		width: ${THUMB_SIZE_PX}px;
+		height: ${THUMB_SIZE_PX}px;
+		border: none;
 		border-radius: 50%;
-		box-shadow: 0 0 1px 1px var(--border);
-		cursor: pointer;
-		height: 20px;
-		width: 20px;
-		pointer-events: all; /* Re-enable interaction specifically for the thumb */
-		position: relative;
+		background: #fff;
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+		cursor: grab;
+		pointer-events: all;
+		transition: transform 120ms ease;
 	}
 
-	/* Custom Track Styling */
+	.thumb:active::-webkit-slider-thumb {
+		cursor: grabbing;
+		transform: scale(1.12);
+	}
+
+	.thumb:active::-moz-range-thumb {
+		cursor: grabbing;
+		transform: scale(1.12);
+	}
+
+	.thumb:focus-visible::-webkit-slider-thumb {
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 3px var(--slider-color, var(--accent));
+	}
+
+	.thumb:focus-visible::-moz-range-thumb {
+		box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 0 3px var(--slider-color, var(--accent));
+	}
+
+	/* Visible track, centered on the thumbs */
 	.slider {
-		position: relative;
-		width: 100%;
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 50%;
+		height: 6px;
+		transform: translateY(-50%);
 	}
 
 	.slider__track,
 	.slider__range {
-		border-radius: 3px;
-		height: 4px;
 		position: absolute;
+		top: 0;
+		bottom: 0;
+		border-radius: 9999px;
 	}
 
 	.slider__track {
-		background-color: var(--track-color, var(--surface-2));
-		width: 100%;
+		left: 0;
+		right: 0;
+		background: var(--track-color, rgba(127, 127, 127, 0.25));
 		z-index: 1;
-		border: 1px solid var(--border);
 	}
 
 	.slider__range {
-		background-color: var(--slider-color, var(--accent));
+		background: var(--slider-color, var(--accent));
 		z-index: 2;
 	}
 `;
+
+/** Neutral value pill for the optional header row. */
+const VALUE_PILL_CLASS = "rounded-full bg-[var(--surface-2)] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-[var(--text)]";
 
 /**
  * A custom Dual-Range Slider component for selecting a range (min/max).
@@ -154,7 +198,6 @@ export function RangeSlider({
 	const [maxValue, setMaxValue] = useState(maxDefault);
 	const minValRef = useRef(minDefault);
 	const maxValRef = useRef(maxDefault);
-	const range = useRef<HTMLDivElement>(null);
 
 	const style = activeColor ? { "--slider-color": activeColor } as React.CSSProperties : {};
 
@@ -169,51 +212,22 @@ export function RangeSlider({
 	}, [maxDefault]);
 
 	const getPercent = useCallback(
-		(value: number) => Math.round(((value - min) / (max - min)) * 100),
+		(value: number) => ((value - min) / (max - min)) * 100,
 		[min, max],
 	);
-
-	useEffect(() => {
-		if (maxValRef.current !== null) {
-			const minPercent = getPercent(minValue);
-			const maxPercent = getPercent(maxValRef.current);
-			if (range.current) {
-				range.current.style.left = `${minPercent}%`;
-				range.current.style.width = `${maxPercent - minPercent}%`;
-			}
-		}
-	}, [minValue, getPercent]);
-
-	useEffect(() => {
-		if (minValRef.current !== null) {
-			const minPercent = getPercent(minValRef.current);
-			const maxPercent = getPercent(maxValue);
-			if (range.current) {
-				range.current.style.width = `${maxPercent - minPercent}%`;
-			}
-		}
-	}, [maxValue, getPercent]);
 
 	return (
 		<div className="flex flex-col gap-0.5 py-1" style={style}>
 			{!hideHeader && (
 				<div
-					className={cn("flex justify-between items-center mb-1", showSeparator && "border-b pb-2 mb-2")}
-					style={showSeparator && activeColor ? { borderColor: `color-mix(in srgb, ${activeColor}, transparent 80%)` } : {}}
+					className={cn("flex justify-between items-center mb-1", showSeparator && "border-b border-[var(--border)] pb-2 mb-2")}
 				>
 					<div className="flex items-center gap-2">
 						<span className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
 							{label}
 						</span>
 					</div>
-					<span className={cn(
-						"text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm",
-						!activeColor && "bg-[var(--surface-2)] text-[var(--text)]"
-					)}
-					style={activeColor ? {
-						backgroundColor: `color-mix(in srgb, ${activeColor}, transparent 85%)`,
-						color: "var(--text)"
-					} : {}}>
+					<span className={VALUE_PILL_CLASS}>
 						{formatValue ? formatValue(minValue) : `${minValue}${unit}`} - {formatValue ? formatValue(maxValue) : `${maxValue}${unit}`}{maxValue >= max ? "+" : ""}
 					</span>
 				</div>
@@ -252,7 +266,13 @@ export function RangeSlider({
 
 				<div className="slider">
 					<div className="slider__track" />
-					<div ref={range} className="slider__range" />
+					<div
+						className="slider__range"
+						style={{
+							left: thumbCenterOffset(getPercent(minValue)),
+							right: `calc(100% - ${thumbCenterOffset(getPercent(maxValue))})`,
+						}}
+					/>
 				</div>
 			</div>
 
@@ -291,7 +311,7 @@ export function Slider({
 	}, [defaultValue]);
 
 	const getPercent = useCallback(
-		(val: number) => Math.round(((val - min) / (max - min)) * 100),
+		(val: number) => ((val - min) / (max - min)) * 100,
 		[min, max],
 	);
 
@@ -304,14 +324,7 @@ export function Slider({
 							{label}
 						</span>
 					</div>
-					<span className={cn(
-						"text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-sm",
-						!activeColor && "bg-[var(--surface-2)] text-[var(--text)]"
-					)}
-					style={activeColor ? {
-						backgroundColor: `color-mix(in srgb, ${activeColor}, transparent 85%)`,
-						color: "var(--text)"
-					} : {}}>
+					<span className={VALUE_PILL_CLASS}>
 						{displayValue}
 					</span>
 				</div>
@@ -320,7 +333,7 @@ export function Slider({
 			<div className={`relative flex items-center h-10 ${showValueBubble ? "mt-4" : ""}`}>
 				{showValueBubble && (
 					<div
-						className="pointer-events-none absolute -top-4 -translate-x-1/2 whitespace-nowrap rounded-md bg-[var(--accent)]/85 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-contrast)]"
+						className="pointer-events-none absolute -top-4 -translate-x-1/2 whitespace-nowrap rounded-md bg-[var(--slider-color,var(--accent))] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--accent-contrast)]"
 						style={{ left: thumbCenterOffset(getPercent(value)) }}
 					>
 						{displayValue}
@@ -347,7 +360,7 @@ export function Slider({
 					<div className="slider__track" />
 					<div
 						className="slider__range"
-						style={{ width: `${getPercent(value)}%` }}
+						style={{ left: 0, width: thumbCenterOffset(getPercent(value)) }}
 					/>
 				</div>
 			</div>
