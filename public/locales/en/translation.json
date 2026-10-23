@@ -2558,7 +2558,8 @@
     "auto_hint": "Turn on automatic updates in Settings to skip this screen.",
     "failed": "The update couldn't be downloaded. Check your connection and try again.",
     "update_now": "Update now",
-    "later": "Later"
+    "later": "Later",
+    "built_at": "Built {{date}}"
   },
   "apk_update": {
     "errors": {

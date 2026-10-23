@@ -2560,7 +2560,8 @@
         "auto_hint": "",
         "failed": "",
         "update_now": "",
-        "later": ""
+        "later": "",
+        "built_at": ""
     },
     "apk_update": {
         "errors": {

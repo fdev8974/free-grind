@@ -11,6 +11,21 @@ import {
 	type PendingHotswapUpdate,
 } from "../services/hotswap";
 import { appLog } from "../utils/logger";
+import { hourCycleOptions } from "../utils/timeFormat";
+
+/**
+ * OTA bundle versions look like `1.2.0-ota.development.1729500000` (see
+ * scripts/publish-ota.mjs) — only the release part is meaningful to users.
+ */
+function displayVersion(version: string | null): string | null {
+	return version?.replace(/-ota\..*$/, "") || null;
+}
+
+/** The trailing Unix-seconds sequence of an OTA version is its publish time. */
+function buildDate(version: string | null): Date | null {
+	const seconds = Number(version?.match(/-ota\..*\.(\d{9,})$/)?.[1]);
+	return Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : null;
+}
 
 export function OtaUpdatePromptView({
 	update,
@@ -19,8 +34,10 @@ export function OtaUpdatePromptView({
 	update: PendingHotswapUpdate;
 	onLater: () => void;
 }) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const progress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
+	const version = displayVersion(update.version);
+	const builtAt = buildDate(update.version);
 	const [failed, setFailed] = useState(false);
 	const isBusy = progress.phase === "downloading" || progress.phase === "installing" || progress.phase === "done";
 
@@ -57,17 +74,26 @@ export function OtaUpdatePromptView({
 					<h1 className="text-2xl font-bold text-[var(--text)]">{t("ota_prompt.title", { defaultValue: "Update Available" })}</h1>
 					<div className="flex flex-col items-center overflow-hidden">
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							{update.version
+							{version
 								? t("ota_prompt.description_version", {
 										defaultValue: "Version {{version}} of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
-										version: update.version,
+										version,
 									})
 								: t("ota_prompt.description", {
 										defaultValue: "A new version of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
 									})}
 						</p>
-						{update.notes && (
-							<p className="mt-2 max-w-xs whitespace-pre-line text-sm leading-relaxed text-[var(--text-muted)]">{update.notes}</p>
+						{builtAt && (
+							<p className="mt-1 max-w-xs text-xs tabular-nums text-[var(--text-muted)]">
+								{t("ota_prompt.built_at", {
+									defaultValue: "Built {{date}}",
+									date: builtAt.toLocaleString(i18n.language, {
+										dateStyle: "medium",
+										timeStyle: "short",
+										...hourCycleOptions(),
+									}),
+								})}
+							</p>
 						)}
 						<p className="mt-4 max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
 							{t("ota_prompt.auto_hint", {
