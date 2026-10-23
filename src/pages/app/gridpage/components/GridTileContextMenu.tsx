@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff } from "lucide-react";
 import { SheetActionList } from "../../../../components/ui/action-sheet";
 import { menuTransitionStyle } from "../../../../hooks/usePresence";
+import { LocateFixedFilled } from "../../../../components/icons/FilledIcons";
 
 type GridTileContextMenuProps = {
 	/** Drives the desktop menu's enter/exit transition (see usePresence). */
@@ -20,6 +21,9 @@ type GridTileContextMenuProps = {
 	onEditNickname: () => void;
 	onHide: () => void;
 	onBlock: () => void;
+	/** Only passed while the optional Locate feature is enabled. */
+	onLocate?: () => void;
+	isLocating?: boolean;
 };
 
 type TileAction = {
@@ -47,6 +51,8 @@ export function GridTileContextMenu({
 	onEditNickname,
 	onHide,
 	onBlock,
+	onLocate,
+	isLocating = false,
 }: GridTileContextMenuProps) {
 	const { t } = useTranslation();
 
@@ -71,6 +77,14 @@ export function GridTileContextMenu({
 			label: hasNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set"),
 			onClick: onEditNickname,
 		},
+		...(onLocate
+			? [{
+				key: "locate",
+				icon: <LocateFixedFilled className={isDesktop ? "h-4 w-4" : "h-3.5 w-3.5"} />,
+				label: isLocating ? t("profile_details.locating") : t("profile_details.locate"),
+				onClick: onLocate,
+			}]
+			: []),
 		{
 			key: "hide",
 			icon: <EyeOff className={isDesktop ? "h-4 w-4" : "h-3.5 w-3.5"} />,

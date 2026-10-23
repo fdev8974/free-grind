@@ -1,5 +1,5 @@
 import { Archive, BellOff, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2 } from "lucide-react";
-import { BellOffFilled, EyeOffFilled, HomeFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
+import { BellOffFilled, EyeOffFilled, HomeFilled, LocateFixedFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
@@ -9,6 +9,8 @@ import { ChatInboxHeader, type ChatInboxHeaderProps } from "./ChatInboxHeader";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { SheetActionList, afterSheetClose } from "../../../components/ui/action-sheet";
+import { useLocateProfile } from "../gridpage/hooks/useLocateProfile";
+import { isLocateEnabled } from "../../../utils/optionalFeatures";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -148,6 +150,9 @@ type ConversationActionHandlers = {
 	onToggleMute: () => void;
 	onToggleHide: () => void;
 	onDelete: () => void;
+	/** Only set while the optional Locate feature is enabled. */
+	onLocate?: () => void;
+	isLocating?: boolean;
 };
 
 // Shared by the desktop right-click menu and the mobile long-press sheet so
@@ -185,6 +190,14 @@ function buildConversationActions(
 			icon: isHidden ? <EyeOffFilled className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />,
 			onSelect: handlers.onToggleHide,
 		},
+		...(handlers.onLocate
+			? [{
+				key: "locate",
+				label: handlers.isLocating ? t("profile_details.locating") : t("profile_details.locate"),
+				icon: <LocateFixedFilled className="h-4 w-4" />,
+				onSelect: handlers.onLocate,
+			}]
+			: []),
 		{
 			key: "delete",
 			label: t("chat.delete_conversation"),
@@ -238,6 +251,8 @@ function ConversationContextMenu({
 	onToggleMute,
 	onToggleHide,
 	onDelete,
+	onLocate,
+	isLocating,
 }: {
 	visible?: boolean;
 	conversation: ConversationEntry;
@@ -250,6 +265,8 @@ function ConversationContextMenu({
 	onToggleMute: () => void;
 	onToggleHide: () => void;
 	onDelete: () => void;
+	onLocate?: () => void;
+	isLocating?: boolean;
 }) {
 	const { t } = useTranslation();
 	const menuRef = useRef<HTMLDivElement | null>(null);
@@ -290,6 +307,8 @@ function ConversationContextMenu({
 		onToggleMute,
 		onToggleHide,
 		onDelete,
+		onLocate,
+		isLocating,
 	});
 
 	// Portal to <body> — the list sits inside PullToRefreshContainer, which
@@ -750,7 +769,21 @@ export function ChatInboxPanel({
 			close();
 			requestDeleteConversation(conversation, isArchived);
 		},
+		...(() => {
+			const otherProfileId = getOtherParticipant(conversation, userId)?.profileId;
+			if (!showLocate || !otherProfileId) return {};
+			return {
+				onLocate: () => {
+					close();
+					handleTriangleProfile(String(otherProfileId));
+				},
+				isLocating: isLocatingProfile,
+			};
+		})(),
 	});
+	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop });
+	// Read on mount like ProfileDetailsModal does; toggled in Optional Features.
+	const [showLocate] = useState(isLocateEnabled);
 	const [deleteConfirmState, setDeleteConfirmState] = useState<{
 		conversation: ConversationEntry;
 		isArchived: boolean;
@@ -1004,6 +1037,8 @@ export function ChatInboxPanel({
 					{...conversationActionHandlers(contextMenuPresence.rendered.conversation, contextMenuPresence.rendered.isArchived, () => setContextMenuState(null))}
 				/>
 			) : null}
+
+			{locateSheet}
 
 			{actionSheetState ? (
 				<ConversationActionSheet

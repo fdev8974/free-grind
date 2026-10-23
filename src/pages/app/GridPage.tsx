@@ -43,6 +43,7 @@ import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { useGridTapStatus } from "./gridpage/hooks/useGridTapStatus";
 import { GridGesturesIntro, hasSeenGridGesturesIntro, markGridGesturesIntroSeen } from "./gridpage/components/GridGesturesIntro";
 import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
+import { isLocateEnabled } from "../../utils/optionalFeatures";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile, useMyOwnProfile } from "../../hooks/queries/useProfileQueries";
 import { useQueryClient } from "@tanstack/react-query";
@@ -1257,6 +1258,8 @@ export function GridPage() {
 	};
 
 	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop });
+	// Read on mount like ProfileDetailsModal does; toggled in Optional Features.
+	const [showLocate] = useState(isLocateEnabled);
 
 	const performBlockProfile = useCallback(
 		async (targetProfileId: string) => {
@@ -1960,6 +1963,8 @@ export function GridPage() {
 					onEditNickname={() => setNicknamePromptCard(renderedTileMenu.card)}
 					onHide={() => handleHideProfile(renderedTileMenu.card.profileId)}
 					onBlock={() => void handleBlockProfile(renderedTileMenu.card.profileId)}
+					onLocate={showLocate ? () => handleTriangleProfile(String(renderedTileMenu.card.profileId)) : undefined}
+					isLocating={isLocatingProfile}
 				/>
 			)}
 
