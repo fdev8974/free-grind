@@ -72,7 +72,7 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 						<Loader2 className="h-5 w-5 animate-spin" />
 					</div>
 				) : (results?.length ?? 0) > 0 ? (
-					<div className="grid gap-1.5">
+					<div className="grid min-w-0 gap-1.5">
 						{results!.map((track) => {
 							const active = selectedIds.has(track.id);
 							const subtitle = [track.artists.join(", "), track.albumName]
@@ -83,7 +83,7 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 									key={track.id}
 									type="button"
 									onClick={() => handleToggle(track)}
-									className={`flex min-h-12 items-center gap-3 rounded-xl border px-2 py-1.5 text-left transition ${
+									className={`flex min-h-12 w-full min-w-0 items-center gap-3 rounded-xl border px-2 py-1.5 text-left transition ${
 										active
 											? "border-[var(--accent)] bg-[var(--accent)]/10"
 											: "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--text-muted)]"

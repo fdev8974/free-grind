@@ -1356,6 +1356,20 @@ export function SettingsPage() {
 							onSelect: () => afterSheetClose(() => setPreviewAnnouncement(true)),
 						},
 						{ key: "outdated", icon: Download, label: "Outdated Update Prompt", description: "The \"Update Available\" screen for outdated apps.", onSelect: () => afterSheetClose(() => setPreviewOutdatedPrompt(true)) },
+						{
+							key: "ota",
+							icon: RefreshCcw,
+							label: "OTA Update Prompt",
+							description: "The frontend \"Update Available\" screen, with a simulated download.",
+							onSelect: () =>
+								afterSheetClose(() =>
+									showHotswapUpdatePrompt({
+										version: `${frontendVersion}-ota.${getCurrentHotswapChannel()}.${Math.floor(Date.now() / 1000)}`,
+										notes: null,
+										preview: true,
+									}),
+								),
+						},
 					]}
 				/>
 			)}

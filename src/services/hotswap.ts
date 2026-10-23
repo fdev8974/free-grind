@@ -216,6 +216,8 @@ export function setHotswapAutoUpdateEnabled(enabled: boolean): void {
 export interface PendingHotswapUpdate {
 	version: string | null;
 	notes: string | null;
+	/** Dev preview (UI Previews): "Update now" only simulates the download. */
+	preview?: boolean;
 }
 
 // An update found by the startup check that waits for the user's confirmation.

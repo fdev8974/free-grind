@@ -2554,12 +2554,14 @@
   "ota_prompt": {
     "title": "Update Available",
     "description": "A new version of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
-    "description_version": "Version {{version}} of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
-    "auto_hint": "Turn on automatic updates in Settings to skip this screen.",
     "failed": "The update couldn't be downloaded. Check your connection and try again.",
     "update_now": "Update now",
     "later": "Later",
-    "built_at": "Built {{date}}"
+    "version": "Version {{version}}",
+    "new_version": "New version",
+    "built_at": "Built {{date}}",
+    "auto_title": "Install automatically",
+    "auto_desc": "Install future frontend updates without asking."
   },
   "apk_update": {
     "errors": {

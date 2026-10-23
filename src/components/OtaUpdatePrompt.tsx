@@ -1,16 +1,22 @@
-import { Download, Loader2, RefreshCcw } from "lucide-react";
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { Download, Loader2, Package, RefreshCcw, Zap } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	dismissPendingHotswapUpdate,
 	getHotswapProgress,
 	getPendingHotswapUpdate,
 	installHotswapUpdate,
+	isHotswapAutoUpdateEnabled,
+	setHotswapAutoUpdateEnabled,
+	subscribeHotswapAutoUpdate,
 	subscribeHotswapProgress,
 	subscribePendingHotswapUpdate,
+	type HotswapProgress,
 	type PendingHotswapUpdate,
 } from "../services/hotswap";
 import { appLog } from "../utils/logger";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
+import { ToggleRow } from "./ui/toggle-row";
 import { hourCycleOptions } from "../utils/timeFormat";
 
 /**
@@ -35,14 +41,42 @@ export function OtaUpdatePromptView({
 	onLater: () => void;
 }) {
 	const { t, i18n } = useTranslation();
-	const progress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
+	const realProgress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
+	const [previewProgress, setPreviewProgress] = useState<HotswapProgress>({ phase: "idle" });
+	const progress = update.preview ? previewProgress : realProgress;
 	const version = displayVersion(update.version);
 	const builtAt = buildDate(update.version);
 	const [failed, setFailed] = useState(false);
+	// Same setting as "Install Automatically" in Settings; the preview only toggles locally.
+	const storedAutoUpdate = useSyncExternalStore(subscribeHotswapAutoUpdate, isHotswapAutoUpdateEnabled);
+	const [previewAutoUpdate, setPreviewAutoUpdate] = useState(storedAutoUpdate);
+	const autoUpdate = update.preview ? previewAutoUpdate : storedAutoUpdate;
+	const setAutoUpdate = update.preview ? setPreviewAutoUpdate : setHotswapAutoUpdateEnabled;
 	const isBusy = progress.phase === "downloading" || progress.phase === "installing" || progress.phase === "done";
+
+	// Preview: fake ~2.5 MB download, then close instead of reloading.
+	useEffect(() => {
+		if (!update.preview || previewProgress.phase === "idle") return;
+		const timer = window.setTimeout(() => {
+			if (previewProgress.phase === "downloading") {
+				const total = 2_500_000;
+				const downloaded = Math.min(total, previewProgress.downloaded + 125_000);
+				setPreviewProgress(downloaded < total ? { phase: "downloading", downloaded, total } : { phase: "installing" });
+			} else if (previewProgress.phase === "installing") {
+				setPreviewProgress({ phase: "done" });
+			} else if (previewProgress.phase === "done") {
+				onLater();
+			}
+		}, previewProgress.phase === "downloading" ? 120 : 900);
+		return () => window.clearTimeout(timer);
+	}, [update.preview, previewProgress, onLater]);
 
 	const start = () => {
 		setFailed(false);
+		if (update.preview) {
+			setPreviewProgress({ phase: "downloading", downloaded: 0, total: 2_500_000 });
+			return;
+		}
 		installHotswapUpdate()
 			.then(() => window.location.reload())
 			.catch((error) => {
@@ -59,54 +93,14 @@ export function OtaUpdatePromptView({
 				: null;
 
 	return (
-		<div className="fs-card-outer fs-card-overlay z-[110] no-touch-callout">
-			<div className="fs-card-inner fs-card-lg flex flex-col">
-				<div
-					className="flex flex-1 flex-col items-center justify-center px-8 text-center"
-					style={{
-						paddingTop: "max(48px, env(safe-area-inset-top))",
-						paddingBottom: "max(24px, env(safe-area-inset-bottom))",
-					}}
-				>
-					<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-						<RefreshCcw className="h-9 w-9 text-[var(--accent)]" />
-					</div>
-					<h1 className="text-2xl font-bold text-[var(--text)]">{t("ota_prompt.title", { defaultValue: "Update Available" })}</h1>
-					<div className="flex flex-col items-center overflow-hidden">
-						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							{version
-								? t("ota_prompt.description_version", {
-										defaultValue: "Version {{version}} of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
-										version,
-									})
-								: t("ota_prompt.description", {
-										defaultValue: "A new version of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
-									})}
-						</p>
-						{builtAt && (
-							<p className="mt-1 max-w-xs text-xs tabular-nums text-[var(--text-muted)]">
-								{t("ota_prompt.built_at", {
-									defaultValue: "Built {{date}}",
-									date: builtAt.toLocaleString(i18n.language, {
-										dateStyle: "medium",
-										timeStyle: "short",
-										...hourCycleOptions(),
-									}),
-								})}
-							</p>
-						)}
-						<p className="mt-4 max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
-							{t("ota_prompt.auto_hint", {
-								defaultValue: "Turn on automatic updates in Settings to skip this screen.",
-							})}
-						</p>
-					</div>
-				</div>
-
-				<div
-					className="flex min-h-44 shrink-0 flex-col justify-end gap-2 px-6"
-					style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
-				>
+		<FullscreenPrompt
+			icon={RefreshCcw}
+			title={t("ota_prompt.title", { defaultValue: "Update Available" })}
+			description={t("ota_prompt.description", {
+				defaultValue: "A new version of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
+			})}
+			footer={
+				<>
 					{isBusy && (
 						<div className="mb-1 flex flex-col gap-1.5">
 							<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
@@ -131,12 +125,7 @@ export function OtaUpdatePromptView({
 							{t("ota_prompt.failed", { defaultValue: "The update couldn't be downloaded. Check your connection and try again." })}
 						</p>
 					)}
-					<button
-						type="button"
-						disabled={isBusy}
-						onClick={start}
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-70"
-					>
+					<button type="button" disabled={isBusy} onClick={start} className={fullscreenPrimaryButtonClass}>
 						{isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
 						{progress.phase === "downloading"
 							? t("update_prompt.downloading", { defaultValue: "Downloading…" })
@@ -146,17 +135,43 @@ export function OtaUpdatePromptView({
 									? t("update_prompt.try_again", { defaultValue: "Try again" })
 									: <>{t("ota_prompt.update_now", { defaultValue: "Update now" })}<Download className="h-4 w-4" /></>}
 					</button>
-					<button
-						type="button"
-						onClick={onLater}
-						disabled={isBusy}
-						className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
-					>
+					<button type="button" onClick={onLater} disabled={isBusy} className={fullscreenSecondaryButtonClass}>
 						{t("ota_prompt.later", { defaultValue: "Later" })}
 					</button>
+				</>
+			}
+		>
+			<div className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
+				<div className="flex items-center gap-3 px-4 py-3.5">
+					<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--accent)]">
+						<Package className="h-5 w-5" />
+					</div>
+					<div className="min-w-0 flex-1">
+						<p className="text-sm font-semibold leading-snug text-[var(--text)]">
+							{version
+								? t("ota_prompt.version", { defaultValue: "Version {{version}}", version })
+								: t("ota_prompt.new_version", { defaultValue: "New version" })}
+						</p>
+						{builtAt && (
+							<p className="mt-0.5 text-xs tabular-nums text-[var(--text-muted)]">
+								{t("ota_prompt.built_at", {
+									defaultValue: "Built {{date}}",
+									date: builtAt.toLocaleString(i18n.language, { dateStyle: "medium", timeStyle: "short", ...hourCycleOptions() }),
+								})}
+							</p>
+						)}
+					</div>
 				</div>
+				<ToggleRow
+					checked={autoUpdate}
+					onChange={setAutoUpdate}
+					icon={<Zap className="h-5 w-5" />}
+					iconClass="bg-[var(--surface-2)] text-[var(--accent)]"
+					label={t("ota_prompt.auto_title", { defaultValue: "Install automatically" })}
+					description={t("ota_prompt.auto_desc", { defaultValue: "Install future frontend updates without asking." })}
+				/>
 			</div>
-		</div>
+		</FullscreenPrompt>
 	);
 }
 

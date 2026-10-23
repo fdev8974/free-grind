@@ -2628,12 +2628,14 @@
     "ota_prompt": {
         "title": "",
         "description": "",
-        "description_version": "",
-        "auto_hint": "",
         "failed": "",
         "update_now": "",
         "later": "",
-        "built_at": ""
+        "version": "",
+        "new_version": "",
+        "built_at": "",
+        "auto_title": "",
+        "auto_desc": ""
     },
     "apk_update": {
         "errors": {
