@@ -33,6 +33,7 @@ import {
 	getVaccineLabelMap,
 } from "../../profile-option-builders";
 import { getProfileImageUrl } from "../../../../utils/media";
+import { proxyMediaUrl } from "../../../../utils/mediaProxy";
 import { resolveAvatarSrc } from "../../../../services/avatarStore";
 import { getForbiddenWords, setForbiddenWords } from "../../../../utils/autoblock";
 import { ProfileImage } from "../../../../components/ui/profile-image";
@@ -1604,7 +1605,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					/>
 					{showAlbumCover ? (
 						<img
-							src={albumStatus.coverUrl ?? undefined}
+							src={proxyMediaUrl(albumStatus.coverUrl) ?? undefined}
 							alt=""
 							className="h-full w-full scale-110 object-cover blur-[2px] brightness-[0.55]"
 						/>
@@ -1652,7 +1653,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					aria-label={t("profile_details.open_photo", { index: index + 1 })}
 				/>
 				<img
-					src={getSlideImageUrl(hash)}
+					src={proxyMediaUrl(getSlideImageUrl(hash))}
 					alt={t("profile_details.photo_alt", { name: activeProfileName })}
 					className="h-full w-full object-cover"
 				/>

@@ -62,6 +62,7 @@ import {
 import type { MessageTranslations } from "../../../hooks/useMessageTranslations";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 type ChatThreadMessagesProps = {
 	isDesktop: boolean;
@@ -1518,7 +1519,7 @@ export function ChatThreadMessages({
                                             {replyThumbUrl ? (
                                                 <div className="relative w-14 shrink-0 self-stretch overflow-hidden">
                                                     <img
-                                                        src={replyThumbUrl}
+                                                        src={proxyMediaUrl(replyThumbUrl)}
                                                         alt=""
                                                         className={`absolute inset-0 h-full w-full object-cover [clip-path:inset(0)]${blurIncomingMedia && (replyToMsg?.type ?? replyToMsgRef?.type) !== "Giphy" ? " blur-md transition" : ""}`}
                                                     />
@@ -1531,7 +1532,7 @@ export function ChatThreadMessages({
                                                     <video
                                                         muted
                                                         preload="metadata"
-                                                        src={replyVideoUrl}
+                                                        src={proxyMediaUrl(replyVideoUrl, { as: "video" })}
                                                         onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
                                                         onSeeked={(e) => {
                                                             const el = e.currentTarget;
@@ -1601,7 +1602,7 @@ export function ChatThreadMessages({
                                         >
                                             <div className="relative">
                                             <img
-                                                src={imageUrl}
+                                                src={proxyMediaUrl(imageUrl)}
                                                 alt={t("chat.thread.shared_alt")}
                                                 className={`${message.type === "Giphy" && hasReply ? "max-h-96 w-full object-cover" : isImageOnlyBubble ? "max-h-80 w-full object-cover" : "max-h-64 w-full object-cover"} ${mediaBlurClassName}`}
                                             />
@@ -1699,7 +1700,7 @@ export function ChatThreadMessages({
                                                 {albumCover ? (
                                                     <img
                                                         key={albumCover}
-                                                        src={albumCover}
+                                                        src={proxyMediaUrl(albumCover)}
                                                         alt={t("chat.thread.album_cover")}
                                                         className={`absolute inset-0 h-full w-full scale-110 object-cover transition-transform duration-500 ease-out ${isLocked ? "blur-sm opacity-50" : "group-hover/media:scale-[1.16]"}`}
                                                     />
@@ -1783,7 +1784,7 @@ export function ChatThreadMessages({
 
                                         {gaymojiUrl ? (
                                             <img
-                                                src={gaymojiUrl}
+                                                src={proxyMediaUrl(gaymojiUrl)}
                                                 alt="Gaymoji"
                                                 className="h-20 w-20 object-contain"
                                             />
@@ -1858,7 +1859,7 @@ export function ChatThreadMessages({
                                                     <video
                                                         preload="metadata"
                                                         muted
-                                                        src={videoUrl}
+                                                        src={proxyMediaUrl(videoUrl, { as: "video" })}
                                                         onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
                                                         onSeeked={(e) => {
                                                             const el = e.currentTarget;
@@ -1966,7 +1967,7 @@ export function ChatThreadMessages({
                                                     }}
                                                 >
                                                     {rxPreviewUrl ? (
-                                                        <img src={rxPreviewUrl} alt="" className="aspect-square w-full object-cover" />
+                                                        <img src={proxyMediaUrl(rxPreviewUrl)} alt="" className="aspect-square w-full object-cover" />
                                                     ) : (
                                                         <div className="h-48 w-full bg-[var(--surface-2)]" />
                                                     )}
@@ -2059,7 +2060,7 @@ export function ChatThreadMessages({
                                         <div className={`relative mb-2 rounded-xl border border-black/10 p-2 ${isLocked ? "bg-[var(--surface-2)] opacity-60" : "bg-[color-mix(in_srgb,var(--surface)_76%,transparent)]"} ${(localOnly || isCachedExpiredAlbum) ? "opacity-50" : ""}`}>
                                             {albumCover ? (
                                                 <img
-                                                    src={albumCover}
+                                                    src={proxyMediaUrl(albumCover)}
                                                     alt={t("chat.thread.album_cover")}
                                                     className={`mb-2 h-36 w-full rounded-lg object-cover ${isLocked ? "blur-[2px] opacity-50" : ""}`}
                                                 />
@@ -2115,7 +2116,7 @@ export function ChatThreadMessages({
                                                 {photoUrl && (
                                                     <div className="relative w-14 shrink-0 self-stretch overflow-hidden">
                                                         <img
-                                                            src={photoUrl}
+                                                            src={proxyMediaUrl(photoUrl)}
                                                             alt=""
                                                             className="absolute inset-0 h-full w-full object-cover object-top"
                                                         />

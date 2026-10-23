@@ -12,6 +12,7 @@ import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { DrawerCollectionEditorSheet } from "./DrawerCollectionEditorSheet";
 import { DrawerEmptyState } from "../chat/drawerUi";
 import { EmptyStateCreateButton, SectionAddButton } from "../../../components/ui/action-sheet";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 interface DrawerCollectionsSectionProps {
 	drawerMedia: DrawerMedia[];
@@ -143,9 +144,9 @@ export function DrawerCollectionsSection({
 									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 								>
 									{coverSrc && coverItem?.contentType.startsWith("image/") ? (
-										<img src={coverSrc} alt="" className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
+										<img src={proxyMediaUrl(coverSrc)} alt="" className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
 									) : coverSrc ? (
-										<video src={coverSrc} preload="metadata" muted className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
+										<video src={proxyMediaUrl(coverSrc, { as: "video" })} preload="metadata" muted className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
 									) : (
 										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
 											<Images className="h-5 w-5 opacity-50" />

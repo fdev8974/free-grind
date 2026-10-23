@@ -13,6 +13,7 @@ import { captureAlbum, getLocalAlbum } from "../../../services/albumStore";
 import * as chatDb from "../../../services/chatDb";
 import { extractImageHashFromSignedUrl } from "./chatUtils";
 import { appLog } from "../../../utils/logger";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 const IMAGE_HASH_KEY_PREFIX = "image:hash:";
 
@@ -441,7 +442,7 @@ export function ChatMediaSheet({
 									>
 										{showCover ? (
 											<img
-												src={album.coverUrl!}
+												src={proxyMediaUrl(album.coverUrl!)}
 												alt=""
 												className="absolute inset-0 h-full w-full object-cover scale-110"
 												style={{ filter: "blur(3px)" }}

@@ -18,6 +18,7 @@ import {
 	getMediaFile,
 } from "../../services/chatDb";
 import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 import { limitChatDbBlobRead } from "../../utils/chatDbBlobLimiter";
 import { createLimiter } from "../../utils/concurrencyLimit";
 import { cn } from "../../utils/cn";
@@ -163,7 +164,7 @@ function VideoTile({ item, onClick }: { item: GalleryVideo; onClick: () => void 
 		>
 			{poster ? (
 				<img
-					src={poster}
+					src={proxyMediaUrl(poster)}
 					alt={item.albumName ?? t("video_gallery.video_alt", { defaultValue: "Video" })}
 					loading="lazy"
 					className="h-full w-full object-cover transition group-hover:scale-105"

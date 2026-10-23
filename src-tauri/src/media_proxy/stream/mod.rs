@@ -1,0 +1,190 @@
+mod adapter;
+mod answer;
+mod fault;
+#[cfg(test)]
+mod lifecycle_tests;
+mod open;
+mod pump;
+#[cfg(test)]
+mod refusal_tests;
+mod reply;
+#[cfg(test)]
+mod scripted;
+#[cfg(test)]
+mod tests;
+
+use std::time::Duration;
+
+use grindr::MediaFetcher;
+use tauri::http::Response;
+use tauri::{AppHandle, Manager, Runtime};
+use tokio::sync::{mpsc, oneshot, OwnedSemaphorePermit};
+use tokio::time::{timeout_at, Instant};
+
+use super::cache::{cache_key, CachedMedia};
+use super::failures::MediaFailure;
+use super::registry::register_stream;
+use super::requested::Requested;
+use super::upstream::{refusal_detail, GatewayFailure};
+use super::{MediaProxy, ANDROID_ANSWER_DEADLINE, RETRIED_HEADERS_DEADLINE, STREAMING_PLATFORM};
+use adapter::{WebViewStream, CHANNEL_SLOTS};
+pub use answer::{answer, Answer, Head};
+pub use fault::Fault;
+pub use open::open;
+use pump::{run, tee_capacity, Outcome, Pump, IDLE};
+pub use pump::{Chunks, Source};
+use reply::{deny, poison, refuse, streamed, unreachable, Streamed};
+
+const HEAD_DEADLINE: Duration = if STREAMING_PLATFORM {
+    ANDROID_ANSWER_DEADLINE
+} else {
+    RETRIED_HEADERS_DEADLINE
+};
+
+struct Opening {
+    key: String,
+    content_type: Option<String>,
+    head: Head,
+    source: Source,
+    permit: Option<OwnedSemaphorePermit>,
+}
+
+pub struct Served {
+    pub response: Response<Vec<u8>>,
+    pub failure: Option<MediaFailure>,
+}
+
+pub async fn serve_streamed<R: Runtime>(
+    app: &AppHandle<R>,
+    url: &str,
+    fetcher: MediaFetcher,
+    range: Option<&str>,
+) -> Response<Vec<u8>> {
+    serve_streamed_until(app, url, fetcher, range, None)
+        .await
+        .response
+}
+
+pub async fn serve_streamed_until<R: Runtime>(
+    app: &AppHandle<R>,
+    url: &str,
+    fetcher: MediaFetcher,
+    range: Option<&str>,
+    until: Option<Instant>,
+) -> Served {
+    let until = until.unwrap_or_else(|| Instant::now() + HEAD_DEADLINE);
+    let requested = Requested::parse(range);
+    let at = requested.start();
+    let key = cache_key(url).to_owned();
+    if let Some(hit) = app.state::<MediaProxy>().cached(&key).await {
+        let opening = Opening {
+            key,
+            content_type: hit.content_type,
+            head: Head::of_cached(hit.body.len()),
+            source: Source::Cached(hit.body),
+            permit: None,
+        };
+        return Served {
+            response: respond(app, opening, &requested).await,
+            failure: None,
+        };
+    }
+    let opened = open(app, url, fetcher, &requested);
+    match timeout_at(until, opened).await {
+        Ok(Ok((permit, stream))) => {
+            let failure = MediaFailure::of_stream_status(stream.status, url);
+            let opening = Opening {
+                key,
+                content_type: stream.content_type.clone(),
+                head: Head::of_stream(&stream),
+                source: Source::Live(Box::new(stream)),
+                permit: Some(permit),
+            };
+            Served {
+                response: respond(app, opening, &requested).await,
+                failure,
+            }
+        }
+        Ok(Err(error)) => Served {
+            failure: Some(MediaFailure::of_error(&error, url)),
+            response: match refusal_detail(error) {
+                Err(status) => deny(status, at),
+                Ok(failure) => unreachable(url, &requested, failure),
+            },
+        },
+        Err(_) => Served {
+            response: unreachable(
+                url,
+                &requested,
+                GatewayFailure::timed_out("no headers in time".to_owned()),
+            ),
+            failure: Some(MediaFailure::late(url)),
+        },
+    }
+}
+
+async fn respond<R: Runtime>(
+    app: &AppHandle<R>,
+    opening: Opening,
+    requested: &Requested,
+) -> Response<Vec<u8>> {
+    match answer(&opening.head, requested) {
+        Answer::Stream {
+            status,
+            content_range,
+            placement,
+        } => {
+            let (tx, rx) = mpsc::channel(CHANNEL_SLOTS);
+            let (cancel, cancelled) = oneshot::channel();
+            let id = register_stream(Box::new(WebViewStream::streaming(rx, cancel, placement)));
+            let tee = match opening.source {
+                Source::Live(_) => tee_capacity(placement),
+                Source::Cached(_) => None,
+            };
+            let pump = Pump {
+                id,
+                source: opening.source,
+                tx,
+                cancel: cancelled,
+                permit: opening.permit,
+                tee,
+                idle: IDLE,
+            };
+            launch(app, opening.key, opening.content_type.clone(), pump).await;
+            streamed(Streamed {
+                id,
+                status,
+                content_type: opening.content_type,
+                content_range,
+                length: (placement.length > 0).then(|| placement.length - requested.start()),
+            })
+        }
+        Answer::Refuse { status, at } => refuse(status, at),
+        Answer::Poison => poison(),
+    }
+}
+
+async fn launch<R: Runtime, C: Chunks + 'static>(
+    app: &AppHandle<R>,
+    key: String,
+    content_type: Option<String>,
+    pump: Pump<C>,
+) {
+    let proxy = app.state::<MediaProxy>();
+    let mut pumps = proxy.pumps.lock().await;
+    let id = pump.id;
+    let app = app.clone();
+    let handle = tauri::async_runtime::spawn(async move {
+        let outcome = run(pump).await;
+        let proxy = app.state::<MediaProxy>();
+        if let Outcome::Finished(Some(body)) = outcome {
+            proxy
+                .cache
+                .lock()
+                .await
+                .put(&key, CachedMedia { content_type, body });
+        }
+        proxy.pumps.lock().await.remove(&id);
+    });
+    pumps.insert(id, handle);
+}

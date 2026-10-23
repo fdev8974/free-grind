@@ -53,6 +53,7 @@ import { SEXUAL_POSITION_ICONS } from "../../profile-option-builders";
 import { isIos } from "../../../../services/saveMedia";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useProfileSpotifyFavorites } from "../../../../hooks/queries/useProfileQueries";
+import { proxyMediaUrl } from "../../../../utils/mediaProxy";
 
 type LabelMap = Record<number, string>;
 
@@ -223,7 +224,7 @@ export function ProfileDetailsContent({
 	// of every profile a user swipes past.
 	const photoSrc = (hash: string, size: "1024x1024" | "320x320") => {
 		const url = size === "1024x1024" ? getProfileImageUrl(hash, size) : getThumbImageUrl(hash, size);
-		return resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url;
+		return proxyMediaUrl(resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url);
 	};
 	const { unitsPreset } = usePreferences();
 	const { data: spotifyFavorites } = useProfileSpotifyFavorites(activeProfile.profileId);

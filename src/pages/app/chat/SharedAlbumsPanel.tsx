@@ -18,6 +18,7 @@ import { getAllAlbums, getConversation } from "../../../services/chatDb";
 import { cacheAlbumFromSharedPage, captureAlbum, getCachedAlbumCoverUri, getLocalAlbum } from "../../../services/albumStore";
 import { toDataUri } from "../../../services/mediaStore";
 import { saveAllAlbumMedia } from "../../../utils/albumMedia";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 function getCounterparty(
 	entry: ConversationEntry,
@@ -569,7 +570,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 										{previewUrl ? (
 											<>
 												<img
-													src={previewUrl}
+													src={proxyMediaUrl(previewUrl)}
 													alt={item.album.albumName ?? t("shared_albums.preview_alt")}
 													className="h-full w-full scale-110 object-cover blur-xl"
 												/>

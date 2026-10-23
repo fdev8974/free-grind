@@ -6,6 +6,7 @@ import { decodeGeohash } from "../../../utils/geohash";
 import { getThumbImageUrl, validateMediaHash } from "../../../utils/media";
 import { MAP_STYLE_DARK, applyRightNowMapTheme, relaxRoadZoomThresholds } from "../gridpage/components/mapStyles";
 import { formatDistance } from "../gridpage/utils";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 export type RightNowMapItem = RightNowFeedItem & { lat: number; lon: number };
 
@@ -134,7 +135,7 @@ function buildMarkerElement(
 	const imageUrl = getRightNowAvatarUrl(item);
 	if (imageUrl) {
 		const img = document.createElement("img");
-		img.src = imageUrl;
+		img.src = proxyMediaUrl(imageUrl);
 		img.alt = "";
 		img.draggable = false;
 		img.style.cssText = "width:100%;height:100%;object-fit:cover;";
@@ -222,7 +223,7 @@ function buildClusterElement(members: RightNowFeedItem[], onClick: () => void): 
 	const imageUrl = members.map(getRightNowAvatarUrl).find((url): url is string => url != null);
 	if (imageUrl) {
 		const img = document.createElement("img");
-		img.src = imageUrl;
+		img.src = proxyMediaUrl(imageUrl);
 		img.alt = "";
 		img.draggable = false;
 		face.appendChild(img);

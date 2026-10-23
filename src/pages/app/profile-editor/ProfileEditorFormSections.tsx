@@ -33,6 +33,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { getThumbImageUrl } from "../../../utils/media";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import { type UnitsPreset } from "../../../utils/units";
 import { SheetChip, SheetMoreButton } from "../../../components/ui/sheet-section";
 import { LastTestedMonthPicker } from "../../../components/LastTestedMonthPicker";
@@ -92,7 +93,7 @@ function SortablePhotoSlot({
 			].join(" ")}
 		>
 			<img
-				src={getThumbImageUrl(hash, "320x320")}
+				src={proxyMediaUrl(getThumbImageUrl(hash, "320x320"))}
 				alt={`Profile photo ${slotIndex + 1}`}
 				className={`h-full w-full object-cover ${isRejected ? "opacity-50 grayscale" : ""}`}
 			/>

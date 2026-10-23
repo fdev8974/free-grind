@@ -19,6 +19,7 @@ import { DrawerEmptyState } from "../chat/drawerUi";
 import { triggerRightNowStarted } from "../../../components/RightNowStartedOverlay";
 import { SheetSection } from "../../../components/ui/sheet-section";
 import { simulateCreatePost, simulateEndSession, simulateFetchActivePost, simulateUpdatePost, simulateUploadMedia } from "./rightnow-simulation";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 interface RightNowPostPageProps {
 	onClose: () => void;
@@ -466,7 +467,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 								{thumbnailUrl ? (
 									<div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[var(--surface-2)]">
 										<img
-											src={thumbnailUrl}
+											src={proxyMediaUrl(thumbnailUrl)}
 											className="h-full w-full object-cover"
 											alt={t("right_now.upload_preview_alt")}
 										/>

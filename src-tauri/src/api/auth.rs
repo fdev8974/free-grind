@@ -891,8 +891,14 @@ pub fn adopt_client(
     let state = app.state::<AppState>();
     client.set_active(state.app_active.load(std::sync::atomic::Ordering::SeqCst));
     if let Some(old_client) = state.set_client(client.clone()) {
+        // Media the previous account loaded (cache, in-flight fetches, open
+        // video streams) must not be served to the next one.
+        let app = app.clone();
         tauri::async_runtime::spawn(async move {
             old_client.sign_out().await;
+            app.state::<crate::media_proxy::MediaProxy>()
+                .forget_everything()
+                .await;
         });
     }
 

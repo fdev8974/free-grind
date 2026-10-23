@@ -32,6 +32,7 @@ import { AlbumMediaSheet } from "../../components/AlbumMediaSheet";
 import { PhotoActionBar } from "../../components/PhotoActionBar";
 import { useRevealOnScroll } from "../../hooks/useRevealOnScroll";
 import { saveAllAlbumMedia } from "../../utils/albumMedia";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 
 function getCounterparty(
 	entry: ConversationEntry,
@@ -93,7 +94,7 @@ function AlbumCard({
 						{previewUrl ? (
 							<>
 								<img
-									src={previewUrl}
+									src={proxyMediaUrl(previewUrl)}
 									alt={item.album.albumName ?? t("shared_albums.preview_alt")}
 									className="h-full w-full scale-110 object-cover"
 								/>

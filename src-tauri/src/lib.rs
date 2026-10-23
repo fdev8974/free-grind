@@ -3,11 +3,76 @@ mod commands;
 mod error;
 mod instance_lock;
 mod media;
+mod media_proxy;
 mod state;
 mod storage;
 mod windows_instance;
 
 use crate::state::AppState;
+
+/// The app window; the media proxy refuses every other webview.
+pub(crate) const MAIN_WINDOW_LABEL: &str = "main";
+
+/// Tells the frontend this binary serves `fgmedia:` before any of its
+/// scripts run. An OTA bundle can land on an older binary without the proxy,
+/// and src/utils/mediaProxy.ts then keeps loading media directly.
+fn media_proxy_flag<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    tauri::plugin::Builder::<R, ()>::new("fg-media-proxy")
+        .js_init_script("window.__FG_MEDIA_PROXY__ = true;".to_owned())
+        .build()
+}
+
+/// Builds the main window, deferred on Linux (`create: false` in
+/// tauri.linux.conf.json) so it can load the media proxy's GStreamer source
+/// for <video>. An empty library means build.rs couldn't compile it; video
+/// then goes through the proxy's buffered path like on Windows.
+#[cfg(target_os = "linux")]
+fn create_linux_main_window(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::Manager;
+
+    let extensions = app
+        .path()
+        .resource_dir()?
+        .join(media_proxy::WEBKIT_EXTENSIONS);
+    let has_extension = std::fs::metadata(extensions.join("libfgmedia.so"))
+        .is_ok_and(|meta| meta.len() > 0);
+    if has_extension {
+        // WebKit only hands URI schemes on this list to GStreamer's own
+        // sources; read by the web process, which starts with the window.
+        let var = "WEBKIT_GST_ALLOWED_URI_PROTOCOLS";
+        let allowed = std::env::var(var).unwrap_or_default();
+        if !allowed.split(',').any(|entry| entry.trim() == media_proxy::SCHEME) {
+            let joined = if allowed.trim().is_empty() {
+                media_proxy::SCHEME.to_owned()
+            } else {
+                format!("{allowed},{}", media_proxy::SCHEME)
+            };
+            std::env::set_var(var, joined);
+        }
+    } else {
+        eprintln!("[media] no video extension in {}, video is buffered", extensions.display());
+    }
+
+    let deferred: Vec<_> = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .filter(|window| !window.create)
+        .cloned()
+        .collect();
+    for window in deferred {
+        let mut builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &window)?;
+        if has_extension {
+            builder = builder.extensions_path(&extensions);
+        }
+        let window = builder.build()?;
+        if has_extension {
+            media_proxy::serve_element_opens(&window);
+        }
+    }
+    Ok(())
+}
 
 /// Loads a persisted device identity + active session (if any) and builds the
 /// initial `grindr::GrindrClient` synchronously (`GrindrClient::new` needs no
@@ -85,9 +150,15 @@ pub fn run() {
             .plugin(api::facebook_oauth::plugin())
             .plugin(api::google_oauth::plugin())
             .manage(AppState::default())
+            .manage(media_proxy::MediaProxy::default())
+            .plugin(media_proxy_flag())
+            .register_asynchronous_uri_scheme_protocol(media_proxy::SCHEME, media_proxy::handle)
             .setup(|app| {
                 let app_handle = app.handle().clone();
                 init_client(&app_handle);
+
+                #[cfg(target_os = "linux")]
+                create_linux_main_window(app)?;
 
                 #[cfg(target_os = "linux")]
                 {
@@ -196,6 +267,7 @@ pub fn run() {
                 api::auth::sign_in_with_transfer_code,
                 api::rest::request,
                 api::rest::fetch_external,
+                media_proxy::media_failure,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,
                 api::websocket::ws_status,
@@ -272,6 +344,9 @@ pub fn run() {
 
         builder
             .manage(AppState::default())
+            .manage(media_proxy::MediaProxy::default())
+            .plugin(media_proxy_flag())
+            .register_asynchronous_uri_scheme_protocol(media_proxy::SCHEME, media_proxy::handle)
             .setup(|app| {
                 use tauri::Manager;
                 // Native binary version, which can lag behind an OTA-updated frontend.
@@ -315,6 +390,7 @@ pub fn run() {
                 api::auth::sign_in_with_transfer_code,
                 api::rest::request,
                 api::rest::fetch_external,
+                media_proxy::media_failure,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,
                 api::websocket::ws_status,

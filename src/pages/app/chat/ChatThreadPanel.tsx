@@ -145,6 +145,7 @@ import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
 import { DrawerEmptyState } from "./drawerUi";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 type ChatThreadPanelProps = {
 	navigate: NavigateFunction;
@@ -2168,7 +2169,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											</p>
 										</div>
 										{thumbUrl ? (
-											<img src={thumbUrl} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
+											<img src={proxyMediaUrl(thumbUrl)} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
 										) : videoUrl ? (
 											<div className="relative h-10 w-10 shrink-0 overflow-hidden rounded bg-black">
 												<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -2177,7 +2178,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												<video
 													muted
 													preload="metadata"
-													src={videoUrl}
+													src={proxyMediaUrl(videoUrl, { as: "video" })}
 													onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
 													onSeeked={(e) => {
 														const el = e.currentTarget;

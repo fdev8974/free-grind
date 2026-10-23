@@ -6,6 +6,7 @@ import { CameraFilled, CameraPlusFilled } from "../../../components/icons/Filled
 import { holdSheetDrag, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 // Shared building blocks for every media drawer sheet (chat drawer, collection
 // editor, album "add from drawer", profile pictures), so they stay in sync:
@@ -261,9 +262,9 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 				{"items" in shown ? (
 					<DrawerPreviewGroupGrid group={shown} />
 				) : shown.isVideo ? (
-					<video src={shown.src} autoPlay muted loop playsInline className="max-h-[80dvh] max-w-full object-contain" />
+					<video src={proxyMediaUrl(shown.src, { as: "video" })} autoPlay muted loop playsInline className="max-h-[80dvh] max-w-full object-contain" />
 				) : (
-					<img src={shown.src} alt="" className="max-h-[80dvh] max-w-full object-contain" />
+					<img src={proxyMediaUrl(shown.src)} alt="" className="max-h-[80dvh] max-w-full object-contain" />
 				)}
 			</div>
 		</div>,
@@ -443,7 +444,7 @@ export function DrawerMediaTile({
 			{isVideo ? (
 				<>
 					<video
-						src={src}
+						src={proxyMediaUrl(src, { as: "video" })}
 						preload="metadata"
 						muted
 						onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
@@ -456,7 +457,7 @@ export function DrawerMediaTile({
 					</div>
 				</>
 			) : (
-				<img src={src} alt={alt ?? ""} draggable={false} className={`h-full w-full object-cover ${mediaClassName}`} />
+				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} className={`h-full w-full object-cover ${mediaClassName}`} />
 			)}
 
 			{children}
@@ -607,7 +608,7 @@ function DrawerPreviewGroupGrid({ group }: { group: DrawerPreviewGroup }) {
 					<div key={`${item.src}-${index}`} className="relative aspect-square overflow-hidden rounded-md bg-black">
 						{item.isVideo ? (
 							<video
-								src={item.src}
+								src={proxyMediaUrl(item.src, { as: "video" })}
 								preload="metadata"
 								muted
 								playsInline
@@ -615,7 +616,7 @@ function DrawerPreviewGroupGrid({ group }: { group: DrawerPreviewGroup }) {
 								className="h-full w-full object-cover"
 							/>
 						) : (
-							<img src={item.src} alt="" className="h-full w-full object-cover" />
+							<img src={proxyMediaUrl(item.src)} alt="" className="h-full w-full object-cover" />
 						)}
 						{/* Send order, like the numbers in the collection editor. */}
 						<span className="absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[11px] font-bold text-[var(--accent-contrast)]">

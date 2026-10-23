@@ -1,6 +1,7 @@
 import type { HTMLAttributes, ImgHTMLAttributes } from "react";
 import { UserFilled } from "../icons/FilledIcons";
 import { cn } from "../../utils/cn";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 
 interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
 	src?: string | null;
@@ -29,7 +30,7 @@ export function Avatar({
 		>
 			{src ? (
 				<img
-					src={src}
+					src={proxyMediaUrl(src)}
 					alt={alt}
 					className="h-full w-full object-cover"
 					{...imageProps}

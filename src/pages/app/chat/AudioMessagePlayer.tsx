@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 function formatDuration(seconds: number) {
 	const m = Math.floor(seconds / 60);
@@ -223,7 +224,7 @@ export function AudioMessagePlayer({ src, messageId, mine, className, durationHi
 
 	return (
 		<div className={`flex items-center gap-2.5 ${compact ? "py-0" : "py-1"} ${className ?? "w-64"}`}>
-			<audio ref={audioRef} src={src} preload={compact ? "none" : "metadata"} className="absolute w-0 h-0 opacity-0 pointer-events-none overflow-hidden" />
+			<audio ref={audioRef} src={proxyMediaUrl(src, { as: "video" })} preload={compact ? "none" : "metadata"} className="absolute w-0 h-0 opacity-0 pointer-events-none overflow-hidden" />
 
 			<button
 				type="button"

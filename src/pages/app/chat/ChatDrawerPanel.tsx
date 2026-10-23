@@ -51,6 +51,7 @@ import { usePreferences } from "../../../contexts/PreferencesContext";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { appLog } from "../../../utils/logger";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 /** Album / collection tile overlay: a glass badge with the type icon and
  * the name in the middle (so these read differently from plain media
@@ -422,7 +423,7 @@ export function ChatDrawerPanel({
 			>
 				{cover ? (
 					<>
-						<img src={cover} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover" style={{ filter: "blur(3px)" }} />
+						<img src={proxyMediaUrl(cover)} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover" style={{ filter: "blur(3px)" }} />
 						<div className="absolute inset-0 bg-black/25" />
 					</>
 				) : (
@@ -511,14 +512,14 @@ export function ChatDrawerPanel({
 							return item.contentType.startsWith("video/") ? (
 								<video
 									key={item.id}
-									src={src}
+									src={proxyMediaUrl(src, { as: "video" })}
 									preload="metadata"
 									muted
 									onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
 									className={`h-full w-full min-h-0 object-cover ${span}`}
 								/>
 							) : (
-								<img key={item.id} src={src} alt="" className={`h-full w-full min-h-0 object-cover ${span}`} />
+								<img key={item.id} src={proxyMediaUrl(src)} alt="" className={`h-full w-full min-h-0 object-cover ${span}`} />
 							);
 						})}
 					</div>

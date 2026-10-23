@@ -85,6 +85,7 @@ import { ProfileImage } from "../../components/ui/profile-image";
 import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
 import { useNavigate, useLocation } from "react-router-dom";
 import { usePreferences } from "../../contexts/PreferencesContext";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 
 function LimitRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
 	return (
@@ -149,7 +150,7 @@ function SortableAlbumMediaItem({
 		>
 			{showPreview ? (
 				<img
-					src={imageUrl}
+					src={proxyMediaUrl(imageUrl)}
 					alt={t("settings_albums.media_alt", { index: index + 1 })}
 					onError={() => setPreviewFailed(true)}
 					className={`aspect-square w-full object-cover ${isRejected ? "opacity-40 grayscale" : ""}`}
@@ -939,7 +940,7 @@ export function SettingsAlbumsPage() {
 									>
 										{/* Same 40px tile as the settings list's icons. */}
 										{coverUrl ? (
-											<img src={coverUrl} alt="" className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
+											<img src={proxyMediaUrl(coverUrl)} alt="" className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
 										) : (
 											<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
 												<Images className="h-5 w-5 opacity-50" />

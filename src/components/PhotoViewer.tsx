@@ -9,6 +9,7 @@ import { haptic } from "../utils/haptics";
 import { ProfileImage } from "./ui/profile-image";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { menuTransitionStyle, usePresence } from "../hooks/usePresence";
+import { proxyMediaUrl } from "../utils/mediaProxy";
 
 export type PhotoViewerMedia = {
 	url: string;
@@ -1194,7 +1195,7 @@ export function PhotoViewer({
 												</div>
 												<video
 													ref={isCurrent ? (mediaRef as React.RefObject<HTMLVideoElement>) : undefined}
-													src={url}
+													src={proxyMediaUrl(url, { as: "video" })}
 													preload="metadata"
 													playsInline
 													muted={isCurrent ? isVideoMuted : true}
@@ -1238,7 +1239,7 @@ export function PhotoViewer({
 									})() : (
 										<img
 											ref={isCurrent ? (mediaRef as React.RefObject<HTMLImageElement>) : undefined}
-											src={url}
+											src={proxyMediaUrl(url)}
 											alt={alt}
 											loading="eager"
 											draggable={false}

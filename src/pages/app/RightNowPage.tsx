@@ -48,6 +48,7 @@ import {
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { RightNowMap, getRightNowAvatarUrl, getRightNowItemKey, getRightNowProfileImageUrl, hasMapPosition } from "./rightnow/RightNowMap";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 
 type SortOption = RightNowSortOption;
 
@@ -135,7 +136,7 @@ function PostMediaGrid({
 						onClick={() => onOpenPhoto(0)}
 					>
 						<img
-							src={items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? ""}
+							src={proxyMediaUrl(items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? "")}
 							className="h-full w-full object-cover transition-transform active:scale-105"
 							alt=""
 						/>
@@ -150,7 +151,7 @@ function PostMediaGrid({
 							onClick={() => onOpenPhoto(0)}
 						>
 							<img
-								src={items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? ""}
+								src={proxyMediaUrl(items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? "")}
 								className="h-full w-full object-cover transition-transform active:scale-105"
 								alt=""
 							/>
@@ -161,7 +162,7 @@ function PostMediaGrid({
 							onClick={() => onOpenPhoto(1)}
 						>
 							<img
-								src={items[1].data?.thumbnailUrl ?? items[1].data?.fullImageUrl ?? ""}
+								src={proxyMediaUrl(items[1].data?.thumbnailUrl ?? items[1].data?.fullImageUrl ?? "")}
 								className="h-full w-full object-cover transition-transform active:scale-105"
 								alt=""
 							/>
@@ -177,7 +178,7 @@ function PostMediaGrid({
 							onClick={() => onOpenPhoto(0)}
 						>
 							<img
-								src={items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? ""}
+								src={proxyMediaUrl(items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? "")}
 								className="h-full w-full object-cover transition-transform active:scale-105"
 								alt=""
 							/>
@@ -189,7 +190,7 @@ function PostMediaGrid({
 								onClick={() => onOpenPhoto(1)}
 							>
 								<img
-									src={items[1].data?.thumbnailUrl ?? items[1].data?.fullImageUrl ?? ""}
+									src={proxyMediaUrl(items[1].data?.thumbnailUrl ?? items[1].data?.fullImageUrl ?? "")}
 									className="h-full w-full object-cover transition-transform active:scale-105"
 									alt=""
 								/>
@@ -200,7 +201,7 @@ function PostMediaGrid({
 								onClick={() => onOpenPhoto(2)}
 							>
 								<img
-									src={items[2].data?.thumbnailUrl ?? items[2].data?.fullImageUrl ?? ""}
+									src={proxyMediaUrl(items[2].data?.thumbnailUrl ?? items[2].data?.fullImageUrl ?? "")}
 									className="h-full w-full object-cover transition-transform active:scale-105"
 									alt=""
 								/>
@@ -406,7 +407,7 @@ function RightNowMapCard({
 					onClick={() => onOpenPhoto(photos, 0, item.profileId)}
 					className="relative block h-40 w-full overflow-hidden"
 				>
-					<img src={heroSrc} alt="" className="h-full w-full object-cover" draggable={false} />
+					<img src={proxyMediaUrl(heroSrc)} alt="" className="h-full w-full object-cover" draggable={false} />
 					{/* Fades the photo into the card */}
 					<div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[color-mix(in_srgb,var(--surface)_92%,transparent)]" />
 					{photos.length > 1 ? (

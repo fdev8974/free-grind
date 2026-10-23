@@ -14,8 +14,15 @@ edition = "2021"
 name = "open_grind_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[dev-dependencies]
+# Media proxy tests: tauri's mock runtime and paused tokio time.
+tauri = { version = "2", features = ["test"] }
+tokio = { version = "1", features = ["test-util", "rt-multi-thread"] }
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# Compiles the Linux video extension (webkit-extension/fgmedia.c).
+cc = "1"
 
 [features]
 # This feature is used for production builds to enable custom protocol support (tauri://).
@@ -72,6 +79,11 @@ windows = { version = "0.62", features = ["Win32_UI_WindowsAndMessaging", "Win32
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2"
 
+# The media proxy (src/media) hands video bodies to the WebView as they
+# arrive through wry's ResponseStream, which only the patched wry has.
+[target.'cfg(any(target_os = "android", target_vendor = "apple"))'.dependencies]
+wry = { version = "0.57", default-features = false }
+
 [target.'cfg(target_os = "android")'.dependencies]
 android-native-keyring-store = "0.5.0"
 tauri-plugin-android-fs = { version = "=28.2.2", features = ["legacy_storage_permission"] }
@@ -87,7 +99,8 @@ apple-native-keyring-store = { version = "0.2.3", features = ["protected", "keyc
 
 [target.'cfg(target_os = "linux")'.dependencies]
 linux-keyutils-keyring-store = "0.2.1"
-webkit2gtk = "2"
+# v2_28: user messages, which the media proxy's video extension talks over.
+webkit2gtk = { version = "2", features = ["v2_28"] }
 
 # boring-sys2 builds BoringSSL from source via CMake. In a dev (debug) profile,
 # OPT_LEVEL=0 makes the `cmake` crate pick CMAKE_BUILD_TYPE=Debug, which on MSVC
@@ -102,3 +115,12 @@ opt-level = 1
 # every APK and desktop bundle; nothing symbolicates release crashes from them.
 [profile.release]
 strip = true
+
+# wry 0.57.0 plus response streams for the media proxy: a custom-protocol
+# handler can name a registered ResponseStream in `x-wry-stream`, and the
+# Android/Apple WebView reads the body from it as it arrives instead of
+# getting it fully buffered (wry-patched/response-streams.patch). Ported from
+# open-grind's patches/wry@0.55.1.patch; keep it at the wry version
+# tauri-runtime-wry resolves, or the patch is silently unused.
+[patch.crates-io]
+wry = { path = "wry-patched" }

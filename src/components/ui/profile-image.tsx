@@ -1,5 +1,6 @@
 import { UserFilled } from "../icons/FilledIcons";
 import { cn } from "../../utils/cn";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 
 interface ProfileImageProps {
 	src?: string | null;
@@ -12,7 +13,7 @@ export function ProfileImage({ src, alt, className, iconClassName }: ProfileImag
 	if (src) {
 		return (
 			<img
-				src={src}
+				src={proxyMediaUrl(src)}
 				alt={alt}
 				className={cn("h-full w-full object-cover", className)}
 			/>

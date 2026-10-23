@@ -7,6 +7,7 @@ import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
 import { fetchExternal, okHttpQueryComponent } from "../../../services/externalFetch";
 import { getRecentGifs, setRecentGifs } from "../../../services/chatDb";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 interface GiphyItem {
 	id: string;
@@ -137,7 +138,7 @@ function GifImage({ src }: { src: string }) {
 		<>
 			{!loaded && <div className="absolute inset-0 animate-pulse bg-[var(--surface-2)]" />}
 			<img
-				src={src}
+				src={proxyMediaUrl(src)}
 				alt=""
 				loading="lazy"
 				onLoad={() => setLoaded(true)}
