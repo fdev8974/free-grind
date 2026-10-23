@@ -1610,3 +1610,21 @@ dialog::backdrop {
 		transition: opacity 150ms;
 	}
 }
+
+/* Same as accent-tint, but tinted with the text color — the soft neutral fill
+ * of sheet header buttons and small pills (`ink-tint-8`). Sets position: relative. */
+@utility ink-tint-* {
+	position: relative;
+	isolation: isolate;
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		border-radius: inherit;
+		background-color: var(--text);
+		opacity: calc(--value(integer) * 1%);
+		pointer-events: none;
+		transition: opacity 150ms;
+	}
+}

@@ -79,7 +79,7 @@ export function SheetClose({ children, className, style, disabled, onClick, "ari
 /** Round, softly filled icon button for a sheet's header row (close and any
  * actions next to it). Tinted from --text so it reads on every sheet bg. */
 export const SHEET_ICON_BUTTON_CLASS =
-	"inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--text)_8%,transparent)] text-[var(--text-muted)] transition active:scale-90 active:bg-[color-mix(in_srgb,var(--text)_16%,transparent)] hover:bg-[color-mix(in_srgb,var(--text)_12%,transparent)] hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-40";
+	"inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ink-tint-8 text-[var(--text-muted)] transition active:scale-90 active:ink-tint-16 hover:ink-tint-12 hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-40";
 
 export function SheetCloseIcon() {
 	return <X className="h-4 w-4" strokeWidth={2.5} />;

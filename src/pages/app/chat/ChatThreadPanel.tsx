@@ -344,7 +344,7 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 			{/* The whole row sends the phrase, not just its text. */}
 			<SheetClose
 				onClick={onUse}
-				className="min-w-0 flex-1 rounded-xl py-3 pl-1 pr-2 text-left transition active:bg-[color-mix(in_srgb,var(--text)_6%,transparent)]"
+				className="min-w-0 flex-1 rounded-xl py-3 pl-1 pr-2 text-left transition active:ink-tint-6"
 			>
 				<span className="block break-words text-sm leading-relaxed text-[var(--text)]">{phrase}</span>
 			</SheetClose>
@@ -2274,7 +2274,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													isSelected
 														? "bg-[var(--accent)] text-[var(--accent-contrast)]"
 														: !isDesktop
-															? "active:bg-[color-mix(in_srgb,var(--text)_8%,transparent)]"
+															? "active:ink-tint-8"
 															: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]"
 												}`}
 											>
@@ -2285,7 +2285,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 															className={`inline-flex items-center leading-none rounded-md px-1.5 py-1 text-[10px] font-normal ${
 																isSelected
 																	? "bg-black/15 text-[var(--accent-contrast)]"
-																	: "bg-[color-mix(in_srgb,var(--text)_8%,transparent)] text-[var(--text-muted)]"
+																	: "ink-tint-8 text-[var(--text-muted)]"
 															}`}
 														>
 															{command.argHint}
@@ -2299,7 +2299,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 																	className={`inline-flex items-center leading-none rounded-full px-1.5 py-1 text-[10px] font-medium ${
 																		isSelected
 																			? "bg-black/15 text-[var(--accent-contrast)]"
-																			: "bg-[color-mix(in_srgb,var(--text)_8%,transparent)] text-[var(--text-muted)]"
+																			: "ink-tint-8 text-[var(--text-muted)]"
 																	}`}
 																>
 																	/{alias}
@@ -2825,7 +2825,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										{t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 									</h3>
 									{savedPhrases.length > 0 && (
-										<span className="rounded-full bg-[color-mix(in_srgb,var(--text)_8%,transparent)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
+										<span className="rounded-full ink-tint-8 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
 											{savedPhrases.length}
 										</span>
 									)}
@@ -2866,7 +2866,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<button
 									type="submit"
 									disabled={!newPhraseInput.trim()}
-									className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] transition active:scale-90 hover:brightness-110 disabled:bg-[color-mix(in_srgb,var(--text)_10%,transparent)] disabled:text-[var(--text-muted)]"
+									className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] transition active:scale-90 hover:brightness-110 disabled:bg-[var(--surface-2)] disabled:text-[var(--text-muted)]"
 									aria-label={t("settings_saved_phrases.add", { defaultValue: "Add" })}
 									title={t("settings_saved_phrases.add", { defaultValue: "Add" })}
 								>
