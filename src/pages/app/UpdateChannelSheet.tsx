@@ -61,7 +61,7 @@ export function UpdateChannelSheet({
 			label: getContributorHandle(current) ?? current,
 			description: t("settings.update_channel_contributor_desc", { defaultValue: "Contributor channel" }),
 			icon: GitBranch,
-			iconClassName: "bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] text-[var(--accent)]",
+			iconClassName: "accent-tint-15 text-[var(--accent)]",
 		});
 	} else if (canAddContributor) {
 		options.push({

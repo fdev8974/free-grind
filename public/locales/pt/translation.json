@@ -2555,8 +2555,6 @@
     },
     "update_prompt": {
         "title": "Atualização disponível",
-        "outdated": "Está a usar o Free Grind {{version}}, que está desatualizado.",
-        "latest": "A versão mais recente é {{version}}.",
         "downloading": "A transferir…",
         "downloading_percent": "A transferir… {{percent}}%",
         "needs_permission_hint": "Permita que o Free Grind instale apps e volte aqui: a atualização continua automaticamente.",
@@ -2569,7 +2567,12 @@
         "open_github": "Abrir no GitHub",
         "dismiss": "Ignorar",
         "get_version": "Obter {{version}}",
-        "app_update": ""
+        "description_manual": "",
+        "description_outdated": "",
+        "installed_label": "",
+        "latest_label": "",
+        "outdated_badge": "",
+        "new_badge": ""
     },
     "ota_prompt": {
         "title": "",

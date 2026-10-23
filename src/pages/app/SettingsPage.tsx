@@ -1083,7 +1083,7 @@ export function SettingsPage() {
 								>
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
-											<RefreshCcw className={`h-5 w-5 ${isCheckingUpdates || isSwitchingChannel ? "animate-spin" : ""}`} />
+											<RefreshCcw className="h-5 w-5" />
 										</div>
 										{isContributorChannel(updateChannel) && (
 											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] ring-2 ring-[var(--surface)]">
@@ -1108,7 +1108,7 @@ export function SettingsPage() {
 													})}
 										</p>
 									</div>
-									<RowActionPill loading={isCheckingUpdates} loadingLabel={t("settings.checking")}>
+									<RowActionPill loading={isCheckingUpdates} loadingLabel={false}>
 										{t("settings.check_now")}
 									</RowActionPill>
 								</button>
@@ -1193,7 +1193,8 @@ export function SettingsPage() {
 												: getHotswapChannelLabel(updateChannel)}
 											<ChevronRight className="h-4 w-4 opacity-50" />
 										</span>,
-										isSwitchingChannel || isCheckingUpdates,
+										// Only while switching: a running check shows as the spinner in the Check Now pill alone.
+										isSwitchingChannel,
 									)}
 							</div>
 						</div>

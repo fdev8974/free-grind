@@ -2573,8 +2573,6 @@
     },
     "update_prompt": {
         "title": "Na voljo je posodobitev",
-        "outdated": "Uporabljaš Free Grind {{version}}, ki je zastarel.",
-        "latest": "Najnovejša različica je {{version}}.",
         "downloading": "Prenašanje …",
         "downloading_percent": "Prenašanje … {{percent}} %",
         "needs_permission_hint": "Dovoli Free Grindu nameščanje aplikacij in se vrni sem. Posodobitev se nadaljuje samodejno.",
@@ -2587,7 +2585,12 @@
         "open_github": "Odpri na GitHubu",
         "dismiss": "Opusti",
         "get_version": "Prenesi {{version}}",
-        "app_update": ""
+        "description_manual": "",
+        "description_outdated": "",
+        "installed_label": "",
+        "latest_label": "",
+        "outdated_badge": "",
+        "new_badge": ""
     },
     "ota_prompt": {
         "title": "",

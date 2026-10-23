@@ -2535,8 +2535,6 @@
   },
   "update_prompt": {
     "title": "Update Available",
-    "outdated": "You're using Free Grind {{version}}, which is outdated. Outdated versions no longer receive over-the-air updates, so you'll miss new features and fixes until you install the latest version.",
-    "latest": "The latest version is {{version}}.",
     "downloading": "Downloading…",
     "downloading_percent": "Downloading… {{percent}}%",
     "needs_permission_hint": "Allow Free Grind to install apps, then come back here — the update continues automatically.",
@@ -2549,7 +2547,12 @@
     "open_github": "Open on GitHub",
     "dismiss": "Dismiss",
     "get_version": "Get {{version}}",
-    "app_update": "A new version of the app is available. You're using Free Grind {{version}}."
+    "description_manual": "A new version of the app is ready to install.",
+    "description_outdated": "This version no longer receives over-the-air updates. Install the latest one to keep getting new features and fixes.",
+    "installed_label": "Installed",
+    "latest_label": "Latest",
+    "outdated_badge": "Outdated",
+    "new_badge": "New"
   },
   "ota_prompt": {
     "title": "Update Available",

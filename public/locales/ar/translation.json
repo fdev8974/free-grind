@@ -2609,8 +2609,6 @@
     },
     "update_prompt": {
         "title": "فيه تحديث جديد",
-        "outdated": "انت مستخدم Free Grind {{version}}، ودي نسخة قديمة.",
-        "latest": "أحدث نسخة هي {{version}}.",
         "downloading": "بيتحمّل…",
         "downloading_percent": "بيتحمّل… {{percent}}%",
         "needs_permission_hint": "اسمح لـ Free Grind يسطّب تطبيقات، وبعدين ارجع هنا، التحديث هيكمّل لوحده.",
@@ -2623,7 +2621,12 @@
         "open_github": "افتح على GitHub",
         "dismiss": "اقفل",
         "get_version": "هات {{version}}",
-        "app_update": ""
+        "description_manual": "",
+        "description_outdated": "",
+        "installed_label": "",
+        "latest_label": "",
+        "outdated_badge": "",
+        "new_badge": ""
     },
     "ota_prompt": {
         "title": "",

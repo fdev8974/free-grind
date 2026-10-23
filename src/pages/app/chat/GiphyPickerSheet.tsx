@@ -173,7 +173,8 @@ function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId
 								<GifImage key={gif.id} src={gif.previewWebpUrl ?? gif.previewUrl} />
 								{isSelected && (
 									<>
-										<div className="pointer-events-none absolute inset-0 rounded-xl bg-[color-mix(in_srgb,var(--accent)_25%,transparent)] ring-2 ring-inset ring-[var(--accent)]" />
+										<div className="pointer-events-none absolute inset-0 rounded-xl bg-[var(--accent)] opacity-25" />
+										<div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-[var(--accent)]" />
 										<span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md">
 											<Check className="h-3.5 w-3.5" />
 										</span>

@@ -1,4 +1,5 @@
-import { ChevronRight, Download, Loader2 } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, ExternalLink, Loader2, Smartphone, Sparkles, type LucideIcon } from "lucide-react";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import semver from "semver";
@@ -150,6 +151,33 @@ export async function fetchLatestRelease(signal: AbortSignal, includePrerelease:
     };
 }
 
+function VersionRow({
+	icon: Icon,
+	iconClass,
+	label,
+	version,
+	badge,
+}: {
+	icon: LucideIcon;
+	iconClass: string;
+	label: string;
+	version: string;
+	badge?: ReactNode;
+}) {
+	return (
+		<div className="flex items-center gap-3 px-4 py-3.5">
+			<div className={`shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 ${iconClass}`}>
+				<Icon className="h-5 w-5" />
+			</div>
+			<div className="min-w-0 flex-1">
+				<p className="text-sm font-semibold leading-snug text-[var(--text)]">{label}</p>
+				<p className="mt-0.5 truncate text-xs tabular-nums text-[var(--text-muted)]">{version}</p>
+			</div>
+			{badge}
+		</div>
+	);
+}
+
 export function OutdatedVersionPromptView({
 	appVersion,
 	releaseInfo,
@@ -167,147 +195,130 @@ export function OutdatedVersionPromptView({
 	const { phase } = apkUpdate.state;
 	const isBusy = phase === "downloading" || phase === "verifying" || phase === "installing";
 
-	return (
-		<div className="fs-card-outer fs-card-overlay z-[110] no-touch-callout">
-			<div className="fs-card-inner fs-card-lg flex flex-col">
-				<div
-					className="flex flex-1 flex-col items-center justify-center px-8 text-center"
-					style={{
-						paddingTop: "max(48px, env(safe-area-inset-top))",
-						paddingBottom: "max(24px, env(safe-area-inset-bottom))",
-					}}
-				>
-					<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-						<Download className="h-9 w-9 text-[var(--accent)]" />
+	const footer = apkUpdate.supported ? (
+		<>
+			{apkUpdate.state.phase === "downloading" && (
+				<div className="mb-1 flex flex-col gap-1.5">
+					<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+						<div
+							className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ${apkUpdate.state.progress === null ? "w-1/3 animate-pulse" : ""}`}
+							style={apkUpdate.state.progress === null ? undefined : { width: `${Math.round(apkUpdate.state.progress * 100)}%` }}
+						/>
 					</div>
-					<h1 className="text-2xl font-bold text-[var(--text)]">{t("update_prompt.title", { defaultValue: "Update Available" })}</h1>
-					<div className="flex flex-col items-center overflow-hidden">
-						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							{manual
-								? t("update_prompt.app_update", {
-										defaultValue: "A new version of the app is available. You're using Free Grind {{version}}.",
-										version: appVersion,
-									})
-								: t("update_prompt.outdated", {
-										defaultValue: "You're using Free Grind {{version}}, which is outdated. Outdated versions no longer receive over-the-air updates, so you'll miss new features and fixes until you install the latest version.",
-										version: appVersion,
-									})}
-						</p>
-						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							{t("update_prompt.latest", {
-								defaultValue: "The latest version is {{version}}.",
-								version: releaseInfo.latestVersion,
-							})}
-						</p>
-					</div>
-				</div>
-
-				<div
-					className="flex min-h-44 shrink-0 flex-col justify-end gap-2 px-6"
-					style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
-				>
-					{apkUpdate.supported ? (
-						<>
-							{apkUpdate.state.phase === "downloading" && (
-								<div className="mb-1 flex flex-col gap-1.5">
-									<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
-										<div
-											className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ${apkUpdate.state.progress === null ? "w-1/3 animate-pulse" : ""}`}
-											style={apkUpdate.state.progress === null ? undefined : { width: `${Math.round(apkUpdate.state.progress * 100)}%` }}
-										/>
-									</div>
-									<p className="text-center text-xs text-[var(--text-muted)]">
-										{apkUpdate.state.progress === null
-											? t("update_prompt.downloading", { defaultValue: "Downloading…" })
-											: t("update_prompt.downloading_percent", {
-													defaultValue: "Downloading… {{percent}}%",
-													percent: Math.round(apkUpdate.state.progress * 100),
-												})}
-									</p>
-								</div>
-							)}
-							{phase === "needs-permission" && (
-								<p className="mb-1 text-center text-xs leading-relaxed text-[var(--text-muted)]">
-									{t("update_prompt.needs_permission_hint", {
-										defaultValue: "Allow Free Grind to install apps, then come back here — the update continues automatically.",
-									})}
-								</p>
-							)}
-							{apkUpdate.state.phase === "error" && (
-								<p className="mb-1 text-center text-xs leading-relaxed text-red-400">
-									{describeApkUpdateError(apkUpdate.state.code)}
-								</p>
-							)}
-							<button
-								type="button"
-								disabled={isBusy || phase === "installed"}
-								onClick={() => {
-									if (phase === "needs-permission") apkUpdate.openPermissionSettings();
-									else if (apkUpdate.state.phase === "error" && apkUpdate.state.code === "canceled") apkUpdate.installDownloaded();
-									else apkUpdate.start();
-								}}
-								className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-70"
-							>
-								{isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
-								{phase === "downloading"
-									? t("update_prompt.downloading", { defaultValue: "Downloading…" })
-									: phase === "verifying"
-										? t("update_prompt.verifying", { defaultValue: "Verifying…" })
-										: phase === "installing"
-											? t("update_prompt.installing", { defaultValue: "Installing…" })
-											: phase === "installed"
-												? t("update_prompt.installed", { defaultValue: "Installed" })
-												: phase === "needs-permission"
-													? t("update_prompt.allow_installs", { defaultValue: "Allow installs" })
-													: phase === "error"
-														? t("update_prompt.try_again", { defaultValue: "Try again" })
-														: <>{t("update_prompt.download_install", { defaultValue: "Download & install" })}<Download className="h-4 w-4" /></>}
-							</button>
-							<div className="flex gap-2">
-								<a
-									href={releaseInfo.releasesUrl}
-									target="_blank"
-									rel="noreferrer"
-									className="flex-1 rounded-xl py-3 text-center text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
-								>
-									{t("update_prompt.open_github", { defaultValue: "Open on GitHub" })}
-								</a>
-								<button
-									type="button"
-									onClick={onDismiss}
-									disabled={isBusy}
-									className="flex-1 rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
-								>
-									{t("update_prompt.dismiss", { defaultValue: "Dismiss" })}
-								</button>
-							</div>
-						</>
-					) : (
-						<>
-							<a
-								href={releaseInfo.releasesUrl}
-								target="_blank"
-								rel="noreferrer"
-								className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
-							>
-								{t("update_prompt.get_version", {
-									defaultValue: "Get {{version}}",
-									version: releaseInfo.latestVersion,
+					<p className="text-center text-xs text-[var(--text-muted)]">
+						{apkUpdate.state.progress === null
+							? t("update_prompt.downloading", { defaultValue: "Downloading…" })
+							: t("update_prompt.downloading_percent", {
+									defaultValue: "Downloading… {{percent}}%",
+									percent: Math.round(apkUpdate.state.progress * 100),
 								})}
-								<ChevronRight className="h-4 w-4" />
-							</a>
-							<button
-								type="button"
-								onClick={onDismiss}
-								className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
-							>
-								{t("update_prompt.dismiss", { defaultValue: "Dismiss" })}
-							</button>
-						</>
-					)}
+					</p>
 				</div>
+			)}
+			{phase === "needs-permission" && (
+				<p className="mb-1 text-center text-xs leading-relaxed text-[var(--text-muted)]">
+					{t("update_prompt.needs_permission_hint", {
+						defaultValue: "Allow Free Grind to install apps, then come back here — the update continues automatically.",
+					})}
+				</p>
+			)}
+			{apkUpdate.state.phase === "error" && (
+				<p className="mb-1 text-center text-xs leading-relaxed text-red-400">
+					{describeApkUpdateError(apkUpdate.state.code)}
+				</p>
+			)}
+			<button
+				type="button"
+				disabled={isBusy || phase === "installed"}
+				onClick={() => {
+					if (phase === "needs-permission") apkUpdate.openPermissionSettings();
+					else if (apkUpdate.state.phase === "error" && apkUpdate.state.code === "canceled") apkUpdate.installDownloaded();
+					else apkUpdate.start();
+				}}
+				className={fullscreenPrimaryButtonClass}
+			>
+				{isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+				{phase === "downloading"
+					? t("update_prompt.downloading", { defaultValue: "Downloading…" })
+					: phase === "verifying"
+						? t("update_prompt.verifying", { defaultValue: "Verifying…" })
+						: phase === "installing"
+							? t("update_prompt.installing", { defaultValue: "Installing…" })
+							: phase === "installed"
+								? t("update_prompt.installed", { defaultValue: "Installed" })
+								: phase === "needs-permission"
+									? t("update_prompt.allow_installs", { defaultValue: "Allow installs" })
+									: phase === "error"
+										? t("update_prompt.try_again", { defaultValue: "Try again" })
+										: <>{t("update_prompt.download_install", { defaultValue: "Download & install" })}<Download className="h-4 w-4" /></>}
+			</button>
+			<div className="flex gap-2">
+				<a
+					href={releaseInfo.releasesUrl}
+					target="_blank"
+					rel="noreferrer"
+					className={`${fullscreenSecondaryButtonClass} inline-flex flex-1 items-center justify-center gap-1.5`}
+				>
+					{t("update_prompt.open_github", { defaultValue: "Open on GitHub" })}
+					<ExternalLink className="h-3.5 w-3.5" />
+				</a>
+				<button type="button" onClick={onDismiss} disabled={isBusy} className={`${fullscreenSecondaryButtonClass} flex-1`}>
+					{manual ? t("ota_prompt.later", { defaultValue: "Later" }) : t("update_prompt.dismiss", { defaultValue: "Dismiss" })}
+				</button>
 			</div>
-		</div>
+		</>
+	) : (
+		<>
+			<a href={releaseInfo.releasesUrl} target="_blank" rel="noreferrer" className={fullscreenPrimaryButtonClass}>
+				{t("update_prompt.get_version", { defaultValue: "Get {{version}}", version: releaseInfo.latestVersion })}
+				<ChevronRight className="h-4 w-4" />
+			</a>
+			<button type="button" onClick={onDismiss} className={fullscreenSecondaryButtonClass}>
+				{manual ? t("ota_prompt.later", { defaultValue: "Later" }) : t("update_prompt.dismiss", { defaultValue: "Dismiss" })}
+			</button>
+		</>
+	);
+
+	return (
+		<FullscreenPrompt
+			icon={manual ? Download : AlertTriangle}
+			title={t("update_prompt.title", { defaultValue: "Update Available" })}
+			description={
+				manual
+					? t("update_prompt.description_manual", { defaultValue: "A new version of the app is ready to install." })
+					: t("update_prompt.description_outdated", {
+							defaultValue: "This version no longer receives over-the-air updates. Install the latest one to keep getting new features and fixes.",
+						})
+			}
+			footer={footer}
+		>
+			<div className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
+				<VersionRow
+					icon={Smartphone}
+					iconClass="text-[var(--text-muted)]"
+					label={t("update_prompt.installed_label", { defaultValue: "Installed" })}
+					version={appVersion}
+					badge={
+						manual ? undefined : (
+							<span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-400">
+								{t("update_prompt.outdated_badge", { defaultValue: "Outdated" })}
+							</span>
+						)
+					}
+				/>
+				<VersionRow
+					icon={Sparkles}
+					iconClass="text-[var(--accent)]"
+					label={t("update_prompt.latest_label", { defaultValue: "Latest" })}
+					version={releaseInfo.latestVersion}
+					badge={
+						<span className="shrink-0 rounded-full accent-tint-15 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+							{t("update_prompt.new_badge", { defaultValue: "New" })}
+						</span>
+					}
+				/>
+			</div>
+		</FullscreenPrompt>
 	);
 }
 

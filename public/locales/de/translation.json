@@ -2537,8 +2537,6 @@
     },
     "update_prompt": {
         "title": "Update verfügbar",
-        "outdated": "Du nutzt Free Grind {{version}}, diese Version ist veraltet.",
-        "latest": "Die neueste Version ist {{version}}.",
         "downloading": "Wird heruntergeladen…",
         "downloading_percent": "Wird heruntergeladen… {{percent}} %",
         "needs_permission_hint": "Erlaube Free Grind, Apps zu installieren, und komm dann hierher zurück. Das Update läuft automatisch weiter.",
@@ -2551,7 +2549,12 @@
         "open_github": "Auf GitHub öffnen",
         "dismiss": "Schließen",
         "get_version": "{{version}} holen",
-        "app_update": ""
+        "description_manual": "",
+        "description_outdated": "",
+        "installed_label": "",
+        "latest_label": "",
+        "outdated_badge": "",
+        "new_badge": ""
     },
     "ota_prompt": {
         "title": "",

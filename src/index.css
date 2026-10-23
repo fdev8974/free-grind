@@ -1587,3 +1587,26 @@ dialog::backdrop {
 }
 .logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .logo-shine { animation: none; } }
+
+/*
+ * Accent tint: `accent-tint-14` = the accent color at 14% behind the content.
+ * Drawn as an opacity layer instead of color-mix(var(--accent) …, transparent):
+ * for color-mix Tailwind emits a solid var(--accent) fallback, so webviews
+ * without color-mix (seen on desktop) paint the whole pill solid accent and
+ * the accent-colored text on it disappears. Sets position: relative.
+ */
+@utility accent-tint-* {
+	position: relative;
+	isolation: isolate;
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		border-radius: inherit;
+		background-color: var(--accent);
+		opacity: calc(--value(integer) * 1%);
+		pointer-events: none;
+		transition: opacity 150ms;
+	}
+}

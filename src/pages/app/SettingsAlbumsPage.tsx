@@ -1146,7 +1146,7 @@ export function SettingsAlbumsPage() {
 							<span className="flex items-center gap-2">
 								{t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
 								{planLabel && (
-									<span className="rounded-full bg-[color-mix(in_srgb,var(--accent)_15%,transparent)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
+									<span className="rounded-full accent-tint-15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)]">
 										{planLabel}
 									</span>
 								)}

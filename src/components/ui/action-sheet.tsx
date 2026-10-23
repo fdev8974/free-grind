@@ -95,7 +95,7 @@ export function SectionAddButton({
 			type="button"
 			onClick={onClick}
 			disabled={disabled}
-			className="ml-auto inline-flex h-7 shrink-0 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] px-2.5 text-xs font-semibold text-[var(--accent)] transition hover:bg-[color-mix(in_srgb,var(--accent)_22%,transparent)] active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+			className="ml-auto inline-flex h-7 shrink-0 items-center gap-1 rounded-full accent-tint-14 px-2.5 text-xs font-semibold text-[var(--accent)] transition hover:accent-tint-22 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
 		>
 			<Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
 			{label}

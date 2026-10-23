@@ -2553,8 +2553,6 @@
     },
     "update_prompt": {
         "title": "Доступно ажурирање",
-        "outdated": "Користите Free Grind {{version}}, који је застарео.",
-        "latest": "Најновија верзија је {{version}}.",
         "downloading": "Преузимање…",
         "downloading_percent": "Преузимање… {{percent}}%",
         "needs_permission_hint": "Дозволите Free Grind-у да инсталира апликације, па се вратите овде. Ажурирање се наставља аутоматски.",
@@ -2567,7 +2565,12 @@
         "open_github": "Отвори на GitHub-у",
         "dismiss": "Затвори",
         "get_version": "Преузми {{version}}",
-        "app_update": ""
+        "description_manual": "",
+        "description_outdated": "",
+        "installed_label": "",
+        "latest_label": "",
+        "outdated_badge": "",
+        "new_badge": ""
     },
     "ota_prompt": {
         "title": "",
