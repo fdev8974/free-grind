@@ -1,0 +1,55 @@
+name: Build macOS zip
+
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        description: "Workflow artifact name for the zip"
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
+          submodules: true
+          persist-credentials: false
+
+      - name: Select Xcode
+        # Pinned: the image's default Xcode changes over time, and with it the
+        # macOS SDK the app is built against.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app
+          xcodebuild -version
+
+      - name: Setup Node
+        # Vite runs under Node; the runner's preinstalled one isn't pinned.
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Setup Rust
+        run: rustup toolchain install
+
+      - name: Build the zip
+        env:
+          # Default update channel baked into the frontend: builds from main ship
+          # on Stable, every other branch (beta builds) on Development.
+          FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
+        run: bash ci/build/macos.sh
+
+      - name: Upload the zip
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: out/macos
+          retention-days: 14
+          if-no-files-found: error

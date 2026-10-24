@@ -105,7 +105,7 @@ jobs:
                 '',
                 `Commit: ${context.sha}`,
                 '',
-                'The Android APK, the iOS IPA, the Windows installer and exe, the Linux packages and the OTA frontend bundle are reproducible: ' +
+                'Every download here and the OTA frontend bundle are reproducible: ' +
                   'two independent builds produced identical bytes before this release was published. ' +
                   `To check them yourself, see [REPRODUCIBILITY.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${context.sha}/REPRODUCIBILITY.md) ` +
                   'and the SHA256SUMS and BUILDINFO.txt assets.'
@@ -192,255 +192,6 @@ jobs:
               });
             }
 
-  build-desktop:
-    needs: create-release
-    permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-26
-            args: --target universal-apple-darwin --bundles app,dmg
-            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
-            artifact_suffix: macos-universal
-            bundle_dir: src-tauri/target/universal-apple-darwin/release/bundle
-    runs-on: ${{ matrix.platform }}
-    env:
-      # Default update channel baked into the frontend: builds from main ship
-      # on Stable, every other branch (beta builds) on Development.
-      VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
-          submodules: true
-
-      - name: Select Xcode
-        if: runner.os == 'macOS'
-        # Pinned: the image's default Xcode changes over time, and with it the
-        # macOS SDK the app is built against.
-        run: |
-          sudo xcode-select -s /Applications/Xcode_26.6.app
-          xcodebuild -version
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-
-      - name: Setup Rust
-        env:
-          TARGETS: ${{ matrix.rust_targets }}
-        shell: bash
-        run: |
-          rustup toolchain install
-          [ -z "$TARGETS" ] || rustup target add ${TARGETS//,/ }
-
-      - name: Check Cargo.lock is up to date
-        # Fails instead of letting the build silently re-resolve crate versions.
-        shell: bash
-        run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          workspaces: ./src-tauri -> target
-
-      - name: Install frontend dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build desktop artifacts
-        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tauriScript: bunx tauri
-          args: ${{ matrix.args }}
-
-      - name: Upload desktop artifacts to release
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
-        env:
-          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
-          ARTIFACT_SUFFIX: ${{ matrix.artifact_suffix }}
-          BUNDLE_DIR: ${{ matrix.bundle_dir }}
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-            const os = require('os');
-            const { execFileSync } = require('child_process');
-
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const version = pkg.version;
-            const suffix = process.env.ARTIFACT_SUFFIX;
-            let bundleDir = process.env.BUNDLE_DIR;
-            const releaseId = Number(process.env.RELEASE_ID);
-
-            // Resolve bundleDir to absolute path for debugging
-            if (!path.isAbsolute(bundleDir)) {
-              bundleDir = path.resolve(bundleDir);
-            }
-
-            const mimeTypes = {
-              '.dmg':         'application/x-apple-diskimage',
-              '.gz':          'application/gzip',
-              '.tar.gz':      'application/gzip',
-              '.tar.gz.sig':  'text/plain',
-              '.sig':         'text/plain',
-              '.exe':         'application/vnd.microsoft.portable-executable',
-              '.exe.sig':     'text/plain',
-              '.deb':         'application/vnd.debian.binary-package',
-              '.deb.sig':     'text/plain',
-              '.rpm':         'application/x-rpm',
-              '.rpm.sig':     'text/plain',
-              '.AppImage':     'application/vnd.appimage',
-              '.AppImage.sig': 'text/plain',
-            };
-
-            // Collect installable bundles
-            const searchDirs = {
-              'macos-universal': ['dmg', 'macos'],
-            };
-
-            const subDirs = searchDirs[suffix] ?? [];
-            const uploads = [];
-            // Ordered longest-first so multi-part extensions are matched before shorter ones
-            const allowedExts = ['.tar.gz.sig', '.tar.gz', '.exe.sig', '.AppImage.sig', '.deb.sig', '.rpm.sig', '.dmg', '.exe', '.deb', '.rpm', '.AppImage'];
-
-            function addUpload(src, assetName, mime) {
-              uploads.push({ src, name: assetName, mime });
-            }
-
-            function versionedAssetName(baseName) {
-              return `free-grind-v${version}-${suffix}-${baseName}`;
-            }
-
-            function hasAnyBundleSubdir(dir) {
-              if (!fs.existsSync(dir)) return false;
-              return subDirs.some((sub) => fs.existsSync(path.join(dir, sub)));
-            }
-
-            function resolveBundleDir() {
-              const candidates = [bundleDir];
-
-              // Tauri can place bundle outputs in different target layouts depending on host/build settings.
-              if (suffix === 'macos-universal') {
-                candidates.push(
-                  'src-tauri/target/release/bundle',
-                  'src-tauri/target/universal-apple-darwin/release/bundle',
-                  'src-tauri/target/aarch64-apple-darwin/release/bundle',
-                  'src-tauri/target/x86_64-apple-darwin/release/bundle'
-                );
-              }
-
-              const resolved = candidates
-                .filter(Boolean)
-                .map((c) => (path.isAbsolute(c) ? c : path.resolve(c)));
-
-              for (const candidate of resolved) {
-                if (hasAnyBundleSubdir(candidate)) {
-                  return candidate;
-                }
-              }
-
-              // Prefer the first existing directory even if expected subdirs are missing for better diagnostics.
-              const firstExisting = resolved.find((c) => fs.existsSync(c));
-              return firstExisting || resolved[0];
-            }
-
-            bundleDir = resolveBundleDir();
-
-            console.log(`📦 Artifact search: suffix=${suffix}, bundleDir=${bundleDir}`);
-            console.log(`   bundleDir exists: ${fs.existsSync(bundleDir)}`);
-            console.log(`📂 Searching subdirs: ${subDirs.join(', ')}`);
-
-            for (const sub of subDirs) {
-              const dir = path.join(bundleDir, sub);
-              console.log(`  Checking: ${dir}`);
-              if (!fs.existsSync(dir)) {
-                console.log(`    ❌ Does not exist`);
-                continue;
-              }
-              const entries = fs.readdirSync(dir, { withFileTypes: true });
-              console.log(`    ✓ Found ${entries.length} entries`);
-              
-              for (const entry of entries) {
-                console.log(`      - ${entry.name} (${entry.isDirectory() ? 'dir' : 'file'})`);
-                
-                // On macOS, Tauri may output a .app directory without a DMG.
-                // Zip that directory so we always publish a runnable desktop artifact.
-                if (suffix === 'macos-universal' && entry.isDirectory() && entry.name.endsWith('.app')) {
-                  const appPath = path.join(dir, entry.name);
-                  const zipPath = path.join(os.tmpdir(), `${entry.name}.zip`);
-                  console.log(`        ↻ Zipping .app bundle: ${zipPath}`);
-                  if (fs.existsSync(zipPath)) fs.rmSync(zipPath, { force: true });
-                  try {
-                    execFileSync('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', appPath, zipPath]);
-                    addUpload(zipPath, versionedAssetName(`${entry.name}.zip`), 'application/zip');
-                    console.log(`        ✓ Zipped and queued`);
-                  } catch (e) {
-                    console.log(`        ⚠ Failed to zip: ${e.message}`);
-                  }
-                  continue;
-                }
-
-                if (!entry.isFile()) {
-                  console.log(`        ⊘ Skipping directory`);
-                  continue;
-                }
-                
-                const file = entry.name;
-                const finalExt = allowedExts.find(e => file.endsWith(e));
-                if (!finalExt) {
-                  console.log(`        ⊘ Extension not in allowlist`);
-                  continue;
-                }
-                
-                const mime = mimeTypes[finalExt] ?? 'application/octet-stream';
-                addUpload(path.join(dir, file), versionedAssetName(file), mime);
-                console.log(`        ✓ Queued as ${versionedAssetName(file)}`);
-              }
-            }
-
-            // Fallback for macOS: if bundling didn't emit dmg/macos folders,
-            // still publish the universal executable as a compressed artifact.
-            if (suffix === 'macos-universal' && uploads.length === 0) {
-              const baseBinary = path.resolve('src-tauri/target/universal-apple-darwin/release/free-grind');
-              if (fs.existsSync(baseBinary)) {
-                const fallbackTar = path.join(os.tmpdir(), `free-grind-v${version}-${suffix}-binary.tar.gz`);
-                if (fs.existsSync(fallbackTar)) fs.rmSync(fallbackTar, { force: true });
-                execFileSync('/usr/bin/tar', ['-czf', fallbackTar, '-C', path.dirname(baseBinary), path.basename(baseBinary)]);
-                addUpload(fallbackTar, `free-grind-v${version}-${suffix}-binary.tar.gz`, 'application/gzip');
-                console.log(`  ✓ Added macOS binary fallback artifact from ${baseBinary}`);
-              } else {
-                console.log(`  ❌ macOS fallback binary not found at ${baseBinary}`);
-              }
-            }
-
-            console.log(`\n📋 Total artifacts queued: ${uploads.length}`);
-            if (uploads.length === 0) {
-              console.log(`\nDebug: Listing actual bundle directory structure:`);
-              if (fs.existsSync(bundleDir)) {
-                const allEntries = fs.readdirSync(bundleDir, { recursive: true, withFileTypes: false });
-                allEntries.slice(0, 30).forEach(e => console.log(`  ${e}`));
-              }
-              throw new Error(`No desktop artifacts found for ${suffix} under ${bundleDir}`);
-            }
-
-            for (const { src, name, mime } of uploads) {
-              const data = fs.readFileSync(src);
-              await github.rest.repos.uploadReleaseAsset({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                release_id: releaseId,
-                name,
-                data,
-                headers: { 'content-type': mime, 'content-length': data.length },
-              });
-              console.log(`✓ Uploaded ${name}`);
-            }
-
   # Linux packages, the Android APK and the OTA frontend bundle are built twice,
   # on separate runners, inside the pinned container (ci/build). `verify` only
   # lets them through when both builds are byte-identical; signing comes after.
@@ -483,7 +234,7 @@ jobs:
           if-no-files-found: error
 
   verify:
-    needs: [reproducible-build, build-ios-1, build-ios-2]
+    needs: [reproducible-build, build-ios-1, build-ios-2, build-macos-1, build-macos-2]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -502,12 +253,19 @@ jobs:
           pattern: ios-build-*
           path: builds
 
+      - name: Download both macOS builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: macos-build-*
+          path: builds
+
       - name: Compare the builds
         run: |
           for artifact in linux android windows frontend; do
             sh ci/compare.sh "verified/$artifact" "builds/build-$artifact-1" "builds/build-$artifact-2"
           done
           sh ci/compare.sh verified/ios builds/ios-build-1 builds/ios-build-2
+          sh ci/compare.sh verified/macos builds/macos-build-1 builds/macos-build-2
 
       - name: Upload verified Linux packages
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -538,6 +296,14 @@ jobs:
         with:
           name: verified-ios
           path: verified/ios
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified macOS zip
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-macos
+          path: verified/macos
           retention-days: 3
           if-no-files-found: error
 
@@ -621,6 +387,7 @@ jobs:
         run: |
           cp verified/verified-linux/* release/
           cp verified/verified-ios/*.ipa release/
+          cp verified/verified-macos/*.zip release/
           version=$(jq -r '.version' package.json)
           cp "verified/verified-windows/free-grind-v$version-windows-x64-setup.exe" release/
           # The app picks its runtime mode from its file name (manager vs
@@ -636,7 +403,7 @@ jobs:
             echo "Rebuild the reproducible files with:"
             echo "  git checkout $GITHUB_SHA && git submodule update --init"
             echo "  FG_CHANNEL=$FG_CHANNEL sh ci/build/run.sh <linux|android|windows|frontend>"
-            echo "  FG_CHANNEL=$FG_CHANNEL bash ci/build/ios.sh   # on macOS with Xcode 26.6"
+            echo "  FG_CHANNEL=$FG_CHANNEL bash ci/build/<ios|macos>.sh   # on macOS with Xcode 26.6"
             echo "See REPRODUCIBILITY.md for comparing them with this release."
           } > release/BUILDINFO.txt
           # Every file two builders agreed on, under its build output name, plus
@@ -674,6 +441,7 @@ jobs:
               '.AppImage': 'application/vnd.appimage',
               '.exe': 'application/vnd.microsoft.portable-executable',
               '.ipa': 'application/octet-stream',
+              '.zip': 'application/zip',
             };
             for (const name of fs.readdirSync('release')) {
               const data = fs.readFileSync(path.join('release', name));
@@ -703,3 +471,16 @@ jobs:
     uses: ./.github/workflows/build-ios.yml
     with:
       artifact_name: ios-build-2
+
+  # The macOS app, as a zip, also built twice.
+  build-macos-1:
+    needs: create-release
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      artifact_name: macos-build-1
+
+  build-macos-2:
+    needs: create-release
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      artifact_name: macos-build-2

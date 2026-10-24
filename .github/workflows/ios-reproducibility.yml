@@ -1,7 +1,8 @@
 name: iOS Reproducibility Check (Manual)
 
-# Builds the unsigned IPA three times, independently, and reports which files
-# in it differ (some differences only show up in about every other build). iOS isn't reproducible yet; this shows what's left to fix.
+# Builds the unsigned IPA three times, independently, and reports which files in
+# it differ. Releases build it twice and compare; some differences only show
+# up in about every other build, so this check uses three.
 
 on:
   workflow_dispatch:

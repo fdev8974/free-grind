@@ -7,9 +7,9 @@ A reproducible build lets you confirm that a published Free Grind download was b
 | Android APK (`free-grind-v<version>.apk`)   | Yes          | [Android](#android)                           |
 | Windows installer and portable exe          | Yes          | [Windows](#windows)                           |
 | iOS IPA (unsigned)                          | Yes, on a Mac with Xcode 26.6 | [iOS](#ios)                  |
+| macOS app (`…-macos-universal.zip`)         | Yes, on a Mac with Xcode 26.6 | [macOS](#macos)              |
 | Linux `.deb`, `.rpm`, `.AppImage`           | Yes          | [Linux](#linux)                               |
 | OTA frontend bundle (`frontend-*.tar.gz`)   | Yes          | [OTA frontend bundle](#ota-frontend-bundle)   |
-| macOS                                       | Not yet      | [Not reproducible yet](#not-reproducible-yet) |
 
 The OTA bundle matters as much as the apps: it replaces the whole user interface of an installed app on every update.
 
@@ -17,7 +17,7 @@ The OTA bundle matters as much as the apps: it replaces the whole user interface
 
 CI ([release.yml](.github/workflows/release.yml), [ota-branches.yml](.github/workflows/ota-branches.yml)) runs the commands from this page:
 
-1. Two separate runners each build the APK, the Windows installer and exe, the Linux packages and the OTA bundle inside the pinned container from [ci/build/Dockerfile](ci/build/Dockerfile), and two macOS runners each build the iOS IPA with [ci/build/ios.sh](ci/build/ios.sh).
+1. Two separate runners each build the APK, the Windows installer and exe, the Linux packages and the OTA bundle inside the pinned container from [ci/build/Dockerfile](ci/build/Dockerfile), and two macOS runners each build the iOS IPA and the macOS zip with [ci/build/ios.sh](ci/build/ios.sh) and [ci/build/macos.sh](ci/build/macos.sh).
 2. [ci/compare.sh](ci/compare.sh) checks that both builds are byte-identical. If they differ, nothing is published.
 3. Only then is the APK signed and the OTA bundle signed and uploaded. CI checks that the signed APK is exactly the unsigned build plus a signature, using the same `apksigcopier` check you run below.
 
@@ -100,6 +100,15 @@ FG_CHANNEL=<from BUILDINFO.txt> bash ci/build/ios.sh
 cmp out/ios/free-grind-v<version>-unsigned.ipa /path/to/free-grind-v<version>-unsigned.ipa && echo "✓ IPA matches"
 ```
 
+## macOS
+
+macOS releases are a zip of the universal app (no dmg, which can't be built reproducibly). [ci/build/macos.sh](ci/build/macos.sh) builds it the same way as the iOS IPA: on a Mac with Xcode 26.6, in a copy of the checkout at a fixed path (`/tmp/free-grind-macos`). The app isn't signed with a developer certificate, only with the ad-hoc signatures the linker adds, so the whole zip has to match.
+
+```bash
+FG_CHANNEL=<from BUILDINFO.txt> bash ci/build/macos.sh
+cmp out/macos/free-grind-v<version>-macos-universal.zip /path/to/free-grind-v<version>-macos-universal.zip && echo "✓ zip matches"
+```
+
 ## Linux
 
 The `.deb`, `.rpm` and `.AppImage` aren't signed, so the whole file has to match.
@@ -170,9 +179,9 @@ For anyone changing the build. Each of these was needed to get identical bytes:
 - **Linux packages:** tauri's bundler stamps the current time into packages and downloads an unpinned `linuxdeploy` for AppImages. [ci/build/linux.sh](ci/build/linux.sh) therefore repacks the `.deb`, builds the `.rpm` with `rpmbuild`, and assembles the AppImage around the pinned runtime. The AppImage uses the system's WebKitGTK and GStreamer, like the `.deb` and `.rpm`.
 - **Windows:** one codegen unit (otherwise a panic type descriptor lands at a random place in `.data`), `/Brepro` instead of a link timestamp, no PDB, and path remapping through `/clang:` flags for clang-cl ([ci/build/windows.sh](ci/build/windows.sh)). NSIS records every installed file's mtime, so [a wrapper](ci/build/windows/makensis) sets them to the commit time first. makensis is built with `VERSION=3.11`, since its version string ends up in the installer.
 - **iOS:** small `objc_msgSend` selector stubs (`-objc_stubs_small`; the default fast stubs give `_objc_msgSend` a second GOT slot, and the linker orders the two at random), one codegen unit for the Rust library as on Windows, a fixed build path, and an IPA zip with sorted entries, the commit time as mtime and no extra attributes.
+- **macOS:** the same fixed build path, one codegen unit and zip packing as iOS. The app is shipped as a zip only; a dmg can't be built reproducibly.
 - **Android:** the baseline profile and Kotlin tooling metadata are switched off, because they differ between builds. Build-tools and NDK versions are set explicitly so AGP can't pick its own. The release network security config lives in `ci/build/android/` and is swapped in by the build script, not by CI.
 
-## Not reproducible yet
+## Not covered
 
-- **macOS** is built on GitHub's `macos-26` runner image with Xcode 26.6 selected explicitly, so the toolchain is pinned, but the output isn't reproducible yet.
 - The **manual "Build Artifacts" workflow** produces test builds on the runner images; they aren't releases.

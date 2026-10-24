@@ -9,7 +9,7 @@ Free Grind releases are signed with two keys. Check a download against these val
 
 The minisign key is the same one installed apps use to accept OTA updates; it's in [`src-tauri/tauri.conf.json`](./src-tauri/tauri.conf.json) under `plugins.hotswap.pubkey`. The Android key is what Android checks on every update: an APK signed with another key won't install over Free Grind.
 
-## Checking a download (Windows, Linux, iOS)
+## Checking a download (Windows, macOS, Linux, iOS)
 
 Download `SHA256SUMS` and `SHA256SUMS.minisig` from the same release, next to the file you want to check. You need [minisign](https://jedisct1.github.io/minisign/): `apt install minisign` on Debian/Ubuntu, `brew install minisign` on macOS, or a binary from its [releases](https://github.com/jedisct1/minisign/releases).
 

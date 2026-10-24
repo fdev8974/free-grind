@@ -4,7 +4,7 @@ This page lists every tool and version the official release builds use, so you c
 
 There are two ways to build:
 
-- **Release builds** of the Android APK, the Windows installer, the Linux packages and the OTA frontend bundle run in a pinned container (Windows is cross-compiled there); the iOS IPA is built by `ci/build/ios.sh` on a Mac with Xcode 26.6. They're reproducible: the same commit gives the same bytes as the published files. To build or check one, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md).
+- **Release builds** of the Android APK, the Windows installer, the Linux packages and the OTA frontend bundle run in a pinned container (Windows is cross-compiled there); the iOS IPA and the macOS zip are built by `ci/build/ios.sh` and `ci/build/macos.sh` on a Mac with Xcode 26.6. They're reproducible: the same commit gives the same bytes as the published files. To build or check one, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md).
 - **Development builds** run directly on your machine with the toolchain below. They're the same app, but the bytes depend on your machine.
 
 ## Pinned inputs
@@ -88,6 +88,8 @@ bunx tauri build --bundles nsis
 Output: `src-tauri/target/release/bundle/nsis/`
 
 ### macOS (universal)
+
+Release zips come from `FG_CHANNEL=main bash ci/build/macos.sh` (Xcode 26.6, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md#macos)). For development:
 
 ```bash
 rustup target add aarch64-apple-darwin x86_64-apple-darwin
