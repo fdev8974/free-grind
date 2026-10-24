@@ -894,6 +894,10 @@
         "photo_upload": {
             "title": "Naloži sliko",
             "confirm": "Naloži",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Vodni žig »Taken on Grindr«",
             "taken_on_grindr_description": "Vključi časovni žig, da potrdiš pristnost in svežino fotografije"
         },

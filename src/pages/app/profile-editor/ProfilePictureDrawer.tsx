@@ -1,4 +1,5 @@
-import { AlertTriangle, ImageIcon, Loader2, Plus } from "lucide-react";
+import { ImageIcon, Loader2, Plus } from "lucide-react";
+import { TriangleAlertFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
@@ -138,9 +139,11 @@ export function ProfilePictureDrawer({
 				{t("profile_photo_drawer.description")}
 			</p>
 
-			<div className="mb-3 flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3.5 py-3">
-				<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-				<p className="text-xs leading-relaxed text-amber-400">
+			<div className="mb-3 flex items-center gap-3 rounded-2xl ink-tint-8 p-3">
+				<div className="shrink-0 rounded-xl bg-amber-500/15 p-2 text-amber-400">
+					<TriangleAlertFilled className="h-4 w-4" />
+				</div>
+				<p className="min-w-0 flex-1 text-xs leading-relaxed text-[var(--text-muted)]">
 					{t("profile_photo_drawer.nudity_notice")}
 				</p>
 			</div>

@@ -887,6 +887,10 @@
         "photo_upload": {
             "title": "Otpremi sliku",
             "confirm": "Otpremi",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Vodeni žig „Taken on Grindr“",
             "taken_on_grindr_description": "Uključi vremensku oznaku da potvrdiš autentičnost i svježinu fotografije"
         },

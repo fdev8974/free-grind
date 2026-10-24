@@ -887,6 +887,10 @@
         "photo_upload": {
             "title": "Subir foto",
             "confirm": "Subir",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Marca de agua «Taken on Grindr»",
             "taken_on_grindr_description": "Incluye la fecha y hora para certificar la autenticidad y actualidad de tu foto"
         },

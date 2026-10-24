@@ -880,6 +880,10 @@
     "photo_upload": {
       "title": "Upload Picture",
       "confirm": "Upload",
+      "next": "Next",
+      "back": "Back",
+      "crop_hint": "Crop your photo",
+      "thumbnail_hint": "Choose the thumbnail shown in the grid",
       "taken_on_grindr": "Taken on Grindr watermark",
       "taken_on_grindr_description": "Include the timestamp to certify the authenticity and recency of your photo"
     },

@@ -46,6 +46,7 @@ import {
 	type ProfileDraft,
 	buildSquareThumbCoords,
 	buildThumbCoordsFromFraction,
+	cropImageFile,
 	type FractionalCrop,
 	emptyDraft,
 	parseMonthInput,
@@ -94,6 +95,11 @@ export function ProfileEditorPage() {
 	const [deletingPoolHash, setDeletingPoolHash] = useState<string | null>(null);
 	const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
 	const [pendingPhotoTakenOnGrindr, setPendingPhotoTakenOnGrindr] = useState(false);
+	// Two steps: "crop" cuts the uploaded photo itself (free aspect), then
+	// "thumbnail" picks the square thumbnail region on the cropped result.
+	const [photoUploadStep, setPhotoUploadStep] = useState<"crop" | "thumbnail">("crop");
+	const [croppedPhotoFile, setCroppedPhotoFile] = useState<File | null>(null);
+	const [isCroppingPhoto, setIsCroppingPhoto] = useState(false);
 	const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
 	const [photoCrop, setPhotoCrop] = useState<Crop | undefined>(undefined);
 	const [photoCompletedCrop, setPhotoCompletedCrop] = useState<PixelCrop | undefined>(undefined);
@@ -101,33 +107,31 @@ export function ProfileEditorPage() {
 	const photoImgRef = useRef<HTMLImageElement | null>(null);
 	const isDesktop = useDesktopBreakpoint();
 
+	const photoPreviewFile = photoUploadStep === "thumbnail" ? croppedPhotoFile : pendingPhotoFile;
 	useEffect(() => {
-		if (!pendingPhotoFile) {
+		if (!photoPreviewFile) {
 			setPhotoPreviewUrl(null);
 			setPhotoCrop(undefined);
 			setPhotoCompletedCrop(undefined);
 			return;
 		}
-		const url = URL.createObjectURL(pendingPhotoFile);
+		const url = URL.createObjectURL(photoPreviewFile);
 		setPhotoPreviewUrl(url);
 		setPhotoCrop(undefined);
 		setPhotoCompletedCrop(undefined);
 		return () => URL.revokeObjectURL(url);
-	}, [pendingPhotoFile]);
+	}, [photoPreviewFile]);
 
-	// Square-only — this crop no longer produces the uploaded file (see
-	// confirmPendingPhotoUpload), it only picks the thumbnail region, which the
-	// server always renders as a square. Seeds photoCompletedCrop immediately
-	// (not just photoCrop) so confirming without dragging still has a valid
-	// pixel rect to derive thumbCoords from — react-image-crop only fires its
+	// The crop step starts on the whole image (free aspect); the thumbnail step
+	// is square-only — the server always renders thumbnails as squares. Seeds
+	// photoCompletedCrop immediately (not just photoCrop) so confirming without
+	// dragging still has a valid pixel rect — react-image-crop only fires its
 	// own onComplete after a user-driven drag.
 	const handlePhotoImageLoad = useCallback((event: React.SyntheticEvent<HTMLImageElement>) => {
 		const { width, height } = event.currentTarget;
-		const percentCrop = centerCrop(
-			makeAspectCrop({ unit: "%", width: 90 }, 1, width, height),
-			width,
-			height,
-		);
+		const percentCrop: Crop = photoUploadStep === "crop"
+			? { unit: "%", x: 0, y: 0, width: 100, height: 100 }
+			: centerCrop(makeAspectCrop({ unit: "%", width: 90 }, 1, width, height), width, height);
 		setPhotoCrop(percentCrop);
 		setPhotoCompletedCrop({
 			unit: "px",
@@ -136,7 +140,7 @@ export function ProfileEditorPage() {
 			width: (percentCrop.width / 100) * width,
 			height: (percentCrop.height / 100) * height,
 		});
-	}, []);
+	}, [photoUploadStep]);
 
 	// Tracks each photo's last-seen moderation state across reloads, so a
 	// background poll can toast when one changes (e.g. pending -> approved)
@@ -593,6 +597,8 @@ export function ProfileEditorPage() {
 		}
 
 		setPendingPhotoTakenOnGrindr(false);
+		setPhotoUploadStep("crop");
+		setCroppedPhotoFile(null);
 		setPendingPhotoFile(file);
 	};
 
@@ -769,24 +775,39 @@ export function ProfileEditorPage() {
 		}
 	};
 
-	// The crop selection is only used to tell the server which square region
-	// to render the thumbnail from (thumbCoords) — the uploaded file itself is
-	// the whole (normalized) image, never client-side cropped.
+	const getFractionalPhotoCrop = (): FractionalCrop | undefined => {
+		const img = photoImgRef.current;
+		if (!photoCompletedCrop?.width || !photoCompletedCrop.height || !img) return undefined;
+		return {
+			left: photoCompletedCrop.x / img.width,
+			top: photoCompletedCrop.y / img.height,
+			right: (photoCompletedCrop.x + photoCompletedCrop.width) / img.width,
+			bottom: (photoCompletedCrop.y + photoCompletedCrop.height) / img.height,
+		};
+	};
+
+	// Step 1 cuts the photo itself (client-side, see cropImageFile). Step 2's
+	// selection is only used to tell the server which square region of that
+	// cropped photo to render the thumbnail from (thumbCoords).
 	const confirmPendingPhotoUpload = async () => {
 		if (!pendingPhotoFile) return;
 
-		let crop: FractionalCrop | undefined;
-		if (photoCompletedCrop?.width && photoCompletedCrop.height && photoImgRef.current) {
-			const img = photoImgRef.current;
-			crop = {
-				left: photoCompletedCrop.x / img.width,
-				top: photoCompletedCrop.y / img.height,
-				right: (photoCompletedCrop.x + photoCompletedCrop.width) / img.width,
-				bottom: (photoCompletedCrop.y + photoCompletedCrop.height) / img.height,
-			};
+		if (photoUploadStep === "crop") {
+			const crop = getFractionalPhotoCrop();
+			setIsCroppingPhoto(true);
+			try {
+				setCroppedPhotoFile(crop ? await cropImageFile(pendingPhotoFile, crop) : pendingPhotoFile);
+			} catch {
+				// Webview can't decode it (e.g. HEIC outside Apple) — upload uncropped.
+				setCroppedPhotoFile(pendingPhotoFile);
+			} finally {
+				setIsCroppingPhoto(false);
+			}
+			setPhotoUploadStep("thumbnail");
+			return;
 		}
 
-		await uploadPhotoFile(pendingPhotoFile, crop);
+		await uploadPhotoFile(croppedPhotoFile ?? pendingPhotoFile, getFractionalPhotoCrop());
 	};
 
 	// Removing a photo here only unlinks it from the profile's active slots
@@ -932,10 +953,27 @@ export function ProfileEditorPage() {
 					title={t("profile_editor.photo_upload.title")}
 					onClose={cancelPendingPhotoUpload}
 					onConfirm={() => void confirmPendingPhotoUpload()}
-					confirmLabel={t("profile_editor.photo_upload.confirm")}
-					isProcessing={isUploadingPhoto}
+					confirmLabel={photoUploadStep === "crop"
+						? t("profile_editor.photo_upload.next", { defaultValue: "Next" })
+						: t("profile_editor.photo_upload.confirm")}
+					isProcessing={isUploadingPhoto || isCroppingPhoto}
 					isDesktop={isDesktop}
+					footerLeft={photoUploadStep === "thumbnail" ? (
+						<button
+							type="button"
+							onClick={() => setPhotoUploadStep("crop")}
+							disabled={isUploadingPhoto}
+							className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2.5 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+						>
+							{t("profile_editor.photo_upload.back", { defaultValue: "Back" })}
+						</button>
+					) : undefined}
 				>
+					<p className="px-4 pb-2 text-xs text-[var(--text-muted)]">
+						{photoUploadStep === "crop"
+							? t("profile_editor.photo_upload.crop_hint", { defaultValue: "Crop your photo" })
+							: t("profile_editor.photo_upload.thumbnail_hint", { defaultValue: "Choose the thumbnail shown in the grid" })}
+					</p>
 					<div className="flex min-h-0 flex-1 flex-col">
 						<div className="min-h-0 flex-1 overflow-y-auto">
 							{photoPreviewUrl && (
@@ -952,10 +990,11 @@ export function ProfileEditorPage() {
 											.photo-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
 											.photo-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
 										`}</style>
-										<div className="relative rounded-xl border border-[var(--border)] overflow-hidden">
+										<div data-sheet-no-drag className="relative rounded-xl border border-[var(--border)] overflow-hidden">
 											<ReactCrop
+												key={photoUploadStep}
 												crop={photoCrop}
-												aspect={1}
+												aspect={photoUploadStep === "thumbnail" ? 1 : undefined}
 												onChange={(c) => { setIsDraggingPhotoCrop(true); setPhotoCrop(c); }}
 												onComplete={(c) => { setIsDraggingPhotoCrop(false); setPhotoCompletedCrop(c); }}
 												ruleOfThirds={isDraggingPhotoCrop}
@@ -973,7 +1012,7 @@ export function ProfileEditorPage() {
 													onLoad={handlePhotoImageLoad}
 												/>
 											</ReactCrop>
-											{pendingPhotoTakenOnGrindr && photoCrop && (
+											{photoUploadStep === "thumbnail" && pendingPhotoTakenOnGrindr && photoCrop && (
 												<div
 													className="absolute inline-flex items-center gap-1.5 pointer-events-none"
 													style={{

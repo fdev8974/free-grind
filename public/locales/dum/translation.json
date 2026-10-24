@@ -904,6 +904,10 @@
         "photo_upload": {
             "title": "تحميل صورة",
             "confirm": "رفع",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "اتتقاط الصورة باستخدام علامة Grindr المائية",
             "taken_on_grindr_description": "أضف الطابع الزمني للتحقق من صحة الصورة وحداثتها."
         },

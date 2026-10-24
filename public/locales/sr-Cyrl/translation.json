@@ -890,6 +890,10 @@
         "photo_upload": {
             "title": "Отпреми слику",
             "confirm": "Отпреми",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Водени жиг „Снимљено на Grindr-у“",
             "taken_on_grindr_description": "Укључите временску ознаку као потврду аутентичности и свежине фотографије"
         },

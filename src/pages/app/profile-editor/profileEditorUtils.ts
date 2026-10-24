@@ -270,6 +270,38 @@ export async function buildThumbCoordsFromFraction(file: File, crop: FractionalC
 	return `${px(crop.bottom, height)},${px(crop.left, width)},${px(crop.right, width)},${px(crop.top, height)}`;
 }
 
+/**
+ * The general upload crop: cuts `crop` out of `file` as a lossless PNG (the
+ * upload normalization re-encodes it anyway). A crop covering the whole image
+ * hands back the original file untouched.
+ */
+export async function cropImageFile(file: File, crop: FractionalCrop): Promise<File> {
+	const bitmap = await createImageBitmap(file);
+	try {
+		const { width, height } = bitmap;
+		const px = (fraction: number, size: number) => Math.min(size, Math.max(0, Math.round(fraction * size)));
+		const left = px(crop.left, width);
+		const top = px(crop.top, height);
+		const cropWidth = px(crop.right, width) - left;
+		const cropHeight = px(crop.bottom, height) - top;
+		if (cropWidth <= 0 || cropHeight <= 0 || (cropWidth === width && cropHeight === height)) {
+			return file;
+		}
+		const canvas = document.createElement("canvas");
+		canvas.width = cropWidth;
+		canvas.height = cropHeight;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return file;
+		ctx.drawImage(bitmap, left, top, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+		const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+		if (!png) return file;
+		const base = file.name.replace(/\.[^./]*$/, "") || "upload";
+		return new File([png], `${base}.png`, { type: "image/png", lastModified: Date.now() });
+	} finally {
+		bitmap.close();
+	}
+}
+
 export function profileToDraft(
 	profile: z.infer<typeof profileSchema> | null,
 	unitsPreset: UnitsPreset = "world",

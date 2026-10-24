@@ -887,6 +887,10 @@
         "photo_upload": {
             "title": "Carregar foto",
             "confirm": "Carregar",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Foto com marca d'água do Grindr",
             "taken_on_grindr_description": "Inclua a marca de data e hora para comprovar a autenticidade e a atualidade da sua foto"
         },

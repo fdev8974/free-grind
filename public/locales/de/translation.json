@@ -880,6 +880,10 @@
         "photo_upload": {
             "title": "Bild hochladen",
             "confirm": "Hochladen",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "„In Grindr aufgenommen“-Wasserzeichen",
             "taken_on_grindr_description": "Füge den Zeitstempel hinzu, um die Echtheit und Aktualität deines Fotos zu bestätigen"
         },

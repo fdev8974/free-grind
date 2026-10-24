@@ -887,6 +887,10 @@
         "photo_upload": {
             "title": "Importer une photo",
             "confirm": "Importer",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Photo prise sur Grindr (avec filigrane)",
             "taken_on_grindr_description": "Inclus l'horodatage pour certifier l'authenticité et la date récente de votre photo"
         },

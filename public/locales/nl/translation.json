@@ -880,6 +880,10 @@
         "photo_upload": {
             "title": "Foto uploaden",
             "confirm": "Uploaden",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Watermerk 'Taken on Grindr'",
             "taken_on_grindr_description": "Voeg het tijdstip toe om de echtheid en actualiteit van je foto te bevestigen"
         },

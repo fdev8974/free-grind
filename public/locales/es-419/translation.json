@@ -887,6 +887,10 @@
         "photo_upload": {
             "title": "Subir imagen",
             "confirm": "Subir",
+            "next": "",
+            "back": "",
+            "crop_hint": "",
+            "thumbnail_hint": "",
             "taken_on_grindr": "Marca de agua de certificación",
             "taken_on_grindr_description": "Incluye la marca de tiempo para certificar la autenticidad y la actualidad de tu foto."
         },
