@@ -13,6 +13,7 @@ on:
     paths:
       - .github/workflows/ios-reproducibility.yml
       - .github/workflows/build-ios.yml
+      - ci/build/ios.sh
 
 permissions:
   contents: read
