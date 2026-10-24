@@ -2599,7 +2599,16 @@
         "export_confirm": "Exportar",
         "import_categories_title": "¿Qué quieres restaurar?",
         "import_categories_desc": "Solo se pueden restaurar las categorías incluidas en este archivo.",
-        "import_confirm": "Restaurar"
+        "import_confirm": "Restaurar",
+        "export_success_picker": "",
+        "export_destination_title": "",
+        "export_destination_downloads": "",
+        "export_destination_picker": "",
+        "export_destination_picker_hint": "",
+        "export_destination_downloads_hint": "",
+        "export_destination_picker_hint_desktop": "",
+        "export_destination_device": "",
+        "export_destination_device_hint_ios": ""
     },
     "restore_offer": {
         "title": "¿Restaurar tus datos?",

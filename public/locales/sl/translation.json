@@ -2617,7 +2617,16 @@
         "export_confirm": "Izvozi",
         "import_categories_title": "Kaj želiš obnoviti?",
         "import_categories_desc": "Obnoviti je mogoče samo kategorije, ki so v tej datoteki.",
-        "import_confirm": "Obnovi"
+        "import_confirm": "Obnovi",
+        "export_success_picker": "",
+        "export_destination_title": "",
+        "export_destination_downloads": "",
+        "export_destination_picker": "",
+        "export_destination_picker_hint": "",
+        "export_destination_downloads_hint": "",
+        "export_destination_picker_hint_desktop": "",
+        "export_destination_device": "",
+        "export_destination_device_hint_ios": ""
     },
     "restore_offer": {
         "title": "Obnovim tvoje podatke?",

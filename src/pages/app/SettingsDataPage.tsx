@@ -15,6 +15,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
 import { BackupProgressBar } from "../../components/BackupProgressBar";
 import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
@@ -31,6 +32,7 @@ import {
 	inspectBackupFile,
 	pickBackupFileToTempAndroid,
 	type BackupCategoryId,
+	type BackupExportDestination,
 } from "../../services/backupRestore";
 import { loadEncounters } from "../../services/encounters";
 import { encountersToIcs } from "../../services/icsExport";
@@ -65,6 +67,7 @@ export function SettingsDataPage() {
 	const isDesktop = useDesktopBreakpoint();
 
 	const [exportCategories, setExportCategories] = useState<Set<BackupCategoryId>>(new Set(BACKUP_CATEGORY_IDS));
+	const [exportDestination, setExportDestination] = useState<BackupExportDestination>("downloads");
 	const [showExportCategoryPicker, setShowExportCategoryPicker] = useState(false);
 	// Closes the export picker animated once the export has finished.
 	const exportSheetCloseRef = useRef<(() => void) | null>(null);
@@ -143,10 +146,13 @@ export function SettingsDataPage() {
 			// The SQL read, base64 decode, zip compression and the copy to the
 			// final location all happen natively (src-tauri/src/commands/backup.rs)
 			// on a worker thread — nothing of the archive crosses the JS bridge.
-			await exportBackup(chatDb.getActiveChatDbFileName(), userId, Array.from(exportCategories));
+			const saved = await exportBackup(chatDb.getActiveChatDbFileName(), userId, Array.from(exportCategories), exportDestination);
+			if (!saved) return false;
 			toast.success(
-				isAndroid()
-					? t("data_backup.export_success", { defaultValue: "Data exported." })
+				exportDestination === "picker"
+					? t("data_backup.export_success_picker", { defaultValue: "Data exported to the chosen location." })
+					: isAndroid()
+						? t("data_backup.export_success", { defaultValue: "Data exported." })
 					: isIos()
 						? t("data_backup.export_success_ios", { defaultValue: "Data exported. Find it in the Files app under On My iPhone/iPad → Free Grind." })
 						: t("data_backup.export_success_desktop", { defaultValue: "Data exported to Downloads/FreeGrind." }),
@@ -737,6 +743,36 @@ export function SettingsDataPage() {
 					</div>
 					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
 						<BackupCategoryPicker categories={BACKUP_CATEGORY_IDS} selected={exportCategories} onToggle={toggleExportCategory} />
+						<div className="px-4 pt-4">
+							<p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+								{t("data_backup.export_destination_title", { defaultValue: "Save to" })}
+							</p>
+							<div className="flex flex-wrap gap-2">
+								<Chip selected={exportDestination === "downloads"} disabled={isExporting} onClick={() => setExportDestination("downloads")}>
+									{isIos()
+										? t("data_backup.export_destination_device", { defaultValue: "This device" })
+										: t("data_backup.export_destination_downloads", { defaultValue: "Downloads" })}
+								</Chip>
+								<Chip selected={exportDestination === "picker"} disabled={isExporting} onClick={() => setExportDestination("picker")}>
+									{t("data_backup.export_destination_picker", { defaultValue: "Choose location…" })}
+								</Chip>
+							</div>
+							<p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+								{exportDestination === "downloads"
+									? isIos()
+										? t("data_backup.export_destination_device_hint_ios", {
+												defaultValue: "Saved in the Files app under On My iPhone/iPad → Free Grind.",
+											})
+										: t("data_backup.export_destination_downloads_hint", { defaultValue: "Saved to Downloads/FreeGrind on this device." })
+									: isAndroid() || isIos()
+										? t("data_backup.export_destination_picker_hint", {
+												defaultValue: "Pick any folder or cloud storage, e.g. Google Drive (requires the Drive app).",
+											})
+										: t("data_backup.export_destination_picker_hint_desktop", {
+												defaultValue: "Pick any folder, e.g. one synced by Google Drive for desktop.",
+											})}
+							</p>
+						</div>
 					</div>
 					<BackupProgressBar kind="export" active={isExporting} />
 					<div className="flex gap-2 px-4 pb-4 pt-2">

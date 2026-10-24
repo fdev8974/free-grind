@@ -2613,7 +2613,16 @@
         "export_confirm": "تصدير",
         "import_categories_title": "عايز تسترجع إيه؟",
         "import_categories_desc": "الفئات الموجودة في الملف ده بس اللي تقدر تسترجعها.",
-        "import_confirm": "استرجاع"
+        "import_confirm": "استرجاع",
+        "export_success_picker": "",
+        "export_destination_title": "",
+        "export_destination_downloads": "",
+        "export_destination_picker": "",
+        "export_destination_picker_hint": "",
+        "export_destination_downloads_hint": "",
+        "export_destination_picker_hint_desktop": "",
+        "export_destination_device": "",
+        "export_destination_device_hint_ios": ""
     },
     "restore_offer": {
         "title": "تسترجع بياناتك؟",

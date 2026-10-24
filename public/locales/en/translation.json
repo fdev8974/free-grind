@@ -2579,7 +2579,16 @@
     "export_confirm": "Export",
     "import_categories_title": "What do you want to restore?",
     "import_categories_desc": "Only categories present in this file can be restored.",
-    "import_confirm": "Restore"
+    "import_confirm": "Restore",
+    "export_success_picker": "Data exported to the chosen location.",
+    "export_destination_title": "Save to",
+    "export_destination_downloads": "Downloads",
+    "export_destination_picker": "Choose location…",
+    "export_destination_picker_hint": "Pick any folder or cloud storage, e.g. Google Drive (requires the Drive app).",
+    "export_destination_downloads_hint": "Saved to Downloads/FreeGrind on this device.",
+    "export_destination_picker_hint_desktop": "Pick any folder, e.g. one synced by Google Drive for desktop.",
+    "export_destination_device": "This device",
+    "export_destination_device_hint_ios": "Saved in the Files app under On My iPhone/iPad → Free Grind."
   },
   "restore_offer": {
     "title": "Restore your data?",

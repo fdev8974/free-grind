@@ -2581,7 +2581,16 @@
         "export_confirm": "Exporteren",
         "import_categories_title": "Wat wil je herstellen?",
         "import_categories_desc": "Alleen categorieën die in dit bestand staan kunnen worden hersteld.",
-        "import_confirm": "Herstellen"
+        "import_confirm": "Herstellen",
+        "export_success_picker": "",
+        "export_destination_title": "",
+        "export_destination_downloads": "",
+        "export_destination_picker": "",
+        "export_destination_picker_hint": "",
+        "export_destination_downloads_hint": "",
+        "export_destination_picker_hint_desktop": "",
+        "export_destination_device": "",
+        "export_destination_device_hint_ios": ""
     },
     "restore_offer": {
         "title": "Je gegevens herstellen?",

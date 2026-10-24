@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { appCacheDir, documentDir, downloadDir, join } from "@tauri-apps/api/path";
+import { save } from "@tauri-apps/plugin-dialog";
 import { BaseDirectory, mkdir, open, remove } from "@tauri-apps/plugin-fs";
 import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-fs-api";
 import { isAndroid, isIos } from "./saveMedia";
@@ -122,27 +123,66 @@ export function exportBackupToFile(
 	return invoke("export_backup_to_file", { dbFileName, ownerUserId, destPath, categories });
 }
 
+/** Where `exportBackup` puts the archive. "picker" is the system save/export dialog, which also reaches cloud storage like Google Drive. */
+export type BackupExportDestination = "downloads" | "picker";
+
 /**
  * Builds the backup archive natively and puts it where the user can find it:
  * Downloads/FreeGrind on desktop, the app's Documents dir on iOS (exposed in
  * the Files app via UIFileSharingEnabled), and the public Downloads/FreeGrind
- * via MediaStore on Android. All byte shuffling happens in Rust — none of the
- * archive ever crosses the JS bridge.
+ * via MediaStore on Android — or wherever the user picks in the system
+ * save/export dialog. All byte shuffling happens in Rust — none of the archive ever
+ * crosses the JS bridge. Resolves to false if the save dialog was cancelled.
  */
-export async function exportBackup(dbFileName: string, ownerUserId: number, categories: BackupCategoryId[]): Promise<void> {
+export async function exportBackup(
+	dbFileName: string,
+	ownerUserId: number,
+	categories: BackupCategoryId[],
+	destination: BackupExportDestination = "downloads",
+): Promise<boolean> {
 	const fileName = `free-grind-data-${new Date().toISOString().slice(0, 10)}.zip`;
 
-	if (!isAndroid()) {
-		const baseDir = isIos() ? await documentDir() : await downloadDir();
-		await exportBackupToFile(dbFileName, ownerUserId, await join(baseDir, "FreeGrind", fileName), categories);
-		return;
+	if (isIos()) {
+		if (destination === "downloads") {
+			await exportBackupToFile(dbFileName, ownerUserId, await join(await documentDir(), "FreeGrind", fileName), categories);
+			return true;
+		}
+		// iOS has no "pick a path, write later" dialog: the plugin's save()
+		// exports Documents/<fileName> as a copy to wherever the user picks
+		// (only creating an empty placeholder if nothing is there yet). So the
+		// finished archive goes exactly there first, then gets handed over.
+		const stagedPath = await join(await documentDir(), fileName);
+		try {
+			await exportBackupToFile(dbFileName, ownerUserId, stagedPath, categories);
+			return (await save({ defaultPath: fileName })) != null;
+		} finally {
+			await cleanupTempFile(stagedPath);
+		}
 	}
 
-	// MediaStore files can only be written through their content URI, so the
-	// archive is built in a scratch file first and then copied over natively.
+	if (!isAndroid()) {
+		const defaultPath = await join(await downloadDir(), "FreeGrind", fileName);
+		const destPath =
+			destination === "picker" ? await save({ defaultPath, filters: [{ name: "Free Grind backup", extensions: ["zip"] }] }) : defaultPath;
+		if (!destPath) return false;
+		await exportBackupToFile(dbFileName, ownerUserId, destPath, categories);
+		return true;
+	}
+
+	// Asked before the (possibly minutes-long) build so a cancel doesn't waste it.
+	const pickedUri = destination === "picker" ? await AndroidFs.showSaveFilePicker(fileName, "application/zip") : null;
+	if (destination === "picker" && !pickedUri) return false;
+
+	// Content URIs (MediaStore or a picked document) can only be written
+	// through the URI itself, so the archive is built in a scratch file first
+	// and then copied over natively.
 	const tempPath = await tempZipPath("export");
 	try {
 		await exportBackupToFile(dbFileName, ownerUserId, tempPath, categories);
+		if (pickedUri) {
+			await invoke("copy_file_to_android_uri", { srcPath: tempPath, destUri: pickedUri });
+			return true;
+		}
 		const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "application/zip", {
 			isPending: true,
 		});
@@ -154,6 +194,11 @@ export async function exportBackup(dbFileName: string, ownerUserId: number, cate
 			await AndroidFs.removeFile(uri).catch(() => {});
 			throw error;
 		}
+		return true;
+	} catch (error) {
+		// The save dialog already created an empty file there.
+		if (pickedUri) await AndroidFs.removeFile(pickedUri).catch(() => {});
+		throw error;
 	} finally {
 		await cleanupTempFile(tempPath);
 	}

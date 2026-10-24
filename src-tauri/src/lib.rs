@@ -147,6 +147,7 @@ pub fn run() {
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_sql::Builder::default().build())
             .plugin(tauri_plugin_opener::init())
+            .plugin(tauri_plugin_dialog::init())
             .plugin(api::facebook_oauth::plugin())
             .plugin(api::google_oauth::plugin())
             .manage(AppState::default())
@@ -334,6 +335,7 @@ pub fn run() {
         #[cfg(target_os = "ios")]
         let builder = builder
             .plugin(tauri_plugin_ios_photos::init())
+            .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_ios_keyboard_fix::init())
             .plugin(tauri_plugin_ios_app_disguise::init());
 

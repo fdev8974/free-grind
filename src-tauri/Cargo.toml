@@ -84,6 +84,12 @@ tauri-plugin-barcode-scanner = "2"
 [target.'cfg(any(target_os = "android", target_vendor = "apple"))'.dependencies]
 wry = { version = "0.57", default-features = false }
 
+# "Save to…" for backup exports on desktop and iOS; Android uses android-fs.
+# iOS relies on how 2.7's saveFileDialog works - see exportBackup in
+# src/services/backupRestore.ts before bumping.
+[target.'cfg(not(target_os = "android"))'.dependencies]
+tauri-plugin-dialog = "2.7"
+
 [target.'cfg(target_os = "android")'.dependencies]
 android-native-keyring-store = "0.5.0"
 tauri-plugin-android-fs = { version = "=28.2.2", features = ["legacy_storage_permission"] }

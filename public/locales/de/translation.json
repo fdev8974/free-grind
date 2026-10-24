@@ -2581,7 +2581,16 @@
         "export_confirm": "Exportieren",
         "import_categories_title": "Was möchtest du wiederherstellen?",
         "import_categories_desc": "Nur Kategorien, die in dieser Datei enthalten sind, können wiederhergestellt werden.",
-        "import_confirm": "Wiederherstellen"
+        "import_confirm": "Wiederherstellen",
+        "export_success_picker": "",
+        "export_destination_title": "",
+        "export_destination_downloads": "",
+        "export_destination_picker": "",
+        "export_destination_picker_hint": "",
+        "export_destination_downloads_hint": "",
+        "export_destination_picker_hint_desktop": "",
+        "export_destination_device": "",
+        "export_destination_device_hint_ios": ""
     },
     "restore_offer": {
         "title": "Deine Daten wiederherstellen?",

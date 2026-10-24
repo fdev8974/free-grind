@@ -2597,7 +2597,16 @@
         "export_confirm": "Извези",
         "import_categories_title": "Шта желите да вратите?",
         "import_categories_desc": "Могу се вратити само категорије које постоје у овој датотеци.",
-        "import_confirm": "Врати"
+        "import_confirm": "Врати",
+        "export_success_picker": "",
+        "export_destination_title": "",
+        "export_destination_downloads": "",
+        "export_destination_picker": "",
+        "export_destination_picker_hint": "",
+        "export_destination_downloads_hint": "",
+        "export_destination_picker_hint_desktop": "",
+        "export_destination_device": "",
+        "export_destination_device_hint_ios": ""
     },
     "restore_offer": {
         "title": "Вратити ваше податке?",
