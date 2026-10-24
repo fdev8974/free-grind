@@ -578,12 +578,12 @@ jobs:
           keystore="$RUNNER_TEMP/release.jks"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$keystore"
           apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
-          # Same key and schemes (v2 only, minSdk 26) the Gradle signing
+          # Same key and schemes (v2 only, minSdk 26, no v4 .idsig) the Gradle signing
           # config in build.gradle.kts produced; --alignment-preserved keeps
           # every zip entry as built, so only the signing block is added.
           "$apksigner" sign --ks "$keystore" --ks-key-alias opengrind \
             --ks-pass pass:opengrind --key-pass pass:opengrind \
-            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false \
             --alignment-preserved --out "$signed" "$unsigned"
           rm -f "$keystore"
           "$apksigner" verify --print-certs "$signed"
