@@ -160,7 +160,11 @@ rm -rf "$derived"
 xcodebuild "${project_args[@]}" -scheme "$scheme" -configuration release \
 	-destination 'generic/platform=iOS' -derivedDataPath "$derived" \
 	CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' \
+	OTHER_LDFLAGS='$(inherited) -Wl,-objc_stubs_small' \
 	build
+# ^ The default fast objc_msgSend selector stubs get their own GOT slot for
+# _objc_msgSend next to the regular stub's, and the linker orders the two at
+# random. Small stubs branch through the regular stub, leaving one slot.
 app="$(find "$derived/Build/Products" -maxdepth 2 -type d -name '*.app' | grep -E '/(release|Release)-iphoneos/' | head -n 1)"
 [ -n "$app" ] || { echo "No release .app in $derived/Build/Products" >&2; exit 1; }
 

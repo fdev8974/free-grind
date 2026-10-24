@@ -1,7 +1,7 @@
 name: iOS Reproducibility Check (Manual)
 
-# Builds the unsigned IPA twice, independently, and reports which files in it
-# differ. iOS isn't reproducible yet; this shows what's left to fix.
+# Builds the unsigned IPA three times, independently, and reports which files
+# in it differ (some differences only show up in about every other build). iOS isn't reproducible yet; this shows what's left to fix.
 
 on:
   workflow_dispatch:
@@ -29,8 +29,13 @@ jobs:
     with:
       artifact_name: ios-build-2
 
+  build-3:
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      artifact_name: ios-build-3
+
   compare:
-    needs: [build-1, build-2]
+    needs: [build-1, build-2, build-3]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,8 +50,8 @@ jobs:
 
       - name: Compare the IPAs
         run: |
-          if sh ci/compare.sh verified builds/ios-build-1 builds/ios-build-2; then
-            echo "The IPAs are identical"
+          if sh ci/compare.sh verified builds/ios-build-1 builds/ios-build-2 builds/ios-build-3; then
+            echo "All three IPAs are identical"
             exit 0
           fi
           for n in 1 2; do
