@@ -59,6 +59,7 @@ import {
 } from "../../services/hotswap";
 import { RowActionPill } from "../../components/ui/row-action-pill";
 import { ToggleRow } from "../../components/ui/toggle-row";
+import { hasDemoProfileImages, isDemoProfileImagesEnabled, setDemoProfileImagesEnabled } from "../../utils/demoProfileImages";
 import { UpdateChannelSheet } from "./UpdateChannelSheet";
 import { FingerprintCheckSheet, PushTokenSheet } from "./settings-dev/DiagnosticsSheets";
 import { SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
@@ -1258,6 +1259,16 @@ export function SettingsPage() {
 										label="Show Debug Overlays"
 										description="Displays source (cache/network) info in the grid."
 									/>
+									{hasDemoProfileImages() && (
+										<ToggleRow
+											checked={isDemoProfileImagesEnabled()}
+											onChange={setDemoProfileImagesEnabled}
+											icon={<ImagesFilled className="h-5 w-5" />}
+											iconClass="bg-[var(--surface-2)] text-[var(--text-muted)]"
+											label="Demo Profile Pictures"
+											description="Replaces every profile photo with a bundled demo picture, for screenshots. Reloads the app."
+										/>
+									)}
 									{navRow(
 										() => navigate("/settings/api-inspector"),
 										<Terminal className="h-5 w-5" />,

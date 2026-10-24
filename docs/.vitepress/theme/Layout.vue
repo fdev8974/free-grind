@@ -2,6 +2,7 @@
 import { useData } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { nextTick, provide } from "vue";
+import AppScreenshots from "./AppScreenshots.vue";
 
 const { isDark } = useData();
 
@@ -38,7 +39,11 @@ provide("toggle-appearance", async () => {
 </script>
 
 <template>
-	<DefaultTheme.Layout />
+	<DefaultTheme.Layout>
+		<template #home-features-after>
+			<AppScreenshots />
+		</template>
+	</DefaultTheme.Layout>
 </template>
 
 <style>

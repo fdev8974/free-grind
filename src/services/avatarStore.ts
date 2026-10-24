@@ -26,6 +26,7 @@ import { fetchAndEncode, toDataUri } from "./mediaStore";
 import { getProfileImageUrl, getThumbImageUrl, validateMediaHash } from "../utils/media";
 import { appLog } from "../utils/logger";
 import { limitChatDbBlobRead } from "../utils/chatDbBlobLimiter";
+import { demoProfileImageFor, isDemoProfileImagesEnabled } from "../utils/demoProfileImages";
 
 const inFlight = new Map<string, Promise<void>>();
 const memoryCache = new Map<string, string>();
@@ -79,7 +80,8 @@ export async function fetchAndStoreAvatar(
 	mediaHash: string | null | undefined,
 	sourceUrl?: string,
 ): Promise<void> {
-	if (!mediaHash || !validateMediaHash(mediaHash)) {
+	// Demo pictures are never stored, and stored real ones never shown.
+	if (!mediaHash || !validateMediaHash(mediaHash) || isDemoProfileImagesEnabled()) {
 		return;
 	}
 	const { key, url, isFull } = resolveVariant(mediaHash, sourceUrl);
@@ -144,6 +146,9 @@ export function resolveAvatarSrc(
 ): string | null {
 	if (!mediaHash || !validateMediaHash(mediaHash)) {
 		return fallbackUrl;
+	}
+	if (isDemoProfileImagesEnabled()) {
+		return demoProfileImageFor(mediaHash);
 	}
 	if (options?.cache ?? true) {
 		void fetchAndStoreAvatar(mediaHash, options?.sourceUrl);

@@ -1,4 +1,5 @@
 import { convertFileSrc, isTauri } from "@tauri-apps/api/core";
+import { demoProfileImageForUrl } from "./demoProfileImages";
 
 /**
  * The Rust media proxy (src-tauri/src/media_proxy, ported from open-grind):
@@ -68,6 +69,9 @@ const proxyAvailable = (() => {
 export function proxyMediaUrl(url: string, options?: { as?: ProxiedAs }): string;
 export function proxyMediaUrl(url: string | null | undefined, options?: { as?: ProxiedAs }): string | null | undefined;
 export function proxyMediaUrl(url: string | null | undefined, { as = "image" }: { as?: ProxiedAs } = {}): string | null | undefined {
-	if (typeof url !== "string" || !proxyAvailable || !isProxiable(url)) return url;
+	if (typeof url !== "string") return url;
+	const demo = demoProfileImageForUrl(url);
+	if (demo) return demo;
+	if (!proxyAvailable || !isProxiable(url)) return url;
 	return convertFileSrc(`${FETCHER_TAG[as]}${toBase64Url(url)}`, MEDIA_SCHEME);
 }

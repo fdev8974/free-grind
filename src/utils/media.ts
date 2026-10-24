@@ -1,5 +1,6 @@
 import z from "zod";
 import type { ProfileImageSize, ThumbImageSize } from "../types/media";
+import { demoProfileImageFor, isDemoProfileImagesEnabled } from "./demoProfileImages";
 
 export const mediaHashSchema = z
 	.string()
@@ -29,6 +30,7 @@ export function getProfileImageUrl(
 	hash: string,
 	size: ProfileImageSize = "480x480",
 ): string {
+	if (isDemoProfileImagesEnabled()) return demoProfileImageFor(hash);
 	return `${PUBLIC_MEDIA_BASE_URL}/images/profile/${size}/${hash}`;
 }
 
@@ -36,6 +38,7 @@ export function getThumbImageUrl(
 	hash: string,
 	size: ThumbImageSize = "320x320",
 ): string {
+	if (isDemoProfileImagesEnabled()) return demoProfileImageFor(hash);
 	return `${PUBLIC_MEDIA_BASE_URL}/images/thumb/${size}/${hash}`;
 }
 
