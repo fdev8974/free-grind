@@ -22,20 +22,29 @@ fn media_proxy_flag<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
         .build()
 }
 
-/// Builds the main window, deferred on Linux (`create: false` in
-/// tauri.linux.conf.json) so it can load the media proxy's GStreamer source
-/// for <video>. An empty library means build.rs couldn't compile it; video
-/// then goes through the proxy's buffered path like on Windows.
-#[cfg(target_os = "linux")]
-fn create_linux_main_window(app: &tauri::App) -> tauri::Result<()> {
+/// Builds the main window, deferred (`create: false` in tauri.conf.json) so
+/// the User-Agent carries the running version instead of a hardcoded one.
+/// On Linux it also loads the media proxy's GStreamer source for <video>. An
+/// empty library means build.rs couldn't compile it; video then goes through
+/// the proxy's buffered path like on Windows.
+fn create_main_window(app: &tauri::App) -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
     use tauri::Manager;
 
+    let user_agent = format!(
+        "free-grind/{} (+https://github.com/fdev8974/free-grind)",
+        app.package_info().version
+    );
+
+    #[cfg(target_os = "linux")]
     let extensions = app
         .path()
         .resource_dir()?
         .join(media_proxy::WEBKIT_EXTENSIONS);
+    #[cfg(target_os = "linux")]
     let has_extension = std::fs::metadata(extensions.join("libfgmedia.so"))
         .is_ok_and(|meta| meta.len() > 0);
+    #[cfg(target_os = "linux")]
     if has_extension {
         // WebKit only hands URI schemes on this list to GStreamer's own
         // sources; read by the web process, which starts with the window.
@@ -62,11 +71,16 @@ fn create_linux_main_window(app: &tauri::App) -> tauri::Result<()> {
         .cloned()
         .collect();
     for window in deferred {
-        let mut builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &window)?;
+        #[allow(unused_mut)]
+        let mut builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &window)?
+            .user_agent(&user_agent);
+        #[cfg(target_os = "linux")]
         if has_extension {
             builder = builder.extensions_path(&extensions);
         }
+        #[allow(unused_variables)]
         let window = builder.build()?;
+        #[cfg(target_os = "linux")]
         if has_extension {
             media_proxy::serve_element_opens(&window);
         }
@@ -158,8 +172,7 @@ pub fn run() {
                 let app_handle = app.handle().clone();
                 init_client(&app_handle);
 
-                #[cfg(target_os = "linux")]
-                create_linux_main_window(app)?;
+                create_main_window(app)?;
 
                 #[cfg(target_os = "linux")]
                 {
