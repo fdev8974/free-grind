@@ -24,7 +24,7 @@ jobs:
     outputs:
       should_release: ${{ steps.decide.outputs.should_release }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -70,7 +70,7 @@ jobs:
       tag_name: ${{ steps.vars.outputs.tag_name }}
       release_name: ${{ steps.vars.outputs.release_name }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Derive release metadata
         id: vars
@@ -89,7 +89,7 @@ jobs:
 
       - name: Create draft release
         id: create-release
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const { data } = await github.rest.repos.createRelease({
@@ -103,7 +103,12 @@ jobs:
               body: [
                 'Automated release generated from `${{ github.ref_name }}`.',
                 '',
-                `Commit: ${context.sha}`
+                `Commit: ${context.sha}`,
+                '',
+                'The Android APK, the Linux packages and the OTA frontend bundle are reproducible: ' +
+                  'two independent builds produced identical bytes before this release was published. ' +
+                  `To check them yourself, see [REPRODUCIBILITY.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${context.sha}/REPRODUCIBILITY.md) ` +
+                  'and the SHA256SUMS and BUILDINFO.txt assets.'
               ].join('\n'),
               draft: true,
               prerelease: ${{ steps.vars.outputs.prerelease }},
@@ -112,7 +117,7 @@ jobs:
             core.setOutput('release_id', String(data.id));
 
   publish-ota:
-    needs: create-release
+    needs: [create-release, verify]
     # Pushes to other branches already publish their OTA via ota-branches.yml;
     # a second deploy of the same commit would just race it.
     if: github.ref_name == 'main'
@@ -120,22 +125,29 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # History lets publish-ota.mjs find the oldest compatible binary.
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build, sign and publish OTA bundle to surge.sh
+      - name: Download the verified frontend bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: verified-frontend
+          path: verified/frontend
+
+      - name: Sign and publish the OTA bundle to surge.sh
         id: ota-upload
         env:
+          OTA_BUNDLE: verified/frontend/frontend.tar.gz
           HOTSWAP_PRIVATE_KEY: ${{ secrets.HOTSWAP_PRIVATE_KEY }}
           HOTSWAP_PRIVATE_KEY_PASSWORD: ${{ secrets.HOTSWAP_PRIVATE_KEY_PASSWORD }}
           SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
@@ -144,7 +156,7 @@ jobs:
         run: bun run scripts/publish-ota.mjs --channel main
 
       - name: Upload OTA artifacts to GitHub release
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
           OTA_VERSION: ${{ steps.ota-upload.outputs.ota_version }}
@@ -198,32 +210,19 @@ jobs:
             rust_targets: ""
             artifact_suffix: windows-x64
             bundle_dir: src-tauri/target/release/bundle
-          - platform: ubuntu-24.04
-            args: --bundles deb,rpm,appimage
-            rust_targets: ""
-            artifact_suffix: linux-x64
-            bundle_dir: src-tauri/target/release/bundle
     runs-on: ${{ matrix.platform }}
     env:
       # Default update channel baked into the frontend: builds from main ship
       # on Stable, every other branch (beta builds) on Development.
       VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
           submodules: true
 
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-24.04'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
-          # build.rs fails instead of shipping without the Linux video extension
-          echo "FG_REQUIRE_MEDIA_EXTENSION=1" >> "$GITHUB_ENV"
-
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: package.json
 
@@ -241,7 +240,7 @@ jobs:
         run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
 
       - name: Rust cache
-        uses: swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: ./src-tauri -> target
 
@@ -249,7 +248,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build desktop artifacts
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -257,7 +256,7 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Upload desktop artifacts to release
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
           ARTIFACT_SUFFIX: ${{ matrix.artifact_suffix }}
@@ -300,7 +299,6 @@ jobs:
             const searchDirs = {
               'macos-universal': ['dmg', 'macos'],
               'windows-x64':     ['nsis'],
-              'linux-x64':       ['deb', 'rpm', 'appimage'],
             };
 
             const subDirs = searchDirs[suffix] ?? [];
@@ -456,136 +454,198 @@ jobs:
               console.log(`✓ Uploaded ${name}`);
             }
 
-  build-android:
+  # Linux packages, the Android APK and the OTA frontend bundle are built twice,
+  # on separate runners, inside the pinned container (ci/build). `verify` only
+  # lets them through when both builds are byte-identical; signing comes after.
+  # Anyone can rebuild them the same way, see REPRODUCIBILITY.md.
+  reproducible-build:
     needs: create-release
+    strategy:
+      fail-fast: true
+      matrix:
+        artifact: [linux, android, frontend]
+        builder: [1, 2]
     runs-on: ubuntu-24.04
-    env:
-      # Default update channel baked into the frontend: builds from main ship
-      # on Stable, every other branch (beta builds) on Development.
-      VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # src-tauri/vendor/freegrind-google-oauth-webextension (Google sign-in,
-          # bundled into the APK for GoogleOAuthActivity)
+          # src-tauri/vendor/freegrind-google-oauth-webextension is compiled in
           submodules: true
+          persist-credentials: false
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Free disk space
+        if: matrix.artifact != 'frontend'
+        # The Android SDK in the container and a release target dir don't fit
+        # next to the runner's preinstalled toolchains, which the build doesn't use.
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Build in the pinned container
+        env:
+          # Default update channel baked into the frontend: builds from main ship
+          # on Stable, every other branch (beta builds) on Development.
+          FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
+          FG_CONTAINER_ENGINE: docker
+        run: sh ci/build/run.sh "${{ matrix.artifact }}"
+
+      - name: Upload build output
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          bun-version-file: package.json
+          name: build-${{ matrix.artifact }}-${{ matrix.builder }}
+          path: out/${{ matrix.artifact }}
+          retention-days: 3
+          if-no-files-found: error
+
+  verify:
+    needs: reproducible-build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download both builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: build-*
+          path: builds
+
+      - name: Compare the builds
+        run: |
+          for artifact in linux android frontend; do
+            sh ci/compare.sh "verified/$artifact" "builds/build-$artifact-1" "builds/build-$artifact-2"
+          done
+
+      - name: Upload verified Linux packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-linux
+          path: verified/linux
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified unsigned APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-android
+          path: verified/android
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified frontend bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-frontend
+          path: verified/frontend
+          retention-days: 3
+          if-no-files-found: error
+
+  publish-verified:
+    needs: [create-release, verify]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download verified builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: verified-*
+          path: verified
 
       - name: Setup Java
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
-          # Default is "tools platform-tools"; the legacy `tools` package no longer exists.
           packages: platform-tools
 
-      - name: Install Android SDK components
+      - name: Install apksigner and apksigcopier
         run: |
-          sdkmanager --install \
-            "platforms;android-36" \
-            "build-tools;36.0.0" \
-            "platform-tools" \
-            "ndk;29.0.14206865"
+          sdkmanager --install "build-tools;36.0.0"
+          sudo apt-get update
+          sudo apt-get install -y apksigcopier
 
-      - name: Accept Android licenses
-        run: yes | sdkmanager --licenses
-
-      - name: Setup Rust
-        shell: bash
-        run: |
-          rustup toolchain install
-          rustup target add aarch64-linux-android
-
-      - name: Check Cargo.lock is up to date
-        # Fails instead of letting the build silently re-resolve crate versions.
-        shell: bash
-        run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: ./src-tauri -> target
-
-      - name: Install frontend dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Initialize Android project
-        run: bunx tauri android init --ci --skip-targets-install
-
-      - name: Ensure Android network security config
-        run: |
-          mkdir -p src-tauri/gen/android/app/src/main/res/xml
-          cat > src-tauri/gen/android/app/src/main/res/xml/network_security_config.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <network-security-config>
-              <base-config cleartextTrafficPermitted="true">
-                  <trust-anchors>
-                      <certificates src="system" />
-                      <certificates src="user" />
-                  </trust-anchors>
-              </base-config>
-          </network-security-config>
-          EOF
-
-      - name: Add custom Android notification sound
-        run: |
-          mkdir -p src-tauri/gen/android/app/src/main/res/raw
-          install -m 0644 src-tauri/sounds/free_grind_message.mp3 src-tauri/gen/android/app/src/main/res/raw/free_grind_message.mp3
-
-      - name: Restore Android keystore
+      - name: Sign the APK
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          mkdir -p src-tauri/certs
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > src-tauri/certs/free-grind-dev.jks
+          version=$(jq -r '.version' package.json)
+          unsigned="verified/verified-android/free-grind-v$version-android-arm64-unsigned.apk"
+          mkdir -p release
+          # The in-app updater looks for exactly this name.
+          signed="release/free-grind-v$version.apk"
+          keystore="$RUNNER_TEMP/release.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$keystore"
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          # Same key and schemes (v2 only, minSdk 26) the Gradle signing
+          # config in build.gradle.kts produced; --alignment-preserved keeps
+          # every zip entry as built, so only the signing block is added.
+          "$apksigner" sign --ks "$keystore" --ks-key-alias opengrind \
+            --ks-pass pass:opengrind --key-pass pass:opengrind \
+            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false \
+            --alignment-preserved --out "$signed" "$unsigned"
+          rm -f "$keystore"
+          "$apksigner" verify --print-certs "$signed"
+          # What REPRODUCIBILITY.md tells users to run: the signature copied
+          # onto the reproducible build must give back the published APK.
+          apksigcopier copy "$signed" "$unsigned" "$RUNNER_TEMP/check.apk"
+          cmp "$RUNNER_TEMP/check.apk" "$signed"
 
-      # arm64-v8a only: GeckoView (Google sign-in) adds ~85 MB per ABI, and
-      # 32-bit or x86 phones are practically extinct.
-      - name: Build Android APK
-        run: bunx tauri android build --apk --split-per-abi --target aarch64 -v
-
-      - name: Upload Android APK to release
-        uses: actions/github-script@v8
+      - name: Write checksums and build info
         env:
-          RELEASE_NAME: ${{ needs.create-release.outputs.release_name }}
-          PACKAGE_VERSION: ${{ needs.create-release.outputs.tag_name }}
+          FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
+        run: |
+          cp verified/verified-linux/* release/
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "FG_CHANNEL: $FG_CHANNEL"
+            echo "SOURCE_DATE_EPOCH: $(git log -1 --pretty=%ct)"
+            echo
+            echo "Rebuild the reproducible files with:"
+            echo "  git checkout $GITHUB_SHA && git submodule update --init"
+            echo "  FG_CHANNEL=$FG_CHANNEL sh ci/build/run.sh <linux|android|frontend>"
+            echo "See REPRODUCIBILITY.md for comparing them with this release."
+          } > release/BUILDINFO.txt
+          # Every file two builders agreed on, under its build output name, plus
+          # the signed APK (an unsigned build with the release signature added).
+          (cd verified && find . -type f | LC_ALL=C sort | xargs -d '\n' sha256sum | sed 's|  \./verified-[a-z]*/|  |') > release/SHA256SUMS
+          (cd release && sha256sum free-grind-v*.apk) >> release/SHA256SUMS
+          cat release/SHA256SUMS
+
+      - name: Upload to release
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
         with:
           script: |
             const fs = require('fs');
-            const apkPath = 'src-tauri/gen/android/app/build/outputs/apk/arm64/release/app-arm64-release.apk';
-
-            if (!fs.existsSync(apkPath)) {
-              throw new Error(`APK not found at ${apkPath}`);
+            const path = require('path');
+            const types = {
+              '.apk': 'application/vnd.android.package-archive',
+              '.deb': 'application/vnd.debian.binary-package',
+              '.rpm': 'application/x-rpm',
+              '.AppImage': 'application/vnd.appimage',
+            };
+            for (const name of fs.readdirSync('release')) {
+              const data = fs.readFileSync(path.join('release', name));
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: Number(process.env.RELEASE_ID),
+                name,
+                data,
+                headers: {
+                  'content-type': types[path.extname(name)] ?? 'text/plain',
+                  'content-length': data.length,
+                },
+              });
+              console.log(`✓ Uploaded ${name}`);
             }
-
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const version = pkg.version;
-            const apkName = `free-grind-v${version}.apk`;
-
-            const fileData = fs.readFileSync(apkPath);
-
-            await github.rest.repos.uploadReleaseAsset({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: ${{ needs.create-release.outputs.release_id }},
-              name: apkName,
-              data: fileData,
-              headers: {
-                'content-type': 'application/vnd.android.package-archive',
-                'content-length': fileData.length
-              }
-            });
-
-            console.log(`✓ APK uploaded to release as ${apkName}`);
 
   build-ios:
     needs: create-release

@@ -43,8 +43,16 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Without the keystore (ci/build/android.sh) the release APK comes out
+// unsigned; CI signs it once two independent builds produced the same bytes.
+val releaseKeystore = file("../../../../src-tauri/certs/free-grind-dev.jks")
+
 android {
+    // Keep in sync with ci/build/Dockerfile. Left unset, AGP picks (and
+    // downloads) its own default versions.
     compileSdk = 36
+    buildToolsVersion = "36.0.0"
+    ndkVersion = "29.0.14206865"
     namespace = "dev.estopia.free_grind"
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
@@ -57,7 +65,7 @@ android {
     }
     signingConfigs {
         create("release") {
-            storeFile = file("../../../../src-tauri/certs/free-grind-dev.jks")
+            storeFile = releaseKeystore
             storePassword = "opengrind"
             keyAlias = "opengrind"
             keyPassword = "opengrind"
@@ -76,7 +84,9 @@ android {
             }
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            if (releaseKeystore.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
@@ -102,6 +112,19 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+    }
+    // Google's encrypted dependency report differs on every build.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+}
+
+// Reproducibility: the merged baseline profile (assets/dexopt/baseline.prof[m])
+// and kotlin-tooling-metadata.json differ between otherwise identical builds.
+tasks.whenTaskAdded {
+    if (name.contains("ArtProfile") || name == "buildKotlinToolingMetadata") {
+        enabled = false
     }
 }
 

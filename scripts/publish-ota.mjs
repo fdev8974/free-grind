@@ -34,7 +34,7 @@ function parseCliArgs(argv) {
       console.log("Required env (.env.local): SURGE_LOGIN, SURGE_TOKEN,");
       console.log("  HOTSWAP_PRIVATE_KEY or HOTSWAP_PRIVATE_KEY_PATH");
       console.log("Optional env: HOTSWAP_PRIVATE_KEY_PASSWORD, OTA_NOTES, OTA_MANDATORY,");
-      console.log("  OTA_MIN_BINARY_VERSION, OTA_SKIP_BUILD, OTA_SURGE_DOMAIN_TEMPLATE");
+      console.log("  OTA_MIN_BINARY_VERSION, OTA_SKIP_BUILD, OTA_BUNDLE, OTA_SURGE_DOMAIN_TEMPLATE");
       process.exit(0);
     }
 
@@ -147,13 +147,20 @@ const keyPassword = process.env.HOTSWAP_PRIVATE_KEY_PASSWORD ?? "";
 
 console.log(`Publishing OTA channel=${otaChannel} version=${otaVersion} -> https://${domain}`);
 
-if (process.env.OTA_SKIP_BUILD !== "true") {
-  // The bundle's default channel (used until the user picks one) must be the
-  // channel it's served from, or loading it would move the app back to "main".
-  process.env.VITE_HOTSWAP_CHANNEL = otaChannel;
-  run("bun", ["run", "build"]);
+// CI passes the bundle ci/build/run.sh frontend built (and two builders agreed
+// on), so what gets signed is exactly what anyone can rebuild from the commit.
+const prebuiltBundle = process.env.OTA_BUNDLE;
+if (prebuiltBundle) {
+  copyFileSync(prebuiltBundle, "frontend.tar.gz");
+} else {
+  if (process.env.OTA_SKIP_BUILD !== "true") {
+    // The bundle's default channel (used until the user picks one) must be the
+    // channel it's served from, or loading it would move the app back to "main".
+    process.env.VITE_HOTSWAP_CHANNEL = otaChannel;
+    run("bun", ["run", "build"]);
+  }
+  run("sh", ["ci/build/pack-frontend.sh", "dist", "frontend.tar.gz"]);
 }
-run("tar", ["-czf", "frontend.tar.gz", "-C", "dist", "."]);
 run("bunx", ["tauri", "signer", "sign", "frontend.tar.gz", "-k", keyValue, "-p", keyPassword]);
 const signature = readFileSync("frontend.tar.gz.sig", "utf8").trim();
 

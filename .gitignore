@@ -26,3 +26,7 @@ src-tauri/gen/schemas/
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+
+# Release builds (ci/build/run.sh)
+/out
+/.bun-cache

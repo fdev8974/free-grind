@@ -131,7 +131,7 @@ bun run build:ios:ipa
 
 All Tauri commands are routed through shell scripts in [scripts](scripts) and use Bun (`bunx`). Bun is the only supported package manager; `bun.lock` is the one lockfile.
 
-Building release artifacts from source, with pinned toolchain versions: see [BUILDING.md](./BUILDING.md).
+Building from source with the pinned toolchain: see [BUILDING.md](./BUILDING.md). The Android APK, the Linux packages and the OTA updates are reproducible; [REPRODUCIBILITY.md](./REPRODUCIBILITY.md) shows how to check a release against the source.
 
 All contributions must be aligned with [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 

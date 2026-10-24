@@ -13,6 +13,9 @@ const appVersion = packageJson.version ?? "0.0.0";
 // https://vite.dev/config/
 export default defineConfig(async () => ({
 	plugins: [react(), tailwindcss()],
+	// Release builds (ci/build) must not pick up local .env files.
+	// @ts-expect-error process is a nodejs global
+	envDir: process.env.FG_REPRODUCIBLE_BUILD ? false : undefined,
 	define: {
 		"import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
 	},
