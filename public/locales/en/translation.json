@@ -2793,7 +2793,6 @@
   "account_warnings": {
     "title": "Warning",
     "description": "Your account has violated our Community Guidelines. If this happens again, you may be banned.",
-    "count": "{{count}}×",
     "acknowledge": "I Understand and Agree",
     "read_guidelines": "Read our guidelines",
     "acknowledge_failed": "Couldn't acknowledge the warnings. Please try again.",

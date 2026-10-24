@@ -2795,7 +2795,6 @@
     "account_warnings": {
         "title": "",
         "description": "",
-        "count": "",
         "acknowledge": "",
         "read_guidelines": "",
         "acknowledge_failed": "",

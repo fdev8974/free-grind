@@ -37,7 +37,7 @@ function WarningCard({ warning }: { warning: AccountWarning }) {
 							{text?.title ?? humanize(warning.warning)}
 						</h2>
 						<span className="shrink-0 rounded-full accent-tint-15 px-2 py-0.5 text-xs font-semibold tabular-nums text-[var(--accent)]">
-							{t("account_warnings.count", { count: warning.count, defaultValue: "{{count}}×" })}
+							{warning.count}
 						</span>
 					</div>
 					{text ? <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">{text.content}</p> : null}
