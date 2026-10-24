@@ -2192,8 +2192,8 @@
             "description": "Grindr a banni ce compte{{reason}}. Vous ne pourrez pas vous connecter tant que le bannissement n'est pas levé.",
             "copy_details": "Copier les détails",
             "copy_details_success": "Détails copiés dans le presse-papiers",
-            "subscriptions_title": "",
-            "subscriptions_description": ""
+            "subscriptions_description": "",
+            "appeal": ""
         },
         "age_verification": {
             "title": "Vérification de l'âge requise",
@@ -2211,8 +2211,6 @@
             "timed": ""
         },
         "details": {
-            "ban_type": "Type de bannissement",
-            "sub_reason": "Motif détaillé",
             "reason": "Motif",
             "region": "Région",
             "decision_automated": "",
@@ -2233,8 +2231,11 @@
             "agree_hint": ""
         },
         "device_ban": {
-            "title": "Requête refusée",
-            "description": "Grindr a répondu ACCOUNT_BANNED (code 28). Ce n'est souvent pas un vrai bannissement : Grindr a bloqué la requête, par exemple à cause de l'empreinte de l'appareil. Se déconnecter crée une nouvelle identité d'appareil, ce qui règle généralement le problème."
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_sign_out": ""
         },
         "regions": {
             "uk": "Royaume-Uni",
@@ -2403,13 +2404,23 @@
                 "details": ""
             }
         },
-        "countdown": {
-            "remaining": "",
-            "until": "",
-            "ended_title": "",
-            "ended_on": ""
+        "reason_unknown": "",
+        "ends_in": "",
+        "appeal_link": "",
+        "network_ban": {
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_vpn": "",
+            "fix_switch": ""
         },
-        "reason_unknown": ""
+        "underage_ban": {
+            "title": "",
+            "description": ""
+        },
+        "what_happened": "",
+        "code_chip": ""
     },
     "sexualHealth": {
         "title": "Santé sexuelle",

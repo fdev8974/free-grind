@@ -195,13 +195,14 @@ interface BanReasonEntry {
 }
 
 /**
- * Keyed by the i18n id under account_status.ban_reasons. Only DRUG_SALES is
- * confirmed from a real response; the other codes are inferred from the
- * official app's string names, so the lookup is deliberately lenient.
+ * Keyed by the i18n id under account_status.ban_reasons. The first code of
+ * each entry is Grindr's banSubReason value (as Open Grind models it); the
+ * others are spellings inferred from the official app's string names, so
+ * the lookup stays lenient.
  */
 const BAN_REASONS: Record<string, BanReasonEntry> = {
 	blackmail: {
-		codes: ["BLACKMAIL", "BLACKMAIL_HARASSMENT", "EXTORTION", "THREATS"],
+		codes: ["BLACKMAIL_AND_THREATS", "BLACKMAIL", "BLACKMAIL_HARASSMENT", "EXTORTION", "THREATS"],
 		title: "Blackmail, extortion, and direct threats",
 		summary: "Grindr strictly prohibits blackmail, extortion, and direct threats of harm. These behaviors endanger users and violate the guidelines, and may result in account bans.",
 		details:
@@ -294,7 +295,7 @@ const BAN_REASONS: Record<string, BanReasonEntry> = {
 		guideline: "obey_the_law",
 	},
 	fraudulent_promotion: {
-		codes: ["FRAUDULENT_PROMOTION", "SCAM_AND_PROMOTIONS", "FRAUD", "SCAM"],
+		codes: ["SCAMS_AND_PROMOTIONS", "SCAM_AND_PROMOTIONS", "FRAUDULENT_PROMOTION", "FRAUD", "SCAM"],
 		title: "Scam and fraudulent promotions",
 		summary: "Grindr strictly prohibits scams or schemes that exploit or harm others.",
 		details:
@@ -455,6 +456,38 @@ const BAN_REASONS: Record<string, BanReasonEntry> = {
 		guideline: "minors",
 	},
 };
+
+export const BAN_APPEAL_URL = "https://web.grindr.com/ban-appeal";
+
+export function openBanAppeal() {
+	openUrl(BAN_APPEAL_URL).catch(() => window.open(BAN_APPEAL_URL, "_blank"));
+}
+
+// Timed bans only offer an appeal for these sub-reasons, as in the official app.
+const APPEALABLE_TIMED_BANS = new Set([
+	"UNDERAGE_ACCESS",
+	"UNDERAGE_IMPERSONATION",
+	"CHILD_ENDANGERMENT",
+	"PHISHING_AND_FRAUD",
+	"BOT_ACTIVITY",
+	"DRUG_SALES",
+	"PAID_SEXUAL_SERVICES",
+	"BLACKMAIL_AND_THREATS",
+	"PRIVACY_VIOLATIONS",
+	"IMPERSONATION",
+	"OFFLINE_INCIDENTS",
+	"SCAMS_AND_PROMOTIONS",
+]);
+
+/**
+ * Whether Grindr accepts an appeal: every permanent ban except one caused
+ * by being blocked (BLOCK_DECISION), timed bans only for serious reasons.
+ */
+export function banOffersAppeal(subReason: string | null | undefined, permanent: boolean): boolean {
+	const code = subReason ? normalizeCode(subReason) : null;
+	if (permanent) return code !== "BLOCK_DECISION";
+	return code != null && APPEALABLE_TIMED_BANS.has(code);
+}
 
 /** "Drug-Sales " / "drugSales" → "DRUG_SALES", so near-miss spellings still match. */
 function normalizeCode(code: string): string {

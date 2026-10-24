@@ -2176,8 +2176,8 @@
             "description": "Grindr heeft dit account verbannen{{reason}}. Je kunt pas weer inloggen als de ban is opgeheven.",
             "copy_details": "Details kopiëren",
             "copy_details_success": "Details gekopieerd naar klembord",
-            "subscriptions_title": "",
-            "subscriptions_description": ""
+            "subscriptions_description": "",
+            "appeal": ""
         },
         "age_verification": {
             "title": "Leeftijdsverificatie vereist",
@@ -2195,8 +2195,6 @@
             "timed": ""
         },
         "details": {
-            "ban_type": "Type ban",
-            "sub_reason": "Subreden",
             "reason": "Reden",
             "region": "Regio",
             "decision_automated": "",
@@ -2217,8 +2215,11 @@
             "agree_hint": ""
         },
         "device_ban": {
-            "title": "Verzoek geweigerd",
-            "description": "Grindr antwoordde met ACCOUNT_BANNED (code 28). Dit is vaak geen echte ban: Grindr heeft het verzoek geblokkeerd, bijvoorbeeld vanwege de apparaatvingerafdruk. Uitloggen maakt een nieuwe apparaatidentiteit aan, wat het meestal oplost."
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_sign_out": ""
         },
         "regions": {
             "uk": "Verenigd Koninkrijk",
@@ -2387,13 +2388,23 @@
                 "details": ""
             }
         },
-        "countdown": {
-            "remaining": "",
-            "until": "",
-            "ended_title": "",
-            "ended_on": ""
+        "reason_unknown": "",
+        "ends_in": "",
+        "appeal_link": "",
+        "network_ban": {
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_vpn": "",
+            "fix_switch": ""
         },
-        "reason_unknown": ""
+        "underage_ban": {
+            "title": "",
+            "description": ""
+        },
+        "what_happened": "",
+        "code_chip": ""
     },
     "sexualHealth": {
         "title": "Seksuele gezondheid",

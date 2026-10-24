@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
 	Ban,
@@ -7,17 +7,19 @@ import {
 	CircleCheck,
 	Clock,
 	Copy,
-	CreditCard,
 	ExternalLink,
 	Globe,
 	Info,
 	Loader2,
+	LogOut,
 	ScrollText,
 	ShieldAlert,
+	ShieldOff,
+	Wifi,
 	type LucideIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { BotFilled, TagFilled, UserFilled } from "./icons/FilledIcons";
+import { BotFilled, ClockFilled, UserFilled } from "./icons/FilledIcons";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { CardDetailsSheet, GuidelineBlock, RichText } from "./GuidelineViolationParts";
 import { useAuth } from "../contexts/useAuth";
@@ -25,7 +27,7 @@ import { useLogoutToNextAccount } from "../hooks/useLogoutToNextAccount";
 import type { AccountStatus } from "../contexts/auth-context";
 import type { AppError } from "../types/api";
 import { hourCycleOptions } from "../utils/timeFormat";
-import { banReasonText, openCommunityGuidelines, type BanReasonText } from "../utils/guidelineViolations";
+import { banOffersAppeal, banReasonText, openBanAppeal, openCommunityGuidelines, type BanReasonText } from "../utils/guidelineViolations";
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -142,6 +144,9 @@ type BanSummary = {
 	/** The raw code, readable, when there's no explanation for it. */
 	fallbackTitle: string | null;
 	automated: boolean | null;
+	permanent: boolean;
+	/** Whether Grindr takes an appeal for this ban (web.grindr.com/ban-appeal). */
+	appealable: boolean;
 };
 
 type PromptContent = {
@@ -154,6 +159,16 @@ type PromptContent = {
 	expiresAt?: number | null;
 	/** Permanent bans: a ban doesn't cancel a store subscription. */
 	subscriptionNote?: boolean;
+	/** Device/network blocks: what happened and what to try, styled like the reason card. */
+	block?: BlockInfo;
+};
+
+type BlockInfo = {
+	code: number;
+	title: string;
+	text: string;
+	/** Things to try, each a meta row under the text. */
+	fixes: { icon: ComponentType<{ className?: string }>; text: string }[];
 };
 
 function banSummary(
@@ -170,52 +185,87 @@ function banSummary(
 		explanation,
 		fallbackTitle: !explanation && rawCode ? humanize(rawCode) : null,
 		automated: automated ?? null,
+		permanent,
+		// Appeal eligibility is decided by the sub-reason (the first code).
+		appealable: banOffersAppeal(codes[0], permanent),
 	};
 }
 
 function contentFor(status: AccountStatus, t: Translate, agreementPending: boolean): PromptContent | null {
 	if (status?.kind === "banned") {
 		const { info } = status;
-		// Code 28 (ACCOUNT_BANNED, a "device ban") is often not a ban at all:
-		// Grindr refuses requests whose security headers/fingerprint it doesn't
-		// trust this way. Signing out rotates the device identity, which is
-		// usually what fixes it.
+		// Codes 28 (device) and 31 (SUSPICIOUS_NETWORK) block where the request
+		// comes from, not the account for something it did: no guideline
+		// reason, appeal or subscription note. Raw details stay behind Copy.
+		// Code 28 is often not a ban at all: Grindr refuses requests whose
+		// security headers/fingerprint it doesn't trust this way. Signing out
+		// rotates the device identity, which is usually what fixes it.
 		if (info.kind === "device") {
-			const details: Detail[] = [
-				{
-					icon: Ban,
-					label: t("account_status.details.ban_type", { defaultValue: "Ban type" }),
-					value: banKindLabel(info.kind, t),
-				},
-			];
-			if (info.reason) details.push(reasonRow(info.reason, t));
-			if (info.subReason) {
-				details.push({
-					icon: TagFilled,
-					label: t("account_status.details.sub_reason", { defaultValue: "Sub-reason" }),
-					value: humanize(info.subReason),
-				});
-			}
 			return {
 				icon: ShieldAlert,
-				title: t("account_status.device_ban.title", { defaultValue: "Request Refused" }),
-				description: t("account_status.device_ban.description", {
-					defaultValue:
-						"Grindr answered with ACCOUNT_BANNED (code 28). This is often not a real ban: Grindr blocked the request, for example because of the device fingerprint. Signing out creates a new device identity, which usually fixes it.",
-				}),
-				details,
+				title: t("account_status.device_ban.title", { defaultValue: "Device Blocked" }),
+				description: t("account_status.device_ban.description", { defaultValue: "You can't use your account on this device right now." }),
+				details: [],
+				block: {
+					code: info.code,
+					title: t("account_status.device_ban.card_title", { defaultValue: "Often not a real ban" }),
+					text: t("account_status.device_ban.card_text", {
+						defaultValue:
+							"Grindr answered with ACCOUNT_BANNED, which it also sends for requests it doesn't trust, for example because of the device fingerprint.",
+					}),
+					fixes: [
+						{
+							icon: LogOut,
+							text: t("account_status.device_ban.fix_sign_out", {
+								defaultValue: "Signing out creates a new device identity, which usually fixes it.",
+							}),
+						},
+					],
+				},
 			};
 		}
+		if (info.kind === "network") {
+			return {
+				icon: Globe,
+				title: t("account_status.network_ban.title", { defaultValue: "Network Blocked" }),
+				description: t("account_status.network_ban.description", { defaultValue: "You can't sign in from the network you're on right now." }),
+				details: [],
+				block: {
+					code: info.code,
+					title: t("account_status.network_ban.card_title", { defaultValue: "Suspicious network" }),
+					text: t("account_status.network_ban.card_text", {
+						defaultValue: "Grindr flags VPNs, proxies, and shared IP addresses this way. Your account itself isn't banned.",
+					}),
+					fixes: [
+						{ icon: ShieldOff, text: t("account_status.network_ban.fix_vpn", { defaultValue: "Turn off your VPN or proxy." }) },
+						{
+							icon: Wifi,
+							text: t("account_status.network_ban.fix_switch", {
+								defaultValue: "Switch between Wi-Fi and mobile data, then sign in again.",
+							}),
+						},
+					],
+				},
+			};
+		}
+		const underage = info.kind === "underage";
 		return {
 			icon: Ban,
-			title: t("account_status.banned.title", { defaultValue: "Account Banned" }),
+			title: underage
+				? t("account_status.underage_ban.title", { defaultValue: "Underage Account" })
+				: t("account_status.banned.title", { defaultValue: "Account Banned" }),
 			// The reason card names the reason, so the description doesn't.
-			description: t("account_status.banned.description", {
-				reason: "",
-				defaultValue: "Grindr has banned this account{{reason}}. You can't sign in until the ban is lifted.",
-			}),
+			description: underage
+				? t("account_status.underage_ban.description", {
+						defaultValue: "You can't sign in until the ban is lifted. If you're 18 or older, appeal it to confirm your age.",
+					})
+				: t("account_status.banned.description", {
+						reason: "",
+						defaultValue: "Grindr has banned this account{{reason}}. You can't sign in until the ban is lifted.",
+					}),
 			details: [],
-			ban: banSummary(banKindLabel(info.kind, t), [info.subReason, info.reason], info.automated, true, t),
+			// An underage ban without a sub-reason still gets the underage explanation.
+			ban: banSummary(banKindLabel(info.kind, t), [info.subReason, info.reason, underage ? "UNDERAGE" : null], info.automated, true, t),
 			subscriptionNote: true,
 		};
 	}
@@ -293,50 +343,52 @@ function contentFor(status: AccountStatus, t: Translate, agreementPending: boole
 	return null;
 }
 
+const INLINE_LINK_CLASS =
+	"inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 transition hover:text-[var(--text)] active:scale-95";
+
 const CARD_LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]";
 
-/** Big countdown to the end of a timed ban, or that it's over. */
-function CountdownCard({ expiresAt, now }: { expiresAt: number; now: number }) {
-	const { t, i18n } = useTranslation();
-	const remaining = expiryMs(expiresAt) - now;
-	const date = formatExpiry(expiresAt, i18n.language);
-	const running = remaining > 0;
+const META_ROW_CLASS = "flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]";
+const META_ICON_CLASS = "mt-px h-4 w-4 shrink-0 text-[var(--accent)]";
 
+/** A device/network block, laid out like ReasonCard: what happened, then what to try. */
+function BlockCard({ block }: { block: BlockInfo }) {
+	const { t } = useTranslation();
 	return (
-		<section className="surface-card flex items-center gap-4 px-4 py-4 text-left">
-			<div
-				className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-					running ? "bg-[var(--surface-2)] text-[var(--accent)]" : "bg-[var(--accent)] text-[var(--accent-contrast)]"
-				}`}
-			>
-				{running ? <Clock className="h-6 w-6" /> : <Check className="h-6 w-6" strokeWidth={2.5} />}
+		<section className="surface-card px-4 py-4 text-left">
+			<div className="flex items-center justify-between gap-3">
+				<p className={CARD_LABEL_CLASS}>{t("account_status.what_happened", { defaultValue: "What happened" })}</p>
+				<span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
+					{t("account_status.code_chip", { code: block.code, defaultValue: "Code {{code}}" })}
+				</span>
 			</div>
-			<div className="min-w-0 flex-1">
-				<p className={CARD_LABEL_CLASS}>
-					{running
-						? t("account_status.countdown.remaining", { defaultValue: "Remaining" })
-						: t("account_status.countdown.ended_title", { defaultValue: "Suspension over" })}
-				</p>
-				{running ? (
-					<p className="mt-0.5 text-2xl font-bold tabular-nums leading-tight text-[var(--text)]">
-						{formatRemaining(remaining, i18n.language)}
-					</p>
-				) : null}
-				<p className={`text-xs text-[var(--text-muted)] ${running ? "mt-0.5" : "mt-1"}`}>
-					{running
-						? t("account_status.countdown.until", { date, defaultValue: "Until {{date}}" })
-						: t("account_status.countdown.ended_on", { date, defaultValue: "Ended {{date}}" })}
-				</p>
-			</div>
+			<h2 className="mt-1.5 text-base font-semibold leading-snug text-[var(--text)]">{block.title}</h2>
+			<p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">{block.text}</p>
+			{block.fixes.length > 0 ? (
+				<div className="mt-3 flex flex-col gap-1.5">
+					{block.fixes.map(({ icon: Icon, text }) => (
+						<p key={text} className={META_ROW_CLASS}>
+							<Icon className={META_ICON_CLASS} />
+							{text}
+						</p>
+					))}
+				</div>
+			) : null}
 		</section>
 	);
 }
 
-/** The ban's reason with its type chip, who decided it, and the long explanation behind "Learn more". */
-function ReasonCard({ ban }: { ban: BanSummary }) {
-	const { t } = useTranslation();
+/**
+ * The ban's reason with its type chip, then meta rows (time left on a
+ * running timed ban, who decided it) and the long explanation behind
+ * "Learn more". Once a timed ban is over the prompt's title says so, so
+ * there's no countdown then.
+ */
+function ReasonCard({ ban, expiresAt, now }: { ban: BanSummary; expiresAt?: number | null; now: number }) {
+	const { t, i18n } = useTranslation();
 	const { explanation } = ban;
 	const title = explanation?.title ?? ban.fallbackTitle;
+	const remaining = expiresAt != null ? expiryMs(expiresAt) - now : 0;
 
 	return (
 		<section className="surface-card overflow-hidden text-left">
@@ -351,19 +403,34 @@ function ReasonCard({ ban }: { ban: BanSummary }) {
 					{title ?? t("account_status.reason_unknown", { defaultValue: "No reason given" })}
 				</h2>
 				{explanation ? <p className="mt-1.5 text-sm leading-relaxed text-[var(--text-muted)]">{explanation.summary}</p> : null}
-				{ban.automated != null ? (
-					<p className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-[var(--text-muted)]">
-						{ban.automated ? (
-							<BotFilled className="mt-px h-4 w-4 shrink-0 text-[var(--accent)]" />
-						) : (
-							<UserFilled className="mt-px h-4 w-4 shrink-0 text-[var(--accent)]" />
-						)}
-						{ban.automated
-							? t("account_status.details.decision_automated", { defaultValue: "We have used automated measures in making this decision." })
-							: t("account_status.details.decision_human", {
-									defaultValue: "A human moderator made this decision. We did not use automated measures.",
-								})}
-					</p>
+				{remaining > 0 || ban.automated != null ? (
+					<div className="mt-3 flex flex-col gap-1.5">
+						{expiresAt != null && remaining > 0 ? (
+							<p className={META_ROW_CLASS}>
+								<ClockFilled className={META_ICON_CLASS} />
+								<span>
+									<span className="font-semibold tabular-nums text-[var(--text)]">
+										{t("account_status.ends_in", {
+											time: formatRemaining(remaining, i18n.language),
+											defaultValue: "Ends in {{time}}",
+										})}
+									</span>
+									{" · "}
+									{formatExpiry(expiresAt, i18n.language)}
+								</span>
+							</p>
+						) : null}
+						{ban.automated != null ? (
+							<p className={META_ROW_CLASS}>
+								{ban.automated ? <BotFilled className={META_ICON_CLASS} /> : <UserFilled className={META_ICON_CLASS} />}
+								{ban.automated
+									? t("account_status.details.decision_automated", { defaultValue: "We have used automated measures in making this decision." })
+									: t("account_status.details.decision_human", {
+											defaultValue: "A human moderator made this decision. We did not use automated measures.",
+										})}
+							</p>
+						) : null}
+					</div>
 				) : null}
 			</div>
 			{explanation && (explanation.details || explanation.guideline) ? (
@@ -464,6 +531,26 @@ export function AccountStatusPromptView({
 
 	// Real bans are guideline violations; a device ban or age check is not.
 	const showGuidelines = !!content.ban;
+	// A permanent ban has nothing else to do, so its appeal is the main
+	// button; a timed ban keeps Accept there and offers it as a link.
+	const appealButton = !!content.ban?.appealable && content.ban.permanent;
+	const appealLink = !!content.ban?.appealable && !content.ban.permanent;
+
+	const links: { key: string; icon: LucideIcon; label: string; onClick: () => void }[] = [];
+	if (appealLink) {
+		links.push({ key: "appeal", icon: ExternalLink, label: t("account_status.appeal_link", { defaultValue: "Appeal" }), onClick: openBanAppeal });
+	}
+	if (showGuidelines) {
+		links.push({
+			key: "guidelines",
+			icon: ExternalLink,
+			label: t("account_status.read_guidelines", { defaultValue: "Community guidelines" }),
+			onClick: openCommunityGuidelines,
+		});
+	}
+	if (copyDetails) {
+		links.push({ key: "copy", icon: Copy, label: t("account_status.banned.copy_details", { defaultValue: "Copy details" }), onClick: copyDetails });
+	}
 
 	const acceptBanAgreement =
 		agreementPending && onAcceptBanAgreement
@@ -479,7 +566,8 @@ export function AccountStatusPromptView({
 				}
 			: null;
 
-	const hasBody = content.details.length > 0 || !!content.ban || content.expiresAt != null || !!acceptBanAgreement;
+	const hasBody =
+		content.details.length > 0 || !!content.ban || !!content.block || !!acceptBanAgreement || links.length > 0;
 
 	return (
 		<FullscreenPrompt
@@ -500,29 +588,17 @@ export function AccountStatusPromptView({
 							{accepting ? null : <ChevronRight className="h-4 w-4" />}
 						</button>
 					)}
-					<div className="flex gap-2">
-						{showGuidelines && (
-							<button type="button" onClick={openCommunityGuidelines} className={fullscreenSecondaryButtonClass}>
-								<span className="inline-flex items-center justify-center gap-2">
-									<ExternalLink className="h-4 w-4" />
-									{t("account_status.read_guidelines", { defaultValue: "Guidelines" })}
-								</span>
-							</button>
-						)}
-						{copyDetails && (
-							<button type="button" onClick={copyDetails} className={fullscreenSecondaryButtonClass}>
-								<span className="inline-flex items-center justify-center gap-2">
-									<Copy className="h-4 w-4" />
-									{t("account_status.banned.copy_details", { defaultValue: "Copy Details" })}
-								</span>
-							</button>
-						)}
-					</div>
+					{appealButton && (
+						<button type="button" onClick={openBanAppeal} className={fullscreenPrimaryButtonClass}>
+							{t("account_status.banned.appeal", { defaultValue: "Appeal Ban" })}
+							<ExternalLink className="h-4 w-4" />
+						</button>
+					)}
 					<button
 						type="button"
 						onClick={onSignOut}
 						disabled={accepting}
-						className={acceptBanAgreement ? fullscreenSecondaryButtonClass : fullscreenPrimaryButtonClass}
+						className={acceptBanAgreement || appealButton ? fullscreenSecondaryButtonClass : fullscreenPrimaryButtonClass}
 					>
 						{t("account_status.sign_out", { defaultValue: "Sign Out" })}
 					</button>
@@ -531,20 +607,27 @@ export function AccountStatusPromptView({
 		>
 			{hasBody ? (
 				<div className="flex flex-col gap-3">
-					{content.expiresAt != null ? <CountdownCard expiresAt={content.expiresAt} now={now} /> : null}
-					{content.ban ? <ReasonCard ban={content.ban} /> : null}
+					{content.ban ? <ReasonCard ban={content.ban} expiresAt={content.expiresAt} now={now} /> : null}
+					{content.block ? <BlockCard block={content.block} /> : null}
 					{content.details.length > 0 ? <DetailList details={content.details} /> : null}
 					{content.subscriptionNote ? (
-						<div className="flex items-start gap-3 rounded-2xl bg-[var(--surface-2)] px-4 py-3 text-left">
-							<CreditCard className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-							<p className="text-xs leading-relaxed text-[var(--text-muted)]">
-								<span className="font-semibold text-[var(--text)]">
-									{t("account_status.banned.subscriptions_title", { defaultValue: "Payments and subscriptions" })}
-								</span>{" "}
-								{t("account_status.banned.subscriptions_description", {
-									defaultValue: "A ban doesn't cancel a Grindr subscription. If you have one, cancel it in your app store's subscription settings.",
-								})}
-							</p>
+						<p className="px-2 text-center text-xs leading-relaxed text-[var(--text-muted)]">
+							{t("account_status.banned.subscriptions_description", {
+								defaultValue: "A ban doesn't cancel a Grindr subscription. If you have one, cancel it in your app store's subscription settings.",
+							})}
+						</p>
+					) : null}
+					{links.length > 0 ? (
+						<div className="flex flex-wrap items-center justify-center gap-x-1 text-xs font-medium text-[var(--text-muted)]">
+							{links.map(({ key, icon: Icon, label, onClick }, index) => (
+								<Fragment key={key}>
+									{index > 0 ? <span aria-hidden>·</span> : null}
+									<button type="button" onClick={onClick} className={INLINE_LINK_CLASS}>
+										<Icon className="h-3.5 w-3.5" />
+										{label}
+									</button>
+								</Fragment>
+							))}
 						</div>
 					) : null}
 					{acceptBanAgreement ? <AgreementCheckbox checked={agreed} onChange={setAgreed} disabled={accepting} /> : null}

@@ -2208,8 +2208,8 @@
             "description": "Grindr je prepovedal ta račun{{reason}}. Prijava ne bo mogoča, dokler prepoved ne bo odpravljena.",
             "copy_details": "Kopiraj podrobnosti",
             "copy_details_success": "Podrobnosti kopirane v odložišče",
-            "subscriptions_title": "",
-            "subscriptions_description": ""
+            "subscriptions_description": "",
+            "appeal": ""
         },
         "age_verification": {
             "title": "Potrebno je preverjanje starosti",
@@ -2227,8 +2227,6 @@
             "timed": ""
         },
         "details": {
-            "ban_type": "Vrsta prepovedi",
-            "sub_reason": "Podrazlog",
             "reason": "Razlog",
             "region": "Regija",
             "decision_automated": "",
@@ -2249,8 +2247,11 @@
             "agree_hint": ""
         },
         "device_ban": {
-            "title": "Zahteva zavrnjena",
-            "description": "Grindr je odgovoril z ACCOUNT_BANNED (koda 28). To pogosto ni prava prepoved: Grindr je zahtevo blokiral, na primer zaradi prstnega odtisa naprave. Odjava ustvari novo identiteto naprave, kar običajno reši težavo."
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_sign_out": ""
         },
         "regions": {
             "uk": "Združeno kraljestvo",
@@ -2419,13 +2420,23 @@
                 "details": ""
             }
         },
-        "countdown": {
-            "remaining": "",
-            "until": "",
-            "ended_title": "",
-            "ended_on": ""
+        "reason_unknown": "",
+        "ends_in": "",
+        "appeal_link": "",
+        "network_ban": {
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_vpn": "",
+            "fix_switch": ""
         },
-        "reason_unknown": ""
+        "underage_ban": {
+            "title": "",
+            "description": ""
+        },
+        "what_happened": "",
+        "code_chip": ""
     },
     "sexualHealth": {
         "title": "Spolno zdravje",

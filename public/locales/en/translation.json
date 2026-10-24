@@ -2174,10 +2174,10 @@
     "banned": {
       "title": "Account Banned",
       "description": "Grindr has banned this account{{reason}}. You can't sign in until the ban is lifted.",
-      "copy_details": "Copy Details",
+      "copy_details": "Copy details",
       "copy_details_success": "Details copied to clipboard",
-      "subscriptions_title": "Payments and subscriptions",
-      "subscriptions_description": "A ban doesn't cancel a Grindr subscription. If you have one, cancel it in your app store's subscription settings."
+      "subscriptions_description": "A ban doesn't cancel a Grindr subscription. If you have one, cancel it in your app store's subscription settings.",
+      "appeal": "Appeal Ban"
     },
     "age_verification": {
       "title": "Age Verification Required",
@@ -2195,8 +2195,6 @@
       "timed": "Temporary ban"
     },
     "details": {
-      "ban_type": "Ban type",
-      "sub_reason": "Sub-reason",
       "reason": "Reason",
       "region": "Region",
       "decision_automated": "We have used automated measures in making this decision.",
@@ -2217,8 +2215,11 @@
       "agree_hint": "Read and agree to the guidelines above to gain access to your account."
     },
     "device_ban": {
-      "title": "Request Refused",
-      "description": "Grindr answered with ACCOUNT_BANNED (code 28). This is often not a real ban: Grindr blocked the request, for example because of the device fingerprint. Signing out creates a new device identity, which usually fixes it."
+      "title": "Device Blocked",
+      "description": "You can't use your account on this device right now.",
+      "card_title": "Often not a real ban",
+      "card_text": "Grindr answered with ACCOUNT_BANNED, which it also sends for requests it doesn't trust, for example because of the device fingerprint.",
+      "fix_sign_out": "Signing out creates a new device identity, which usually fixes it."
     },
     "regions": {
       "uk": "United Kingdom",
@@ -2226,7 +2227,7 @@
       "au": "Australia",
       "us": "United States"
     },
-    "read_guidelines": "Guidelines",
+    "read_guidelines": "Community guidelines",
     "reason_label": "Ban reason",
     "learn_more": "Learn more",
     "ban_reasons": {
@@ -2387,13 +2388,23 @@
         "details": "You must meet this age requirement to use the services, and Grindr takes this rule very seriously. Additionally, communicating with minors or sharing any images involving minors, no matter the context, is a serious violation of Grindr’s policies."
       }
     },
-    "countdown": {
-      "remaining": "Remaining",
-      "until": "Until {{date}}",
-      "ended_title": "Suspension over",
-      "ended_on": "Ended {{date}}"
+    "reason_unknown": "No reason given",
+    "ends_in": "Ends in {{time}}",
+    "appeal_link": "Appeal",
+    "network_ban": {
+      "title": "Network Blocked",
+      "description": "You can't sign in from the network you're on right now.",
+      "card_title": "Suspicious network",
+      "card_text": "Grindr flags VPNs, proxies, and shared IP addresses this way. Your account itself isn't banned.",
+      "fix_vpn": "Turn off your VPN or proxy.",
+      "fix_switch": "Switch between Wi-Fi and mobile data, then sign in again."
     },
-    "reason_unknown": "No reason given"
+    "underage_ban": {
+      "title": "Underage Account",
+      "description": "You can't sign in until the ban is lifted. If you're 18 or older, appeal it to confirm your age."
+    },
+    "what_happened": "What happened",
+    "code_chip": "Code {{code}}"
   },
   "sexualHealth": {
     "title": "Sexual Health",

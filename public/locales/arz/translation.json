@@ -2208,8 +2208,8 @@
             "description": "حظر Grindr الحساب ده{{reason}}. لا يمكنك تسجيل الدخول حتى يُرفع الحظر.",
             "copy_details": "نسخ التفاصيل",
             "copy_details_success": "تم نسخ التفاصيل إلى الحافظة",
-            "subscriptions_title": "",
-            "subscriptions_description": ""
+            "subscriptions_description": "",
+            "appeal": ""
         },
         "age_verification": {
             "title": "التحقق من العمر مطلوب",
@@ -2227,8 +2227,6 @@
             "timed": ""
         },
         "details": {
-            "ban_type": "نوع الحظر",
-            "sub_reason": "السبب الفرعي",
             "reason": "السبب",
             "region": "المنطقة",
             "decision_automated": "",
@@ -2249,8 +2247,11 @@
             "agree_hint": ""
         },
         "device_ban": {
-            "title": "تم رفض الطلب",
-            "description": "ردّ Grindr بـ ACCOUNT_BANNED (الرمز 28). غالبًا لا يكون هذا حظرًا حقيقيًا: حجب Grindr الطلب، مثلًا بسبب بصمة الجهاز. تسجيل الخروج يُنشئ هوية جهاز جديدة، وهذا يحل المشكلة عادةً."
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_sign_out": ""
         },
         "regions": {
             "uk": "المملكة المتحدة",
@@ -2419,13 +2420,23 @@
                 "details": ""
             }
         },
-        "countdown": {
-            "remaining": "",
-            "until": "",
-            "ended_title": "",
-            "ended_on": ""
+        "reason_unknown": "",
+        "ends_in": "",
+        "appeal_link": "",
+        "network_ban": {
+            "title": "",
+            "description": "",
+            "card_title": "",
+            "card_text": "",
+            "fix_vpn": "",
+            "fix_switch": ""
         },
-        "reason_unknown": ""
+        "underage_ban": {
+            "title": "",
+            "description": ""
+        },
+        "what_happened": "",
+        "code_chip": ""
     },
     "sexualHealth": {
         "title": "الصحة الجنسية",

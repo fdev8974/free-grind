@@ -97,6 +97,18 @@ const PREVIEW_BAN_STATUS: AccountStatus = {
 	kind: "banned",
 	info: { kind: "profile", code: 27, message: "Profile is banned", subReason: "DRUG_SALES", automated: true },
 };
+const PREVIEW_DEVICE_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "device", code: 28, message: "Account banned" },
+};
+const PREVIEW_NETWORK_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "network", code: 31, message: "Suspicious network" },
+};
+const PREVIEW_UNDERAGE_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "underage", code: 35, message: "Underage", subReason: "UNDERAGE_ACCESS", automated: false },
+};
 // Built on selection so the expiry is relative to now: still running, or
 // already over with the ban agreement waiting to be accepted.
 function previewTimedBanStatus(expired: boolean): AccountStatus {
@@ -104,8 +116,9 @@ function previewTimedBanStatus(expired: boolean): AccountStatus {
 		kind: "restriction",
 		restriction: {
 			kind: "timedBan",
-			reason: "HARASSMENT",
-			subReason: "MILD_INSULTS",
+			// BOT_ACTIVITY is one of the timed bans that offer an appeal.
+			reason: expired ? null : "HARASSMENT",
+			subReason: expired ? "BOT_ACTIVITY" : "MILD_INSULTS",
 			automated: true,
 			expiresAt: Math.floor(Date.now() / 1000) + (expired ? -60 * 60 : 2 * 24 * 60 * 60),
 			agreementCompleted: expired ? false : null,
@@ -1380,8 +1393,11 @@ export function SettingsPage() {
 						{ key: "restore", icon: FileUpFilled, label: "Restore Offer", description: "The first-login backup restore dialog.", onSelect: () => afterSheetClose(replayRestoreOffer) },
 						{ key: "legal", icon: ScrollText, label: "Legal Agreements", description: "Terms of Service / Privacy Policy, even if already accepted.", onSelect: () => afterSheetClose(showLegalAgreementsPrompt) },
 						{ key: "ban", icon: Ban, label: "Ban Screen", description: "A permanent profile ban (DRUG_SALES) with its explanation.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_BAN_STATUS)) },
+						{ key: "device-ban", icon: Ban, label: "Device Ban Screen", description: "Code 28, often a refused fingerprint rather than a real ban.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_DEVICE_BAN_STATUS)) },
+						{ key: "network-ban", icon: Globe, label: "Network Ban Screen", description: "Code 31 (SUSPICIOUS_NETWORK), e.g. a VPN.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_NETWORK_BAN_STATUS)) },
+						{ key: "underage-ban", icon: Ban, label: "Underage Ban Screen", description: "Code 35, banned as under 18 by a moderator.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_UNDERAGE_BAN_STATUS)) },
 						{ key: "timed-ban", icon: Clock, label: "Timed Ban Screen", description: "A temporary ban (MILD_INSULTS) that ends in two days.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(false))) },
-						{ key: "timed-ban-expired", icon: ScrollText, label: "Ban Agreement Screen", description: "An expired temporary ban waiting for its ban agreement.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(true))) },
+						{ key: "timed-ban-expired", icon: ScrollText, label: "Ban Agreement Screen", description: "An expired temporary ban (BOT_ACTIVITY, appealable) waiting for its ban agreement.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(true))) },
 						{ key: "warnings", icon: TriangleAlertFilled, label: "Account Warnings", description: "The community-guidelines warnings prompt with sample warnings.", onSelect: () => afterSheetClose(showAccountWarningsPrompt) },
 						{ key: "share", icon: Share2, label: "Share Picker", description: "The \"Send to…\" chat picker with sample images.", onSelect: () => afterSheetClose(() => void showSharePickerDebug()) },
 						{
