@@ -6,13 +6,21 @@ import { SheetChip, SheetMoreButton, SheetSection, SheetSearchInput } from "../.
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { useManagedTagCategories } from "../../../hooks/queries/useProfileQueries";
 import type { ManagedTagCategory } from "../../../types/api-functions";
-import { MAX_PROFILE_TAGS, normalizeTagList, toggleProfileTagText } from "./profileEditorUtils";
+import { cn } from "../../../utils/cn";
 
 const TAGS_PREVIEW_LIMIT = 7;
 
 interface TagsPickerDialogProps {
-	tagsText: string;
-	onChange: (nextTagsText: string) => void;
+	/** Selected catalog tag keys. */
+	selected: string[];
+	/** Omit for an unlimited selection (e.g. a browse filter). */
+	max?: number;
+	maxMessage?: string;
+	/** Label of the footer button that closes the sheet. Selections apply live either way. */
+	confirmLabel?: string;
+	/** Active chip / confirm button color — explore mode passes its own. */
+	accentColor?: string;
+	onToggle: (tagKey: string) => void;
 	onClose: () => void;
 }
 
@@ -20,11 +28,13 @@ function TagCategorySection({
 	category,
 	selected,
 	showAll,
+	accentColor,
 	onToggle,
 }: {
 	category: ManagedTagCategory;
 	selected: string[];
 	showAll: boolean;
+	accentColor: string;
 	onToggle: (tagKey: string) => void;
 }) {
 	const { t } = useTranslation();
@@ -50,12 +60,12 @@ function TagCategorySection({
 			    list back to 7 before the click could land on it. */}
 			<div className="flex flex-wrap gap-2" onMouseDown={(event) => event.preventDefault()}>
 				{visibleTags.map((tag) => (
-					<SheetChip key={tag.tagId} active={selected.includes(tag.key)} onClick={() => onToggle(tag.key)}>
+					<SheetChip key={tag.tagId} active={selected.includes(tag.key)} onClick={() => onToggle(tag.key)} accentColor={accentColor}>
 						{tag.text}
 					</SheetChip>
 				))}
 				{hiddenCount > 0 && (
-					<SheetMoreButton onClick={() => setExpanded(true)}>
+					<SheetMoreButton onClick={() => setExpanded(true)} accentColor={accentColor}>
 						{t("profile_editor.tags_dialog.see_more", { count: hiddenCount })}
 					</SheetMoreButton>
 				)}
@@ -64,7 +74,15 @@ function TagCategorySection({
 	);
 }
 
-export function TagsPickerDialog({ tagsText, onChange, onClose }: TagsPickerDialogProps) {
+export function TagsPickerDialog({
+	selected,
+	max,
+	maxMessage,
+	confirmLabel,
+	accentColor = "var(--accent)",
+	onToggle,
+	onClose,
+}: TagsPickerDialogProps) {
 	const { t, i18n } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
 	const { data: categories, isLoading } = useManagedTagCategories(i18n.language);
@@ -90,15 +108,13 @@ export function TagsPickerDialog({ tagsText, onChange, onClose }: TagsPickerDial
 			.filter((category) => category.tags.length > 0);
 	}, [nonEmptyCategories, query]);
 
-	const selected = useMemo(() => normalizeTagList(tagsText), [tagsText]);
-
 	const handleToggle = (tagKey: string) => {
 		const alreadySelected = selected.includes(tagKey);
-		if (!alreadySelected && selected.length >= MAX_PROFILE_TAGS) {
-			toast.error(t("profile_editor.errors.max_selection", { count: MAX_PROFILE_TAGS }));
+		if (!alreadySelected && max !== undefined && selected.length >= max) {
+			if (maxMessage) toast.error(maxMessage);
 			return;
 		}
-		onChange(toggleProfileTagText(tagsText, tagKey));
+		onToggle(tagKey);
 	};
 
 	return (
@@ -122,6 +138,7 @@ export function TagsPickerDialog({ tagsText, onChange, onClose }: TagsPickerDial
 					onFocus={() => setIsSearchFocused(true)}
 					onBlur={() => setIsSearchFocused(false)}
 					placeholder={t("profile_editor.tags_dialog.search_placeholder")}
+					accentColor={accentColor}
 				/>
 			</div>
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
@@ -137,6 +154,7 @@ export function TagsPickerDialog({ tagsText, onChange, onClose }: TagsPickerDial
 								category={category}
 								selected={selected}
 								showAll={showAll}
+								accentColor={accentColor}
 								onToggle={handleToggle}
 							/>
 						))}
@@ -150,8 +168,14 @@ export function TagsPickerDialog({ tagsText, onChange, onClose }: TagsPickerDial
 				)}
 			</div>
 			<div className="-mx-4 mt-3 flex shrink-0 border-t border-[var(--border)] px-4 pt-3">
-				<SheetClose className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98]">
-					{t("common.done", { defaultValue: "Done" })}
+				<SheetClose
+					style={{ backgroundColor: accentColor }}
+					className={cn(
+						"inline-flex h-11 flex-1 items-center justify-center rounded-xl px-4 text-sm font-semibold transition hover:brightness-110 active:scale-[0.98]",
+						accentColor === "var(--accent)" ? "text-[var(--accent-contrast)]" : "text-white",
+					)}
+				>
+					{confirmLabel ?? t("common.done", { defaultValue: "Done" })}
 				</SheetClose>
 			</div>
 		</BottomSheet>

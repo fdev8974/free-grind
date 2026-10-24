@@ -45,6 +45,7 @@ import { ManagedOptionsPickerDialog } from "./ManagedOptionsPickerDialog";
 import {
 	MAX_GENDERS,
 	MAX_PROFILE_PHOTOS,
+	MAX_PROFILE_TAGS,
 	MEDIA_MODERATION_STATE,
 	toggleProfileTagText,
 	type ProfileDraft,
@@ -914,8 +915,10 @@ export function ProfileEditorFormSections({
 
 			{isTagsDialogOpen && (
 				<TagsPickerDialog
-					tagsText={draft.profileTagsText}
-					onChange={(next) => onDraftChange("profileTagsText", next)}
+					selected={tagList}
+					max={MAX_PROFILE_TAGS}
+					maxMessage={t("profile_editor.errors.max_selection", { count: MAX_PROFILE_TAGS })}
+					onToggle={(tagKey) => onDraftChange("profileTagsText", toggleProfileTagText(draft.profileTagsText, tagKey))}
 					onClose={() => setIsTagsDialogOpen(false)}
 				/>
 			)}

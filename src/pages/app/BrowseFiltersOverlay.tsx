@@ -10,7 +10,6 @@ import { useManagedGenders, useManagedTagCategories } from "../../hooks/queries/
 import { cn } from "../../utils/cn";
 import { buildTagLabelMap } from "../../utils/tags";
 import { type ManagedOption } from "./GridPage.types";
-import type { ManagedTag } from "../../types/api-functions";
 import {
 	type BrowseFilters,
 	type BrowseFiltersDraft,
@@ -30,6 +29,7 @@ import {
 	getPrimaryGenderIds,
 } from "./profile-option-builders";
 import { ManagedOptionsPickerDialog } from "./profile-editor/ManagedOptionsPickerDialog";
+import { TagsPickerDialog } from "./profile-editor/TagsPickerDialog";
 import {
 	cmToInches,
 	gramsToKg,
@@ -38,6 +38,9 @@ import {
 	kgToGrams,
 	poundsToGrams,
 } from "../../utils/units";
+
+/** How many catalog tags show inline in the filter sheet before "More tags". */
+const INLINE_TAG_COUNT = 7;
 
 function formatInchesAsFeetInches(totalInches: number): string {
 	const safe = Math.max(0, Math.round(totalInches));
@@ -106,7 +109,6 @@ function BrowseFiltersSheetContent({
 	const [meetAt, setMeetAt] = useState<number[]>(normalized.meetAt);
 	const [nsfwPics, setNsfwPics] = useState<number[]>(normalized.nsfwPics);
 	const [tags, setTags] = useState<string[]>(normalized.tags);
-	const [tagDraft, setTagDraft] = useState("");
 	const [nicknameFilter, setNicknameFilter] = useState(normalized.nicknameFilter);
 
 	const isImperialHeight = unitsPreset === "uk" || unitsPreset === "american";
@@ -192,26 +194,22 @@ function BrowseFiltersSheetContent({
 		[t],
 	);
 
-	// Flat list of every managed tag across all categories — the filter only
-	// ever needs to search/add individual tags, never browse by category.
+	// `tags` holds what gets sent to the server: catalog tag keys picked in
+	// TagsPickerDialog. Filters saved before the picker may still hold raw
+	// free-typed text with no catalog key — those render as-is.
 	const allManagedTags = useMemo(
 		() => (managedTagCategories ?? []).flatMap((category) => category.tags),
 		[managedTagCategories],
 	);
-
-	// `tags` holds whatever actually gets sent to the server: a catalog tag's
-	// stable `key` (see addManagedTag), or the raw typed text for a free-typed
-	// tag that isn't in the catalog (addTag) — there's no key for those.
 	const tagLabelByKey = useMemo(() => buildTagLabelMap(allManagedTags), [allManagedTags]);
 	const tagLabel = (value: string) => tagLabelByKey.get(value) ?? value;
-
-	const tagSearchResults = useMemo(() => {
-		const query = tagDraft.trim().toLowerCase();
-		if (!query) return [];
-		return allManagedTags
-			.filter((tag) => tag.text.toLowerCase().includes(query) && !tags.includes(tag.key))
-			.slice(0, 8);
-	}, [tagDraft, allManagedTags, tags]);
+	// Like genders: the first few catalog tags inline, plus any selected ones
+	// beyond those so they stay visible/removable; the rest live in the picker.
+	const inlineTagKeys = useMemo(() => {
+		const primaryKeys = allManagedTags.slice(0, INLINE_TAG_COUNT).map((tag) => tag.key);
+		return [...primaryKeys, ...tags.filter((tag) => !primaryKeys.includes(tag))];
+	}, [allManagedTags, tags]);
+	const [isTagsPickerOpen, setIsTagsPickerOpen] = useState(false);
 
 	const toggleBrowseFilter = (key: keyof BrowseFilters) => {
 		setBrowseFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -221,16 +219,8 @@ function BrowseFiltersSheetContent({
 		setter((prev) => prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]);
 	};
 
-	const addTag = (value: string = tagDraft) => {
-		const norm = value.trim().toLowerCase();
-		if (!norm) return;
-		setTags((prev) => prev.includes(norm) ? prev : [...prev, norm]);
-		setTagDraft("");
-	};
-
-	const addManagedTag = (tag: ManagedTag) => {
-		setTags((prev) => (prev.includes(tag.key) ? prev : [...prev, tag.key]));
-		setTagDraft("");
+	const toggleTag = (tagKey: string) => {
+		setTags((prev) => prev.includes(tagKey) ? prev.filter((v) => v !== tagKey) : [...prev, tagKey]);
 	};
 
 	const clearAll = () => {
@@ -455,51 +445,16 @@ function BrowseFiltersSheetContent({
 					)}
 
 					<SheetSection title={t("browse_filters.tags")}>
-						<div className="flex gap-2">
-							<input
-								type="text"
-								placeholder={t("browse_filters.tags_placeholder")}
-								value={tagDraft}
-								onChange={(e) => setTagDraft(e.target.value)}
-								onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-								className={cn(inputClassName, "min-w-0 flex-1")}
-							/>
-							<button
-								type="button"
-								onClick={() => addTag()}
-								disabled={!tagDraft.trim()}
-								className="h-11 shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
-							>
-								{t("browse_filters.add")}
-							</button>
+						<div className="flex flex-wrap gap-2">
+							{inlineTagKeys.map((tag) => (
+								<SheetChip key={tag} active={tags.includes(tag)} onClick={() => toggleTag(tag)} accentColor={accentColor}>
+									{tagLabel(tag)}
+								</SheetChip>
+							))}
+							<SheetMoreButton onClick={() => setIsTagsPickerOpen(true)} accentColor={accentColor}>
+								{t("browse_filters.tags_more", { defaultValue: "More tags" })}
+							</SheetMoreButton>
 						</div>
-						{tagSearchResults.length > 0 && (
-							<div className="mt-2 flex flex-wrap gap-2">
-								{tagSearchResults.map((tag) => (
-									<SheetChip key={tag.tagId} active={false} onClick={() => addManagedTag(tag)} accentColor={accentColor} size="sm">
-										+ {tag.text}
-									</SheetChip>
-								))}
-							</div>
-						)}
-						{tags.length > 0 && (
-							<div className="mt-2 flex flex-wrap gap-2">
-								{tags.map((tag) => (
-									<SheetChip
-										key={tag}
-										active
-										onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
-										accentColor={accentColor}
-										size="sm"
-									>
-										<span className="inline-flex items-center gap-1">
-											{tagLabel(tag)}
-											<X className="h-3 w-3" />
-										</span>
-									</SheetChip>
-								))}
-							</div>
-						)}
 					</SheetSection>
 
 					{renderToggleSection(t("browse_filters.local_filters.visiting_title"), localFilterOptions, true)}
@@ -561,6 +516,16 @@ function BrowseFiltersSheetContent({
 					accentColor={accentColor}
 					onToggle={(value) => toggleMultiSelect(value, setGenders)}
 					onClose={() => setIsGenderPickerOpen(false)}
+				/>,
+				document.body,
+			)}
+			{isTagsPickerOpen && createPortal(
+				<TagsPickerDialog
+					selected={tags}
+					confirmLabel={t("browse_filters.apply")}
+					accentColor={accentColor}
+					onToggle={toggleTag}
+					onClose={() => setIsTagsPickerOpen(false)}
 				/>,
 				document.body,
 			)}
