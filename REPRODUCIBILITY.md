@@ -6,9 +6,10 @@ A reproducible build lets you confirm that a published Free Grind download was b
 | ------------------------------------------- | ------------ | --------------------------------------------- |
 | Android APK (`free-grind-v<version>.apk`)   | Yes          | [Android](#android)                           |
 | Windows installer and portable exe          | Yes          | [Windows](#windows)                           |
+| iOS IPA (unsigned)                          | Yes, on a Mac with Xcode 26.6 | [iOS](#ios)                  |
 | Linux `.deb`, `.rpm`, `.AppImage`           | Yes          | [Linux](#linux)                               |
 | OTA frontend bundle (`frontend-*.tar.gz`)   | Yes          | [OTA frontend bundle](#ota-frontend-bundle)   |
-| macOS, iOS                                  | Not yet      | [Not reproducible yet](#not-reproducible-yet) |
+| macOS                                       | Not yet      | [Not reproducible yet](#not-reproducible-yet) |
 
 The OTA bundle matters as much as the apps: it replaces the whole user interface of an installed app on every update.
 
@@ -16,7 +17,7 @@ The OTA bundle matters as much as the apps: it replaces the whole user interface
 
 CI ([release.yml](.github/workflows/release.yml), [ota-branches.yml](.github/workflows/ota-branches.yml)) runs the commands from this page:
 
-1. Two separate runners each build the APK, the Windows installer and exe, the Linux packages and the OTA bundle inside the pinned container from [ci/build/Dockerfile](ci/build/Dockerfile).
+1. Two separate runners each build the APK, the Windows installer and exe, the Linux packages and the OTA bundle inside the pinned container from [ci/build/Dockerfile](ci/build/Dockerfile), and two macOS runners each build the iOS IPA with [ci/build/ios.sh](ci/build/ios.sh).
 2. [ci/compare.sh](ci/compare.sh) checks that both builds are byte-identical. If they differ, nothing is published.
 3. Only then is the APK signed and the OTA bundle signed and uploaded. CI checks that the signed APK is exactly the unsigned build plus a signature, using the same `apksigcopier` check you run below.
 
@@ -84,6 +85,21 @@ cmp out/windows/free-grind-v<version>-windows-x64.exe /path/to/free-grind-manage
   && echo "✓ exe matches"
 ```
 
+## iOS
+
+Apple's toolchain only runs on macOS, so the IPA can't be built in the container. [ci/build/ios.sh](ci/build/ios.sh) builds it on a Mac instead, in a copy of the checkout at a fixed path (`/tmp/free-grind-ios`), because Swift and Xcode record absolute paths in the app. It needs:
+
+- macOS on Apple Silicon with **Xcode 26.6** selected (`sudo xcode-select -s /Applications/Xcode_26.6.app`); the script refuses any other version
+- rustup, Bun and Node in the versions this page lists, plus `jq`
+- a full clone, not a shallow one: the build number is the commit count
+
+The IPA is published unsigned (you sign it when you sideload it), so the whole file has to match.
+
+```bash
+FG_CHANNEL=<from BUILDINFO.txt> bash ci/build/ios.sh
+cmp out/ios/free-grind-v<version>-unsigned.ipa /path/to/free-grind-v<version>-unsigned.ipa && echo "✓ IPA matches"
+```
+
 ## Linux
 
 The `.deb`, `.rpm` and `.AppImage` aren't signed, so the whole file has to match.
@@ -130,6 +146,8 @@ The rebuild runs tools you have to trust. Each one is pinned to a version and a 
 | Windows: MSVC CRT, Windows SDK | CRT 14.44.17.14, SDK 10.0.26100 | `XWIN_CRT_VERSION`, `XWIN_SDK_VERSION` in `ci/build/Dockerfile`; xwin checks Microsoft's hashes |
 | Windows: cargo-xwin       | 0.23.1                   | `ci/build/Dockerfile`, built with `cargo install --locked`          |
 | Windows: NSIS             | 3.11                     | `ci/build/Dockerfile`: tauri's `nsis-3.11.zip` and the official source, both with checksums |
+| iOS: Xcode                | 26.6 (iOS SDK included)  | checked by `ci/build/ios.sh`; CI selects it on the `macos-26` image  |
+| iOS: xcodegen             | 2.46.0                   | `ci/build/ios.sh`, with checksum                                     |
 | JS dependencies           | —                        | `bun.lock`                                                          |
 | Rust crates               | —                        | `src-tauri/Cargo.lock`                                              |
 | Android libraries         | —                        | fixed versions in `src-tauri/gen/android/app/build.gradle.kts`      |
@@ -151,10 +169,10 @@ For anyone changing the build. Each of these was needed to get identical bytes:
 - **OTA bundle:** packed by [ci/build/pack-frontend.sh](ci/build/pack-frontend.sh) with sorted entries, a fixed owner, fixed modes and fixed mtimes, and gzip without a timestamp.
 - **Linux packages:** tauri's bundler stamps the current time into packages and downloads an unpinned `linuxdeploy` for AppImages. [ci/build/linux.sh](ci/build/linux.sh) therefore repacks the `.deb`, builds the `.rpm` with `rpmbuild`, and assembles the AppImage around the pinned runtime. The AppImage uses the system's WebKitGTK and GStreamer, like the `.deb` and `.rpm`.
 - **Windows:** one codegen unit (otherwise a panic type descriptor lands at a random place in `.data`), `/Brepro` instead of a link timestamp, no PDB, and path remapping through `/clang:` flags for clang-cl ([ci/build/windows.sh](ci/build/windows.sh)). NSIS records every installed file's mtime, so [a wrapper](ci/build/windows/makensis) sets them to the commit time first. makensis is built with `VERSION=3.11`, since its version string ends up in the installer.
+- **iOS:** one codegen unit for the Rust library (otherwise the linker orders imported symbols differently, e.g. `objc_msgSend`'s GOT slot), a fixed build path, and an IPA zip with sorted entries, the commit time as mtime and no extra attributes.
 - **Android:** the baseline profile and Kotlin tooling metadata are switched off, because they differ between builds. Build-tools and NDK versions are set explicitly so AGP can't pick its own. The release network security config lives in `ci/build/android/` and is swapped in by the build script, not by CI.
 
 ## Not reproducible yet
 
 - **macOS** is built on GitHub's `macos-26` runner image with Xcode 26.6 selected explicitly, so the toolchain is pinned, but the output isn't reproducible yet.
-- **iOS** is built the same way (Xcode 26.6, pinned xcodegen and Node). The manual "iOS Reproducibility Check" workflow builds the IPA twice and lists what still differs.
 - The **manual "Build Artifacts" workflow** produces test builds on the runner images; they aren't releases.

@@ -105,7 +105,7 @@ jobs:
                 '',
                 `Commit: ${context.sha}`,
                 '',
-                'The Android APK, the Windows installer and exe, the Linux packages and the OTA frontend bundle are reproducible: ' +
+                'The Android APK, the iOS IPA, the Windows installer and exe, the Linux packages and the OTA frontend bundle are reproducible: ' +
                   'two independent builds produced identical bytes before this release was published. ' +
                   `To check them yourself, see [REPRODUCIBILITY.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${context.sha}/REPRODUCIBILITY.md) ` +
                   'and the SHA256SUMS and BUILDINFO.txt assets.'
@@ -483,7 +483,7 @@ jobs:
           if-no-files-found: error
 
   verify:
-    needs: reproducible-build
+    needs: [reproducible-build, build-ios-1, build-ios-2]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -496,11 +496,18 @@ jobs:
           pattern: build-*
           path: builds
 
+      - name: Download both iOS builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ios-build-*
+          path: builds
+
       - name: Compare the builds
         run: |
           for artifact in linux android windows frontend; do
             sh ci/compare.sh "verified/$artifact" "builds/build-$artifact-1" "builds/build-$artifact-2"
           done
+          sh ci/compare.sh verified/ios builds/ios-build-1 builds/ios-build-2
 
       - name: Upload verified Linux packages
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -523,6 +530,14 @@ jobs:
         with:
           name: verified-windows
           path: verified/windows
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified iOS IPA
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-ios
+          path: verified/ios
           retention-days: 3
           if-no-files-found: error
 
@@ -605,6 +620,7 @@ jobs:
           FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
         run: |
           cp verified/verified-linux/* release/
+          cp verified/verified-ios/*.ipa release/
           version=$(jq -r '.version' package.json)
           cp "verified/verified-windows/free-grind-v$version-windows-x64-setup.exe" release/
           # The app picks its runtime mode from its file name (manager vs
@@ -620,6 +636,7 @@ jobs:
             echo "Rebuild the reproducible files with:"
             echo "  git checkout $GITHUB_SHA && git submodule update --init"
             echo "  FG_CHANNEL=$FG_CHANNEL sh ci/build/run.sh <linux|android|windows|frontend>"
+            echo "  FG_CHANNEL=$FG_CHANNEL bash ci/build/ios.sh   # on macOS with Xcode 26.6"
             echo "See REPRODUCIBILITY.md for comparing them with this release."
           } > release/BUILDINFO.txt
           # Every file two builders agreed on, under its build output name, plus
@@ -656,6 +673,7 @@ jobs:
               '.rpm': 'application/x-rpm',
               '.AppImage': 'application/vnd.appimage',
               '.exe': 'application/vnd.microsoft.portable-executable',
+              '.ipa': 'application/octet-stream',
             };
             for (const name of fs.readdirSync('release')) {
               const data = fs.readFileSync(path.join('release', name));
@@ -673,8 +691,15 @@ jobs:
               console.log(`✓ Uploaded ${name}`);
             }
 
-  build-ios:
+  # The IPA, also built twice; `verify` compares the two like the others.
+  build-ios-1:
     needs: create-release
     uses: ./.github/workflows/build-ios.yml
     with:
-      release_id: ${{ needs.create-release.outputs.release_id }}
+      artifact_name: ios-build-1
+
+  build-ios-2:
+    needs: create-release
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      artifact_name: ios-build-2

@@ -131,11 +131,11 @@ bun run build:ios:ipa
 
 All Tauri commands are routed through shell scripts in [scripts](scripts) and use Bun (`bunx`). Bun is the only supported package manager; `bun.lock` is the one lockfile.
 
-Building from source with the pinned toolchain: see [BUILDING.md](./BUILDING.md). The Android APK, the Windows installer, the Linux packages and the OTA updates are reproducible; [REPRODUCIBILITY.md](./REPRODUCIBILITY.md) shows how to check a release against the source. The signing keys and how to check a download are in [KEYS.md](./KEYS.md).
+Building from source with the pinned toolchain: see [BUILDING.md](./BUILDING.md). The Android APK, the iOS IPA, the Windows installer, the Linux packages and the OTA updates are reproducible; [REPRODUCIBILITY.md](./REPRODUCIBILITY.md) shows how to check a release against the source. The signing keys and how to check a download are in [KEYS.md](./KEYS.md).
 
 All contributions must be aligned with [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 
-The API reference documentation lives in [`docs/`](./docs/content/grindr-api/) and is hosted at [https://freegrinddocs.imaoreo.dev/](https://freegrinddocs.imaoreo.dev/) — contributions to reverse engineering and documentation are especially valued.
+The API reference documentation lives in [`docs/`](./docs/content/grindr-api/) and is hosted at [https://fdev8974.github.io/free-grind/](https://fdev8974.github.io/free-grind/) — contributions to reverse engineering and documentation are especially valued.
 
 ## FAQ & Troubleshooting
 
@@ -160,7 +160,7 @@ The API reference documentation lives in [`docs/`](./docs/content/grindr-api/) a
 <details>
   <summary>Where is the API documentation?</summary>
 
-  The Grindr API reference is maintained in this repo under [`docs/content/grindr-api/`](./docs/content/grindr-api/) and hosted at [freegrinddocs.imaoreo.dev](https://freegrinddocs.imaoreo.dev).
+  The Grindr API reference is maintained in this repo under [`docs/content/grindr-api/`](./docs/content/grindr-api/) and hosted at [fdev8974.github.io/free-grind](https://fdev8974.github.io/free-grind/).
 </details>
 
 ## Contributing

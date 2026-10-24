@@ -12,26 +12,17 @@ on:
         required: false
         type: string
         default: free-grind-ios
-      use_cache:
-        description: "Restore the Rust build cache (off for independent comparison builds)"
-        required: false
-        type: boolean
-        default: true
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-26
-    env:
-      # Default update channel baked into the frontend: builds from main ship
-      # on Stable, every other branch (beta builds) on Development.
-      VITE_HOTSWAP_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
           submodules: true
-          # Full history so the commit count below can serve as the build number.
+          # Full history: ci/build/ios.sh uses the commit count as build number.
           fetch-depth: 0
 
       - name: Select Xcode
@@ -40,26 +31,6 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_26.6.app
           xcodebuild -version
-
-      - name: Extract metadata
-        id: meta
-        run: |
-          VERSION=$(jq -r '.version' package.json)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          # Apple only accepts dot-separated integers in the bundle versions, so
-          # `1.0.0-beta.2` is split: CFBundleShortVersionString gets the plain
-          # `1.0.0`, and CFBundleVersion a build number that grows with every
-          # commit, which keeps successive betas of one version ordered. The app
-          # itself (hotswap, update prompt) still reads the full semver from
-          # package.json.
-          SHORT_VERSION="${VERSION%%[-+]*}"
-          BUILD_NUMBER=$(git rev-list --count HEAD)
-          if ! [[ "$SHORT_VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
-            echo "Cannot derive an iOS bundle version from '$VERSION'"
-            exit 1
-          fi
-          echo "bundle_short_version=$SHORT_VERSION" >> "$GITHUB_OUTPUT"
-          echo "bundle_version=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
         # Vite runs under Node; the runner's preinstalled one isn't pinned.
@@ -73,236 +44,17 @@ jobs:
           bun-version-file: package.json
 
       - name: Setup Rust
-        shell: bash
-        run: |
-          rustup toolchain install
-          rustup target add aarch64-apple-ios
+        run: rustup toolchain install
 
-      - name: Check Cargo.lock is up to date
-        # Fails instead of letting the build silently re-resolve crate versions.
-        shell: bash
-        run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
-
-      - name: Rust cache
-        if: ${{ inputs.use_cache != false }}
-        uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          workspaces: ./src-tauri -> target
-
-      - name: Install frontend dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build frontend assets
-        run: bun run build
-
-      - name: Initialize iOS project
-        run: |
-          rm -rf src-tauri/gen/apple
-          bunx tauri ios init --ci
-
-          # `tauri ios init` regenerates gen/apple from Tauri's templates, which
-          # drops our committed customizations (project.yml with the app-disguise
-          # alternate icons, AppIcon-* sets, LaunchScreen). Restore them.
-          git checkout -- src-tauri/gen/apple
-
-          # Keep the bundle version in sync with tauri.conf.json instead of the
-          # value hardcoded in project.yml (see "Extract metadata" for the split).
-          SHORT_VERSION='${{ steps.meta.outputs.bundle_short_version }}'
-          BUILD_NUMBER='${{ steps.meta.outputs.bundle_version }}'
-          sed -i '' \
-            -e "s/CFBundleShortVersionString: .*/CFBundleShortVersionString: \"$SHORT_VERSION\"/" \
-            -e "s/CFBundleVersion: .*/CFBundleVersion: \"$BUILD_NUMBER\"/" \
-            src-tauri/gen/apple/project.yml
-
-          # xcodegen fails on source paths that don't exist yet; Externals is
-          # filled with the prebuilt Rust library in a later step.
-          mkdir -p src-tauri/gen/apple/Externals/arm64/release \
-                   src-tauri/gen/apple/Externals/x86_64/release \
-                   src-tauri/gen/apple/assets
-
-          # Pinned release instead of whatever Homebrew has today.
-          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
-          echo "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
-          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
-          (cd src-tauri/gen/apple && "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate)
-
-      - name: Merge Info.plist usage descriptions
-        run: |
-          # The Tauri CLI normally merges src-tauri/Info.plist during
-          # `tauri ios build`; we bypass it, so do it here. Without the
-          # NS*UsageDescription keys iOS kills the app on the first
-          # camera/mic/location/photos access.
-          SOURCE_PLIST="src-tauri/Info.plist"
-          INFO_PLIST=$(find src-tauri/gen/apple -path '*_iOS/Info.plist' | head -n 1)
-          if [ -z "$INFO_PLIST" ]; then
-            echo "Generated iOS Info.plist not found under src-tauri/gen/apple"
-            exit 1
-          fi
-
-          # PlistBuddy's Merge skips keys that already exist, so delete them
-          # first to let src-tauri/Info.plist win.
-          for key in $(plutil -convert json -o - "$SOURCE_PLIST" | jq -r 'keys[]'); do
-            /usr/libexec/PlistBuddy -c "Delete :$key" "$INFO_PLIST" 2>/dev/null || true
-          done
-          /usr/libexec/PlistBuddy -c "Merge $SOURCE_PLIST" "$INFO_PLIST"
-
-          if ! plutil -lint "$INFO_PLIST" >/dev/null; then
-            echo "Merged Info.plist is invalid"
-            exit 1
-          fi
-          echo "Merged $SOURCE_PLIST into $INFO_PLIST"
-
-      - name: Build iOS Rust static library
-        run: |
-          # `custom-protocol` is what `tauri build` enables automatically; without
-          # it the app is a dev build and tries to load devUrl (localhost:1420).
-          # Fixed names for the checkout and crate paths, as in ci/build/common.sh.
-          CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
-          export RUSTFLAGS="--remap-path-prefix=$CARGO_HOME=/cargo --remap-path-prefix=$GITHUB_WORKSPACE=/free-grind"
-          export CFLAGS="-ffile-prefix-map=$CARGO_HOME=/cargo -ffile-prefix-map=$GITHUB_WORKSPACE=/free-grind"
-          export CXXFLAGS="$CFLAGS"
-          # With several codegen units the linker meets imported symbols in a
-          # varying order, which shuffles GOT slots (e.g. objc_msgSend's).
-          export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
-          cargo build --manifest-path src-tauri/Cargo.toml --target aarch64-apple-ios --release --features custom-protocol
-
-          LIB_PATH="src-tauri/target/aarch64-apple-ios/release/libopen_grind_lib.a"
-          if [ ! -f "$LIB_PATH" ]; then
-            echo "iOS static library not found at $LIB_PATH"
-            exit 1
-          fi
-
-          cp "$LIB_PATH" src-tauri/gen/apple/Externals/arm64/release/libapp.a
-          # Keep xcodebuild happy if the generated project still references both arch outputs.
-          cp "$LIB_PATH" src-tauri/gen/apple/Externals/x86_64/release/libapp.a
-
-      - name: Disable Xcode Rust bridge script
-        run: |
-          PBXPROJ_PATH=$(find src-tauri/gen/apple -maxdepth 3 -name project.pbxproj | head -n 1)
-          if [ -z "$PBXPROJ_PATH" ]; then
-            echo "project.pbxproj not found under src-tauri/gen/apple"
-            exit 1
-          fi
-
-          tmp_file="$(mktemp)"
-          if ! awk '
-            BEGIN { replaced = 0 }
-            /tauri ios xcode-script/ {
-              print "\t\t\tshellScript = \"set -e\\nLIB_PATH=\\\"$SRCROOT/Externals/arm64/release/libapp.a\\\"\\nif [ ! -f \\\"$LIB_PATH\\\" ]; then\\n  echo \\\"Missing prebuilt Rust library at $LIB_PATH\\\"\\n  exit 1\\nfi\";"
-              replaced = 1
-              next
-            }
-            { print }
-            END {
-              if (replaced == 0) {
-                exit 2
-              }
-            }
-          ' "$PBXPROJ_PATH" > "$tmp_file"; then
-            rm -f "$tmp_file"
-            echo "Failed to replace Build Rust Code script"
-            exit 1
-          fi
-
-          mv "$tmp_file" "$PBXPROJ_PATH"
-
-          if ! grep -q -- 'Missing prebuilt Rust library' "$PBXPROJ_PATH"; then
-            echo "Failed to replace Build Rust Code script"
-            exit 1
-          fi
-
-          if ! plutil -lint "$PBXPROJ_PATH" >/dev/null; then
-            echo "Patched project.pbxproj is invalid"
-            exit 1
-          fi
-
-          echo "Patched Build Rust Code script to use prebuilt libapp.a"
-
-      - name: Build iOS app without code signing
-        id: ios_app
-        env:
-          # Xcode 26's bundled MetalToolchain shadows the Swift back-deployment
-          # compatibility libs (swiftCompatibility51/56/Concurrency), causing
-          # "undefined symbol __swift_FORCE_LOAD_$_swiftCompatibility*" link
-          # errors against the Rust-built libapp.a. Forcing the default
-          # toolchain restores those libs. See actions/runner-images#13135.
-          TOOLCHAINS: com.apple.dt.toolchain.XcodeDefault
-        run: |
-          IOS_PROJECT_DIR="src-tauri/gen/apple"
-          WORKSPACE_PATH=$(find "$IOS_PROJECT_DIR" -maxdepth 2 -name '*.xcworkspace' | head -n 1)
-          XCODEPROJ_PATH=$(find "$IOS_PROJECT_DIR" -maxdepth 2 -name '*.xcodeproj' | head -n 1)
-
-          if [ -n "$WORKSPACE_PATH" ]; then
-            PROJECT_ARGS=(-workspace "$WORKSPACE_PATH")
-          elif [ -n "$XCODEPROJ_PATH" ]; then
-            PROJECT_ARGS=(-project "$XCODEPROJ_PATH")
-          else
-            echo "No Xcode workspace/project found under $IOS_PROJECT_DIR"
-            exit 1
-          fi
-
-          SCHEME=$(xcodebuild "${PROJECT_ARGS[@]}" -list \
-            | awk '/Schemes:/ {flag=1; next} flag && NF {gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print}')
-
-          IOS_SCHEME=$(printf '%s\n' "$SCHEME" | grep -Ei '(^|_|-)ios$|_iOS$|iOS' | head -n 1 || true)
-          if [ -n "$IOS_SCHEME" ]; then
-            SCHEME="$IOS_SCHEME"
-          else
-            SCHEME=$(printf '%s\n' "$SCHEME" | head -n 1)
-          fi
-
-          if [ -z "$SCHEME" ]; then
-            echo "Failed to resolve iOS scheme"
-            exit 1
-          fi
-
-          echo "Using iOS scheme: $SCHEME"
-
-          DERIVED_DATA_PATH="$RUNNER_TEMP/ios-derived"
-          xcodebuild "${PROJECT_ARGS[@]}" \
-            -scheme "$SCHEME" \
-            -configuration release \
-            -destination 'generic/platform=iOS' \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY='' \
-            build
-
-          APP_PATH=$(find "$DERIVED_DATA_PATH/Build/Products" -maxdepth 2 -type d -name '*.app' | grep -E '/(release|Release)-iphoneos/' | head -n 1)
-          if [ -z "$APP_PATH" ]; then
-            echo "No release .app artifact found in $DERIVED_DATA_PATH/Build/Products"
-            exit 1
-          fi
-
-          echo "app_path=$APP_PATH" >> "$GITHUB_OUTPUT"
-
-      - name: Package unsigned IPA
+      - name: Build the IPA
         id: ios_ipa
+        env:
+          # Default update channel baked into the frontend: builds from main ship
+          # on Stable, every other branch (beta builds) on Development.
+          FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
         run: |
-          APP_PATH='${{ steps.ios_app.outputs.app_path }}'
-          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-            echo "Cannot package IPA; app bundle missing at $APP_PATH"
-            exit 1
-          fi
-
-          PAYLOAD_DIR="$RUNNER_TEMP/Payload"
-          IPA_PATH="$RUNNER_TEMP/free-grind-v${{ steps.meta.outputs.version }}-unsigned.ipa"
-
-          rm -rf "$PAYLOAD_DIR"
-          mkdir -p "$PAYLOAD_DIR"
-          cp -R "$APP_PATH" "$PAYLOAD_DIR/"
-
-          # Same bytes on every build: sorted entries, mtimes from the commit,
-          # no extra attributes (-X), and UTC because zip stores local time.
-          SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
-          find "$PAYLOAD_DIR" -exec touch -h -t "$(TZ=UTC date -r "$SOURCE_DATE_EPOCH" +%Y%m%d%H%M.%S)" {} +
-          (
-            cd "$RUNNER_TEMP"
-            find Payload | LC_ALL=C sort | TZ=UTC /usr/bin/zip -qXy "$IPA_PATH" -@
-          )
-
-          echo "ipa_path=$IPA_PATH" >> "$GITHUB_OUTPUT"
+          bash ci/build/ios.sh
+          echo "ipa_path=$(ls "$PWD"/out/ios/*.ipa)" >> "$GITHUB_OUTPUT"
 
       - name: Upload iOS IPA to release
         if: ${{ inputs.release_id }}

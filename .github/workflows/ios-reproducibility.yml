@@ -22,13 +22,11 @@ jobs:
     uses: ./.github/workflows/build-ios.yml
     with:
       artifact_name: ios-build-1
-      use_cache: false
 
   build-2:
     uses: ./.github/workflows/build-ios.yml
     with:
       artifact_name: ios-build-2
-      use_cache: false
 
   compare:
     needs: [build-1, build-2]
