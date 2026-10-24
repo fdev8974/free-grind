@@ -15,7 +15,7 @@ fg_cleanup() {
 	"$cleanup_hook" || true
 	if [ -n "${FG_OWNER:-}" ]; then
 		chown -R "$FG_OWNER" /work/out /work/dist /work/node_modules /work/.bun-cache \
-			/work/src-tauri/target /work/src-tauri/gen 2>/dev/null || true
+			/work/src-tauri/gen 2>/dev/null || true
 	fi
 }
 trap fg_cleanup EXIT
@@ -60,4 +60,14 @@ if command -v cargo >/dev/null 2>&1; then
 	echo "  $(rustc --version)"
 	# cargo would otherwise quietly re-resolve an outdated Cargo.lock.
 	cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml >/dev/null
+
+	# Each image gets its own cargo target dir, wiped when the image changes:
+	# cargo doesn't notice a different C compiler, so objects built by an older
+	# image (or on the host, in src-tauri/target) would end up in the binary.
+	export CARGO_TARGET_DIR="$out/cargo-target/${FG_ARTIFACT:?}"
+	if [ "$(cat "$CARGO_TARGET_DIR/.image" 2>/dev/null)" != "${FG_IMAGE_ID:?}" ]; then
+		rm -rf "$CARGO_TARGET_DIR"
+		mkdir -p "$CARGO_TARGET_DIR"
+		echo "$FG_IMAGE_ID" > "$CARGO_TARGET_DIR/.image"
+	fi
 fi

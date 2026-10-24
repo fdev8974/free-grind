@@ -8,7 +8,8 @@
 . ci/build/common.sh
 
 android=/work/src-tauri/gen/android
-rm -rf "$out/android" "$android/app/build/outputs/apk"
+# Gradle outputs from a host build (signed, other SDKs) must not leak in either.
+rm -rf "$out/android" "$android/app/build"
 mkdir -p "$out/android"
 
 if [ -e /work/src-tauri/certs/free-grind-dev.jks ]; then

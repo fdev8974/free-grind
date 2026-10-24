@@ -13,7 +13,7 @@ export RUSTFLAGS="$RUSTFLAGS -C link-arg=-fuse-ld=bfd"
 # build.rs fails instead of shipping without the video streaming extension.
 export FG_REQUIRE_MEDIA_EXTENSION=1
 
-target=/work/src-tauri/target/release
+target="$CARGO_TARGET_DIR/release"
 rm -rf "$target/bundle" "$out/linux"
 mkdir -p "$out/linux"
 bunx tauri build --bundles deb

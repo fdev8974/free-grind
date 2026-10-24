@@ -92,6 +92,58 @@ RUN curl -fsSL --retry 3 -o /opt/appimage-runtime \
 	&& echo "${APPIMAGE_RUNTIME_SHA256}  /opt/appimage-runtime" | sha256sum -c - \
 	&& chmod 0644 /opt/appimage-runtime
 
+# --- Windows x64 installer, cross-compiled -----------------------------------
+FROM rust AS windows
+
+# clang-cl and lld-link stand in for MSVC's cl.exe and link.exe; nasm builds
+# BoringSSL's assembly; makensis builds the installer.
+RUN apt-get -qq -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 update \
+	&& DEBIAN_FRONTEND=noninteractive apt-get -qq install -y --no-install-recommends \
+		clang-19 lld-19 llvm-19 nasm scons zlib1g-dev \
+	&& rm -rf /var/lib/apt/lists/* \
+	&& ln -s /usr/lib/llvm-19/bin/clang /usr/local/bin/clang-cl \
+	&& for tool in lld-link llvm-rc llvm-lib llvm-ar; do \
+		ln -s "/usr/lib/llvm-19/bin/$tool" "/usr/local/bin/$tool"; \
+	done \
+	&& clang-cl --version && lld-link --version && llvm-rc /? >/dev/null
+# ^ LLVM 19, not bookworm's default 14: the pinned MSVC STL requires Clang 19+.
+# Debian's clang has no clang-cl; clang picks its MSVC driver mode from the
+# name it's called by.
+
+# NSIS 3.11, which tauri's installer template needs (bookworm has 3.08): the
+# stubs, plugins and includes from the same nsis-3.11.zip tauri downloads on
+# Windows (tauri pins its SHA-1 ef7ff767…), and makensis built for Linux from
+# the official source. VERSION is set because it ends up in the installer.
+ARG NSIS_ZIP_SHA256=c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1
+ARG NSIS_SRC_SHA256=19e72062676ebdc67c11dc032ba80b979cdbffd3886c60b04bb442cdd401ff4b
+RUN curl -fsSL --retry 3 -o /tmp/nsis.zip https://github.com/tauri-apps/binary-releases/releases/download/nsis-3.11/nsis-3.11.zip \
+	&& echo "${NSIS_ZIP_SHA256}  /tmp/nsis.zip" | sha256sum -c - \
+	&& curl -fsSL --retry 3 -o /tmp/nsis-src.tar.bz2 "https://downloads.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11-src.tar.bz2" \
+	&& echo "${NSIS_SRC_SHA256}  /tmp/nsis-src.tar.bz2" | sha256sum -c - \
+	&& unzip -q /tmp/nsis.zip -d /opt && mv /opt/nsis-3.11 /opt/nsis \
+	&& rm -rf /opt/nsis/Bin /opt/nsis/Docs /opt/nsis/Examples /opt/nsis/*.exe /opt/nsis/*.chm \
+	&& mkdir /tmp/nsis-src && tar -xjf /tmp/nsis-src.tar.bz2 -C /tmp/nsis-src --strip-components=1 \
+	&& cd /tmp/nsis-src \
+	&& scons -Q VERSION=3.11 VER_MAJOR=3 VER_MINOR=11 VER_REVISION=0 VER_BUILD=0 \
+		SKIPSTUBS=all SKIPPLUGINS=all SKIPUTILS=all SKIPMISC=all \
+		NSIS_CONFIG_CONST_DATA_PATH=no PREFIX=/opt/nsis/Bin install-compiler >/dev/null \
+	&& cd / && rm -rf /tmp/nsis.zip /tmp/nsis-src.tar.bz2 /tmp/nsis-src \
+	&& /opt/nsis/Bin/makensis -VERSION
+
+RUN rustup target add x86_64-pc-windows-msvc
+ARG CARGO_XWIN_VERSION=0.23.1
+RUN cargo install --locked cargo-xwin --version "${CARGO_XWIN_VERSION}" \
+	&& rm -rf /opt/cargo/registry /opt/cargo/git
+
+# The MSVC CRT and Windows SDK cargo-xwin downloads from Microsoft, pinned by
+# version (xwin verifies each file against Microsoft's manifest). Fetched into
+# the image once by linking an empty program.
+ENV XWIN_ACCEPT_LICENSE=1 XWIN_CRT_VERSION=14.44.17.14 XWIN_SDK_VERSION=10.0.26100 \
+	XWIN_CACHE_DIR=/opt/xwin NSIS_PATH=/opt/nsis RC=llvm-rc
+RUN cargo new -q /tmp/warm && cd /tmp/warm \
+	&& cargo xwin build -q --release --target x86_64-pc-windows-msvc \
+	&& rm -rf /tmp/warm /opt/cargo/registry
+
 # --- Android APK ----------------------------------------------------------------
 FROM rust AS android
 

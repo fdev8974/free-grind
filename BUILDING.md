@@ -4,7 +4,7 @@ This page lists every tool and version the official release builds use, so you c
 
 There are two ways to build:
 
-- **Release builds** of the Android APK, the Linux packages and the OTA frontend bundle run in a pinned container. They're reproducible: the same commit gives the same bytes as the published files. To build or check one, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md).
+- **Release builds** of the Android APK, the Windows installer, the Linux packages and the OTA frontend bundle run in a pinned container (Windows is cross-compiled there). They're reproducible: the same commit gives the same bytes as the published files. To build or check one, see [REPRODUCIBILITY.md](./REPRODUCIBILITY.md).
 - **Development builds** run directly on your machine with the toolchain below. They're the same app, but the bytes depend on your machine.
 
 ## Pinned inputs
@@ -25,8 +25,8 @@ Each input is pinned in one place, which both CI and local tools read:
 | Android build-tools     | 36.0.0          | `src-tauri/gen/android/app/build.gradle.kts`, `ci/build/Dockerfile` |
 | Android NDK             | 29.0.14206865   | `src-tauri/gen/android/app/build.gradle.kts`, `ci/build/Dockerfile` |
 | Gradle                  | 8.14.3          | `src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties`, with checksum |
-| Release container (Debian, JDK, AppImage runtime) | see Dockerfile | [`ci/build/Dockerfile`](./ci/build/Dockerfile), every download with a checksum |
-| CI runner images        | Ubuntu 24.04, macOS 15, Windows Server 2025 | `runs-on:` in the workflows            |
+| Release container (Debian, JDK, LLVM, MSVC CRT/SDK, NSIS, AppImage runtime) | see Dockerfile | [`ci/build/Dockerfile`](./ci/build/Dockerfile), every download with a checksum |
+| CI runner images        | Ubuntu 24.04, macOS 15 | `runs-on:` in the workflows            |
 | GitHub Actions          | —               | commit SHA in the workflows                                        |
 
 To bump Rust, Bun or Node, change the version in its file. The container build then stops at the old checksum in `ci/build/Dockerfile`; update that too.
@@ -47,7 +47,7 @@ git submodule update --init
 With Podman or Docker installed:
 
 ```bash
-FG_CHANNEL=main sh ci/build/run.sh android   # or: linux, frontend
+FG_CHANNEL=main sh ci/build/run.sh android   # or: windows, linux, frontend
 ```
 
 The outputs land in `out/<artifact>/`. [REPRODUCIBILITY.md](./REPRODUCIBILITY.md) explains `FG_CHANNEL` and how to compare the outputs with a release.

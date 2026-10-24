@@ -5,9 +5,10 @@ A reproducible build lets you confirm that a published Free Grind download was b
 | Artifact                                    | Reproducible | How to check                                  |
 | ------------------------------------------- | ------------ | --------------------------------------------- |
 | Android APK (`free-grind-v<version>.apk`)   | Yes          | [Android](#android)                           |
+| Windows installer and portable exe          | Yes          | [Windows](#windows)                           |
 | Linux `.deb`, `.rpm`, `.AppImage`           | Yes          | [Linux](#linux)                               |
 | OTA frontend bundle (`frontend-*.tar.gz`)   | Yes          | [OTA frontend bundle](#ota-frontend-bundle)   |
-| Windows, macOS, iOS                         | Not yet      | [Not reproducible yet](#not-reproducible-yet) |
+| macOS, iOS                                  | Not yet      | [Not reproducible yet](#not-reproducible-yet) |
 
 The OTA bundle matters as much as the apps: it replaces the whole user interface of an installed app on every update.
 
@@ -15,7 +16,7 @@ The OTA bundle matters as much as the apps: it replaces the whole user interface
 
 CI ([release.yml](.github/workflows/release.yml), [ota-branches.yml](.github/workflows/ota-branches.yml)) runs the commands from this page:
 
-1. Two separate runners each build the APK, the Linux packages and the OTA bundle inside the pinned container from [ci/build/Dockerfile](ci/build/Dockerfile).
+1. Two separate runners each build the APK, the Windows installer and exe, the Linux packages and the OTA bundle inside the pinned container from [ci/build/Dockerfile](ci/build/Dockerfile).
 2. [ci/compare.sh](ci/compare.sh) checks that both builds are byte-identical. If they differ, nothing is published.
 3. Only then is the APK signed and the OTA bundle signed and uploaded. CI checks that the signed APK is exactly the unsigned build plus a signature, using the same `apksigcopier` check you run below.
 
@@ -23,15 +24,16 @@ Every release lists what it was built from in two assets:
 
 - `BUILDINFO.txt`: the commit, `FG_CHANNEL` (the default update channel baked into the app) and `SOURCE_DATE_EPOCH`
 - `SHA256SUMS`: the checksums of every file both builders agreed on, plus the signed APK
+- `SHA256SUMS.minisig`: the release key's signature over `SHA256SUMS` ([KEYS.md](./KEYS.md) shows how to check it)
 
 ## What you need
 
 - Linux on x86_64
 - [Podman](https://podman.io) (recommended, rootless) or Docker
-- Free disk space: about 5 GB for Linux, about 12 GB for Android, 1 GB for the OTA bundle
+- Free disk space: about 5 GB for Linux, about 6 GB for Windows, about 12 GB for Android, 1 GB for the OTA bundle
 - Network access: the container image downloads its pinned tools, and the builds download the locked dependencies
 
-As a reference, on a 3-core machine with 11 GB of RAM the Rust part of the Linux build took 6½ minutes, the Android build 12 minutes from scratch, and the OTA bundle under a minute. Building the container image the first time adds a few minutes.
+As a reference, on a 3-core machine with 11 GB of RAM the Rust part of the Linux build took 6½ minutes, the Windows build 7 minutes from scratch, the Android build 12 minutes from scratch, and the OTA bundle under a minute. Building the container image the first time adds a few minutes.
 
 ```bash
 git clone --recurse-submodules https://github.com/fdev8974/free-grind.git
@@ -66,6 +68,21 @@ apksigner verify --print-certs "$PUBLISHED" | grep 'SHA-256'
 ```
 
 `sha256sum "$LOCAL"` also matches the `…-unsigned.apk` line in the release's `SHA256SUMS`.
+
+## Windows
+
+The Windows build is cross-compiled in the Linux container with [cargo-xwin](https://github.com/rust-cross/cargo-xwin), against Microsoft's MSVC runtime and Windows SDK in fixed versions. The installer and the exe aren't signed, so the whole file has to match.
+
+```bash
+FG_CHANNEL=<from BUILDINFO.txt> sh ci/build/run.sh windows
+
+cmp out/windows/free-grind-v<version>-windows-x64-setup.exe /path/to/free-grind-v<version>-windows-x64-setup.exe \
+  && echo "✓ installer matches"
+# The release ships the portable exe three times, as the manager, client and
+# child copies (the app picks its mode from its file name); all three are this file.
+cmp out/windows/free-grind-v<version>-windows-x64.exe /path/to/free-grind-manager-v<version>-windows-x64.exe \
+  && echo "✓ exe matches"
+```
 
 ## Linux
 
@@ -109,6 +126,10 @@ The rebuild runs tools you have to trust. Each one is pinned to a version and a 
 | Android SDK, NDK          | platform 36, build-tools 36.0.0, NDK 29.0.14206865 | `ci/build/Dockerfile`, `build.gradle.kts`; sdkmanager verifies the downloads |
 | Gradle                    | 8.14.3                   | `gradle-wrapper.properties`, with `distributionSha256Sum`           |
 | AppImage runtime          | type2-runtime 20251108   | `ci/build/Dockerfile`, with checksum                                |
+| Windows: clang-cl, lld-link | LLVM 19.1.7 (Debian)   | `ci/build/Dockerfile`, Debian snapshot                              |
+| Windows: MSVC CRT, Windows SDK | CRT 14.44.17.14, SDK 10.0.26100 | `XWIN_CRT_VERSION`, `XWIN_SDK_VERSION` in `ci/build/Dockerfile`; xwin checks Microsoft's hashes |
+| Windows: cargo-xwin       | 0.23.1                   | `ci/build/Dockerfile`, built with `cargo install --locked`          |
+| Windows: NSIS             | 3.11                     | `ci/build/Dockerfile`: tauri's `nsis-3.11.zip` and the official source, both with checksums |
 | JS dependencies           | —                        | `bun.lock`                                                          |
 | Rust crates               | —                        | `src-tauri/Cargo.lock`                                              |
 | Android libraries         | —                        | fixed versions in `src-tauri/gen/android/app/build.gradle.kts`      |
@@ -123,15 +144,17 @@ Two checks you can do by hand:
 For anyone changing the build. Each of these was needed to get identical bytes:
 
 - **Fixed environment:** the container, plus `TZ=UTC`, `LC_ALL=C`, `umask 022` ([ci/build/common.sh](ci/build/common.sh)).
+- **Clean compiler outputs:** each container image builds into its own `out/cargo-target/<artifact>`, which is wiped when the image changes. Cargo doesn't notice a different C compiler, so objects left by an older image or a host build would otherwise end up in the binary.
 - **Timestamps:** `SOURCE_DATE_EPOCH` is the commit time, used for package and archive timestamps.
 - **Paths:** `--remap-path-prefix` (Rust) and `-ffile-prefix-map` (C, including BoringSSL) record the checkout as `/free-grind` and the crates as `/cargo`.
 - **Frontend:** Vite runs under Node, because Bun's built-in Node hashes chunks differently. Local `.env` files are ignored (`FG_REPRODUCIBLE_BUILD` in `vite.config.mjs`).
 - **OTA bundle:** packed by [ci/build/pack-frontend.sh](ci/build/pack-frontend.sh) with sorted entries, a fixed owner, fixed modes and fixed mtimes, and gzip without a timestamp.
 - **Linux packages:** tauri's bundler stamps the current time into packages and downloads an unpinned `linuxdeploy` for AppImages. [ci/build/linux.sh](ci/build/linux.sh) therefore repacks the `.deb`, builds the `.rpm` with `rpmbuild`, and assembles the AppImage around the pinned runtime. The AppImage uses the system's WebKitGTK and GStreamer, like the `.deb` and `.rpm`.
+- **Windows:** one codegen unit (otherwise a panic type descriptor lands at a random place in `.data`), `/Brepro` instead of a link timestamp, no PDB, and path remapping through `/clang:` flags for clang-cl ([ci/build/windows.sh](ci/build/windows.sh)). NSIS records every installed file's mtime, so [a wrapper](ci/build/windows/makensis) sets them to the commit time first. makensis is built with `VERSION=3.11`, since its version string ends up in the installer.
 - **Android:** the baseline profile and Kotlin tooling metadata are switched off, because they differ between builds. Build-tools and NDK versions are set explicitly so AGP can't pick its own. The release network security config lives in `ci/build/android/` and is swapped in by the build script, not by CI.
 
 ## Not reproducible yet
 
-- **Windows and macOS** are still built on GitHub's runner images (pinned to `windows-2025` and `macos-15`). Making them reproducible means cross-compiling them from the Linux container, as Open Grind does for Windows with `cargo-xwin`, or pinning Xcode and the macOS SDK.
+- **macOS** is still built on GitHub's runner image (pinned to `macos-15`). Making it reproducible means pinning Xcode and the macOS SDK, or cross-compiling it.
 - **iOS** depends on Xcode and Apple's signing, and has the same open problem as macOS.
 - The **manual "Build Artifacts" workflow** produces test builds on the runner images; they aren't releases.

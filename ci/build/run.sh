@@ -2,7 +2,7 @@
 # Builds a release artifact inside the pinned container (ci/build/Dockerfile).
 # CI and anyone verifying a release run exactly this.
 #
-#   FG_CHANNEL=main sh ci/build/run.sh linux|android|frontend
+#   FG_CHANNEL=main sh ci/build/run.sh linux|android|windows|frontend
 #
 # FG_CHANNEL is the default update channel baked into the frontend: `main` for
 # releases built from the main branch, `development` otherwise (OTA bundles use
@@ -14,9 +14,9 @@ set -eu
 
 artifact="${1:-}"
 case "$artifact" in
-linux | android | frontend) ;;
+linux | android | windows | frontend) ;;
 *)
-	echo "usage: FG_CHANNEL=<main|development> sh ci/build/run.sh <linux|android|frontend>" >&2
+	echo "usage: FG_CHANNEL=<main|development> sh ci/build/run.sh <linux|android|windows|frontend>" >&2
 	exit 2
 	;;
 esac
@@ -46,6 +46,7 @@ image="free-grind-build-$artifact"
 	--build-arg BUN_VERSION="$bun_version" \
 	--build-arg NODE_VERSION="$node_version" \
 	ci/build
+image_id="$("$engine" image inspect --format '{{.Id}}' "$image")"
 
 # Rootful docker writes into the checkout as root; hand the outputs back to the
 # caller afterwards. Rootless podman's container root already is the caller.
@@ -57,4 +58,6 @@ case "$engine" in *docker*) owner="$(id -u):$(id -g)" ;; esac
 	-v "$root:/work:z" \
 	-e FG_CHANNEL \
 	-e FG_OWNER="$owner" \
+	-e FG_ARTIFACT="$artifact" \
+	-e FG_IMAGE_ID="$image_id" \
 	"$image" sh "ci/build/$artifact.sh"
