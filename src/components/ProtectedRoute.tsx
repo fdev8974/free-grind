@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/useAuth";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreBackupOffer } from "./RestoreBackupOffer";
 import { LegalAgreementsGate } from "./LegalAgreementsPrompt";
+import { AccountWarningsGate } from "./AccountWarningsPrompt";
 import * as chatDb from "../services/chatDb";
 import { hasOfferedRestore, markRestoreOffered, REPLAY_RESTORE_OFFER_EVENT } from "../utils/restoreOfferStorage";
 
@@ -59,5 +60,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 		return <RestoreBackupOffer userId={userId} onDone={() => setShowRestoreOffer(false)} />;
 	}
 
-	return <LegalAgreementsGate userId={userId}>{children}</LegalAgreementsGate>;
+	return (
+		<LegalAgreementsGate userId={userId}>
+			<AccountWarningsGate userId={userId}>{children}</AccountWarningsGate>
+		</LegalAgreementsGate>
+	);
 }

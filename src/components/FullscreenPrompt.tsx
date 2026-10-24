@@ -32,18 +32,22 @@ export function FullscreenPrompt({
 			) : null}
 			<div className="fs-card-inner fs-card-lg flex flex-col">
 				<div
-					className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 text-center"
+					className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 text-center"
 					style={{ paddingTop: "max(48px, env(safe-area-inset-top))", paddingBottom: "24px" }}
 					data-lenis-prevent
 				>
-					<div className="mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-[var(--accent)] to-[color-mix(in_srgb,var(--accent)_70%,black)] text-[var(--accent-contrast)] shadow-xl shadow-[var(--accent)]/25">
-						<Icon className="h-9 w-9" />
+					{/* my-auto rather than justify-center: centers short content, but
+					    content taller than the screen still scrolls from its top. */}
+					<div className="my-auto flex w-full flex-col items-center">
+						<div className="mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-[var(--accent)] to-[color-mix(in_srgb,var(--accent)_70%,black)] text-[var(--accent-contrast)] shadow-xl shadow-[var(--accent)]/25">
+							<Icon className="h-9 w-9" />
+						</div>
+						<h1 className="text-2xl font-bold text-[var(--text)]">{title}</h1>
+						{description ? (
+							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">{description}</p>
+						) : null}
+						{children ? <div className="mt-8 w-full max-w-sm">{children}</div> : null}
 					</div>
-					<h1 className="text-2xl font-bold text-[var(--text)]">{title}</h1>
-					{description ? (
-						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">{description}</p>
-					) : null}
-					{children ? <div className="mt-8 w-full max-w-sm">{children}</div> : null}
 				</div>
 
 				<div

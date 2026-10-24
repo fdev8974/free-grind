@@ -2102,7 +2102,9 @@
             "invalid_tags_response": "Неисправан одговор за ознаке",
             "load_photos": "Учитавање профилних фотографија није успело",
             "load_legal_agreements": "Учитавање правних споразума није успело",
-            "accept_legal_agreements": "Прихватање правних споразума није успело"
+            "accept_legal_agreements": "Прихватање правних споразума није успело",
+            "load_warnings": "",
+            "acknowledge_warnings": ""
         }
     },
     "errors": {
@@ -2191,7 +2193,9 @@
             "title": "Налог је забрањен",
             "description": "Grindr је забранио овај налог{{reason}}. Не можете се пријавити док се забрана не укине.",
             "copy_details": "Копирај детаље",
-            "copy_details_success": "Детаљи су копирани у привремену меморију"
+            "copy_details_success": "Детаљи су копирани у привремену меморију",
+            "subscriptions_title": "",
+            "subscriptions_description": ""
         },
         "age_verification": {
             "title": "Потребна је провера узраста",
@@ -2205,20 +2209,16 @@
             "profile": "Забрана профила",
             "device": "Забрана уређаја",
             "network": "Забрана мреже",
-            "underage": "Малолетник"
+            "underage": "Малолетник",
+            "timed": ""
         },
         "details": {
             "ban_type": "Тип забране",
             "sub_reason": "Подразлог",
-            "automated": "Аутоматски",
-            "yes": "Да",
-            "no": "Не",
             "reason": "Разлог",
-            "banned_until": "Забрањено до",
             "region": "Регион",
-            "ban_agreement": "Споразум о забрани",
-            "agreement_accepted": "Прихваћено",
-            "agreement_pending": "Још није прихваћено"
+            "decision_automated": "",
+            "decision_human": ""
         },
         "timed_ban": {
             "title": "Привремено забрањен",
@@ -2226,11 +2226,13 @@
             "expired_title": "Потребан је споразум",
             "expired_description": "Прихватите Grindr-ов споразум о забрани да бисте поново користили овај налог.",
             "accept": "Прихвати и настави",
-            "accepting": "Прихватање…",
             "accept_success": "Споразум је прихваћен",
             "accept_failed": "Прихватање споразума није успело",
             "agreement_completed_title": "Све је спремно",
-            "agreement_completed_description": "Прихватили сте Grindr-ов споразум о забрани. Не морате ништа више да радите."
+            "agreement_completed_description": "Прихватили сте Grindr-ов споразум о забрани. Не морате ништа више да радите.",
+            "agree_label": "",
+            "agreed_label": "",
+            "agree_hint": ""
         },
         "device_ban": {
             "title": "Захтев је одбијен",
@@ -2241,7 +2243,175 @@
             "br": "Бразил",
             "au": "Аустралија",
             "us": "Сједињене Државе"
-        }
+        },
+        "read_guidelines": "",
+        "reason_label": "",
+        "learn_more": "",
+        "ban_reasons": {
+            "blackmail": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "bot_activity": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "bullying": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "business_solicitation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "casual_substances": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "consent_violation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "drug_facilitation": {
+                "title": "",
+                "summary": "",
+                "details": "",
+                "summary_banned": ""
+            },
+            "drug_promotion": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "drug_seeking": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "occasional_drug_solicitation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "frequent_drug_solicitation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "fraudulent_promotion": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "general_advertising": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "hate_speech": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "impersonation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "mild_insults": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "mild_solicitation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "non_consensual_intimate_imagery": {
+                "title": "",
+                "summary": "",
+                "details": "",
+                "summary_banned": ""
+            },
+            "offline_incident": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "paid_sexual_services": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "phishing": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "privacy_violation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "profile_spam": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "drug_sale": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "sextortion": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "sexual_content_sale": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "spam": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "transactional_service": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "underage_endangerment": {
+                "title": "",
+                "summary": ""
+            },
+            "underage_impersonation": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            },
+            "underage": {
+                "title": "",
+                "summary": "",
+                "details": ""
+            }
+        },
+        "countdown": {
+            "remaining": "",
+            "until": "",
+            "ended_title": "",
+            "ended_on": ""
+        },
+        "reason_unknown": ""
     },
     "sexualHealth": {
         "title": "Сексуално здравље",
@@ -2626,5 +2796,115 @@
         "dismiss": "",
         "no_update": "",
         "check_failed": ""
+    },
+    "account_warnings": {
+        "title": "",
+        "description": "",
+        "count": "",
+        "acknowledge": "",
+        "read_guidelines": "",
+        "acknowledge_failed": "",
+        "why": "",
+        "types": {
+            "harassment": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "commercial": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "mild_insults": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "general_advertising": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "unwanted_messaging": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "drug_solicitation": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "drug_promotion": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "non_illicit_substances": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "mild_solicitation": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "drug_seeking": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "drug_facilitation": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            },
+            "non_consensual_intimate_imagery": {
+                "title": "",
+                "content": "",
+                "reason": "",
+                "details": ""
+            }
+        }
+    },
+    "community_guidelines": {
+        "label": "",
+        "authentic": {
+            "title": "",
+            "text": ""
+        },
+        "harassment": {
+            "title": "",
+            "text": ""
+        },
+        "hate": {
+            "title": "",
+            "text": ""
+        },
+        "minors": {
+            "title": "",
+            "text": ""
+        },
+        "obey_the_law": {
+            "title": "",
+            "text": ""
+        },
+        "private_information": {
+            "title": "",
+            "text": ""
+        }
     }
 }

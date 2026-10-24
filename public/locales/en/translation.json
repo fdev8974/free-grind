@@ -2084,7 +2084,9 @@
       "invalid_tags_response": "Invalid tags response",
       "load_photos": "Failed to load profile photos",
       "load_legal_agreements": "Failed to load legal agreements",
-      "accept_legal_agreements": "Failed to accept legal agreements"
+      "accept_legal_agreements": "Failed to accept legal agreements",
+      "load_warnings": "Failed to load account warnings",
+      "acknowledge_warnings": "Failed to acknowledge account warnings"
     }
   },
   "errors": {
@@ -2173,7 +2175,9 @@
       "title": "Account Banned",
       "description": "Grindr has banned this account{{reason}}. You can't sign in until the ban is lifted.",
       "copy_details": "Copy Details",
-      "copy_details_success": "Details copied to clipboard"
+      "copy_details_success": "Details copied to clipboard",
+      "subscriptions_title": "Payments and subscriptions",
+      "subscriptions_description": "A ban doesn't cancel a Grindr subscription. If you have one, cancel it in your app store's subscription settings."
     },
     "age_verification": {
       "title": "Age Verification Required",
@@ -2187,32 +2191,30 @@
       "profile": "Profile ban",
       "device": "Device ban",
       "network": "Network ban",
-      "underage": "Underage"
+      "underage": "Underage",
+      "timed": "Temporary ban"
     },
     "details": {
       "ban_type": "Ban type",
       "sub_reason": "Sub-reason",
-      "automated": "Automated",
-      "yes": "Yes",
-      "no": "No",
       "reason": "Reason",
-      "banned_until": "Banned until",
       "region": "Region",
-      "ban_agreement": "Ban agreement",
-      "agreement_accepted": "Accepted",
-      "agreement_pending": "Not accepted yet"
+      "decision_automated": "We have used automated measures in making this decision.",
+      "decision_human": "A human moderator made this decision. We did not use automated measures."
     },
     "timed_ban": {
       "title": "Temporarily Banned",
-      "description": "Grindr has temporarily banned this account. You can use it again once the ban expires.",
+      "description": "Grindr has temporarily suspended this account. You can use it again once the suspension ends.",
       "expired_title": "Agreement Required",
-      "expired_description": "Accept Grindr's ban agreement to use this account again.",
+      "expired_description": "Your suspension is over. Review why it happened and agree to Grindr's guidelines to use this account again.",
       "accept": "Accept & Continue",
-      "accepting": "Accepting…",
       "accept_success": "Agreement accepted",
       "accept_failed": "Couldn't accept the agreement",
       "agreement_completed_title": "All Set",
-      "agreement_completed_description": "You've accepted Grindr's ban agreement. There's nothing else you need to do."
+      "agreement_completed_description": "You've accepted Grindr's ban agreement. There's nothing else you need to do.",
+      "agree_label": "Read and agree to guidelines",
+      "agreed_label": "Read and agreed to guidelines",
+      "agree_hint": "Read and agree to the guidelines above to gain access to your account."
     },
     "device_ban": {
       "title": "Request Refused",
@@ -2223,7 +2225,175 @@
       "br": "Brazil",
       "au": "Australia",
       "us": "United States"
-    }
+    },
+    "read_guidelines": "Guidelines",
+    "reason_label": "Ban reason",
+    "learn_more": "Learn more",
+    "ban_reasons": {
+      "blackmail": {
+        "title": "Blackmail, extortion, and direct threats",
+        "summary": "Grindr strictly prohibits blackmail, extortion, and direct threats of harm. These behaviors endanger users and violate the guidelines, and may result in account bans.",
+        "details": "Blackmail, extortion, and direct threats of harm, including manipulation involving personal images or information, are strictly prohibited on Grindr. Such behavior endangers the safety of the community and goes against the guidelines."
+      },
+      "bot_activity": {
+        "title": "Automated/bot activity",
+        "summary": "Grindr cares about fostering genuine connections. Behaviors like sending mass messages, creating multiple profiles in bulk, or using tools to mimic real user actions are prohibited.",
+        "details": "This account was flagged for violating Grindr’s policy on automated activity. This behavior compromises the security and authenticity of the community and goes against the guidelines. If you believe this action was taken in error, you can submit an appeal in the official Grindr app."
+      },
+      "bullying": {
+        "title": "Targeted bullying and repeated abuse",
+        "summary": "Treat others with kindness on Grindr. Bullying, harassment, and intimidation are prohibited, as they create a hostile environment. Repeated abusive behavior may result in further actions against the account.",
+        "details": "Grindr is committed to creating a safe space for everyone. Repeated or targeted bullying violates the guidelines and disrupts the community experience. Please take this time to review the community guidelines and ensure your future interactions are respectful and supportive. Continued violations may lead to further action, including an account ban."
+      },
+      "business_solicitation": {
+        "title": "Business solicitation",
+        "summary": "Using Grindr to promote businesses, paid services, or events is not allowed. Please keep interactions personal and free from business or solicitation purposes.",
+        "details": "Grindr is designed for personal connections, not for recruiting or soliciting users for profit-driven ventures like promoting businesses, paid services, or events. Such activities detract from the platform’s purpose and go against the guidelines."
+      },
+      "casual_substances": {
+        "title": "Casual mentions of legal or non-illicit substances",
+        "summary": "Non-illicit substances like CBD or marijuana (where legal) are okay to mention on Grindr. However, excessive promotion or focus on these substances may lead to the account being reported by the community, and even suspended.",
+        "details": "Profiles centered around these substances or excessive promotion of them can detract from the community experience and may be reported by other users. Grindr prohibits drug-related content or imagery that could promote harmful practices."
+      },
+      "consent_violation": {
+        "title": "Consent violations",
+        "summary": "Consent isn’t only sexy, it’s mandatory – persistent sexual requests, coercive behavior, and all other behavior that disregards consent are prohibited on Grindr.",
+        "details": "Grindr encourages users to provide transparent and explicit consent in all interactions. Persistent sexual requests, coercive behavior, or any actions that disregard another user’s boundaries are prohibited. Such behavior can create an unsafe and uncomfortable environment, violating the community guidelines and the principles of respect and safety."
+      },
+      "drug_facilitation": {
+        "title": "Drug facilitation",
+        "summary": "Helping others obtain illegal drugs isn’t allowed on Grindr. Continued violations may lead to an account ban.",
+        "details": "Connecting others to illegal drugs — offering to share what you have, arranging a pickup, or putting someone in touch with a source — is not permitted, even when nothing is being sold. This goes against Grindr’s guidelines, as Grindr cares about your well-being and strives to maintain a safe, respectful community.",
+        "summary_banned": "Helping others obtain illegal drugs isn’t allowed on Grindr. This account has been banned following repeated violations."
+      },
+      "drug_promotion": {
+        "title": "Drug promotion or glorification",
+        "summary": "Repeated attempts to promote drugs are not allowed on Grindr.",
+        "details": "References to cannabis, tobacco, and alcohol are allowed in certain contexts, but Grindr does not allow profiles centered around or promoting drug content, including discussing or participating in the buying or selling of drugs (of any kind). This policy also extends to images and emojis that solicit drugs or promote drug use."
+      },
+      "drug_seeking": {
+        "title": "Drug seeking",
+        "summary": "Seeking drugs on Grindr violates the guidelines.",
+        "details": "Seeking drugs, even occasionally, in your profile or chats is not permitted. This goes against Grindr’s guidelines, as Grindr cares about your well-being and strives to maintain a safe, respectful community."
+      },
+      "occasional_drug_solicitation": {
+        "title": "Occasional drug solicitation",
+        "summary": "Seeking drugs on Grindr violates the guidelines.",
+        "details": "Seeking drugs, even occasionally, in your profile or chats is not permitted. This goes against Grindr’s guidelines, as Grindr cares about your well-being and strives to maintain a safe, respectful community."
+      },
+      "frequent_drug_solicitation": {
+        "title": "Frequent drug solicitation",
+        "summary": "Repeated attempts to seek drugs are not allowed on Grindr.",
+        "details": "Grindr is a platform for genuine personal connections. Repeated attempts to seek drugs, whether directly or indirectly, disrupt the community experience and violate the guidelines. If such behavior continues, it may result in a longer account suspension or even a ban."
+      },
+      "fraudulent_promotion": {
+        "title": "Scam and fraudulent promotions",
+        "summary": "Grindr strictly prohibits scams or schemes that exploit or harm others.",
+        "details": "This includes fraudulent schemes or deceptive behavior aimed at exploiting other users. Grindr takes the safety and security of its community seriously and does not tolerate such behavior."
+      },
+      "general_advertising": {
+        "title": "General advertising and solicitation",
+        "summary": "Grindr is for authentic personal connections, not for advertising goods, services, or external platforms. Promotional content is not allowed in profiles or messages.",
+        "details": "Using profiles or messages to promote products, services, or share external links goes against the guidelines and disrupts the experience for others."
+      },
+      "hate_speech": {
+        "title": "Hate speech and offensive content",
+        "summary": "Hate speech and discriminatory language are prohibited on Grindr. Repeated abusive interactions create a hostile environment. Continued violations may lead to further action, including an account ban.",
+        "details": "Grindr is committed to fostering an inclusive and respectful community. Hate speech and discriminatory language may create a hostile and unsafe environment for others. Please review the community guidelines and ensure your future interactions reflect respect and inclusivity."
+      },
+      "impersonation": {
+        "title": "Impersonation and identity misuse",
+        "summary": "Grindr prohibits impersonating others or creating profiles that falsely represent someone’s identity. This behavior violates the guidelines and may result in account bans.",
+        "details": "This includes using another person’s name, photos, or personal details. Impersonation undermines trust, compromises safety, and violates the guidelines."
+      },
+      "mild_insults": {
+        "title": "Mild insults and disrespect",
+        "summary": "Some chats you’ve sent have been flagged as potentially disrespectful. Please be kind on Grindr, and ensure your interactions remain respectful in alignment with the community guidelines.",
+        "details": "Grindr seeks to provide a space for respectful and authentic interactions. Comments that may seem unkind or disrespectful can negatively impact others and go against the community guidelines. Continued violations may result in account actions like suspension or ban."
+      },
+      "mild_solicitation": {
+        "title": "Mild solicitation and casual offers",
+        "summary": "Grindr is for genuine personal connections. Financial solicitations can blur boundaries and aren’t in line with the guidelines.",
+        "details": "Grindr is for personal connections—not promoting paid content or financial arrangements."
+      },
+      "non_consensual_intimate_imagery": {
+        "title": "Non-consensual intimate imagery",
+        "summary": "Sharing intimate images or videos of another person without their consent isn’t allowed on Grindr. Continued violations may lead to an account ban.",
+        "details": "Intimate images or videos of another person should only ever be shared with that person’s consent — and consent to take or receive an image isn’t consent to share it. This applies to edited and AI-generated images as well.",
+        "summary_banned": "Sharing intimate images or videos of another person without their consent isn’t allowed on Grindr."
+      },
+      "offline_incident": {
+        "title": "Serious offline incidents",
+        "summary": "This account was banned following a report of harmful behavior. Safety and respect are non-negotiable on Grindr.",
+        "details": "Grindr takes these actions to protect the safety of its community and maintain a respectful environment for all users."
+      },
+      "paid_sexual_services": {
+        "title": "Paid sexual services",
+        "summary": "Offering or requesting sexual services for money or compensation is not allowed on Grindr.",
+        "details": "Grindr is for personal connections, not for commercial transactions. Offering or requesting sexual services for compensation, no matter the circumstances, violates the guidelines."
+      },
+      "phishing": {
+        "title": "Phishing, fraud, and harmful links",
+        "summary": "Grindr strictly prohibits sharing malicious links, phishing attempts, or harmful software.",
+        "details": "Sharing malicious links, phishing attempts, or harmful software can deceive others or compromise their security. Accounts engaging in such activities may be banned to protect the platform and its users."
+      },
+      "privacy_violation": {
+        "title": "Privacy violations and doxxing",
+        "summary": "Sharing someone’s personal information without their permission is strictly forbidden and compromises safety.",
+        "details": "Sharing another person’s private or personal information, such as contact details or identifying information, without their permission is a serious violation of the guidelines. This behavior puts others at risk and undermines the trust within the community."
+      },
+      "profile_spam": {
+        "title": "Profile spam and advertising",
+        "summary": "Grindr is for authentic connections, not for promoting goods, services, or external platforms. Promotional content isn’t allowed in profiles or chats.",
+        "details": "Sharing ads, donation links, or event promotions in your profile or chats isn’t allowed and takes away from the authentic experience. Grindr is meant for genuine interactions—not selling services or hyping up events."
+      },
+      "drug_sale": {
+        "title": "Drug sale and distribution",
+        "summary": "Grindr strictly prohibits any activity involving the sale or distribution of drugs. Accounts engaging in such behavior will be banned.",
+        "details": "Grindr does not allow profiles, chats, or content that facilitate the sale, distribution, or promotion of illegal substances. This policy is in place to support the well-being of users and to help maintain a safe, authentic environment for everyone, and violations of this nature are taken very seriously."
+      },
+      "sextortion": {
+        "title": "Sextortion",
+        "summary": "Threatening to share someone’s intimate images or videos isn’t allowed on Grindr.",
+        "details": "Blackmail, extortion, and direct threats of harm, including manipulation involving personal images or information, are strictly prohibited. Such behavior endangers the safety of the community."
+      },
+      "sexual_content_sale": {
+        "title": "Sale of sexually explicit content",
+        "summary": "Grindr is for making authentic connections, not for commercial transactions related to sexual content. Selling or promoting sexually explicit content (including your pictures or videos) is not allowed on Grindr.",
+        "details": "Selling or promoting sexually explicit material, including photos or videos, violates the guidelines and disrupts the community experience. Please ensure your profile and messages focus on building genuine connections within the community."
+      },
+      "spam": {
+        "title": "Repeated or unwanted messaging",
+        "summary": "Sending repeated messages or excessive follow-ups is considered spammy behavior. Continued violations may lead to account suspension.",
+        "details": "Sending too many messages in a short time violates the guidelines. Always respect other users — read profiles for preferences, share your boundaries, and honor others’ limits."
+      },
+      "transactional_service": {
+        "title": "Transactional services",
+        "summary": "Grindr prohibits offering or requesting transactional services, such as paid companionship, even when non-sexual in nature.",
+        "details": "These behaviors shift the platform away from its focus on personal, meaningful connections and violate the guidelines. Please ensure your interactions remain free from commercial intent."
+      },
+      "underage_endangerment": {
+        "title": "Child protection and endangerment",
+        "summary": "This account was banned following a report of harmful behavior. Safety and respect are non-negotiable on Grindr."
+      },
+      "underage_impersonation": {
+        "title": "Underage impersonation",
+        "summary": "Grindr is for adults only – you must be at least 18 years (or older, in some regions) before you can use Grindr. Underage activity, even in role-playing contexts, is prohibited.",
+        "details": "Pretending to be a minor, whether for role-playing or any other reason, violates Grindr’s policies and may result in an account ban. Profiles impersonating other individuals, regardless of intent, undermine trust within the community and are not allowed."
+      },
+      "underage": {
+        "title": "Underage access",
+        "summary": "Grindr is for adults only – you must be at least 18 years (or older, in some regions) to use Grindr.",
+        "details": "You must meet this age requirement to use the services, and Grindr takes this rule very seriously. Additionally, communicating with minors or sharing any images involving minors, no matter the context, is a serious violation of Grindr’s policies."
+      }
+    },
+    "countdown": {
+      "remaining": "Remaining",
+      "until": "Until {{date}}",
+      "ended_title": "Suspension over",
+      "ended_on": "Ended {{date}}"
+    },
+    "reason_unknown": "No reason given"
   },
   "sexualHealth": {
     "title": "Sexual Health",
@@ -2608,5 +2778,115 @@
     "dismiss": "Not Now",
     "no_update": "No newer version is out yet. Check again later.",
     "check_failed": "Couldn't check for updates"
+  },
+  "account_warnings": {
+    "title": "Warning",
+    "description": "Your account has violated our Community Guidelines. If this happens again, you may be banned.",
+    "count": "{{count}}×",
+    "acknowledge": "I Understand and Agree",
+    "read_guidelines": "Read our guidelines",
+    "acknowledge_failed": "Couldn't acknowledge the warnings. Please try again.",
+    "why": "Why am I seeing this?",
+    "types": {
+      "harassment": {
+        "title": "Harassment",
+        "content": "We encourage free expression, but not if it bullies or intimidates others. Please be kind on Grindr.",
+        "reason": "You are seeing this warning because you were flagged for harassment in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "We ask that you treat others with kindness on Grindr. Bullying, harassment, and intimidation are prohibited, as they create a hostile environment. Repeated abusive behavior may result in further actions against your account."
+      },
+      "commercial": {
+        "title": "Commercial activity",
+        "content": "Grindr is for personal use only. We can’t allow you to ask for money, advertise, or use Grindr to buy or sell anything. If this happens again, you may be banned.",
+        "reason": "You are seeing this warning because you were flagged for commercial activity in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Grindr is designed for personal connections, not for recruiting or soliciting users for profit-driven ventures like promoting businesses, paid services, or events. Such activities detract from the platform’s purpose and go against our guidelines. Please ensure your interactions remain personal and non-commercial."
+      },
+      "mild_insults": {
+        "title": "Mild insults and disrespect",
+        "content": "Some chats you’ve sent have been flagged as potentially disrespectful. While we encourage you to be yourself and express yourself freely on Grindr, it’s important to do so without negatively impacting others. Please be kind on Grindr, and ensure your interactions remain respectful in alignment with our community guidelines.",
+        "reason": "You are seeing this warning because you were flagged for mild insults and disrespect in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Grindr seeks to provide a space for respectful and authentic interactions. Comments that may seem unkind or disrespectful can negatively impact others and go against our community guidelines. Please be mindful of how your words come across and help us maintain a welcoming environment for everyone. Continued violations may result in account actions like suspension or ban."
+      },
+      "general_advertising": {
+        "title": "General advertising and solicitation",
+        "content": "Grindr is for authentic personal connections, not for advertising goods, services, or external platforms. Promotional content is not allowed in profiles or messages. Please ensure your interactions remain genuine and aligned with our guidelines.",
+        "reason": "You are seeing this warning because you were flagged for general advertising and solicitation in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Grindr is designed for genuine personal connections and is not a space for promoting goods, services, or external links. Using profiles or messages to promote products, services, or share external links goes against our guidelines and disrupts the experience for others. Please remove any promotional content to keep Grindr a space for genuine interactions."
+      },
+      "unwanted_messaging": {
+        "title": "Repeated or unwanted messaging",
+        "content": "Slow down! Sending repeated messages or excessive follow-ups is considered spammy behavior. Please refrain from this, as continued violations may lead to account suspension.",
+        "reason": "You are seeing this warning because you were flagged for repeated or unwanted messaging in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Please slow down. Sending too many messages in a short time violates our guidelines. This system helps keep Grindr safe and positive for everyone. Continued behavior like this may result in your account being suspended. Always respect other users — read profiles for preferences, share your boundaries, and honor others’ limits."
+      },
+      "drug_solicitation": {
+        "title": "Occasional drug solicitation",
+        "content": "Seeking drugs on Grindr violates our guidelines. Please avoid this to help maintain a safe and respectful community.",
+        "reason": "You are seeing this warning because you were flagged for occasional drug solicitation in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Seeking drugs, even occasionally, in your profile or chats is not permitted. This goes against Grindr’s guidelines, as we care about your well-being and strive to maintain a safe, respectful community. Please avoid such mentions moving forward."
+      },
+      "drug_promotion": {
+        "title": "Drug promotion or glorification",
+        "content": "We do not allow activity promoting illegal drug use. If this happens again, your account could be suspended.",
+        "reason": "You are seeing this warning because you were flagged for drug promotion or glorification in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "We care deeply about the well-being of our users. References to cannabis, tobacco, and alcohol are allowed in certain contexts, but we do not allow profiles centered around or promoting drug content, including discussing or participating in the buying or selling of drugs (of any kind). This policy also extends to images and emojis that solicit drugs or promote drug use."
+      },
+      "non_illicit_substances": {
+        "title": "Casual mentions of legal or non-illicit substances",
+        "content": "Non-illicit substances like CBD or marijuana (where legal) are okay to mention on Grindr. However, excessive promotion or focus on these substances may lead to your account being reported by our community, and even suspended.",
+        "reason": "You are seeing this warning because you were flagged for casual mentions of legal or non-illicit substances and symbols in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "We allow casual mentions of non-illicit substances, such as CBD, marijuana (where legal) on Grindr. However, profiles centered around these substances or excessive promotion of them can detract from the community experience and may be reported by other users. We care deeply about the well-being of our community and prohibit drug-related content or imagery that could promote harmful practices. Please ensure your profile aligns with our guidelines to help us maintain a safe and respectful platform for everyone."
+      },
+      "mild_solicitation": {
+        "title": "Mild solicitation and casual offers",
+        "content": "Grindr is for genuine personal connections. Financial solicitations can blur boundaries and aren’t in line with our guidelines. Let’s keep interactions authentic and respectful.",
+        "reason": "You are seeing this warning because you were flagged for mild solicitation and casual offers in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Grindr is for personal connections—not promoting paid content or financial arrangements. Please ensure your profile or messages align with our guidelines to keep Grindr a space for genuine interactions."
+      },
+      "drug_seeking": {
+        "title": "Drug seeking",
+        "content": "Seeking drugs on Grindr violates our guidelines. Please avoid this to help maintain a safe and respectful community. If this happens again, your account could be suspended.",
+        "reason": "You are seeing this warning because you were flagged for drug seeking in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Seeking drugs, even occasionally, in your profile or chats is not permitted. This goes against Grindr’s guidelines, as we care about your well-being and strive to maintain a safe, respectful community. Please avoid such mentions moving forward."
+      },
+      "drug_facilitation": {
+        "title": "Drug facilitation",
+        "content": "Helping others obtain illegal drugs isn’t allowed on Grindr. If this happens again, your account could be suspended.",
+        "reason": "You are seeing this warning because you were flagged for drug facilitation in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Connecting others to illegal drugs — offering to share what you have, arranging a pickup, or putting someone in touch with a source — is not permitted, even when nothing is being sold. This goes against Grindr’s guidelines, as we care about your well-being and strive to maintain a safe, respectful community. Please avoid this moving forward."
+      },
+      "non_consensual_intimate_imagery": {
+        "title": "Non-consensual intimate imagery",
+        "content": "Sharing intimate images or videos of another person without their consent isn’t allowed on Grindr. If this happens again, your account could be suspended.",
+        "reason": "You are seeing this warning because you were flagged for sharing non-consensual intimate imagery in a recent interaction. If our moderation team receives reports about other incidents, your account may be banned for violating our Community Guidelines.",
+        "details": "Intimate images or videos of another person should only ever be shared with that person’s consent — and consent to take or receive an image isn’t consent to share it. This applies to edited and AI-generated images as well. This goes against Grindr’s guidelines, as we care about the safety and privacy of everyone in our community. Please avoid this moving forward."
+      }
+    }
+  },
+  "community_guidelines": {
+    "label": "Community guideline",
+    "authentic": {
+      "title": "Be authentic",
+      "text": "Be yourself on the app, not someone else. Any profiles impersonating other people, including celebrities, will be banned. Content that you post on Grindr should be of you or by you, and you should represent yourself truthfully. You choose what to disclose about yourself, but the information that you do share should be true. Any impersonation/catfishing is prohibited and may result in a ban.\n\nWe don't allow:\n• Photos of celebrities or public figures of any kind (actors, musicians, politicians, etc.)\n• Photos of celebrity impersonators where it could be unclear if the person is an impersonator or the actual celebrity\n• Pictures that are copyrighted, have watermarks, or that we believe to not be of you or taken by you\n• Junk photos (like solid black boxes)\n\nIf your profile is reported as being fake, we may ask you to verify your identity to keep your profile active."
+    },
+    "harassment": {
+      "title": "Harassment",
+      "text": "We want you to be yourself and express yourself freely here, but not at the expense of someone else. We strongly suggest you talk about what you are into, not what you aren't, on your profile. And the old adage \"if you can't say something nice, don't say anything at all\" pertains here just like at your grandmother's.\n\nWe also expect you to leave someone alone when they indicate they want to be left alone. This is a foundational rule. Misusing our reporting system to get back at someone who's blocked you, or creating new accounts to continue patterns of unwanted contact will result in a permanent ban."
+    },
+    "hate": {
+      "title": "Hate, violence, and offensive content",
+      "text": "It should go without saying, but we don't allow hate speech or violence of any kind. If we learn that you have abused or seriously threatened another user, you will be banned forever. We may also remove content that we find too graphic, offensive, or insensitive and hurtful, even if there was no ill intent.\n\nWe take reports of violence, threats and assault very seriously. This includes incidents that occur both on and off our platform.\n\nWe may consider content hate speech (and take more severe actions against a profile) if it promotes or condones racism, bigotry, violence, hate, dehumanization, or harm against individuals or groups based on race, ethnicity, disability, age, nationality, sexual orientation, gender, gender identity, religion, or appearance.\n\nContent we would consider graphic, violent or offensive includes but is not limited to:\n• Photos of weapons and firearms (real or toy), including paintball guns\n• Photos with blood or gore, including especially realistic costumes\n• Violent images, including cartoons or illustrations\n• Gang signs or offensive hand gestures (e.g. middle finger)\n• Kink or fetish content that is violent or promotes harm\n• Threats against any person or group, including political figures\n• Photos or descriptions of self-harm or suicide\n• Photos of dead animals, including hunting photos\n• Jokes or memes that can be found to be hurtful and insensitive"
+    },
+    "minors": {
+      "title": "Minors",
+      "text": "Grindr is for adults ONLY. You must be at least 18 to use the app (or older in certain jurisdictions). We take this age limit very, very seriously, and any violation or suspected violation will result in a ban, at a minimum, and could lead us to involve the appropriate authorities.\n\nWe also do not allow any photos of anyone under 18, in any context. This includes photos where a minor's face is blurred out or is in the background. Our total ban on minor activity extends to communication: if a user communicates with another user that they believe to be under 18, that is also a violation of our age policy."
+    },
+    "obey_the_law": {
+      "title": "Obey the law",
+      "text": "If something is illegal offline, well guess what: it's also illegal on Grindr! Yes, this includes drugs. Illegal content and depictions of illegal activity will be taken down and, when appropriate, reported to the appropriate authorities.\n\nWe allow casual mentions of marijuana, over the counter medication, and prescribed medications. However, evidence of misuse or encouraging others to use irresponsibly, as well as any discussion of buying/selling, will result in a ban. We do not allow any mention of non-prescription drugs, other than marijuana, unless in the context of addiction recovery. Also, we do not allow profiles mainly focused on drug content."
+    },
+    "private_information": {
+      "title": "Private information",
+      "text": "Grindr will never ask you for personal details like your password or your credit card information. Other users don't need to know this stuff either. In the interest of safety, we will remove any sensitive personal information displayed publicly, such as phone numbers and addresses, and we may suspend or ban the profile.\n\nUnwelcome solicitation of another user's personal information, prompting users to visit outside links, or any kind of spamming or scamming will get you banned.\n\nWe do not allow the posting of private information anywhere on the profile, such as photos or profile text, or direct links to it, for example through a QR code or link. Private information includes:\n• Unlisted contact information, such as phone numbers, email addresses, home/work address\n• Social security numbers, passports, passwords, financial information"
+    }
   }
 }

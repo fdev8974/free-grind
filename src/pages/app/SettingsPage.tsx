@@ -24,9 +24,11 @@ import {
 	ScrollText,
 	Share2,
 	QrCode,
+	Ban,
+	Clock,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
+import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
 import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -66,6 +68,8 @@ import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
 import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
 import { OutdatedVersionPromptView, fetchLatestRelease, isOlderVersion, type ReleaseInfo } from "../../components/OutdatedVersionPrompt";
+import { AccountStatusPromptView } from "../../components/AccountStatusPrompt";
+import type { AccountStatus } from "../../contexts/auth-context";
 import { areUpdateChecksEnabled, setUpdateChecksEnabled, subscribeUpdateChecks } from "../../services/updateChecks";
 import { Avatar } from "../../components/ui/avatar";
 import { getThumbImageUrl } from "../../utils/media";
@@ -76,6 +80,7 @@ import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
 import { replayOnboarding } from "../../utils/onboardingStorage";
 import { replayRestoreOffer } from "../../utils/restoreOfferStorage";
 import { showLegalAgreementsPrompt } from "../../utils/legalAgreementsDebug";
+import { showAccountWarningsPrompt } from "../../utils/accountWarningsDebug";
 import { showSharePickerDebug } from "../../utils/sharePickerDebug";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
 
@@ -88,6 +93,25 @@ const PREVIEW_RELEASE_INFO = {
 	latestVersion: "9.9.9",
 	releasesUrl: "https://github.com/fdev8974/free-grind/releases",
 };
+const PREVIEW_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "profile", code: 27, message: "Profile is banned", subReason: "DRUG_SALES", automated: true },
+};
+// Built on selection so the expiry is relative to now: still running, or
+// already over with the ban agreement waiting to be accepted.
+function previewTimedBanStatus(expired: boolean): AccountStatus {
+	return {
+		kind: "restriction",
+		restriction: {
+			kind: "timedBan",
+			reason: "HARASSMENT",
+			subReason: "MILD_INSULTS",
+			automated: true,
+			expiresAt: Math.floor(Date.now() / 1000) + (expired ? -60 * 60 : 2 * 24 * 60 * 60),
+			agreementCompleted: expired ? false : null,
+		},
+	};
+}
 
 function getErrorMessage(error: unknown, fallback: string): string {
 	if (error instanceof Error && error.message) {
@@ -341,6 +365,7 @@ export function SettingsPage() {
 	const { developerMode, showDebugInfo, setPreferences } = usePreferences();
 	const [previewAnnouncement, setPreviewAnnouncement] = useState(false);
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
+	const [previewAccountStatus, setPreviewAccountStatus] = useState<AccountStatus>(null);
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 	// App release found by a manual check — shown as the APK update prompt.
 	const [appUpdateRelease, setAppUpdateRelease] = useState<ReleaseInfo | null>(null);
@@ -650,6 +675,18 @@ export function SettingsPage() {
 					releaseInfo={appUpdateRelease}
 					onDismiss={() => setAppUpdateRelease(null)}
 					manual
+				/>
+			</div>
+		);
+	}
+
+	if (previewAccountStatus) {
+		return (
+			<div className="app-shell z-[110]">
+				<AccountStatusPromptView
+					status={previewAccountStatus}
+					onSignOut={() => setPreviewAccountStatus(null)}
+					onAcceptBanAgreement={async () => setPreviewAccountStatus(null)}
 				/>
 			</div>
 		);
@@ -1341,6 +1378,10 @@ export function SettingsPage() {
 						{ key: "onboarding", icon: RotateCcw, label: "Replay Onboarding", description: "The first-launch setup flow.", onSelect: () => afterSheetClose(replayOnboarding) },
 						{ key: "restore", icon: FileUpFilled, label: "Restore Offer", description: "The first-login backup restore dialog.", onSelect: () => afterSheetClose(replayRestoreOffer) },
 						{ key: "legal", icon: ScrollText, label: "Legal Agreements", description: "Terms of Service / Privacy Policy, even if already accepted.", onSelect: () => afterSheetClose(showLegalAgreementsPrompt) },
+						{ key: "ban", icon: Ban, label: "Ban Screen", description: "A permanent profile ban (DRUG_SALES) with its explanation.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_BAN_STATUS)) },
+						{ key: "timed-ban", icon: Clock, label: "Timed Ban Screen", description: "A temporary ban (MILD_INSULTS) that ends in two days.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(false))) },
+						{ key: "timed-ban-expired", icon: ScrollText, label: "Ban Agreement Screen", description: "An expired temporary ban waiting for its ban agreement.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(true))) },
+						{ key: "warnings", icon: TriangleAlertFilled, label: "Account Warnings", description: "The community-guidelines warnings prompt with sample warnings.", onSelect: () => afterSheetClose(showAccountWarningsPrompt) },
 						{ key: "share", icon: Share2, label: "Share Picker", description: "The \"Send to…\" chat picker with sample images.", onSelect: () => afterSheetClose(() => void showSharePickerDebug()) },
 						{
 							key: "announcement",
