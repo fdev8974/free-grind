@@ -1,8 +1,10 @@
-import { Download, Loader2, Package, RefreshCcw, Zap } from "lucide-react";
+import { ArrowDown, Download, Loader2, Package, RefreshCcw, Zap } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
 	dismissPendingHotswapUpdate,
+	getActiveHotswapVersion,
 	getHotswapProgress,
 	getPendingHotswapUpdate,
 	installHotswapUpdate,
@@ -18,6 +20,7 @@ import { appLog } from "../utils/logger";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { ToggleRow } from "./ui/toggle-row";
 import { hourCycleOptions } from "../utils/timeFormat";
+import { formatRelativeTime } from "../utils/relativeTime";
 
 /**
  * OTA bundle versions look like `1.2.0-ota.development.1729500000` (see
@@ -33,6 +36,92 @@ function buildDate(version: string | null): Date | null {
 	return Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : null;
 }
 
+/** Release part of a bundle version; the embedded frontend has the app's own. */
+function releaseOf(version: string | null): string | null {
+	return displayVersion(version) ?? import.meta.env.VITE_APP_VERSION ?? null;
+}
+
+/**
+ * "Today, 09:12" / "Yesterday, 14:03" / "Monday, 14:03" within the last week,
+ * else a medium date — the build time is the only thing telling OTA bundles apart.
+ */
+function formatBuildTime(date: Date, lang: string): string {
+	const time = date.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", ...hourCycleOptions() });
+	const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+	const daysAgo = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
+	if (daysAgo === 0 || daysAgo === 1) {
+		const day = new Intl.RelativeTimeFormat(lang, { numeric: "auto" }).format(-daysAgo, "day");
+		return `${day.charAt(0).toLocaleUpperCase(lang)}${day.slice(1)}, ${time}`;
+	}
+	if (daysAgo > 1 && daysAgo < 7) {
+		return `${date.toLocaleDateString(lang, { weekday: "long" })}, ${time}`;
+	}
+	return date.toLocaleString(lang, { dateStyle: "medium", timeStyle: "short", ...hourCycleOptions() });
+}
+
+/** How much newer the new build is, in its largest whole unit ("3 days newer"). */
+function newerBy(t: TFunction, newer: Date, older: Date): string | null {
+	const minutes = Math.floor((newer.getTime() - older.getTime()) / 60_000);
+	if (minutes < 1) return null;
+	const hours = Math.floor(minutes / 60);
+	const days = Math.floor(hours / 24);
+	if (days > 0) return t("ota_prompt.newer_days", { defaultValue: "{{count}} days newer", count: days });
+	if (hours > 0) return t("ota_prompt.newer_hours", { defaultValue: "{{count}} hours newer", count: hours });
+	return t("ota_prompt.newer_minutes", { defaultValue: "{{count}} minutes newer", count: minutes });
+}
+
+/**
+ * One side of the installed → new comparison. OTA bundles usually keep the
+ * release version and only differ in build time, so the version is only shown
+ * when it actually changes.
+ */
+function BundleRow({
+	label,
+	version,
+	showVersion,
+	comparedTo,
+	highlight,
+}: {
+	label: string;
+	version: string | null;
+	showVersion: boolean;
+	/** Installed version, for the "… newer" hint on the new build. */
+	comparedTo?: string | null;
+	highlight?: boolean;
+}) {
+	const { t, i18n } = useTranslation();
+	const release = showVersion ? releaseOf(version) : null;
+	const builtAt = buildDate(version);
+	const olderBuild = buildDate(comparedTo ?? null);
+	const newer = builtAt && olderBuild ? newerBy(t, builtAt, olderBuild) : null;
+
+	return (
+		<div className="flex h-full items-center gap-3 px-4 py-3">
+			<div
+				className={`shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 ${highlight ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}
+			>
+				<Package className="h-5 w-5" />
+			</div>
+			<div className="min-w-0 flex-1">
+				<p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
+				<p className={`text-sm font-semibold leading-snug ${highlight ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
+					{builtAt
+						? formatBuildTime(builtAt, i18n.language)
+						: t("ota_prompt.built_in", { defaultValue: "Included with the app" })}
+				</p>
+				{(release || builtAt) && (
+					<p className="mt-0.5 text-xs tabular-nums text-[var(--text-muted)]">
+						{release ? t("ota_prompt.version", { defaultValue: "Version {{version}}", version: release }) : null}
+						{release && builtAt ? " · " : null}
+						{builtAt ? formatRelativeTime(builtAt.getTime()) : null}
+						{newer && <span className="font-medium text-[var(--accent)]"> · {newer}</span>}
+					</p>
+				)}
+			</div>
+		</div>
+	);
+}
+
 export function OtaUpdatePromptView({
 	update,
 	onLater,
@@ -40,12 +129,12 @@ export function OtaUpdatePromptView({
 	update: PendingHotswapUpdate;
 	onLater: () => void;
 }) {
-	const { t, i18n } = useTranslation();
+	const { t } = useTranslation();
 	const realProgress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
 	const [previewProgress, setPreviewProgress] = useState<HotswapProgress>({ phase: "idle" });
 	const progress = update.preview ? previewProgress : realProgress;
-	const version = displayVersion(update.version);
-	const builtAt = buildDate(update.version);
+	// undefined while loading, null for the embedded frontend.
+	const [installedVersion, setInstalledVersion] = useState<string | null | undefined>(undefined);
 	const [failed, setFailed] = useState(false);
 	// Same setting as "Install Automatically" in Settings; the preview only toggles locally.
 	const storedAutoUpdate = useSyncExternalStore(subscribeHotswapAutoUpdate, isHotswapAutoUpdateEnabled);
@@ -53,6 +142,17 @@ export function OtaUpdatePromptView({
 	const autoUpdate = update.preview ? previewAutoUpdate : storedAutoUpdate;
 	const setAutoUpdate = update.preview ? setPreviewAutoUpdate : setHotswapAutoUpdateEnabled;
 	const isBusy = progress.phase === "downloading" || progress.phase === "installing" || progress.phase === "done";
+
+	useEffect(() => {
+		let cancelled = false;
+		void getActiveHotswapVersion().then((v) => {
+			if (!cancelled) setInstalledVersion(v);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+	const versionChanged = installedVersion !== undefined && releaseOf(installedVersion) !== releaseOf(update.version);
 
 	// Preview: fake ~2.5 MB download, then close instead of reloading.
 	useEffect(() => {
@@ -142,25 +242,17 @@ export function OtaUpdatePromptView({
 			}
 		>
 			<div className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
-				<div className="flex items-center gap-3 px-4 py-3.5">
-					<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--accent)]">
-						<Package className="h-5 w-5" />
-					</div>
-					<div className="min-w-0 flex-1">
-						<p className="text-sm font-semibold leading-snug text-[var(--text)]">
-							{version
-								? t("ota_prompt.version", { defaultValue: "Version {{version}}", version })
-								: t("ota_prompt.new_version", { defaultValue: "New version" })}
-						</p>
-						{builtAt && (
-							<p className="mt-0.5 text-xs tabular-nums text-[var(--text-muted)]">
-								{t("ota_prompt.built_at", {
-									defaultValue: "Built {{date}}",
-									date: builtAt.toLocaleString(i18n.language, { dateStyle: "medium", timeStyle: "short", ...hourCycleOptions() }),
-								})}
-							</p>
-						)}
-					</div>
+				{/* Equal-height rows, so the arrow on the divider sits visually centered. */}
+				<div className="grid auto-rows-fr divide-y divide-[var(--border)]">
+					{installedVersion !== undefined && (
+						<div className="relative">
+							<BundleRow label={t("ota_prompt.installed", { defaultValue: "Installed build" })} version={installedVersion} showVersion={versionChanged} />
+							<div className="absolute bottom-0 left-6 z-10 flex translate-y-[calc(50%+0.5px)] rounded-full border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--text-muted)]">
+								<ArrowDown className="h-3.5 w-3.5" />
+							</div>
+						</div>
+					)}
+					<BundleRow label={t("ota_prompt.new", { defaultValue: "New build" })} version={update.version} showVersion={versionChanged} comparedTo={installedVersion} highlight />
 				</div>
 				<ToggleRow
 					checked={autoUpdate}

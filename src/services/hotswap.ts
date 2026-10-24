@@ -4,6 +4,7 @@ import {
 	applyUpdate,
 	checkUpdate,
 	configure,
+	getVersionInfo,
 	notifyReady,
 } from "tauri-plugin-hotswap-api";
 import { appLog } from "../utils/logger";
@@ -328,6 +329,16 @@ export async function checkForHotswapUpdate(): Promise<HotswapCheckResult> {
 		requiresBinaryUpdate: parsedNotes.requiresBinaryUpdate,
 		notes: parsedNotes.message,
 	};
+}
+
+/** Version of the active OTA bundle, or null while the embedded frontend runs. */
+export async function getActiveHotswapVersion(): Promise<string | null> {
+	if (!isHotswapAvailable()) return null;
+	try {
+		return (await getVersionInfo()).version;
+	} catch {
+		return null;
+	}
 }
 
 // Shared so a manual install during the startup auto-install joins it instead of
