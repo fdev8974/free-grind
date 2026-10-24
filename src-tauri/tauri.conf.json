@@ -27,7 +27,7 @@
 				"img-src": "'self' data: blob: fgmedia: http://fgmedia.localhost https://fgmedia.localhost https://cdns.grindr.com https://*.cloudfront.net https://*.giphy.com https://i.scdn.co https://*.basemaps.cartocdn.com",
 				"media-src": "'self' data: blob: fgmedia: http://fgmedia.localhost https://fgmedia.localhost https://cdns.grindr.com https://*.cloudfront.net https://*.giphy.com",
 				"font-src": "'self' data:",
-				"connect-src": "'self' ipc: http://ipc.localhost https://ipc.localhost https://api.github.com https://nominatim.openstreetmap.org https://ipapi.co https://translation.googleapis.com https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com",
+				"connect-src": "'self' ipc: http://ipc.localhost https://ipc.localhost https://api.github.com https://nominatim.openstreetmap.org https://ipapi.co https://translation.googleapis.com https://generativelanguage.googleapis.com https://api.openai.com https://api.anthropic.com https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://*.agora.io:* https://*.sd-rtn.com:* wss://*.agora.io:* wss://*.sd-rtn.com:*",
 				"worker-src": "'self' blob:",
 				"object-src": "'none'",
 				"frame-src": "'none'",
