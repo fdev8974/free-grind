@@ -120,8 +120,8 @@ plutil -lint "$info_plist" >/dev/null
 export RUSTFLAGS="--remap-path-prefix=$CARGO_HOME=/cargo --remap-path-prefix=$root=/free-grind"
 export CFLAGS="-ffile-prefix-map=$CARGO_HOME=/cargo -ffile-prefix-map=$root=/free-grind"
 export CXXFLAGS="$CFLAGS"
-# With several codegen units the linker meets imported symbols in a varying
-# order, which shuffles GOT slots (e.g. objc_msgSend's).
+# One codegen unit, as on Windows, where several units placed some symbols
+# differently from build to build.
 export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
 cargo build --manifest-path src-tauri/Cargo.toml --target aarch64-apple-ios --release --features custom-protocol
 lib=src-tauri/target/aarch64-apple-ios/release/libopen_grind_lib.a
