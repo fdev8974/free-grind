@@ -64,19 +64,25 @@ export function SheetActionList({
 	actions,
 	onClose,
 	isDesktop,
+	expandable = false,
 }: {
 	title: string;
 	actions: SheetAction[];
 	onClose: () => void;
 	isDesktop: boolean;
+	/** For long lists: the sheet can be dragged up to almost full screen and the list scrolls inside it. */
+	expandable?: boolean;
 }) {
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} bg={NATIVE_SHEET_BG} panelClassName="px-4">
+		<BottomSheet onClose={onClose} isDesktop={isDesktop} expandable={expandable} bg={NATIVE_SHEET_BG} panelClassName="px-4">
 			<div className="mb-2 flex items-center justify-between gap-3">
 				<h3 className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{title}</h3>
 				<SheetCloseButton />
 			</div>
-			<div className="-mx-1 pb-2">
+			<div
+				className={expandable ? "-mx-1 min-h-0 flex-1 overflow-y-auto pb-2" : "-mx-1 pb-2"}
+				data-lenis-prevent={expandable || undefined}
+			>
 				{actions.map((action) => (
 					<SheetActionRow key={action.key} action={action} />
 				))}

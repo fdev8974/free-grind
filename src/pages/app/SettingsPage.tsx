@@ -1373,6 +1373,7 @@ export function SettingsPage() {
 					title="UI Previews"
 					onClose={() => setIsPreviewsSheetOpen(false)}
 					isDesktop={isDesktop}
+					expandable
 					// Each preview opens after this sheet has closed (and popped its history entry).
 					actions={[
 						{ key: "onboarding", icon: RotateCcw, label: "Replay Onboarding", description: "The first-launch setup flow.", onSelect: () => afterSheetClose(replayOnboarding) },
