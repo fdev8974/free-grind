@@ -4,6 +4,7 @@
     "license": "MIT",
     "author": "Jay Brammeld <jay@imaoreo.dev> (https://imaoreo.dev)",
     "type": "module",
+    "packageManager": "bun@1.3.14",
     "scripts": {
         "docs": "bun run --cwd docs start",
         "build": "vite build",

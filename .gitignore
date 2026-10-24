@@ -21,3 +21,8 @@ src-tauri/gen/schemas/
 
 # exe-manager build output and runtime data (manager.exe/child.exe + instance state)
 /windows-exe
+# Bun is the only package manager (pinned via "packageManager" in package.json);
+# bun.lock is the one lockfile. Keep other managers' lockfiles out.
+package-lock.json
+pnpm-lock.yaml
+yarn.lock

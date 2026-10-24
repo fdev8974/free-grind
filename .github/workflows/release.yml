@@ -20,7 +20,7 @@ jobs:
   # changed since the last binary. Frontend-only versions reach every installed
   # app over OTA (ota-branches.yml), so a new APK would add nothing.
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       should_release: ${{ steps.decide.outputs.should_release }}
     steps:
@@ -64,7 +64,7 @@ jobs:
   create-release:
     needs: check
     if: needs.check.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       release_id: ${{ steps.create-release.outputs.release_id }}
       tag_name: ${{ steps.vars.outputs.tag_name }}
@@ -116,7 +116,7 @@ jobs:
     # Pushes to other branches already publish their OTA via ota-branches.yml;
     # a second deploy of the same commit would just race it.
     if: github.ref_name == 'main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -127,6 +127,8 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
@@ -186,17 +188,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest
+          - platform: macos-15
             args: --target universal-apple-darwin --bundles app,dmg
             rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
             artifact_suffix: macos-universal
             bundle_dir: src-tauri/target/universal-apple-darwin/release/bundle
-          - platform: windows-latest
+          - platform: windows-2025
             args: --bundles nsis
             rust_targets: ""
             artifact_suffix: windows-x64
             bundle_dir: src-tauri/target/release/bundle
-          - platform: ubuntu-latest
+          - platform: ubuntu-24.04
             args: --bundles deb,rpm,appimage
             rust_targets: ""
             artifact_suffix: linux-x64
@@ -213,7 +215,7 @@ jobs:
           submodules: true
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-latest'
+        if: matrix.platform == 'ubuntu-24.04'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
@@ -222,11 +224,21 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.rust_targets }}
+        env:
+          TARGETS: ${{ matrix.rust_targets }}
+        shell: bash
+        run: |
+          rustup toolchain install
+          [ -z "$TARGETS" ] || rustup target add ${TARGETS//,/ }
+
+      - name: Check Cargo.lock is up to date
+        # Fails instead of letting the build silently re-resolve crate versions.
+        shell: bash
+        run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -446,7 +458,7 @@ jobs:
 
   build-android:
     needs: create-release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # Default update channel baked into the frontend: builds from main ship
       # on Stable, every other branch (beta builds) on Development.
@@ -460,6 +472,8 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Setup Java
         uses: actions/setup-java@v6
@@ -486,9 +500,15 @@ jobs:
         run: yes | sdkmanager --licenses
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android
+        shell: bash
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-linux-android
+
+      - name: Check Cargo.lock is up to date
+        # Fails instead of letting the build silently re-resolve crate versions.
+        shell: bash
+        run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2

@@ -129,7 +129,9 @@ bun run build:android:apk
 bun run build:ios:ipa
 ```
 
-All Tauri commands are routed through shell scripts in [scripts](scripts) and use Bun (`bunx`) instead of pnpm/nix workflows.
+All Tauri commands are routed through shell scripts in [scripts](scripts) and use Bun (`bunx`). Bun is the only supported package manager; `bun.lock` is the one lockfile.
+
+Building release artifacts from source, with pinned toolchain versions: see [BUILDING.md](./BUILDING.md).
 
 All contributions must be aligned with [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md).
 

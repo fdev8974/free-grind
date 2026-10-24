@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-15
     env:
       # Default update channel baked into the frontend: builds from main ship
       # on Stable, every other branch (beta builds) on Development.
@@ -46,11 +46,19 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-ios
+        shell: bash
+        run: |
+          rustup toolchain install
+          rustup target add aarch64-apple-ios
+
+      - name: Check Cargo.lock is up to date
+        # Fails instead of letting the build silently re-resolve crate versions.
+        shell: bash
+        run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
