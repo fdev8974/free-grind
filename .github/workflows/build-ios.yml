@@ -7,11 +7,21 @@ on:
         description: "GitHub Release ID to upload the IPA to (omit to upload as a workflow artifact)"
         required: false
         type: string
+      artifact_name:
+        description: "Workflow artifact name when not uploading to a release"
+        required: false
+        type: string
+        default: free-grind-ios
+      use_cache:
+        description: "Restore the Rust build cache (off for independent comparison builds)"
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       # Default update channel baked into the frontend: builds from main ship
       # on Stable, every other branch (beta builds) on Development.
@@ -23,6 +33,13 @@ jobs:
           submodules: true
           # Full history so the commit count below can serve as the build number.
           fetch-depth: 0
+
+      - name: Select Xcode
+        # Pinned: the image's default Xcode changes over time, and with it the
+        # iOS SDK the app is built against (which changes how it looks).
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app
+          xcodebuild -version
 
       - name: Extract metadata
         id: meta
@@ -44,6 +61,12 @@ jobs:
           echo "bundle_short_version=$SHORT_VERSION" >> "$GITHUB_OUTPUT"
           echo "bundle_version=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
 
+      - name: Setup Node
+        # Vite runs under Node; the runner's preinstalled one isn't pinned.
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -61,6 +84,7 @@ jobs:
         run: cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml > /dev/null
 
       - name: Rust cache
+        if: ${{ inputs.use_cache != false }}
         uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: ./src-tauri -> target
@@ -96,8 +120,11 @@ jobs:
                    src-tauri/gen/apple/Externals/x86_64/release \
                    src-tauri/gen/apple/assets
 
-          command -v xcodegen >/dev/null || brew install xcodegen
-          (cd src-tauri/gen/apple && xcodegen generate)
+          # Pinned release instead of whatever Homebrew has today.
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" https://github.com/yonaskolb/XcodeGen/releases/download/2.46.0/xcodegen.zip
+          echo "4d9e34b62172d645eed6457cac13fc222569974098ef4ee9c3368bedf0196806  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          (cd src-tauri/gen/apple && "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate)
 
       - name: Merge Info.plist usage descriptions
         run: |
@@ -129,6 +156,11 @@ jobs:
         run: |
           # `custom-protocol` is what `tauri build` enables automatically; without
           # it the app is a dev build and tries to load devUrl (localhost:1420).
+          # Fixed names for the checkout and crate paths, as in ci/build/common.sh.
+          CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          export RUSTFLAGS="--remap-path-prefix=$CARGO_HOME=/cargo --remap-path-prefix=$GITHUB_WORKSPACE=/free-grind"
+          export CFLAGS="-ffile-prefix-map=$CARGO_HOME=/cargo -ffile-prefix-map=$GITHUB_WORKSPACE=/free-grind"
+          export CXXFLAGS="$CFLAGS"
           cargo build --manifest-path src-tauri/Cargo.toml --target aarch64-apple-ios --release --features custom-protocol
 
           LIB_PATH="src-tauri/target/aarch64-apple-ios/release/libopen_grind_lib.a"
@@ -302,7 +334,7 @@ jobs:
         if: ${{ !inputs.release_id }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: free-grind-ios
+          name: ${{ inputs.artifact_name || 'free-grind-ios' }}
           path: ${{ steps.ios_ipa.outputs.ipa_path }}
           retention-days: 14
           if-no-files-found: error

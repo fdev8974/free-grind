@@ -155,6 +155,6 @@ For anyone changing the build. Each of these was needed to get identical bytes:
 
 ## Not reproducible yet
 
-- **macOS** is still built on GitHub's runner image (pinned to `macos-15`). Making it reproducible means pinning Xcode and the macOS SDK, or cross-compiling it.
-- **iOS** depends on Xcode and Apple's signing, and has the same open problem as macOS.
+- **macOS** is built on GitHub's `macos-26` runner image with Xcode 26.6 selected explicitly, so the toolchain is pinned, but the output isn't reproducible yet.
+- **iOS** is built the same way (Xcode 26.6, pinned xcodegen and Node). The manual "iOS Reproducibility Check" workflow builds the IPA twice and lists what still differs.
 - The **manual "Build Artifacts" workflow** produces test builds on the runner images; they aren't releases.

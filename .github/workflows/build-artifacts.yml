@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-15
+          - platform: macos-26
             args: --target universal-apple-darwin --bundles app,dmg
             rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
             artifact_suffix: macos-universal
@@ -45,6 +45,14 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf rpm
           # build.rs fails instead of shipping without the Linux video extension
           echo "FG_REQUIRE_MEDIA_EXTENSION=1" >> "$GITHUB_ENV"
+
+      - name: Select Xcode
+        if: runner.os == 'macOS'
+        # Pinned: the image's default Xcode changes over time, and with it the
+        # macOS SDK the app is built against.
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app
+          xcodebuild -version
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0

@@ -26,7 +26,7 @@ Each input is pinned in one place, which both CI and local tools read:
 | Android NDK             | 29.0.14206865   | `src-tauri/gen/android/app/build.gradle.kts`, `ci/build/Dockerfile` |
 | Gradle                  | 8.14.3          | `src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties`, with checksum |
 | Release container (Debian, JDK, LLVM, MSVC CRT/SDK, NSIS, AppImage runtime) | see Dockerfile | [`ci/build/Dockerfile`](./ci/build/Dockerfile), every download with a checksum |
-| CI runner images        | Ubuntu 24.04, macOS 15 | `runs-on:` in the workflows            |
+| CI runner images        | Ubuntu 24.04, macOS 26 (Xcode 26.6 selected explicitly) | `runs-on:` in the workflows            |
 | GitHub Actions          | —               | commit SHA in the workflows                                        |
 
 To bump Rust, Bun or Node, change the version in its file. The container build then stops at the old checksum in `ci/build/Dockerfile`; update that too.
@@ -112,4 +112,4 @@ The APK is signed when the project keystore exists at `src-tauri/certs/free-grin
 
 ### iOS
 
-See [build-ios.yml](.github/workflows/build-ios.yml). It needs the `aarch64-apple-ios` target and Xcode on macOS 15. `bun run build:ios:ipa` builds locally.
+See [build-ios.yml](.github/workflows/build-ios.yml). It needs the `aarch64-apple-ios` target and Xcode 26.6 (CI uses the `macos-26` runner). `bun run build:ios:ipa` builds locally.

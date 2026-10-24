@@ -1,0 +1,70 @@
+name: iOS Reproducibility Check (Manual)
+
+# Builds the unsigned IPA twice, independently, and reports which files in it
+# differ. iOS isn't reproducible yet; this shows what's left to fix.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-1:
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      artifact_name: ios-build-1
+      use_cache: false
+
+  build-2:
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      artifact_name: ios-build-2
+      use_cache: false
+
+  compare:
+    needs: [build-1, build-2]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download both builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ios-build-*
+          path: builds
+
+      - name: Compare the IPAs
+        run: |
+          if sh ci/compare.sh verified builds/ios-build-1 builds/ios-build-2; then
+            echo "The IPAs are identical"
+            exit 0
+          fi
+          for n in 1 2; do
+            mkdir -p "unpacked/$n"
+            unzip -q builds/ios-build-$n/*.ipa -d "unpacked/$n"
+          done
+          echo
+          echo "Files that differ inside the IPA:"
+          (cd unpacked/1 && find . -type f | LC_ALL=C sort) | while IFS= read -r file; do
+            if ! cmp -s "unpacked/1/$file" "unpacked/2/$file"; then
+              echo "  $file ($(stat -c %s "unpacked/1/$file") vs $(stat -c %s "unpacked/2/$file" 2>/dev/null || echo missing) bytes)"
+              case "$file" in
+              *.plist)
+                for n in 1 2; do
+                  python3 -c 'import plistlib, pprint, sys; pprint.pprint(plistlib.load(open(sys.argv[1], "rb")))' "unpacked/$n/$file" > "plist-$n.txt" || true
+                done
+                diff -u plist-1.txt plist-2.txt | sed 's/^/      /' || true
+                ;;
+              esac
+            fi
+          done
+          (cd unpacked/2 && find . -type f | LC_ALL=C sort) | while IFS= read -r file; do
+            [ -e "unpacked/1/$file" ] || echo "  $file (only in build 2)"
+          done
+          echo
+          echo "Zip entry timestamps of build 1 and 2 (first lines):"
+          for n in 1 2; do unzip -l builds/ios-build-$n/*.ipa | sed -n 4,6p; done
+          exit 1
