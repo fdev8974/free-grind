@@ -20,11 +20,6 @@ fg_cleanup() {
 }
 trap fg_cleanup EXIT
 
-if [ ! -f src-tauri/vendor/freegrind-google-oauth-webextension/geckoview/manifest.json ]; then
-	echo "The git submodule is missing; run: git submodule update --init" >&2
-	exit 1
-fi
-
 export TZ=UTC LC_ALL=C LANG=C
 umask 022
 # Timestamps inside archives and packages come from the commit, not the clock.
@@ -57,6 +52,11 @@ bun install --frozen-lockfile --backend copyfile
 echo "Building Free Grind $version (channel $FG_CHANNEL, SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH)"
 echo "  node $(node --version), bun $(bun --version)"
 if command -v cargo >/dev/null 2>&1; then
+	# The app builds compile the submodule in; the frontend bundle doesn't need it.
+	if [ ! -f src-tauri/vendor/freegrind-google-oauth-webextension/geckoview/manifest.json ]; then
+		echo "The git submodule is missing; run: git submodule update --init" >&2
+		exit 1
+	fi
 	echo "  $(rustc --version)"
 	# cargo would otherwise quietly re-resolve an outdated Cargo.lock.
 	cargo metadata --locked --format-version 1 --manifest-path src-tauri/Cargo.toml >/dev/null
