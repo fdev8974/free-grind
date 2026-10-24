@@ -9,7 +9,9 @@
 # with fixed crate and DerivedData paths: Swift and Xcode record absolute paths
 # in the app, which would otherwise differ from Mac to Mac.
 # Output: out/ios/free-grind-v<version>-unsigned.ipa
-set -euo pipefail
+# No pipefail, like the workflow steps this came from: several `| head -n 1`
+# below would fail when the left side gets SIGPIPE.
+set -eu
 
 : "${FG_CHANNEL:?FG_CHANNEL must be set (see BUILDINFO.txt of the release)}"
 repo="$(cd "$(dirname "$0")/../.." && pwd -P)"
@@ -17,7 +19,9 @@ root=/tmp/free-grind-ios
 export CARGO_HOME=/tmp/free-grind-ios-cargo
 derived=/tmp/free-grind-ios-derived
 
-xcode="$(xcodebuild -version | head -1)"
+# Read all of it: xcodebuild crashes on a pipe that closes early (`| head`).
+xcode="$(xcodebuild -version)"
+xcode="${xcode%%$'\n'*}"
 if [ "$xcode" != "Xcode 26.6" ]; then
 	echo "Release builds use Xcode 26.6, this is $xcode; select it with xcode-select -s" >&2
 	exit 1
