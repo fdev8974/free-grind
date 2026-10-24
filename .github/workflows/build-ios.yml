@@ -161,6 +161,9 @@ jobs:
           export RUSTFLAGS="--remap-path-prefix=$CARGO_HOME=/cargo --remap-path-prefix=$GITHUB_WORKSPACE=/free-grind"
           export CFLAGS="-ffile-prefix-map=$CARGO_HOME=/cargo -ffile-prefix-map=$GITHUB_WORKSPACE=/free-grind"
           export CXXFLAGS="$CFLAGS"
+          # With several codegen units the linker meets imported symbols in a
+          # varying order, which shuffles GOT slots (e.g. objc_msgSend's).
+          export CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
           cargo build --manifest-path src-tauri/Cargo.toml --target aarch64-apple-ios --release --features custom-protocol
 
           LIB_PATH="src-tauri/target/aarch64-apple-ios/release/libopen_grind_lib.a"
@@ -290,9 +293,13 @@ jobs:
           mkdir -p "$PAYLOAD_DIR"
           cp -R "$APP_PATH" "$PAYLOAD_DIR/"
 
+          # Same bytes on every build: sorted entries, mtimes from the commit,
+          # no extra attributes (-X), and UTC because zip stores local time.
+          SOURCE_DATE_EPOCH=$(git log -1 --pretty=%ct)
+          find "$PAYLOAD_DIR" -exec touch -h -t "$(TZ=UTC date -r "$SOURCE_DATE_EPOCH" +%Y%m%d%H%M.%S)" {} +
           (
             cd "$RUNNER_TEMP"
-            /usr/bin/zip -qry "$IPA_PATH" Payload
+            find Payload | LC_ALL=C sort | TZ=UTC /usr/bin/zip -qXy "$IPA_PATH" -@
           )
 
           echo "ipa_path=$IPA_PATH" >> "$GITHUB_OUTPUT"

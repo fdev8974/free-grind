@@ -6,12 +6,13 @@ name: iOS Reproducibility Check (Manual)
 on:
   workflow_dispatch:
   # Manual runs need this file on the default branch; until then, changing
-  # it on development starts a check too.
+  # it or the iOS build on development starts a check too.
   push:
     branches:
       - development
     paths:
       - .github/workflows/ios-reproducibility.yml
+      - .github/workflows/build-ios.yml
 
 permissions:
   contents: read
