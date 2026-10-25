@@ -2064,7 +2064,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					<form
 						ref={!isDesktop ? composerRef : undefined}
 						onSubmit={onFormSubmit}
-						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-20 px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)] bg-[var(--surface)]"}
+						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-[35] px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)] bg-[var(--surface)]"}
 					>
 						{(isUploadingAttachment || uploadProgress > 0) && (
 							<div
