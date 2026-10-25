@@ -466,7 +466,7 @@ function AgreementCheckbox({ checked, onChange, disabled }: { checked: boolean; 
 	const { t } = useTranslation();
 	return (
 		<label
-			className={`flex cursor-pointer items-start gap-3 rounded-2xl px-4 py-3.5 text-left transition active:scale-[0.99] ${checked ? "accent-tint-12" : "ink-tint-6 hover:ink-tint-10"}`}
+			className={`flex cursor-pointer items-start gap-3 rounded-2xl px-4 py-3.5 text-left transition active:scale-[0.99] ${checked ? "accent-tint-18" : "ink-tint-12 hover:ink-tint-16"}`}
 		>
 			<input type="checkbox" className="sr-only" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
 			<span

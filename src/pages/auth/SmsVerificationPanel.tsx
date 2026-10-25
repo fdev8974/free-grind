@@ -308,7 +308,7 @@ function currentPlatform(): string {
 function SmsNotice({ message, onSignIn }: { message: string; onSignIn: () => void }) {
 	const { t } = useTranslation();
 	return (
-		<div className="animate-fade-in flex items-center justify-between gap-3 rounded-2xl ink-tint-6 px-3 py-2.5 text-sm text-[var(--text)]">
+		<div className="animate-fade-in flex items-center justify-between gap-3 rounded-2xl ink-tint-12 px-3 py-2.5 text-sm text-[var(--text)]">
 			<span className="min-w-0">{message}</span>
 			<button type="button" onClick={onSignIn} className="shrink-0 text-xs font-semibold text-[var(--accent)]">
 				{t("auth.sms_verification.sign_in", { defaultValue: "Sign in" })}

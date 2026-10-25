@@ -68,7 +68,7 @@ export function RichText({ text, className = "" }: { text: string; className?: s
 export function GuidelineBlock({ guideline }: { guideline: GuidelineText }) {
 	const { t } = useTranslation();
 	return (
-		<div className="rounded-2xl ink-tint-6 p-3.5">
+		<div className="rounded-2xl ink-tint-8 p-3.5">
 			<p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
 				<ScrollText className="h-3.5 w-3.5" />
 				{t("community_guidelines.label", { defaultValue: "Community guideline" })}

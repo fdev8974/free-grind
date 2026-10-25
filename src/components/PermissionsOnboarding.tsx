@@ -413,11 +413,12 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 										key={key}
 										type="button"
 										onClick={() => setPreferences({ colorScheme: value, amoledMode: amoled })}
-										className={`flex items-center gap-4 rounded-2xl p-4 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] ${active ? "accent-tint-12" : "ink-tint-6 hover:ink-tint-10"}`}
+										className={`flex items-center gap-4 rounded-2xl p-4 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] ${active ? "accent-tint-18" : "ink-tint-12 hover:ink-tint-16"}`}
 									>
 										<div
 											className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-											style={{ background: previewBg }}
+											// Inset hairline so the black AMOLED swatch doesn't vanish on a black page.
+											style={{ background: previewBg, boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent)" }}
 										>
 											<Icon className="h-5 w-5" style={{ color: previewFg }} />
 										</div>
