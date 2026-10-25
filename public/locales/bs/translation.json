@@ -480,6 +480,8 @@
         "map_picker_hide": "Sakrij",
         "map_picker_open": "Otvori",
         "map_picker_instructions": "Otvori mapu da postaviš pribadaču, a zatim sačuvaj tu lokaciju.",
+        "choose_destination": "",
+        "use_destination": "",
         "map_picker_tap_hint": "Dodirni mapu da postaviš pribadaču.",
         "use_selected_location": "Koristi ovu lokaciju",
         "mode_gps": "GPS · Automatski",

@@ -485,6 +485,8 @@
         "map_picker_hide": "Skrij",
         "map_picker_open": "Odpri",
         "map_picker_instructions": "Odpri zemljevid, postavi žebljiček in nato shrani to lokacijo.",
+        "choose_destination": "",
+        "use_destination": "",
         "map_picker_tap_hint": "Tapni zemljevid, da postaviš žebljiček.",
         "use_selected_location": "Uporabi to lokacijo",
         "mode_gps": "GPS · Samodejno",

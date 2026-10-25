@@ -480,6 +480,8 @@
         "map_picker_hide": "Ocultar",
         "map_picker_open": "Abrir",
         "map_picker_instructions": "Abre el mapa para marcar un punto y guardar esa ubicación.",
+        "choose_destination": "",
+        "use_destination": "",
         "map_picker_tap_hint": "Toca el mapa para marcarlo.",
         "use_selected_location": "Usa esta ubicación",
         "mode_gps": "GPS · Auto",

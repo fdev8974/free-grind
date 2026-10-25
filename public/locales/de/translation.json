@@ -475,6 +475,8 @@
         "map_picker_hide": "Ausblenden",
         "map_picker_open": "Öffnen",
         "map_picker_instructions": "Öffne die Karte, um eine Stecknadel zu setzen und diesen Standort zu speichern.",
+        "choose_destination": "",
+        "use_destination": "",
         "map_picker_tap_hint": "Tippe auf die Karte, um eine Stecknadel zu setzen.",
         "use_selected_location": "Diesen Standort verwenden",
         "mode_gps": "GPS · Auto",

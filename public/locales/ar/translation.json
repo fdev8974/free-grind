@@ -495,6 +495,8 @@
         "map_picker_hide": "يخفي",
         "map_picker_open": "مرئي",
         "map_picker_instructions": "افتح الخريطة لوضع علامة ثم احفظ ذلك الموقع.",
+        "choose_destination": "",
+        "use_destination": "",
         "map_picker_tap_hint": "انقر على الخريطة لوضع علامة.",
         "use_selected_location": "استخدم هذا الموقع",
         "mode_gps": "نظام تحديد المواقع العالمي (GPS) · تلقائي",

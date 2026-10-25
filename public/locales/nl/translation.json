@@ -475,6 +475,8 @@
         "map_picker_hide": "Verbergen",
         "map_picker_open": "Openen",
         "map_picker_instructions": "Open de kaart om een speld te plaatsen en sla die locatie daarna op.",
+        "choose_destination": "",
+        "use_destination": "",
         "map_picker_tap_hint": "Tik op de kaart om een speld te plaatsen.",
         "use_selected_location": "Deze locatie gebruiken",
         "mode_gps": "GPS · Auto",

@@ -475,6 +475,8 @@
     "map_picker_hide": "Hide",
     "map_picker_open": "Open",
     "map_picker_instructions": "Open the map to drop a pin and then save that location.",
+    "choose_destination": "Choose destination",
+    "use_destination": "Use this destination",
     "map_picker_tap_hint": "Tap map to place pin.",
     "use_selected_location": "Use this location",
     "mode_gps": "GPS · Auto",

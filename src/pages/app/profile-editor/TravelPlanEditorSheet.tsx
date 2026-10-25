@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { Check, ChevronDown, Loader2, Map, MapPin, Trash2 } from "lucide-react";
-import z from "zod";
+import { ChevronRight, Loader2, MapPin, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
-import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
 import { reverseGeocodeGeohash } from "../gridpage/geocoding";
 import {
 	useCreateTravelPlan,
@@ -12,7 +10,6 @@ import {
 	useUpdateTravelPlan,
 } from "../../../hooks/queries/useProfileQueries";
 import { encodeGeohash, decodeGeohash } from "../../../utils/geohash";
-import { geocodeResultSchema, type GeocodeResult } from "../../../types/grid";
 import type { TravelPlan } from "../../../types/travel";
 import { formatDateInput, parseDateInput } from "./profileEditorUtils";
 import {
@@ -23,7 +20,8 @@ import {
 	sheetButtonClass,
 } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
-import { SheetCard, SheetSearchInput, SheetSection, SheetToggleList } from "../../../components/ui/sheet-section";
+import { SheetSection, SheetToggleList } from "../../../components/ui/sheet-section";
+import { TravelDestinationSheet } from "./TravelDestinationSheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
 
@@ -43,12 +41,7 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 	const closeRef = useRef<(() => void) | null>(null);
 
 	const [selectedLocation, setSelectedLocation] = useState<SelectedLocation | null>(null);
-	const [locationQuery, setLocationQuery] = useState("");
-	const [locationResults, setLocationResults] = useState<GeocodeResult[]>([]);
-	const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-	const [lastSearchedQuery, setLastSearchedQuery] = useState("");
-	const [isMapOpen, setIsMapOpen] = useState(false);
-	const [mapPickerError, setMapPickerError] = useState<string | null>(null);
+	const [isDestinationSheetOpen, setIsDestinationSheetOpen] = useState(false);
 
 	const [startDate, setStartDate] = useState(() => formatDateInput(plan?.startDate ?? null));
 	const [endDate, setEndDate] = useState(() => formatDateInput(plan?.endDate ?? null));
@@ -61,16 +54,6 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 	const deleteTravelPlan = useDeleteTravelPlan();
 	const isSaving = createTravelPlan.isPending || updateTravelPlan.isPending;
 	const isDeleting = deleteTravelPlan.isPending;
-
-	const initialCenter: [number, number] | undefined = (() => {
-		if (!plan?.geohash) return undefined;
-		try {
-			const decoded = decodeGeohash(plan.geohash);
-			return [(decoded.lat[0] + decoded.lat[1]) / 2, (decoded.lon[0] + decoded.lon[1]) / 2];
-		} catch {
-			return undefined;
-		}
-	})();
 
 	// Pre-fill the selected location from the existing plan's geohash, resolving a readable label.
 	useEffect(() => {
@@ -107,51 +90,6 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 			);
 		});
 	};
-
-	const performSearch = async (query: string, signal?: AbortSignal) => {
-		if (!query || query === lastSearchedQuery) {
-			setIsSearchingLocation(false);
-			return;
-		}
-		setLastSearchedQuery(query);
-		setIsSearchingLocation(true);
-		try {
-			const res = await fetch(
-				`https://nominatim.openstreetmap.org/search?format=json&limit=6&q=${encodeURIComponent(query)}`,
-				{ signal, headers: { "User-Agent": "Mozilla/5.0 (compatible)" } },
-			);
-			if (!res.ok) throw new Error("search failed");
-			setLocationResults(z.array(geocodeResultSchema).parse(await res.json()));
-		} catch (e) {
-			if (e instanceof Error && e.name === "AbortError") return;
-		} finally {
-			setIsSearchingLocation(false);
-		}
-	};
-
-	useEffect(() => {
-		const query = locationQuery.trim();
-		if (query.length < 2) {
-			setLocationResults([]);
-			setIsSearchingLocation(false);
-			setLastSearchedQuery("");
-			return;
-		}
-		const ctrl = new AbortController();
-		const timer = setTimeout(() => void performSearch(query, ctrl.signal), 500);
-		return () => {
-			clearTimeout(timer);
-			ctrl.abort();
-		};
-	}, [locationQuery]);
-
-	const clearSearch = () => {
-		setLocationQuery("");
-		setLocationResults([]);
-		setLastSearchedQuery("");
-	};
-
-	const isSearching = locationQuery.trim().length > 0;
 
 	const handleSave = async () => {
 		if (!selectedLocation) {
@@ -238,87 +176,29 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 				<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>
 					<div className="space-y-5 pb-2">
 						<SheetSection title={t("travel_plans.destination")}>
-							<div className="space-y-2">
-								<SheetSearchInput
-									value={locationQuery}
-									onChange={(value) => (value ? setLocationQuery(value) : clearSearch())}
-									placeholder={t("travel_plans.search_placeholder")}
-								/>
-
-								{isSearching ? (
-									isSearchingLocation && locationResults.length === 0 ? (
-										<div className="flex justify-center py-4 text-[var(--text-muted)]">
-											<Loader2 className="h-4 w-4 animate-spin" />
-										</div>
-									) : locationResults.length > 0 ? (
-										<SheetCard className="divide-y divide-[var(--border)] px-0 py-0">
-											{locationResults.map((result) => (
-												<button
-													key={`${result.lat}:${result.lon}`}
-													type="button"
-													onClick={() => {
-														setSelectedLocation({
-															lat: Number(result.lat),
-															lon: Number(result.lon),
-															label: result.display_name,
-														});
-														clearSearch();
-													}}
-													className="flex w-full items-center gap-3 px-4 py-3 text-left transition first:rounded-t-2xl last:rounded-b-2xl hover:ink-tint-8 active:ink-tint-12"
-												>
-													<MapPin className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-													<span className="line-clamp-2 text-sm text-[var(--text)]">{result.display_name}</span>
-												</button>
-											))}
-										</SheetCard>
-									) : (
-										<p className="px-1 py-2 text-sm text-[var(--text-muted)]">
-											{t("travel_plans.search_no_results")}
-										</p>
-									)
-								) : (
-									<SheetCard className="overflow-hidden px-0 py-0">
-										{selectedLocation && (
-											<div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3">
-												<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]">
-													<MapPin className="h-4 w-4" />
-												</span>
-												<p className="min-w-0 flex-1 truncate text-sm font-medium text-[var(--text)]">
-													{selectedLocation.label}
-												</p>
-												<Check className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-											</div>
-										)}
-										<button
-											type="button"
-											onClick={() => {
-												setMapPickerError(null);
-												setIsMapOpen((v) => !v);
-											}}
-											className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[var(--accent)] transition hover:ink-tint-8"
-										>
-											<Map className="h-4 w-4 shrink-0" />
-											<span className="flex-1">{t("travel_plans.map_picker_title")}</span>
-											<ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isMapOpen && "rotate-180")} />
-										</button>
-										{isMapOpen && (
-											<div className="border-t border-[var(--border)]">
-												{mapPickerError ? (
-													<p className="px-4 py-3 text-sm text-[var(--text-muted)]">{mapPickerError}</p>
-												) : (
-													<MapLocationPicker
-														selectedLocation={selectedLocation}
-														onPick={handleMapPick}
-														onError={setMapPickerError}
-														defaultZoom={11}
-														initialCenter={initialCenter}
-													/>
-												)}
-											</div>
-										)}
-									</SheetCard>
-								)}
-							</div>
+							<button
+								type="button"
+								onClick={() => setIsDestinationSheetOpen(true)}
+								className="flex w-full items-center gap-3 rounded-2xl bg-[var(--surface-2)] px-4 py-3 text-left transition hover:ink-tint-8 active:scale-[0.99]"
+							>
+								<span
+									className={cn(
+										"flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+										selectedLocation ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "ink-tint-10 text-[var(--text-muted)]",
+									)}
+								>
+									<MapPin className="h-4 w-4" />
+								</span>
+								<span
+									className={cn(
+										"min-w-0 flex-1 truncate text-sm",
+										selectedLocation ? "font-medium text-[var(--text)]" : "text-[var(--text-muted)]",
+									)}
+								>
+									{selectedLocation?.label ?? t("travel_plans.choose_destination", { defaultValue: "Choose destination" })}
+								</span>
+								<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+							</button>
 						</SheetSection>
 
 						<SheetSection title={t("travel_plans.dates")}>
@@ -384,6 +264,15 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 					</button>
 				</div>
 			</BottomSheet>
+
+			{isDestinationSheetOpen && (
+				<TravelDestinationSheet
+					initialLocation={selectedLocation}
+					onConfirm={({ lat, lon }) => handleMapPick(lat, lon)}
+					onClose={() => setIsDestinationSheetOpen(false)}
+					isDesktop={isDesktop}
+				/>
+			)}
 
 			<ConfirmDialog
 				isOpen={showDeleteConfirm}
