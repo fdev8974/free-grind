@@ -12,6 +12,11 @@ const BottomSheetDetentedContext = createContext(false);
  * open/settle overshoot never reveals a gap underneath it. */
 const SHEET_BLEED = 48;
 
+/** The panel's bottom padding (safe area + bleed). Content that should run
+ * edge to edge down to the sheet's bottom (e.g. a map) cancels it with a
+ * negative margin and re-adds it inside. */
+export const SHEET_BOTTOM_PADDING = `calc(max(16px, env(safe-area-inset-bottom)) + ${SHEET_BLEED}px)`;
+
 /** True inside an `expandable` sheet on mobile: the panel has a fixed height,
  * so a scroll area should fill it (`min-h-0 flex-1`) rather than cap itself. */
 export const useIsBottomSheetDetented = () => useContext(BottomSheetDetentedContext);
@@ -546,7 +551,7 @@ export function BottomSheet({
 						// Extends SHEET_BLEED past the screen edge so the open/settle overshoot
 						// never shows a gap under the sheet.
 						marginBottom: -SHEET_BLEED,
-						paddingBottom: `calc(max(16px, env(safe-area-inset-bottom)) + ${SHEET_BLEED}px)`,
+						paddingBottom: SHEET_BOTTOM_PADDING,
 						minHeight: isDesktop || isDetented ? undefined : `calc(50dvh + ${SHEET_BLEED}px)`,
 					}}
 					onClick={(e) => e.stopPropagation()}

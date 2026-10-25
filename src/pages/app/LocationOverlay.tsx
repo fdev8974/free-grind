@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import z from "zod";
-import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS, SHEET_FOOTER_CLASS, SHEET_FOOTER_ICON_BUTTON_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS, SHEET_BOTTOM_PADDING, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import { SlidingTabs } from "../../components/ui/sliding-tabs";
 import { SelectSheet } from "../../components/ui/select-sheet";
 import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../components/icons/FilledIcons";
@@ -55,6 +55,11 @@ interface LocationOverlayProps {
 // on auto-location instead of saving a fixed spot.
 type PinnedLocation = SelectedLocation & { isAuto?: boolean };
 
+// Footer icon buttons sit on the map's dark fade, so they're white glass
+// instead of the usual --text tint (which would vanish there in light mode).
+const MAP_FOOTER_ICON_BUTTON_CLASS =
+	"inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-[transform,background-color,color] duration-150 hover:bg-white/25 active:scale-[0.94] disabled:pointer-events-none disabled:opacity-40";
+
 function geohashCenter(geohash: string): { lat: number; lon: number } | null {
 	try {
 		const decoded = decodeGeohash(geohash);
@@ -70,7 +75,9 @@ export function LocationOverlay({ onClose, isDesktop, ...props }: LocationOverla
 			onClose={onClose}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="max-h-[92dvh] px-4"
+			// Fixed height so the map below the search bar gets all the room
+			// that's left; +48px is the panel's offscreen bleed.
+			panelClassName={isDesktop ? "h-[min(86vh,calc(92dvh+48px))] px-4" : "h-[calc(92dvh+48px)] px-4"}
 		>
 			<LocationSheetContent isDesktop={isDesktop} {...props} />
 		</BottomSheet>
@@ -461,7 +468,7 @@ function LocationSheetContent({
 				/>
 			</div>
 
-			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent>
+			<div className="shrink-0">
 				{locationError && (
 					<div className="mb-3 flex items-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
 						<X className="h-4 w-4 shrink-0" />
@@ -495,10 +502,18 @@ function LocationSheetContent({
 						</button>
 					) : null}
 				</div>
+			</div>
 
-				{/* Map, with search results laid over it while searching — the map
-				    stays mounted so it doesn't reload after picking a result. */}
-				<div className="relative overflow-hidden rounded-2xl" style={{ height: isDesktop ? "42vh" : "34dvh" }}>
+			{/* Map runs full width and down to the sheet's bottom edge (the
+			    negative margin cancels the panel's bottom padding), with the
+			    quick picks and footer floating over a dark fade at the bottom.
+			    Search results are laid over the map while searching — the map
+			    stays mounted so it doesn't reload after picking a result. */}
+			<div
+				className="relative -mx-4 flex min-h-[280px] flex-1 flex-col justify-end overflow-hidden"
+				style={{ marginBottom: `calc(-1 * ${SHEET_BOTTOM_PADDING})` }}
+			>
+				<div className="absolute inset-0">
 					{mapPickerError ? (
 						<p className="px-4 py-4 text-sm text-[var(--text-muted)]">{mapPickerError}</p>
 					) : (
@@ -513,8 +528,9 @@ function LocationSheetContent({
 							modifierWheelZoom
 						/>
 					)}
+				</div>
 					{selectedLocation && !isSearching ? (
-						<div className="pointer-events-none absolute inset-x-2 bottom-2 flex justify-center">
+						<div className="pointer-events-none absolute inset-x-16 top-3 flex justify-center">
 							<div className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-md">
 								<MapPinFilled className="h-3.5 w-3.5 shrink-0" />
 								<span className="truncate">{selectedLocation.label}</span>
@@ -523,7 +539,11 @@ function LocationSheetContent({
 					) : null}
 					{isSearching ? (
 						// z-10: MapLibre's controls carry their own z-index and would poke through.
-						<div className="absolute inset-0 z-10 overflow-y-auto bg-[var(--surface-2)]" data-lenis-prevent>
+						<div
+							className="absolute inset-0 z-10 overflow-y-auto bg-[var(--surface-2)]"
+							style={{ paddingBottom: `calc(${SHEET_BOTTOM_PADDING} + 72px)` }}
+							data-lenis-prevent
+						>
 							{locationResults.length > 0 ? (
 								<div className="divide-y divide-[var(--border)]">
 									{locationResults.map((result) => (
@@ -547,134 +567,144 @@ function LocationSheetContent({
 							) : null}
 						</div>
 					) : null}
-				</div>
 
-				{/* Quick picks — same chip row as the chat's share-location sheet.
-				    Tapping one only moves the pin; the footer button confirms. */}
-				<div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-					{isExploreTab && exploreLocation ? (
-						<LocationChip
-							icon={<X className="h-4 w-4" />}
-							title={t("browse_location.stop_explore")}
-							subtitle={exploreLocation.label}
-							isActive={false}
-							onClick={stopExploring}
-							accentColor={EXPLORE_COLOR}
-							accentContrast="#fff"
-						/>
-					) : null}
-					{!isExploreTab ? (
-						<LocationChip
-							icon={isDetectingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixedFilled className="h-4 w-4" />}
-							title={t("browse_location.current_location_label")}
-							subtitle={
-								isDetectingLocation
-									? t("browse_location.detecting_location")
-									: useAutoLocation && locationName
-										? locationName
-										: t("browse_location.mode_gps")
-							}
-							isActive={!!selectedLocation?.isAuto}
-							disabled={isDetectingLocation}
-							onClick={() => void handleUseCurrentLocation()}
-						/>
-					) : null}
-					{!isExploreTab && homeLocation ? (
-						<LocationChip
-							icon={<HomeFilled className="h-4 w-4" />}
-							title={t("browse_location.home_location_label")}
-							subtitle={homeLocation.name ?? null}
-							isActive={isPinOnHome}
-							onClick={() => pinLocation(homeLocation.lat, homeLocation.lon, homeLocation.name)}
-						/>
-					) : null}
-					{savedLocations.map((saved) => (
-						<SavedLocationChip
-							key={saved.id}
-							location={saved}
-							isActive={pinnedSavedLocation?.id === saved.id}
-							onClick={() => pinLocation(saved.lat, saved.lon, saved.name)}
-							accentColor={tabColor}
-							accentContrast={tabContrast}
-						/>
-					))}
-				</div>
-				{currentLocationError && !isExploreTab ? (
-					<p className="mt-2 px-1 text-[11px] text-red-500">{currentLocationError}</p>
-				) : savedLocations.length === 0 ? (
-					<p className="mt-2 px-1 text-[11px] text-[var(--text-muted)]">
-						{t("browse_location.saved_hint", { defaultValue: "Tap the bookmark below to save the pinned spot for quick access." })}
-					</p>
-				) : null}
+				{/* Overlay: the fade itself lets map gestures through, only the
+				    controls on it catch taps. */}
+				<div
+					className="pointer-events-none relative z-20 bg-gradient-to-t from-black/85 via-black/60 to-transparent pt-16"
+					style={{ paddingBottom: SHEET_BOTTOM_PADDING }}
+				>
+					{!isSearching ? (
+						<div className="pointer-events-auto">
+							{/* Quick picks — same chip row as the chat's share-location sheet.
+							    Tapping one only moves the pin; the footer button confirms. */}
+							<div className="flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+								{isExploreTab && exploreLocation ? (
+									<LocationChip
+										icon={<X className="h-4 w-4" />}
+										title={t("browse_location.stop_explore")}
+										subtitle={exploreLocation.label}
+										isActive={false}
+										onClick={stopExploring}
+										accentColor={EXPLORE_COLOR}
+										accentContrast="#fff"
+									/>
+								) : null}
+								{!isExploreTab ? (
+									<LocationChip
+										icon={isDetectingLocation ? <Loader2 className="h-4 w-4 animate-spin" /> : <LocateFixedFilled className="h-4 w-4" />}
+										title={t("browse_location.current_location_label")}
+										subtitle={
+											isDetectingLocation
+												? t("browse_location.detecting_location")
+												: useAutoLocation && locationName
+													? locationName
+													: t("browse_location.mode_gps")
+										}
+										isActive={!!selectedLocation?.isAuto}
+										disabled={isDetectingLocation}
+										onClick={() => void handleUseCurrentLocation()}
+									/>
+								) : null}
+								{!isExploreTab && homeLocation ? (
+									<LocationChip
+										icon={<HomeFilled className="h-4 w-4" />}
+										title={t("browse_location.home_location_label")}
+										subtitle={homeLocation.name ?? null}
+										isActive={isPinOnHome}
+										onClick={() => pinLocation(homeLocation.lat, homeLocation.lon, homeLocation.name)}
+									/>
+								) : null}
+								{savedLocations.map((saved) => (
+									<SavedLocationChip
+										key={saved.id}
+										location={saved}
+										isActive={pinnedSavedLocation?.id === saved.id}
+										onClick={() => pinLocation(saved.lat, saved.lon, saved.name)}
+										accentColor={tabColor}
+										accentContrast={tabContrast}
+									/>
+								))}
+							</div>
+							{currentLocationError && !isExploreTab ? (
+								<p className="mt-2 px-5 text-[11px] text-red-400">{currentLocationError}</p>
+							) : savedLocations.length === 0 ? (
+								<p className="mt-2 px-5 text-[11px] text-white/75">
+									{t("browse_location.saved_hint", { defaultValue: "Tap the bookmark below to save the pinned spot for quick access." })}
+								</p>
+							) : null}
 
-				{isNamingLocation && (
-					<div className="mt-3 flex gap-2">
-						<input
-							type="text"
-							autoFocus
-							value={newLocationName}
-							onChange={(e) => setNewLocationName(e.target.value)}
-							onKeyDown={(e) => { if (e.key === "Enter") handleSaveCurrentAsNamedLocation(); }}
-							placeholder={t("browse_location.save_as_placeholder")}
-							style={{ "--tab-color": tabColor } as React.CSSProperties}
-							className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition focus:border-[var(--tab-color)]"
-						/>
+							{isNamingLocation && (
+								<div className="mt-3 flex gap-2 px-4">
+									<input
+										type="text"
+										autoFocus
+										value={newLocationName}
+										onChange={(e) => setNewLocationName(e.target.value)}
+										onKeyDown={(e) => { if (e.key === "Enter") handleSaveCurrentAsNamedLocation(); }}
+										placeholder={t("browse_location.save_as_placeholder")}
+										style={{ "--tab-color": tabColor } as React.CSSProperties}
+										className="h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition focus:border-[var(--tab-color)]"
+									/>
+									<button
+										type="button"
+										disabled={!newLocationName.trim()}
+										onClick={handleSaveCurrentAsNamedLocation}
+										style={{ backgroundColor: tabColor, color: tabContrast }}
+										className="shrink-0 rounded-xl px-4 text-sm font-bold transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+									>
+										{t("travel_plans.save")}
+									</button>
+								</div>
+							)}
+						</div>
+					) : null}
+
+					{/* Footer: pin actions + confirm */}
+					<div className="pointer-events-auto mt-3 flex gap-2.5 px-4">
+						{!isExploreTab && (
+							<button
+								type="button"
+								onClick={() => selectedLocation && void handleSetAsHome(selectedLocation.lat, selectedLocation.lon)}
+								disabled={!selectedLocation || updateHomeLocation.isPending || isPinOnHome}
+								title={t("browse_location.set_as_home")}
+								aria-label={t("browse_location.set_as_home")}
+								className={MAP_FOOTER_ICON_BUTTON_CLASS}
+							>
+								{updateHomeLocation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Home className="h-4 w-4" />}
+							</button>
+						)}
 						<button
 							type="button"
-							disabled={!newLocationName.trim()}
-							onClick={handleSaveCurrentAsNamedLocation}
-							style={{ backgroundColor: tabColor, color: tabContrast }}
-							className="shrink-0 rounded-xl px-4 text-sm font-bold transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+							onClick={handleToggleBookmark}
+							disabled={!selectedLocation || (isPinOnHome && !pinnedSavedLocation)}
+							title={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
+							aria-label={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
+							style={isNamingLocation ? { color: tabColor } : undefined}
+							className={cn(MAP_FOOTER_ICON_BUTTON_CLASS, pinnedSavedLocation && "hover:text-red-400")}
 						>
-							{t("travel_plans.save")}
+							{pinnedSavedLocation ? <Trash2 className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+						</button>
+						<button
+							type="button"
+							disabled={!selectedLocation || isActiveLocationSelected || isSaving}
+							onClick={handleConfirm}
+							style={{ backgroundColor: tabColor, color: tabContrast }}
+							className={sheetButtonClass()}
+						>
+							{isSaving ? (
+								<Loader2 className="h-4 w-4 animate-spin" />
+							) : (
+								<>
+									<Check className="h-4 w-4 shrink-0" />
+									<span className="truncate">
+										{isExploreTab ? t("browse_location.start_explore") : t("browse_location.use_selected_location")}
+									</span>
+								</>
+							)}
 						</button>
 					</div>
-				)}
-			</div>
-
-			{/* Footer: pin actions + confirm */}
-			<div className={SHEET_FOOTER_CLASS}>
-				{!isExploreTab && (
-					<button
-						type="button"
-						onClick={() => selectedLocation && void handleSetAsHome(selectedLocation.lat, selectedLocation.lon)}
-						disabled={!selectedLocation || updateHomeLocation.isPending || isPinOnHome}
-						title={t("browse_location.set_as_home")}
-						aria-label={t("browse_location.set_as_home")}
-						className={SHEET_FOOTER_ICON_BUTTON_CLASS}
-					>
-						{updateHomeLocation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Home className="h-4 w-4" />}
-					</button>
-				)}
-				<button
-					type="button"
-					onClick={handleToggleBookmark}
-					disabled={!selectedLocation || (isPinOnHome && !pinnedSavedLocation)}
-					title={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
-					aria-label={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
-					style={isNamingLocation ? { color: tabColor } : undefined}
-					className={cn(SHEET_FOOTER_ICON_BUTTON_CLASS, pinnedSavedLocation && "hover:text-red-400")}
-				>
-					{pinnedSavedLocation ? <Trash2 className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-				</button>
-				<button
-					type="button"
-					disabled={!selectedLocation || isActiveLocationSelected || isSaving}
-					onClick={handleConfirm}
-					style={{ backgroundColor: tabColor, color: tabContrast }}
-					className={sheetButtonClass()}
-				>
-					{isSaving ? (
-						<Loader2 className="h-4 w-4 animate-spin" />
-					) : (
-						<>
-							<Check className="h-4 w-4 shrink-0" />
-							<span className="truncate">
-								{isExploreTab ? t("browse_location.start_explore") : t("browse_location.use_selected_location")}
-							</span>
-						</>
-					)}
-				</button>
+				</div>
 			</div>
 
 			{/* Portaled out: this sheet's transformed panel would otherwise become
