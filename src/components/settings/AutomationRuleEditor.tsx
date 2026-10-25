@@ -12,6 +12,7 @@ import type {
 	AutomationTrigger,
 } from "../../utils/automationRules";
 import { getTapEmoji, tapLabel } from "../../pages/app/interest/interestUtils";
+import { sheetButtonClass } from "../ui/bottom-sheet";
 
 // The "doesn't contain" keyword conditions aren't a distinct entry in
 // AutomationRuleCondition — they're the same type with `negate: true`. But in
@@ -643,7 +644,7 @@ export function AutomationRuleEditor({
 					<button
 						type="button"
 						onClick={onDelete}
-						className="inline-flex h-11 flex-1 basis-1/2 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-sm font-medium text-red-400 transition hover:border-red-500/50 hover:bg-red-500/15 hover:text-red-300"
+						className={`${sheetButtonClass("destructive")} basis-1/2`}
 					>
 						<Trash2 className="h-4 w-4" />
 						{t("settings_automation.delete_rule")}

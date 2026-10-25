@@ -62,7 +62,11 @@ export function FullscreenPrompt({
 }
 
 export const fullscreenPrimaryButtonClass =
-	"flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60";
+	"flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 text-[15px] font-semibold text-[var(--accent-contrast)] shadow-[0_4px_14px_rgba(0,0,0,0.2)] transition-[transform,filter] duration-150 hover:brightness-110 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
 
+// Deliberately no fill: the secondary way out stays a quiet text button.
 export const fullscreenSecondaryButtonClass =
-	"w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60";
+	"w-full rounded-full py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60";
+
+/** Borderless soft card for a prompt's content, like the grouped cards in the sheets. */
+export const fullscreenCardClass = "rounded-2xl ink-tint-6";

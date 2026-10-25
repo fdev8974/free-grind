@@ -18,6 +18,7 @@ import { usePreferences, ACCENT_PRESETS } from "../contexts/PreferencesContext";
 import type { ColorScheme } from "../contexts/PreferencesContext";
 import { LoadingScreen } from "./LoadingScreen";
 import logo from "../images/freegrind-logo.webp";
+import { fullscreenPrimaryButtonClass } from "./FullscreenPrompt";
 
 type PermissionStatus = "idle" | "granted" | "denied" | "unavailable";
 
@@ -373,7 +374,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Get Started
 							<ChevronRight className="h-4 w-4" />
@@ -454,7 +455,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Continue
 							<ChevronRight className="h-4 w-4" />
@@ -511,7 +512,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Continue
 							<ChevronRight className="h-4 w-4" />
@@ -552,7 +553,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={() => choose(true)}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Turn On
 							<ChevronRight className="h-4 w-4" />
@@ -596,7 +597,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={handleDone}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Got it
 							<ChevronRight className="h-4 w-4" />
@@ -688,7 +689,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						type="button"
 						onClick={settled ? advance : cfg.onRequest}
 						disabled={isRequesting}
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+						className={fullscreenPrimaryButtonClass}
 					>
 						{settled ? (
 							<>Continue <ChevronRight className="h-4 w-4" /></>

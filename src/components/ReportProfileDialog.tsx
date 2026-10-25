@@ -11,6 +11,7 @@ import {
 	type ReportReason,
 } from "../types/reports";
 import { Chip } from "./ui/chip";
+import { sheetButtonClass } from "./ui/bottom-sheet";
 
 type ReportProfileDialogProps = {
 	isOpen: boolean;
@@ -120,7 +121,7 @@ export function ReportProfileDialog({ isOpen, profileId, onClose, onBlock }: Rep
 										onClose();
 										onBlock();
 									}}
-									className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-red-500/50 bg-red-500/15 px-4 text-sm font-semibold text-red-400 transition hover:border-red-500/80 hover:bg-red-500/25"
+									className={sheetButtonClass("destructive")}
 								>
 									{t("profile_details.block")}
 								</button>
@@ -128,7 +129,7 @@ export function ReportProfileDialog({ isOpen, profileId, onClose, onBlock }: Rep
 							<button
 								type="button"
 								onClick={onClose}
-								className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+								className={sheetButtonClass()}
 							>
 								{t("profile_details.report.done")}
 							</button>
@@ -189,7 +190,7 @@ export function ReportProfileDialog({ isOpen, profileId, onClose, onBlock }: Rep
 								type="button"
 								onClick={onClose}
 								disabled={isSubmitting}
-								className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+								className={sheetButtonClass("secondary")}
 							>
 								{t("chat.actions.cancel")}
 							</button>
@@ -197,7 +198,7 @@ export function ReportProfileDialog({ isOpen, profileId, onClose, onBlock }: Rep
 								type="button"
 								onClick={() => void handleSubmit()}
 								disabled={isSubmitting || reason === null}
-								className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+								className={sheetButtonClass()}
 							>
 								{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 								<span>{t("profile_details.report.submit")}</span>

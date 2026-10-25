@@ -14,7 +14,7 @@ function VersionCompareRow({ side, highlight }: { side: VersionCompareSide; high
 	return (
 		<div className="flex h-full items-center gap-3 px-4 py-3">
 			<div
-				className={`shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 ${highlight ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}
+				className={`shrink-0 rounded-2xl ink-tint-8 p-2.5 ${highlight ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}
 			>
 				<Icon className="h-5 w-5" />
 			</div>
@@ -32,7 +32,7 @@ function VersionCompareRow({ side, highlight }: { side: VersionCompareSide; high
 /**
  * Installed → new comparison used by the update prompts: two equal-height rows
  * (so the arrow on the divider sits visually centered), the new one highlighted.
- * Renders no card of its own — place it inside a `surface-card`.
+ * Renders no card of its own — place it inside a `fullscreenCardClass` card.
  */
 export function VersionCompare({ from, to }: { from?: VersionCompareSide; to: VersionCompareSide }) {
 	return (

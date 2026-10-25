@@ -103,8 +103,8 @@ export function SignUpPage() {
 				subtitle={t("auth.sign_up.subtitle", { defaultValue: "Create a new Grindr account with your email and password." })}
 				footer={<BugReportButton />}
 			>
-				<div className="animate-fade-in flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-3">
-					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-contrast)]">
+				<div className="animate-fade-in flex items-start gap-3 rounded-2xl ink-tint-6 px-3 py-3">
+					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)]">
 						<Smartphone className="h-4 w-4" />
 					</span>
 					<div className="min-w-0 space-y-1 text-sm">
@@ -130,7 +130,7 @@ export function SignUpPage() {
 			footer={<BugReportButton />}
 		>
 			{isLimitReached ? (
-				<div className="animate-fade-in flex items-start gap-2.5 rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-3 text-sm text-[var(--text)]">
+				<div className="animate-fade-in flex items-start gap-2.5 rounded-2xl bg-red-500/12 px-3 py-3 text-sm text-[var(--text)]">
 					<ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[#f87171]" />
 					<div className="space-y-1">
 						<p className="font-semibold">

@@ -393,7 +393,7 @@ export function SignInPage() {
 										type="button"
 										onClick={() => setShowManualTransferCode((prev) => !prev)}
 										aria-expanded={showManualTransferCode}
-										className="mx-auto flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+										className="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
 									>
 										{t("auth.sign_in.qr_or_paste", { defaultValue: "or paste the code" })}
 										<ChevronDown
@@ -552,7 +552,7 @@ export function SignInPage() {
 			<button
 				type="button"
 				onClick={() => toggleTransfer(!showTransfer)}
-				className="mx-auto mt-4 flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+				className="mx-auto mt-4 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
 			>
 				{showTransfer ? (
 					t("auth.sign_in.qr_back", { defaultValue: "Back to the other sign-in options" })

@@ -33,10 +33,10 @@ export function AuthErrorBox({ message, detail }: { message: string; detail?: st
 	return (
 		<div
 			role="alert"
-			className="animate-fade-in rounded-xl border border-[color-mix(in_srgb,var(--border)_60%,#f87171_40%)] bg-[color-mix(in_srgb,var(--surface)_88%,#f87171_12%)] px-3 py-2.5 text-sm text-[var(--text)]"
+			className="animate-fade-in rounded-2xl bg-red-500/12 px-3 py-2.5 text-sm text-[var(--text)]"
 		>
 			<div className="flex items-start gap-2">
-				<AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#f87171]" />
+				<AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
 				<span className="min-w-0 flex-1 leading-snug">{message}</span>
 				{hasDetail ? (
 					<button

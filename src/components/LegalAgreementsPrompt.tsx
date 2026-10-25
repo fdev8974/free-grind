@@ -3,7 +3,7 @@ import { ChevronRight, ExternalLink, FileText, Loader2, ScrollText, ShieldCheck,
 import { openUrl } from "@tauri-apps/plugin-opener";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
 import {
 	isLegalVersionOutdated,
 	useAcceptLegalAgreements,
@@ -35,9 +35,9 @@ function PolicyRow({
 		<button
 			type="button"
 			onClick={() => openExternal(url)}
-			className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+			className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:ink-tint-6"
 		>
-			<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--accent)]">
+			<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--accent)]">
 				<Icon className="h-5 w-5" />
 			</div>
 			<div className="min-w-0 flex-1">
@@ -144,7 +144,7 @@ export function LegalAgreementsGate({ userId, children }: { userId: number; chil
 				</>
 			}
 		>
-			<div className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
+			<div className={`${fullscreenCardClass} divide-y divide-[var(--border)] overflow-hidden text-left`}>
 				<PolicyRow
 					icon={ScrollText}
 					title={t("legal_agreements.tos_title", { defaultValue: "Terms of Service" })}

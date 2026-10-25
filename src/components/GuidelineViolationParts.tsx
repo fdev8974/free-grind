@@ -18,7 +18,7 @@ export function CardDetailsSheet({ label, title, children }: { label: string; ti
 			<button
 				type="button"
 				onClick={() => setOpen(true)}
-				className="flex w-full items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 text-left text-sm font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)]"
+				className="flex w-full items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 text-left text-sm font-semibold text-[var(--accent)] transition hover:ink-tint-6"
 			>
 				{label}
 				<ChevronRight className="h-4 w-4 shrink-0" />
@@ -68,7 +68,7 @@ export function RichText({ text, className = "" }: { text: string; className?: s
 export function GuidelineBlock({ guideline }: { guideline: GuidelineText }) {
 	const { t } = useTranslation();
 	return (
-		<div className="rounded-2xl bg-[var(--surface-2)] p-3.5">
+		<div className="rounded-2xl ink-tint-6 p-3.5">
 			<p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
 				<ScrollText className="h-3.5 w-3.5" />
 				{t("community_guidelines.label", { defaultValue: "Community guideline" })}

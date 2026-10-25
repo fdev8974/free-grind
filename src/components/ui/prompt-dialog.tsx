@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { sheetButtonClass } from "./bottom-sheet";
 
 type PromptDialogProps = {
 	isOpen: boolean;
@@ -137,7 +138,7 @@ export function PromptDialog({
 						type="button"
 						onClick={onCancel}
 						disabled={isProcessing}
-						className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+						className={sheetButtonClass("secondary")}
 					>
 						{cancelLabel}
 					</button>
@@ -145,7 +146,7 @@ export function PromptDialog({
 						type="button"
 						onClick={handleSubmit}
 						disabled={isProcessing || (!trimmed && !allowEmpty)}
-						className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+						className={sheetButtonClass()}
 					>
 						{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 						<span>{confirmLabel}</span>

@@ -13,20 +13,21 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 	rightIcon?: React.ReactNode;
 }
 
+// Pill shape and soft ink-tint fills, same family as sheetButtonClass in bottom-sheet.tsx.
 const variantClassMap: Record<ButtonVariant, string> = {
 	primary:
-		"bg-[var(--accent)] text-[var(--accent-contrast)] border-transparent hover:brightness-[1.03] active:brightness-[0.97]",
+		"bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_4px_14px_rgba(0,0,0,0.2)] hover:brightness-110",
 	secondary:
-		"bg-[var(--surface-2)] text-[var(--text)] border-[var(--border)] hover:border-[var(--text-muted)]",
+		"ink-tint-10 text-[var(--text)] hover:ink-tint-14 active:ink-tint-18",
 	ghost:
-		"bg-transparent text-[var(--text)] border-transparent hover:bg-[var(--surface-2)]",
+		"bg-transparent text-[var(--text)] hover:ink-tint-8 active:ink-tint-12",
 	danger:
-		"bg-[color-mix(in_srgb,var(--surface)_72%,#f87171_28%)] text-[var(--text)] border-[color-mix(in_srgb,var(--border)_72%,#f87171_28%)] hover:brightness-[1.03]",
+		"bg-red-500/12 text-red-500 hover:bg-red-500/20",
 };
 
 const sizeClassMap: Record<ButtonSize, string> = {
 	sm: "min-h-10 px-3 py-2 text-sm",
-	md: "min-h-11 px-4 py-2.5 text-sm",
+	md: "min-h-12 px-5 py-2.5 text-[15px]",
 	lg: "min-h-12 px-5 py-3 text-base",
 	icon: "h-11 w-11 p-0",
 };
@@ -53,7 +54,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 				ref={ref}
 				disabled={isDisabled}
 				className={cn(
-					"inline-flex items-center justify-center gap-2 rounded-xl border font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-60",
+					"inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-[transform,filter,background-color,color] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100",
 					variantClassMap[variant],
 					sizeClassMap[size],
 					className,

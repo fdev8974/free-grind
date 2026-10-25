@@ -19,6 +19,7 @@ import {
 } from "../pages/app/chat/chatUtils";
 import type { ConversationEntry } from "../types/messages";
 import { appLog } from "../utils/logger";
+import { sheetButtonClass } from "./ui/bottom-sheet";
 
 const PREVIEW_COUNT = 6;
 
@@ -399,7 +400,7 @@ export function ShareChatPicker({
 									disabled={isSending}
 									aria-pressed={viewOnce}
 									title={t("chat.attachments.view_once_description")}
-									className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-sm font-semibold transition hover:border-[var(--accent)] disabled:opacity-60 ${viewOnce ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--text)]"}`}
+									className={`inline-flex h-12 min-w-[120px] items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition active:scale-[0.97] disabled:opacity-50 ${viewOnce ? "accent-tint-15 text-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
 								>
 									<Hourglass className={`h-4 w-4 shrink-0 ${viewOnce ? "" : "text-[var(--text-muted)]"}`} />
 									{viewOnce
@@ -410,7 +411,7 @@ export function ShareChatPicker({
 									type="button"
 									onClick={() => void send()}
 									disabled={isSending}
-									className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+									className={sheetButtonClass()}
 								>
 									{isSending ? (
 										<>

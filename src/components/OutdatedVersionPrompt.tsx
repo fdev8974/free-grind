@@ -1,5 +1,5 @@
 import { AlertTriangle, ChevronRight, Download, ExternalLink, Loader2, Smartphone, Sparkles } from "lucide-react";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -194,7 +194,7 @@ export function OutdatedVersionPromptView({
 		<>
 			{apkUpdate.state.phase === "downloading" && (
 				<div className="mb-1 flex flex-col gap-1.5">
-					<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+					<div className="h-2 w-full overflow-hidden rounded-full ink-tint-10">
 						<div
 							className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ${apkUpdate.state.progress === null ? "w-1/3 animate-pulse" : ""}`}
 							style={apkUpdate.state.progress === null ? undefined : { width: `${Math.round(apkUpdate.state.progress * 100)}%` }}
@@ -287,7 +287,7 @@ export function OutdatedVersionPromptView({
 			}
 			footer={footer}
 		>
-			<div className="surface-card overflow-hidden text-left">
+			<div className={`${fullscreenCardClass} overflow-hidden text-left`}>
 				<VersionCompare
 					from={{
 						icon: Smartphone,

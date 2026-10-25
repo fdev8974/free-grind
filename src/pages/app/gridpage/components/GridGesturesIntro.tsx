@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowDown, Hand, MessageCircle, MousePointerClick, Pointer, Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass } from "../../../../components/FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenCardClass } from "../../../../components/FullscreenPrompt";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { Chip } from "../../../../components/ui/chip";
 import { getTapEmoji } from "../../interest/interestUtils";
@@ -27,7 +27,7 @@ export function markGridGesturesIntroSeen(): void {
 function GestureRow({ icon, title, description, children }: { icon: ReactNode; title: string; description: string; children?: ReactNode }) {
 	return (
 		<div className="flex items-start gap-3 px-4 py-3.5">
-			<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--accent)]">
+			<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ink-tint-8 text-[var(--accent)]">
 				{icon}
 			</div>
 			<div className="min-w-0 flex-1">
@@ -62,7 +62,7 @@ export function GridGesturesIntro({ isDesktop, onConfirm }: { isDesktop: boolean
 				</button>
 			}
 		>
-			<div className="surface-card overflow-hidden divide-y divide-[var(--border)] text-left">
+			<div className={`${fullscreenCardClass} overflow-hidden divide-y divide-[var(--border)] text-left`}>
 				<GestureRow
 					icon={<Pointer className="h-5 w-5" />}
 					title={isDesktop

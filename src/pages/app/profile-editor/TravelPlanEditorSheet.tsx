@@ -17,6 +17,7 @@ import { encodeGeohash, decodeGeohash } from "../../../utils/geohash";
 import { geocodeResultSchema, type GeocodeResult } from "../../../types/grid";
 import type { TravelPlan } from "../../../types/travel";
 import { formatDateInput, parseDateInput } from "./profileEditorUtils";
+import { sheetButtonClass } from "../../../components/ui/bottom-sheet";
 
 type SelectedLocation = { lat: number; lon: number; label: string };
 
@@ -410,7 +411,7 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 							onClick={() => setShowDeleteConfirm(true)}
 							disabled={isDeleting}
 							aria-label={t("travel_plans.delete")}
-							className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-red-500/40 bg-red-500/8 text-red-400 transition hover:bg-red-500/15 disabled:opacity-50"
+							className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-500/12 text-red-500 transition-[transform,background-color] duration-150 hover:bg-red-500/20 active:scale-[0.94] disabled:opacity-50"
 						>
 							{isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
 						</button>
@@ -419,7 +420,7 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 						type="button"
 						onClick={() => void handleSave()}
 						disabled={isSaving}
-						className="relative flex h-12 flex-1 items-center justify-center overflow-hidden rounded-xl bg-[var(--accent)] text-sm font-bold text-[var(--accent-contrast)] transition disabled:opacity-60"
+						className={sheetButtonClass()}
 					>
 						{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("travel_plans.save")}
 					</button>

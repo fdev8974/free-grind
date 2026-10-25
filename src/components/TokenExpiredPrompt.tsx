@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyRound } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
+import { fullscreenPrimaryButtonClass } from "./FullscreenPrompt";
 
 export function TokenExpiredPromptView({ onSignOut }: { onSignOut: () => void }) {
 	const { t } = useTranslation();
@@ -32,7 +33,7 @@ export function TokenExpiredPromptView({ onSignOut }: { onSignOut: () => void })
 					<button
 						type="button"
 						onClick={onSignOut}
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+						className={fullscreenPrimaryButtonClass}
 					>
 						{t("token_expired.sign_out")}
 					</button>

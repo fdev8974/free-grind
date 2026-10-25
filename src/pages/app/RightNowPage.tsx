@@ -49,6 +49,7 @@ import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { RightNowMap, getRightNowAvatarUrl, getRightNowItemKey, getRightNowProfileImageUrl, hasMapPosition } from "./rightnow/RightNowMap";
 import { proxyMediaUrl } from "../../utils/mediaProxy";
+import { sheetButtonClass } from "../../components/ui/bottom-sheet";
 
 type SortOption = RightNowSortOption;
 
@@ -491,7 +492,7 @@ function RightNowMapCard({
 					<button
 						type="button"
 						onClick={() => onSelect(item.profileId)}
-						className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text)] transition hover:brightness-110 active:scale-[0.98]"
+						className={sheetButtonClass("secondary")}
 					>
 						<UserRound className="h-4 w-4" />
 						{t("chat.view_profile")}

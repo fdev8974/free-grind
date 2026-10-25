@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BotFilled, ClockFilled, UserFilled } from "./icons/FilledIcons";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
 import { CardDetailsSheet, GuidelineBlock, RichText } from "./GuidelineViolationParts";
 import { useAuth } from "../contexts/useAuth";
 import { useLogoutToNextAccount } from "../hooks/useLogoutToNextAccount";
@@ -355,10 +355,10 @@ const META_ICON_CLASS = "mt-px h-4 w-4 shrink-0 text-[var(--accent)]";
 function BlockCard({ block }: { block: BlockInfo }) {
 	const { t } = useTranslation();
 	return (
-		<section className="surface-card px-4 py-4 text-left">
+		<section className={`${fullscreenCardClass} px-4 py-4 text-left`}>
 			<div className="flex items-center justify-between gap-3">
 				<p className={CARD_LABEL_CLASS}>{t("account_status.what_happened", { defaultValue: "What happened" })}</p>
-				<span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
+				<span className="shrink-0 rounded-full ink-tint-8 px-2.5 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
 					{t("account_status.code_chip", { code: block.code, defaultValue: "Code {{code}}" })}
 				</span>
 			</div>
@@ -391,11 +391,11 @@ function ReasonCard({ ban, expiresAt, now }: { ban: BanSummary; expiresAt?: numb
 	const remaining = expiresAt != null ? expiryMs(expiresAt) - now : 0;
 
 	return (
-		<section className="surface-card overflow-hidden text-left">
+		<section className={`${fullscreenCardClass} overflow-hidden text-left`}>
 			<div className="px-4 py-4">
 				<div className="flex items-center justify-between gap-3">
 					<p className={CARD_LABEL_CLASS}>{t("account_status.reason_label", { defaultValue: "Ban reason" })}</p>
-					<span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">
+					<span className="shrink-0 rounded-full ink-tint-8 px-2.5 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">
 						{ban.kind}
 					</span>
 				</div>
@@ -445,10 +445,10 @@ function ReasonCard({ ban, expiresAt, now }: { ban: BanSummary; expiresAt?: numb
 
 function DetailList({ details }: { details: Detail[] }) {
 	return (
-		<dl className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
+		<dl className={`${fullscreenCardClass} divide-y divide-[var(--border)] overflow-hidden text-left`}>
 			{details.map(({ icon: Icon, label, value }) => (
 				<div key={label} className="flex items-center gap-3 px-4 py-3.5">
-					<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--accent)]">
+					<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--accent)]">
 						<Icon className="h-5 w-5" />
 					</div>
 					<div className="min-w-0 flex-1">
@@ -466,7 +466,7 @@ function AgreementCheckbox({ checked, onChange, disabled }: { checked: boolean; 
 	const { t } = useTranslation();
 	return (
 		<label
-			className={`surface-card flex cursor-pointer items-start gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] ${checked ? "ring-1 ring-[var(--accent)]" : ""}`}
+			className={`flex cursor-pointer items-start gap-3 rounded-2xl px-4 py-3.5 text-left transition active:scale-[0.99] ${checked ? "accent-tint-12" : "ink-tint-6 hover:ink-tint-10"}`}
 		>
 			<input type="checkbox" className="sr-only" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
 			<span

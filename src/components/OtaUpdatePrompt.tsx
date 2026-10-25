@@ -17,7 +17,7 @@ import {
 	type PendingHotswapUpdate,
 } from "../services/hotswap";
 import { appLog } from "../utils/logger";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
 import { ToggleRow } from "./ui/toggle-row";
 import { VersionCompare, type VersionCompareSide } from "./ui/version-compare";
 import { hourCycleOptions } from "../utils/timeFormat";
@@ -186,7 +186,7 @@ export function OtaUpdatePromptView({
 				<>
 					{isBusy && (
 						<div className="mb-1 flex flex-col gap-1.5">
-							<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+							<div className="h-2 w-full overflow-hidden rounded-full ink-tint-10">
 								<div
 									className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ${percent === null ? "w-1/3 animate-pulse" : ""}`}
 									style={percent === null ? undefined : { width: `${percent}%` }}
@@ -224,7 +224,7 @@ export function OtaUpdatePromptView({
 				</>
 			}
 		>
-			<div className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
+			<div className={`${fullscreenCardClass} divide-y divide-[var(--border)] overflow-hidden text-left`}>
 				<VersionCompare
 					from={
 						installedVersion === undefined
@@ -237,7 +237,7 @@ export function OtaUpdatePromptView({
 					checked={autoUpdate}
 					onChange={setAutoUpdate}
 					icon={<Zap className="h-5 w-5" />}
-					iconClass="bg-[var(--surface-2)] text-[var(--accent)]"
+					iconClass="ink-tint-8 text-[var(--accent)]"
 					label={t("ota_prompt.auto_title", { defaultValue: "Install automatically" })}
 					description={t("ota_prompt.auto_desc", { defaultValue: "Install future frontend updates without asking." })}
 				/>

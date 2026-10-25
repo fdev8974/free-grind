@@ -3,6 +3,7 @@ import { useState } from "react";
 import semver from "semver";
 import type { VersionAnnouncement as VersionAnnouncementData } from "../data/versionAnnouncements";
 import logo from "../images/freegrind-logo.webp";
+import { fullscreenPrimaryButtonClass } from "./FullscreenPrompt";
 
 function Dots({ total, current }: { total: number; current: number }) {
 	if (total <= 1) {
@@ -134,7 +135,7 @@ export function VersionAnnouncement({
 					<button
 						type="button"
 						onClick={handleAdvance}
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+						className={fullscreenPrimaryButtonClass}
 					>
 						{!isIntro && isLastItem ? buttonLabel : "Continue"}
 						<ChevronRight className="h-4 w-4" />

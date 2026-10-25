@@ -1,6 +1,6 @@
 import { History, Eye, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass } from "../../../components/FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenCardClass } from "../../../components/FullscreenPrompt";
 
 export function InterestOnboardingModal({ onConfirm }: { onConfirm: () => void }) {
 	const { t } = useTranslation();
@@ -20,9 +20,9 @@ export function InterestOnboardingModal({ onConfirm }: { onConfirm: () => void }
 				</button>
 			}
 		>
-			<div className="surface-card overflow-hidden text-left">
+			<div className={`${fullscreenCardClass} overflow-hidden text-left`}>
 				<div className="flex items-start gap-3 px-4 py-3.5">
-					<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--accent)]">
+					<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--accent)]">
 						<Sparkles className="h-5 w-5" />
 					</div>
 					<div className="min-w-0 flex-1">
