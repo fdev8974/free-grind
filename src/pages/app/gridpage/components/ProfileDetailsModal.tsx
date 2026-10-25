@@ -1,5 +1,5 @@
 import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
-import { BananaFilled, EyeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
+import { BananaFilled, EyeFilled, HomeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -146,6 +146,7 @@ export type ProfileSwipePreview = {
 	lastSeen: number | null;
 	onlineUntil: number | null;
 	isFavorite: boolean;
+	rightNow: "hosting" | "active" | null;
 };
 
 type ProfileStatusLevel = "online" | "ending_soon" | "recent" | "offline";
@@ -246,7 +247,7 @@ function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePrev
 					)}
 				</h2>
 				{/* Same status line as ProfileDetailsContent's header. */}
-				{(status || distanceLabel) && (
+				{(status || preview.rightNow || distanceLabel) && (
 					<div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-muted)]">
 						{status && (
 							<span className="flex items-center gap-1.5">
@@ -256,6 +257,21 @@ function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePrev
 									: "bg-[var(--text-muted)]/40"
 								}`} />
 								{status.label}
+							</span>
+						)}
+						{preview.rightNow && (
+							<span className="flex items-center gap-1 font-semibold" style={{ color: "var(--right-now)" }}>
+								{preview.rightNow === "hosting" ? (
+									<>
+										<HomeFilled className="h-3.5 w-3.5" />
+										{t("right_now.hosting")}
+									</>
+								) : (
+									<>
+										<RightNowIcon className="h-3.5 w-3.5" />
+										{t("profile_details.right_now")}
+									</>
+								)}
 							</span>
 						)}
 						{distanceLabel && (

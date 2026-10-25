@@ -271,6 +271,13 @@ export function GridProfilePage() {
 				detail?.medias.map((item) => item.mediaHash ?? "").find((h) => validateMediaHash(h)) ??
 				detail?.profileImageMediaHash ??
 				(card?.primaryImageUrl ? extractMediaHashFromUrl(card.primaryImageUrl) : null);
+			// Same signal as the profile itself (an active post); the grid only knows hosting or not.
+			const hasRightNowPost = typeof detail?.rightNowPosted === "number" && detail.rightNowPosted > 0;
+			const rightNowState = hasRightNowPost ? detail?.rightNow : card?.rightNow;
+			const rightNow =
+				rightNowState === "HOSTING" ? "hosting"
+				: hasRightNowPost || rightNowState === "NOT_HOSTING" ? "active"
+				: null;
 			return {
 				imageUrl: hash ? getProfileImageUrl(hash, "1024x1024") : (card?.primaryImageUrl ?? null),
 				name: detail?.displayName ?? card?.displayName ?? null,
@@ -279,6 +286,7 @@ export function GridProfilePage() {
 				lastSeen: detail?.seen ?? card?.lastOnline ?? null,
 				onlineUntil: detail?.onlineUntil ?? card?.onlineUntil ?? null,
 				isFavorite: detail?.isFavorite ?? card?.favorite ?? false,
+				rightNow,
 			};
 		};
 		return [toPreview(prevProfileId), toPreview(nextProfileId)];
