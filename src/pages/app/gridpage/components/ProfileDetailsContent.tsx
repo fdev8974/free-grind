@@ -165,6 +165,8 @@ type ProfileDetailsContentProps = {
 	relationshipStatusLabels: LabelMap;
 	extraTopSection?: ReactNode;
 	hidePicturesSection?: boolean;
+	/** Display-only copy (e.g. a swipe preview): skips its own data fetches. */
+	isPreview?: boolean;
 	isChatLinkedProfile?: boolean;
 };
 
@@ -215,6 +217,7 @@ export function ProfileDetailsContent({
 	relationshipStatusLabels,
 	extraTopSection,
 	hidePicturesSection = false,
+	isPreview = false,
 	isChatLinkedProfile = false,
 }: ProfileDetailsContentProps) {
 	const { t, i18n } = useTranslation();
@@ -226,7 +229,7 @@ export function ProfileDetailsContent({
 		return proxyMediaUrl(resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url);
 	};
 	const { unitsPreset } = usePreferences();
-	const { data: spotifyFavorites } = useProfileSpotifyFavorites(activeProfile.profileId);
+	const { data: spotifyFavorites } = useProfileSpotifyFavorites(activeProfile.profileId, !isPreview);
 	const favoriteSongs = spotifyFavorites ?? [];
 	const hasChatHistory = Boolean(chatContactStatus?.hasChatted) || (chatContactStatus?.unreadCount ?? 0) > 0;
 	const lastMessageLabel = formatRelativeTime(chatContactStatus?.lastMessageTimestamp ?? null);

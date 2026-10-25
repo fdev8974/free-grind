@@ -2,7 +2,8 @@ import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertica
 import { BananaFilled, EyeFilled, HomeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -11,6 +12,7 @@ import {
 	useModalClose,
 } from "../../../../hooks/useModalClose";
 import { useTravelPlans } from "../../../../hooks/queries/useProfileQueries";
+import type { TravelPlan } from "../../../../types/travel";
 import { useApiFunctions } from "../../../../hooks/useApiFunctions";
 import { useAuth } from "../../../../contexts/useAuth";
 import { profileResponseSchema } from "../../profile-editor/profileEditorUtils";
@@ -147,6 +149,8 @@ export type ProfileSwipePreview = {
 	onlineUntil: number | null;
 	isFavorite: boolean;
 	rightNow: "hosting" | "active" | null;
+	/** The neighbour's full profile, when an earlier visit cached it. */
+	detail: ProfileDetail | null;
 };
 
 type ProfileStatusLevel = "online" | "ending_soon" | "recent" | "offline";
@@ -176,7 +180,16 @@ function getProfileStatusDisplay(
 const PAGE_CAROUSEL_HEIGHT = "min(78dvh, calc(100vw * 1.55))";
 
 /** Neighbouring profile's photo and name, sitting just off-screen next to the swipeable page. */
-function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePreview; side: "prev" | "next" }) {
+function ProfileSwipePreviewPanel({
+	preview,
+	side,
+	renderDetails,
+}: {
+	preview: ProfileSwipePreview;
+	side: "prev" | "next";
+	/** Renders the full profile body when the neighbour's details are already cached. */
+	renderDetails: (detail: ProfileDetail) => ReactNode;
+}) {
 	const { t } = useTranslation();
 	const { unitsPreset } = usePreferences();
 	const src = proxyMediaUrl(preview.imageUrl);
@@ -239,54 +252,62 @@ function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePrev
 					</div>
 				</div>
 			</div>
-			<div className="px-7 pt-4 sm:px-8 sm:pt-5">
-				<h2 className="truncate text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
-					{name}
-					{hasAge && (
-						<span className="ml-2 text-xl font-normal text-[var(--text-muted)] sm:text-2xl">{preview.age}</span>
+			{preview.detail ? (
+				// Cached details: shown as they were; the page reloads the current
+				// state once the swipe lands.
+				<div className="p-4 sm:p-5">{renderDetails(preview.detail)}</div>
+			) : (
+				<>
+				<div className="px-7 pt-4 sm:px-8 sm:pt-5">
+					<h2 className="truncate text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+						{name}
+						{hasAge && (
+							<span className="ml-2 text-xl font-normal text-[var(--text-muted)] sm:text-2xl">{preview.age}</span>
+						)}
+					</h2>
+					{/* Same status line as ProfileDetailsContent's header. */}
+					{(status || preview.rightNow || distanceLabel) && (
+						<div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-muted)]">
+							{status && (
+								<span className="flex items-center gap-1.5">
+									<span className={`h-2 w-2 rounded-full ${
+										status.level === "online" ? "bg-emerald-400"
+										: status.level === "ending_soon" ? "bg-amber-400"
+										: "bg-[var(--text-muted)]/40"
+									}`} />
+									{status.label}
+								</span>
+							)}
+							{preview.rightNow && (
+								<span className="flex items-center gap-1 font-semibold" style={{ color: "var(--right-now)" }}>
+									{preview.rightNow === "hosting" ? (
+										<>
+											<HomeFilled className="h-3.5 w-3.5" />
+											{t("right_now.hosting")}
+										</>
+									) : (
+										<>
+											<RightNowIcon className="h-3.5 w-3.5" />
+											{t("profile_details.right_now")}
+										</>
+									)}
+								</span>
+							)}
+							{distanceLabel && (
+								<span className="flex items-center gap-1">
+									<MapPinFilled className="h-3.5 w-3.5" />
+									{distanceLabel}
+								</span>
+							)}
+						</div>
 					)}
-				</h2>
-				{/* Same status line as ProfileDetailsContent's header. */}
-				{(status || preview.rightNow || distanceLabel) && (
-					<div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-muted)]">
-						{status && (
-							<span className="flex items-center gap-1.5">
-								<span className={`h-2 w-2 rounded-full ${
-									status.level === "online" ? "bg-emerald-400"
-									: status.level === "ending_soon" ? "bg-amber-400"
-									: "bg-[var(--text-muted)]/40"
-								}`} />
-								{status.label}
-							</span>
-						)}
-						{preview.rightNow && (
-							<span className="flex items-center gap-1 font-semibold" style={{ color: "var(--right-now)" }}>
-								{preview.rightNow === "hosting" ? (
-									<>
-										<HomeFilled className="h-3.5 w-3.5" />
-										{t("right_now.hosting")}
-									</>
-								) : (
-									<>
-										<RightNowIcon className="h-3.5 w-3.5" />
-										{t("profile_details.right_now")}
-									</>
-								)}
-							</span>
-						)}
-						{distanceLabel && (
-							<span className="flex items-center gap-1">
-								<MapPinFilled className="h-3.5 w-3.5" />
-								{distanceLabel}
-							</span>
-						)}
-					</div>
-				)}
-			</div>
-			{/* The rest of the profile isn't known yet — placeholders hint that it follows. */}
-			<div className="mt-8 px-4 sm:px-5">
-				<ProfileDetailsSkeleton withHeader={false} />
-			</div>
+				</div>
+				{/* The rest of the profile isn't known yet — placeholders hint that it follows. */}
+				<div className="mt-8 px-4 sm:px-5">
+					<ProfileDetailsSkeleton withHeader={false} />
+				</div>
+				</>
+			)}
 		</div>
 	);
 }
@@ -303,6 +324,78 @@ function normalizeMediaCreatedAt(value: unknown): number | null {
 
 	// Most API timestamps are in milliseconds; seconds are normalized.
 	return numeric < 1_000_000_000_000 ? Math.round(numeric * 1000) : Math.round(numeric);
+}
+
+type ProfileContentLabels = {
+	lookingForLabels: Record<number, string>;
+	meetAtLabels: Record<number, string>;
+	nsfwLabels: Record<number, string>;
+	tribeLabels: Record<number, string>;
+	hivStatusLabels: Record<number, string>;
+	sexualHealthLabels: Record<number, string>;
+	vaccineLabels: Record<number, string>;
+	sexualPositionLabels: Record<number, string>;
+	bodyTypeLabels: Record<number, string>;
+	ethnicityLabels: Record<number, string>;
+	relationshipStatusLabels: Record<number, string>;
+};
+
+/** Which ProfileDetailsContent sections a profile has content for. */
+function getProfileContentFlags(
+	profile: ProfileDetail | null,
+	labels: ProfileContentLabels,
+	genderOptions: ManagedOption[],
+	pronounOptions: ManagedOption[],
+	t: ReturnType<typeof useTranslation>["t"],
+	unitsPreset: ReturnType<typeof usePreferences>["unitsPreset"],
+) {
+	const formattedActiveGenders = profile?.genders.length
+		? profile.genders.map((genderId) => getEnumLabel(genderId, genderOptions)).join(", ")
+		: "Not set";
+	const formattedActivePronouns = profile?.pronouns.length
+		? profile.pronouns.map((pronounId) => getEnumLabel(pronounId, pronounOptions)).join(", ")
+		: "Not set";
+	if (!profile) {
+		return {
+			formattedActiveGenders,
+			formattedActivePronouns,
+			hasExpectationsFields: false,
+			hasHealthFields: false,
+			hasStatsFields: false,
+			hasSocialFields: false,
+			hasTagsContent: false,
+			hasAboutContent: false,
+		};
+	}
+	return {
+		formattedActiveGenders,
+		formattedActivePronouns,
+		hasExpectationsFields:
+			!shouldHideField(formatEnumArray(profile.lookingFor, labels.lookingForLabels, t)) ||
+			!shouldHideField(formatEnumArray(profile.meetAt, labels.meetAtLabels, t)) ||
+			!shouldHideField(formatEnumArray(profile.grindrTribes, labels.tribeLabels, t)) ||
+			!shouldHideField(formattedActiveGenders) ||
+			!shouldHideField(formattedActivePronouns),
+		hasHealthFields:
+			!shouldHideField(formatEnumValue(profile.hivStatus, labels.hivStatusLabels, t)) ||
+			Boolean(profile.lastTestedDate) ||
+			!shouldHideField(formatEnumArray(profile.sexualHealth, labels.sexualHealthLabels, t)) ||
+			!shouldHideField(formatEnumArray(profile.vaccines, labels.vaccineLabels, t)),
+		hasStatsFields:
+			!shouldHideField(formatEnumValue(profile.sexualPosition, labels.sexualPositionLabels, t)) ||
+			!shouldHideField(formatHeightCm(profile.height, t, unitsPreset)) ||
+			!shouldHideField(formatWeightKg(profile.weight, t, unitsPreset)) ||
+			!shouldHideField(formatEnumValue(profile.bodyType, labels.bodyTypeLabels, t)) ||
+			!shouldHideField(formatEnumValue(profile.ethnicity, labels.ethnicityLabels, t)) ||
+			!shouldHideField(formatEnumValue(profile.relationshipStatus, labels.relationshipStatusLabels, t)),
+		hasSocialFields: Boolean(
+			profile.socialNetworks?.instagram?.userId ||
+			profile.socialNetworks?.twitter?.userId ||
+			profile.socialNetworks?.facebook?.userId,
+		),
+		hasTagsContent: profile.profileTags.length > 0,
+		hasAboutContent: Boolean(profile.aboutMe?.trim()),
+	};
 }
 
 /** `withHeader={false}` leaves out the name/status lines, for when those are already known. */
@@ -467,100 +560,36 @@ export function ProfileDetailsModal({
 	const ethnicityLabels = useMemo(() => getEthnicityLabelMap(t), [t]);
 	const relationshipStatusLabels = useMemo(() => getRelationshipStatusLabelMap(t),[t]);
 
-	const formattedActiveGenders = useMemo(() => {
-		if (!activeProfile?.genders.length) {
-			return "Not set";
-		}
+	const contentLabels = useMemo<ProfileContentLabels>(() => ({
+		lookingForLabels,
+		meetAtLabels,
+		nsfwLabels,
+		tribeLabels,
+		hivStatusLabels,
+		sexualHealthLabels,
+		vaccineLabels,
+		sexualPositionLabels,
+		bodyTypeLabels,
+		ethnicityLabels,
+		relationshipStatusLabels,
+	}), [lookingForLabels, meetAtLabels, nsfwLabels, tribeLabels, hivStatusLabels, sexualHealthLabels, vaccineLabels, sexualPositionLabels, bodyTypeLabels, ethnicityLabels, relationshipStatusLabels]);
 
-		return activeProfile.genders
-			.map((genderId) => getEnumLabel(genderId, genderOptions))
-			.join(", ");
-	}, [activeProfile?.genders, genderOptions, t]);
+	const getContentFlags = useCallback(
+		(profile: ProfileDetail | null) =>
+			getProfileContentFlags(profile, contentLabels, genderOptions, pronounOptions, t, unitsPreset),
+		[contentLabels, genderOptions, pronounOptions, t, unitsPreset],
+	);
 
-	const formattedActivePronouns = useMemo(() => {
-		if (!activeProfile?.pronouns.length) {
-			return "Not set";
-		}
-
-		return activeProfile.pronouns
-			.map((pronounId) => getEnumLabel(pronounId, pronounOptions))
-			.join(", ");
-	}, [activeProfile?.pronouns, pronounOptions, t]);
-
-	const hasExpectationsFields = useMemo(() => {
-		if (!activeProfile) return false;
-		return (
-			!shouldHideField(
-				formatEnumArray(activeProfile.lookingFor, lookingForLabels, t),
-			) ||
-			!shouldHideField(formatEnumArray(activeProfile.meetAt, meetAtLabels, t)) ||
-			!shouldHideField(
-				formatEnumArray(activeProfile.grindrTribes, tribeLabels, t),
-			) ||
-			!shouldHideField(formattedActiveGenders) ||
-			!shouldHideField(formattedActivePronouns)
-		);
-	}, [activeProfile, formattedActiveGenders, formattedActivePronouns, t]);
-
-	const hasHealthFields = useMemo(() => {
-		if (!activeProfile) return false;
-		return (
-			!shouldHideField(
-				formatEnumValue(activeProfile.hivStatus, hivStatusLabels, t),
-			) ||
-			Boolean(activeProfile.lastTestedDate) ||
-			!shouldHideField(
-				formatEnumArray(activeProfile.sexualHealth, sexualHealthLabels, t),
-			) ||
-			!shouldHideField(formatEnumArray(activeProfile.vaccines, vaccineLabels, t))
-		);
-	}, [activeProfile, t]);
-
-	const hasStatsFields = useMemo(() => {
-		if (!activeProfile) return false;
-		const positionFormatted = formatEnumValue(
-			activeProfile.sexualPosition,
-			sexualPositionLabels,
-			t
-		);
-		return (
-			!shouldHideField(positionFormatted) ||
-			!shouldHideField(formatHeightCm(activeProfile.height, t, unitsPreset)) ||
-			!shouldHideField(formatWeightKg(activeProfile.weight, t, unitsPreset)) ||
-			!shouldHideField(
-				formatEnumValue(activeProfile.bodyType, bodyTypeLabels, t),
-			) ||
-			!shouldHideField(
-				formatEnumValue(activeProfile.ethnicity, ethnicityLabels, t),
-			) ||
-			!shouldHideField(
-				formatEnumValue(
-					activeProfile.relationshipStatus,
-					relationshipStatusLabels,
-					t
-				),
-			)
-		);
-	}, [activeProfile, t, unitsPreset]);
-
-	const hasSocialFields = useMemo(() => {
-		if (!activeProfile) return false;
-		return Boolean(
-			activeProfile.socialNetworks?.instagram?.userId ||
-			activeProfile.socialNetworks?.twitter?.userId ||
-			activeProfile.socialNetworks?.facebook?.userId,
-		);
-	}, [activeProfile]);
-
-	const hasTagsContent = useMemo(() => {
-		if (!activeProfile) return false;
-		return activeProfile.profileTags.length > 0;
-	}, [activeProfile?.profileTags.length]);
-
-	const hasAboutContent = useMemo(() => {
-		if (!activeProfile) return false;
-		return Boolean(activeProfile.aboutMe?.trim());
-	}, [activeProfile?.aboutMe]);
+	const {
+		formattedActiveGenders,
+		formattedActivePronouns,
+		hasExpectationsFields,
+		hasHealthFields,
+		hasStatsFields,
+		hasSocialFields,
+		hasTagsContent,
+		hasAboutContent,
+	} = useMemo(() => getContentFlags(activeProfile), [getContentFlags, activeProfile]);
 
 	const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(
 		null,
@@ -2025,6 +2054,46 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		);
 	};
 
+	// A swipe preview's body: the cached profile through the same content
+	// component, without anything that would fetch (notes, Spotify, …) or react
+	// to input — the panel is display-only.
+	const queryClient = useQueryClient();
+	const previewCarouselRef = useRef<HTMLDivElement | null>(null);
+	const renderPreviewDetails = (detail: ProfileDetail) => {
+		const flags = getContentFlags(detail);
+		const meta = getOnlineStatusMeta(detail.seen, detail.onlineUntil);
+		const status = getProfileStatusDisplay(meta, t);
+		return (
+			<ProfileDetailsContent
+				activeProfile={detail}
+				activeProfilePhotoHashes={[]}
+				isDesktopLike={isDesktopLike}
+				showMobileCarousel={false}
+				mobileCarouselRef={previewCarouselRef}
+				mobileCarouselPhotoIndex={0}
+				openPhotoViewer={() => {}}
+				activeProfileName={detail.displayName?.trim() || t("profile_details.anonymous", "Someone")}
+				estimatedCreatedAt={formatEstimatedAccountCreation(detail.profileId, t)}
+				travelPlans={queryClient.getQueryData<TravelPlan[]>(["travel-plans", String(detail.profileId)])}
+				profileStatusLabel={status.label}
+				profileStatusLevel={status.level}
+				ownTags={ownTags}
+				profileDistance={detail.distance ?? null}
+				chatContactStatus={null}
+				messageProfileId={String(detail.profileId)}
+				isTapDisabled
+				isTapBlocked={false}
+				isTapActive={false}
+				tapId={1}
+				tapButtonClassName=""
+				{...flags}
+				{...contentLabels}
+				hidePicturesSection
+				isPreview
+			/>
+		);
+	};
+
 	const renderInlineLayout = () => (
 		<>
 			{/* Floating header — transparent over carousel, opaque after scrolling */}
@@ -2353,14 +2422,14 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					className="relative flex h-full flex-col"
 				>
 				{swipeLanding?.side === "prev" ? (
-					<ProfileSwipePreviewPanel preview={swipeLanding.preview} side="prev" />
+					<ProfileSwipePreviewPanel preview={swipeLanding.preview} side="prev" renderDetails={renderPreviewDetails} />
 				) : prevProfilePreview && onPrevProfile ? (
-					<ProfileSwipePreviewPanel preview={prevProfilePreview} side="prev" />
+					<ProfileSwipePreviewPanel preview={prevProfilePreview} side="prev" renderDetails={renderPreviewDetails} />
 				) : null}
 				{swipeLanding?.side === "next" ? (
-					<ProfileSwipePreviewPanel preview={swipeLanding.preview} side="next" />
+					<ProfileSwipePreviewPanel preview={swipeLanding.preview} side="next" renderDetails={renderPreviewDetails} />
 				) : nextProfilePreview && onNextProfile ? (
-					<ProfileSwipePreviewPanel preview={nextProfilePreview} side="next" />
+					<ProfileSwipePreviewPanel preview={nextProfilePreview} side="next" renderDetails={renderPreviewDetails} />
 				) : null}
 				{renderInlineLayout()}
 				{photoViewerOverlay}

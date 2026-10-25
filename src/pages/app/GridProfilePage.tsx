@@ -287,6 +287,7 @@ export function GridProfilePage() {
 				onlineUntil: detail?.onlineUntil ?? card?.onlineUntil ?? null,
 				isFavorite: detail?.isFavorite ?? card?.favorite ?? false,
 				rightNow,
+				detail,
 			};
 		};
 		return [toPreview(prevProfileId), toPreview(nextProfileId)];
