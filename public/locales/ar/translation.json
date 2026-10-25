@@ -44,6 +44,8 @@
         "check_updates_desc": "حمّل وثبّت أحدث نسخة من Free Grind.",
         "installed_version": "الإصدار {{version}}",
         "installed_versions": "الواجهة {{frontend}} · التطبيق {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "تحقق دلوقتي",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2657,6 +2659,7 @@
         "info": {
             "sheet_title": "PrEP settings",
             "settings_button": "PrEP settings",
+            "scheme_section": "",
             "scheme_daily_label": "يوميًا",
             "scheme_daily_tagline": "حباية واحدة كل يوم",
             "scheme_on_demand_label": "عند الحاجة (2-1-1)",

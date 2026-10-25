@@ -45,6 +45,8 @@
         "check_updates_desc": "Преузмите и инсталирајте најновију верзију апликације Free Grind.",
         "installed_version": "Верзија {{version}}",
         "installed_versions": "Frontend {{frontend}} · Апликација {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "Провери сада",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2601,6 +2603,7 @@
         "info": {
             "sheet_title": "PrEP подешавања",
             "settings_button": "PrEP подешавања",
+            "scheme_section": "",
             "scheme_daily_label": "Дневно",
             "scheme_daily_tagline": "Једна таблета, сваки дан",
             "scheme_on_demand_label": "По потреби (2-1-1)",

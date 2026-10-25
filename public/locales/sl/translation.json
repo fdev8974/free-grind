@@ -44,6 +44,8 @@
         "check_updates_desc": "Prenesi in namesti najnovejšo različico Free Grind.",
         "installed_version": "Različica {{version}}",
         "installed_versions": "Frontend {{frontend}} · Aplikacija {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "Preveri zdaj",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2621,6 +2623,7 @@
         "info": {
             "sheet_title": "Nastavitve PrEP",
             "settings_button": "Nastavitve PrEP",
+            "scheme_section": "",
             "scheme_daily_label": "Dnevno",
             "scheme_daily_tagline": "Ena tableta, vsak dan",
             "scheme_on_demand_label": "Po potrebi (2-1-1)",

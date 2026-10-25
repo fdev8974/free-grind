@@ -44,6 +44,8 @@
         "check_updates_desc": "Download en installeer de nieuwste versie van Free Grind.",
         "installed_version": "Versie {{version}}",
         "installed_versions": "Frontend {{frontend}} · App {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "Nu controleren",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2585,6 +2587,7 @@
         "info": {
             "sheet_title": "PrEP-instellingen",
             "settings_button": "PrEP-instellingen",
+            "scheme_section": "",
             "scheme_daily_label": "Dagelijks",
             "scheme_daily_tagline": "Eén pil, elke dag",
             "scheme_on_demand_label": "Op aanvraag (2-1-1)",

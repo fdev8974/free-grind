@@ -44,6 +44,8 @@
     "check_updates_desc": "Download and install the latest version of Free Grind.",
     "installed_version": "Version {{version}}",
     "installed_versions": "Frontend {{frontend}} · App {{app}}",
+    "app_version": "App {{version}}",
+    "frontend_version": "Frontend {{version}}",
     "check_now": "Check Now",
     "update_channel": "Update Channel",
     "update_channel_desc": "Which release track this app gets updates from.",
@@ -2583,6 +2585,7 @@
     "info": {
       "sheet_title": "PrEP settings",
       "settings_button": "PrEP settings",
+      "scheme_section": "Dosing scheme",
       "scheme_daily_label": "Daily",
       "scheme_daily_tagline": "One pill, every day",
       "scheme_on_demand_label": "On-demand (2-1-1)",

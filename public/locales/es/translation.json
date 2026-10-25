@@ -44,6 +44,8 @@
         "check_updates_desc": "Descarga e instala la última versión de Free Grind.",
         "installed_version": "Versión {{version}}",
         "installed_versions": "Frontend {{frontend}} · App {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "Comprobar ahora",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2603,6 +2605,7 @@
         "info": {
             "sheet_title": "Ajustes de PrEP",
             "settings_button": "Ajustes de PrEP",
+            "scheme_section": "",
             "scheme_daily_label": "Diaria",
             "scheme_daily_tagline": "Una pastilla, cada día",
             "scheme_on_demand_label": "A demanda (2-1-1)",

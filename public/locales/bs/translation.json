@@ -44,6 +44,8 @@
         "check_updates_desc": "Preuzmi i instaliraj najnoviju verziju Free Grinda.",
         "installed_version": "Verzija {{version}}",
         "installed_versions": "Frontend {{frontend}} · Aplikacija {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "Provjeri sada",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2603,6 +2605,7 @@
         "info": {
             "sheet_title": "PrEP postavke",
             "settings_button": "PrEP postavke",
+            "scheme_section": "",
             "scheme_daily_label": "Dnevno",
             "scheme_daily_tagline": "Jedna tableta, svaki dan",
             "scheme_on_demand_label": "Po potrebi (2-1-1)",

@@ -44,6 +44,8 @@
         "check_updates_desc": "Télécharger et installer la dernière version de Free Grindr.",
         "installed_version": "Version {{version}}",
         "installed_versions": "Frontend {{frontend}} · App {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "Vérifier maintenant",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2603,6 +2605,7 @@
         "info": {
             "sheet_title": "Dispositifs de PrEP",
             "settings_button": "Dispositifs de PrEP",
+            "scheme_section": "",
             "scheme_daily_label": "Quotidien",
             "scheme_daily_tagline": "Un comprimé, chaque jour",
             "scheme_on_demand_label": "À la demande (2-1-1)",

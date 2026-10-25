@@ -44,6 +44,8 @@
         "check_updates_desc": "Lade die neueste Version von Free Grind herunter und installiere sie.",
         "installed_version": "Version {{version}}",
         "installed_versions": "Frontend {{frontend}} · App {{app}}",
+        "app_version": "",
+        "frontend_version": "",
         "check_now": "Jetzt prüfen",
         "update_channel": "",
         "update_channel_desc": "",
@@ -2585,6 +2587,7 @@
         "info": {
             "sheet_title": "PrEP-Einstellungen",
             "settings_button": "PrEP-Einstellungen",
+            "scheme_section": "",
             "scheme_daily_label": "Täglich",
             "scheme_daily_tagline": "Eine Tablette, jeden Tag",
             "scheme_on_demand_label": "Anlassbezogen (2-1-1)",

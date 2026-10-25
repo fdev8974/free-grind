@@ -434,7 +434,6 @@ export function SettingsPage() {
 	const visibleChannels = getHotswapChannels();
 	const frontendVersion = import.meta.env.VITE_APP_VERSION;
 	const commitHash: string = import.meta.env.VITE_COMMIT_HASH ?? "";
-	const frontendBuild = commitHash ? `${frontendVersion} (${commitHash})` : frontendVersion;
 	// The installed app (APK / desktop binary) can lag behind the frontend when an
 	// OTA bundle was applied on top of it, so show both when they differ.
 	const [nativeVersion, setNativeVersion] = useState<string | null>(null);
@@ -1150,18 +1149,18 @@ export function SettingsPage() {
 										<p className="text-sm font-semibold leading-snug">
 											{t("settings.check_updates")}
 										</p>
-										<p className="mt-0.5 truncate text-xs leading-snug tabular-nums text-[var(--text-muted)]">
-											{nativeVersion
-												? t("settings.installed_versions", {
-														defaultValue: "Frontend {{frontend}} · App {{app}}",
-														frontend: frontendBuild,
-														app: nativeVersion,
-													})
-												: t("settings.installed_version", {
-														defaultValue: "Version {{version}}",
-														version: frontendBuild,
-													})}
-										</p>
+										{/* One line each, so neither the app version nor the commit gets truncated away. */}
+										<div className="mt-0.5 text-xs leading-snug tabular-nums text-[var(--text-muted)]">
+											{nativeVersion && (
+												<p className="truncate">
+													{t("settings.app_version", { defaultValue: "App {{version}}", version: nativeVersion })}
+												</p>
+											)}
+											<p className="truncate">
+												{t("settings.frontend_version", { defaultValue: "Frontend {{version}}", version: frontendVersion })}
+												{commitHash && <span className="font-mono opacity-80"> · {commitHash}</span>}
+											</p>
+										</div>
 									</div>
 									<RowActionPill loading={isCheckingUpdates} loadingLabel={false}>
 										{t("settings.check_now")}
