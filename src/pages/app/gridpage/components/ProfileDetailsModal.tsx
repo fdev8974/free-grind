@@ -301,6 +301,12 @@ function ProfileSwipePreviewPanel({
 							)}
 						</div>
 					)}
+					{/* Stand-in for the position/height/weight line (mt-1, text-sm line height). */}
+					<div className="mt-1 flex h-5 animate-pulse items-center gap-x-3" aria-hidden="true">
+						<div className="h-3 w-14 rounded-full bg-[var(--surface-2)]" />
+						<div className="h-3 w-12 rounded-full bg-[var(--surface-2)]" />
+						<div className="h-3 w-12 rounded-full bg-[var(--surface-2)]" />
+					</div>
 				</div>
 				{/* The rest of the profile isn't known yet — placeholders hint that it follows. */}
 				<div className="mt-8 px-4 sm:px-5">
