@@ -5,7 +5,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { PageHeader } from "../../components/PageHeader";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { ProfileImage } from "../../components/ui/profile-image";
-import { EmptyState, ErrorState } from "../../components/ui/states";
+import { ErrorState } from "../../components/ui/states";
+import { DrawerEmptyState } from "./chat/drawerUi";
 import { listBlockEvents } from "../../services/chatDb";
 import type { StoredBlockEvent } from "../../types/chat-db";
 import { resolveAvatarSrc } from "../../services/avatarStore";
@@ -69,7 +70,7 @@ export function SettingsBlockHistoryPage() {
 					<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 						{Array.from({ length: 4 }).map((_, i) => (
 							<div key={i} className="flex items-center gap-3 px-4 py-3">
-								<div className="h-10 w-10 shrink-0 animate-pulse rounded-full ink-tint-10" />
+								<div className="h-11 w-11 shrink-0 animate-pulse squircle ink-tint-10" />
 								<div className="min-w-0 flex-1 space-y-1.5">
 									<div className="h-3.5 w-28 animate-pulse rounded-full ink-tint-10" />
 									<div className="h-3 w-24 animate-pulse rounded-full ink-tint-10" />
@@ -84,9 +85,11 @@ export function SettingsBlockHistoryPage() {
 						onRetry={() => void load()}
 					/>
 				) : !events || events.length === 0 ? (
-					<EmptyState
+					<DrawerEmptyState
+						icon={<ShieldCheck />}
+						fanned={false}
 						title={t("settings_block_history.empty")}
-						description={t("settings_block_history.empty_desc")}
+						hint={t("settings_block_history.empty_desc")}
 					/>
 				) : (
 					<div>
@@ -110,7 +113,7 @@ export function SettingsBlockHistoryPage() {
 								const rowClassName = "flex w-full items-center gap-3 px-4 py-3 text-left";
 								const content = (
 									<>
-										<div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+										<div className="relative h-11 w-11 shrink-0 squircle bg-[var(--surface-2)] drop-shadow-sm">
 											<ProfileImage
 												className="bg-slate-500/15 text-slate-400"
 												src={avatarSrc}
@@ -124,7 +127,7 @@ export function SettingsBlockHistoryPage() {
 											</p>
 										</div>
 										<span
-											className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+											className={`inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs font-semibold ${
 												isBlocked
 													? "bg-red-500/10 text-red-400"
 													: "bg-emerald-500/10 text-emerald-400"

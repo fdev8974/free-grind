@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ShieldOff, UserX } from "lucide-react";
+import { Loader2, ShieldCheck, ShieldOff, UserX } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -11,7 +11,8 @@ import { applySelfBlockAction } from "../../services/conversationArchive";
 import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
 import { ProfileImage } from "../../components/ui/profile-image";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
-import { EmptyState, ErrorState } from "../../components/ui/states";
+import { ErrorState } from "../../components/ui/states";
+import { DrawerEmptyState } from "./chat/drawerUi";
 
 type BlockedProfileListItem = {
 	profileId: string;
@@ -179,12 +180,12 @@ export function SettingsBlockedPage() {
 						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 							{Array.from({ length: isLoadingIds ? 4 : (blockedIdsData?.length ?? 4) }).map((_, i) => (
 								<div key={i} className="flex items-center gap-3 px-4 py-3">
-									<div className="h-10 w-10 shrink-0 animate-pulse rounded-full ink-tint-10" />
+									<div className="h-11 w-11 shrink-0 animate-pulse squircle ink-tint-10" />
 									<div className="min-w-0 flex-1 space-y-1.5">
 										<div className="h-3.5 w-28 animate-pulse rounded-full ink-tint-10" />
 										<div className="h-3 w-16 animate-pulse rounded-full ink-tint-10" />
 									</div>
-									<div className="h-7 w-20 animate-pulse rounded-full ink-tint-10" />
+									<div className="h-8 w-24 animate-pulse rounded-full ink-tint-10" />
 								</div>
 							))}
 						</div>
@@ -196,9 +197,11 @@ export function SettingsBlockedPage() {
 						onRetry={() => void refetchIds()}
 					/>
 				) : blockedProfiles.length === 0 ? (
-					<EmptyState
+					<DrawerEmptyState
+						icon={<ShieldCheck />}
+						fanned={false}
 						title={t("settings_blocked.empty")}
-						description={t("settings_blocked.empty_desc", { defaultValue: "Accounts you block won't be able to see you or message you." })}
+						hint={t("settings_blocked.empty_desc", { defaultValue: "Accounts you block won't be able to see you or message you." })}
 					/>
 				) : (
 					<div>
@@ -220,7 +223,7 @@ export function SettingsBlockedPage() {
 											className="flex min-w-0 flex-1 items-center gap-3 text-left"
 											onClick={() => navigate(`/profile/${profile.profileId}`, { state: { returnTo: location.pathname } })}
 										>
-											<div className="h-10 w-10 shrink-0 overflow-hidden rounded-full">
+											<div className="h-11 w-11 shrink-0 squircle bg-[var(--surface-2)] drop-shadow-sm">
 												<ProfileImage
 													className="bg-slate-500/15 text-slate-400"
 													src={profile.avatarUrl}
@@ -245,9 +248,9 @@ export function SettingsBlockedPage() {
 												handleUnblockPress(profile.profileId);
 											}}
 											disabled={isMutating}
-											className="inline-flex shrink-0 items-center gap-1.5 rounded-full ink-tint-10 px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition-[transform,background-color,color] duration-150 hover:bg-red-500/12 hover:text-red-500 active:scale-[0.96] disabled:opacity-50"
+											className="inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full ink-tint-10 px-3 text-xs font-semibold text-[var(--text)] transition-[transform,background-color,color] duration-150 hover:bg-red-500/12 hover:text-red-500 active:scale-[0.96] disabled:opacity-50"
 										>
-											<UserX className="h-3.5 w-3.5" />
+											{isMutating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserX className="h-3.5 w-3.5" />}
 											{isMutating
 												? t("profile_details.unblock_in_progress")
 												: t("profile_details.unblock")}
@@ -258,39 +261,26 @@ export function SettingsBlockedPage() {
 						</div>
 					</div>
 				)}
-				{/* Unblock all — shown once list is loaded and non-empty */}
+				{/* Unblock all: a destructive action row of its own, like in the
+				    native settings apps, with its explanation as a footnote. */}
 				{!isLoading && !error && blockedProfiles.length > 0 && (
-					<div className="native-card overflow-hidden">
-						<div className="flex items-start gap-3 p-4">
-							<div className="shrink-0 rounded-2xl bg-red-500/15 p-2.5 text-red-400">
-								<ShieldOff className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<div className="grid grid-cols-[1fr_auto] gap-x-3">
-									<p className="text-sm font-semibold leading-snug">
-										{t("settings_blocked.unblock_all_title", { defaultValue: "Unblock All" })}
-									</p>
-									<div className="row-span-2 flex items-start">
-										{isUnblockingAll ? (
-											<span className="text-xs text-[var(--text-muted)]">
-												{t("settings_blocked.unblocking_all", { defaultValue: "Unblocking…" })}
-											</span>
-										) : (
-											<button
-												type="button"
-												onClick={() => setConfirmUnblockAll(true)}
-												className="shrink-0 inline-flex items-center justify-center rounded-full bg-red-500/12 px-4 py-2 text-sm font-semibold text-red-500 transition-[transform,background-color] duration-150 hover:bg-red-500/20 active:scale-[0.97]"
-											>
-												{t("settings_blocked.unblock_all_title", { defaultValue: "Unblock All" })}
-											</button>
-										)}
-									</div>
-									<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
-										{t("settings_blocked.unblock_all_desc", { defaultValue: "Remove all blocked accounts at once. This cannot be undone." })}
-									</p>
-								</div>
-							</div>
+					<div>
+						<div className="native-card overflow-hidden">
+							<button
+								type="button"
+								onClick={() => setConfirmUnblockAll(true)}
+								disabled={isUnblockingAll}
+								className="flex w-full items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-500/8 active:bg-red-500/12 disabled:opacity-60"
+							>
+								{isUnblockingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
+								{isUnblockingAll
+									? t("settings_blocked.unblocking_all", { defaultValue: "Unblocking…" })
+									: t("settings_blocked.unblock_all_title", { defaultValue: "Unblock All" })}
+							</button>
 						</div>
+						<p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
+							{t("settings_blocked.unblock_all_desc", { defaultValue: "Remove all blocked accounts at once. This cannot be undone." })}
+						</p>
 					</div>
 				)}
 			</div>
