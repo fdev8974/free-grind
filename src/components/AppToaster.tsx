@@ -1,19 +1,12 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { ToastBar, useToaster, type DefaultToastOptions, type Toast, type ToastPosition } from "react-hot-toast";
+import toastApi, { resolveValue, useToaster, type DefaultToastOptions, type Toast, type ToastPosition } from "react-hot-toast";
 import { CheckCircle2, AlertCircle, Loader2, Info } from "lucide-react";
 
 const POSITION: ToastPosition = "top-center";
 
 const TOAST_OPTIONS: DefaultToastOptions = {
-	className:
-		"surface-card !bg-[var(--surface)] !text-[var(--text)] !border-[var(--border)] !rounded-[var(--radius-md)] !px-4 !py-3 !shadow-2xl flex items-center gap-3",
 	duration: 2500,
-	style: {
-		background: "var(--surface)",
-		color: "var(--text)",
-		border: "1px solid var(--border)",
-	},
 	success: {
 		icon: <CheckCircle2 className="w-5 h-5 text-green-500" />,
 	},
@@ -24,7 +17,7 @@ const TOAST_OPTIONS: DefaultToastOptions = {
 		icon: <Loader2 className="w-5 h-5 text-[var(--accent)] animate-spin" />,
 	},
 	blank: {
-		icon: <Info className="w-5 h-5 text-blue-500" />,
+		icon: <Info className="w-5 h-5 text-[var(--accent)]" />,
 	},
 };
 
@@ -50,6 +43,88 @@ function offsetStyle(position: ToastPosition, offset: number): React.CSSProperti
 	};
 }
 
+// Same floating-glass look as the composer's popups, and the same slightly
+// overshooting curve as the bottom sheets, so toasts read as part of the app
+// rather than a web widget. Slides down from under the status bar, springs
+// in, and can be flicked back up to dismiss.
+const ENTER_EASING = "cubic-bezier(0.34, 1.3, 0.64, 1)";
+const SWIPE_DISMISS_PX = 24;
+
+function ToastPill({ toast }: { toast: Toast }) {
+	// Starts hidden and flips to shown after the first paint, so the enter
+	// transition actually runs.
+	const [entered, setEntered] = useState(false);
+	const [dragY, setDragY] = useState(0);
+	const [isDragging, setIsDragging] = useState(false);
+	const dragRef = useRef<{ pointerId: number; startY: number } | null>(null);
+
+	useEffect(() => {
+		let r2 = 0;
+		const r1 = requestAnimationFrame(() => {
+			r2 = requestAnimationFrame(() => setEntered(true));
+		});
+		return () => {
+			cancelAnimationFrame(r1);
+			cancelAnimationFrame(r2);
+		};
+	}, []);
+
+	const shown = entered && toast.visible;
+	const transform = shown
+		? `translateY(${dragY}px) scale(1)`
+		: "translateY(-140%) scale(0.92)";
+	const transition = prefersReducedMotion
+		? "opacity 150ms ease"
+		: isDragging
+			? "none"
+			: shown
+				? `transform 450ms ${ENTER_EASING}, opacity 200ms ease`
+				: "transform 260ms cubic-bezier(0.32, 0.72, 0, 1), opacity 200ms ease";
+
+	return (
+		<div
+			{...toast.ariaProps}
+			// Touch only: a mouse drag here should keep selecting text.
+			onPointerDown={(e) => {
+				if (e.pointerType !== "touch") return;
+				dragRef.current = { pointerId: e.pointerId, startY: e.clientY };
+				setIsDragging(true);
+			}}
+			onPointerMove={(e) => {
+				const drag = dragRef.current;
+				if (!drag || drag.pointerId !== e.pointerId) return;
+				const dy = e.clientY - drag.startY;
+				// Follows the finger upwards, rubber-bands downwards.
+				setDragY(dy < 0 ? dy : Math.sqrt(dy) * 2);
+			}}
+			onPointerUp={(e) => {
+				const drag = dragRef.current;
+				if (!drag || drag.pointerId !== e.pointerId) return;
+				dragRef.current = null;
+				setIsDragging(false);
+				if (e.clientY - drag.startY < -SWIPE_DISMISS_PX) toastApi.dismiss(toast.id);
+				setDragY(0);
+			}}
+			onPointerCancel={() => {
+				dragRef.current = null;
+				setIsDragging(false);
+				setDragY(0);
+			}}
+			className="flex max-w-[min(420px,100%)] touch-pan-x items-center gap-2.5 rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] py-2.5 pl-3 pr-4 text-sm font-medium text-[var(--text)] shadow-[0_-1px_4px_rgba(0,0,0,0.12),0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-[var(--border)]/40 backdrop-blur-xl"
+			style={{
+				opacity: shown ? 1 : 0,
+				transform: prefersReducedMotion ? undefined : transform,
+				transformOrigin: "top center",
+				transition,
+				...toast.style,
+			}}
+		>
+			{toast.icon ? <span className="flex shrink-0 items-center">{toast.icon}</span> : null}
+			<span className="min-w-0 break-words leading-snug">{resolveValue(toast.message, toast)}</span>
+		</div>
+	);
+}
+
 function ToastItem({ toast, offset, onHeightUpdate }: { toast: Toast; offset: number; onHeightUpdate: (id: string, height: number) => void }) {
 	const ref = useRef<HTMLDivElement>(null);
 	const position = toast.position || POSITION;
@@ -66,7 +141,7 @@ function ToastItem({ toast, offset, onHeightUpdate }: { toast: Toast; offset: nu
 
 	return (
 		<div ref={ref} style={{ ...offsetStyle(position, offset), pointerEvents: toast.visible ? "auto" : "none", zIndex: 9999 }}>
-			<ToastBar toast={toast} position={position} />
+			<ToastPill toast={toast} />
 		</div>
 	);
 }
