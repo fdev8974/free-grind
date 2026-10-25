@@ -89,7 +89,7 @@ img {
 	display: block;
 	box-sizing: border-box;
 	width: 100%;
-	aspect-ratio: 9 / 16;
+	/*aspect-ratio: 9 / 16;*/
 	object-fit: cover;
 	object-position: top;
 	border: 1px solid #484848;
