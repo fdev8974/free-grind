@@ -2563,6 +2563,8 @@
             "delete_confirm_action": "حذف"
         },
         "encounter": {
+            "person": "",
+            "no_matches_hint": "",
             "sheet_title": "سجل لقاءً",
             "edit_title": "تحرير المواجهة",
             "change_person": "تغيير",

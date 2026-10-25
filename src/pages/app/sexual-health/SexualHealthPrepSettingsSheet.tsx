@@ -113,11 +113,6 @@ export function SexualHealthPrepSettingsSheet({
 								);
 							})}
 						</SheetCard>
-						<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
-							{t("sexualHealth.info.scheme_desc", {
-								defaultValue: "This changes what the PrEP tab's quick-log button and protection status look like.",
-							})}
-						</p>
 					</SheetSection>
 
 					<div className="flex gap-2.5 px-1">

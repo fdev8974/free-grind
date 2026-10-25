@@ -2515,6 +2515,8 @@
             "delete_confirm_action": "Supprimer"
         },
         "encounter": {
+            "person": "",
+            "no_matches_hint": "",
             "sheet_title": "Enregistrer une rencontre",
             "edit_title": "Modifier la rencontre",
             "change_person": "Changement",

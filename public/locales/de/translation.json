@@ -2499,6 +2499,8 @@
             "delete_confirm_action": "Löschen"
         },
         "encounter": {
+            "person": "",
+            "no_matches_hint": "",
             "sheet_title": "Begegnung erfassen",
             "edit_title": "Begegnung bearbeiten",
             "change_person": "Ändern",

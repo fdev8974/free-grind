@@ -20,7 +20,7 @@ import {
 	sheetButtonClass,
 } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
-import { SheetSection, SheetToggleList } from "../../../components/ui/sheet-section";
+import { SHEET_FIELD_CLASS, SheetSection, SheetToggleList } from "../../../components/ui/sheet-section";
 import { TravelDestinationSheet } from "./TravelDestinationSheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
@@ -152,9 +152,6 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 		}
 	};
 
-	const fieldClass =
-		"w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]";
-
 	return (
 		<>
 			<BottomSheet
@@ -207,13 +204,13 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 									type="date"
 									value={startDate}
 									onChange={(e) => setStartDate(e.target.value)}
-									className={cn(fieldClass, "h-11 px-3")}
+									className={cn(SHEET_FIELD_CLASS, "h-11 px-3")}
 								/>
 								<input
 									type="date"
 									value={endDate}
 									onChange={(e) => setEndDate(e.target.value)}
-									className={cn(fieldClass, "h-11 px-3")}
+									className={cn(SHEET_FIELD_CLASS, "h-11 px-3")}
 								/>
 							</div>
 						</SheetSection>
@@ -224,7 +221,7 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 								onChange={(e) => setNotes(e.target.value)}
 								placeholder={t("travel_plans.notes_placeholder")}
 								rows={3}
-								className={cn(fieldClass, "resize-none px-4 py-3")}
+								className={cn(SHEET_FIELD_CLASS, "resize-none px-4 py-3")}
 							/>
 						</SheetSection>
 

@@ -156,7 +156,7 @@ export function SexualHealthDosesTab({
 					</div>
 				) : doses.length === 0 ? (
 					<SexualHealthEmptyState
-						icon={<Pill className="h-5 w-5 opacity-60" />}
+						icon={<Pill className="h-5 w-5" />}
 						title={t("sexualHealth.doses.empty", { defaultValue: "No doses logged yet" })}
 						description={t("sexualHealth.doses.empty_desc", { defaultValue: "Use the button below to log your first dose." })}
 					/>

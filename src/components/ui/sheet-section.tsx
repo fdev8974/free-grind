@@ -89,6 +89,12 @@ export function SheetChip({
 	);
 }
 
+/** Look of a plain form field in a sheet (date, time, multi-line note):
+ * surface-2 fill, thin border, accent border while focused. Add the height
+ * and padding at the call site (e.g. "h-11 px-3", or "px-4 py-3 resize-none"). */
+export const SHEET_FIELD_CLASS =
+	"w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]";
+
 /** Plain surface-2 container for list-style rows in a sheet section. */
 export function SheetCard({ className, children }: { className?: string; children: ReactNode }) {
 	return <div className={cn("rounded-2xl bg-[var(--surface-2)] px-4 py-3", className)}>{children}</div>;

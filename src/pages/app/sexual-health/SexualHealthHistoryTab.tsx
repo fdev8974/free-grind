@@ -172,7 +172,7 @@ export function SexualHealthHistoryTab({
 				</div>
 			) : items.length === 0 ? (
 				<SexualHealthEmptyState
-					icon={<Clock className="h-5 w-5 opacity-60" />}
+					icon={<Clock className="h-5 w-5" />}
 					title={t("sexualHealth.history.empty", { defaultValue: "No history yet" })}
 					description={t("sexualHealth.history.empty_desc", {
 						defaultValue: "Log a dose or an encounter and it will show up here.",

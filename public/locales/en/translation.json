@@ -2499,6 +2499,8 @@
       "delete_confirm_action": "Delete"
     },
     "encounter": {
+      "person": "Who",
+      "no_matches_hint": "Not in your chats? Add them by name below.",
       "sheet_title": "Log an encounter",
       "edit_title": "Edit encounter",
       "change_person": "Change",

@@ -2517,6 +2517,8 @@
             "delete_confirm_action": "Обриши"
         },
         "encounter": {
+            "person": "",
+            "no_matches_hint": "",
             "sheet_title": "Забележи сусрет",
             "edit_title": "Уреди сусрет",
             "change_person": "Промени",

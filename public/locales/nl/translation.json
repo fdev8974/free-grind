@@ -2499,6 +2499,8 @@
             "delete_confirm_action": "Verwijderen"
         },
         "encounter": {
+            "person": "",
+            "no_matches_hint": "",
             "sheet_title": "Ontmoeting vastleggen",
             "edit_title": "Ontmoeting bewerken",
             "change_person": "Wijzigen",

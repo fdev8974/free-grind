@@ -1,12 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FlaskConical, Plus, Trash2 } from "lucide-react";
+import { FlaskConical, Loader2, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { BottomSheet, SheetCloseButton } from "../../../components/ui/bottom-sheet";
-import { Button } from "../../../components/ui/button";
-import { Chip } from "../../../components/ui/chip";
+import {
+	BottomSheet,
+	SheetCloseButton,
+	SHEET_FOOTER_CLASS,
+	SHEET_FOOTER_ICON_BUTTON_CLASS,
+	sheetButtonClass,
+} from "../../../components/ui/bottom-sheet";
+import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
+import { SHEET_FIELD_CLASS, SheetChip, SheetSection } from "../../../components/ui/sheet-section";
 import { LoadingState } from "../../../components/ui/states";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
@@ -104,6 +110,8 @@ function TestFormSheet({
 	const [isSaving, setIsSaving] = useState(false);
 	const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
+	// Saving and deleting close the sheet animated; onClose then unmounts it.
+	const sheetCloseRef = useRef<(() => void) | null>(null);
 
 	const handleSubmit = async () => {
 		setIsSaving(true);
@@ -126,6 +134,7 @@ function TestFormSheet({
 				});
 			}
 			onSaved(testedAtMs);
+			sheetCloseRef.current?.();
 		} finally {
 			setIsSaving(false);
 		}
@@ -137,6 +146,7 @@ function TestFormSheet({
 		try {
 			await deleteStiTest(editingTest.id);
 			onDeleted?.();
+			sheetCloseRef.current?.();
 		} finally {
 			setIsDeleting(false);
 			setIsConfirmingDelete(false);
@@ -145,76 +155,84 @@ function TestFormSheet({
 
 	// Portalled to document.body — see EncounterLogSheet.tsx for why
 	// (avoids the FeedScrollContainer mask-image containing-block issue).
+	const editing = editingTest != null;
 	return createPortal(
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} isProcessing={isSaving}>
-			<div className="flex items-center justify-between px-4 pb-3">
-				<p className="text-sm font-semibold text-[var(--text)]">
+		<BottomSheet
+			onClose={onClose}
+			closeRef={sheetCloseRef}
+			isDesktop={isDesktop}
+			isProcessing={isSaving}
+			bg={NATIVE_SHEET_BG}
+			panelClassName="max-h-[92dvh] px-4"
+		>
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">
 					{editingTest
 						? t("sexualHealth.tests.edit_title", { defaultValue: "Edit test" })
 						: t("sexualHealth.tests.add_title", { defaultValue: "Add test" })}
-				</p>
+				</h3>
 				<SheetCloseButton disabled={isSaving} />
 			</div>
-			<div className="grid gap-4 px-4 pb-4">
-				<label className="grid gap-1.5">
-					<span className="text-xs font-medium text-[var(--text-muted)]">
-						{t("sexualHealth.tests.field_date", { defaultValue: "Date" })}
-					</span>
-					<input type="date" value={testedAt} onChange={(event) => setTestedAt(event.target.value)} className="input-field" />
-				</label>
-				<div className="grid gap-1.5">
-					<span className="text-xs font-medium text-[var(--text-muted)]">
-						{t("sexualHealth.tests.field_type", { defaultValue: "Test type" })}
-					</span>
-					<div className="flex flex-wrap gap-2">
-						{(Object.keys(TEST_TYPE_LABEL_KEYS) as StiTest["testType"][]).map((value) => (
-							<Chip key={value} selected={testType === value} onClick={() => setTestType(value)}>
-								{t(TEST_TYPE_LABEL_KEYS[value])}
-							</Chip>
-						))}
-					</div>
+
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<div className="space-y-5">
+					<SheetSection title={t("sexualHealth.tests.field_date", { defaultValue: "Date" })}>
+						<input
+							type="date"
+							value={testedAt}
+							onChange={(event) => setTestedAt(event.target.value)}
+							className={cn(SHEET_FIELD_CLASS, "h-11 px-3")}
+						/>
+					</SheetSection>
+					<SheetSection title={t("sexualHealth.tests.field_type", { defaultValue: "Test type" })}>
+						<div className="flex flex-wrap gap-2">
+							{(Object.keys(TEST_TYPE_LABEL_KEYS) as StiTest["testType"][]).map((value) => (
+								<SheetChip key={value} active={testType === value} onClick={() => setTestType(value)}>
+									{t(TEST_TYPE_LABEL_KEYS[value])}
+								</SheetChip>
+							))}
+						</div>
+					</SheetSection>
+					<SheetSection title={t("sexualHealth.tests.field_result", { defaultValue: "Result" })}>
+						<div className="flex flex-wrap gap-2">
+							{(Object.keys(RESULT_LABEL_KEYS) as StiTest["result"][]).map((value) => (
+								<SheetChip key={value} active={result === value} onClick={() => setResult(value)}>
+									{t(RESULT_LABEL_KEYS[value])}
+								</SheetChip>
+							))}
+						</div>
+					</SheetSection>
+					<SheetSection title={t("sexualHealth.tests.field_note", { defaultValue: "Note (optional)" })}>
+						<textarea
+							value={note}
+							onChange={(event) => setNote(event.target.value)}
+							rows={3}
+							className={cn(SHEET_FIELD_CLASS, "resize-none px-4 py-3")}
+						/>
+					</SheetSection>
 				</div>
-				<div className="grid gap-1.5">
-					<span className="text-xs font-medium text-[var(--text-muted)]">
-						{t("sexualHealth.tests.field_result", { defaultValue: "Result" })}
-					</span>
-					<div className="flex flex-wrap gap-2">
-						{(Object.keys(RESULT_LABEL_KEYS) as StiTest["result"][]).map((value) => (
-							<Chip key={value} selected={result === value} onClick={() => setResult(value)}>
-								{t(RESULT_LABEL_KEYS[value])}
-							</Chip>
-						))}
-					</div>
-				</div>
-				<label className="grid gap-1.5">
-					<span className="text-xs font-medium text-[var(--text-muted)]">
-						{t("sexualHealth.tests.field_note", { defaultValue: "Note (optional)" })}
-					</span>
-					<textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} className="input-field resize-none" />
-				</label>
 			</div>
-			<div className="flex gap-2 px-4">
-				{editingTest ? (
+
+			<div className={SHEET_FOOTER_CLASS}>
+				{editing && (
 					<button
 						type="button"
 						onClick={() => setIsConfirmingDelete(true)}
-						disabled={isSaving}
-						className="flex flex-1 items-center justify-center rounded-xl border border-red-500/35 px-4 py-2.5 text-sm font-medium text-red-400 transition-all active:scale-95 hover:border-red-500/45 disabled:opacity-40"
-						style={{
-							backgroundColor: "color-mix(in srgb, #ef4444, transparent 92%)",
-							boxShadow: "0 2px 8px color-mix(in srgb, #ef4444, transparent 94%)",
-						}}
+						disabled={isSaving || isDeleting}
+						aria-label={t("sexualHealth.tests.delete", { defaultValue: "Delete" })}
+						className={cn(SHEET_FOOTER_ICON_BUTTON_CLASS, "bg-red-500/12 text-red-500 hover:bg-red-500/20 hover:text-red-500")}
 					>
-						{t("sexualHealth.tests.delete", { defaultValue: "Delete" })}
+						<Trash2 className="h-4 w-4" />
 					</button>
-				) : (
-					<Button variant="secondary" className="flex-1" onClick={onClose} disabled={isSaving}>
-						{t("sexualHealth.tests.cancel", { defaultValue: "Cancel" })}
-					</Button>
 				)}
-				<Button variant="primary" className="flex-1" loading={isSaving} onClick={() => void handleSubmit()}>
-					{t("sexualHealth.tests.save", { defaultValue: "Save" })}
-				</Button>
+				<button
+					type="button"
+					onClick={() => void handleSubmit()}
+					disabled={isSaving}
+					className={sheetButtonClass()}
+				>
+					{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("sexualHealth.tests.save", { defaultValue: "Save" })}
+				</button>
 			</div>
 
 			<ConfirmDialog
@@ -302,7 +320,7 @@ export function SexualHealthTestsTab({
 					</div>
 				) : tests.length === 0 ? (
 					<SexualHealthEmptyState
-						icon={<FlaskConical className="h-5 w-5 opacity-60" />}
+						icon={<FlaskConical className="h-5 w-5" />}
 						title={t("sexualHealth.tests.empty", { defaultValue: "No tests logged yet" })}
 						description={t("sexualHealth.tests.empty_desc", { defaultValue: "Add your latest STI test to keep track over time." })}
 					/>
@@ -333,7 +351,6 @@ export function SexualHealthTestsTab({
 				<TestFormSheet
 					onClose={() => setIsAddOpen(false)}
 					onSaved={(testedAtMs) => {
-						setIsAddOpen(false);
 						reload();
 						void syncProfileLastTested(testedAtMs);
 					}}
@@ -345,14 +362,10 @@ export function SexualHealthTestsTab({
 					editingTest={editingTest}
 					onClose={() => setEditingTest(null)}
 					onSaved={(testedAtMs) => {
-						setEditingTest(null);
 						reload();
 						void syncProfileLastTested(testedAtMs);
 					}}
-					onDeleted={() => {
-						setEditingTest(null);
-						reload();
-					}}
+					onDeleted={reload}
 				/>
 			)}
 
