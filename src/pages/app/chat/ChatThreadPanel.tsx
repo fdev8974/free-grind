@@ -12,7 +12,6 @@ import {
 	Star,
 	GitMerge,
 	GripVertical,
-	Hourglass,
 	ImagePlus,
 	Loader2,
 	Mic,
@@ -33,6 +32,7 @@ import {
 	Undo2,
 	X,
 	BellOff,
+	Repeat,
 } from "lucide-react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, SendHorizontalFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
@@ -92,7 +92,7 @@ import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { SheetToggleList } from "../../../components/ui/sheet-section";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
-import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS, SHEET_FOOTER_FIELD_CLASS } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG, SheetActionList } from "../../../components/ui/action-sheet";
 import {
 	DndContext,
@@ -143,7 +143,7 @@ import {
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
 import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
-import { DrawerEmptyState, ExpiryToggleButton } from "./drawerUi";
+import { DrawerEmptyState, ExpiryToggleButton, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon, VideoExpiryButton } from "./drawerUi";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
@@ -2656,18 +2656,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									);
 								}
 								return (
-									<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-[120px]`}>
-										<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
-										<select
-											value={attachmentMaxViews}
-											onChange={(e) => setAttachmentMaxViews(Number(e.target.value))}
-											className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
-										>
-											<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-											<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>
-											<option value={2}>{t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" })}</option>
-										</select>
-									</div>
+									<VideoExpiryButton
+										value={attachmentMaxViews}
+										onChange={setAttachmentMaxViews}
+										isDesktop={isDesktop}
+									/>
 								);
 							})()}
 						>
@@ -2679,6 +2672,14 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									<div className="px-4 pb-3">
 										<div style={{ borderRadius: "1rem", clipPath: "inset(0 round 1rem)" }}>
 											<video src={attachmentPreviewUrl} controls className="w-full object-contain" style={{ maxHeight: "40dvh" }} />
+										</div>
+										<div className="mt-3 flex items-center justify-center gap-3">
+											<MediaToolButton
+												icon={<Repeat />}
+												label={t("chat.attachments.looping")}
+												active={attachmentLooping}
+												onClick={() => setAttachmentLooping(!attachmentLooping)}
+											/>
 										</div>
 									</div>
 								) : (
@@ -2723,12 +2724,15 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											</div>
 										</div>
 										<div className="mt-3 flex items-center justify-center gap-3">
-											<button type="button" onClick={() => void applyAttachmentTransform("flipH")} className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`} aria-label="Flip horizontal">
-												<SquareCenterlineDashedHorizontal className="h-5 w-5" />
-											</button>
-											<button type="button" onClick={() => void applyAttachmentTransform("rotateCw")} className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`} aria-label="Rotate clockwise">
-												<RotateCw className="h-5 w-5" />
-											</button>
+											<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyAttachmentTransform("flipH")} />
+											<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyAttachmentTransform("rotateCw")} />
+											<MediaToolDivider />
+											<MediaToolButton
+												icon={<TakenOnGrindrToolIcon active={attachmentTakenOnGrindr} />}
+												label={t("chat.attachments.taken_on_grindr")}
+												active={attachmentTakenOnGrindr}
+												onClick={() => setAttachmentTakenOnGrindr(!attachmentTakenOnGrindr)}
+											/>
 										</div>
 									</div>
 								)
@@ -2738,9 +2742,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							<div className="shrink-0 px-4 pb-3 pt-2">
 								<SheetToggleList
 									items={[
-										pendingAttachmentFile?.type.startsWith("video/")
-											? { key: "looping", checked: attachmentLooping, onChange: setAttachmentLooping, label: t("chat.attachments.looping"), description: t("chat.attachments.looping_description") }
-											: { key: "taken-on-grindr", checked: attachmentTakenOnGrindr, onChange: setAttachmentTakenOnGrindr, label: t("chat.attachments.taken_on_grindr"), description: t("chat.attachments.taken_on_grindr_description") },
 										{
 											key: "add-to-drawer",
 											checked: attachmentAddToDrawer,

@@ -37,6 +37,7 @@ import {
 	DrawerTileCornerButton,
 	ExpiryToggleButton,
 	useDrawerMediaPreview,
+	VideoExpiryButton,
 } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { useTranslation } from "react-i18next";
@@ -848,18 +849,7 @@ export function ChatDrawerPanel({
 							<DrawerFooter>
 								{/* Only videos have a third choice (repeat); otherwise it's on/off. */}
 								{hasAnyVideo && !isMixedSelection ? (
-									<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-0 flex-1`}>
-										<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
-										<select
-											value={mediaMaxViews}
-											onChange={(e) => setMediaMaxViews(Number(e.target.value))}
-											className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
-										>
-											<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-											<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>
-											<option value={2}>{t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" })}</option>
-										</select>
-									</div>
+									<VideoExpiryButton value={mediaMaxViews} onChange={setMediaMaxViews} isDesktop={isDesktop} />
 								) : (
 									<ExpiryToggleButton
 										expiring={mediaMaxViews !== 2147483647}

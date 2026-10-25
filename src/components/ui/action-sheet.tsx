@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { cloneElement, isValidElement, type ComponentType, type ReactElement } from "react";
 import { BottomSheet, SheetClose, SheetCloseButton } from "./bottom-sheet";
 import { cn } from "../../utils/cn";
@@ -23,6 +23,8 @@ export interface SheetAction {
 	iconClassName?: string;
 	tone?: "default" | "danger";
 	disabled?: boolean;
+	/** The current choice, when the sheet picks one of several options: checkmark on the right. */
+	selected?: boolean;
 	/** Runs as the sheet starts closing; wrap follow-up sheets in afterSheetClose. */
 	onSelect: () => void;
 }
@@ -54,6 +56,7 @@ export function SheetActionRow({ action }: { action: SheetAction }) {
 					<p className="mt-0.5 text-xs text-[var(--text-muted)]">{action.description}</p>
 				)}
 			</div>
+			{action.selected ? <Check className="h-5 w-5 shrink-0 text-[var(--accent-readable)]" strokeWidth={2.5} /> : null}
 		</SheetClose>
 	);
 }

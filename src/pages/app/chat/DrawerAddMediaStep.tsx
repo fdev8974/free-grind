@@ -1,11 +1,10 @@
-import { Loader2, Plus, RotateCw, SquareCenterlineDashedHorizontal } from "lucide-react";
+import { Loader2, Plus, RotateCw, SquareCenterlineDashedHorizontal, Repeat } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { SHEET_ICON_BUTTON_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
-import { SheetToggleList } from "../../../components/ui/sheet-section";
-import { DrawerFooter } from "./drawerUi";
+import { sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { DrawerFooter, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon } from "./drawerUi";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 
 /**
@@ -120,6 +119,16 @@ export function DrawerAddMediaStep({
 					</div>
 				</div>
 			)}
+			{previewUrl && isVideo && (
+				<div className="mb-4 flex items-center justify-center gap-3">
+					<MediaToolButton
+						icon={<Repeat />}
+						label={t("chat.attachments.looping")}
+						active={looping}
+						onClick={() => setLooping((value) => !value)}
+					/>
+				</div>
+			)}
 			{previewUrl && !isVideo && (
 				<>
 				<div className="mb-4 flex justify-center">
@@ -195,30 +204,18 @@ export function DrawerAddMediaStep({
 				</div>
 				</div>
 				<div className="mb-4 flex items-center justify-center gap-3">
-					<button
-						type="button"
-						onClick={() => void applyTransform("flipH")}
-						className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`}
-						aria-label="Flip horizontal"
-					>
-						<SquareCenterlineDashedHorizontal className="h-5 w-5" />
-					</button>
-					<button
-						type="button"
-						onClick={() => void applyTransform("rotateCw")}
-						className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`}
-						aria-label="Rotate clockwise"
-					>
-						<RotateCw className="h-5 w-5" />
-					</button>
+					<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyTransform("flipH")} />
+					<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyTransform("rotateCw")} />
+					<MediaToolDivider />
+					<MediaToolButton
+						icon={<TakenOnGrindrToolIcon active={takenOnGrindr} />}
+						label={t("chat.attachments.taken_on_grindr")}
+						active={takenOnGrindr}
+						onClick={() => setTakenOnGrindr((value) => !value)}
+					/>
 				</div>
 				</>
 			)}
-			<SheetToggleList
-				items={[isVideo
-					? { key: "looping", checked: looping, onChange: setLooping, label: t("chat.attachments.looping"), description: t("chat.attachments.looping_description") }
-					: { key: "taken-on-grindr", checked: takenOnGrindr, onChange: setTakenOnGrindr, label: t("chat.attachments.taken_on_grindr"), description: t("chat.attachments.taken_on_grindr_description") }]}
-			/>
 			</div>
 			<DrawerFooter>
 				<button

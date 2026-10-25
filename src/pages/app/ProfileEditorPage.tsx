@@ -20,7 +20,7 @@ import { sanitizeUploadFile } from "../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../utils/tags";
 import { PageHeader } from "../../components/PageHeader";
 import { BottomDrawer } from "../../components/ui/bottom-drawer";
-import { SheetToggleList } from "../../components/ui/sheet-section";
+import { MediaToolButton, TakenOnGrindrToolIcon } from "./chat/drawerUi";
 import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
 import freegrindLogo from "../../images/freegrind-logo.webp";
 import {
@@ -1035,15 +1035,13 @@ export function ProfileEditorPage() {
 								</div>
 							)}
 						</div>
-						<div className="shrink-0 px-4 pb-3 pt-2">
-							<SheetToggleList
-								items={[{
-									key: "taken-on-grindr",
-									checked: pendingPhotoTakenOnGrindr,
-									onChange: setPendingPhotoTakenOnGrindr,
-									label: t("profile_editor.photo_upload.taken_on_grindr"),
-									description: t("profile_editor.photo_upload.taken_on_grindr_description"),
-								}]}
+						{/* Below the preview, like the chat upload's tool buttons. */}
+						<div className="flex shrink-0 items-center justify-center gap-3 px-4 pb-3 pt-1">
+							<MediaToolButton
+								icon={<TakenOnGrindrToolIcon active={pendingPhotoTakenOnGrindr} />}
+								label={t("profile_editor.photo_upload.taken_on_grindr")}
+								active={pendingPhotoTakenOnGrindr}
+								onClick={() => setPendingPhotoTakenOnGrindr(!pendingPhotoTakenOnGrindr)}
 							/>
 						</div>
 					</div>

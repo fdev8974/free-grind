@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, Hourglass, Image as ImageIcon, Infinity as InfinityIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Infinity as InfinityIcon, Loader2, Play, RefreshCw, Repeat, Video, X } from "lucide-react";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { SheetActionList } from "../../../components/ui/action-sheet";
 
 // Shared building blocks for every media drawer sheet (chat drawer, collection
 // editor, album "add from drawer", profile pictures), so they stay in sync:
@@ -525,6 +526,120 @@ export function DrawerFooter({ children }: { children: ReactNode }) {
 }
 
 export const DRAWER_PRIMARY_BUTTON_CLASS = sheetButtonClass();
+
+/** maxViews of the video expiry choices; "unlimited" is the pickers' sentinel
+ * (sent as MAX_VIDEO_VIEWS, see chatUtils' videoMessageViews). */
+const VIDEO_VIEWS_UNLIMITED = 2147483647;
+
+/** Footer pill for a video's views (unlimited, once, repeat): shows the
+ * current choice and opens an action sheet with the three options. */
+export function VideoExpiryButton({
+	value,
+	onChange,
+	isDesktop,
+	disabled,
+}: {
+	/** maxViews: 1 = once, 2 = repeat, anything else = unlimited. */
+	value: number;
+	onChange: (maxViews: number) => void;
+	isDesktop: boolean;
+	disabled?: boolean;
+}) {
+	const { t } = useTranslation();
+	const [isOpen, setIsOpen] = useState(false);
+	const options = [
+		{ value: VIDEO_VIEWS_UNLIMITED, icon: InfinityIcon, iconClassName: "bg-sky-500/15 text-sky-400", label: t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" }), description: t("chat_drawer.video_expiry_unlimited_desc", { defaultValue: "Can be watched as often as they like" }) },
+		{ value: 1, icon: Eye, iconClassName: "bg-amber-500/15 text-amber-400", label: t("chat_drawer.expiry.once", { defaultValue: "Once" }), description: t("chat_drawer.video_expiry_once_desc", { defaultValue: "Can be watched one time" }) },
+		{ value: 2, icon: Repeat, iconClassName: "bg-violet-500/15 text-violet-400", label: t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" }), description: t("chat_drawer.video_expiry_repeat_desc", { defaultValue: "Can be watched twice" }) },
+	];
+	const current = options.find((option) => option.value === value) ?? options[0];
+	const isLimited = current.value !== VIDEO_VIEWS_UNLIMITED;
+	return (
+		<>
+			<button
+				type="button"
+				onClick={() => setIsOpen(true)}
+				disabled={disabled}
+				aria-haspopup="dialog"
+				className={`inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 ${
+					isLimited
+						? "bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent-readable)]"
+						: "ink-tint-10 text-[var(--text-muted)] hover:ink-tint-14 hover:text-[var(--text)]"
+				}`}
+			>
+				<current.icon className="h-4 w-4" />
+				<span>{current.label}</span>
+				<ChevronDown className="h-3.5 w-3.5 opacity-70" />
+			</button>
+			{/* Portaled: this sits inside another (transformed) sheet, where a fixed sheet wouldn't cover the screen. */}
+			{isOpen && createPortal(
+				<SheetActionList
+					title={t("chat_drawer.video_expiry_title", { defaultValue: "Video views" })}
+					onClose={() => setIsOpen(false)}
+					isDesktop={isDesktop}
+					actions={options.map((option) => ({
+						key: String(option.value),
+						icon: option.icon,
+						iconClassName: option.iconClassName,
+						label: option.label,
+						description: option.description,
+						selected: option.value === current.value,
+						onSelect: () => onChange(option.value),
+					}))}
+				/>,
+				document.body,
+			)}
+		</>
+	);
+}
+
+/** The FreeGrind logo as the "taken on Grindr" tool button's icon: muted
+ * and grayscale while off, in full color while the watermark is on. */
+export function TakenOnGrindrToolIcon({ active }: { active: boolean }) {
+	return (
+		<img
+			src={freegrindLogo}
+			alt=""
+			className={`h-5 w-5 rounded-full transition ${active ? "" : "opacity-60 grayscale"}`}
+		/>
+	);
+}
+
+/** Thin vertical line between groups of MediaToolButtons (e.g. the
+ * transforms and the watermark toggle). */
+export function MediaToolDivider() {
+	return <span aria-hidden="true" className="mx-1 h-6 w-px bg-[var(--border)]" />;
+}
+
+/** Round tool button under a media preview in the upload/edit sheets (flip,
+ * rotate, the "taken on Grindr" watermark, looping). With `active` it is a
+ * toggle, accent-tinted while on. */
+export function MediaToolButton({
+	icon,
+	label,
+	onClick,
+	active,
+}: {
+	icon: ReactNode;
+	label: string;
+	onClick: () => void;
+	active?: boolean;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			aria-label={label}
+			title={label}
+			aria-pressed={active}
+			className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10 [&_svg]:h-5 [&_svg]:w-5 ${
+				active ? "!bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] !text-[var(--accent-readable)]" : ""
+			}`}
+		>
+			{icon}
+		</button>
+	);
+}
 
 /** Footer pill for a two-way expiry choice (unlimited or expiring, e.g. a
  * photo's 10 s): one tap flips it, instead of a dropdown with two entries.
