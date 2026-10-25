@@ -564,8 +564,8 @@ export function VideoExpiryButton({
 				aria-haspopup="dialog"
 				className={`inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 ${
 					isLimited
-						? "bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent-readable)]"
-						: "ink-tint-10 text-[var(--text-muted)] hover:ink-tint-14 hover:text-[var(--text)]"
+						? "bg-[color-mix(in_srgb,var(--accent)_24%,var(--sheet-bg,var(--surface)))] text-[var(--accent-readable)]"
+						: "bg-[color-mix(in_srgb,var(--text)_12%,var(--sheet-bg,var(--surface)))] text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--text)_16%,var(--sheet-bg,var(--surface)))]"
 				}`}
 			>
 				<current.icon className="h-4 w-4" />
@@ -668,8 +668,8 @@ export function ExpiryToggleButton({
 			title={expiring ? expiringLabel : unlimitedLabel}
 			className={`inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold tabular-nums transition-[transform,background-color,color] duration-150 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 ${
 				expiring
-					? "bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent-readable)]"
-					: "ink-tint-10 text-[var(--text-muted)] hover:ink-tint-14 hover:text-[var(--text)]"
+					? "bg-[color-mix(in_srgb,var(--accent)_24%,var(--sheet-bg,var(--surface)))] text-[var(--accent-readable)]"
+					: "bg-[color-mix(in_srgb,var(--text)_12%,var(--sheet-bg,var(--surface)))] text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--text)_16%,var(--sheet-bg,var(--surface)))]"
 			}`}
 		>
 			{expiring ? <Hourglass className="h-4 w-4" /> : <InfinityIcon className="h-4 w-4" />}

@@ -115,10 +115,13 @@ const SHEET_BUTTON_BASE =
 const SHEET_BUTTON_VARIANTS = {
 	/** Filled with the accent. Callers may recolor it via `style` (backgroundColor/color). */
 	primary: "bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_4px_14px_rgba(0,0,0,0.2)] hover:brightness-110",
-	/** Soft neutral fill, same ink tint as the header buttons. */
-	secondary: "ink-tint-10 text-[var(--text)] hover:ink-tint-14 active:ink-tint-18",
-	destructive: "bg-red-500/12 text-red-500 hover:bg-red-500/20",
-	warning: "bg-orange-500/12 text-orange-400 hover:bg-orange-500/20",
+	// The tinted variants mix with the sheet's own color (--sheet-bg) instead
+	// of being see-through: on a floating footer's dark fade, over scrolling
+	// content, a transparent tint looked washed out and barely visible.
+	/** Soft neutral fill. */
+	secondary: "bg-[color-mix(in_srgb,var(--text)_12%,var(--sheet-bg,var(--surface)))] text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--text)_16%,var(--sheet-bg,var(--surface)))] active:bg-[color-mix(in_srgb,var(--text)_20%,var(--sheet-bg,var(--surface)))]",
+	destructive: "bg-[color-mix(in_srgb,#ef4444_18%,var(--sheet-bg,var(--surface)))] text-red-500 hover:bg-[color-mix(in_srgb,#ef4444_26%,var(--sheet-bg,var(--surface)))]",
+	warning: "bg-[color-mix(in_srgb,#f97316_18%,var(--sheet-bg,var(--surface)))] text-orange-500 hover:bg-[color-mix(in_srgb,#f97316_26%,var(--sheet-bg,var(--surface)))]",
 } as const;
 
 export type SheetButtonVariant = keyof typeof SHEET_BUTTON_VARIANTS;
@@ -130,11 +133,11 @@ export function sheetButtonClass(variant: SheetButtonVariant = "primary"): strin
 
 /** Square-ish round icon button that sits next to footer pills. */
 export const SHEET_FOOTER_ICON_BUTTON_CLASS =
-	"inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full ink-tint-10 text-[var(--text-muted)] transition-[transform,color] duration-150 hover:ink-tint-14 hover:text-[var(--text)] active:scale-[0.94] active:ink-tint-18 disabled:pointer-events-none disabled:opacity-50";
+	"inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--text)_12%,var(--sheet-bg,var(--surface)))] text-[var(--text-muted)] transition-[transform,color] duration-150 hover:bg-[color-mix(in_srgb,var(--text)_16%,var(--sheet-bg,var(--surface)))] hover:text-[var(--text)] active:scale-[0.94] disabled:pointer-events-none disabled:opacity-50";
 
 /** Shell for a control (e.g. the expiry <select>) sharing a footer row with pills. */
 export const SHEET_FOOTER_FIELD_CLASS =
-	"relative inline-flex h-12 items-center rounded-full ink-tint-10 text-[var(--text-muted)] transition-colors hover:ink-tint-14 hover:text-[var(--text)]";
+	"relative inline-flex h-12 items-center rounded-full bg-[color-mix(in_srgb,var(--text)_12%,var(--sheet-bg,var(--surface)))] text-[var(--text-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--text)_16%,var(--sheet-bg,var(--surface)))] hover:text-[var(--text)]";
 
 export function SheetCloseIcon() {
 	return <X className="h-4 w-4" strokeWidth={2.5} />;
