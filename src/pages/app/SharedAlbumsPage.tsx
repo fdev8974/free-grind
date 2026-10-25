@@ -150,9 +150,9 @@ function AlbumCard({
 					}}
 					disabled={isDeleting}
 					title={t("shared_albums.delete")}
-					className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-red-500/80 disabled:opacity-50"
+					className="absolute right-2 top-2 inline-flex items-center justify-center rounded-full bg-black/50 p-1 text-white/85 backdrop-blur-sm transition hover:bg-red-500/80 hover:text-white disabled:opacity-50"
 				>
-					<Trash2 className="h-3.5 w-3.5" />
+					<Trash2 className="h-3 w-3" />
 				</button>
 			</div>
 		</div>
