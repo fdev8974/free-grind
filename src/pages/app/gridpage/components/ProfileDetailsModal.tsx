@@ -2,7 +2,7 @@ import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertica
 import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -133,7 +133,56 @@ type ProfileDetailsModalProps = {
 	variant?: "modal" | "page";
 	onPrevProfile?: () => void;
 	onNextProfile?: () => void;
+	/** What's already known about the neighbouring profiles, shown beside the page while swiping. */
+	prevProfilePreview?: ProfileSwipePreview | null;
+	nextProfilePreview?: ProfileSwipePreview | null;
 };
+
+export type ProfileSwipePreview = {
+	imageUrl: string | null;
+	name: string | null;
+	age: number | null;
+};
+
+// Same height as the photo carousel in the page variant.
+const PAGE_CAROUSEL_HEIGHT = "min(78dvh, calc(100vw * 1.55))";
+
+/** Neighbouring profile's photo and name, sitting just off-screen next to the swipeable page. */
+function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePreview; side: "prev" | "next" }) {
+	const { t } = useTranslation();
+	const src = proxyMediaUrl(preview.imageUrl);
+
+	useEffect(() => {
+		if (!src) return;
+		// Warm the cache so the photo is there by the time the swipe lands.
+		const img = new Image();
+		img.src = src;
+	}, [src]);
+
+	return (
+		<div
+			className="pointer-events-none absolute inset-y-0 w-full overflow-hidden bg-[var(--bg)]"
+			style={{ left: side === "prev" ? "-100%" : "100%" }}
+			aria-hidden="true"
+		>
+			<div className="relative overflow-hidden bg-black" style={{ height: PAGE_CAROUSEL_HEIGHT }}>
+				<ProfileImage src={preview.imageUrl} alt="" className="h-full w-full object-cover" />
+				<div
+					className="absolute inset-x-0 top-0"
+					style={{ height: "12rem", background: "linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%)" }}
+				/>
+			</div>
+			<div className="px-7 pt-4 sm:px-8 sm:pt-5">
+				<h2 className="truncate text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+					{preview.name?.trim() || t("profile_details.anonymous", "Someone")}
+					{preview.age != null && Number.isFinite(preview.age) && (
+						<span className="ml-2 text-xl font-normal text-[var(--text-muted)] sm:text-2xl">{preview.age}</span>
+					)}
+				</h2>
+			</div>
+		</div>
+	);
+}
 
 function normalizeMediaCreatedAt(value: unknown): number | null {
 	if (typeof value !== "number" && typeof value !== "string") {
@@ -229,6 +278,8 @@ export function ProfileDetailsModal({
 	variant = "modal",
 	onPrevProfile,
 	onNextProfile,
+	prevProfilePreview,
+	nextProfilePreview,
 }: ProfileDetailsModalProps) {
 	const { t } = useTranslation();
 	const { unitsPreset, showAlbumSensitiveContentWarning, openAlbumAsBottomSheet } = usePreferences();
@@ -429,12 +480,11 @@ export function ProfileDetailsModal({
 	const carouselTotalRef = useRef(0);
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 	const pageWrapRef = useRef<HTMLDivElement | null>(null);
-	const [profileSwipeDelta, setProfileSwipeDelta] = useState(0);
-	const profileSwipeRef = useRef({ startX: 0, startY: 0, decided: false, horizontal: false, dragging: false, lastDelta: 0 });
-	const [headerOpacity, setHeaderOpacity] = useState(0);
-	const [headerFadeDuration, setHeaderFadeDuration] = useState(0);
-	const inlineScrolled = headerOpacity > 0.5;
-	const [carouselDragDelta, setCarouselDragDelta] = useState(0);
+	const profileSwipeRef = useRef({ startX: 0, startY: 0, decided: false, horizontal: false, dragging: false, lastDelta: 0, pastThreshold: false });
+	// Gestures write straight to the DOM (header fade, profile swipe) instead
+	// of state, so a frame of finger movement doesn't re-render the whole modal.
+	const headerBgRef = useRef<HTMLDivElement | null>(null);
+	const [inlineScrolled, setInlineScrolled] = useState(false);
 	const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
 	const actionsMenuPresence = usePresence(isActionsMenuOpen);
 	const [banBioPrompt, setBanBioPrompt] = useState<{ text: string } | null>(null);
@@ -784,50 +834,97 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	useEffect(() => {
 		const el = scrollContainerRef.current;
 		if (!el || (variant === "modal" && isModalSplit)) return;
-		setHeaderOpacity(0);
-		setHeaderFadeDuration(0);
+		const setHeaderBg = (opacity: number, fadeMs: number) => {
+			const bg = headerBgRef.current;
+			if (!bg) return;
+			bg.style.transition = `opacity ${fadeMs}ms ease-out`;
+			bg.style.opacity = String(opacity);
+		};
+		setHeaderBg(0, 0);
+		setInlineScrolled(false);
 		let lastScrollTop = 0;
 		const onScroll = () => {
 			const scrollTop = el.scrollTop;
 			const scrollingDown = scrollTop > lastScrollTop;
 			lastScrollTop = scrollTop;
-			setHeaderFadeDuration(scrollingDown ? 0 : 400);
-			setHeaderOpacity(Math.min(scrollTop / 150, 1));
+			const opacity = Math.min(scrollTop / 150, 1);
+			setHeaderBg(opacity, scrollingDown ? 0 : 400);
+			// Only re-renders when crossing the threshold (same value bails out).
+			setInlineScrolled(opacity > 0.5);
 		};
 		el.addEventListener("scroll", onScroll, { passive: true });
 		return () => {
 			el.removeEventListener("scroll", onScroll);
-			setHeaderOpacity(0);
-			setHeaderFadeDuration(0);
+			setHeaderBg(0, 0);
+			setInlineScrolled(false);
 		};
 	}, [isOpen, isModalSplit, variant]); // eslint-disable-line react-hooks/exhaustive-deps
 
+	// Kept in refs so the touch listeners don't re-subscribe on every render
+	// (the hosts pass fresh closures each time).
+	const onPrevProfileRef = useRef(onPrevProfile);
+	onPrevProfileRef.current = onPrevProfile;
+	const onNextProfileRef = useRef(onNextProfile);
+	onNextProfileRef.current = onNextProfile;
+	const hasProfileNeighbors = Boolean(onPrevProfile || onNextProfile);
+	// Set once a swipe has slid the neighbour's preview fully in; the offset is
+	// reset only when that profile actually renders, so the old one never flashes.
+	const pendingSwipeResetRef = useRef(false);
+	const swipeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const resetProfileSwipeOffset = useCallback(() => {
+		pendingSwipeResetRef.current = false;
+		if (swipeResetTimerRef.current) {
+			clearTimeout(swipeResetTimerRef.current);
+			swipeResetTimerRef.current = null;
+		}
+		const el = pageWrapRef.current;
+		if (!el) return;
+		el.style.transition = "none";
+		el.style.transform = "";
+	}, []);
+
+	useLayoutEffect(() => {
+		if (pendingSwipeResetRef.current) resetProfileSwipeOffset();
+	}, [activeProfile?.profileId, isLoadingActiveProfile, resetProfileSwipeOffset]);
+
+	useEffect(() => resetProfileSwipeOffset, [resetProfileSwipeOffset]);
+
 	useEffect(() => {
-        const el = pageWrapRef.current;
+		const el = pageWrapRef.current;
 
-        if (
-            !el ||
-            !isOpen ||
-            selectedPhotoIndex !== null ||
-            variant !== "page" ||
-            (!onPrevProfile && !onNextProfile)
-        ) {
-            return;
-        }
+		if (
+			!el ||
+			!isOpen ||
+			selectedPhotoIndex !== null ||
+			variant !== "page" ||
+			!hasProfileNeighbors
+		) {
+			return;
+		}
 
+		const SWIPE_THRESHOLD = 80;
 		const s = profileSwipeRef.current;
+
+		const setOffset = (dx: number, animate: boolean) => {
+			el.style.transition = animate ? "transform 250ms ease-out" : "none";
+			el.style.transform = dx === 0 ? "" : `translateX(${dx}px)`;
+		};
 
 		const onStart = (e: TouchEvent) => {
 			if (controlsBarRef.current?.contains(e.target as Node)) return;
+			if (pendingSwipeResetRef.current) return;
 			s.startX = e.touches[0].clientX;
 			s.startY = e.touches[0].clientY;
 			s.decided = false;
 			s.horizontal = false;
 			s.dragging = false;
 			s.lastDelta = 0;
+			s.pastThreshold = false;
 		};
 
 		const onMove = (e: TouchEvent) => {
+			if (pendingSwipeResetRef.current) return;
 			const dx = e.touches[0].clientX - s.startX;
 			const dy = e.touches[0].clientY - s.startY;
 			if (!s.decided) {
@@ -838,8 +935,16 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			if (!s.horizontal) return;
 			e.preventDefault();
 			s.dragging = true;
-			s.lastDelta = dx;
-			setProfileSwipeDelta(dx);
+			const target = dx < 0 ? onNextProfileRef.current : onPrevProfileRef.current;
+			// Rubber-band when there's no profile on that side.
+			const offset = target ? dx : dx * 0.25;
+			s.lastDelta = offset;
+			const past = Boolean(target) && Math.abs(dx) > SWIPE_THRESHOLD;
+			if (past !== s.pastThreshold) {
+				s.pastThreshold = past;
+				if (past) haptic(8);
+			}
+			setOffset(offset, false);
 		};
 
 		const onEnd = () => {
@@ -848,9 +953,23 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			s.horizontal = false;
 			const dx = s.lastDelta;
 			s.lastDelta = 0;
-			setProfileSwipeDelta(0);
-			if (dx < -80) onNextProfile?.();
-			else if (dx > 80) onPrevProfile?.();
+			const go = s.pastThreshold ? (dx < 0 ? onNextProfileRef.current : onPrevProfileRef.current) : undefined;
+			s.pastThreshold = false;
+			if (!go) {
+				setOffset(0, true);
+				return;
+			}
+			// Finish the slide so the neighbour's preview fills the screen, then
+			// switch; the layout effect above snaps back once it has rendered.
+			const width = el.offsetWidth;
+			el.style.transition = "transform 200ms ease-out";
+			el.style.transform = `translateX(${dx < 0 ? -width : width}px)`;
+			pendingSwipeResetRef.current = true;
+			swipeResetTimerRef.current = setTimeout(() => {
+				go();
+				// Fallback in case the switch didn't change anything we watch.
+				swipeResetTimerRef.current = setTimeout(resetProfileSwipeOffset, 600);
+			}, 200);
 		};
 
 		el.addEventListener("touchstart", onStart, { passive: true });
@@ -864,12 +983,12 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			el.removeEventListener("touchcancel", onEnd);
 		};
 	}, [
-        isOpen,
-        selectedPhotoIndex,
-        variant,
-        onNextProfile,
-        onPrevProfile,
-    ]);
+		isOpen,
+		selectedPhotoIndex,
+		variant,
+		hasProfileNeighbors,
+		resetProfileSwipeOffset,
+	]);
 
 	useModalClose({ isOpen, onClose });
 	const handleBackdropClose = useMemo(
@@ -1763,6 +1882,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							<button
 								type="button"
 								onClick={() => {
+									haptic(10);
 									if (hasDraft) sendDraft();
 									else onMessageProfile?.(String(messageProfileId));
 								}}
@@ -1802,8 +1922,9 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			>
 				<div
 					// Frosted like the other headers (86% + blur) instead of turning fully solid.
-					className={`absolute inset-0 backdrop-blur-xl ${variant === "page" ? "bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "bg-[color-mix(in_srgb,var(--surface-2)_86%,transparent)]"}${inlineScrolled ? " border-b border-[var(--border)]/60" : ""}`}
-					style={{ opacity: headerOpacity, transition: `opacity ${headerFadeDuration}ms ease-out` }}
+					ref={headerBgRef}
+					// Opacity is driven by the scroll handler above.
+					className={`absolute inset-0 opacity-0 backdrop-blur-xl ${variant === "page" ? "bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "bg-[color-mix(in_srgb,var(--surface-2)_86%,transparent)]"}${inlineScrolled ? " border-b border-[var(--border)]/60" : ""}`}
 					aria-hidden="true"
 				/>
 				<div className="pointer-events-auto relative flex w-full items-center gap-3">
@@ -1841,7 +1962,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							{onToggleFavoriteProfile && !isProfileUnavailable && (
 								<button
 									type="button"
-									onClick={() => onToggleFavoriteProfile(String(messageProfileId), isFavorite)}
+									onClick={() => { haptic(10); void onToggleFavoriteProfile(String(messageProfileId), isFavorite); }}
 									disabled={isTogglingFavorite}
 									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors disabled:opacity-60 ${
 										isFavorite
@@ -1873,7 +1994,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									type="button"
 									onClick={() => setIsActionsMenuOpen((v) => !v)}
 									className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"}`}
-									aria-label="More actions"
+									aria-label={t("profile_details.more_actions", { defaultValue: "More actions" })}
 									aria-expanded={isActionsMenuOpen}
 								>
 									<EllipsisVertical className="h-4 w-4" />
@@ -1917,8 +2038,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
 												<span className="flex flex-col">
-													<span>Add forbidden Keyword</span>
-													<span className="text-xs text-[var(--text-muted)]">Bio Phrase</span>
+													<span>{t("profile_details.ban_bio_title")}</span>
+													<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_bio", { defaultValue: "Bio phrase" })}</span>
 												</span>
 											</button>
 										)}
@@ -1930,8 +2051,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
 												<span className="flex flex-col">
-													<span>Add forbidden Keyword</span>
-													<span className="text-xs text-[var(--text-muted)]">Profile Name</span>
+													<span>{t("profile_details.ban_bio_title")}</span>
+													<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_name", { defaultValue: "Profile name" })}</span>
 												</span>
 											</button>
 										)}
@@ -1951,7 +2072,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				{isLoadingActiveProfile && (
 					<div
 						className="animate-pulse bg-[var(--surface-2)]"
-						style={{ height: variant === "page" ? "min(78dvh, calc(100vw * 1.55))" : "min(55dvh, calc((100vw - 3rem) * 1.25))" }}
+						style={{ height: variant === "page" ? PAGE_CAROUSEL_HEIGHT : "min(55dvh, calc((100vw - 3rem) * 1.25))" }}
 						aria-hidden="true"
 					/>
 				)}
@@ -1959,7 +2080,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					<div
 						ref={mobileCarouselRef}
 						className="relative overflow-hidden bg-black"
-						style={{ height: variant === "page" ? "min(78dvh, calc(100vw * 1.55))" : "min(55dvh, calc((100vw - 3rem) * 1.25))" }}
+						style={{ height: variant === "page" ? PAGE_CAROUSEL_HEIGHT : "min(55dvh, calc((100vw - 3rem) * 1.25))" }}
 					>
 						{isRightNowSlideActive && (
 							<div
@@ -1978,8 +2099,10 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								key={hash}
 								className="absolute inset-0 overflow-hidden"
 								style={{
-									transform: `translateY(calc(${(index - mobileCarouselPhotoIndex) * 100}% + ${carouselDragDelta}px))`,
-									transition: carouselDragDelta !== 0 ? "none" : "transform 300ms ease-out",
+									// --carousel-drag / --carousel-transition are set on the
+									// carousel by ProfileDetailsContent's touch handler.
+									transform: `translateY(calc(${(index - mobileCarouselPhotoIndex) * 100}% + var(--carousel-drag, 0px)))`,
+									transition: "var(--carousel-transition, transform 300ms ease-out)",
 								}}
 							>
 								{renderCarouselSlideContent(hash, index)}
@@ -1993,7 +2116,10 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 										<button
 											key={`${hash}-dot`}
 											type="button"
-											onClick={() => setMobileCarouselPhotoIndex(index)}
+											onClick={() => {
+												if (index !== mobileCarouselPhotoIndex) haptic(8);
+												setMobileCarouselPhotoIndex(index);
+											}}
 											className="flex items-center justify-center p-1.5 -m-1.5"
 											aria-label={t("profile_details.open_photo", { index: index + 1 })}
 										>
@@ -2060,7 +2186,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							onTapProfile={variant === "page" && !isOwnProfile ? onTapProfile : undefined}
 							onTagClick={onTagClick}
 							onPhotoIndexChange={setMobileCarouselPhotoIndex}
-							onDragDeltaChange={setCarouselDragDelta}
 							isTapDisabled={isTapDisabled}
 							isTapBlocked={isTapBlocked}
 							isTapActive={isTapActive}
@@ -2108,12 +2233,11 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			<div className="app-screen relative flex h-dvh flex-col w-full !px-0 !pb-0 !pt-0 overflow-x-hidden bg-[var(--bg)]">
 				<div
 					ref={pageWrapRef}
+					// translateX is driven by the profile swipe handler.
 					className="relative flex h-full flex-col"
-					style={{
-						transform: `translateX(${profileSwipeDelta}px)`,
-						transition: profileSwipeDelta === 0 ? "transform 250ms ease-out" : "none",
-					}}
 				>
+				{prevProfilePreview && onPrevProfile && <ProfileSwipePreviewPanel preview={prevProfilePreview} side="prev" />}
+				{nextProfilePreview && onNextProfile && <ProfileSwipePreviewPanel preview={nextProfilePreview} side="next" />}
 				{renderInlineLayout()}
 				{photoViewerOverlay}
 				{albumViewerOverlay}
@@ -2285,7 +2409,10 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 										<button
 											key={`${hash}-dot`}
 											type="button"
-											onClick={() => setMobileCarouselPhotoIndex(index)}
+											onClick={() => {
+												if (index !== mobileCarouselPhotoIndex) haptic(8);
+												setMobileCarouselPhotoIndex(index);
+											}}
 											className="flex items-center justify-center p-1.5 -m-1.5"
 											aria-label={t("profile_details.open_photo", { index: index + 1 })}
 										>
@@ -2346,7 +2473,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									{messageProfileId && !isOwnProfile && (
 										<div className="flex shrink-0 items-center gap-1.5">
 											{onToggleFavoriteProfile && !isProfileUnavailable && (
-												<button type="button" onClick={() => onToggleFavoriteProfile(String(messageProfileId), isFavorite)} disabled={isTogglingFavorite}
+												<button type="button" onClick={() => { haptic(10); void onToggleFavoriteProfile(String(messageProfileId), isFavorite); }} disabled={isTogglingFavorite}
 													className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-60 ${isFavorite ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]" : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]"}`}
 													aria-label={isFavorite ? t("chat.unfavorite") : t("chat.favorite")}>
 													<Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
@@ -2362,7 +2489,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											<div ref={actionsMenuRef} className="relative">
 												<button type="button" onClick={() => setIsActionsMenuOpen((v) => !v)}
 													className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors"
-													aria-label="More actions" aria-expanded={isActionsMenuOpen}>
+													aria-label={t("profile_details.more_actions", { defaultValue: "More actions" })} aria-expanded={isActionsMenuOpen}>
 													<EllipsisVertical className="h-4 w-4" />
 												</button>
 												{actionsMenuPresence.rendered && (
@@ -2401,8 +2528,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
 																<span className="flex flex-col">
-																	<span>Add forbidden Keyword</span>
-																	<span className="text-xs text-[var(--text-muted)]">Bio Phrase</span>
+																	<span>{t("profile_details.ban_bio_title")}</span>
+																	<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_bio", { defaultValue: "Bio phrase" })}</span>
 																</span>
 															</button>
 														)}
@@ -2414,8 +2541,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
 																<span className="flex flex-col">
-																	<span>Add forbidden Keyword</span>
-																	<span className="text-xs text-[var(--text-muted)]">Profile Name</span>
+																	<span>{t("profile_details.ban_bio_title")}</span>
+																	<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_name", { defaultValue: "Profile name" })}</span>
 																</span>
 															</button>
 														)}

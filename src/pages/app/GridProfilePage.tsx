@@ -11,12 +11,13 @@ import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile } from "../../hooks/queries/useProfileQueries";
-import { validateMediaHash } from "../../utils/media";
-import { ProfileDetailsModal } from "./gridpage/components/ProfileDetailsModal";
+import { extractMediaHashFromUrl, getProfileImageUrl, validateMediaHash } from "../../utils/media";
+import { ProfileDetailsModal, type ProfileSwipePreview } from "./gridpage/components/ProfileDetailsModal";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
 import { loadBrowseFiltersDraft } from "./browse-filters-storage";
 import {
+	getAllCachedBrowseCardsById,
 	getCachedProfileDetail,
 	removeProfileFromBrowseCache,
 	setCachedProfileDetail,
@@ -256,6 +257,28 @@ export function GridProfilePage() {
 	const currentIndex = profileId ? profileIds.indexOf(profileId) : -1;
 	const prevProfileId = currentIndex > 0 ? profileIds[currentIndex - 1] : null;
 	const nextProfileId = currentIndex >= 0 && currentIndex < profileIds.length - 1 ? profileIds[currentIndex + 1] : null;
+
+	// Photo and name of the neighbouring profiles, from whatever the grid or an
+	// earlier visit already cached — shown beside the page while swiping.
+	const [prevProfilePreview, nextProfilePreview] = useMemo(() => {
+		if (!prevProfileId && !nextProfileId) return [null, null];
+		const cards = getAllCachedBrowseCardsById();
+		const toPreview = (id: string | null): ProfileSwipePreview | null => {
+			if (!id) return null;
+			const detail = getCachedProfileDetail(id);
+			const card = cards.get(id);
+			const hash =
+				detail?.medias.map((item) => item.mediaHash ?? "").find((h) => validateMediaHash(h)) ??
+				detail?.profileImageMediaHash ??
+				(card?.primaryImageUrl ? extractMediaHashFromUrl(card.primaryImageUrl) : null);
+			return {
+				imageUrl: hash ? getProfileImageUrl(hash, "1024x1024") : (card?.primaryImageUrl ?? null),
+				name: detail?.displayName ?? card?.displayName ?? null,
+				age: detail?.age ?? card?.age ?? null,
+			};
+		};
+		return [toPreview(prevProfileId), toPreview(nextProfileId)];
+	}, [prevProfileId, nextProfileId]);
 
 	const handlePrevProfile = prevProfileId
 		? () => navigate(`/profile/${prevProfileId}`, { replace: true, state: { returnTo: safeReturnTo, profileIds } })
@@ -563,6 +586,8 @@ export function GridProfilePage() {
 				}}
 				onPrevProfile={handlePrevProfile}
 				onNextProfile={handleNextProfile}
+				prevProfilePreview={prevProfilePreview}
+				nextProfilePreview={nextProfilePreview}
 				onMessageProfile={handleMessageProfile}
 				onTagClick={handleTagClick}
 				onSendQuickMessage={handleSendQuickMessage}

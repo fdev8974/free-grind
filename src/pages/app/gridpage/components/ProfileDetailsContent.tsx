@@ -54,6 +54,7 @@ import { isIos } from "../../../../services/saveMedia";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useProfileSpotifyFavorites } from "../../../../hooks/queries/useProfileQueries";
 import { proxyMediaUrl } from "../../../../utils/mediaProxy";
+import { haptic } from "../../../../utils/haptics";
 
 type LabelMap = Record<number, string>;
 
@@ -164,7 +165,6 @@ type ProfileDetailsContentProps = {
 	relationshipStatusLabels: LabelMap;
 	extraTopSection?: ReactNode;
 	hidePicturesSection?: boolean;
-	onDragDeltaChange?: (delta: number) => void;
 	isChatLinkedProfile?: boolean;
 };
 
@@ -215,7 +215,6 @@ export function ProfileDetailsContent({
 	relationshipStatusLabels,
 	extraTopSection,
 	hidePicturesSection = false,
-	onDragDeltaChange,
 	isChatLinkedProfile = false,
 }: ProfileDetailsContentProps) {
 	const { t, i18n } = useTranslation();
@@ -254,9 +253,7 @@ export function ProfileDetailsContent({
 
 	const renderPhotoCreatedBadge = (_hash: string) => null;
 
-	const [dragDelta, setDragDelta] = useState(0);
 	const [tapBurst, setTapBurst] = useState<{ key: number; emoji: string } | null>(null);
-	const isDraggingRef = useRef(false);
 
 	const handleTapWithBurst = (profileId: string, tapIdArg?: number) => {
 		const id = tapIdArg ?? 1;
@@ -270,9 +267,22 @@ export function ProfileDetailsContent({
 	const onPhotoIndexChangeRef = useRef(onPhotoIndexChange);
 	onPhotoIndexChangeRef.current = onPhotoIndexChange;
 
+	// The drag offset goes onto the carousel as CSS variables that its slides
+	// read, rather than state — no re-render per frame of finger movement.
+	const setCarouselDrag = (el: HTMLElement, dy: number | null) => {
+		if (dy === null) {
+			el.style.removeProperty("--carousel-drag");
+			el.style.removeProperty("--carousel-transition");
+			return;
+		}
+		el.style.setProperty("--carousel-drag", `${dy}px`);
+		el.style.setProperty("--carousel-transition", "none");
+	};
+
 	useEffect(() => {
-		setDragDelta(0);
-	}, [activeProfile?.profileId]);
+		const el = mobileCarouselRef.current;
+		if (el) setCarouselDrag(el, null);
+	}, [activeProfile?.profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	useEffect(() => {
 		const el = mobileCarouselRef.current;
@@ -286,7 +296,6 @@ export function ProfileDetailsContent({
 			startX = e.touches[0].clientX;
 			decided = false;
 			navigating = false;
-			isDraggingRef.current = false;
 			lastDeltaRef.current = 0;
 		};
 
@@ -303,7 +312,6 @@ export function ProfileDetailsContent({
 				// only take over when not at a boundary
 				if ((dy < 0 && idx < total - 1) || (dy > 0 && idx > 0)) {
 					navigating = true;
-					isDraggingRef.current = true;
 					e.preventDefault();
 				}
 				// at boundary: fall through, page scrolls normally
@@ -312,31 +320,32 @@ export function ProfileDetailsContent({
 			if (!navigating) return;
 			e.preventDefault();
 			lastDeltaRef.current = dy;
-			setDragDelta(dy);
-			onDragDeltaChange?.(dy);
+			setCarouselDrag(el, dy);
 		};
 
 		const onEnd = () => {
-			isDraggingRef.current = false;
 			if (!navigating) return;
 			navigating = false;
 			const dy = lastDeltaRef.current;
 			const idx = currentIndexRef.current;
 			const total = activeProfilePhotoHashes.length;
 			if (dy < -60 && idx < total - 1) {
+				haptic(8);
 				onPhotoIndexChangeRef.current?.(idx + 1);
 			} else if (dy > 60 && idx > 0) {
+				haptic(8);
 				onPhotoIndexChangeRef.current?.(idx - 1);
 			}
 			lastDeltaRef.current = 0;
-			setDragDelta(0);
-			onDragDeltaChange?.(0);
+			setCarouselDrag(el, null);
 		};
 
 		el.addEventListener('touchstart', onStart, { passive: true });
 		el.addEventListener('touchmove', onMove, { passive: false });
 		el.addEventListener('touchend', onEnd, { passive: true });
+		el.addEventListener('touchcancel', onEnd, { passive: true });
 		return () => {
+			el.removeEventListener('touchcancel', onEnd);
 			el.removeEventListener('touchstart', onStart);
 			el.removeEventListener('touchmove', onMove);
 			el.removeEventListener('touchend', onEnd);
@@ -372,8 +381,8 @@ export function ProfileDetailsContent({
 											<div
 												key={hash}
 												style={{
-													transform: `translateY(calc(${(index - mobileCarouselPhotoIndex) * 100}% + ${dragDelta}px))`,
-													transition: isDraggingRef.current ? 'none' : 'transform 300ms ease-out',
+													transform: `translateY(calc(${(index - mobileCarouselPhotoIndex) * 100}% + var(--carousel-drag, 0px)))`,
+													transition: "var(--carousel-transition, transform 300ms ease-out)",
 												}}
 												className="absolute inset-0"
 											>
@@ -400,7 +409,10 @@ export function ProfileDetailsContent({
 													<button
 														key={`${hash}-dot`}
 														type="button"
-														onClick={() => onPhotoIndexChange?.(index)}
+														onClick={() => {
+															if (index !== mobileCarouselPhotoIndex) haptic(8);
+															onPhotoIndexChange?.(index);
+														}}
 														className="flex items-center justify-center p-1.5 -m-1.5"
 														aria-label={t("profile_details.open_photo", { index: index + 1 })}
 													>
@@ -578,7 +590,10 @@ export function ProfileDetailsContent({
 					<div className="mt-3 flex items-center justify-center gap-4 py-1">
 						<button
 							type="button"
-							onClick={() => onMessageProfile(messageProfileId)}
+							onClick={() => {
+								haptic(10);
+								onMessageProfile(messageProfileId);
+							}}
 							className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] shadow transition hover:bg-[var(--surface)]"
 							aria-label={t("profile_details.message")}
 						>
@@ -960,6 +975,7 @@ export function ProfileDetailsContent({
 						onClick={async () => {
 							try {
 								await navigator.clipboard.writeText(String(activeProfile.profileId));
+								haptic(10);
 								toast.success(t("profile_details.profile_id_copied"));
 							} catch (error) {
 								appLog.error("Failed to copy profile ID to clipboard", error);
