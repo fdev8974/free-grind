@@ -3,7 +3,6 @@ import {
 	Clock,
 	Film,
 	GripVertical,
-	HardDrive,
 	Images,
 	Inbox,
 	Loader2,
@@ -62,7 +61,6 @@ import {
 	getVideoDurationMs,
 } from "./settingsAlbumsUtils";
 import { useOwnDrawerMedia } from "./useOwnDrawerMedia";
-import { AlbumPlanLimitsSheet } from "./AlbumPlanLimitsSheet";
 
 type SortableAlbumMediaItemProps = {
 	item: AlbumMedia;
@@ -180,8 +178,6 @@ interface AlbumEditorSheetProps {
 	album: Album;
 	/** The plan's limits; fetched here when not passed in. */
 	limits?: AlbumLimits | null;
-	/** How many own albums exist, for the plan sheet's usage bar. */
-	albumCount?: number;
 	/** Already loaded details, shown right away instead of a skeleton. */
 	initialDetail?: AlbumDetail;
 	/** Called once the sheet has closed (unmount it then). */
@@ -205,7 +201,6 @@ interface AlbumEditorSheetProps {
 export function AlbumEditorSheet({
 	album,
 	limits: limitsProp,
-	albumCount,
 	initialDetail,
 	onClose,
 	onRenamed,
@@ -231,7 +226,6 @@ export function AlbumEditorSheet({
 	const [confirmDeleteContentId, setConfirmDeleteContentId] = useState<string | null>(null);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
-	const [isPlanSheetOpen, setIsPlanSheetOpen] = useState(false);
 	const albumSheetCloseRef = useRef<(() => void) | null>(null);
 	const uploadInputRef = useRef<HTMLInputElement>(null);
 	const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -769,17 +763,6 @@ export function AlbumEditorSheet({
 								shareProfiles?.length ?? 0
 							)}
 						</button>
-						{limits && (
-							<button
-								type="button"
-								onClick={() => setIsPlanSheetOpen(true)}
-								className={SHEET_ICON_BUTTON_CLASS}
-								aria-label={t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
-								title={t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
-							>
-								<HardDrive className="h-4 w-4" />
-							</button>
-						)}
 						<button
 							type="button"
 							onClick={() => setIsConfirmDeleteOpen(true)}
@@ -905,15 +888,6 @@ export function AlbumEditorSheet({
 							onSelect: () => afterSheetClose(openDrawerPicker),
 						},
 					]}
-				/>
-			)}
-
-			{isPlanSheetOpen && limits && (
-				<AlbumPlanLimitsSheet
-					limits={limits}
-					albumCount={albumCount ?? null}
-					onClose={() => setIsPlanSheetOpen(false)}
-					isDesktop={isDesktop}
 				/>
 			)}
 

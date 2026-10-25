@@ -1,6 +1,7 @@
 import {
 	Album,
 	Check,
+	HardDrive,
 	Images,
 	Layers,
 	LayoutGrid,
@@ -57,6 +58,7 @@ import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import type { Album as OwnAlbum, AlbumLimits } from "../../../types/albums";
 import { useCreateAlbum } from "../settings-albums/useCreateAlbum";
 import { AlbumEditorSheet } from "../settings-albums/AlbumEditorSheet";
+import { AlbumPlanLimitsSheet } from "../settings-albums/AlbumPlanLimitsSheet";
 import { DrawerCollectionEditorSheet } from "../settings-albums/DrawerCollectionEditorSheet";
 
 /** Album / collection tile overlay: a glass badge with the type icon and
@@ -272,8 +274,8 @@ export function ChatDrawerPanel({
 	const collectionEditorCloseRef = useRef<(() => void) | null>(null);
 	const isEditorOpen = editingAlbum != null || editingCollection !== undefined;
 
-	// The plan's album limits (the album count here; items and videos per
-	// album in the editor, which also shows them in its plan sheet). Until they
+	// The plan's album limits (the album count here, items and videos per
+	// album in the editor; the header's plan button shows them all). Until they
 	// are known, creating stays allowed — the server rejects it past the limit.
 	const [albumLimits, setAlbumLimits] = useState<AlbumLimits | null>(null);
 	useEffect(() => {
@@ -283,6 +285,7 @@ export function ChatDrawerPanel({
 			.catch((loadError) => appLog.warn("[ChatDrawerPanel] failed to load album limits", loadError));
 		return () => { cancelled = true; };
 	}, [apiFunctions]);
+	const [isPlanSheetOpen, setIsPlanSheetOpen] = useState(false);
 	const maxAlbums = albumLimits ? albumLimits.maxAlbums ?? 1 : undefined;
 	const canCreateAlbum = maxAlbums == null || albums.length < maxAlbums;
 
@@ -638,15 +641,29 @@ export function ChatDrawerPanel({
 						? t("chat_drawer.view_combined", { defaultValue: "Show all on one page" })
 						: t("chat_drawer.view_split", { defaultValue: "Split into categories" });
 					return (
-						<button
-							type="button"
-							onClick={() => void setPreferences({ splitDrawerCategories: !splitDrawerCategories })}
-							className={DRAWER_ICON_BUTTON_CLASS}
-							aria-label={label}
-							title={label}
-						>
-							{splitDrawerCategories ? <LayoutGrid className="h-4 w-4" /> : <LayoutPanelTop className="h-4 w-4" />}
-						</button>
+						<>
+							{/* The album plan's limits and usage, once loaded. */}
+							{albumLimits && (
+								<button
+									type="button"
+									onClick={() => setIsPlanSheetOpen(true)}
+									className={DRAWER_ICON_BUTTON_CLASS}
+									aria-label={t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
+									title={t("settings_albums.limits_title", { defaultValue: "Plan Limits" })}
+								>
+									<HardDrive className="h-4 w-4" />
+								</button>
+							)}
+							<button
+								type="button"
+								onClick={() => void setPreferences({ splitDrawerCategories: !splitDrawerCategories })}
+								className={DRAWER_ICON_BUTTON_CLASS}
+								aria-label={label}
+								title={label}
+							>
+								{splitDrawerCategories ? <LayoutGrid className="h-4 w-4" /> : <LayoutPanelTop className="h-4 w-4" />}
+							</button>
+						</>
 					);
 				})()}
 			/>
@@ -910,13 +927,20 @@ export function ChatDrawerPanel({
 		</BottomSheet>
 
 		{/* Siblings of the drawer sheet, not children: stacked on top of it. */}
+		{isPlanSheetOpen && albumLimits && (
+			<AlbumPlanLimitsSheet
+				limits={albumLimits}
+				albumCount={albums.length}
+				onClose={() => setIsPlanSheetOpen(false)}
+				isDesktop={isDesktop}
+			/>
+		)}
 		{editingAlbum && (
 			<AlbumEditorSheet
 				key={editingAlbum.albumId}
 				album={editingAlbum}
 				// Not loaded yet: the editor fetches them itself.
 				limits={albumLimits ?? undefined}
-				albumCount={albums.length}
 				onClose={() => {
 					setEditingAlbum(null);
 					void onAlbumsChanged?.();

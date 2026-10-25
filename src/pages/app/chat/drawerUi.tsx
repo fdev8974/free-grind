@@ -33,7 +33,7 @@ export function DrawerActionButton({ icon, label, onClick, disabled, layout = "c
 			type="button"
 			onClick={onClick}
 			disabled={disabled}
-			className={`flex items-center rounded-[var(--radius-sm)] bg-[var(--surface-2)] text-[var(--text)] transition active:scale-95 hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)] disabled:pointer-events-none disabled:opacity-40 ${
+			className={`flex items-center rounded-[var(--radius-sm)] ink-tint-10 text-[var(--text)] transition active:scale-95 hover:ink-tint-14 disabled:pointer-events-none disabled:opacity-40 ${
 				layout === "row" ? "w-full gap-3 px-3 py-2.5 text-left" : "flex-col gap-1.5 px-2 py-3"
 			}`}
 		>
@@ -47,7 +47,8 @@ export function DrawerActionButton({ icon, label, onClick, disabled, layout = "c
 
 /** Capture/upload actions as one flat row across the top of a media grid
  * (it spans all columns): much lower than a square tile, borderless, on a
- * fill a step darker than the sheet, like native media pickers. */
+ * see-through text tint (like the sheet chips), so it reads on every sheet
+ * background; a darkened fill vanished on the plain dark theme. */
 export function DrawerActionBar({
 	actions,
 	disabled,
@@ -64,7 +65,7 @@ export function DrawerActionBar({
 					type="button"
 					onClick={action.onClick}
 					disabled={disabled}
-					className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--surface-2)_70%,black_30%)] px-2 text-[var(--text)] transition active:scale-[0.97] hover:bg-[color-mix(in_srgb,var(--surface-2)_60%,black_40%)] disabled:pointer-events-none disabled:opacity-40"
+					className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg ink-tint-10 px-2 text-[var(--text)] transition active:scale-[0.97] hover:ink-tint-14 active:ink-tint-18 disabled:pointer-events-none disabled:opacity-40"
 				>
 					{/* Icon sized here rather than by the caller, so the bar doesn't depend on the icon's own classes. */}
 					<span className="flex shrink-0 items-center justify-center text-[var(--accent-readable)] [&_svg]:h-[18px] [&_svg]:w-[18px]">{action.icon}</span>
