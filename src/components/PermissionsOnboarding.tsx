@@ -18,7 +18,7 @@ import { usePreferences, ACCENT_PRESETS } from "../contexts/PreferencesContext";
 import type { ColorScheme } from "../contexts/PreferencesContext";
 import { LoadingScreen } from "./LoadingScreen";
 import logo from "../images/freegrind-logo.webp";
-import { fullscreenPrimaryButtonClass } from "./FullscreenPrompt";
+import { fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 
 type PermissionStatus = "idle" | "granted" | "denied" | "unavailable";
 
@@ -110,7 +110,7 @@ function StepDots({ current }: { current: Step }) {
 					className="h-1.5 rounded-full transition-all duration-300"
 					style={{
 						width: i === currentIdx ? "24px" : "6px",
-						background: i <= currentIdx ? "var(--accent)" : "var(--border)",
+						background: i <= currentIdx ? "var(--accent)" : "color-mix(in srgb, var(--text) 15%, transparent)",
 					}}
 				/>
 			))}
@@ -132,21 +132,21 @@ function TopDots({ current }: { current: Step }) {
 function StatusBadge({ status, isRequesting }: { status: PermissionStatus; isRequesting?: boolean }) {
 	if (isRequesting) {
 		return (
-			<div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)]">
+			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-2)] shadow-md">
 				<Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
 			</div>
 		);
 	}
 	if (status === "granted") {
 		return (
-			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-500">
+			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-500 shadow-md">
 				<Check className="h-3.5 w-3.5 text-white" />
 			</div>
 		);
 	}
 	if (status === "denied" || status === "unavailable") {
 		return (
-			<div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)]">
+			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-2)] shadow-md">
 				<X className="h-3.5 w-3.5 text-[var(--text-muted)]" />
 			</div>
 		);
@@ -413,13 +413,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 										key={key}
 										type="button"
 										onClick={() => setPreferences({ colorScheme: value, amoledMode: amoled })}
-										className="flex items-center gap-4 rounded-xl border p-4 text-left transition-all"
-										style={{
-											borderColor: active ? "var(--accent)" : "var(--border)",
-											background: active
-												? "color-mix(in srgb, var(--accent) 8%, var(--surface-2))"
-												: "var(--surface-2)",
-										}}
+										className={`flex items-center gap-4 rounded-2xl p-4 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] ${active ? "accent-tint-12" : "ink-tint-6 hover:ink-tint-10"}`}
 									>
 										<div
 											className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
@@ -436,7 +430,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 										<div
 											className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all"
 											style={{
-												borderColor: active ? "var(--accent)" : "var(--border)",
+												borderColor: active ? "var(--accent)" : "color-mix(in srgb, var(--text) 25%, transparent)",
 												background: active ? "var(--accent)" : "transparent",
 											}}
 										>
@@ -535,8 +529,8 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 					<TopDots current="updates" />
 
 					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-						<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-							<RefreshCcw className="h-9 w-9 text-[var(--accent)]" />
+						<div className={`mb-6 ${fullscreenIconTileClass}`}>
+							<RefreshCcw className="h-9 w-9" />
 						</div>
 						<h2 className="text-xl font-bold text-[var(--text)]">Automatic Updates</h2>
 						<div className="flex h-24 flex-col items-center overflow-hidden">
@@ -561,7 +555,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={() => choose(false)}
-							className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
+							className={fullscreenSecondaryButtonClass}
 						>
 							Ask me each time
 						</button>
@@ -579,8 +573,8 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 					<TopDots current="scam" />
 
 					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-						<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-amber-400/40 bg-amber-400/10">
-							<AlertTriangle className="h-9 w-9 text-amber-500" />
+						<div className="mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xl shadow-amber-500/25">
+							<AlertTriangle className="h-9 w-9" />
 						</div>
 						<h2 className="text-xl font-bold text-[var(--text)]">Caution</h2>
 						<div className="flex h-24 flex-col items-center overflow-hidden">
@@ -655,8 +649,8 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 
 				<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
 					<div className="relative mb-6">
-						<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-							<Icon className="h-9 w-9 text-[var(--accent)]" />
+						<div className={fullscreenIconTileClass}>
+							<Icon className="h-9 w-9" />
 						</div>
 						<div className="absolute -right-2 -top-2">
 							<StatusBadge status={status} isRequesting={isRequesting} />
@@ -703,7 +697,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
+							className={fullscreenSecondaryButtonClass}
 						>
 							Skip for now
 						</button>

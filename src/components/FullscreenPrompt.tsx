@@ -39,7 +39,7 @@ export function FullscreenPrompt({
 					{/* my-auto rather than justify-center: centers short content, but
 					    content taller than the screen still scrolls from its top. */}
 					<div className="my-auto flex w-full flex-col items-center">
-						<div className="mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-[var(--accent)] to-[color-mix(in_srgb,var(--accent)_70%,black)] text-[var(--accent-contrast)] shadow-xl shadow-[var(--accent)]/25">
+						<div className={`mb-6 ${fullscreenIconTileClass}`}>
 							<Icon className="h-9 w-9" />
 						</div>
 						<h1 className="text-2xl font-bold text-[var(--text)]">{title}</h1>
@@ -70,3 +70,7 @@ export const fullscreenSecondaryButtonClass =
 
 /** Borderless soft card for a prompt's content, like the grouped cards in the sheets. */
 export const fullscreenCardClass = "rounded-2xl ink-tint-6";
+
+/** The prompt's big accent icon tile, also used by the onboarding steps. */
+export const fullscreenIconTileClass =
+	"flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-[var(--accent)] to-[color-mix(in_srgb,var(--accent)_70%,black)] text-[var(--accent-contrast)] shadow-xl shadow-[var(--accent)]/25";
