@@ -152,6 +152,7 @@
         "rule_needs_action": "Füge mindestens eine Aktion hinzu, bevor du speicherst.",
         "action_needs_message_text": "Gib eine zu sendende Nachricht ein, bevor du speicherst.",
         "rule_name_placeholder": "Name für diese Automatisierung",
+        "rule_name_label": "",
         "trigger_label": "Wenn (Auslöser)",
         "conditions_label": "Falls (Bedingungen)",
         "rule_no_conditions": "immer",

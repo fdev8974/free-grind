@@ -1,4 +1,5 @@
 import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
+import { BusyOverlay } from "../../../../components/ui/busy-overlay";
 import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
@@ -1410,9 +1411,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	}, [albumViewer]);
 
 	const albumOpeningOverlay = isOpeningAlbum && (
-		<div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-4">
-			<div className="native-card p-4 text-sm text-[var(--text-muted)]">{t("shared_albums.opening")}</div>
-		</div>
+		<BusyOverlay label={t("shared_albums.opening")} zIndex="z-[85]" />
 	);
 
 	// "We just hooked up" — same encounter logging as the chat header

@@ -160,6 +160,7 @@
         "rule_needs_action": "أضف إجراءً واحداً على الأقل قبل الحفظ.",
         "action_needs_message_text": "أدخل الرسالة المراد إرسالها قبل الحفظ.",
         "rule_name_placeholder": "اسماء هذه الرولات",
+        "rule_name_label": "",
         "trigger_label": "اين(المحفز)",
         "conditions_label": "إذا (الشروط)",
         "rule_no_conditions": "دائما",

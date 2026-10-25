@@ -160,10 +160,11 @@ function TestFormSheet({
 		<BottomSheet
 			onClose={onClose}
 			closeRef={sheetCloseRef}
+			expandable
 			isDesktop={isDesktop}
 			isProcessing={isSaving}
 			bg={NATIVE_SHEET_BG}
-			panelClassName="max-h-[92dvh] px-4"
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
 		>
 			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
 				<h3 className="text-sm font-semibold text-[var(--text)]">

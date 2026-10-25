@@ -1,4 +1,5 @@
 import { Album, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Video } from "lucide-react";
+import { BusyOverlay } from "../../components/ui/busy-overlay";
 import type { TFunction } from "i18next";
 import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1067,11 +1068,7 @@ export function SharedAlbumsPage() {
 			 * bottom NavBar's stacking context instead of covering it.
 			 */}
 			{isOpeningAlbum ? (
-				<div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-					<div className="native-card p-4 text-sm text-[var(--text-muted)]">
-						{t("shared_albums.opening")}
-					</div>
-				</div>
+				<BusyOverlay label={t("shared_albums.opening")} zIndex="z-40" />
 			) : null}
 
 			{viewer !== null && openAlbumAsBottomSheet ? (

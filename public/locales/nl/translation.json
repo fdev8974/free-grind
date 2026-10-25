@@ -152,6 +152,7 @@
         "rule_needs_action": "Voeg minstens één actie toe voordat je opslaat.",
         "action_needs_message_text": "Voer een bericht in om te versturen voordat je opslaat.",
         "rule_name_placeholder": "Geef deze automatisering een naam",
+        "rule_name_label": "",
         "trigger_label": "Wanneer (trigger)",
         "conditions_label": "Als (voorwaarden)",
         "rule_no_conditions": "altijd",

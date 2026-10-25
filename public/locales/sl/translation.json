@@ -156,6 +156,7 @@
         "rule_needs_action": "Pred shranjevanjem dodaj vsaj eno dejanje.",
         "action_needs_message_text": "Pred shranjevanjem vnesi sporočilo za pošiljanje.",
         "rule_name_placeholder": "Poimenuj to avtomatizacijo",
+        "rule_name_label": "",
         "trigger_label": "Ko (sprožilec)",
         "conditions_label": "Če (pogoji)",
         "rule_no_conditions": "vedno",

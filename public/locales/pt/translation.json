@@ -154,6 +154,7 @@
         "rule_needs_action": "Adicione pelo menos uma ação antes de guardar.",
         "action_needs_message_text": "Insira uma mensagem para enviar antes de guardar.",
         "rule_name_placeholder": "Nomeie esta automação",
+        "rule_name_label": "",
         "trigger_label": "Quando (Trigger)",
         "conditions_label": "Se (Conditions)",
         "rule_no_conditions": "sempre",

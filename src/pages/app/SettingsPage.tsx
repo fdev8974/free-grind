@@ -63,7 +63,10 @@ import { ToggleRow } from "../../components/ui/toggle-row";
 import { hasDemoProfileImages, isDemoProfileImagesEnabled, setDemoProfileImagesEnabled } from "../../utils/demoProfileImages";
 import { UpdateChannelSheet } from "./UpdateChannelSheet";
 import { FingerprintCheckSheet, PushTokenSheet } from "./settings-dev/DiagnosticsSheets";
-import { SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
+import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
+import { ControlledBottomSheet } from "../../components/ui/controlled-sheet";
+import { SHEET_FIELD_CLASS } from "../../components/ui/sheet-section";
+import { cn } from "../../utils/cn";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
@@ -85,7 +88,7 @@ import { showLegalAgreementsPrompt } from "../../utils/legalAgreementsDebug";
 import { showAccountWarningsPrompt } from "../../utils/accountWarningsDebug";
 import { showSharePickerDebug } from "../../utils/sharePickerDebug";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
-import { sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
 const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
@@ -266,57 +269,31 @@ function ContributorChannelDialog({
 	onCancel: () => void;
 	isProcessing: boolean;
 }) {
-	const dialogRef = useRef<HTMLDialogElement | null>(null);
+	const isDesktop = useDesktopBreakpoint();
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		if (isOpen) {
-			if (!dialog.open) {
-				try {
-					dialog.showModal();
-				} catch {
-					dialog.show();
-				}
-				requestAnimationFrame(() => inputRef.current?.focus());
-			}
-		} else if (dialog.open) {
-			dialog.close();
-		}
+		if (!isOpen) return;
+		// Once the sheet (mounted on the next render) is in the DOM.
+		const timer = setTimeout(() => inputRef.current?.focus(), 50);
+		return () => clearTimeout(timer);
 	}, [isOpen]);
 
-	useEffect(() => {
-		return () => {
-			const dialog = dialogRef.current;
-			if (dialog?.open) {
-				dialog.close();
-			}
-		};
-	}, []);
-
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		const handleCancel = (event: Event) => {
-			event.preventDefault();
-			if (!isProcessing) onCancel();
-		};
-		dialog.addEventListener("cancel", handleCancel);
-		return () => dialog.removeEventListener("cancel", handleCancel);
-	}, [isProcessing, onCancel]);
-
 	return (
-		<dialog
-			ref={dialogRef}
-			className="fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
-			onClick={(event) => {
-				if (event.target === dialogRef.current && !isProcessing) onCancel();
-			}}
+		<ControlledBottomSheet
+			isOpen={isOpen}
+			onDismiss={onCancel}
+			isDesktop={isDesktop}
+			isProcessing={isProcessing}
+			bg={NATIVE_SHEET_BG}
+			panelClassName="max-h-[92dvh] px-4"
 		>
-			<div className="p-4">
-				<p className="text-sm font-semibold text-[var(--text)]">Contributor Channel</p>
-				<p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">Contributor Channel</h3>
+				<SheetCloseButton disabled={isProcessing} />
+			</div>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<p className="mb-3 px-1 text-sm leading-relaxed text-[var(--text-muted)]">
 					Receive experimental builds from a community contributor's channel. Use at your own risk.
 				</p>
 				<input
@@ -330,29 +307,25 @@ function ContributorChannelDialog({
 					placeholder="contributor-handle"
 					maxLength={32}
 					disabled={isProcessing}
-					className="input-field mt-4 w-full font-mono text-sm disabled:opacity-60"
+					enterKeyHint="go"
+					className={cn(SHEET_FIELD_CLASS, "h-11 px-4 font-mono disabled:opacity-60")}
 				/>
-				<div className="mt-6 flex gap-2">
-					<button
-						type="button"
-						onClick={onCancel}
-						disabled={isProcessing}
-						className={sheetButtonClass("secondary")}
-					>
-						Cancel
-					</button>
-					<button
-						type="button"
-						onClick={onSubmit}
-						disabled={isProcessing || !value}
-						className={sheetButtonClass()}
-					>
-						{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-						<span>Activate</span>
-					</button>
-				</div>
 			</div>
-		</dialog>
+			<div className={SHEET_FOOTER_CLASS}>
+				<SheetClose disabled={isProcessing} className={sheetButtonClass("secondary")}>
+					Cancel
+				</SheetClose>
+				<button
+					type="button"
+					onClick={onSubmit}
+					disabled={isProcessing || !value}
+					className={sheetButtonClass()}
+				>
+					{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+					<span>Activate</span>
+				</button>
+			</div>
+		</ControlledBottomSheet>
 	);
 }
 

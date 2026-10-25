@@ -1,4 +1,5 @@
 import { Images } from "lucide-react";
+import { BusyOverlay } from "../../components/ui/busy-overlay";
 import { PromptDialog } from "../../components/ui/prompt-dialog";
 import {
 	type FormEvent,
@@ -6966,11 +6967,7 @@ export function ChatPage() {
 			})() : null}
 
 			{isAlbumViewerLoading && !albumViewer ? (
-				<div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-4">
-					<div className="native-card p-4 text-sm text-[var(--text-muted)]">
-						{t("shared_albums.opening")}
-					</div>
-				</div>
+				<BusyOverlay label={t("shared_albums.opening")} zIndex="z-[85]" />
 			) : null}
 
 			{isAlbumMediaSheetOpen && albumViewer ? (

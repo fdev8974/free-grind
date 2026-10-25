@@ -154,6 +154,7 @@
         "rule_needs_action": "Ajoutez au moins une action avant d'enregistrer.",
         "action_needs_message_text": "Saisissez un message à envoyer avant d'enregistrer.",
         "rule_name_placeholder": "Nommez cette automatisation",
+        "rule_name_label": "",
         "trigger_label": "Quand (Déclencheur)",
         "conditions_label": "Si (Conditions)",
         "rule_no_conditions": "toujours",

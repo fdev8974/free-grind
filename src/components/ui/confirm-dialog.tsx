@@ -1,9 +1,9 @@
 import { Loader2, ShieldAlert, TriangleAlert } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef } from "react";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { BottomSheet, SHEET_FOOTER_CLASS, sheetButtonClass } from "./bottom-sheet";
+import { SheetClose, SHEET_FOOTER_CLASS, sheetButtonClass } from "./bottom-sheet";
 import { NATIVE_SHEET_BG } from "./action-sheet";
+import { ControlledBottomSheet } from "./controlled-sheet";
 
 type ConfirmDialogProps = {
 	isOpen: boolean;
@@ -37,26 +37,10 @@ function RiskConfirmSheet({
 	isProcessing,
 }: Required<Pick<ConfirmDialogProps, "isOpen" | "title" | "message" | "warning" | "confirmLabel" | "cancelLabel" | "onConfirm" | "onCancel" | "isProcessing">>) {
 	const isDesktop = useDesktopBreakpoint();
-	const [isMounted, setIsMounted] = useState(isOpen);
-	const closeRef = useRef<(() => void) | null>(null);
-	const isOpenRef = useRef(isOpen);
-	isOpenRef.current = isOpen;
-
-	useEffect(() => {
-		if (isOpen) setIsMounted(true);
-		// Closed from outside (confirmed, cancelled): slide out, then unmount.
-		else closeRef.current?.();
-	}, [isOpen]);
-
-	if (!isMounted) return null;
-	return createPortal(
-		<BottomSheet
-			onClose={() => {
-				setIsMounted(false);
-				// Swiped away or back pressed while still open: that's a cancel.
-				if (isOpenRef.current) onCancel();
-			}}
-			closeRef={closeRef}
+	return (
+		<ControlledBottomSheet
+			isOpen={isOpen}
+			onDismiss={onCancel}
 			isDesktop={isDesktop}
 			isProcessing={isProcessing}
 			bg={NATIVE_SHEET_BG}
@@ -76,14 +60,9 @@ function RiskConfirmSheet({
 				</div>
 			</div>
 			<div className={SHEET_FOOTER_CLASS}>
-				<button
-					type="button"
-					onClick={() => closeRef.current?.()}
-					disabled={isProcessing}
-					className={sheetButtonClass("secondary")}
-				>
+				<SheetClose disabled={isProcessing} className={sheetButtonClass("secondary")}>
 					{cancelLabel}
-				</button>
+				</SheetClose>
 				<button
 					type="button"
 					onClick={() => void onConfirm()}
@@ -94,8 +73,7 @@ function RiskConfirmSheet({
 					<span className="truncate">{confirmLabel}</span>
 				</button>
 			</div>
-		</BottomSheet>,
-		document.body,
+		</ControlledBottomSheet>
 	);
 }
 

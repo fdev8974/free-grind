@@ -154,6 +154,7 @@
         "rule_needs_action": "Додајте бар једну радњу пре чувања.",
         "action_needs_message_text": "Унесите поруку за слање пре чувања.",
         "rule_name_placeholder": "Дајте назив овој аутоматизацији",
+        "rule_name_label": "",
         "trigger_label": "Када (окидач)",
         "conditions_label": "Ако (услови)",
         "rule_no_conditions": "увек",

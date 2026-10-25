@@ -152,6 +152,7 @@
     "rule_needs_action": "Add at least one action before saving.",
     "action_needs_message_text": "Enter a message to send before saving.",
     "rule_name_placeholder": "Name this automation",
+    "rule_name_label": "Name",
     "trigger_label": "When (Trigger)",
     "conditions_label": "If (Conditions)",
     "rule_no_conditions": "always",

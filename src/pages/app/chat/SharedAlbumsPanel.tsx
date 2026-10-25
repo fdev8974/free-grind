@@ -1,4 +1,5 @@
 import { Album, Images, MessageCircle, RefreshCw, UserRound } from "lucide-react";
+import { BusyOverlay } from "../../../components/ui/busy-overlay";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -603,11 +604,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 			</div>
 
 			{isOpeningAlbum ? (
-				<div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-					<div className="native-card p-4 text-sm text-[var(--text-muted)]">
-						{t("shared_albums.opening")}
-					</div>
-				</div>
+				<BusyOverlay label={t("shared_albums.opening")} zIndex="z-40" />
 			) : null}
 
 			{viewer !== null && (

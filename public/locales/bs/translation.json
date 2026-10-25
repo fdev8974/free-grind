@@ -154,6 +154,7 @@
         "rule_needs_action": "Dodaj barem jednu radnju prije čuvanja.",
         "action_needs_message_text": "Unesi poruku za slanje prije čuvanja.",
         "rule_name_placeholder": "Imenuj ovu automatizaciju",
+        "rule_name_label": "",
         "trigger_label": "Kada (okidač)",
         "conditions_label": "Ako (uslovi)",
         "rule_no_conditions": "uvijek",
