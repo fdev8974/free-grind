@@ -364,7 +364,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { t } = useTranslation();
 	useAvatarCache();
     const apiFunctions = useApiFunctions();
-	const { unitsPreset, geohash, amoledMode } = usePreferences();
+	const { unitsPreset, geohash, amoledMode, mobileEnterToSend } = usePreferences();
+	const enterSends = props.isDesktop || mobileEnterToSend;
 	const effectiveColorScheme = useEffectiveColorScheme();
 	// AMOLED on mobile: the bottom bar blends into the black page so the saved
 	// phrases and the input float instead of sitting on a surface strip.
@@ -2416,13 +2417,14 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												return;
 											}
 										}
-										if (isDesktop && event.key === "Enter" && !event.shiftKey) {
+										if (enterSends && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
 											event.preventDefault();
 											event.currentTarget.form?.requestSubmit();
 										}
 									}}
 									rows={1}
 									maxLength={1000}
+									enterKeyHint={enterSends ? "send" : "enter"}
 									placeholder={
 										selectedConversation
 											? t("chat.write_message")

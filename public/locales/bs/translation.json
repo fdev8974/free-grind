@@ -1082,7 +1082,9 @@
         "double_tap_open_chat": "",
         "chats": "",
         "chat_row_swipe_actions": "",
-        "chat_row_swipe_actions_desc": ""
+        "chat_row_swipe_actions_desc": "",
+        "mobile_enter_to_send": "",
+        "mobile_enter_to_send_desc": ""
     },
     "notifications_page": {
         "subtitle": "Odaberi koja obavještenja primaš i da li se prikazuju dok je aplikacija otvorena.",

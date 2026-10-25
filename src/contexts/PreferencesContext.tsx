@@ -184,6 +184,8 @@ const preferencesSchema = z.object({
 	autoFocusRightNowText: z.boolean().default(true),
 	// Swipe a chat row right to pin, left to delete (mobile).
 	chatRowSwipeActions: z.boolean().default(true),
+	// Enter sends a chat message on mobile too (desktop always does; Shift+Enter is a newline there).
+	mobileEnterToSend: z.boolean().default(false),
 	// Tap type sent by double tapping a grid tile; null disables the gesture.
 	doubleTapTapType: z.number().int().min(0).max(2).nullable().default(1),
 	// What the grid double tap does while enabled: send the tap above or open the chat.
@@ -238,6 +240,7 @@ type PreferencesAction =
 	| { type: "SET_AUTO_FOCUS_LOCATION_SEARCH"; payload: boolean }
 	| { type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT"; payload: boolean }
 	| { type: "SET_CHAT_ROW_SWIPE_ACTIONS"; payload: boolean }
+	| { type: "SET_MOBILE_ENTER_TO_SEND"; payload: boolean }
 	| { type: "SET_DEFAULT_EXPIRING_PHOTOS"; payload: boolean }
 	| { type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE"; payload: Preferences["defaultAlbumExpirationType"] }
 	| { type: "SET_RIGHT_NOW_STATUS"; payload: { id: number | null; expiresAt: number | null } }
@@ -302,6 +305,8 @@ function preferencesReducer(
 			return { ...state, autoFocusRightNowText: action.payload };
 		case "SET_CHAT_ROW_SWIPE_ACTIONS":
 			return { ...state, chatRowSwipeActions: action.payload };
+		case "SET_MOBILE_ENTER_TO_SEND":
+			return { ...state, mobileEnterToSend: action.payload };
 		case "SET_DOUBLE_TAP_TAP_TYPE":
 			return { ...state, doubleTapTapType: action.payload };
 		case "SET_DOUBLE_TAP_ACTION":
@@ -440,6 +445,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusLocationSearch: false,
 		autoFocusRightNowText: true,
 		chatRowSwipeActions: true,
+		mobileEnterToSend: false,
 		doubleTapTapType: 1,
 		doubleTapAction: "tap",
 		showGridTapStatus: true,
@@ -489,6 +495,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: parsed.autoFocusLocationSearch });
 					dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: parsed.autoFocusRightNowText });
 					dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: parsed.chatRowSwipeActions });
+					dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: parsed.mobileEnterToSend });
 					dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: parsed.doubleTapTapType });
 					dispatch({ type: "SET_DOUBLE_TAP_ACTION", payload: parsed.doubleTapAction });
 					dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: parsed.showGridTapStatus });
@@ -614,6 +621,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				autoFocusLocationSearch: currentState.autoFocusLocationSearch,
 				autoFocusRightNowText: currentState.autoFocusRightNowText,
 				chatRowSwipeActions: currentState.chatRowSwipeActions,
+				mobileEnterToSend: currentState.mobileEnterToSend,
 				doubleTapTapType: currentState.doubleTapTapType,
 				doubleTapAction: currentState.doubleTapAction,
 				showGridTapStatus: currentState.showGridTapStatus,
@@ -711,6 +719,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.chatRowSwipeActions !== undefined) {
 				dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: newValues.chatRowSwipeActions });
+			}
+			if (newValues.mobileEnterToSend !== undefined) {
+				dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: newValues.mobileEnterToSend });
 			}
 			if (newValues.doubleTapTapType !== undefined) {
 				dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: newValues.doubleTapTapType });
@@ -819,6 +830,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					autoFocusLocationSearch: preferences.autoFocusLocationSearch,
 					autoFocusRightNowText: preferences.autoFocusRightNowText,
 					chatRowSwipeActions: preferences.chatRowSwipeActions,
+					mobileEnterToSend: preferences.mobileEnterToSend,
 					doubleTapTapType: preferences.doubleTapTapType,
 					doubleTapAction: preferences.doubleTapAction,
 					showGridTapStatus: preferences.showGridTapStatus,
@@ -861,6 +873,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusLocationSearch: state.autoFocusLocationSearch,
 		autoFocusRightNowText: state.autoFocusRightNowText,
 		chatRowSwipeActions: state.chatRowSwipeActions,
+		mobileEnterToSend: state.mobileEnterToSend,
 		doubleTapTapType: state.doubleTapTapType,
 		doubleTapAction: state.doubleTapAction,
 		showGridTapStatus: state.showGridTapStatus,

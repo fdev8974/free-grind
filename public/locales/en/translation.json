@@ -1074,7 +1074,9 @@
     "double_tap_open_chat": "Open Chat",
     "chats": "Chats",
     "chat_row_swipe_actions": "Swipe Actions in Chat List",
-    "chat_row_swipe_actions_desc": "Swipe a chat right to pin it or left to delete it. Long press still opens all actions."
+    "chat_row_swipe_actions_desc": "Swipe a chat right to pin it or left to delete it. Long press still opens all actions.",
+    "mobile_enter_to_send": "Enter to Send on Mobile",
+    "mobile_enter_to_send_desc": "The Enter key on your phone's keyboard sends the message instead of starting a new line."
   },
   "notifications_page": {
     "subtitle": "Choose which notifications you get, and whether they show up while the app is open.",

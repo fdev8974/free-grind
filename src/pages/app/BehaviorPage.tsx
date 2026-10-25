@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, MoveHorizontal } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, CornerDownLeft, ExternalLink, MoveHorizontal } from "lucide-react";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
@@ -31,6 +32,7 @@ const isKeepScreenOnSupported = typeof navigator !== "undefined" && "wakeLock" i
 export function BehaviorPage() {
 	const { t } = useTranslation();
 	const highlightId = useSettingsHighlight();
+	const isDesktop = useDesktopBreakpoint();
 	const {
 		defaultExpiringPhotos,
 		defaultAlbumExpirationType,
@@ -42,6 +44,7 @@ export function BehaviorPage() {
 		doubleTapTapType,
 		doubleTapAction,
 		chatRowSwipeActions,
+		mobileEnterToSend,
 		setPreferences,
 	} = usePreferences();
 	const doubleTapChoice: DoubleTapChoice =
@@ -125,6 +128,19 @@ export function BehaviorPage() {
 							checked={chatRowSwipeActions}
 							onChange={(checked) => void setPreferences({ chatRowSwipeActions: checked })}
 						/>
+						{/* Enter always sends on desktop, so this only matters on mobile. */}
+						{!isDesktop && <ToggleRow
+							id="behavior-mobile-enter-to-send"
+							highlighted={highlightId === "behavior-mobile-enter-to-send"}
+							icon={<CornerDownLeft className="h-5 w-5" />}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("behavior.mobile_enter_to_send", { defaultValue: "Enter to Send on Mobile" })}
+							description={t("behavior.mobile_enter_to_send_desc", {
+								defaultValue: "The Enter key on your phone's keyboard sends the message instead of starting a new line.",
+							})}
+							checked={mobileEnterToSend}
+							onChange={(checked) => void setPreferences({ mobileEnterToSend: checked })}
+						/>}
 					</div>
 				</div>
 

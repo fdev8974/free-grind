@@ -1106,7 +1106,9 @@
         "double_tap_open_chat": "",
         "chats": "",
         "chat_row_swipe_actions": "",
-        "chat_row_swipe_actions_desc": ""
+        "chat_row_swipe_actions_desc": "",
+        "mobile_enter_to_send": "",
+        "mobile_enter_to_send_desc": ""
     },
     "notifications_page": {
         "subtitle": "اختار الإشعارات التي تريد تلقيها، وما إذا كانت ستظهر أثناء فتح الطبّق.",

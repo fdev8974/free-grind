@@ -43,12 +43,14 @@ import {
 	Clock,
 	Vibrate,
 	MoveHorizontal,
+	CornerDownLeft,
 	Puzzle,
 	Bot,
 	Bug,
 	QrCode,
 	type LucideIcon,
 } from "lucide-react";
+import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL } from "../utils/githubIssues";
 import { useMemo } from "react";
 import { RightNowIcon } from "../components/icons/RightNowIcon";
@@ -82,6 +84,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 
 	const showSexualHealth = isSexualHealthEnabled();
 	const isMobilePlatform = isAndroid() || isIos();
+	const isDesktop = useDesktopBreakpoint();
 
 	return useMemo<SettingsSearchEntry[]>(() => [
 		// Profile
@@ -368,6 +371,18 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			description: t("behavior.chat_row_swipe_actions_desc"),
 			section: "Behavior",
 			icon: MoveHorizontal,
+			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
+			id: "behavior-mobile-enter-to-send",
+			route: "/settings/behavior",
+			anchor: "behavior-mobile-enter-to-send",
+			label: t("behavior.mobile_enter_to_send", { defaultValue: "Enter to Send on Mobile" }),
+			description: t("behavior.mobile_enter_to_send_desc", {
+				defaultValue: "The Enter key on your phone's keyboard sends the message instead of starting a new line.",
+			}),
+			section: "Behavior",
+			icon: CornerDownLeft,
 			iconClass: "bg-sky-500/15 text-sky-400",
 		},
 		{
@@ -722,6 +737,8 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		(entry) =>
 			(showSexualHealth || entry.id !== "nav-sexual-health") &&
 			// Bottom-nav style, grid layout and haptics options only exist in the mobile app.
-			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics"].includes(entry.id)),
-	), [t, showSexualHealth, isMobilePlatform]);
+			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics"].includes(entry.id)) &&
+			// Enter always sends on desktop, so the toggle is mobile-only (matches the chat composer's isDesktop).
+			(!isDesktop || entry.id !== "behavior-mobile-enter-to-send"),
+	), [t, showSexualHealth, isMobilePlatform, isDesktop]);
 }
