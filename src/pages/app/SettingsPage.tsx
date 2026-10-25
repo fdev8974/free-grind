@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useLogoutToNextAccount } from "../../hooks/useLogoutToNextAccount";
 import { getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import {
@@ -437,10 +438,16 @@ export function SettingsPage() {
 	// The installed app (APK / desktop binary) can lag behind the frontend when an
 	// OTA bundle was applied on top of it, so show both when they differ.
 	const [nativeVersion, setNativeVersion] = useState<string | null>(null);
+	// Commit of the app binary itself (the frontend's can differ after an OTA
+	// update); null on builds from before the command existed.
+	const [nativeCommitHash, setNativeCommitHash] = useState<string | null>(null);
 	useEffect(() => {
 		if (!isHotswapAvailable()) return;
 		void getVersion()
 			.then(setNativeVersion)
+			.catch(() => {});
+		void invoke<string | null>("app_commit_hash")
+			.then(setNativeCommitHash)
 			.catch(() => {});
 	}, []);
 	const [contributorCodeInput, setContributorCodeInput] = useState("");
@@ -999,13 +1006,6 @@ export function SettingsPage() {
 									</div>
 								</div>
 								{navRow(
-									() => navigate("/settings/albums"),
-									<ImagesFilled className="h-5 w-5" />,
-									"bg-pink-500/15 text-pink-400",
-									t("settings.my_albums"),
-									t("settings.my_albums_desc"),
-								)}
-								{navRow(
 									() => navigate("/settings/translation"),
 									<Languages className="h-5 w-5" />,
 									"bg-cyan-500/15 text-cyan-400",
@@ -1149,16 +1149,17 @@ export function SettingsPage() {
 										<p className="text-sm font-semibold leading-snug">
 											{t("settings.check_updates")}
 										</p>
-										{/* One line each, so neither the app version nor the commit gets truncated away. */}
-										<div className="mt-0.5 text-xs leading-snug tabular-nums text-[var(--text-muted)]">
+										{/* One line each (wrapping rather than cutting off), each with its own commit. */}
+										<div className="mt-0.5 space-y-px text-xs leading-snug text-[var(--text-muted)]">
 											{nativeVersion && (
-												<p className="truncate">
+												<p className="break-words">
 													{t("settings.app_version", { defaultValue: "App {{version}}", version: nativeVersion })}
+													{nativeCommitHash && <span className="opacity-60"> · {nativeCommitHash}</span>}
 												</p>
 											)}
-											<p className="truncate">
+											<p className="break-words">
 												{t("settings.frontend_version", { defaultValue: "Frontend {{version}}", version: frontendVersion })}
-												{commitHash && <span className="font-mono opacity-80"> · {commitHash}</span>}
+												{commitHash && <span className="opacity-60"> · {commitHash}</span>}
 											</p>
 										</div>
 									</div>

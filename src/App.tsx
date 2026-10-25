@@ -21,7 +21,6 @@ import { SettingsPage } from "./pages/app/SettingsPage.tsx";
 import { ProfileEditorPage } from "./pages/app/ProfileEditorPage.tsx";
 import { GridProfilePage } from "./pages/app/GridProfilePage.tsx";
 import { AboutPage } from "./pages/app/AboutPage.tsx";
-import { SettingsAlbumsPage } from "./pages/app/SettingsAlbumsPage.tsx";
 import { SettingsBlockedPage } from "./pages/app/SettingsBlockedPage.tsx";
 import { SettingsHiddenPage } from "./pages/app/SettingsHiddenPage.tsx";
 import { SettingsTransferAccountPage } from "./pages/app/SettingsTransferAccountPage.tsx";
@@ -274,7 +273,7 @@ export default function App() {
 								<Route path="/settings/data" element={<SettingsDataPage />} />
 								<Route path="/settings/privacy" element={<SettingsPrivacyPage />} />
 								<Route path="/settings/about" element={<AboutPage />} />
-								<Route path="/settings/albums" element={<SettingsAlbumsPage />} />
+								<Route path="/settings/albums" element={<Navigate to="/settings" replace />} />
 								<Route path="/settings/blocked" element={<SettingsBlockedPage />} />
 								<Route path="/settings/hidden" element={<SettingsHiddenPage />} />
 								<Route path="/settings/transfer-account" element={<SettingsTransferAccountPage />} />

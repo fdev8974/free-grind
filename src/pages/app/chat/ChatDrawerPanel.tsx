@@ -168,7 +168,7 @@ export function ChatDrawerPanel({
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<number>>(new Set());
 	// Collections: local-only, named groups of drawer media, edited right
-	// here (or on the albums settings page). Sending one goes through the regular onSendMedia
+	// here. Sending one goes through the regular onSendMedia
 	// path, which already sends each item as its own message, one after another.
 	const [collections, setCollections] = useState<StoredDrawerCollection[]>([]);
 	const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
@@ -257,8 +257,8 @@ export function ChatDrawerPanel({
 	const [confirmDeleteCollectionId, setConfirmDeleteCollectionId] = useState<string | null>(null);
 	const [isDeletingCollection, setIsDeletingCollection] = useState(false);
 
-	// The album and collection editors open on top of the drawer, same sheets
-	// as on the albums settings page. Collection: undefined = closed, null = new.
+	// The album and collection editors open on top of the drawer.
+	// Collection: undefined = closed, null = new.
 	const [editingAlbum, setEditingAlbum] = useState<OwnAlbum | null>(null);
 	const { createAlbum, isCreating: isCreatingAlbum } = useCreateAlbum();
 	// Created as "Album" and opened right away, to be named and filled there.
@@ -272,8 +272,8 @@ export function ChatDrawerPanel({
 	const collectionEditorCloseRef = useRef<(() => void) | null>(null);
 	const isEditorOpen = editingAlbum != null || editingCollection !== undefined;
 
-	// The plan's album limits, enforced like on the albums settings page (the
-	// album count here; items and videos per album in the editor). Until they
+	// The plan's album limits (the album count here; items and videos per
+	// album in the editor, which also shows them in its plan sheet). Until they
 	// are known, creating stays allowed — the server rejects it past the limit.
 	const [albumLimits, setAlbumLimits] = useState<AlbumLimits | null>(null);
 	useEffect(() => {
@@ -916,6 +916,7 @@ export function ChatDrawerPanel({
 				album={editingAlbum}
 				// Not loaded yet: the editor fetches them itself.
 				limits={albumLimits ?? undefined}
+				albumCount={albums.length}
 				onClose={() => {
 					setEditingAlbum(null);
 					void onAlbumsChanged?.();

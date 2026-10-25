@@ -566,15 +566,6 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			icon: Tag,
 			iconClass: "bg-orange-500/15 text-orange-400",
 		},
-		{
-			id: "nav-albums",
-			route: "/settings/albums",
-			label: t("settings.my_albums"),
-			description: t("settings.my_albums_desc"),
-			section: "Chat",
-			icon: Images,
-			iconClass: "bg-pink-500/15 text-pink-400",
-		},
 
 		// Safety
 		{

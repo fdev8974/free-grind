@@ -86,7 +86,7 @@ export function AlbumDrawerPickerSheet({
 		});
 	}, [remainingSlots]);
 	// Videos too: the page uploads those to the album directly, since the
-	// by-id endpoint doesn't add them (see SettingsAlbumsPage handleAddFromDrawer).
+	// by-id endpoint doesn't add them (see AlbumEditorSheet handleAddFromDrawer).
 	const upload = useDrawerUploadQueue({ onReloadMedia: reloadMedia, onUploaded: selectUploaded });
 	const isBusy = upload.isUploading || isSubmitting;
 
