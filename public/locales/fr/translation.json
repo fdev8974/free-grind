@@ -2478,6 +2478,10 @@
             "unknown": "Pas encore suivi"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "Enregistrer la rencontre",
             "open_chat": "Ouvrir le chat",
             "loading": "Chargement de l'historique…",
@@ -2533,6 +2537,9 @@
             "delete_confirm_action": "Supprimer"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "Ajouter un rendez-vous",
             "add_title": "Ajouter un rendez-vous",
             "edit_title": "Modifier le rendez-vous",

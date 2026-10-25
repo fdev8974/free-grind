@@ -2462,6 +2462,10 @@
             "unknown": "Nog niet bijgehouden"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "Ontmoeting vastleggen",
             "open_chat": "Chat openen",
             "loading": "Geschiedenis laden…",
@@ -2517,6 +2521,9 @@
             "delete_confirm_action": "Verwijderen"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "Afspraak toevoegen",
             "add_title": "Afspraak toevoegen",
             "edit_title": "Afspraak bewerken",

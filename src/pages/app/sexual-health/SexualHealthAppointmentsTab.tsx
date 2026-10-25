@@ -274,11 +274,8 @@ function AppointmentRow({
 	);
 }
 
-// headerSlotEl is accepted for a consistent prop signature across list
-// tabs, but this tab has nothing left to pin there now that "Add
-// appointment" moved to the floating action button.
 export function SexualHealthAppointmentsTab({
-	headerSlotEl: _headerSlotEl,
+	headerSlotEl,
 	fabSlotEl,
 }: {
 	headerSlotEl: HTMLDivElement | null;
@@ -314,6 +311,13 @@ export function SexualHealthAppointmentsTab({
 
 	return (
 		<>
+			{headerSlotEl && appointments !== null &&
+				createPortal(
+					upcoming.length > 0
+						? t("sexualHealth.appointments.subtitle_upcoming", { count: upcoming.length })
+						: t("sexualHealth.appointments.subtitle_none_upcoming"),
+					headerSlotEl,
+				)}
 			<div className="grid gap-4">
 				{appointments === null ? (
 					<div className="px-[var(--app-px)]">

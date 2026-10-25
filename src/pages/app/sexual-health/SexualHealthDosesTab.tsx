@@ -120,7 +120,7 @@ export function SexualHealthDosesTab({
 		<>
 			{headerSlotEl &&
 				createPortal(
-					<p className="min-h-8 flex items-center truncate text-sm">
+					<>
 						<span className={`font-semibold ${STATUS_TEXT_CLASS[variant]}`}>{label}</span>
 						<span className="text-[var(--text-muted)]">
 							{" · "}
@@ -145,7 +145,7 @@ export function SexualHealthDosesTab({
 								</>
 							)}
 						</span>
-					</p>,
+					</>,
 					headerSlotEl,
 				)}
 

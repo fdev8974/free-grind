@@ -2478,6 +2478,10 @@
             "unknown": "Još se ne prati"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "Zabilježi susret",
             "open_chat": "Otvori razgovor",
             "loading": "Učitavanje historije…",
@@ -2533,6 +2537,9 @@
             "delete_confirm_action": "Obriši"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "Dodaj termin",
             "add_title": "Dodaj termin",
             "edit_title": "Uredi termin",

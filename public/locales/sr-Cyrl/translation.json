@@ -2480,6 +2480,10 @@
             "unknown": "Још се не прати"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "Забележи сусрет",
             "open_chat": "Отвори чет",
             "loading": "Учитавање историје…",
@@ -2535,6 +2539,9 @@
             "delete_confirm_action": "Обриши"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "Додај термин",
             "add_title": "Додај термин",
             "edit_title": "Уреди термин",

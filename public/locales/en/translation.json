@@ -2462,6 +2462,10 @@
       "unknown": "Not tracked yet"
     },
     "history": {
+      "subtitle_encounters_one": "{{count}} encounter",
+      "subtitle_encounters_other": "{{count}} encounters",
+      "subtitle_doses_one": "{{count}} dose",
+      "subtitle_doses_other": "{{count}} doses",
       "log_encounter": "Log encounter",
       "open_chat": "Open chat",
       "loading": "Loading history…",
@@ -2517,6 +2521,9 @@
       "delete_confirm_action": "Delete"
     },
     "appointments": {
+      "subtitle_upcoming_one": "{{count}} upcoming",
+      "subtitle_upcoming_other": "{{count}} upcoming",
+      "subtitle_none_upcoming": "No upcoming appointments",
       "add": "Add appointment",
       "add_title": "Add appointment",
       "edit_title": "Edit appointment",

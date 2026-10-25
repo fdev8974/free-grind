@@ -2462,6 +2462,10 @@
             "unknown": "Noch nicht erfasst"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "Begegnung erfassen",
             "open_chat": "Chat öffnen",
             "loading": "Verlauf wird geladen…",
@@ -2517,6 +2521,9 @@
             "delete_confirm_action": "Löschen"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "Termin hinzufügen",
             "add_title": "Termin hinzufügen",
             "edit_title": "Termin bearbeiten",

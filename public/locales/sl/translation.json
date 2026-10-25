@@ -2494,6 +2494,10 @@
             "unknown": "Še ni beleženo"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "Zabeleži srečanje",
             "open_chat": "Odpri klepet",
             "loading": "Nalaganje zgodovine…",
@@ -2549,6 +2553,9 @@
             "delete_confirm_action": "Izbriši"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "Dodaj termin",
             "add_title": "Dodaj termin",
             "edit_title": "Uredi termin",

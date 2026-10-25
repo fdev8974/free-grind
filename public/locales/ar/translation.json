@@ -2526,6 +2526,10 @@
             "unknown": "تم"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "تم",
             "open_chat": "تم",
             "loading": "تم",
@@ -2581,6 +2585,9 @@
             "delete_confirm_action": "يحذف"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "أضف موعدا 👬",
             "add_title": "إضافة موعدا",
             "edit_title": "تعديل الموعد",

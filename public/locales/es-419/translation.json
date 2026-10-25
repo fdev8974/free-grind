@@ -2478,6 +2478,10 @@
             "unknown": "Aún no se ha realizado el seguimiento"
         },
         "history": {
+            "subtitle_encounters_one": "",
+            "subtitle_encounters_other": "",
+            "subtitle_doses_one": "",
+            "subtitle_doses_other": "",
             "log_encounter": "Registro de encuentro",
             "open_chat": "Abrir chat",
             "loading": "Cargando historial…",
@@ -2533,6 +2537,9 @@
             "delete_confirm_action": "Eliminar"
         },
         "appointments": {
+            "subtitle_upcoming_one": "",
+            "subtitle_upcoming_other": "",
+            "subtitle_none_upcoming": "",
             "add": "Agregar cita",
             "add_title": "Agregar cita",
             "edit_title": "Editar cita",

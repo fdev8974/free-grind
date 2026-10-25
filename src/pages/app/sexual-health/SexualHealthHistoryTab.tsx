@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Clock, MessageSquare, Pill, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -103,11 +104,8 @@ function HistoryRow({
 	);
 }
 
-// headerSlotEl is accepted for a consistent prop signature across list
-// tabs, but this tab has nothing left to pin there now that the filter is
-// gone and logging moved to the floating action button.
 export function SexualHealthHistoryTab({
-	headerSlotEl: _headerSlotEl,
+	headerSlotEl,
 	fabSlotEl,
 }: {
 	headerSlotEl: HTMLDivElement | null;
@@ -160,6 +158,14 @@ export function SexualHealthHistoryTab({
 
 	return (
 		<div>
+			{headerSlotEl && !isLoading &&
+				createPortal(
+					[
+						t("sexualHealth.history.subtitle_encounters", { count: encounters.length }),
+						t("sexualHealth.history.subtitle_doses", { count: doses.length }),
+					].join(" · "),
+					headerSlotEl,
+				)}
 			{isLoading ? (
 				<div className="px-[var(--app-px)]">
 					<LoadingState title={t("sexualHealth.history.loading", { defaultValue: "Loading history…" })} />

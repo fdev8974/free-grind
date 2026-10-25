@@ -283,21 +283,15 @@ export function SexualHealthTestsTab({
 		<>
 			{headerSlotEl &&
 				createPortal(
-					<div className="flex min-h-8 items-center justify-between gap-2.5">
-						<p className="min-w-0 truncate text-sm">
-							<span className="font-semibold text-[var(--text)]">
-								{t("sexualHealth.tests.profile_last_tested", { defaultValue: "Last tested (profile)" })}
-							</span>
-							<span className="text-[var(--text-muted)]">
-								{" · "}
-								{profile?.lastTestedDate != null
-									? formatDate(profile.lastTestedDate)
-									: t("sexualHealth.tests.profile_last_tested_unset", { defaultValue: "Not set" })}
-							</span>
-						</p>
-						{/* Invisible spacer matching Doses' settings button so both header rows share the exact same box model/height. */}
-						<div className="h-8 w-8 shrink-0" aria-hidden="true" />
-					</div>,
+					<>
+						<span className="font-semibold text-[var(--text)]">
+							{t("sexualHealth.tests.profile_last_tested", { defaultValue: "Last tested (profile)" })}
+						</span>
+						{" · "}
+						{profile?.lastTestedDate != null
+							? formatDate(profile.lastTestedDate)
+							: t("sexualHealth.tests.profile_last_tested_unset", { defaultValue: "Not set" })}
+					</>,
 					headerSlotEl,
 				)}
 
