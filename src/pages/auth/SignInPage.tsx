@@ -15,7 +15,7 @@ import { isTauriRuntime } from "../../services/tauriWebSocket";
 import { cancelQrScan, isQrScanSupported, QrScanError, scanQrCode } from "../../services/qrScanner";
 import { QrScanOverlay } from "../../components/QrScanOverlay";
 import { cn } from "../../utils/cn";
-import { SlidingTabs } from "../../components/ui/sliding-tabs";
+import { SlidingTabs, useSwipeTabs } from "../../components/ui/sliding-tabs";
 
 /**
  * Android-only native Google sign-in (GoogleOAuthActivity.kt).
@@ -155,6 +155,14 @@ export function SignInPage() {
 		setScanError(null);
 	};
 	useEffect(() => clearError, [clearError]);
+
+	const methods: SignInMethod[] = [
+		"password",
+		...(hasGoogleSignIn ? (["google"] as const) : []),
+		...(hasFacebookSignIn ? (["facebook"] as const) : []),
+	];
+	// The transfer flow replaces the tabs, so there's nothing to swipe between then.
+	const methodSwipe = useSwipeTabs<SignInMethod>(methods, method, changeMethod, !showTransfer);
 
 	const isPasswordFormValid = email.trim().length > 0 && password.trim().length > 0;
 
@@ -324,6 +332,7 @@ export function SignInPage() {
 			title={addProfileMode ? t("auth.sign_in.add_profile_title", { defaultValue: "Add Profile" }) : t("auth.sign_in.title")}
 			subtitle={addProfileMode ? t("auth.sign_in.add_profile_subtitle", { defaultValue: "Sign in with the account you want to add." }) : t("auth.sign_in.subtitle", { defaultValue: "Use your Grindr email and password, or sign in with Google." })}
 			footer={addProfileMode ? undefined : <BugReportButton />}
+			gestureProps={methodSwipe}
 			toolbar={
 				showTransfer ? undefined : (
 					<SlidingTabs<SignInMethod>

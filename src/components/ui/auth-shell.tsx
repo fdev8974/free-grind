@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 import { cn } from "../../utils/cn";
 import freeGrindLogo from "../../images/freegrind-logo.webp";
@@ -9,6 +9,7 @@ export function AuthShell({
 	children,
 	footer,
 	toolbar,
+	gestureProps,
 }: {
 	title: string;
 	subtitle: string;
@@ -16,6 +17,8 @@ export function AuthShell({
 	footer?: ReactNode;
 	/** Pinned between the header and the scrolling form, e.g. a method switcher. */
 	toolbar?: ReactNode;
+	/** Touch handlers for the scrolling form, e.g. useSwipeTabs for the toolbar's tabs. */
+	gestureProps?: HTMLAttributes<HTMLDivElement>;
 }) {
 	return (
 		<div className="fs-card-outer">
@@ -53,6 +56,7 @@ export function AuthShell({
 								"pt-1",
 					)}
 					data-lenis-prevent
+					{...gestureProps}
 				>
 					<div className="flex-1">{children}</div>
 					{footer ? (
