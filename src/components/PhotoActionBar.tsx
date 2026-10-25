@@ -14,8 +14,8 @@ type PhotoActionBarProps = {
  * Bottom bar for replying to (or 🔥-reacting to) a specific photo shown in
  * PhotoViewer — mirrors the floating "quick message + tap" footer in
  * ProfileDetailsModal, but scoped to a single reaction (no emoji picker,
- * since album-photo reactions only ever imply 🔥). Built like that footer:
- * a floating pill for the text, send and tap as round buttons beside it.
+ * since album-photo reactions only ever imply 🔥). Built like the chat
+ * composer: a floating pill with the send button inside, the reaction beside it.
  */
 export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoActionBarProps) {
 	const { t } = useTranslation();
@@ -60,9 +60,9 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 				className="mx-auto flex w-full max-w-lg items-center gap-1"
 				onClick={(e) => e.stopPropagation()}
 			>
-				{/* Same as the profile's bar: the field floats as a frosted pill,
-				    tap and send sit next to it. */}
-				<div className="min-w-0 flex-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] p-1 shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl focus-within:ring-2 focus-within:ring-[var(--accent)]">
+				{/* Like the chat composer: the field floats as a frosted pill with
+				    the send button inside it; the tap/reaction sits next to it. */}
+				<div className="flex min-w-0 flex-1 items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] py-1 pl-1 pr-1 shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl focus-within:ring-2 focus-within:ring-[var(--accent)]">
 					<input
 						type="text"
 						value={text}
@@ -73,22 +73,25 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 								void handleSend();
 							}
 						}}
-						disabled={isSending}
+						// readOnly, not disabled: disabling would blur it and drop the keyboard.
+						readOnly={isSending}
 						enterKeyHint="send"
 						placeholder={placeholder ?? t("photo_viewer.reply_placeholder", { defaultValue: "Reply…" })}
-						className="h-10 w-full bg-transparent px-4 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none disabled:opacity-50"
+						className="h-10 min-w-0 flex-1 bg-transparent px-3 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none read-only:opacity-50"
 					/>
+					<button
+						type="button"
+						onClick={() => void handleSend()}
+						// Keeps the input focused, so the keyboard stays up after sending.
+						onMouseDown={(e) => e.preventDefault()}
+						disabled={isSending || !hasText}
+						aria-label={t("photo_viewer.send", { defaultValue: "Send" })}
+						// Same round accent button as the chat composer's send.
+						className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] transition active:scale-90 disabled:opacity-30"
+					>
+						{isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizontalFilled className="h-5 w-5" />}
+					</button>
 				</div>
-				<button
-					type="button"
-					onClick={() => void handleSend()}
-					disabled={isSending || !hasText}
-					aria-label={t("photo_viewer.send", { defaultValue: "Send" })}
-					// Same round accent button as the chat composer's send.
-					className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] transition active:scale-90 disabled:opacity-40"
-				>
-					{isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizontalFilled className="h-5 w-5" />}
-				</button>
 				{onReact && (
 					<button
 						type="button"

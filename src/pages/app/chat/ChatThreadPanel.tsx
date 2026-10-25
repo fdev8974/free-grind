@@ -2072,6 +2072,17 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					<form
 						ref={!isDesktop ? composerRef : undefined}
 						onSubmit={onFormSubmit}
+						// Mobile: a tap that just misses the send button (or lands on the
+						// pill's padding, a phrase pill, …) would move focus off the
+						// textarea and close the keyboard. Cancelling mousedown keeps the
+						// focus where it is; clicks still fire. The action row below is
+						// left alone — its buttons open sheets, where the keyboard should go.
+						onMouseDown={!isDesktop ? (event) => {
+							const target = event.target as HTMLElement;
+							if (document.activeElement !== textareaRef.current) return;
+							if (target.closest("textarea, input, [data-composer-actions]")) return;
+							event.preventDefault();
+						} : undefined}
 						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-[35] px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)]"}
 					>
 						{(isUploadingAttachment || uploadProgress > 0) && (
@@ -2472,7 +2483,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									key="send"
 									type="submit"
 									disabled={isSending || !!pendingLocationShare || draft.trim().length === 0}
-									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center transition hover:opacity-80 disabled:opacity-30 ${!isDesktop ? "rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "rounded-lg text-[var(--accent)]"}`}
+									// Mobile: the invisible ::after widens the tap target past the
+									// pill's edge, so a slightly-off tap still sends.
+									className={`shrink-0 inline-flex ${!isDesktop ? "relative h-10 w-10 after:absolute after:-inset-x-3 after:-inset-y-2 after:content-['']" : "h-8 w-8"} items-center justify-center transition hover:opacity-80 disabled:opacity-30 ${!isDesktop ? "rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "rounded-lg text-[var(--accent)]"}`}
 								>
 									{isSending ? <Loader2 className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-spin`} /> : <SendHorizontalFilled className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />}
 								</button>
@@ -2539,6 +2552,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                         {/* Mirrors the mobile NavBar geometry (same side inset, equal-width
                             columns, h-12 row) so the icons line up with the app's bottom menu. */}
                         <div
+							data-composer-actions
 							className={
 								!isDesktop
 									? "-mx-[var(--app-px)]"
