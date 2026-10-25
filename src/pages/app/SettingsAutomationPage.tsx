@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Download, LockKeyhole, Plus, Save, Upload, Workflow } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronRight, Download, LockKeyhole, Plus, Upload, Workflow } from "lucide-react";
 import { TagFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { PageHeader } from "../../components/PageHeader";
@@ -18,6 +18,104 @@ import { AutomationRuleEditor } from "../../components/settings/AutomationRuleEd
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import type { Album } from "../../types/albums";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
+import { SHEET_FIELD_CLASS, SheetSection } from "../../components/ui/sheet-section";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { cn } from "../../utils/cn";
+
+/** Same splitting as the rule matching (commas or new lines). */
+function parseKeywords(text: string): string[] {
+	return text.split(/[,\n]/).map((word) => word.trim()).filter((word) => word.length > 0);
+}
+
+/** Editing the shared keyword list, with import/export as .txt. */
+function ForbiddenKeywordsSheet({
+	initialValue,
+	onSave,
+	onClose,
+}: {
+	initialValue: string;
+	onSave: (value: string) => void;
+	onClose: () => void;
+}) {
+	const { t } = useTranslation();
+	const isDesktop = useDesktopBreakpoint();
+	const [draft, setDraft] = useState(initialValue);
+	const count = parseKeywords(draft).length;
+
+	const handleExport = () => {
+		const blob = new Blob([draft], { type: "text/plain" });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = url;
+		a.download = "free-grind-keywords.txt";
+		a.click();
+		URL.revokeObjectURL(url);
+		toast.success(t("settings_automation.keywords_exported"));
+	};
+
+	const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		const reader = new FileReader();
+		reader.onload = (event) => {
+			setDraft(event.target?.result as string);
+			toast.success(t("settings_automation.keywords_imported"));
+		};
+		reader.readAsText(file);
+	};
+
+	return (
+		<BottomSheet
+			onClose={onClose}
+			expandable
+			isDesktop={isDesktop}
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
+		>
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">{t("settings_automation.forbidden_keywords_title")}</h3>
+				<SheetCloseButton />
+			</div>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<SheetSection
+					title={t("settings_automation.forbidden_list_row_title", { defaultValue: "Keyword list" })}
+					value={t("settings_automation.forbidden_list_count", { count, defaultValue: "{{count}} keywords" })}
+				>
+					<textarea
+						value={draft}
+						onChange={(e) => setDraft(e.target.value)}
+						placeholder={t("settings_automation.forbidden_editor_placeholder", { defaultValue: "snapchat, crypto, bot" })}
+						rows={8}
+						className={cn(SHEET_FIELD_CLASS, "resize-none px-4 py-3")}
+					/>
+					<p className="mt-2 px-1 text-xs leading-relaxed text-[var(--text-muted)]">
+						{t("settings_automation.forbidden_editor_hint", {
+							defaultValue: "Separate keywords with commas or new lines. They match whole words, upper or lower case doesn't matter.",
+						})}
+					</p>
+				</SheetSection>
+				<div className="mt-4 grid grid-cols-2 gap-2">
+					<label className={cn(sheetButtonClass("secondary"), "h-10 cursor-pointer text-sm")}>
+						<Upload className="h-4 w-4" />
+						{t("settings_automation.import_txt")}
+						<input type="file" accept=".txt" onChange={handleImport} className="hidden" />
+					</label>
+					<button type="button" onClick={handleExport} className={cn(sheetButtonClass("secondary"), "h-10 text-sm")}>
+						<Download className="h-4 w-4" />
+						{t("settings_automation.export_txt")}
+					</button>
+				</div>
+			</div>
+			<div className={SHEET_FOOTER_CLASS}>
+				<SheetClose onClick={() => onSave(draft)} className={sheetButtonClass()}>
+					{t("settings_automation.update_block_rules")}
+				</SheetClose>
+			</div>
+		</BottomSheet>
+	);
+}
 
 type TFunc = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -185,33 +283,17 @@ export function SettingsAutomationPage() {
 	};
 
 	const [forbiddenWords, setForbiddenWords] = useState(() => getAutomationSettings().forbiddenWords);
+	const [isKeywordsSheetOpen, setIsKeywordsSheetOpen] = useState(false);
+	const keywordList = useMemo(() => parseKeywords(forbiddenWords), [forbiddenWords]);
+	// The list does nothing on its own, so show which rules actually use it.
+	const rulesUsingList = rules.filter((rule) =>
+		rule.conditions.some((condition) => "useForbiddenList" in condition && condition.useForbiddenList),
+	);
 
-	const handleSaveAutoBlock = () => {
-		void setAutomationSettings({ forbiddenWords });
+	const handleSaveKeywords = (value: string) => {
+		setForbiddenWords(value);
+		void setAutomationSettings({ forbiddenWords: value });
 		toast.success(t("settings_automation.block_rules_updated"));
-	};
-
-	const handleExport = () => {
-		const blob = new Blob([forbiddenWords], { type: "text/plain" });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = "free-grind-keywords.txt";
-		a.click();
-		URL.revokeObjectURL(url);
-		toast.success(t("settings_automation.keywords_exported"));
-	};
-
-	const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const file = e.target.files?.[0];
-		if (!file) return;
-		const reader = new FileReader();
-		reader.onload = (event) => {
-			const text = event.target?.result as string;
-			setForbiddenWords(text);
-			toast.success(t("settings_automation.keywords_imported"));
-		};
-		reader.readAsText(file);
 	};
 
 	return (
@@ -318,52 +400,78 @@ export function SettingsAutomationPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("settings_automation.forbidden_keywords_title")}
 					</p>
-					<div className="native-card overflow-hidden">
-						<div className="flex items-start gap-3 p-4">
+					<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+						<button
+							type="button"
+							onClick={() => setIsKeywordsSheetOpen(true)}
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+						>
 							<div className="shrink-0 rounded-2xl bg-orange-500/15 p-2.5 text-orange-400">
 								<TagFilled className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
-								<p className="mt-0.5 break-words text-xs leading-relaxed text-[var(--text-muted)]">
-									{t("settings_automation.forbidden_keywords_desc")}
+								<p className="text-sm font-semibold leading-snug">
+									{t("settings_automation.forbidden_list_row_title", { defaultValue: "Keyword list" })}
 								</p>
-								<textarea
-									value={forbiddenWords}
-									onChange={(e) => setForbiddenWords(e.target.value)}
-									placeholder={t("settings_automation.keywords_placeholder")}
-									className="input-field mt-3 min-h-[100px] resize-y"
-								/>
-								<div className="mt-2 grid grid-cols-2 gap-2">
-									<button
-										type="button"
-										onClick={handleExport}
-										className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full ink-tint-10 px-3 text-xs font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97]"
-									>
-										<Download className="h-3.5 w-3.5" />
-										{t("settings_automation.export_txt")}
-									</button>
-									<label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full ink-tint-10 px-3 text-xs font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97]">
-										<Upload className="h-3.5 w-3.5" />
-										{t("settings_automation.import_txt")}
-										<input type="file" accept=".txt" onChange={handleImport} className="hidden" />
-									</label>
-								</div>
+								<p className="mt-0.5 truncate text-xs leading-snug text-[var(--text-muted)]">
+									{keywordList.length > 0
+										? `${t("settings_automation.forbidden_list_count", { count: keywordList.length, defaultValue: "{{count}} keywords" })} · ${keywordList.slice(0, 4).join(", ")}${keywordList.length > 4 ? "…" : ""}`
+										: t("settings_automation.forbidden_list_empty", { defaultValue: "No keywords yet" })}
+								</p>
 							</div>
-						</div>
+							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+						</button>
 
-						<div className="border-t border-[var(--border)] p-4">
-							<button
-								type="button"
-								onClick={handleSaveAutoBlock}
-								className="btn-accent inline-flex w-full min-h-11 items-center justify-center gap-2 px-4 py-2.5 font-semibold"
-							>
-								<Save className="h-4 w-4" />
-								{t("settings_automation.update_block_rules")}
-							</button>
+						{/* Where the list actually takes effect. */}
+						<div className="px-4 py-3">
+							<p className="text-xs font-semibold text-[var(--text-muted)]">
+								{t("settings_automation.forbidden_used_by", { defaultValue: "Used by" })}
+							</p>
+							{rulesUsingList.length > 0 ? (
+								<div className="mt-1">
+									{rulesUsingList.map((rule) => (
+										<button
+											key={rule.id}
+											type="button"
+											onClick={() => setEditingRule(rule)}
+											className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-[var(--surface-2)]"
+										>
+											<Workflow className="h-4 w-4 shrink-0 text-indigo-400" />
+											<span className="min-w-0 flex-1 truncate text-sm">{rule.nameKey ? t(rule.nameKey) : rule.name}</span>
+											<span
+												className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+													rule.enabled ? "bg-emerald-500/15 text-emerald-500" : "ink-tint-10 text-[var(--text-muted)]"
+												}`}
+											>
+												{rule.enabled
+													? t("settings_automation.rule_on", { defaultValue: "On" })
+													: t("settings_automation.rule_off", { defaultValue: "Off" })}
+											</span>
+										</button>
+									))}
+								</div>
+							) : (
+								<p className="mt-1 text-sm text-[var(--text-muted)]">
+									{t("settings_automation.forbidden_not_used", { defaultValue: "No rule uses this list yet." })}
+								</p>
+							)}
 						</div>
 					</div>
+					<p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
+						{t("settings_automation.forbidden_usage_footnote", {
+							defaultValue: "The list does nothing on its own. A rule uses it when one of its keyword conditions (name, bio, message or social handle) is set to “Forbidden Keywords” instead of its own words. The built-in “Forbidden keywords block” rule blocks anyone whose name, bio or message contains a keyword; turn it on above.",
+						})}
+					</p>
 				</div>
 			</div>
+
+			{isKeywordsSheetOpen && (
+				<ForbiddenKeywordsSheet
+					initialValue={forbiddenWords}
+					onSave={handleSaveKeywords}
+					onClose={() => setIsKeywordsSheetOpen(false)}
+				/>
+			)}
 
 			<AutomationRuleEditor
 				isOpen={editingRule !== null}
