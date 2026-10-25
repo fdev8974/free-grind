@@ -267,6 +267,10 @@ function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePrev
 					</div>
 				)}
 			</div>
+			{/* The rest of the profile isn't known yet — placeholders hint that it follows. */}
+			<div className="mt-8 px-4 sm:px-5">
+				<ProfileDetailsSkeleton withHeader={false} />
+			</div>
 		</div>
 	);
 }
@@ -285,10 +289,11 @@ function normalizeMediaCreatedAt(value: unknown): number | null {
 	return numeric < 1_000_000_000_000 ? Math.round(numeric * 1000) : Math.round(numeric);
 }
 
-function ProfileDetailsSkeleton() {
+/** `withHeader={false}` leaves out the name/status lines, for when those are already known. */
+function ProfileDetailsSkeleton({ withHeader = true }: { withHeader?: boolean }) {
 	return (
 		<div className="animate-pulse space-y-8 px-3" aria-hidden="true">
-			<div>
+			{withHeader && <div>
 				<div className="h-7 w-2/5 rounded-full bg-[var(--surface-2)]" />
 				<div className="mt-2.5 flex flex-wrap items-center gap-3">
 					<div className="h-3 w-20 rounded-full bg-[var(--surface-2)]" />
@@ -299,7 +304,7 @@ function ProfileDetailsSkeleton() {
 					<div className="h-3 w-12 rounded-full bg-[var(--surface-2)]" />
 					<div className="h-3 w-12 rounded-full bg-[var(--surface-2)]" />
 				</div>
-			</div>
+			</div>}
 
 			<div className="flex flex-wrap gap-2">
 				<div className="h-6 w-16 rounded-full bg-[var(--surface-2)]" />
