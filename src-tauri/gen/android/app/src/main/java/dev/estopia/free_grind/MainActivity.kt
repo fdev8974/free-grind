@@ -262,6 +262,11 @@ class MainActivity : TauriActivity() {
   override fun onWebViewCreate(webView: WebView) {
     super.onWebViewCreate(webView)
     webViewRef = webView
+    // The page's own scrolling draws Android's View scrollbar, which CSS can't
+    // reach (index.css only hides those of inner scroll containers). Native
+    // apps show none, so neither does the app.
+    webView.isVerticalScrollBarEnabled = false
+    webView.isHorizontalScrollBarEnabled = false
 
     @Suppress("AddJavascriptInterface")
     webView.addJavascriptInterface(JsBridge(), "FreeGrindBridge")
