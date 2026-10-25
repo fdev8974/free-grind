@@ -3,7 +3,7 @@ import { useState } from "react";
 import semver from "semver";
 import type { VersionAnnouncement as VersionAnnouncementData } from "../data/versionAnnouncements";
 import logo from "../images/freegrind-logo.webp";
-import { fullscreenPrimaryButtonClass } from "./FullscreenPrompt";
+import { fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 
 function Dots({ total, current }: { total: number; current: number }) {
 	if (total <= 1) {
@@ -22,7 +22,7 @@ function Dots({ total, current }: { total: number; current: number }) {
 						className="h-1.5 rounded-full transition-all duration-300"
 						style={{
 							width: i === current ? "24px" : "6px",
-							background: i <= current ? "var(--accent)" : "var(--border)",
+							background: i <= current ? "var(--accent)" : "color-mix(in srgb, var(--text) 15%, transparent)",
 						}}
 					/>
 				))}
@@ -100,7 +100,7 @@ export function VersionAnnouncement({
 					>
 						<img src={logo} alt="" className="mb-6 h-16 w-16 rounded-2xl object-cover" />
 						{prereleaseLabel && (
-							<span className="mb-3 rounded-full border border-[var(--accent)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+							<span className="mb-3 rounded-full accent-tint-15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
 								{prereleaseLabel}
 							</span>
 						)}
@@ -116,8 +116,8 @@ export function VersionAnnouncement({
 					</div>
 				) : (
 					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-						<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-							{Icon && <Icon className="h-9 w-9 text-[var(--accent)]" />}
+						<div className={`mb-6 ${fullscreenIconTileClass}`}>
+							{Icon && <Icon className="h-9 w-9" />}
 						</div>
 						<h2 className="text-xl font-bold text-[var(--text)]">{item?.title}</h2>
 						<div className="flex h-24 flex-col items-center overflow-hidden">
@@ -144,7 +144,7 @@ export function VersionAnnouncement({
 						<button
 							type="button"
 							onClick={onClose}
-							className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
+							className={fullscreenSecondaryButtonClass}
 						>
 							Skip
 						</button>
