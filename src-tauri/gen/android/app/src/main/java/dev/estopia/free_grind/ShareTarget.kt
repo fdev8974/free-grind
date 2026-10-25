@@ -133,7 +133,7 @@ object ShareTarget {
         val chat = chats.optJSONObject(index) ?: return@mapNotNull null
         val conversationId = NotificationPoster.normalizeNullableString(chat.optString("conversationId"))
           ?: return@mapNotNull null
-        val name = NotificationPoster.normalizeSenderName(chat.optString("name"))
+        val name = NotificationPoster.normalizeSenderName(context, chat.optString("name"))
         val icon = NotificationPoster.normalizeNullableString(chat.optString("avatarUrl"))
           ?.let(::downloadAvatar)
           ?.let(IconCompat::createWithAdaptiveBitmap)

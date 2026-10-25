@@ -1,3 +1,5 @@
+import type { i18n as I18n } from "i18next";
+
 // Shared by NotificationsPage (the settings toggles) and ChatRealtimeBridge
 // (which gates the instant foreground notifications it fires from the chat
 // WebSocket) — lets the user control chat and tap notifications separately,
@@ -41,6 +43,38 @@ export function syncNotificationSettingsToNative(): void {
 				FreeGrindBridge?: { setNotificationPreferences?: (json: string) => void };
 			}
 		).FreeGrindBridge?.setNotificationPreferences?.(payload);
+	} catch {
+		// no-op outside the Android WebView
+	}
+}
+
+// Native pushes can't reach i18next either (FCM runs without the WebView), so
+// the current language's push_notifications.* texts are mirrored down as
+// String.format templates ({{arg1}} → %1$s) for NotificationStrings.kt to
+// persist. Keys this language leaves empty are omitted, and native falls back
+// to the English original. No-op outside the Android WebView.
+export function syncNotificationStringsToNative(i18n: I18n): void {
+	const bridge = (
+		window as unknown as {
+			FreeGrindBridge?: { setNotificationStrings?: (json: string) => void };
+		}
+	).FreeGrindBridge;
+	if (!bridge?.setNotificationStrings) return;
+
+	const language = i18n.resolvedLanguage ?? i18n.language;
+	const english = i18n.getResource("en", "translation", "push_notifications") as
+		| Record<string, string>
+		| undefined;
+	const strings: Record<string, string> = {};
+	for (const key of Object.keys(english ?? {})) {
+		const template = i18n.getResource(language, "translation", `push_notifications.${key}`);
+		if (typeof template !== "string" || !template.trim()) continue;
+		strings[key.toUpperCase()] = template
+			.replace(/%/g, "%%")
+			.replace(/\{\{\s*arg(\d+)\s*\}\}/g, "%$1$$s");
+	}
+	try {
+		bridge.setNotificationStrings(JSON.stringify(strings));
 	} catch {
 		// no-op outside the Android WebView
 	}

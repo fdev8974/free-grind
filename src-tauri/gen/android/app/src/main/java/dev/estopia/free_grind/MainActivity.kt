@@ -335,6 +335,12 @@ class MainActivity : TauriActivity() {
       }
     }
 
+    /** Localized notification texts for the native push pipeline — see NotificationStrings. */
+    @JavascriptInterface
+    fun setNotificationStrings(json: String) {
+      NotificationStrings.update(this@MainActivity, json)
+    }
+
     /**
      * Called once by main.tsx right after the first real paint (double
      * requestAnimationFrame past the initial React render) — dismisses the

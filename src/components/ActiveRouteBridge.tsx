@@ -10,9 +10,13 @@
  */
 
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { appLog } from "../utils/logger";
-import { syncNotificationSettingsToNative } from "../utils/notificationSettings";
+import {
+	syncNotificationSettingsToNative,
+	syncNotificationStringsToNative,
+} from "../utils/notificationSettings";
 
 declare global {
 	interface Window {
@@ -33,10 +37,23 @@ function pushRoute(route: string | null): void {
 
 export function ActiveRouteBridge() {
 	const location = useLocation();
+	const { i18n } = useTranslation();
 
 	useEffect(() => {
 		syncNotificationSettingsToNative();
 	}, []);
+
+	// Re-sync on language switch, and once a lazily loaded locale arrives.
+	useEffect(() => {
+		const sync = () => syncNotificationStringsToNative(i18n);
+		sync();
+		i18n.on("languageChanged", sync);
+		i18n.on("loaded", sync);
+		return () => {
+			i18n.off("languageChanged", sync);
+			i18n.off("loaded", sync);
+		};
+	}, [i18n]);
 
 	useEffect(() => {
 		const focused =

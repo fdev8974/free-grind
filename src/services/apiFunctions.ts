@@ -15,6 +15,7 @@ import { createVideoCallMethods } from "./api/videoCallMethods";
 import { createLegalMethods } from "./api/legalMethods";
 import { createWarningsMethods } from "./api/warningsMethods";
 import { createSpotifyMethods } from "./api/spotifyMethods";
+import { createPushSettingsMethods } from "./api/pushSettingsMethods";
 import type { RightNowFeedItem, RightNowCreatePostRequest, RightNowCreatePostMedia, RightNowUpdatePostRequest } from "../types/right-now";
 
 export {
@@ -40,6 +41,7 @@ export function createApiFunctions(fetchRest: RestFetcher, t: (key: string) => s
 		...createLegalMethods(fetchRest, t),
 		...createWarningsMethods(fetchRest, t),
 		...createSpotifyMethods(fetchRest, t),
+		...createPushSettingsMethods(fetchRest, t),
 
 		async request(
 			path: string,

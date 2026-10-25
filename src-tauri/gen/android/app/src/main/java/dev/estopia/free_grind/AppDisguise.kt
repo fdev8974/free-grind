@@ -30,6 +30,9 @@ object AppDisguise {
   // which both need to (re)create these same two channel ids.
   const val CHAT_CHANNEL_ID = "free_grind_chat_notifications_v2"
   const val TAPS_CHANNEL_ID = "free_grind_taps_notifications_v2"
+  // Non-chat pushes (favorite online, views, boosts, …); only NotificationPoster
+  // creates it, on the first such push.
+  const val ACTIVITY_CHANNEL_ID = "free_grind_activity_notifications"
 
   enum class Identity(
     val id: String,
@@ -39,6 +42,7 @@ object AppDisguise {
     // identities so that surface doesn't give the disguise away either.
     val chatChannelName: String,
     val tapsChannelName: String,
+    val activityChannelName: String,
     // Same label/icon shown on the launcher alias — reused for the Recents
     // (task switcher) card and the custom splash dialog, the two other
     // places that otherwise keep showing the real "Free Grind" identity
@@ -46,17 +50,17 @@ object AppDisguise {
     val labelRes: Int,
     val iconRes: Int,
   ) {
-    DEFAULT("default", "DisguiseDefaultAlias", "Chat Messages", "Taps", R.string.app_name, R.mipmap.ic_launcher),
+    DEFAULT("default", "DisguiseDefaultAlias", "Chat Messages", "Taps", "Activity", R.string.app_name, R.mipmap.ic_launcher),
     CALCULATOR(
-      "calculator", "DisguiseCalculatorAlias", "Reminders", "Alerts",
+      "calculator", "DisguiseCalculatorAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_calculator, R.mipmap.ic_launcher_calculator,
     ),
     NOTES(
-      "notes", "DisguiseNotesAlias", "Reminders", "Alerts",
+      "notes", "DisguiseNotesAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_notes, R.mipmap.ic_launcher_notes,
     ),
     WEATHER(
-      "weather", "DisguiseWeatherAlias", "Reminders", "Alerts",
+      "weather", "DisguiseWeatherAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_weather, R.mipmap.ic_launcher_weather,
     );
 
@@ -142,5 +146,11 @@ object AppDisguise {
     nm.createNotificationChannel(
       NotificationChannel(TAPS_CHANNEL_ID, identity.tapsChannelName, NotificationManager.IMPORTANCE_HIGH)
     )
+    // Only renamed once it exists — it's created lazily on the first such push.
+    if (nm.getNotificationChannel(ACTIVITY_CHANNEL_ID) != null) {
+      nm.createNotificationChannel(
+        NotificationChannel(ACTIVITY_CHANNEL_ID, identity.activityChannelName, NotificationManager.IMPORTANCE_DEFAULT)
+      )
+    }
   }
 }

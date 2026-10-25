@@ -433,6 +433,30 @@ export function getMessagePreviewLabel(message: Message, t: TranslateFn): string
 	}
 }
 
+// Media types' notification wording (the 26.21 app's push texts, shared with
+// the native FCM pipeline via push_notifications.*); anything else uses the
+// regular inbox preview.
+const NOTIFICATION_BODY_KEYS: Record<string, string> = {
+	Image: "push_notifications.chat_image_notification_body",
+	ExpiringImage: "push_notifications.chat_expiring_image_notification_body",
+	Giphy: "push_notifications.chat_gif_notification_body",
+	Gaymoji: "push_notifications.chat_gaymoji_notification_body",
+	Location: "push_notifications.chat_location_notification_body",
+	Audio: "push_notifications.chat_audio_notification_body",
+	Video: "push_notifications.chat_video_notification_body",
+	PrivateVideo: "push_notifications.chat_video_notification_body",
+	NonExpiringVideo: "push_notifications.chat_video_notification_body",
+	Album: "push_notifications.chat_album_notification_body",
+	ExpiringAlbum: "push_notifications.chat_album_notification_body",
+	ExpiringAlbumV2: "push_notifications.chat_album_notification_body",
+	AlbumContentReaction: "push_notifications.chat_album_content_reaction_notification_body",
+};
+
+export function getNotificationBodyLabel(message: Message, t: TranslateFn): string {
+	const key = NOTIFICATION_BODY_KEYS[message.type];
+	return key ? t(key) : getMessagePreviewLabel(message, t);
+}
+
 // Normalizes the various casings/spellings seen in real traffic for
 // VideoCallMessageBody.result (e.g. "Busy" vs "BUSY", "No_Answer" vs
 // "UNANSWERED") into one of a fixed set of outcome keys under

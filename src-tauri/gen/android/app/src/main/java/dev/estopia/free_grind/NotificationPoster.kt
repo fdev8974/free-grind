@@ -198,9 +198,72 @@ object NotificationPoster {
         return targets.size
     }
 
+    // Non-chat pushes (see FreeGrindFirebaseMessagingService.buildSystemPushPayload):
+    // one standalone notification each on the activity channel, no
+    // conversation lines or chat actions. FCM-only, so — unlike chat — it isn't
+    // suppressed in the foreground beyond the user's in-app switch.
+    private fun postSystemNotification(context: Context, payload: JSONObject) {
+        if (MainActivity.inForeground && !MainActivity.foregroundNotificationsEnabled) {
+            Log.d("FCM", "Suppressing system notification (foreground notifications disabled)")
+            return
+        }
+        val rawData = payload.optJSONObject("rawData")
+        val label = context.getString(AppDisguise.currentDisguise(context).labelRes)
+        // "" = the app's own name in the original (app_name) → disguise label.
+        val title = payload.optString("systemTitle").trim().ifBlank { label }
+        val text = payload.optString("bodyText").trim()
+        val key = "system:" + (normalizeNullableString(rawData?.optString("notificationId"))
+            ?: "${payload.optString("growthType")}:${payload.optString("senderId")}:$title")
+        val notificationId = key.hashCode()
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(
+            NotificationChannel(
+                AppDisguise.ACTIVITY_CHANNEL_ID,
+                AppDisguise.currentDisguise(context).activityChannelName,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = "Favorites online, profile views and other activity" }
+        )
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            data = Uri.parse("freegrind-notification://open/${Uri.encode(key)}/default")
+            putExtra("push_payload", payload.toString())
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, notificationId, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val builder = NotificationCompat.Builder(context, AppDisguise.ACTIVITY_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification_silhouette)
+            .setColor(Color.TRANSPARENT)
+            .setColorized(false)
+            .setContentTitle(title)
+            .setContentText(text.ifBlank { null })
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setWhen(payload.optLong("sentAt", 0L).takeIf { it > 0 } ?: System.currentTimeMillis())
+            .addExtras(Bundle().apply {
+                putString(EXTRA_PUSH_NOTIFICATION_ID, normalizeNullableString(rawData?.optString("notificationId")))
+                putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
+            })
+        // Profile-targeted types (favorite/tap/pic recipient online) get the
+        // profile's picture; the rest stay icon-only.
+        loadSenderAvatarBitmap(rawData)?.let { builder.setLargeIcon(scaleBitmapIfNeeded(it, 128)) }
+
+        notificationManager.notify(key, NOTIFICATION_INSTANCE_ID, builder.build())
+        Log.d("FCM", "System notification posted key=$key type=${payload.optString("growthType")}")
+    }
+
     fun postNotification(context: Context, payload: JSONObject) {
-        val title = normalizeSenderName(payload.optString("senderName"))
-        val text = payload.optString("bodyText", "Sent you a message")
+        if (payload.optBoolean("isSystem", false)) {
+            postSystemNotification(context, payload)
+            return
+        }
+        val title = normalizeSenderName(context, payload.optString("senderName"))
+        val text = payload.optString("bodyText").ifBlank { NotificationStrings.text(context, NotificationStrings.GENERIC_MESSAGE) }
         val isTap = payload.optBoolean("isTap", false)
         val rawData = payload.optJSONObject("rawData")
         val conversationId = normalizeNullableString(payload.optString("conversationId"))
@@ -359,8 +422,8 @@ object NotificationPoster {
         // open the sender's profile and have no conversation to open.
         if (!isTap && normalizeNullableString(payload.optString("senderId")) != null) {
             builder
-                .addAction(NotificationCompat.Action.Builder(0, "Open chat", pendingIntent).build())
-                .addAction(NotificationCompat.Action.Builder(0, "Open profile", openIntent("profile")).build())
+                .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_CHAT), pendingIntent).build())
+                .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_PROFILE), openIntent("profile")).build())
         }
 
         val added = Line(lineKey, text, timestamp, previewUri?.let { "image/jpeg" }, previewUri)
@@ -377,7 +440,7 @@ object NotificationPoster {
                 Log.d("FCM", "Suppressing notification (line already shown) key=$notificationKey")
                 return
             }
-            val style = styleOf(me, sender, lines).setConversationTitle(if (isTap) "Taps" else null)
+            val style = styleOf(me, sender, lines).setConversationTitle(if (isTap) NotificationStrings.text(context, NotificationStrings.TAPS_TITLE) else null)
             builder.setStyle(style).setWhen(lines.last().timestamp)
             notificationManager.notify(notificationKey, NOTIFICATION_INSTANCE_ID, builder.build())
             Log.d("FCM", "Local notification posted successfully key=$notificationKey lines=${lines.size}")
@@ -639,14 +702,14 @@ object NotificationPoster {
         return trimmed
     }
 
-    fun normalizeSenderName(value: String?): String {
+    fun normalizeSenderName(context: Context, value: String?): String {
         val trimmed = value?.trim().orEmpty()
         if (
             trimmed.isEmpty() ||
             trimmed.equals("null", ignoreCase = true) ||
             trimmed.equals("SOMEONE_TITLE", ignoreCase = true)
         ) {
-            return "Someone"
+            return NotificationStrings.text(context, NotificationStrings.SOMEONE)
         }
         return trimmed
     }

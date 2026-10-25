@@ -3,6 +3,7 @@ package dev.estopia.free_grind
 import android.util.Log
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import org.json.JSONArray
 import org.json.JSONObject
 
 class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
@@ -14,21 +15,30 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         const val TAPS_DEEPLINK = "grindr://taps-inbox"
         const val TAP_BODY_KEY = "TAP_NOTIFICATION_BODY"
 
-        // v2 text keys → (display text, FreeGrind messageType). Same set as
-        // open-grind's PushStrings, plus message reactions which it misses.
-        val BODY_TEXTS = mapOf(
-            TAP_BODY_KEY to ("Tapped you" to null),
-            "CHAT_IMAGE_NOTIFICATION_BODY" to ("Sent you a picture" to "Image"),
-            "CHAT_EXPIRING_IMAGE_NOTIFICATION_BODY" to ("Sent you an expiring picture" to "ExpiringImage"),
-            "CHAT_GIF_NOTIFICATION_BODY" to ("Sent you a gif" to "Giphy"),
-            "CHAT_GAYMOJI_NOTIFICATION_BODY" to ("Sent you a gaymoji" to "Gaymoji"),
-            "CHAT_LOCATION_NOTIFICATION_BODY" to ("Sent you their location" to "Location"),
-            "CHAT_AUDIO_NOTIFICATION_BODY" to ("Sent you a voice message" to "Audio"),
-            "CHAT_VIDEO_NOTIFICATION_BODY" to ("Sent you a video" to "Video"),
-            "CHAT_ALBUM_NOTIFICATION_BODY" to ("Shared an album with you" to "Album"),
-            "CHAT_ALBUM_CONTENT_REACTION_NOTIFICATION_BODY" to ("Liked your album picture" to "AlbumContentReaction"),
-            "CHAT_MESSAGE_REACTION_NOTIFICATION_BODY" to ("Reacted to your message" to "MessageReaction"),
+        // v2 chat text keys → FreeGrind messageType (texts in NotificationStrings).
+        // Same set as open-grind's PushStrings, plus message reactions which it misses.
+        val CHAT_BODY_TYPES = mapOf(
+            TAP_BODY_KEY to null,
+            "CHAT_IMAGE_NOTIFICATION_BODY" to "Image",
+            "CHAT_EXPIRING_IMAGE_NOTIFICATION_BODY" to "ExpiringImage",
+            "CHAT_GIF_NOTIFICATION_BODY" to "Giphy",
+            "CHAT_GAYMOJI_NOTIFICATION_BODY" to "Gaymoji",
+            "CHAT_LOCATION_NOTIFICATION_BODY" to "Location",
+            "CHAT_AUDIO_NOTIFICATION_BODY" to "Audio",
+            "CHAT_VIDEO_NOTIFICATION_BODY" to "Video",
+            "CHAT_ALBUM_NOTIFICATION_BODY" to "Album",
+            "CHAT_ALBUM_CONTENT_REACTION_NOTIFICATION_BODY" to "AlbumContentReaction",
+            "CHAT_MESSAGE_REACTION_NOTIFICATION_BODY" to "MessageReaction",
         )
+        // A push's `message` blob type → its text key.
+        val MESSAGE_TYPE_KEYS = CHAT_BODY_TYPES.entries
+            .mapNotNull { (key, type) -> type?.let { it to key } }
+            .toMap()
+        const val GROWTH_DEEPLINK = "grindr://growth-notification"
+        const val RIGHT_NOW_PRODUCT_NAME = "Right Now"
+        // The app appends its Right Now product name to these keys' args.
+        val PRODUCT_NAME_KEYS = setOf("RIGHT_NOW_REQUEST_NOTIFICATION_BODY", "RIGHT_NOW_REQUEST_APPROVED_NOTIFICATION_BODY")
+
         val TRACKING_KEYS = listOf("_ab", "af-uinstall-tracking")
         val CAMPAIGN_KEYS = listOf("campaignId", "pinpoint.campaign.campaign_id")
     }
@@ -109,14 +119,76 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         TRACKING_KEYS.any(data::containsKey) ||
             CAMPAIGN_KEYS.any { key -> data[key]?.let { it != DIRECT_CAMPAIGN } == true }
 
+    // Same as the app's qnu.c(): untranslated text is shown as-is; a
+    // translated key is looked up (localized) and formatted with its args.
+    // Unlike the app (which then shows the raw key), an unknown key is null.
+    private fun resolveSystemText(key: String?, argsJson: String?, translate: Boolean): String? {
+        val raw = NotificationPoster.normalizeNullableString(key) ?: return null
+        if (!translate) return raw
+        if (raw !in NotificationStrings.SYSTEM_FALLBACKS) return null
+        val args = parseArgs(argsJson).let { if (raw in PRODUCT_NAME_KEYS) it + RIGHT_NOW_PRODUCT_NAME else it }
+        return NotificationStrings.get(this, raw, args)
+    }
+
+    private fun parseArgs(argsJson: String?): List<Any> = try {
+        val array = JSONArray(argsJson ?: "[]")
+        (0 until array.length()).map { array.get(it) }
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+    // Non-chat pushes (favorite/tap/recommended online, unread chats, views,
+    // boosts, …): a translated title key other than SOMEONE_TITLE, a known
+    // system body key, or a growth-notification deeplink. Null for chat/tap
+    // pushes, which go through the conversation pipeline below.
+    private fun buildSystemPushPayload(data: Map<String, String>, sentTime: Long): JSONObject? {
+        val titleKey = data["title"]
+        val translateTitle = data["translateTitle"].toBoolean()
+        val bodyKey = data["body"]
+        val translateBody = data["translateBody"].toBoolean()
+        val deeplinkAction = data["action"].orEmpty()
+        val actionTarget = deeplinkAction.substringBefore('?').trimEnd('/').lowercase()
+
+        val isSystem = actionTarget == GROWTH_DEEPLINK ||
+            (translateTitle && titleKey in NotificationStrings.SYSTEM_FALLBACKS) ||
+            (translateBody && bodyKey in NotificationStrings.SYSTEM_FALLBACKS)
+        if (!isSystem) return null
+
+        val title = resolveSystemText(titleKey, data["titleArgs"], translateTitle)
+        val body = resolveSystemText(bodyKey, data["bodyArgs"], translateBody)
+        // Profile-targeted growth types carry the profile in the deeplink.
+        val senderId = NotificationPoster.normalizeNullableString(data["senderId"])
+            ?: NotificationPoster.queryParameter(deeplinkAction, "profileId")
+            ?: NotificationPoster.queryParameter(deeplinkAction, "profileID")
+
+        return JSONObject().apply {
+            put("event", "received")
+            put("source", "fcm")
+            put("receivedAt", System.currentTimeMillis())
+            put("sentAt", data["timestamp"]?.toLongOrNull() ?: sentTime)
+            put("isSystem", true)
+            put("isTap", false)
+            put("systemTitle", title.orEmpty())
+            put("bodyText", body.orEmpty())
+            put("growthType", NotificationPoster.queryParameter(deeplinkAction, "type") ?: JSONObject.NULL)
+            put("action", deeplinkAction.ifBlank { null } ?: JSONObject.NULL)
+            put("conversationId", JSONObject.NULL)
+            put("senderId", senderId ?: JSONObject.NULL)
+            put("rawData", JSONObject(data))
+        }
+    }
+
     private fun buildPushPayload(data: Map<String, String>, sentTime: Long): JSONObject {
+        buildSystemPushPayload(data, sentTime)?.let { return it }
+
         val titleStr = data["title"] ?: data["senderDisplayName"]
-        val senderName = NotificationPoster.normalizeSenderName(titleStr)
+        val senderName = NotificationPoster.normalizeSenderName(this, titleStr)
 
         val topBody = data["body"]
         val deeplinkAction = data["action"]
 
-        var messageText = "Sent you a message"
+        val genericText = NotificationStrings.text(this, NotificationStrings.GENERIC_MESSAGE)
+        var messageText = genericText
         var conversationId: String? = null
         var senderId: String? = NotificationPoster.normalizeNullableString(data["senderId"])
         var messageType: String? = null
@@ -134,11 +206,10 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
 
         // Media and system pushes send a text key (translateBody=true) instead
         // of text; only direct text messages carry plaintext.
-        val translated = topBody?.let(BODY_TEXTS::get)
         when {
-            translated != null -> {
-                messageText = translated.first
-                messageType = translated.second
+            topBody != null && topBody in CHAT_BODY_TYPES -> {
+                messageText = chatBodyText(topBody, data["bodyArgs"])
+                messageType = CHAT_BODY_TYPES[topBody]
             }
             // Unknown key — keep the generic text rather than showing the raw key.
             data["translateBody"].toBoolean() || topBody?.startsWith("CHAT_") == true -> Unit
@@ -162,16 +233,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
                     messageType = type
                     messageText = when (type) {
                         "Text" -> extractTextMessage(json, messageText)
-                        "Image" -> "Sent you a picture"
-                        "Giphy" -> "Sent you a gif"
-                        "Location" -> "Sent you their location"
-                        "Audio" -> "Sent you a voice message"
-                        "Gaymoji" -> "Sent you a gaymoji"
-                        "ExpiringImage" -> "Sent you an expiring picture"
-                        "Album" -> "Shared an album with you"
-                        "AlbumContentReaction" -> "Liked your album picture"
-                        "Video" -> "Sent you a video"
-                        else -> messageText
+                        else -> MESSAGE_TYPE_KEYS[type]?.let { chatBodyText(it, data["bodyArgs"]) } ?: messageText
                     }
                     previewImageUrl = NotificationPoster.extractMessagePreviewImageUrl(json.optJSONObject("body"), type)
                 }
@@ -188,7 +250,7 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
             senderId = actionValues.second
         }
 
-        messageText = messageText.trim().ifBlank { "Sent you a message" }
+        messageText = messageText.trim().ifBlank { genericText }
 
         val action = if (isTap) "taps" else conversationId?.let { "chat:$it" }
 
@@ -209,6 +271,16 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
             put("previewImageUrl", previewImageUrl ?: JSONObject.NULL)
             put("rawData", JSONObject(data))
         }
+    }
+
+    // The reaction text names the reactor via bodyArgs; without one (or
+    // when the args don't fit) it falls back to the nameless variant.
+    private fun chatBodyText(key: String, argsJson: String?): String {
+        val args = parseArgs(argsJson)
+        if (key == "CHAT_MESSAGE_REACTION_NOTIFICATION_BODY" && args.isEmpty()) {
+            return NotificationStrings.text(this, NotificationStrings.MESSAGE_REACTION_NO_NAME)
+        }
+        return NotificationStrings.get(this, key, args) ?: NotificationStrings.text(this, NotificationStrings.GENERIC_MESSAGE)
     }
 
     private fun extractTextMessage(messageJson: JSONObject, fallbackText: String): String {
