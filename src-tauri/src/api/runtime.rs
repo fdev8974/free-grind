@@ -42,6 +42,12 @@ pub async fn webview_version() -> Option<String> {
     tauri::webview_version().ok()
 }
 
+/// Short commit this binary was built from (see build.rs); None if unknown.
+#[tauri::command]
+pub fn app_commit_hash() -> Option<String> {
+    Some(env!("FG_COMMIT_HASH")).filter(|hash| !hash.is_empty()).map(str::to_owned)
+}
+
 #[tauri::command]
 pub fn runtime_context() -> RuntimeContext {
     #[cfg(target_os = "windows")]

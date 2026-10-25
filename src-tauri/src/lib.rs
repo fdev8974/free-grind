@@ -236,6 +236,7 @@ pub fn run() {
             .invoke_handler(tauri::generate_handler![
                 api::runtime::runtime_context,
                 api::runtime::webview_version,
+                api::runtime::app_commit_hash,
                 api::runtime::create_child_instance,
                 api::runtime::list_child_instances,
                 api::runtime::rename_child_instance,
@@ -361,6 +362,7 @@ pub fn run() {
             .invoke_handler(tauri::generate_handler![
                 api::runtime::runtime_context,
                 api::runtime::webview_version,
+                api::runtime::app_commit_hash,
                 api::runtime::create_child_instance,
                 api::runtime::list_child_instances,
                 api::runtime::rename_child_instance,

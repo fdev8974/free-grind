@@ -12,10 +12,28 @@ const EXTENSION_LIBRARIES: [&str; 4] = [
 ];
 
 fn main() {
+    embed_commit_hash();
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("linux") {
         build_webkit_extension();
     }
     tauri_build::build()
+}
+
+/// The short commit the app is built from, as FG_COMMIT_HASH (shown in
+/// Settings next to the app version). Read from git, not CI env, so a rebuild
+/// of the same commit bakes in the same string; empty outside a checkout.
+fn embed_commit_hash() {
+    // Re-run on commits and checkouts, not on every build.
+    println!("cargo:rerun-if-changed=../.git/HEAD");
+    println!("cargo:rerun-if-changed=../.git/logs/HEAD");
+    let hash = Command::new("git")
+        .args(["rev-parse", "--short=7", "HEAD"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        .unwrap_or_default();
+    println!("cargo:rustc-env=FG_COMMIT_HASH={hash}");
 }
 
 /// Without the GStreamer headers the build still goes through: it leaves an
