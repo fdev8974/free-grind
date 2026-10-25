@@ -1249,7 +1249,10 @@
             "back": "Retour",
             "sign_in": "Se connecter",
             "send_in": "Envoyer le code ({{seconds}} s)",
-            "resend_in": "Renvoyer le code ({{seconds}} s)"
+            "resend_in": "Renvoyer le code ({{seconds}} s)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {

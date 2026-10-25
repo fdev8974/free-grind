@@ -1265,7 +1265,10 @@
             "back": "رجوع",
             "sign_in": "تسجيل الدخول",
             "send_in": "إرسال الرمز ({{seconds}} ث)",
-            "resend_in": "إعادة إرسال الرمز ({{seconds}} ث)"
+            "resend_in": "إعادة إرسال الرمز ({{seconds}} ث)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {

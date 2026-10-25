@@ -55,11 +55,15 @@ function cachedPushToken(): string | null {
 // so its raw "Error 4: invalid input parameters" text is meaningless to users.
 const INVALID_INPUT_PARAMETERS_CODE = 4;
 // Sign-in refused until the account verifies a phone number by SMS (Grindr
-// code 30): the profile id the error body carries, null for anything else.
-function verificationRequiredProfileId(appError: AppError | null): string | null {
+// code 30): the profile id and whole body the error carries, null for
+// anything else.
+function verificationRequired(appError: AppError | null): { profileId: string; body: string } | null {
 	if (appError?.kind !== "VerificationRequired") return null;
 	const message = appError.message;
-	return (typeof message === "object" && "profileId" in message && message.profileId) || null;
+	if (typeof message !== "object") return null;
+	const profileId = "profileId" in message && typeof message.profileId === "string" ? message.profileId : null;
+	if (!profileId) return null;
+	return { profileId, body: ("body" in message && message.body) || "" };
 }
 
 // Error markers from api/facebook_oauth and api/google_oauth (Rust), matched verbatim.
@@ -250,6 +254,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	};
 
 	const login = async (email: string, password: string, { keepDevice }: LoginOptions = {}) => {
+		// The sign-in endpoint the last attempt went to, for the SMS page's report.
+		let endpoint = "/v8/sessions";
 		try {
 			appLog.info("[Auth] login: attempting email/password login");
 			dispatch({ type: "SET_LOADING", payload: true });
@@ -270,6 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				});
 				if (!required) throw error;
 				appLog.info("[Auth] login: retrying with a reCAPTCHA token");
+				endpoint = "/v9/sessions (reCAPTCHA)";
 				const captchaToken = await mintRecaptchaToken("login");
 				result = await callMethod("login", { email, password, captchaToken, keepDevice });
 			}
@@ -283,10 +290,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			// Not a failure to report: the page switches to SMS verification.
 			// Without a profile id there's nothing to verify against, so that
 			// falls through to the generic error below.
-			const verificationProfileId = verificationRequiredProfileId(asAppError(error));
-			if (verificationProfileId) {
+			const verification = verificationRequired(asAppError(error));
+			if (verification) {
 				appLog.info("[Auth] login: SMS verification required");
-				throw new SmsVerificationRequiredError(verificationProfileId);
+				throw new SmsVerificationRequiredError(verification.profileId, { endpoint, body: verification.body });
 			}
 			if (handleAccountBlock(error)) {
 				throw error;

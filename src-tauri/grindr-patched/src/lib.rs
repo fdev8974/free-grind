@@ -64,7 +64,7 @@ mod ws;
 pub use auth::{
 	AuthEvent, BanDetails, Credentials, NewEmailAccount, RefreshFailureKind,
 	Restriction, Session, SessionKind, SessionToken, SignInResult,
-	SmsCodeResponse, VerificationRegion,
+	SmsCodeResponse, SmsExchange, VerificationRegion,
 };
 pub use captcha::{CaptchaAction, CaptchaTokenProvider};
 pub use client::{probe_emulation, GrindrClient};

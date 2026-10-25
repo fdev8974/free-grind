@@ -57,13 +57,25 @@ export interface SignUpData {
 
 /**
  * Sign-in refused with Grindr code 30: the account has to verify a phone
- * number by SMS first. `profileId` comes from the error body.
+ * number by SMS first. `profileId` comes from the error body; `signIn` is
+ * what the refused sign-in sent and got back, for the SMS page's debug report.
  */
 export class SmsVerificationRequiredError extends Error {
-	constructor(readonly profileId: string) {
+	constructor(
+		readonly profileId: string,
+		readonly signIn: SignInRefusal,
+	) {
 		super("SMS verification required");
 		this.name = "SmsVerificationRequiredError";
 	}
+}
+
+/** A sign-in refused with code 30, as the SMS page reports it. */
+export interface SignInRefusal {
+	/** e.g. `/v9/sessions (reCAPTCHA)`. */
+	endpoint: string;
+	/** The whole response body. */
+	body: string;
 }
 
 export interface LoginOptions {

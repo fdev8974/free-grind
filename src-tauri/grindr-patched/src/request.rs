@@ -65,6 +65,7 @@ pub(crate) enum Access<'a> {
 
 pub(crate) struct Answer {
 	pub status: u16,
+	pub headers: wreq::header::HeaderMap,
 	pub body: Bytes,
 }
 
@@ -276,7 +277,7 @@ impl InnerClient {
 		}
 	}
 
-	async fn attempt(
+	pub(crate) async fn attempt(
 		&self,
 		request: &Request<'_>,
 		authorization: Option<&Authorization>,
@@ -356,6 +357,7 @@ impl InnerClient {
 		self.note_server_date(response.headers());
 		Ok(Answer {
 			status: response.status().as_u16(),
+			headers: response.headers().clone(),
 			body: response.bytes().await.map_err(past_ceiling)?,
 		})
 	}

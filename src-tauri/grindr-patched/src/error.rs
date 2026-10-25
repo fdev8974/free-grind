@@ -103,6 +103,8 @@ pub enum GrindrError {
 		profile_id: Option<String>,
 		/// Message from the response body.
 		message: String,
+		/// The whole response body, for reporting.
+		body: String,
 	},
 
 	/// The API returned `429`.

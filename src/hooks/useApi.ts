@@ -87,6 +87,7 @@ export function useApi() {
 							code: z.number(),
 							message: z.string(),
 							profileId: z.string().nullish(),
+							body: z.string().optional(),
 						}),
 					)
 					.or(banInfoSchema)

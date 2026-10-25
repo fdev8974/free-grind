@@ -1257,7 +1257,10 @@
             "back": "Nazaj",
             "sign_in": "Prijava",
             "send_in": "Pošlji kodo ({{seconds}} s)",
-            "resend_in": "Znova pošlji kodo ({{seconds}} s)"
+            "resend_in": "Znova pošlji kodo ({{seconds}} s)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {

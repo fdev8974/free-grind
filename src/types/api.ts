@@ -88,6 +88,10 @@ export const methodSchemas = {
 		}),
 		response: smsCodeResultSchema,
 	},
+	sms_debug_report: {
+		request: z.undefined(),
+		response: z.string().nullable(),
+	},
 	login_with_google: {
 		request: z.object({
 			token: z.string().min(1),
@@ -221,7 +225,7 @@ export type AppErrorKind =
 
 export interface AppError {
 	kind: AppErrorKind;
-	/** `profileId` only on VerificationRequired. */
-	message?: string | { code: number; message: string; profileId?: string | null } | BanInfo;
+	/** `profileId` and `body` (the whole response) only on VerificationRequired. */
+	message?: string | { code: number; message: string; profileId?: string | null; body?: string } | BanInfo;
 	prettyMessage: string;
 }

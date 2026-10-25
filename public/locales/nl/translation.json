@@ -1241,7 +1241,10 @@
             "back": "Terug",
             "sign_in": "Inloggen",
             "send_in": "Code versturen ({{seconds}} s)",
-            "resend_in": "Code opnieuw versturen ({{seconds}} s)"
+            "resend_in": "Code opnieuw versturen ({{seconds}} s)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {

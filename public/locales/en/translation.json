@@ -1241,7 +1241,10 @@
       "back": "Back",
       "sign_in": "Sign in",
       "send_in": "Send code ({{seconds}}s)",
-      "resend_in": "Resend code ({{seconds}}s)"
+      "resend_in": "Resend code ({{seconds}}s)",
+      "copy_report": "Copy debug info",
+      "report_copied": "Debug info copied to clipboard",
+      "report_copy_failed": "Couldn't copy the debug info"
     }
   },
   "chat": {

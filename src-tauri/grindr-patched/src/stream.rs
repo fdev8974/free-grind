@@ -89,9 +89,14 @@ impl InnerClient {
 		};
 		self.note_server_date(response.headers());
 		let status = response.status().as_u16();
+		let headers = response.headers().clone();
 		let body = tokio::time::timeout(CALL_TIMEOUT, response.bytes())
 			.await
 			.map_err(|_| GrindrError::Timeout(TimeoutPhase::Unfinished))??;
-		Ok(Answer { status, body })
+		Ok(Answer {
+			status,
+			headers,
+			body,
+		})
 	}
 }

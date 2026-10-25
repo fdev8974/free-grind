@@ -57,6 +57,8 @@ pub enum AppError {
         code: i32,
         message: String,
         profile_id: Option<String>,
+        /// The whole response body, for the SMS page's debug report.
+        body: String,
     },
     Banned(BanInfo),
     RateLimited,
@@ -116,11 +118,16 @@ impl From<grindr::GrindrError> for AppError {
             grindr::GrindrError::Unauthorized { code, message } => {
                 AppError::Unauthorized { code, message }
             }
-            grindr::GrindrError::VerificationRequired { profile_id, message } => {
+            grindr::GrindrError::VerificationRequired {
+                profile_id,
+                message,
+                body,
+            } => {
                 AppError::VerificationRequired {
                     code: 30,
                     message,
                     profile_id,
+                    body,
                 }
             }
             grindr::GrindrError::Banned(info) => AppError::Banned(info.into()),

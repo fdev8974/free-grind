@@ -1241,7 +1241,10 @@
             "back": "Zurück",
             "sign_in": "Anmelden",
             "send_in": "Code senden ({{seconds}}s)",
-            "resend_in": "Code erneut senden ({{seconds}}s)"
+            "resend_in": "Code erneut senden ({{seconds}}s)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {

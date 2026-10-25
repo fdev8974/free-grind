@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Hash, Phone, Plus } from "lucide-react";
+import toast from "react-hot-toast";
+import { platform } from "@tauri-apps/plugin-os";
+import { ClipboardCopy, Hash, Phone, Plus } from "lucide-react";
 import { AuthShell } from "../../components/ui/auth-shell";
 import { BugReportButton } from "../../components/ui/BugReportButton";
 import { useApi } from "../../hooks/useApi";
 import { detectCallingCode } from "../../utils/callingCodes";
-import { SmsVerificationRequiredError } from "../../contexts/auth-context";
+import { SmsVerificationRequiredError, type SignInRefusal } from "../../contexts/auth-context";
 import { AuthAltAction, AuthSubmitSection, IconInput } from "./auth-form";
 
 const digitsOnly = (value: string) => value.replace(/\D/g, "");
@@ -21,11 +23,14 @@ const MAX_CODE_LENGTH = 6;
  */
 export function SmsVerificationPanel({
 	profileId,
+	signIn,
 	onVerified,
 	onCancel,
 }: {
 	/** From the code-30 error body. */
 	profileId: string;
+	/** The refused sign-in, for the debug report. */
+	signIn: SignInRefusal;
 	/** Signs in again; rejects if that fails. */
 	onVerified: () => Promise<void>;
 	onCancel: () => void;
@@ -43,6 +48,8 @@ export function SmsVerificationPanel({
 	const [notice, setNotice] = useState<string | null>(null);
 	const [resendAt, setResendAt] = useState<number | null>(null);
 	const [now, setNow] = useState(Date.now);
+	// The latest refused sign-in: signing in again after verifying can be refused too.
+	const [lastSignIn, setLastSignIn] = useState(signIn);
 
 	useEffect(() => {
 		if (resendAt === null) return;
@@ -81,6 +88,7 @@ export function SmsVerificationPanel({
 		try {
 			await action();
 		} catch (err) {
+			if (err instanceof SmsVerificationRequiredError) setLastSignIn(err.signIn);
 			setError(
 				err instanceof SmsVerificationRequiredError
 					? t("auth.sms_verification.still_required", {
@@ -91,6 +99,29 @@ export function SmsVerificationPanel({
 			);
 		} finally {
 			setIsLoading(false);
+		}
+	};
+
+	const copyReport = async () => {
+		try {
+			const report = await callMethod("sms_debug_report");
+			await navigator.clipboard.writeText(
+				[
+					"Free Grind SMS verification report",
+					`App: ${import.meta.env.VITE_APP_VERSION} (${currentPlatform()})`,
+					"",
+					"== Refused sign-in ==",
+					`Endpoint: POST ${lastSignIn.endpoint}`,
+					"Response body:",
+					lastSignIn.body.trim() || "(empty)",
+					"",
+					"== Last SMS request ==",
+					report ?? "(none sent yet)",
+				].join("\n"),
+			);
+			toast.success(t("auth.sms_verification.report_copied", { defaultValue: "Debug info copied to clipboard" }));
+		} catch {
+			toast.error(t("auth.sms_verification.report_copy_failed", { defaultValue: "Couldn't copy the debug info" }));
 		}
 	};
 
@@ -136,7 +167,19 @@ export function SmsVerificationPanel({
 							phone: target.phoneNumber,
 						})
 			}
-			footer={<BugReportButton />}
+			footer={
+				<>
+					<button
+						type="button"
+						onClick={() => void copyReport()}
+						className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+					>
+						<ClipboardCopy className="h-3.5 w-3.5" />
+						{t("auth.sms_verification.copy_report", { defaultValue: "Copy debug info" })}
+					</button>
+					<BugReportButton />
+				</>
+			}
 		>
 			{step === "phone" ? (
 				<form
@@ -251,6 +294,14 @@ export function SmsVerificationPanel({
 			/>
 		</AuthShell>
 	);
+}
+
+function currentPlatform(): string {
+	try {
+		return platform();
+	} catch {
+		return "web";
+	}
 }
 
 /** The endpoints' status message, with a way out when it says there's nothing to verify. */

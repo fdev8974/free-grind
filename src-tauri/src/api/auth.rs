@@ -1062,11 +1062,10 @@ pub async fn send_sms_verification_code(
     phone_number: String,
 ) -> Result<SmsCodeResult, AppError> {
     let client = state.client()?;
-    client
+    let exchange = client
         .send_sms_verification_code(&profile_id, country_code.trim(), phone_number.trim())
-        .await
-        .map(SmsCodeResult::from)
-        .map_err(|e| AppError::from_client_error(e, &client))
+        .await;
+    sms_result(exchange, "sendcode", &client)
 }
 
 #[tauri::command]
@@ -1078,16 +1077,36 @@ pub async fn verify_sms_verification_code(
     code: String,
 ) -> Result<SmsCodeResult, AppError> {
     let client = state.client()?;
-    client
+    let exchange = client
         .verify_sms_verification_code(
             &profile_id,
             country_code.trim(),
             phone_number.trim(),
             code.trim(),
         )
-        .await
+        .await;
+    sms_result(exchange, "verifycode", &client)
+}
+
+/// Keeps the exchange for `sms_debug_report`, then answers with its result.
+fn sms_result(
+    exchange: Result<grindr::SmsExchange, grindr::GrindrError>,
+    action: &str,
+    client: &grindr::GrindrClient,
+) -> Result<SmsCodeResult, AppError> {
+    let result = match exchange {
+        Ok(exchange) => {
+            super::sms_report::record_exchange(&exchange);
+            exchange.result
+        }
+        Err(error) => {
+            super::sms_report::record_failure(action, &error);
+            Err(error)
+        }
+    };
+    result
         .map(SmsCodeResult::from)
-        .map_err(|e| AppError::from_client_error(e, &client))
+        .map_err(|e| AppError::from_client_error(e, client))
 }
 
 /// Whether Grindr has first-party reCAPTCHA enabled (the

@@ -1251,7 +1251,10 @@
             "back": "Назад",
             "sign_in": "Пријави се",
             "send_in": "Пошаљи код ({{seconds}} с)",
-            "resend_in": "Пошаљи код поново ({{seconds}} с)"
+            "resend_in": "Пошаљи код поново ({{seconds}} с)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {

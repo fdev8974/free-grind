@@ -7,7 +7,7 @@ import { BugReportButton } from "../../components/ui/BugReportButton";
 import { useAuth } from "../../contexts/useAuth";
 import { useApi } from "../../hooks/useApi";
 import { isRecaptchaAvailable } from "../../services/recaptcha";
-import { SmsVerificationRequiredError } from "../../contexts/auth-context";
+import { SmsVerificationRequiredError, type SignInRefusal } from "../../contexts/auth-context";
 import { AuthAltAction, AuthSubmitSection, IconInput } from "./auth-form";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 
@@ -50,7 +50,7 @@ export function SignUpPage() {
 	const [birthday, setBirthday] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
 	// Set when the sign-in after creating the account asks for SMS verification.
-	const [verification, setVerification] = useState<{ profileId: string } | null>(null);
+	const [verification, setVerification] = useState<{ profileId: string; signIn: SignInRefusal } | null>(null);
 	// Sign-up always sends a reCAPTCHA token, which only Android can mint.
 	const [hasRecaptcha] = useState(isRecaptchaAvailable);
 
@@ -73,7 +73,7 @@ export function SignUpPage() {
 		} catch (error) {
 			// AuthContext updates `error`, which is rendered in the form.
 			if (error instanceof SmsVerificationRequiredError) {
-				setVerification({ profileId: error.profileId });
+				setVerification({ profileId: error.profileId, signIn: error.signIn });
 			}
 		} finally {
 			setIsLoading(false);
@@ -85,6 +85,7 @@ export function SignUpPage() {
 		return (
 			<SmsVerificationPanel
 				profileId={verification.profileId}
+				signIn={verification.signIn}
 				onVerified={async () => {
 					await login(email.trim(), password, { keepDevice: true });
 					navigate("/");

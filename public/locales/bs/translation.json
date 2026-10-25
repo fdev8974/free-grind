@@ -1249,7 +1249,10 @@
             "back": "Nazad",
             "sign_in": "Prijavi se",
             "send_in": "Pošalji kod ({{seconds}} s)",
-            "resend_in": "Ponovo pošalji kod ({{seconds}} s)"
+            "resend_in": "Ponovo pošalji kod ({{seconds}} s)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {

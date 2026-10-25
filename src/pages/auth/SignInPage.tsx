@@ -8,7 +8,7 @@ import { BugReportButton } from "../../components/ui/BugReportButton";
 import type { SignInMethod } from "../../types/auth";
 import { useTranslation } from "react-i18next";
 import { Mail, Lock, KeyRound, Eye, EyeOff, UserPlus, ChevronDown, QrCode, ScanLine } from "lucide-react";
-import { SmsVerificationRequiredError } from "../../contexts/auth-context";
+import { SmsVerificationRequiredError, type SignInRefusal } from "../../contexts/auth-context";
 import { SmsVerificationPanel } from "./SmsVerificationPanel";
 import { isAndroid } from "../../services/saveMedia";
 import { isTauriRuntime } from "../../services/tauriWebSocket";
@@ -137,7 +137,7 @@ export function SignInPage() {
 	const [showManualTransferCode, setShowManualTransferCode] = useState(false);
 
 	// Set when an email sign-in is refused until the account verifies by SMS.
-	const [verification, setVerification] = useState<{ profileId: string } | null>(null);
+	const [verification, setVerification] = useState<{ profileId: string; signIn: SignInRefusal } | null>(null);
 
 	const { login, loginWithGoogle, loginWithGoogleWindow, loginWithFacebook, loginWithTransferCode, error, clearError } = useAuth();
 	const navigate = useNavigate();
@@ -166,7 +166,7 @@ export function SignInPage() {
 		} catch (error) {
 			// AuthContext updates `error`, which is rendered in the form.
 			if (error instanceof SmsVerificationRequiredError) {
-				setVerification({ profileId: error.profileId });
+				setVerification({ profileId: error.profileId, signIn: error.signIn });
 			}
 		} finally {
 			setIsPasswordLoading(false);
@@ -308,6 +308,7 @@ export function SignInPage() {
 		return (
 			<SmsVerificationPanel
 				profileId={verification.profileId}
+				signIn={verification.signIn}
 				onVerified={async () => {
 					// Same device as the refused attempt the verification belongs to.
 					await login(email, password, { keepDevice: true });

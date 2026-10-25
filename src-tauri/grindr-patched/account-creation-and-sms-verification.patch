@@ -1,6 +1,6 @@
 diff -ruN a/src/auth.rs b/src/auth.rs
---- a/src/auth.rs	2026-10-23 22:39:08.944661597 +0200
-+++ b/src/auth.rs	2026-10-23 22:39:08.946190740 +0200
+--- a/src/auth.rs	2026-10-25 10:42:44.772745055 +0100
++++ b/src/auth.rs	2026-10-25 10:49:22.365073559 +0100
 @@ -7,6 +7,7 @@
  use tokio::time::Instant;
  
@@ -9,7 +9,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  use crate::rest::InnerClient;
  
  /// How a [`Session`] was obtained.
-@@ -179,6 +180,62 @@
+@@ -179,6 +180,83 @@
  	pub captcha_token: Option<String>,
  }
  
@@ -61,6 +61,27 @@ diff -ruN a/src/auth.rs b/src/auth.rs
 +	pub message: String,
 +}
 +
++/// One exchange with an SMS verification endpoint, kept whole so a refusal
++/// can be reported with what was sent and what came back.
++#[derive(Debug)]
++#[non_exhaustive]
++pub struct SmsExchange {
++	/// Request path, e.g. `/v4/sms/verification/123/sendcode`.
++	pub path: String,
++	/// The headers the request was built with, in order.
++	pub request_headers: Vec<(String, String)>,
++	/// JSON body sent, including the phone number.
++	pub request_body: String,
++	/// HTTP status.
++	pub status: u16,
++	/// Response headers, in the order they arrived.
++	pub response_headers: Vec<(String, String)>,
++	/// Raw response body.
++	pub response_body: Vec<u8>,
++	/// The answer, or the error the response stands for.
++	pub result: Result<SmsCodeResponse, GrindrError>,
++}
++
 +#[derive(Debug, Serialize)]
 +struct SmsCodeRequest<'a> {
 +	country_code: &'a str,
@@ -72,7 +93,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  #[derive(Debug, Serialize)]
  #[serde(rename_all = "camelCase")]
  pub(crate) struct RefreshRequest {
-@@ -336,7 +393,11 @@
+@@ -336,7 +414,11 @@
  			| GrindrError::Timeout(_) => Self::Transport,
  			GrindrError::Blocked(_) => Self::Blocked,
  			GrindrError::RateLimited => Self::RateLimited,
@@ -85,7 +106,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  			_ => Self::Session,
  		}
  	}
-@@ -522,6 +583,94 @@
+@@ -522,6 +604,149 @@
  	Ok((session, result))
  }
  
@@ -125,7 +146,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
 +	country_code: &str,
 +	phone_number: &str,
 +	code: Option<&str>,
-+) -> Result<SmsCodeResponse, GrindrError> {
++) -> Result<SmsExchange, GrindrError> {
 +	if profile_id.is_empty() || !profile_id.bytes().all(|b| b.is_ascii_digit()) {
 +		return Err(GrindrError::InvalidRequest(format!(
 +			"invalid profile id {profile_id:?}"
@@ -137,11 +158,66 @@ diff -ruN a/src/auth.rs b/src/auth.rs
 +		code,
 +	};
 +	let path = format!("/v4/sms/verification/{profile_id}/{action}");
-+	let mut request =
-+		Request::new(wreq::Method::POST, &path, Body::json(&body)?);
-+	request.required_device_info =
-+		Some(crate::rest::RequiredDeviceInfo::RealAndAnonymous);
-+	let response = inner.send(Access::Anonymous, &request).await?;
++	crate::rest::validate_path(&path)?;
++	let request_body = serde_json::to_string(&body)
++		.map_err(|e| GrindrError::InvalidRequest(e.to_string()))?;
++	let mut request = Request::new(
++		wreq::Method::POST,
++		&path,
++		Body::Json(request_body.clone().into()),
++	);
++	let required = crate::rest::RequiredDeviceInfo::RealAndAnonymous;
++	request.required_device_info = Some(required);
++
++	let fingerprint = inner.fingerprint().await;
++	let mut request_headers: Vec<(String, String)> =
++		crate::headers::GrindrHeaders::build(
++			&fingerprint.device,
++			&fingerprint.user_agent,
++			None,
++			None,
++		)?
++		.items
++		.iter()
++		.map(|(name, value)| (name.to_string(), header_text(value)))
++		.collect();
++	request_headers.extend(
++		required
++			.header_names()
++			.iter()
++			.map(|name| ((*name).to_owned(), "true".to_owned())),
++	);
++	request_headers.push((
++		"content-type".to_owned(),
++		crate::rest::JSON_CONTENT_TYPE.to_owned(),
++	));
++
++	let answer = inner.attempt(&request, None).await?;
++	let result = sms_code_result(answer.status, &answer.body);
++	Ok(SmsExchange {
++		path,
++		request_headers,
++		request_body,
++		status: answer.status,
++		response_headers: answer
++			.headers
++			.iter()
++			.map(|(name, value)| (name.to_string(), header_text(value)))
++			.collect(),
++		response_body: answer.body.to_vec(),
++		result,
++	})
++}
++
++fn header_text(value: &wreq::header::HeaderValue) -> String {
++	String::from_utf8_lossy(value.as_bytes()).into_owned()
++}
++
++fn sms_code_result(
++	status: u16,
++	body: &[u8],
++) -> Result<SmsCodeResponse, GrindrError> {
++	let response = crate::rest::raw_or_blocked(status, body.to_vec())?;
 +	// An empty success body is a plain "done".
 +	if (200..300).contains(&response.status)
 +		&& response.body.iter().all(u8::is_ascii_whitespace)
@@ -180,7 +256,7 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  pub(crate) async fn sign_in_with_email(
  	inner: &InnerClient,
  	auth: &AuthState,
-@@ -870,6 +1019,44 @@
+@@ -870,6 +1095,44 @@
  mod tests {
  	use super::*;
  
@@ -226,9 +302,9 @@ diff -ruN a/src/auth.rs b/src/auth.rs
  	const JWT: &str =
  		"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTl9.sig";
 diff -ruN a/src/client.rs b/src/client.rs
---- a/src/client.rs	2026-10-23 22:39:08.944697635 +0200
-+++ b/src/client.rs	2026-10-23 22:39:08.946225156 +0200
-@@ -456,6 +456,62 @@
+--- a/src/client.rs	2026-10-25 10:42:44.773161978 +0100
++++ b/src/client.rs	2026-10-25 10:49:22.365150894 +0100
+@@ -456,6 +456,66 @@
  		self.ensure_ws_task();
  	}
  
@@ -250,12 +326,16 @@ diff -ruN a/src/client.rs b/src/client.rs
 +
 +	/// Texts a verification code to a phone number for a profile whose
 +	/// sign-in was refused as verification required (code 30).
++	///
++	/// The exchange comes back whole, a refusal included, in
++	/// [`SmsExchange::result`](crate::SmsExchange::result); only a request
++	/// that got no response at all is an `Err`.
 +	pub async fn send_sms_verification_code(
 +		&self,
 +		profile_id: &str,
 +		country_code: &str,
 +		phone_number: &str,
-+	) -> Result<crate::SmsCodeResponse, GrindrError> {
++	) -> Result<crate::SmsExchange, GrindrError> {
 +		crate::auth::sms_verification(
 +			&self.inner,
 +			profile_id,
@@ -268,15 +348,15 @@ diff -ruN a/src/client.rs b/src/client.rs
 +	}
 +
 +	/// Submits the code from
-+	/// [`send_sms_verification_code`](Self::send_sms_verification_code); sign
-+	/// in again afterwards.
++	/// [`send_sms_verification_code`](Self::send_sms_verification_code), with
++	/// the same exchange as its answer; sign in again afterwards.
 +	pub async fn verify_sms_verification_code(
 +		&self,
 +		profile_id: &str,
 +		country_code: &str,
 +		phone_number: &str,
 +		code: &str,
-+	) -> Result<crate::SmsCodeResponse, GrindrError> {
++	) -> Result<crate::SmsExchange, GrindrError> {
 +		crate::auth::sms_verification(
 +			&self.inner,
 +			profile_id,
@@ -292,9 +372,9 @@ diff -ruN a/src/client.rs b/src/client.rs
  	pub async fn sign_in_with_email(
  		&self,
 diff -ruN a/src/error.rs b/src/error.rs
---- a/src/error.rs	2026-10-23 22:39:08.944732237 +0200
-+++ b/src/error.rs	2026-10-23 22:39:08.946254477 +0200
-@@ -94,6 +94,17 @@
+--- a/src/error.rs	2026-10-25 10:42:44.773220909 +0100
++++ b/src/error.rs	2026-10-25 10:49:22.365093399 +0100
+@@ -94,6 +94,19 @@
  	#[error("banned: {0}")]
  	Banned(BanInfo),
  
@@ -307,14 +387,16 @@ diff -ruN a/src/error.rs b/src/error.rs
 +		profile_id: Option<String>,
 +		/// Message from the response body.
 +		message: String,
++		/// The whole response body, for reporting.
++		body: String,
 +	},
 +
  	/// The API returned `429`.
  	#[error("rate limited")]
  	RateLimited,
 diff -ruN a/src/lib.rs b/src/lib.rs
---- a/src/lib.rs	2026-10-23 22:39:08.944750313 +0200
-+++ b/src/lib.rs	2026-10-23 22:39:08.946264028 +0200
+--- a/src/lib.rs	2026-10-25 10:42:44.773279302 +0100
++++ b/src/lib.rs	2026-10-25 10:49:22.364696436 +0100
 @@ -62,8 +62,9 @@
  mod ws;
  
@@ -323,13 +405,41 @@ diff -ruN a/src/lib.rs b/src/lib.rs
 -	Session, SessionKind, SessionToken, SignInResult, VerificationRegion,
 +	AuthEvent, BanDetails, Credentials, NewEmailAccount, RefreshFailureKind,
 +	Restriction, Session, SessionKind, SessionToken, SignInResult,
-+	SmsCodeResponse, VerificationRegion,
++	SmsCodeResponse, SmsExchange, VerificationRegion,
  };
  pub use captcha::{CaptchaAction, CaptchaTokenProvider};
  pub use client::{probe_emulation, GrindrClient};
+diff -ruN a/src/request.rs b/src/request.rs
+--- a/src/request.rs	2026-10-25 10:42:44.771098578 +0100
++++ b/src/request.rs	2026-10-25 10:49:22.364855408 +0100
+@@ -65,6 +65,7 @@
+ 
+ pub(crate) struct Answer {
+ 	pub status: u16,
++	pub headers: wreq::header::HeaderMap,
+ 	pub body: Bytes,
+ }
+ 
+@@ -276,7 +277,7 @@
+ 		}
+ 	}
+ 
+-	async fn attempt(
++	pub(crate) async fn attempt(
+ 		&self,
+ 		request: &Request<'_>,
+ 		authorization: Option<&Authorization>,
+@@ -356,6 +357,7 @@
+ 		self.note_server_date(response.headers());
+ 		Ok(Answer {
+ 			status: response.status().as_u16(),
++			headers: response.headers().clone(),
+ 			body: response.bytes().await.map_err(past_ceiling)?,
+ 		})
+ 	}
 diff -ruN a/src/rest.rs b/src/rest.rs
---- a/src/rest.rs	2026-10-23 22:39:08.944870636 +0200
-+++ b/src/rest.rs	2026-10-23 22:39:08.946271309 +0200
+--- a/src/rest.rs	2026-10-25 10:42:44.773325860 +0100
++++ b/src/rest.rs	2026-10-25 10:49:22.364874771 +0100
 @@ -94,13 +94,18 @@
  pub(crate) enum RequiredDeviceInfo {
  	Real,
@@ -340,7 +450,7 @@ diff -ruN a/src/rest.rs b/src/rest.rs
  
  impl RequiredDeviceInfo {
 -	fn header_name(self) -> &'static str {
-+	fn header_names(self) -> &'static [&'static str] {
++	pub(crate) fn header_names(self) -> &'static [&'static str] {
  		match self {
 -			Self::Real => "requirerealdeviceinfo",
 -			Self::Anonymous => "requireanondeviceinfo",
@@ -377,7 +487,7 @@ diff -ruN a/src/rest.rs b/src/rest.rs
  pub(crate) fn parse_api_error(bytes: &[u8], http_status: u16) -> GrindrError {
  	if let Some(kind) = block_kind(http_status, bytes) {
  		return GrindrError::Blocked(kind);
-@@ -351,6 +359,20 @@
+@@ -351,6 +359,21 @@
  
  	let (code, message) = extract_api_error(bytes, http_status);
  
@@ -392,13 +502,14 @@ diff -ruN a/src/rest.rs b/src/rest.rs
 +		return GrindrError::VerificationRequired {
 +			profile_id,
 +			message,
++			body: String::from_utf8_lossy(bytes).into_owned(),
 +		};
 +	}
 +
  	if let Some(kind) = BanKind::from_code(code) {
  		return GrindrError::Banned(ban_info(kind, code, message, bytes));
  	}
-@@ -454,6 +476,34 @@
+@@ -454,6 +477,34 @@
  #[cfg(test)]
  mod tests {
  	use super::*;
@@ -412,7 +523,7 @@ diff -ruN a/src/rest.rs b/src/rest.rs
 +		assert!(
 +			matches!(
 +				err,
-+				GrindrError::VerificationRequired { profile_id: Some(ref id), ref message }
++				GrindrError::VerificationRequired { profile_id: Some(ref id), ref message, .. }
 +					if id == "927729807" && message == "Verification required"
 +			),
 +			"got {err:?}"
@@ -433,3 +544,22 @@ diff -ruN a/src/rest.rs b/src/rest.rs
  	use crate::auth::Session;
  	use crate::GrindrClient;
  
+diff -ruN a/src/stream.rs b/src/stream.rs
+--- a/src/stream.rs	2026-10-25 10:42:44.771231043 +0100
++++ b/src/stream.rs	2026-10-25 10:49:22.364981713 +0100
+@@ -89,9 +89,14 @@
+ 		};
+ 		self.note_server_date(response.headers());
+ 		let status = response.status().as_u16();
++		let headers = response.headers().clone();
+ 		let body = tokio::time::timeout(CALL_TIMEOUT, response.bytes())
+ 			.await
+ 			.map_err(|_| GrindrError::Timeout(TimeoutPhase::Unfinished))??;
+-		Ok(Answer { status, body })
++		Ok(Answer {
++			status,
++			headers,
++			body,
++		})
+ 	}
+ }

@@ -7,4 +7,5 @@ pub mod oauth;
 pub mod rest;
 pub mod runtime;
 pub mod session_recovery;
+pub mod sms_report;
 pub mod websocket;

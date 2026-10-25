@@ -99,7 +99,7 @@ pub(crate) enum RequiredDeviceInfo {
 }
 
 impl RequiredDeviceInfo {
-	fn header_names(self) -> &'static [&'static str] {
+	pub(crate) fn header_names(self) -> &'static [&'static str] {
 		match self {
 			Self::Real => &["requirerealdeviceinfo"],
 			Self::Anonymous => &["requireanondeviceinfo"],
@@ -370,6 +370,7 @@ pub(crate) fn parse_api_error(bytes: &[u8], http_status: u16) -> GrindrError {
 		return GrindrError::VerificationRequired {
 			profile_id,
 			message,
+			body: String::from_utf8_lossy(bytes).into_owned(),
 		};
 	}
 
@@ -486,7 +487,7 @@ mod tests {
 		assert!(
 			matches!(
 				err,
-				GrindrError::VerificationRequired { profile_id: Some(ref id), ref message }
+				GrindrError::VerificationRequired { profile_id: Some(ref id), ref message, .. }
 					if id == "927729807" && message == "Verification required"
 			),
 			"got {err:?}"

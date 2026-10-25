@@ -474,12 +474,16 @@ impl GrindrClient {
 
 	/// Texts a verification code to a phone number for a profile whose
 	/// sign-in was refused as verification required (code 30).
+	///
+	/// The exchange comes back whole, a refusal included, in
+	/// [`SmsExchange::result`](crate::SmsExchange::result); only a request
+	/// that got no response at all is an `Err`.
 	pub async fn send_sms_verification_code(
 		&self,
 		profile_id: &str,
 		country_code: &str,
 		phone_number: &str,
-	) -> Result<crate::SmsCodeResponse, GrindrError> {
+	) -> Result<crate::SmsExchange, GrindrError> {
 		crate::auth::sms_verification(
 			&self.inner,
 			profile_id,
@@ -492,15 +496,15 @@ impl GrindrClient {
 	}
 
 	/// Submits the code from
-	/// [`send_sms_verification_code`](Self::send_sms_verification_code); sign
-	/// in again afterwards.
+	/// [`send_sms_verification_code`](Self::send_sms_verification_code), with
+	/// the same exchange as its answer; sign in again afterwards.
 	pub async fn verify_sms_verification_code(
 		&self,
 		profile_id: &str,
 		country_code: &str,
 		phone_number: &str,
 		code: &str,
-	) -> Result<crate::SmsCodeResponse, GrindrError> {
+	) -> Result<crate::SmsExchange, GrindrError> {
 		crate::auth::sms_verification(
 			&self.inner,
 			profile_id,

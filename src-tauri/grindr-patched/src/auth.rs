@@ -228,6 +228,27 @@ pub struct SmsCodeResponse {
 	pub message: String,
 }
 
+/// One exchange with an SMS verification endpoint, kept whole so a refusal
+/// can be reported with what was sent and what came back.
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct SmsExchange {
+	/// Request path, e.g. `/v4/sms/verification/123/sendcode`.
+	pub path: String,
+	/// The headers the request was built with, in order.
+	pub request_headers: Vec<(String, String)>,
+	/// JSON body sent, including the phone number.
+	pub request_body: String,
+	/// HTTP status.
+	pub status: u16,
+	/// Response headers, in the order they arrived.
+	pub response_headers: Vec<(String, String)>,
+	/// Raw response body.
+	pub response_body: Vec<u8>,
+	/// The answer, or the error the response stands for.
+	pub result: Result<SmsCodeResponse, GrindrError>,
+}
+
 #[derive(Debug, Serialize)]
 struct SmsCodeRequest<'a> {
 	country_code: &'a str,
@@ -619,7 +640,7 @@ pub(crate) async fn sms_verification(
 	country_code: &str,
 	phone_number: &str,
 	code: Option<&str>,
-) -> Result<SmsCodeResponse, GrindrError> {
+) -> Result<SmsExchange, GrindrError> {
 	if profile_id.is_empty() || !profile_id.bytes().all(|b| b.is_ascii_digit()) {
 		return Err(GrindrError::InvalidRequest(format!(
 			"invalid profile id {profile_id:?}"
@@ -631,11 +652,66 @@ pub(crate) async fn sms_verification(
 		code,
 	};
 	let path = format!("/v4/sms/verification/{profile_id}/{action}");
-	let mut request =
-		Request::new(wreq::Method::POST, &path, Body::json(&body)?);
-	request.required_device_info =
-		Some(crate::rest::RequiredDeviceInfo::RealAndAnonymous);
-	let response = inner.send(Access::Anonymous, &request).await?;
+	crate::rest::validate_path(&path)?;
+	let request_body = serde_json::to_string(&body)
+		.map_err(|e| GrindrError::InvalidRequest(e.to_string()))?;
+	let mut request = Request::new(
+		wreq::Method::POST,
+		&path,
+		Body::Json(request_body.clone().into()),
+	);
+	let required = crate::rest::RequiredDeviceInfo::RealAndAnonymous;
+	request.required_device_info = Some(required);
+
+	let fingerprint = inner.fingerprint().await;
+	let mut request_headers: Vec<(String, String)> =
+		crate::headers::GrindrHeaders::build(
+			&fingerprint.device,
+			&fingerprint.user_agent,
+			None,
+			None,
+		)?
+		.items
+		.iter()
+		.map(|(name, value)| (name.to_string(), header_text(value)))
+		.collect();
+	request_headers.extend(
+		required
+			.header_names()
+			.iter()
+			.map(|name| ((*name).to_owned(), "true".to_owned())),
+	);
+	request_headers.push((
+		"content-type".to_owned(),
+		crate::rest::JSON_CONTENT_TYPE.to_owned(),
+	));
+
+	let answer = inner.attempt(&request, None).await?;
+	let result = sms_code_result(answer.status, &answer.body);
+	Ok(SmsExchange {
+		path,
+		request_headers,
+		request_body,
+		status: answer.status,
+		response_headers: answer
+			.headers
+			.iter()
+			.map(|(name, value)| (name.to_string(), header_text(value)))
+			.collect(),
+		response_body: answer.body.to_vec(),
+		result,
+	})
+}
+
+fn header_text(value: &wreq::header::HeaderValue) -> String {
+	String::from_utf8_lossy(value.as_bytes()).into_owned()
+}
+
+fn sms_code_result(
+	status: u16,
+	body: &[u8],
+) -> Result<SmsCodeResponse, GrindrError> {
+	let response = crate::rest::raw_or_blocked(status, body.to_vec())?;
 	// An empty success body is a plain "done".
 	if (200..300).contains(&response.status)
 		&& response.body.iter().all(u8::is_ascii_whitespace)

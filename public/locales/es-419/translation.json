@@ -1249,7 +1249,10 @@
             "back": "Atrás",
             "sign_in": "Iniciar sesión",
             "send_in": "Enviar código ({{seconds}} s)",
-            "resend_in": "Reenviar código ({{seconds}} s)"
+            "resend_in": "Reenviar código ({{seconds}} s)",
+            "copy_report": "",
+            "report_copied": "",
+            "report_copy_failed": ""
         }
     },
     "chat": {
