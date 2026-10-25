@@ -94,3 +94,11 @@ export async function buildMultipartBody(original: File): Promise<{
 		contentType: `multipart/form-data; boundary=${boundary}`,
 	};
 }
+
+export function formatMs(ms: number): string {
+	const totalSeconds = Math.floor(ms / 1000);
+	if (totalSeconds < 60) return `${totalSeconds}s`;
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return seconds === 0 ? `${minutes} min` : `${minutes}:${String(seconds).padStart(2, "0")} min`;
+}

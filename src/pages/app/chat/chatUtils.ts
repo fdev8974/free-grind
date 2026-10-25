@@ -1042,11 +1042,21 @@ export type MediaCaptureTarget = {
 	viewOnce: boolean;
 };
 
-// Sender-side code (ChatPage.tsx) uses this exact sentinel for "unlimited"
-// (e.g. `setAttachmentMaxViews(2147483647)`, `views = maxViews ?? 2147483647`).
-// Anything below it — 1 ("view once"), 2 ("view twice"), or any other finite
+/** "Unlimited" videos aren't sent as NonExpiringVideo but as a regular
+ * Video, the same as "repeat" (2 views), with this many views. Counts from
+ * here up read as unlimited. */
+export const MAX_VIDEO_VIEWS = 999_999;
+
+/** Views a video message is sent with, for the expiry picker's maxViews
+ * (1 = once, 2 = repeat, anything above = unlimited, capped). */
+export function videoMessageViews(maxViews: number): number {
+	return Math.min(maxViews, MAX_VIDEO_VIEWS);
+}
+
+// The pickers use 2147483647 for "unlimited" (videos are sent with
+// MAX_VIDEO_VIEWS instead, see videoMessageViews). Anything below
+// MAX_VIDEO_VIEWS — 1 ("view once"), 2 ("view twice"), or any other finite
 // count — is a limited view, not just exactly 1.
-const UNLIMITED_VIEWS = 2_147_483_647;
 
 function isViewLimitedMessage(message: UiMessage): boolean {
 	const body = message.body as Record<string, unknown> | null | undefined;
@@ -1056,7 +1066,7 @@ function isViewLimitedMessage(message: UiMessage): boolean {
 	const candidate = maxViews ?? viewsRemaining;
 
 	if (candidate != null) {
-		return candidate > 0 && candidate < UNLIMITED_VIEWS;
+		return candidate > 0 && candidate < MAX_VIDEO_VIEWS;
 	}
 
 	// No explicit view-limit field on the body — fall back to the type string.

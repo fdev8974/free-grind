@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
+import { Check, Hourglass, Image as ImageIcon, Infinity as InfinityIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
@@ -525,6 +525,42 @@ export function DrawerFooter({ children }: { children: ReactNode }) {
 }
 
 export const DRAWER_PRIMARY_BUTTON_CLASS = sheetButtonClass();
+
+/** Footer pill for a two-way expiry choice (unlimited or expiring, e.g. a
+ * photo's 10 s): one tap flips it, instead of a dropdown with two entries.
+ * Accent-tinted while expiring. */
+export function ExpiryToggleButton({
+	expiring,
+	onChange,
+	expiringLabel,
+	disabled,
+}: {
+	expiring: boolean;
+	onChange: (expiring: boolean) => void;
+	/** Shown while expiring, e.g. "10s". */
+	expiringLabel: string;
+	disabled?: boolean;
+}) {
+	const { t } = useTranslation();
+	const unlimitedLabel = t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" });
+	return (
+		<button
+			type="button"
+			onClick={() => onChange(!expiring)}
+			disabled={disabled}
+			aria-pressed={expiring}
+			title={expiring ? expiringLabel : unlimitedLabel}
+			className={`inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold tabular-nums transition-[transform,background-color,color] duration-150 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 ${
+				expiring
+					? "bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent-readable)]"
+					: "ink-tint-10 text-[var(--text-muted)] hover:ink-tint-14 hover:text-[var(--text)]"
+			}`}
+		>
+			{expiring ? <Hourglass className="h-4 w-4" /> : <InfinityIcon className="h-4 w-4" />}
+			<span>{expiring ? expiringLabel : unlimitedLabel}</span>
+		</button>
+	);
+}
 
 export type DrawerAddAction = { key: string; label: string; icon: ReactNode; onClick: () => void };
 

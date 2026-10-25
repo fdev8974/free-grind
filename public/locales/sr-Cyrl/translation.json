@@ -675,6 +675,7 @@
         "refresh": "Освежи",
         "loading_media": "Учитавање медија албума…",
         "no_media": "У овом албуму још нема медија.",
+        "no_media_hint": "",
         "media_alt": "Медиј албума {{index}}",
         "cancel_delete_content": "Откажи брисање",
         "add_from_drawer": "Додај из фиоке",

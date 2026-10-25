@@ -674,6 +674,7 @@
         "refresh": "Actualiser",
         "loading_media": "Chargement du contenu de l'album…",
         "no_media": "Aucun contenu dans cet album pour le moment.",
+        "no_media_hint": "",
         "media_alt": "Contenu de l'album {{index}}",
         "cancel_delete_content": "Annuler la suppression",
         "add_from_drawer": "Ajouter depuis le dossier multimédia",

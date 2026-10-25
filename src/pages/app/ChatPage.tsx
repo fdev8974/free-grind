@@ -106,6 +106,7 @@ import {
 	parseChatFiltersFromLocationState,
     formatDateTime24,
 	sortDrawerMediaByUsage,
+	videoMessageViews,
 	type ChatFiltersDraft,
 } from "./chat/chatUtils";
 import { loadChatFiltersDraft, saveChatFiltersDraft } from "./chat/chat-filters-storage";
@@ -6332,15 +6333,16 @@ export function ChatPage() {
 				if (!media) return [];
 				const isVideo = media.contentType.startsWith("video");
 				const isOnceImage = !isVideo && views === 1;
-				const isUnlimitedVideo = isVideo && views > 2;
-				const messageType = isVideo ? (isUnlimitedVideo ? "NonExpiringVideo" : "Video") : isOnceImage ? "ExpiringImage" : "Image";
+				// Videos are always a regular Video, "unlimited" included (see videoMessageViews).
+				const videoViews = videoMessageViews(views);
+				const messageType = isVideo ? "Video" : isOnceImage ? "ExpiringImage" : "Image";
 				const body = {
 					mediaId,
 					width: null,
 					height: null,
 					url: media.url,
 					...(isOnceImage ? { viewsRemaining: 1, maxViews: 1, duration: 10 } : {}),
-					...(isVideo ? { viewsRemaining: views, maxViews: views } : {}),
+					...(isVideo ? { viewsRemaining: videoViews, maxViews: videoViews } : {}),
 				};
 				return [{ mediaId, url: media.url, messageType, body }];
 			});
@@ -6869,6 +6871,7 @@ export function ChatPage() {
 			onSendDrawerMedia={sendDrawerMedia}
 			onDrawerMediaDeleted={removeDrawerMediaFromList}
 			onDrawerAlbumDeleted={removeAlbumFromList}
+			onReloadAlbums={loadAlbums}
 			onShareAlbumFromDrawer={handleShareAlbumFromDrawer}
 			onStopAlbumShareFromDrawer={handleStopAlbumShare}
 			onSendLocation={sendLocationMessage}

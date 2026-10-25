@@ -1,6 +1,5 @@
 import { ChevronRight, Images, Layers } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -24,8 +23,8 @@ interface DrawerCollectionsSectionProps {
 
 /**
  * Collections: local-only, named and ordered groups of drawer media. They
- * are created and edited only here; the chat drawer just lists them for
- * sending, each item as its own message, one after another.
+ * are created and edited here or right from the chat drawer (same editor
+ * sheet), which sends them each item as its own message, one after another.
  */
 export function DrawerCollectionsSection({
 	drawerMedia,
@@ -61,21 +60,6 @@ export function DrawerCollectionsSection({
 			unsubscribe();
 		};
 	}, []);
-
-	// A collection handed over via navigation state (the chat drawer's edit
-	// button on a collection tile) opens its editor once the list is there.
-	const location = useLocation();
-	const openedFromNavigationRef = useRef(false);
-	useEffect(() => {
-		if (openedFromNavigationRef.current) return;
-		const requestedId = (location.state as { openCollectionId?: unknown } | null)?.openCollectionId;
-		if (typeof requestedId !== "string") return;
-		const requested = collections.find((collection) => collection.id === requestedId);
-		if (!requested) return;
-		openedFromNavigationRef.current = true;
-		void loadDrawerMedia();
-		setEditing(requested);
-	}, [collections, location.state, loadDrawerMedia]);
 
 	// Covers and counts need the drawer; loadDrawerMedia is a no-op once loaded.
 	useEffect(() => {

@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "../../utils/cn";
+import { ToggleRow } from "./toggle-row";
 
 /** A labelled group inside a bottom sheet: small muted heading (plus an
  * optional current value on the right) above its content — same look as the
@@ -92,6 +93,33 @@ export function SheetChip({
 /** Plain surface-2 container for list-style rows in a sheet section. */
 export function SheetCard({ className, children }: { className?: string; children: ReactNode }) {
 	return <div className={cn("rounded-2xl bg-[var(--surface-2)] px-4 py-3", className)}>{children}</div>;
+}
+
+export interface SheetToggleItem {
+	key: string;
+	checked: boolean;
+	onChange: (checked: boolean) => void;
+	label: string;
+	description?: string;
+}
+
+/** On/off options in a sheet as native-style list rows: one SheetCard, a
+ * switch per row, dividers between them (e.g. a photo's upload options). */
+export function SheetToggleList({ items, className }: { items: SheetToggleItem[]; className?: string }) {
+	return (
+		<SheetCard className={cn("divide-y divide-[var(--border)] py-0", className)}>
+			{items.map((item) => (
+				<ToggleRow
+					key={item.key}
+					checked={item.checked}
+					onChange={item.onChange}
+					label={item.label}
+					description={item.description}
+					padding="py-3"
+				/>
+			))}
+		</SheetCard>
+	);
 }
 
 /** Search field for a sheet: surface-2 fill, leading search icon, clear button. */

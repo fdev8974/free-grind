@@ -90,10 +90,10 @@ import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
 import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
-import { ToggleRow } from "../../../components/ui/toggle-row";
+import { SheetToggleList } from "../../../components/ui/sheet-section";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS, SHEET_FOOTER_FIELD_CLASS } from "../../../components/ui/bottom-sheet";
-import { SheetActionList } from "../../../components/ui/action-sheet";
+import { NATIVE_SHEET_BG, SheetActionList } from "../../../components/ui/action-sheet";
 import {
 	DndContext,
 	MouseSensor,
@@ -143,7 +143,7 @@ import {
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
 import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
-import { DrawerEmptyState } from "./drawerUi";
+import { DrawerEmptyState, ExpiryToggleButton } from "./drawerUi";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
@@ -258,6 +258,8 @@ type ChatThreadPanelProps = {
 	onSendDrawerMedia: (mediaIds: number[], maxViews?: number) => Promise<void>;
 	onDrawerMediaDeleted: (mediaId: number) => void;
 	onDrawerAlbumDeleted: (albumId: number) => void;
+	/** Reloads the albums after one was created or edited from the drawer. */
+	onReloadAlbums: () => void | Promise<unknown>;
 	onShareAlbumFromDrawer: (albumId: number, expirationType: string) => Promise<void>;
 	onStopAlbumShareFromDrawer: (albumId: number) => Promise<void>;
 	onSendLocation: (lat: number, lon: number) => void | Promise<void>;
@@ -734,6 +736,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		onSendDrawerMedia,
 		onDrawerMediaDeleted,
 		onDrawerAlbumDeleted,
+		onReloadAlbums,
 		onShareAlbumFromDrawer,
 		onStopAlbumShareFromDrawer,
 		onSendLocation,
@@ -2639,8 +2642,19 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							}
 							isProcessing={isUploadingAttachment}
 							isDesktop={isDesktop}
+							bg={NATIVE_SHEET_BG}
 							footerLeft={(() => {
 								const isVideo = pendingAttachmentFile.type.startsWith("video/");
+								// Photos: unlimited or 10s, a single toggle. Videos also have "repeat".
+								if (!isVideo) {
+									return (
+										<ExpiryToggleButton
+											expiring={attachmentMaxViews !== 2147483647}
+											onChange={(expiring) => setAttachmentMaxViews(expiring ? 1 : 2147483647)}
+											expiringLabel={t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}
+										/>
+									);
+								}
 								return (
 									<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-[120px]`}>
 										<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
@@ -2649,18 +2663,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											onChange={(e) => setAttachmentMaxViews(Number(e.target.value))}
 											className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
 										>
-											{isVideo ? (
-												<>
-													<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-													<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>
-													<option value={2}>{t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" })}</option>
-												</>
-											) : (
-												<>
-													<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-													<option value={1}>{t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}</option>
-												</>
-											)}
+											<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
+											<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>
+											<option value={2}>{t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" })}</option>
 										</select>
 									</div>
 								);
@@ -2671,13 +2676,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							<div className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
 							{attachmentPreviewUrl && (
 								pendingAttachmentFile.type.startsWith("video/") ? (
-									<div className="px-3 pb-3">
-										<div className="border border-[var(--border)]" style={{ borderRadius: "0.75rem", clipPath: "inset(0 round 0.75rem)" }}>
+									<div className="px-4 pb-3">
+										<div style={{ borderRadius: "1rem", clipPath: "inset(0 round 1rem)" }}>
 											<video src={attachmentPreviewUrl} controls className="w-full object-contain" style={{ maxHeight: "40dvh" }} />
 										</div>
 									</div>
 								) : (
-									<div className="px-3 pb-3">
+									<div className="px-4 pb-3">
 										<div className="flex justify-center">
 											<style>{`
 												@keyframes attach-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
@@ -2690,7 +2695,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												.attach-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
 												.attach-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
 											`}</style>
-											<div className="relative rounded-xl border border-[var(--border)] overflow-hidden">
+											<div className="relative overflow-hidden rounded-2xl">
 											<ReactCrop
 												crop={attachmentCrop}
 												onChange={(c) => { setIsDraggingAttachmentCrop(true); setAttachmentCrop(c); }}
@@ -2717,43 +2722,34 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											)}
 											</div>
 										</div>
-										<div className="mt-3 flex items-center justify-center gap-8">
-											<button type="button" onClick={() => void applyAttachmentTransform("flipH")} className="text-[var(--text-muted)] transition hover:text-[var(--text)]" aria-label="Flip horizontal">
-												<SquareCenterlineDashedHorizontal className="h-6 w-6" />
+										<div className="mt-3 flex items-center justify-center gap-3">
+											<button type="button" onClick={() => void applyAttachmentTransform("flipH")} className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`} aria-label="Flip horizontal">
+												<SquareCenterlineDashedHorizontal className="h-5 w-5" />
 											</button>
-											<button type="button" onClick={() => void applyAttachmentTransform("rotateCw")} className="text-[var(--text-muted)] transition hover:text-[var(--text)]" aria-label="Rotate clockwise">
-												<RotateCw className="h-6 w-6" />
+											<button type="button" onClick={() => void applyAttachmentTransform("rotateCw")} className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`} aria-label="Rotate clockwise">
+												<RotateCw className="h-5 w-5" />
 											</button>
 										</div>
 									</div>
 								)
 							)}
 							</div>
-							{/* Sticky toggle row — always pinned to bottom of sheet */}
-							<div className="shrink-0 px-3 pb-3 pt-2">
-								<div className="divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
-									{pendingAttachmentFile?.type.startsWith("video/") ? (
-										<ToggleRow
-											checked={attachmentLooping}
-											onChange={setAttachmentLooping}
-											label={t("chat.attachments.looping")}
-											description={t("chat.attachments.looping_description")}
-										/>
-									) : (
-										<ToggleRow
-											checked={attachmentTakenOnGrindr}
-											onChange={setAttachmentTakenOnGrindr}
-											label={t("chat.attachments.taken_on_grindr")}
-											description={t("chat.attachments.taken_on_grindr_description")}
-										/>
-									)}
-									<ToggleRow
-										checked={attachmentAddToDrawer}
-										onChange={setAttachmentAddToDrawer}
-										label={t("chat.attachments.add_to_drawer", { defaultValue: "Add to drawer" })}
-										description={t("chat.attachments.add_to_drawer_description", { defaultValue: "Also save this to your drawer so you can send it again later" })}
-									/>
-								</div>
+							{/* Options, pinned below the preview */}
+							<div className="shrink-0 px-4 pb-3 pt-2">
+								<SheetToggleList
+									items={[
+										pendingAttachmentFile?.type.startsWith("video/")
+											? { key: "looping", checked: attachmentLooping, onChange: setAttachmentLooping, label: t("chat.attachments.looping"), description: t("chat.attachments.looping_description") }
+											: { key: "taken-on-grindr", checked: attachmentTakenOnGrindr, onChange: setAttachmentTakenOnGrindr, label: t("chat.attachments.taken_on_grindr"), description: t("chat.attachments.taken_on_grindr_description") },
+										{
+											key: "add-to-drawer",
+											checked: attachmentAddToDrawer,
+											onChange: setAttachmentAddToDrawer,
+											label: t("chat.attachments.add_to_drawer", { defaultValue: "Add to drawer" }),
+											description: t("chat.attachments.add_to_drawer_description", { defaultValue: "Also save this to your drawer so you can send it again later" }),
+										},
+									]}
+								/>
 							</div>
 						</div>
 						</BottomDrawer>
@@ -2771,6 +2767,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							onSendMedia={onSendDrawerMedia}
 							onMediaDeleted={onDrawerMediaDeleted}
 							onAlbumDeleted={onDrawerAlbumDeleted}
+							onAlbumsChanged={onReloadAlbums}
 							onShareAlbum={onShareAlbumFromDrawer}
 							onStopAlbumShare={onStopAlbumShareFromDrawer}
 							albums={shareableAlbums}

@@ -3,7 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { ToggleRow } from "../../../components/ui/toggle-row";
+import { SHEET_ICON_BUTTON_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { SheetToggleList } from "../../../components/ui/sheet-section";
+import { DrawerFooter } from "./drawerUi";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 
 /**
@@ -109,9 +111,11 @@ export function DrawerAddMediaStep({
 
 	return (
 		<>
+			{/* Scrolls on behind the floating footer, which pads this wrapper (not the options card). */}
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>
 			{previewUrl && isVideo && (
 				<div className="mb-4 flex justify-center">
-					<div className="overflow-hidden rounded-xl border border-[var(--border)]" style={{ clipPath: "inset(0 round 0.75rem)" }}>
+					<div className="overflow-hidden rounded-2xl" style={{ clipPath: "inset(0 round 1rem)" }}>
 						<video src={previewUrl} controls className="block max-h-[50dvh] w-full" style={{ maxWidth: "100%" }} />
 					</div>
 				</div>
@@ -151,7 +155,7 @@ export function DrawerAddMediaStep({
 						}
 						.logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
 					`}</style>
-					<div data-sheet-no-drag className="relative rounded-xl border border-[var(--border)] overflow-hidden">
+					<div data-sheet-no-drag className="relative overflow-hidden rounded-2xl">
 					<ReactCrop
 						crop={crop}
 						onChange={(c) => {
@@ -190,51 +194,38 @@ export function DrawerAddMediaStep({
 					)}
 				</div>
 				</div>
-				<div className="mb-4 flex items-center justify-center gap-8">
+				<div className="mb-4 flex items-center justify-center gap-3">
 					<button
 						type="button"
 						onClick={() => void applyTransform("flipH")}
-						className="flex flex-col items-center gap-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+						className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`}
 						aria-label="Flip horizontal"
 					>
-						<SquareCenterlineDashedHorizontal className="h-6 w-6" />
+						<SquareCenterlineDashedHorizontal className="h-5 w-5" />
 					</button>
 					<button
 						type="button"
 						onClick={() => void applyTransform("rotateCw")}
-						className="flex flex-col items-center gap-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+						className={`${SHEET_ICON_BUTTON_CLASS} !h-10 !w-10`}
 						aria-label="Rotate clockwise"
 					>
-						<RotateCw className="h-6 w-6" />
+						<RotateCw className="h-5 w-5" />
 					</button>
 				</div>
 				</>
 			)}
-			{isVideo ? (
-				<div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
-					<ToggleRow
-						checked={looping}
-						onChange={setLooping}
-						label={t("chat.attachments.looping")}
-						description={t("chat.attachments.looping_description")}
-					/>
-				</div>
-			) : (
-				<div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
-					<ToggleRow
-						checked={takenOnGrindr}
-						onChange={setTakenOnGrindr}
-						label={t("chat.attachments.taken_on_grindr")}
-						description={t("chat.attachments.taken_on_grindr_description")}
-					/>
-				</div>
-			)}
-			<div className="flex gap-2">
+			<SheetToggleList
+				items={[isVideo
+					? { key: "looping", checked: looping, onChange: setLooping, label: t("chat.attachments.looping"), description: t("chat.attachments.looping_description") }
+					: { key: "taken-on-grindr", checked: takenOnGrindr, onChange: setTakenOnGrindr, label: t("chat.attachments.taken_on_grindr"), description: t("chat.attachments.taken_on_grindr_description") }]}
+			/>
+			</div>
+			<DrawerFooter>
 				<button
 					type="button"
 					onClick={onCancel}
 					disabled={isAdding}
-					className="flex-1 inline-flex h-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+					className={sheetButtonClass("secondary")}
 				>
 					{t("chat.actions.cancel")}
 				</button>
@@ -242,16 +233,12 @@ export function DrawerAddMediaStep({
 					type="button"
 					onClick={() => void confirm()}
 					disabled={isAdding}
-					className="flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+					className={sheetButtonClass()}
 				>
-					{isAdding ? (
-						<Loader2 className="h-4 w-4 animate-spin" />
-					) : (
-						<Plus className="h-4 w-4" />
-					)}
-					<span>{isAdding ? t("chat_drawer.sending") : t("chat_drawer.add_to_drawer")}</span>
+					{isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+					<span className="truncate">{isAdding ? t("chat_drawer.sending") : t("chat_drawer.add_to_drawer")}</span>
 				</button>
-			</div>
+			</DrawerFooter>
 		</>
 	);
 }

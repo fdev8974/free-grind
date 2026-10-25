@@ -674,6 +674,7 @@
         "refresh": "Recargar",
         "loading_media": "Cargando contenido de álbum…",
         "no_media": "No hay contenido en este álbum todavía.",
+        "no_media_hint": "",
         "media_alt": "Contenido de álbum {{index}}",
         "cancel_delete_content": "Cancelar eliminación",
         "add_from_drawer": "Agregar desde el cajón",

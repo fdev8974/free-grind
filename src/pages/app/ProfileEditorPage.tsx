@@ -20,7 +20,8 @@ import { sanitizeUploadFile } from "../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../utils/tags";
 import { PageHeader } from "../../components/PageHeader";
 import { BottomDrawer } from "../../components/ui/bottom-drawer";
-import { ToggleRow } from "../../components/ui/toggle-row";
+import { SheetToggleList } from "../../components/ui/sheet-section";
+import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
 import freegrindLogo from "../../images/freegrind-logo.webp";
 import {
 	getBodyTypeOptions,
@@ -959,6 +960,7 @@ export function ProfileEditorPage() {
 						: t("profile_editor.photo_upload.confirm")}
 					isProcessing={isUploadingPhoto || isCroppingPhoto}
 					isDesktop={isDesktop}
+					bg={NATIVE_SHEET_BG}
 					footerLeft={photoUploadStep === "thumbnail" ? (
 						<button
 							type="button"
@@ -978,7 +980,7 @@ export function ProfileEditorPage() {
 					<div className="flex min-h-0 flex-1 flex-col">
 						<div className="min-h-0 flex-1 overflow-y-auto">
 							{photoPreviewUrl && (
-								<div className="px-3 pb-3">
+								<div className="px-4 pb-3">
 									<div className="flex justify-center">
 										<style>{`
 											@keyframes photo-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
@@ -991,7 +993,7 @@ export function ProfileEditorPage() {
 											.photo-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
 											.photo-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
 										`}</style>
-										<div data-sheet-no-drag className="relative rounded-xl border border-[var(--border)] overflow-hidden">
+										<div data-sheet-no-drag className="relative overflow-hidden rounded-2xl">
 											<ReactCrop
 												key={photoUploadStep}
 												crop={photoCrop}
@@ -1033,15 +1035,16 @@ export function ProfileEditorPage() {
 								</div>
 							)}
 						</div>
-						<div className="shrink-0 px-3 pb-3 pt-2">
-							<div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
-								<ToggleRow
-									checked={pendingPhotoTakenOnGrindr}
-									onChange={setPendingPhotoTakenOnGrindr}
-									label={t("profile_editor.photo_upload.taken_on_grindr")}
-									description={t("profile_editor.photo_upload.taken_on_grindr_description")}
-								/>
-							</div>
+						<div className="shrink-0 px-4 pb-3 pt-2">
+							<SheetToggleList
+								items={[{
+									key: "taken-on-grindr",
+									checked: pendingPhotoTakenOnGrindr,
+									onChange: setPendingPhotoTakenOnGrindr,
+									label: t("profile_editor.photo_upload.taken_on_grindr"),
+									description: t("profile_editor.photo_upload.taken_on_grindr_description"),
+								}]}
+							/>
 						</div>
 					</div>
 				</BottomDrawer>

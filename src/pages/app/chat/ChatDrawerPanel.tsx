@@ -35,11 +35,12 @@ import {
 	DrawerMediaTile,
 	DRAWER_TILE_CLASS,
 	DrawerTileCornerButton,
+	ExpiryToggleButton,
 	useDrawerMediaPreview,
 } from "./drawerUi";
 import type { AlbumListItem, AlbumMediaCount } from "../../../types/chat-page";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useModalClose } from "../../../hooks/useModalClose";
 import { BottomSheet, SHEET_FOOTER_FIELD_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
@@ -52,6 +53,10 @@ import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { appLog } from "../../../utils/logger";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import type { Album as OwnAlbum, AlbumLimits } from "../../../types/albums";
+import { useCreateAlbum } from "../settings-albums/useCreateAlbum";
+import { AlbumEditorSheet } from "../settings-albums/AlbumEditorSheet";
+import { DrawerCollectionEditorSheet } from "../settings-albums/DrawerCollectionEditorSheet";
 
 /** Album / collection tile overlay: a glass badge with the type icon and
  * the name in the middle (so these read differently from plain media
@@ -115,6 +120,8 @@ interface ChatDrawerPanelProps {
 	onMediaDeleted: (mediaId: number) => void;
 	/** Called after an album was deleted from its drawer tile, to drop it from the list. */
 	onAlbumDeleted: (albumId: number) => void;
+	/** Called after an album was created or edited here, to reload the list. */
+	onAlbumsChanged?: () => void | Promise<unknown>;
 	isDesktop: boolean;
 	albums?: AlbumListItem[];
 	isLoadingAlbums?: boolean;
@@ -137,6 +144,7 @@ export function ChatDrawerPanel({
 	isSending,
 	onMediaDeleted,
 	onAlbumDeleted,
+	onAlbumsChanged,
 	isDesktop,
 	albums = [],
 	isLoadingAlbums = false,
@@ -150,6 +158,7 @@ export function ChatDrawerPanel({
 }: ChatDrawerPanelProps) {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
+	const location = useLocation();
 	const { defaultExpiringPhotos, defaultAlbumExpirationType, splitDrawerCategories, setPreferences } = usePreferences();
 	// Re-renders once a background fetch lands a drawer item in the local
 	// media cache, so it can swap in the cached copy without waiting for a DB read.
@@ -157,8 +166,8 @@ export function ChatDrawerPanel({
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<number>>(new Set());
-	// Collections: local-only, named groups of drawer media, managed on the
-	// albums settings page. Sending one goes through the regular onSendMedia
+	// Collections: local-only, named groups of drawer media, edited right
+	// here (or on the albums settings page). Sending one goes through the regular onSendMedia
 	// path, which already sends each item as its own message, one after another.
 	const [collections, setCollections] = useState<StoredDrawerCollection[]>([]);
 	const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
@@ -247,6 +256,35 @@ export function ChatDrawerPanel({
 	const [confirmDeleteCollectionId, setConfirmDeleteCollectionId] = useState<string | null>(null);
 	const [isDeletingCollection, setIsDeletingCollection] = useState(false);
 
+	// The album and collection editors open on top of the drawer, same sheets
+	// as on the albums settings page. Collection: undefined = closed, null = new.
+	const [editingAlbum, setEditingAlbum] = useState<OwnAlbum | null>(null);
+	const { createAlbum, isCreating: isCreatingAlbum } = useCreateAlbum();
+	// Created as "Album" and opened right away, to be named and filled there.
+	const handleCreateAlbum = useCallback(async () => {
+		const album = await createAlbum();
+		if (!album) return;
+		void onAlbumsChanged?.();
+		setEditingAlbum(album);
+	}, [createAlbum, onAlbumsChanged]);
+	const [editingCollection, setEditingCollection] = useState<StoredDrawerCollection | null | undefined>(undefined);
+	const collectionEditorCloseRef = useRef<(() => void) | null>(null);
+	const isEditorOpen = editingAlbum != null || editingCollection !== undefined;
+
+	// The plan's album limits, enforced like on the albums settings page (the
+	// album count here; items and videos per album in the editor). Until they
+	// are known, creating stays allowed — the server rejects it past the limit.
+	const [albumLimits, setAlbumLimits] = useState<AlbumLimits | null>(null);
+	useEffect(() => {
+		let cancelled = false;
+		apiFunctions.getOwnAlbumStorage()
+			.then((storage) => { if (!cancelled) setAlbumLimits(storage); })
+			.catch((loadError) => appLog.warn("[ChatDrawerPanel] failed to load album limits", loadError));
+		return () => { cancelled = true; };
+	}, [apiFunctions]);
+	const maxAlbums = albumLimits ? albumLimits.maxAlbums ?? 1 : undefined;
+	const canCreateAlbum = maxAlbums == null || albums.length < maxAlbums;
+
 	const confirmDeleteAlbum = useCallback(async () => {
 		if (confirmDeleteAlbumId == null) return;
 		const albumId = confirmDeleteAlbumId;
@@ -275,6 +313,8 @@ export function ChatDrawerPanel({
 		try {
 			// The collections subscription reloads the list (and drops a selection of it).
 			await chatDb.deleteDrawerCollection(confirmDeleteCollectionId);
+			// Deleted from inside its editor: close that (animated); its onClose clears `editingCollection`.
+			if (editingCollection?.id === confirmDeleteCollectionId) collectionEditorCloseRef.current?.();
 		} catch (deleteError) {
 			appLog.error("[ChatDrawerPanel] failed to delete collection", deleteError);
 			toast.error(t("settings_albums.collections_delete_failed"));
@@ -282,12 +322,13 @@ export function ChatDrawerPanel({
 			setIsDeletingCollection(false);
 			setConfirmDeleteCollectionId(null);
 		}
-	}, [confirmDeleteCollectionId, t]);
+	}, [confirmDeleteCollectionId, editingCollection, t]);
 
 	useModalClose({
 		isOpen: true,
 		onClose: onBack,
-		escapeKey: !isSending && !upload.isUploading,
+		// An editor on top handles Escape itself.
+		escapeKey: !isSending && !upload.isUploading && !isEditorOpen,
 	});
 
 	const toggleSelection = useCallback((id: number, isVideo: boolean) => {
@@ -390,16 +431,13 @@ export function ChatDrawerPanel({
 	);
 
 
-	// Albums and collections are both created on the albums settings page.
-	const openAlbumsPage = () => {
-		closeSheet(() => navigate("/settings/albums"));
-	};
-	// Empty album/collection tabs: both are created on the albums settings page.
-	const renderCreateButton = (label: string) => (
+	// Empty album/collection tabs: create one right here.
+	const renderCreateButton = (label: string, onClick: () => void, disabled = false) => (
 		<button
 			type="button"
-			onClick={openAlbumsPage}
-			className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+			onClick={onClick}
+			disabled={disabled}
+			className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
 		>
 			<Plus className="h-4 w-4" />
 			{label}
@@ -458,9 +496,7 @@ export function ChatDrawerPanel({
 							corner="right"
 							icon={<Pencil className="h-2.5 w-2.5" />}
 							label={t("chat_drawer.album_edit", { defaultValue: "Edit album" })}
-							onClick={() => {
-								closeSheet(() => navigate("/settings/albums", { state: { openAlbumId: album.albumId } }));
-							}}
+							onClick={() => setEditingAlbum({ albumId: String(album.albumId), albumName: album.albumName })}
 						/>
 					</>
 				)}
@@ -546,9 +582,7 @@ export function ChatDrawerPanel({
 							corner="right"
 							icon={<Pencil className="h-2.5 w-2.5" />}
 							label={t("chat_drawer.collection_edit", { defaultValue: "Edit collection" })}
-							onClick={() => {
-								closeSheet(() => navigate("/settings/albums", { state: { openCollectionId: collection.id } }));
-							}}
+							onClick={() => setEditingCollection(collection)}
 						/>
 					</>
 				)}
@@ -559,8 +593,23 @@ export function ChatDrawerPanel({
 	// Capture / upload actions, shown as the first tiles of the media grid.
 	const actionsDisabled = upload.isUploading || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
 	const drawerActions = upload.actions;
+	// Not split into categories and no albums yet: there's no albums tab with
+	// its own create button, so it joins the grid's action row (the empty
+	// drawer's buttons below get it the same way).
+	const gridActions = combined && albums.length === 0 && !isLoadingAlbums && canCreateAlbum
+		? [
+			...drawerActions,
+			{
+				key: "create-album",
+				icon: isCreatingAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagesFilled className="h-4 w-4" />,
+				label: t("chat_drawer.albums_create", { defaultValue: "Create album" }),
+				onClick: () => void handleCreateAlbum(),
+			},
+		]
+		: drawerActions;
 
 	return (
+		<>
 		<BottomSheet
 			// isProcessing already blocks user-initiated closes while busy; onClose
 			// must stay real so a programmatic close (closeRef) still unmounts.
@@ -627,7 +676,7 @@ export function ChatDrawerPanel({
 											title={t("chat_drawer.albums_empty", { defaultValue: "You don't have any albums yet." })}
 											hint={t("chat_drawer.albums_empty_hint", { defaultValue: "Albums let you share several photos at once, and stop sharing any time." })}
 										>
-											{renderCreateButton(t("chat_drawer.albums_create", { defaultValue: "Create album" }))}
+											{renderCreateButton(t("chat_drawer.albums_create", { defaultValue: "Create album" }), () => void handleCreateAlbum(), !canCreateAlbum || isCreatingAlbum)}
 										</DrawerEmptyState>
 									)
 								)}
@@ -638,7 +687,7 @@ export function ChatDrawerPanel({
 											title={t("chat_drawer.collections_empty", { defaultValue: "You don't have any collections yet." })}
 											hint={t("chat_drawer.collections_empty_hint", { defaultValue: "Collections group drawer photos so you can send them together in one tap." })}
 										>
-											{renderCreateButton(t("chat_drawer.collections_create", { defaultValue: "Create collection" }))}
+											{renderCreateButton(t("chat_drawer.collections_create", { defaultValue: "Create collection" }), () => setEditingCollection(null))}
 										</DrawerEmptyState>
 									) : (
 										<DrawerGridSkeleton isDesktop={isDesktop} />
@@ -646,12 +695,25 @@ export function ChatDrawerPanel({
 								)}
 								{!combined && ((activeTab === "albums" && albums.length > 0) || (activeTab === "collections" && collections.length > 0)) && (
 									<div className={drawerGridClass(isDesktop)}>
+										{/* Like the media tab's add actions: a create row above the albums. */}
+										{/* Hidden once the plan's album limit is reached. */}
+										{activeTab === "albums" && canCreateAlbum && (
+											<DrawerActionBar
+												disabled={isCreatingAlbum}
+												actions={[{
+													key: "create-album",
+													icon: isCreatingAlbum ? <Loader2 className="animate-spin" /> : <Plus />,
+													label: t("chat_drawer.albums_create", { defaultValue: "Create album" }),
+													onClick: () => void handleCreateAlbum(),
+												}]}
+											/>
+										)}
 										{activeTab === "albums" ? albumTiles : collectionTiles}
 									</div>
 								)}
 								{showSection("media") && (media.length > 0 || hasCombinedGroups) && (
 								<DrawerGrid isDesktop={isDesktop}>
-									<DrawerActionBar actions={drawerActions} disabled={actionsDisabled} />
+									<DrawerActionBar actions={gridActions} disabled={actionsDisabled || isCreatingAlbum} />
 									{/* Not split into categories: albums and collections share the media grid. */}
 									{combined && albumTiles}
 									{combined && collectionTiles}
@@ -720,7 +782,8 @@ export function ChatDrawerPanel({
 												<DrawerActionButton
 													icon={<ImagesFilled className="h-4 w-4" />}
 													label={t("chat_drawer.albums_create", { defaultValue: "Create album" })}
-													onClick={openAlbumsPage}
+													onClick={() => void handleCreateAlbum()}
+													disabled={!canCreateAlbum || isCreatingAlbum}
 												/>
 											)}
 										</div>
@@ -783,32 +846,29 @@ export function ChatDrawerPanel({
 						{/* Footer - Send button */}
 						{hasSelection || hasCollectionSelection ? (
 							<DrawerFooter>
-								<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-0 flex-1`}>
-									<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
-									<select
-										value={mediaMaxViews}
-										onChange={(e) => setMediaMaxViews(Number(e.target.value))}
-										className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
-									>
-										{isMixedSelection ? (
-											<>
-												<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-												<option value={1}>{t("chat_drawer.expiry.ten_seconds_or_once", { defaultValue: "10s / once" })}</option>
-											</>
-										) : hasAnyVideo ? (
-											<>
-												<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-												<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>
-												<option value={2}>{t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" })}</option>
-											</>
-										) : (
-											<>
-												<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-												<option value={1}>{t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}</option>
-											</>
-										)}
-									</select>
-								</div>
+								{/* Only videos have a third choice (repeat); otherwise it's on/off. */}
+								{hasAnyVideo && !isMixedSelection ? (
+									<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-0 flex-1`}>
+										<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
+										<select
+											value={mediaMaxViews}
+											onChange={(e) => setMediaMaxViews(Number(e.target.value))}
+											className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
+										>
+											<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
+											<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>
+											<option value={2}>{t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" })}</option>
+										</select>
+									</div>
+								) : (
+									<ExpiryToggleButton
+										expiring={mediaMaxViews !== 2147483647}
+										onChange={(expiring) => setMediaMaxViews(expiring ? 1 : 2147483647)}
+										expiringLabel={isMixedSelection
+											? t("chat_drawer.expiry.ten_seconds_or_once", { defaultValue: "10s / once" })
+											: t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}
+									/>
+								)}
 								<button
 									type="button"
 									onClick={handleSendSelected}
@@ -858,5 +918,50 @@ export function ChatDrawerPanel({
 					confirmTone="danger"
 				/>
 		</BottomSheet>
+
+		{/* Siblings of the drawer sheet, not children: stacked on top of it. */}
+		{editingAlbum && (
+			<AlbumEditorSheet
+				key={editingAlbum.albumId}
+				album={editingAlbum}
+				// Not loaded yet: the editor fetches them itself.
+				limits={albumLimits ?? undefined}
+				onClose={() => {
+					setEditingAlbum(null);
+					void onAlbumsChanged?.();
+				}}
+				onDeleted={(albumId) => {
+					const id = Number(albumId);
+					setSelectedAlbumIds((previous) => {
+						if (!previous.has(id)) return previous;
+						const next = new Set(previous);
+						next.delete(id);
+						return next;
+					});
+					onAlbumDeleted(id);
+				}}
+				// Leaving the chat for the profile: the drawer goes too.
+				onOpenProfile={(profileId) => {
+					closeSheet(() => navigate(`/profile/${profileId}`, { state: { returnTo: location.pathname } }));
+				}}
+				isDesktop={isDesktop}
+			/>
+		)}
+		{editingCollection !== undefined && (
+			<DrawerCollectionEditorSheet
+				collection={editingCollection}
+				media={media}
+				isLoading={isLoading}
+				error={error}
+				onReloadMedia={reloadMedia}
+				onClose={() => setEditingCollection(undefined)}
+				// The collections subscription above picks up the saved list.
+				onSaved={() => {}}
+				onDelete={editingCollection ? () => setConfirmDeleteCollectionId(editingCollection.id) : undefined}
+				closeRef={collectionEditorCloseRef}
+				isDesktop={isDesktop}
+			/>
+		)}
+		</>
 	);
 }

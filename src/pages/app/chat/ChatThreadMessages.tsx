@@ -57,6 +57,7 @@ import {
 	getMessageVideoUrl,
 	getVideoCallStatusLabel,
 	isLocalClientMessageId,
+	MAX_VIDEO_VIEWS,
 	stripReplyQuotePrefix,
 } from "./chatUtils";
 import type { MessageTranslations } from "../../../hooks/useMessageTranslations";
@@ -1827,7 +1828,8 @@ export function ChatThreadMessages({
                                         
                                         {videoUrl ? (() => {
                                             const videoMaxViews = typeof msgBody?.maxViews === "number" ? msgBody.maxViews : 2147483647;
-                                            const isLimitedVideo = videoMaxViews !== 2147483647;
+                                            // Unlimited videos are sent with MAX_VIDEO_VIEWS, older ones with 2147483647.
+                                            const isLimitedVideo = videoMaxViews < MAX_VIDEO_VIEWS;
                                             return (
                                                 <div
                                                     role="button"

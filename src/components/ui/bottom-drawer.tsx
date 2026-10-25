@@ -12,6 +12,8 @@ interface BottomDrawerProps {
 	zIndex?: string;
 	isDesktop?: boolean;
 	footerLeft?: ReactNode;
+	/** Sheet background class, see BottomSheet's `bg`. */
+	bg?: string;
 	children: ReactNode;
 }
 
@@ -25,6 +27,7 @@ export function BottomDrawer({
 	zIndex = "z-[60]",
 	isDesktop = false,
 	footerLeft,
+	bg,
 	children,
 }: BottomDrawerProps) {
 	return (
@@ -33,6 +36,7 @@ export function BottomDrawer({
 			isDesktop={isDesktop}
 			isProcessing={isProcessing}
 			zIndex={zIndex}
+			bg={bg}
 		>
 			<div className="flex items-center justify-between px-4 pb-3">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
