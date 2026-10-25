@@ -155,6 +155,7 @@
         "custom_rules_desc": "Napravi vlastita pravila \"kad X onda Y\" za nečiju prvu poruku tebi — provjeri pošiljaoca, pa automatski blokiraj, odgovori ili podijeli album. Svako pravilo se izvršava jednom po novom razgovoru.",
         "add_rule": "Dodaj pravilo",
         "no_rules_yet": "Još nema vlastitih automatizacija. Dodaj jednu za početak.",
+        "no_rules_hint": "",
         "unnamed_rule": "Neimenovano pravilo",
         "rule_when": "Kada: ",
         "edit_rule": "Uredi pravilo",

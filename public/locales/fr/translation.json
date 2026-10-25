@@ -155,6 +155,7 @@
         "custom_rules_desc": "Créez vos propres règles de type « si X, alors Y » pour le premier message que vous recevez : vérifiez l'identité de l'expéditeur, puis bloquez-le, répondez-lui ou partagez un album automatiquement. Chaque règle s'exécute une seule fois par nouvelle conversation.",
         "add_rule": "Ajouter une règle",
         "no_rules_yet": "Aucune automatisation personnalisée pour le moment. Ajoutez-en une pour commencer.",
+        "no_rules_hint": "",
         "unnamed_rule": "Règle sans nom",
         "rule_when": "Quand : ",
         "edit_rule": "Modifier la règle",

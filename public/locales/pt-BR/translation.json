@@ -155,6 +155,7 @@
         "custom_rules_desc": "Crie suas próprias regras do tipo \"quando X, então Y\" para a primeira mensagem que alguém lhe enviar — verifique o remetente e, em seguida, bloqueie, responda ou compartilhe um álbum automaticamente. Cada regra é executada uma vez por nova conversa.",
         "add_rule": "Adicionar regra",
         "no_rules_yet": "Ainda não há automações personalizadas. Adicione uma para começar.",
+        "no_rules_hint": "",
         "unnamed_rule": "Regra não nomeada",
         "rule_when": "Quando: ",
         "edit_rule": "Editar regra",

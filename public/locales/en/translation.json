@@ -153,6 +153,7 @@
     "custom_rules_desc": "Build your own \"when X then Y\" rules for someone's first message to you — check the sender, then block, reply, or share an album automatically. Each rule runs once per new chat.",
     "add_rule": "Add Rule",
     "no_rules_yet": "No custom automations yet. Add one to get started.",
+    "no_rules_hint": "Rules run on their own when someone messages or taps you, e.g. block or answer them.",
     "unnamed_rule": "Unnamed rule",
     "rule_when": "When: ",
     "edit_rule": "Edit Rule",

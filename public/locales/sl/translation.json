@@ -157,6 +157,7 @@
         "custom_rules_desc": "Ustvari lastna pravila \"ko X, potem Y\" za prvo sporočilo, ki ti ga nekdo pošlje — preveri pošiljatelja in nato samodejno blokiraj, odgovori ali deli album. Vsako pravilo se izvede enkrat na nov klepet.",
         "add_rule": "Dodaj pravilo",
         "no_rules_yet": "Še ni lastnih avtomatizacij. Dodaj eno za začetek.",
+        "no_rules_hint": "",
         "unnamed_rule": "Neimenovano pravilo",
         "rule_when": "Ko: ",
         "edit_rule": "Uredi pravilo",

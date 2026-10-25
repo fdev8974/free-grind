@@ -155,6 +155,7 @@
         "custom_rules_desc": "Crea tus propias reglas del tipo \"cuando X, entonces Y\" para el primer mensaje que recibas: verifica al remitente y luego bloquéalo, responde o comparte un álbum automáticamente. Cada regla se ejecuta una vez por cada nuevo chat.",
         "add_rule": "Añadir Regla",
         "no_rules_yet": "Aún no hay automatizaciones personalizadas. Agrega una para comenzar.",
+        "no_rules_hint": "",
         "unnamed_rule": "Regla sin nombre",
         "rule_when": "Cuando: ",
         "edit_rule": "Editar regla",

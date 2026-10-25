@@ -153,6 +153,7 @@
         "custom_rules_desc": "Maak je eigen \"als X dan Y\"-regels voor iemands eerste bericht aan jou — controleer de afzender en blokkeer, antwoord of deel automatisch een album. Elke regel wordt één keer per nieuwe chat uitgevoerd.",
         "add_rule": "Regel toevoegen",
         "no_rules_yet": "Nog geen eigen automatiseringen. Voeg er een toe om te beginnen.",
+        "no_rules_hint": "",
         "unnamed_rule": "Naamloze regel",
         "rule_when": "Wanneer: ",
         "edit_rule": "Regel bewerken",

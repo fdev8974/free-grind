@@ -155,6 +155,7 @@
         "custom_rules_desc": "Define tus propias reglas \"cuando X, luego Y\" cuando alguien te escribe un mensaje — revisa el emisor, luego bloquea, responde, o comparte un álbum automáticamente. Cada regla se inicia una vez por chat nuevo.",
         "add_rule": "Añadir regla",
         "no_rules_yet": "Sin automatizaciones todavía. Añade una para empezar.",
+        "no_rules_hint": "",
         "unnamed_rule": "Regla sin nombre",
         "rule_when": "Cuando: - ",
         "edit_rule": "Editar regla",

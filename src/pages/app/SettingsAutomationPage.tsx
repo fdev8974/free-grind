@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Download, LockKeyhole, Plus, Upload, Workflow } from "lucide-react";
+import { ChevronRight, Download, LockKeyhole, Upload, Workflow } from "lucide-react";
 import { TagFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { PageHeader } from "../../components/PageHeader";
@@ -19,7 +19,8 @@ import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import type { Album } from "../../types/albums";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
-import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
+import { EmptyStateCreateButton, NATIVE_SHEET_BG, SectionAddButton } from "../../components/ui/action-sheet";
+import { DrawerEmptyState } from "./chat/drawerUi";
 import { SHEET_FIELD_CLASS, SheetSection } from "../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { cn } from "../../utils/cn";
@@ -319,15 +320,13 @@ export function SettingsAutomationPage() {
 								{t("settings_automation.experimental_badge")}
 							</span>
 						</div>
-						<button
-							type="button"
-							disabled={!settingsReady}
-							onClick={() => setEditingRule(createEmptyAutomationRule())}
-							className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--accent)] transition hover:ink-tint-8 disabled:pointer-events-none disabled:opacity-50"
-						>
-							<Plus className="h-3.5 w-3.5" />
-							{t("settings_automation.add_rule")}
-						</button>
+						{/* The empty state has its own create button. */}
+						{settingsReady && rules.length > 0 && (
+							<SectionAddButton
+								label={t("settings_automation.add_rule")}
+								onClick={() => setEditingRule(createEmptyAutomationRule())}
+							/>
+						)}
 					</div>
 
 					{!settingsReady ? (
@@ -335,9 +334,18 @@ export function SettingsAutomationPage() {
 							<p className="text-sm text-[var(--text-muted)]">{t("settings_automation.loading_rules")}</p>
 						</div>
 					) : rules.length === 0 ? (
-						<div className="native-card flex flex-col items-center gap-2 p-6 text-center">
-							<Workflow className="h-6 w-6 text-[var(--text-muted)]" />
-							<p className="text-sm text-[var(--text-muted)]">{t("settings_automation.no_rules_yet")}</p>
+						<div className="native-card overflow-hidden px-4">
+							<DrawerEmptyState
+								icon={<Workflow />}
+								fanned={false}
+								title={t("settings_automation.no_rules_yet")}
+								hint={t("settings_automation.no_rules_hint", { defaultValue: "Rules run on their own when someone messages or taps you, e.g. block or answer them." })}
+							>
+								<EmptyStateCreateButton
+									label={t("settings_automation.add_rule")}
+									onClick={() => setEditingRule(createEmptyAutomationRule())}
+								/>
+							</DrawerEmptyState>
 						</div>
 					) : (
 						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">

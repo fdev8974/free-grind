@@ -153,6 +153,7 @@
         "custom_rules_desc": "Erstelle eigene „Wenn X dann Y“-Regeln für die erste Nachricht eines neuen Kontakts – prüfe den Absender und blockiere, antworte oder teile automatisch ein Album. Jede Regel läuft einmalig pro neuem Chat.",
         "add_rule": "Regel hinzufügen",
         "no_rules_yet": "Noch keine eigenen Automatisierungen. Füge eine hinzu, um loszulegen.",
+        "no_rules_hint": "",
         "unnamed_rule": "Unbenannte Regel",
         "rule_when": "Wenn: ",
         "edit_rule": "Regel bearbeiten",
