@@ -37,18 +37,15 @@ export function SelectRow<T extends string>({
 				id={id}
 				type="button"
 				onClick={() => setIsOpen(true)}
-				className={`flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] ${highlighted ? "animate-settings-highlight" : ""}`}
+				className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] ${highlighted ? "animate-settings-highlight" : ""}`}
 			>
 				<div className={`rounded-2xl p-2.5 shrink-0 ${iconClass}`}>{icon}</div>
 				<div className="min-w-0 flex-1">
 					<p className="text-sm font-semibold leading-snug">{label}</p>
 					{description && <p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">{description}</p>}
 				</div>
-				{/* The row is top-aligned for the icon; the value stays centered. */}
-				<span className="flex max-w-[45%] shrink-0 items-center gap-3 self-center">
-					<span className="truncate text-sm font-medium text-[var(--text-muted)]">{selectedLabel}</span>
-					<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-				</span>
+				<span className="max-w-[45%] shrink-0 truncate text-sm font-medium text-[var(--text-muted)]">{selectedLabel}</span>
+				<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 			</button>
 			{/* Portaled out of the card: as a child of its divide-y list the fullscreen
 			    overlay would pick up the divider border (a stray line while it fades in). */}
