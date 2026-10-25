@@ -675,6 +675,7 @@
         "loading_media": "Učitavanje medija albuma…",
         "no_media": "Još nema medija u ovom albumu.",
         "no_media_hint": "",
+        "not_shared_hint": "",
         "media_alt": "Medij albuma {{index}}",
         "cancel_delete_content": "Otkaži brisanje",
         "add_from_drawer": "Dodaj iz galerije",

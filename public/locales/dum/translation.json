@@ -690,6 +690,7 @@
         "loading_media": "بيتحميل الوسائط",
         "no_media": "مفيش وسائط في هذا الألبوم حتى دلوقتي.",
         "no_media_hint": "",
+        "not_shared_hint": "",
         "media_alt": "ميديا الألبوم {{index}}",
         "cancel_delete_content": "رفض وحذف",
         "add_from_drawer": "أضف من البروفايلات",

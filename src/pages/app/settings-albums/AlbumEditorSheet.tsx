@@ -934,10 +934,12 @@ export function AlbumEditorSheet({
 								))}
 							</div>
 						) : !shareProfiles || shareProfiles.length === 0 ? (
-							<div className="flex flex-col items-center gap-2 py-10 text-[var(--text-muted)]">
-								<Users className="h-7 w-7 opacity-30" />
-								<p className="text-sm">{t("settings_albums.not_shared", { defaultValue: "Not shared with anyone." })}</p>
-							</div>
+							<DrawerEmptyState
+								icon={<Users />}
+								fanned={false}
+								title={t("settings_albums.not_shared", { defaultValue: "Not shared with anyone." })}
+								hint={t("settings_albums.not_shared_hint", { defaultValue: "Share it from a chat and everyone with access shows up here." })}
+							/>
 						) : (
 							<div className="-mx-4">
 								{shareProfiles.map((profile) => {

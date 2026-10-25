@@ -680,6 +680,7 @@
         "loading_media": "Nalaganje medijev albuma…",
         "no_media": "V tem albumu še ni medijev.",
         "no_media_hint": "",
+        "not_shared_hint": "",
         "media_alt": "Medij albuma {{index}}",
         "cancel_delete_content": "Prekliči brisanje",
         "add_from_drawer": "Dodaj iz galerije",

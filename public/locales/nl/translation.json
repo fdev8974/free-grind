@@ -670,6 +670,7 @@
         "loading_media": "Albummedia laden…",
         "no_media": "Nog geen media in dit album.",
         "no_media_hint": "",
+        "not_shared_hint": "",
         "media_alt": "Albummedia {{index}}",
         "cancel_delete_content": "Verwijderen annuleren",
         "add_from_drawer": "Toevoegen uit galerij",
