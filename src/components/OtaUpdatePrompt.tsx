@@ -1,4 +1,4 @@
-import { ArrowDown, Download, Loader2, Package, RefreshCcw, Zap } from "lucide-react";
+import { Download, Loader2, RefreshCcw, Zap } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -19,6 +19,7 @@ import {
 import { appLog } from "../utils/logger";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { ToggleRow } from "./ui/toggle-row";
+import { VersionCompare, type VersionCompareSide } from "./ui/version-compare";
 import { hourCycleOptions } from "../utils/timeFormat";
 import { formatRelativeTime } from "../utils/relativeTime";
 
@@ -75,51 +76,33 @@ function newerBy(t: TFunction, newer: Date, older: Date): string | null {
  * release version and only differ in build time, so the version is only shown
  * when it actually changes.
  */
-function BundleRow({
-	label,
-	version,
-	showVersion,
-	comparedTo,
-	highlight,
-}: {
-	label: string;
-	version: string | null;
-	showVersion: boolean;
+function bundleSide(
+	t: TFunction,
+	lang: string,
+	label: string,
+	version: string | null,
+	showVersion: boolean,
 	/** Installed version, for the "… newer" hint on the new build. */
-	comparedTo?: string | null;
-	highlight?: boolean;
-}) {
-	const { t, i18n } = useTranslation();
+	comparedTo?: string | null,
+): VersionCompareSide {
 	const release = showVersion ? releaseOf(version) : null;
 	const builtAt = buildDate(version);
 	const olderBuild = buildDate(comparedTo ?? null);
 	const newer = builtAt && olderBuild ? newerBy(t, builtAt, olderBuild) : null;
 
-	return (
-		<div className="flex h-full items-center gap-3 px-4 py-3">
-			<div
-				className={`shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 ${highlight ? "text-[var(--accent)]" : "text-[var(--text-muted)]"}`}
-			>
-				<Package className="h-5 w-5" />
-			</div>
-			<div className="min-w-0 flex-1">
-				<p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{label}</p>
-				<p className={`text-sm font-semibold leading-snug ${highlight ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
-					{builtAt
-						? formatBuildTime(builtAt, i18n.language)
-						: t("ota_prompt.built_in", { defaultValue: "Included with the app" })}
-				</p>
-				{(release || builtAt) && (
-					<p className="mt-0.5 text-xs tabular-nums text-[var(--text-muted)]">
-						{release ? t("ota_prompt.version", { defaultValue: "Version {{version}}", version: release }) : null}
-						{release && builtAt ? " · " : null}
-						{builtAt ? formatRelativeTime(builtAt.getTime()) : null}
-						{newer && <span className="font-medium text-[var(--accent)]"> · {newer}</span>}
-					</p>
-				)}
-			</div>
-		</div>
-	);
+	return {
+		label,
+		title: builtAt ? formatBuildTime(builtAt, lang) : t("ota_prompt.built_in", { defaultValue: "Included with the app" }),
+		detail:
+			release || builtAt ? (
+				<>
+					{release ? t("ota_prompt.version", { defaultValue: "Version {{version}}", version: release }) : null}
+					{release && builtAt ? " · " : null}
+					{builtAt ? formatRelativeTime(builtAt.getTime()) : null}
+					{newer && <span className="font-medium text-[var(--accent)]"> · {newer}</span>}
+				</>
+			) : undefined,
+	};
 }
 
 export function OtaUpdatePromptView({
@@ -129,7 +112,7 @@ export function OtaUpdatePromptView({
 	update: PendingHotswapUpdate;
 	onLater: () => void;
 }) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	const realProgress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
 	const [previewProgress, setPreviewProgress] = useState<HotswapProgress>({ phase: "idle" });
 	const progress = update.preview ? previewProgress : realProgress;
@@ -242,18 +225,14 @@ export function OtaUpdatePromptView({
 			}
 		>
 			<div className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
-				{/* Equal-height rows, so the arrow on the divider sits visually centered. */}
-				<div className="grid auto-rows-fr divide-y divide-[var(--border)]">
-					{installedVersion !== undefined && (
-						<div className="relative">
-							<BundleRow label={t("ota_prompt.installed", { defaultValue: "Installed build" })} version={installedVersion} showVersion={versionChanged} />
-							<div className="absolute bottom-0 left-6 z-10 flex translate-y-[calc(50%+0.5px)] rounded-full border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--text-muted)]">
-								<ArrowDown className="h-3.5 w-3.5" />
-							</div>
-						</div>
-					)}
-					<BundleRow label={t("ota_prompt.new", { defaultValue: "New build" })} version={update.version} showVersion={versionChanged} comparedTo={installedVersion} highlight />
-				</div>
+				<VersionCompare
+					from={
+						installedVersion === undefined
+							? undefined
+							: bundleSide(t, i18n.language, t("ota_prompt.installed", { defaultValue: "Installed build" }), installedVersion, versionChanged)
+					}
+					to={bundleSide(t, i18n.language, t("ota_prompt.new", { defaultValue: "New build" }), update.version, versionChanged, installedVersion)}
+				/>
 				<ToggleRow
 					checked={autoUpdate}
 					onChange={setAutoUpdate}

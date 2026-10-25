@@ -1,12 +1,15 @@
-import { AlertTriangle, ChevronRight, Download, ExternalLink, Loader2, Smartphone, Sparkles, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ChevronRight, Download, ExternalLink, Loader2, Smartphone, Sparkles } from "lucide-react";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import semver from "semver";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
 import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
 import { getCurrentHotswapChannel, isHotswapAvailable, whenStartupHotswapSettled } from "../services/hotswap";
 import { areUpdateChecksEnabled } from "../services/updateChecks";
+import { formatRelativeTime } from "../utils/relativeTime";
+import { VersionCompare } from "./ui/version-compare";
 
 const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
 // Used when the release lookup fails: assume the running version is current,
@@ -35,6 +38,8 @@ export type ReleaseInfo = {
     releasesUrl: string;
     /** Release APK asset — enables the in-app download & install on Android. */
     apkUrl?: string;
+    /** Releases on this channel, for the installed release's date and how many came after it. */
+    releases?: { version: string; publishedAt: string | null }[];
 };
 
 function normalizeVersion(value: string): string {
@@ -93,6 +98,7 @@ type GitHubRelease = {
     html_url?: string;
     draft?: boolean;
     prerelease?: boolean;
+    published_at?: string | null;
     assets?: { name?: string; browser_download_url?: string }[];
 };
 
@@ -127,9 +133,11 @@ export async function fetchLatestRelease(signal: AbortSignal, includePrerelease:
     const releases = (await response.json()) as GitHubRelease[];
 
     let latest: { release: GitHubRelease; version: string } | null = null;
+    const channelReleases: { version: string; publishedAt: string | null }[] = [];
     for (const release of releases) {
         if (release.draft || (release.prerelease && !includePrerelease)) continue;
         const version = parseReleaseVersion(release);
+        if (version) channelReleases.push({ version, publishedAt: release.published_at ?? null });
         // Strictly greater keeps the newest of several releases sharing a version
         // (the list is ordered newest first).
         if (version && (!latest || semver.gt(version, latest.version))) {
@@ -148,34 +156,17 @@ export async function fetchLatestRelease(signal: AbortSignal, includePrerelease:
                 ? latest.release.html_url
                 : DEFAULT_RELEASES_URL,
         apkUrl: pickApkAsset(latest.release.assets ?? [], latest.version),
+        releases: channelReleases,
     };
 }
 
-function VersionRow({
-	icon: Icon,
-	iconClass,
-	label,
-	version,
-	badge,
-}: {
-	icon: LucideIcon;
-	iconClass: string;
-	label: string;
-	version: string;
-	badge?: ReactNode;
-}) {
-	return (
-		<div className="flex items-center gap-3 px-4 py-3.5">
-			<div className={`shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 ${iconClass}`}>
-				<Icon className="h-5 w-5" />
-			</div>
-			<div className="min-w-0 flex-1">
-				<p className="text-sm font-semibold leading-snug text-[var(--text)]">{label}</p>
-				<p className="mt-0.5 truncate text-xs tabular-nums text-[var(--text-muted)]">{version}</p>
-			</div>
-			{badge}
-		</div>
-	);
+/** "Released 3 days ago" for a version in the channel's release list, else null. */
+function releasedAgo(t: TFunction, releaseInfo: ReleaseInfo, version: string): string | null {
+	const publishedAt = releaseInfo.releases?.find((release) => release.version === normalizeVersion(version))?.publishedAt;
+	const timestamp = publishedAt ? Date.parse(publishedAt) : NaN;
+	return Number.isFinite(timestamp)
+		? t("update_prompt.released_ago", { defaultValue: "Released {{time}}", time: formatRelativeTime(timestamp) })
+		: null;
 }
 
 export function OutdatedVersionPromptView({
@@ -194,6 +185,10 @@ export function OutdatedVersionPromptView({
 	const apkUpdate = useApkUpdate(releaseInfo.apkUrl);
 	const { phase } = apkUpdate.state;
 	const isBusy = phase === "downloading" || phase === "verifying" || phase === "installing";
+	const installedReleasedAgo = releasedAgo(t, releaseInfo, appVersion);
+	const latestReleasedAgo = releasedAgo(t, releaseInfo, releaseInfo.latestVersion);
+	// Only worth saying when more than one release was skipped.
+	const releasesAhead = (releaseInfo.releases ?? []).filter((release) => isOlderVersion(appVersion, release.version)).length;
 
 	const footer = apkUpdate.supported ? (
 		<>
@@ -292,30 +287,31 @@ export function OutdatedVersionPromptView({
 			}
 			footer={footer}
 		>
-			<div className="surface-card divide-y divide-[var(--border)] overflow-hidden text-left">
-				<VersionRow
-					icon={Smartphone}
-					iconClass="text-[var(--text-muted)]"
-					label={t("update_prompt.installed_label", { defaultValue: "Installed" })}
-					version={appVersion}
-					badge={
-						manual ? undefined : (
-							<span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-400">
-								{t("update_prompt.outdated_badge", { defaultValue: "Outdated" })}
-							</span>
-						)
-					}
-				/>
-				<VersionRow
-					icon={Sparkles}
-					iconClass="text-[var(--accent)]"
-					label={t("update_prompt.latest_label", { defaultValue: "Latest" })}
-					version={releaseInfo.latestVersion}
-					badge={
-						<span className="shrink-0 rounded-full accent-tint-15 px-2 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
-							{t("update_prompt.new_badge", { defaultValue: "New" })}
-						</span>
-					}
+			<div className="surface-card overflow-hidden text-left">
+				<VersionCompare
+					from={{
+						icon: Smartphone,
+						label: t("update_prompt.installed_label", { defaultValue: "Installed" }),
+						title: appVersion,
+						detail: installedReleasedAgo,
+					}}
+					to={{
+						icon: Sparkles,
+						label: t("update_prompt.latest_label", { defaultValue: "Latest" }),
+						title: releaseInfo.latestVersion,
+						detail:
+							latestReleasedAgo || releasesAhead > 1 ? (
+								<>
+									{latestReleasedAgo}
+									{releasesAhead > 1 && (
+										<span className="font-medium text-[var(--accent)]">
+											{latestReleasedAgo ? " · " : null}
+											{t("update_prompt.releases_ahead", { defaultValue: "{{count}} releases newer", count: releasesAhead })}
+										</span>
+									)}
+								</>
+							) : undefined,
+					}}
 				/>
 			</div>
 		</FullscreenPrompt>

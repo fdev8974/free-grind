@@ -93,6 +93,11 @@ const LATEST_ANNOUNCEMENT = VERSION_ANNOUNCEMENTS[VERSION_ANNOUNCEMENTS.length -
 const PREVIEW_RELEASE_INFO = {
 	latestVersion: "9.9.9",
 	releasesUrl: "https://github.com/fdev8974/free-grind/releases",
+	releases: [
+		{ version: "9.9.9", publishedAt: new Date(Date.now() - 2 * 86_400_000).toISOString() },
+		{ version: "9.9.8", publishedAt: new Date(Date.now() - 12 * 86_400_000).toISOString() },
+		{ version: import.meta.env.VITE_APP_VERSION, publishedAt: new Date(Date.now() - 30 * 86_400_000).toISOString() },
+	],
 };
 const PREVIEW_BAN_STATUS: AccountStatus = {
 	kind: "banned",

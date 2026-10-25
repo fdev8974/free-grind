@@ -2777,8 +2777,9 @@
         "description_outdated": "",
         "installed_label": "",
         "latest_label": "",
-        "outdated_badge": "",
-        "new_badge": ""
+        "released_ago": "",
+        "releases_ahead_one": "",
+        "releases_ahead_other": ""
     },
     "ota_prompt": {
         "title": "",
