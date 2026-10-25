@@ -4,9 +4,11 @@ import {
 	Film,
 	GripVertical,
 	Images,
+	Inbox,
 	Loader2,
 	Play,
 	Trash2,
+	Upload,
 	UserMinus,
 	Users,
 	Video,
@@ -34,7 +36,7 @@ import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { CameraFilled, CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
-import { NATIVE_SHEET_BG, afterSheetClose } from "../../../components/ui/action-sheet";
+import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "../../../components/ui/action-sheet";
 import { SheetSection, SheetTextInput } from "../../../components/ui/sheet-section";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import type { Album, AlbumDetail, AlbumLimits, AlbumMedia } from "../../../types/albums";
@@ -234,6 +236,7 @@ export function AlbumEditorSheet({
 	const [isDrawerPickerOpen, setIsDrawerPickerOpen] = useState(false);
 	const [isAddingFromDrawer, setIsAddingFromDrawer] = useState(false);
 	const drawerPickerCloseRef = useRef<(() => void) | null>(null);
+	const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 
 	// Shares
 	const [shareProfiles, setShareProfiles] = useState<ShareProfileListItem[] | null>(null);
@@ -713,7 +716,7 @@ export function AlbumEditorSheet({
 	const showDetailsSkeleton = isLoadingDetails && !detail;
 
 	// Add actions, as in the collection editor: the bar above the media, or
-	// the empty state's buttons. Plus adding media already in the drawer.
+	// the empty state's buttons. "Add media" asks: from the device or the drawer.
 	const addActions = [
 		{ key: "photo", icon: <CameraFilled className="h-4 w-4" />, label: t("chat_drawer.take_photo"), onClick: () => cameraInputRef.current?.click() },
 		{ key: "video", icon: <Video className="h-4 w-4 fill-current" />, label: t("chat_drawer.record_video", { defaultValue: "Record video" }), onClick: () => cameraVideoInputRef.current?.click() },
@@ -721,9 +724,8 @@ export function AlbumEditorSheet({
 			key: "upload",
 			icon: isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CameraPlusFilled className="h-4 w-4" />,
 			label: isUploading ? t("settings_albums.uploading") : t("chat_drawer.add_media", { defaultValue: "Add media" }),
-			onClick: () => uploadInputRef.current?.click(),
+			onClick: () => setIsAddSheetOpen(true),
 		},
-		{ key: "drawer", icon: <ImagesFilled className="h-4 w-4" />, label: t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" }), onClick: openDrawerPicker },
 	];
 	const isAdding = isUploading || isAddingFromDrawer;
 
@@ -825,7 +827,7 @@ export function AlbumEditorSheet({
 							title={t("settings_albums.no_media")}
 							hint={t("settings_albums.no_media_hint", { defaultValue: "Take a photo or video, upload from your device, or add media from your chat drawer." })}
 						>
-							<div className="grid w-full max-w-md grid-cols-4 gap-2">
+							<div className="grid w-full max-w-sm grid-cols-3 gap-2">
 								{addActions.map((action) => (
 									<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isAdding} />
 								))}
@@ -860,6 +862,34 @@ export function AlbumEditorSheet({
 				</div>
 
 			</BottomSheet>
+
+			{isAddSheetOpen && (
+				<SheetActionList
+					title={t("chat_drawer.add_media", { defaultValue: "Add media" })}
+					onClose={() => setIsAddSheetOpen(false)}
+					isDesktop={isDesktop}
+					actions={[
+						{
+							key: "upload",
+							icon: Upload,
+							iconClassName: "bg-sky-500/15 text-sky-400",
+							label: t("settings_albums.add_upload", { defaultValue: "Upload from device" }),
+							description: t("settings_albums.add_upload_desc", { defaultValue: "Photos and videos stored on this device" }),
+							// Clicked synchronously so it still counts as a user gesture.
+							onSelect: () => uploadInputRef.current?.click(),
+						},
+						{
+							key: "drawer",
+							icon: Inbox,
+							iconClassName: "bg-violet-500/15 text-violet-400",
+							label: t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" }),
+							description: t("settings_albums.add_drawer_desc", { defaultValue: "Media saved in your chat drawer" }),
+							// Once this sheet has popped its history entry.
+							onSelect: () => afterSheetClose(openDrawerPicker),
+						},
+					]}
+				/>
+			)}
 
 			{isSharesSheetOpen && (
 				<BottomSheet

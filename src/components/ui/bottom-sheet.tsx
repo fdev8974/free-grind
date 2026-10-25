@@ -246,7 +246,11 @@ export function BottomSheet({
 			history.pushState({ bottomSheet: true, bottomSheetId: historyId }, "");
 		}
 		const onPopState = () => {
-			if (history.state?.bottomSheetId === historyId) return;
+			// Ids grow in stacking order, so a pop that lands on this sheet's
+			// entry or on one above it (a sheet stacked higher closing itself)
+			// leaves it open; only going back past it closes it.
+			const landedId = history.state?.bottomSheetId;
+			if (typeof landedId === "number" && landedId >= historyId) return;
 			if (closingRef.current) return;
 			backAlreadyDoneRef.current = true;
 			animateCloseRef.current();
