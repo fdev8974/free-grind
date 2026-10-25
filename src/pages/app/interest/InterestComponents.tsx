@@ -209,10 +209,10 @@ export const InterestRow = memo(function InterestRow({
 					/>
 				</div>
 				{isOnline && (
-					<span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm z-10 ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
+					<span className={`absolute circle-badge-br h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm z-10 ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 				)}
 				{isLocked && (
-					<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-1 ring-[var(--surface)] z-10">
+					<div className="absolute circle-badge-br flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-1 ring-[var(--surface)] z-10">
 						{isPrivate ? <LockFilled className="h-3 w-3" /> : (
 							<span title={t("interest_page.blocked_profile")}>
 								<Ban className="h-3 w-3" />

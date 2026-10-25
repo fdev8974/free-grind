@@ -576,6 +576,18 @@
 @layer utilities {
 	.h-15 { height: 3.75rem; }
 	.w-15 { width: 3.75rem; }
+	/* Badges on a round avatar: center the badge on the circle's edge at 45°
+	   (1 - 1/√2) / 2 ≈ 14.6% in from the corner, independent of avatar size. */
+	.circle-badge-br {
+		right: 14.6%;
+		bottom: 14.6%;
+		transform: translate(50%, 50%);
+	}
+	.circle-badge-tr {
+		right: 14.6%;
+		top: 14.6%;
+		transform: translate(50%, -50%);
+	}
 }
 
 @layer components {

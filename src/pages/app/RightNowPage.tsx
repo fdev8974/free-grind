@@ -267,7 +267,7 @@ function RightNowRow({
 					<ProfileImage src={imageUrl} alt={name || ""} />
 				</div>
 				{isOnline ? (
-					<span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm z-10 ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
+					<span className={`absolute circle-badge-br h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm z-10 ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 				) : null}
 			</button>
 

@@ -42,7 +42,7 @@ function Avatar({ chat, selected, small }: { chat: PickerChat; selected: boolean
 				/>
 			</div>
 			{selected ? (
-				<span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--bg)] bg-[var(--accent)] text-[var(--accent-contrast)]">
+				<span className="absolute circle-badge-br flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--bg)] bg-[var(--accent)] text-[var(--accent-contrast)]">
 					<Check className="h-3 w-3" strokeWidth={3} />
 				</span>
 			) : null}
@@ -382,7 +382,7 @@ export function ShareChatPicker({
 									>
 										<div className="relative">
 											<Avatar chat={chat} selected={false} small />
-											<span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--surface)] bg-[var(--surface-2)] text-[var(--text-muted)]">
+											<span className="absolute circle-badge-tr flex h-5 w-5 items-center justify-center rounded-full border-2 border-[var(--surface)] bg-[var(--surface-2)] text-[var(--text-muted)]">
 												<X className="h-3 w-3" strokeWidth={3} />
 											</span>
 										</div>

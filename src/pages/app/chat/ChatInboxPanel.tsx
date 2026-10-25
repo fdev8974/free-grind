@@ -618,17 +618,17 @@ function ChatConversationRow({
 						{isArchived ? (
 							<span
 								title={t("chat.archived.badge", { defaultValue: "Archived" })}
-								className="absolute -bottom-0.5 -right-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-[var(--bg)] bg-[var(--surface-2)] shadow-sm"
+								className="absolute circle-badge-br z-10 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-[var(--bg)] bg-[var(--surface-2)] shadow-sm"
 							>
 								<Archive className="h-2.5 w-2.5 text-[var(--text-muted)]" />
 							</span>
 						) : (
 							isOtherParticipantOnline && (
-								<span className={`absolute -bottom-0.5 -right-0.5 z-10 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm ${otherParticipantOnlineMeta.isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
+								<span className={`absolute circle-badge-br z-10 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm ${otherParticipantOnlineMeta.isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 							)
 						)}
 						{conversation.data.pinned ? (
-							<div className="absolute -top-1 -right-1 rounded-full bg-black/40 p-0.5 text-white backdrop-blur-sm">
+							<div className="absolute circle-badge-tr rounded-full bg-black/40 p-0.5 text-white backdrop-blur-sm">
 								<Pin className="h-2.5 w-2.5 fill-current" />
 							</div>
 						) : null}
