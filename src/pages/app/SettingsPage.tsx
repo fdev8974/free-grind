@@ -867,7 +867,7 @@ export function SettingsPage() {
 												onClick={() => navigate("/settings/transfer-account")}
 												aria-label={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
 												title={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
-												className="shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+												className="shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition hover:ink-tint-10 hover:text-[var(--text)]"
 											>
 												<QrCode className="h-4 w-4" />
 											</button>
@@ -875,7 +875,7 @@ export function SettingsPage() {
 												type="button"
 												onClick={() => setLogoutConfirmTarget("active")}
 												aria-label={t("settings.logout")}
-												className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+												className="mr-2 shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500"
 											>
 												<LogOut className="h-4 w-4" />
 											</button>
@@ -923,7 +923,7 @@ export function SettingsPage() {
 													onClick={() => setLogoutConfirmTarget(account.profileId)}
 													disabled={isSwitching || isRemoving}
 													aria-label={t("settings.logout")}
-													className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
+													className="mr-2 shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500 disabled:opacity-60"
 												>
 													{isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
 												</button>

@@ -275,7 +275,7 @@ export function AutomationRuleEditor({
 						type="button"
 						onClick={onCancel}
 						aria-label={t("settings_automation.cancel")}
-						className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+						className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:ink-tint-10 hover:text-[var(--text)]"
 					>
 						<X className="h-4 w-4" />
 					</button>
@@ -367,7 +367,7 @@ export function AutomationRuleEditor({
 							<button
 								type="button"
 								onClick={() => removeCondition(index)}
-								className="mt-0.5 shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+								className="mt-0.5 shrink-0 rounded-full p-2 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500"
 							>
 								<Trash2 className="h-4 w-4" />
 							</button>
@@ -534,7 +534,7 @@ export function AutomationRuleEditor({
 									<button
 										type="button"
 										onClick={() => removeAction(index)}
-										className="shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+										className="shrink-0 rounded-full p-2 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500"
 									>
 										<Trash2 className="h-4 w-4" />
 									</button>
@@ -609,7 +609,7 @@ export function AutomationRuleEditor({
 									<button
 										type="button"
 										onClick={() => removeAction(index)}
-										className="mt-0.5 shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+										className="mt-0.5 shrink-0 rounded-full p-2 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500"
 									>
 										<Trash2 className="h-4 w-4" />
 									</button>

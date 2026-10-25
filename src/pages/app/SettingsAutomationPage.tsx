@@ -241,7 +241,7 @@ export function SettingsAutomationPage() {
 							type="button"
 							disabled={!settingsReady}
 							onClick={() => setEditingRule(createEmptyAutomationRule())}
-							className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-[var(--accent)] transition hover:bg-[var(--surface-2)] disabled:pointer-events-none disabled:opacity-50"
+							className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--accent)] transition hover:ink-tint-8 disabled:pointer-events-none disabled:opacity-50"
 						>
 							<Plus className="h-3.5 w-3.5" />
 							{t("settings_automation.add_rule")}
@@ -337,12 +337,12 @@ export function SettingsAutomationPage() {
 									<button
 										type="button"
 										onClick={handleExport}
-										className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs font-semibold transition hover:border-[var(--text-muted)]"
+										className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full ink-tint-10 px-3 text-xs font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97]"
 									>
 										<Download className="h-3.5 w-3.5" />
 										{t("settings_automation.export_txt")}
 									</button>
-									<label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs font-semibold transition hover:border-[var(--text-muted)]">
+									<label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full ink-tint-10 px-3 text-xs font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97]">
 										<Upload className="h-3.5 w-3.5" />
 										{t("settings_automation.import_txt")}
 										<input type="file" accept=".txt" onChange={handleImport} className="hidden" />

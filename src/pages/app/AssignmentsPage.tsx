@@ -151,7 +151,7 @@ export function AssignmentsPage() {
 						type="button"
 						onClick={() => void copyJson()}
 						disabled={filtered.length === 0}
-						className="rounded-xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)] transition-colors hover:text-[var(--text)] disabled:opacity-40"
+						className="rounded-full ink-tint-10 p-2.5 text-[var(--text-muted)] transition-colors hover:ink-tint-14 hover:text-[var(--text)] disabled:opacity-40"
 						aria-label="Copy as JSON"
 					>
 						<Copy className="h-4 w-4" />

@@ -209,14 +209,7 @@ export function CustomizabilityPage() {
 											key={value}
 											type="button"
 											onClick={() => handleSchemeChange(value)}
-											className="flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all"
-											style={{
-												borderColor: isActive ? "var(--accent)" : "var(--border)",
-												background: isActive
-													? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-													: "var(--surface-2)",
-												color: isActive ? "var(--accent-readable)" : "var(--text)",
-											}}
+											className={`flex flex-col items-center gap-2 rounded-2xl p-4 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isActive ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
 										>
 											{icon}
 											<span className="text-xs font-medium">{label}</span>
@@ -346,21 +339,21 @@ export function CustomizabilityPage() {
 							<div className="flex flex-wrap gap-2">
 								<button
 									type="button"
-									className="inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold"
+									className="inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold"
 									style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
 								>
 									{t("customizability.preview_primary")}
 								</button>
 								<button
 									type="button"
-									className="inline-flex h-9 items-center rounded-lg border px-4 text-sm font-semibold"
+									className="inline-flex h-9 items-center rounded-full border px-4 text-sm font-semibold"
 									style={{ borderColor: "var(--accent)", color: "var(--accent-readable)" }}
 								>
 									{t("customizability.preview_outlined")}
 								</button>
 								<button
 									type="button"
-									className="inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold"
+									className="inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold"
 									style={{
 										background: "color-mix(in srgb, var(--accent) 15%, transparent)",
 										color: "var(--accent-readable)",
@@ -414,14 +407,7 @@ export function CustomizabilityPage() {
 													key={cols}
 													type="button"
 													onClick={() => void setPreferences({ mobileGridColumns: cols })}
-													className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
-													style={{
-														borderColor: mobileGridColumns === cols ? "var(--accent)" : "var(--border)",
-														background: mobileGridColumns === cols
-															? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-															: "var(--surface-2)",
-														color: mobileGridColumns === cols ? "var(--accent-readable)" : "var(--text)",
-													}}
+													className={`rounded-2xl p-3 text-sm font-semibold transition-[transform,background-color] duration-150 active:scale-[0.98] ${mobileGridColumns === cols ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
 												>
 													{t(`customizability.columns_${cols}`)}
 												</button>
@@ -554,14 +540,7 @@ export function CustomizabilityPage() {
 														key={cols}
 														type="button"
 														onClick={() => void setPreferences({ mobileViewsGridColumns: cols })}
-														className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
-														style={{
-															borderColor: mobileViewsGridColumns === cols ? "var(--accent)" : "var(--border)",
-															background: mobileViewsGridColumns === cols
-																? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-																: "var(--surface-2)",
-															color: mobileViewsGridColumns === cols ? "var(--accent-readable)" : "var(--text)",
-														}}
+														className={`rounded-2xl p-3 text-sm font-semibold transition-[transform,background-color] duration-150 active:scale-[0.98] ${mobileViewsGridColumns === cols ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
 													>
 														{t(`customizability.columns_${cols}`)}
 													</button>
@@ -615,14 +594,7 @@ export function CustomizabilityPage() {
 										key={s}
 										type="button"
 										onClick={() => void setPreferences({ revealEffectStrength: s })}
-										className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
-										style={{
-											borderColor: revealEffectStrength === s ? "var(--accent)" : "var(--border)",
-											background: revealEffectStrength === s
-												? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-												: "var(--surface-2)",
-											color: revealEffectStrength === s ? "var(--accent-readable)" : "var(--text)",
-										}}
+										className={`rounded-2xl p-3 text-sm font-semibold transition-[transform,background-color] duration-150 active:scale-[0.98] ${revealEffectStrength === s ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
 									>
 										{t(`customizability.reveal_effect.strengths.${s}`)}
 									</button>

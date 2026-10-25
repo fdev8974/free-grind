@@ -1216,23 +1216,31 @@
 		}
 	}
 
-	/* Borderless grouped card for app pages. Opaque, so nested sticky/absolute content needs no isolation.
-	   Light: white on the grey page. Dark: the regular surface. AMOLED's surface
-	   is nearly black, so there it's a darkened surface-2 instead: same lift as
-	   before, but keeping the palette's blue tint (a text-color mix came out
-	   neutral grey next to the bluish borders and icon tiles). */
+	/* Borderless grouped card for app pages. Opaque, so nested sticky/absolute
+	   content needs no isolation. Light: white on the grey page. Dark: the
+	   regular surface. AMOLED's surface is nearly black, so there it's a
+	   darkened surface-2 instead (keeps the palette's blue tint, which a
+	   text-color mix lost). That card is then about as light as surface-2
+	   itself, so inside it --surface-2 steps up one level: icon tiles, avatar
+	   placeholders, progress tracks and hovers built on it stay visible. */
 	.native-card {
 		border-radius: 20px;
 		background: var(--surface);
 	}
 	:root[data-scheme="dark"][data-amoled="true"] .native-card,
 	:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
-		background: color-mix(in srgb, var(--surface-2) 90%, black);
+		background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
+	}
+	:root[data-scheme="dark"][data-amoled="true"] .native-card {
+		--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
 	}
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
 		:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
-			background: color-mix(in srgb, var(--surface-2) 90%, black);
+			background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
+		}
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-card {
+			--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
 		}
 	}
 

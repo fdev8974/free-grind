@@ -12,6 +12,7 @@ import { CalendarDaysFilled, FileUpFilled, MessageSquareQuoteFilled } from "../.
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
+import { RowActionPill } from "../../components/ui/row-action-pill";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
 import { BackupProgressBar } from "../../components/BackupProgressBar";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../components/ui/bottom-sheet";
@@ -545,15 +546,16 @@ export function SettingsDataPage() {
 												})}
 									</p>
 								</div>
-								<button
-									type="button"
+								<RowActionPill
+									tone="danger"
 									onClick={() => setShowDeleteConfirm(true)}
-									disabled={isDeleting || isLoadingUsage || (usage?.count ?? 0) === 0}
-									className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+									disabled={isLoadingUsage || (usage?.count ?? 0) === 0}
+									loading={isDeleting}
+									loadingLabel={t("data_backup.delete_all", { defaultValue: "Delete all" })}
 								>
-									{isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+									<Trash2 className="h-3.5 w-3.5" />
 									{t("data_backup.delete_all", { defaultValue: "Delete all" })}
-								</button>
+								</RowActionPill>
 							</div>
 						</div>
 					</div>
@@ -685,15 +687,15 @@ export function SettingsDataPage() {
 									})}
 								</p>
 							</div>
-							<button
-								type="button"
+							<RowActionPill
+								tone="danger"
 								onClick={() => setShowResetConfirm(true)}
-								disabled={isResetting}
-								className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+								loading={isResetting}
+								loadingLabel={t("data_backup.reset_all", { defaultValue: "Reset all settings" })}
 							>
-								{isResetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+								<RotateCcw className="h-3.5 w-3.5" />
 								{t("data_backup.reset_all", { defaultValue: "Reset all settings" })}
-							</button>
+							</RowActionPill>
 						</div>
 					</div>
 				</div>
