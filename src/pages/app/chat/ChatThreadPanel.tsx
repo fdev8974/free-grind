@@ -1287,6 +1287,17 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				// conversation to archive yet in the new-chat case, so key off
 				// isBlockedBySelf directly there instead.
 				const showBlockGroup = selectedConversation ? !isArchived : !isBlockedBySelf;
+				// Avatar, name and status line all open the profile (like the album viewer's header).
+				const openHeaderProfile = () => {
+					if (profileId == null) return;
+					const returnTo = getProfileReturnToChatPath(profileId);
+					const nextParams = new URLSearchParams();
+					nextParams.set("returnTo", returnTo);
+					navigate(
+						`/profile/${profileId}?${nextParams.toString()}`,
+						{ state: { returnTo, fromChat: true } },
+					);
+				};
 				const showUnblockButton = selectedConversation
 					? isArchived && isBlockedBySelf
 					: isBlockedBySelf;
@@ -1383,18 +1394,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                                 )}
 								<button
 									type="button"
-									onClick={() => {
-										if (profileId == null) {
-											return;
-										}
-										const returnTo = getProfileReturnToChatPath(profileId);
-										const nextParams = new URLSearchParams();
-										nextParams.set("returnTo", returnTo);
-										navigate(
-											`/profile/${profileId}?${nextParams.toString()}`,
-											{ state: { returnTo, fromChat: true } },
-										);
-									}}
+									onClick={openHeaderProfile}
 									disabled={profileId == null}
 									aria-label="Open profile"
 									title={onlineMeta.label}
@@ -1415,23 +1415,28 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										className={isArchived ? "grayscale" : undefined}
 									/>
 								</button>
-								<div className="min-w-0">
-									<div className="flex items-center gap-1.5 min-w-0">
-										<p className="truncate text-lg font-semibold leading-tight">
+								<button
+									type="button"
+									onClick={openHeaderProfile}
+									disabled={profileId == null}
+									className="min-w-0 text-left transition active:opacity-70 disabled:cursor-default disabled:active:opacity-100"
+								>
+									<span className="flex items-center gap-1.5 min-w-0">
+										<span className="block truncate text-lg font-semibold leading-tight">
 											{displayName}
-										</p>
-									</div>
+										</span>
+									</span>
 									{/* leading-tight keeps this block at the 40px button/avatar height, so the
 									    header row (and its icons) sits exactly like the profile / photo viewer. */}
-									<p className="text-sm leading-tight text-[var(--text-muted)]">
+									<span className="block text-sm leading-tight text-[var(--text-muted)]">
 										{[
 											onlineMeta.label,
 											distanceLabel,
 										]
 											.filter(Boolean)
 											.join(" · ")}
-									</p>
-								</div>
+									</span>
+								</button>
 							</div>
 							<div className="flex items-center gap-2">
             {isDesktop && showBlockGroup && (
