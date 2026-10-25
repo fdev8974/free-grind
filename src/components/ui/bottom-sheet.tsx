@@ -8,6 +8,10 @@ const BottomSheetContext = createContext<() => void>(() => {});
 // Whether the enclosing sheet has detents (a fixed height its content fills).
 const BottomSheetDetentedContext = createContext(false);
 
+/** How far the panel extends below the screen edge, hidden, so the bouncy
+ * open/settle overshoot never reveals a gap underneath it. */
+const SHEET_BLEED = 48;
+
 /** True inside an `expandable` sheet on mobile: the panel has a fixed height,
  * so a scroll area should fill it (`min-h-0 flex-1`) rather than cap itself. */
 export const useIsBottomSheetDetented = () => useContext(BottomSheetDetentedContext);
@@ -307,9 +311,12 @@ export function BottomSheet({
 			}
 		}
 
-		const easing = "0.32s cubic-bezier(0.32, 0.72, 0, 1)";
+		// Opening and settling overshoot slightly (~3%) for a bit of bounce; the
+		// panel's offscreen bleed covers the gap that briefly opens below it.
+		// Closing keeps the plain curve so it doesn't bob up on the way out.
+		const easing = shown ? "0.45s cubic-bezier(0.34, 1.3, 0.64, 1)" : "0.32s cubic-bezier(0.32, 0.72, 0, 1)";
 		panel.style.transition = animate ? `transform ${easing}, height ${easing}` : "none";
-		panel.style.height = height === null ? "" : `${height}px`;
+		panel.style.height = height === null ? "" : `${height + SHEET_BLEED}px`;
 		panel.style.transform = shown ? `translateY(${offsetY}px)` : "translateY(110%)";
 		// Scrim follows the sheet while dragging, like the native ones do.
 		const visibleHeight = height ?? layoutRef.current.naturalHeight;
@@ -408,7 +415,7 @@ export function BottomSheet({
 				}
 				mode = "drag";
 				startY = touch.clientY;
-				state.naturalHeight = panel.offsetHeight || 1;
+				state.naturalHeight = panel.offsetHeight - SHEET_BLEED || 1;
 			}
 
 			e.preventDefault();
@@ -505,8 +512,11 @@ export function BottomSheet({
 					// transform, height and transition are set by applyLayout.
 					style={{
 						willChange: "transform",
-						paddingBottom: "max(16px, env(safe-area-inset-bottom))",
-						minHeight: isDesktop || isDetented ? undefined : "50dvh",
+						// Extends SHEET_BLEED past the screen edge so the open/settle overshoot
+						// never shows a gap under the sheet.
+						marginBottom: -SHEET_BLEED,
+						paddingBottom: `calc(max(16px, env(safe-area-inset-bottom)) + ${SHEET_BLEED}px)`,
+						minHeight: isDesktop || isDetented ? undefined : `calc(50dvh + ${SHEET_BLEED}px)`,
 					}}
 					onClick={(e) => e.stopPropagation()}
 				>
