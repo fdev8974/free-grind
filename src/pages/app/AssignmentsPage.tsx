@@ -39,7 +39,7 @@ function valueClass(value: string): string {
 		return "bg-green-500/20 text-green-400";
 	}
 	if (v === "off" || v === "false" || v === "disabled" || v === "control") {
-		return "bg-[var(--surface-2)] text-[var(--text-muted)]";
+		return "bg-slate-500/15 text-slate-400";
 	}
 	return "bg-[var(--accent)] text-[var(--accent-contrast)]";
 }

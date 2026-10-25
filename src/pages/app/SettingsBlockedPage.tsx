@@ -222,6 +222,7 @@ export function SettingsBlockedPage() {
 										>
 											<div className="h-10 w-10 shrink-0 overflow-hidden rounded-full">
 												<ProfileImage
+													className="bg-slate-500/15 text-slate-400"
 													src={profile.avatarUrl}
 													alt={t("profile_details.photo_alt", { name: profile.displayName })}
 												/>

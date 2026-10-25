@@ -140,7 +140,7 @@ export function AboutPage() {
 						onClick={handleVersionTap}
 						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 					>
-						<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5">
+						<div className="shrink-0 rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
 							<img src={logo} alt="" className="h-5 w-5 rounded-md object-cover" draggable={false} />
 						</div>
 						<div className="min-w-0 flex-1">

@@ -851,7 +851,7 @@ export function SettingsPage() {
 												<Avatar
 													src={activeProfile?.photoHash ? getThumbImageUrl(activeProfile.photoHash, "75x75") : null}
 													alt=""
-													className="h-10 w-10 shrink-0 rounded-2xl border-0"
+													className="h-10 w-10 shrink-0 rounded-2xl border-0 bg-slate-500/15 text-slate-400"
 												/>
 												<div className="min-w-0 flex-1">
 													<p className="truncate text-sm font-semibold leading-snug">
@@ -901,7 +901,7 @@ export function SettingsPage() {
 														<Avatar
 															src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
 															alt=""
-															className="h-full w-full rounded-2xl border-0"
+															className="h-full w-full rounded-2xl border-0 bg-slate-500/15 text-slate-400"
 														/>
 														{isSwitching && (
 															<div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[var(--surface)]/80">
@@ -935,7 +935,7 @@ export function SettingsPage() {
 									onClick={() => navigate("/auth/sign-in?mode=add-profile")}
 									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 								>
-									<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
+									<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5 shrink-0">
 										<UserPlusFilled className="h-5 w-5" />
 									</div>
 									<div className="min-w-0 flex-1">
@@ -957,7 +957,7 @@ export function SettingsPage() {
 							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								<div className="flex items-center gap-3 px-4 py-3.5">
 									<div className="relative shrink-0">
-										<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
+										<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
 											<DatabaseBackup className="h-5 w-5" />
 										</div>
 										<div
@@ -1261,7 +1261,7 @@ export function SettingsPage() {
 										checked={showDebugInfo}
 										onChange={(checked) => void setPreferences({ showDebugInfo: checked })}
 										icon={<BugFilled className="h-5 w-5" />}
-										iconClass="bg-[var(--surface-2)] text-[var(--text-muted)]"
+										iconClass="bg-slate-500/15 text-slate-400"
 										label="Show Debug Overlays"
 										description="Displays source (cache/network) info in the grid."
 									/>
@@ -1270,7 +1270,7 @@ export function SettingsPage() {
 											checked={isDemoProfileImagesEnabled()}
 											onChange={setDemoProfileImagesEnabled}
 											icon={<ImagesFilled className="h-5 w-5" />}
-											iconClass="bg-[var(--surface-2)] text-[var(--text-muted)]"
+											iconClass="bg-slate-500/15 text-slate-400"
 											label="Demo Profile Pictures"
 											description="Replaces every profile photo with a bundled demo picture, for screenshots. Reloads the app."
 										/>
@@ -1278,35 +1278,35 @@ export function SettingsPage() {
 									{navRow(
 										() => navigate("/settings/api-inspector"),
 										<Terminal className="h-5 w-5" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"bg-slate-500/15 text-slate-400",
 										t("settings.api_inspector"),
 										t("settings.api_inspector_desc"),
 									)}
 									{navRow(
 										() => navigate("/settings/assignments"),
 										<FlaskConicalFilled className="h-5 w-5" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"bg-slate-500/15 text-slate-400",
 										"Assignments & Feature Flags",
 										"Server-side flags and A/B experiments assigned to this account.",
 									)}
 									{isAndroid() && navRow(
 										() => setIsPushTokenSheetOpen(true),
 										<BellFilled className="h-5 w-5" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"bg-slate-500/15 text-slate-400",
 										"Push Token (FCM)",
 										"Inspect the device push token and re-sync it to Grindr.",
 									)}
 									{navRow(
 										() => setIsFingerprintSheetOpen(true),
 										<Radar className="h-5 w-5" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"bg-slate-500/15 text-slate-400",
 										"Fingerprint Check",
 										"Verify your HTTP/TLS fingerprint matches OkHttp.",
 									)}
 									{navRow(
 										() => setIsPreviewsSheetOpen(true),
 										<EyeFilled className="h-5 w-5" />,
-										"bg-[var(--surface-2)] text-[var(--text-muted)]",
+										"bg-slate-500/15 text-slate-400",
 										"UI Previews",
 										"Open onboarding, prompts and other one-off screens on demand.",
 									)}

@@ -129,7 +129,7 @@ export function NotificationsPage() {
 						id="notif-foreground"
 						highlighted={highlightId === "notif-foreground"}
 						icon={<BellFilled className="h-5 w-5" />}
-						iconClass="bg-[var(--surface-2)] text-[var(--text-muted)]"
+						iconClass="bg-slate-500/15 text-slate-400"
 						label={t("notifications_page.foreground")}
 						description={t("notifications_page.foreground_desc")}
 						checked={foregroundEnabled}

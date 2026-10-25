@@ -220,6 +220,7 @@ export function SettingsHiddenPage() {
 										>
 											<div className="h-10 w-10 shrink-0 overflow-hidden rounded-full">
 												<ProfileImage
+													className="bg-slate-500/15 text-slate-400"
 													src={profile.avatarUrl}
 													alt={t("profile_details.photo_alt", { name: profile.displayName })}
 												/>
@@ -256,7 +257,7 @@ export function SettingsHiddenPage() {
 				{!isLoading && !error && hiddenProfiles.length > 0 && (
 					<div className="native-card overflow-hidden">
 						<div className="flex items-start gap-3 p-4">
-							<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--text-muted)]">
+							<div className="shrink-0 rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
 								<EyeOffFilled className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">

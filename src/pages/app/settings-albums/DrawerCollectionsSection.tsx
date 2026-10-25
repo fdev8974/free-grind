@@ -132,7 +132,7 @@ export function DrawerCollectionsSection({
 									) : coverSrc ? (
 										<video src={proxyMediaUrl(coverSrc, { as: "video" })} preload="metadata" muted className="h-10 w-10 shrink-0 rounded-2xl object-cover" />
 									) : (
-										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+										<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-500/15 text-slate-400">
 											<Images className="h-5 w-5 opacity-50" />
 										</div>
 									)}

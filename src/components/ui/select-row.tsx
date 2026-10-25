@@ -44,8 +44,8 @@ export function SelectRow<T extends string>({
 					<p className="text-sm font-semibold leading-snug">{label}</p>
 					{description && <p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">{description}</p>}
 				</div>
-				{/* Top-aligned with the label line, like ToggleRow's switch. */}
-				<span className="flex max-w-[45%] shrink-0 items-center gap-3">
+				{/* The row is top-aligned for the icon; the value stays centered. */}
+				<span className="flex max-w-[45%] shrink-0 items-center gap-3 self-center">
 					<span className="truncate text-sm font-medium text-[var(--text-muted)]">{selectedLabel}</span>
 					<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 				</span>
