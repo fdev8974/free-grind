@@ -131,16 +131,15 @@ export function TagsPickerDialog({
 				</h3>
 				<SheetCloseButton />
 			</div>
-			<div className="mb-4">
-				<SheetSearchInput
-					value={query}
-					onChange={setQuery}
-					onFocus={() => setIsSearchFocused(true)}
-					onBlur={() => setIsSearchFocused(false)}
-					placeholder={t("profile_editor.tags_dialog.search_placeholder")}
-					accentColor={accentColor}
-				/>
-			</div>
+			<SheetSearchInput
+				floating
+				value={query}
+				onChange={setQuery}
+				onFocus={() => setIsSearchFocused(true)}
+				onBlur={() => setIsSearchFocused(false)}
+				placeholder={t("profile_editor.tags_dialog.search_placeholder")}
+				accentColor={accentColor}
+			/>
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				{isLoading ? (
 					<p className="py-6 text-center text-sm text-[var(--text-muted)]">

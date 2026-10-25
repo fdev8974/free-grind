@@ -52,13 +52,13 @@ export function SpotifySongPickerDialog({ selected, onApply, onClose }: SpotifyS
 				</p>
 				<SheetCloseButton />
 			</div>
-			<div className="mb-4">
-				<SheetSearchInput
-					value={query}
-					onChange={setQuery}
-					placeholder={t("profile_editor.spotify.search_placeholder")}
-				/>
-			</div>
+			<SheetSearchInput
+				floating
+				value={query}
+				onChange={setQuery}
+				isLoading={isFetching}
+				placeholder={t("profile_editor.spotify.search_placeholder")}
+			/>
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				{isFetching ? (
 					<div className="flex items-center justify-center py-8 text-[var(--text-muted)]">

@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Search, X } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../utils/cn";
 import { ToggleRow } from "./toggle-row";
 
@@ -120,12 +121,19 @@ export function SheetToggleList({ items, className }: { items: SheetToggleItem[]
 	);
 }
 
-/** Search field for a sheet: surface-2 fill, leading search icon, clear button. */
+/** Search field for a sheet: the round frosted pill of the map sheets'
+ * search (MapSheetSearch), with a leading search icon and a clear button (or
+ * a spinner while `isLoading`). `floating` pins it over the scroll area that
+ * follows it, on a fade of the sheet's background, so the list scrolls on
+ * behind the pill; the `.sheet-search` rule in index.css gives that next
+ * element the matching top padding. */
 export function SheetSearchInput({
 	value,
 	onChange,
 	placeholder,
 	accentColor = "var(--accent)",
+	isLoading = false,
+	floating = false,
 	onFocus,
 	onBlur,
 }: {
@@ -133,12 +141,18 @@ export function SheetSearchInput({
 	onChange: (value: string) => void;
 	placeholder?: string;
 	accentColor?: string;
+	isLoading?: boolean;
+	floating?: boolean;
 	onFocus?: () => void;
 	onBlur?: () => void;
 }) {
-	return (
-		<div className="relative" style={{ "--chip-accent": accentColor } as CSSProperties}>
-			<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+	const { t } = useTranslation();
+	const pill = (
+		<div
+			className="relative rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] shadow-[0_2px_6px_rgba(0,0,0,0.14),0_8px_24px_rgba(0,0,0,0.22)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl transition focus-within:ring-2 focus-within:ring-[var(--chip-accent)]"
+			style={{ "--chip-accent": accentColor } as CSSProperties}
+		>
+			<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
 			<input
 				type="text"
 				value={value}
@@ -146,17 +160,26 @@ export function SheetSearchInput({
 				onFocus={onFocus}
 				onBlur={onBlur}
 				placeholder={placeholder}
-				className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-10 pr-10 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--chip-accent)]"
+				className="h-12 w-full rounded-full bg-transparent pl-11 pr-11 text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
 			/>
-			{value && (
+			{isLoading ? (
+				<Loader2 className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--text-muted)]" />
+			) : value ? (
 				<button
 					type="button"
 					onClick={() => onChange("")}
-					className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+					aria-label={t("common.clear", { defaultValue: "Clear" })}
+					className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 				>
 					<X className="h-3.5 w-3.5" />
 				</button>
-			)}
+			) : null}
+		</div>
+	);
+	if (!floating) return pill;
+	return (
+		<div className="sheet-search pointer-events-none relative z-10 -mx-4 -mb-[3.75rem] shrink-0 px-4 pb-3 [&>*]:pointer-events-auto bg-[linear-gradient(to_bottom,var(--sheet-bg)_0%,var(--sheet-bg)_45%,transparent)]">
+			{pill}
 		</div>
 	);
 }

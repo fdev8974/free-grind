@@ -1658,6 +1658,11 @@ dialog::backdrop {
 .sheet-footer:first-child {
 	margin-top: 0;
 }
+/* A floating SheetSearchInput is pulled down over the scroll area after it;
+ * that area starts its content just under the pill (48px + a small gap). */
+:where(.sheet-search + *) {
+	padding-top: 3.75rem;
+}
 
 /* QR scan (services/qrScanner.ts): the camera sits behind the webview, so the
    page goes see-through and only the portaled QrScanOverlay stays visible. */

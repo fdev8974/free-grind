@@ -1,10 +1,10 @@
-import { type LucideIcon, Search, X } from "lucide-react";
+import { type LucideIcon } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
 import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
-import { SheetChip, SheetMoreButton, SheetSection } from "../../components/ui/sheet-section";
+import { SheetChip, SheetMoreButton, SheetSearchInput, SheetSection } from "../../components/ui/sheet-section";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useManagedGenders, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { cn } from "../../utils/cn";
@@ -244,11 +244,6 @@ function BrowseFiltersSheetContent({
 		handleClose();
 	};
 
-	const inputClassName = cn(
-		"h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)]",
-		isExploreActive ? "focus:border-[var(--explore)]" : "focus:border-[var(--accent)]",
-	);
-
 	const localBadge = (
 		<span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
 			{t("browse_filters.local_filters.badge")}
@@ -460,25 +455,12 @@ function BrowseFiltersSheetContent({
 					{renderToggleSection(t("browse_filters.local_filters.visiting_title"), localFilterOptions, true)}
 
 					<SheetSection title={t("browse_filters.local_filters.name_title")} badge={localBadge}>
-						<div className="relative">
-							<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-							<input
-								type="text"
-								value={nicknameFilter}
-								onChange={(e) => setNicknameFilter(e.target.value)}
-								placeholder={t("browse_filters.local_filters.nickname_placeholder")}
-								className={cn(inputClassName, "pl-10 pr-10")}
-							/>
-							{nicknameFilter && (
-								<button
-									type="button"
-									onClick={() => setNicknameFilter("")}
-									className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-								>
-									<X className="h-3.5 w-3.5" />
-								</button>
-							)}
-						</div>
+						<SheetSearchInput
+							value={nicknameFilter}
+							onChange={setNicknameFilter}
+							placeholder={t("browse_filters.local_filters.nickname_placeholder")}
+							accentColor={isExploreActive ? "var(--explore)" : "var(--accent)"}
+						/>
 					</SheetSection>
 				</div>
 			</div>

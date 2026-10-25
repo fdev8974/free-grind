@@ -1,7 +1,8 @@
-import { Check, Clock, Loader2, Search, Send, Sticker, TrendingUp, X } from "lucide-react";
+import { Check, Clock, Loader2, Send, Sticker, TrendingUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { SheetSearchInput } from "../../../components/ui/sheet-section";
 import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
 import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
@@ -290,27 +291,13 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 
 			{/* Search (Trending tab only) */}
 			{tab === "trending" && (
-				<div className="relative mb-3 shrink-0">
-					<Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-					<input
-						type="text"
-						value={query}
-						onChange={(e) => handleQueryChange(e.target.value)}
-						placeholder={t("chat.giphy.search_placeholder")}
-						className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-10 pr-10 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
-					/>
-					{isLoading && query.trim() ? (
-						<Loader2 className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--text-muted)]" />
-					) : query.length > 0 ? (
-						<button
-							type="button"
-							onClick={() => handleQueryChange("")}
-							className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-						>
-							<X className="h-3.5 w-3.5" />
-						</button>
-					) : null}
-				</div>
+				<SheetSearchInput
+					floating
+					value={query}
+					onChange={handleQueryChange}
+					isLoading={isLoading && query.trim().length > 0}
+					placeholder={t("chat.giphy.search_placeholder")}
+				/>
 			)}
 
 			{/* Content */}

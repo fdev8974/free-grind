@@ -68,14 +68,13 @@ export function ManagedOptionsPickerDialog({
 				<h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
 				<SheetCloseButton />
 			</div>
-			<div className="mb-4">
-				<SheetSearchInput
-					value={query}
-					onChange={setQuery}
-					placeholder={searchPlaceholder}
-					accentColor={accentColor}
-				/>
-			</div>
+			<SheetSearchInput
+				floating
+				value={query}
+				onChange={setQuery}
+				placeholder={searchPlaceholder}
+				accentColor={accentColor}
+			/>
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				{filteredOptions.length > 0 ? (
 					<div className="flex flex-wrap gap-2">
