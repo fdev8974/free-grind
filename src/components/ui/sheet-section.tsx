@@ -34,14 +34,14 @@ export function SheetSection({
 }
 
 /** Shared look of every toggle chip in the app (SheetChip and ui/chip's Chip):
- * surface-2 at rest, tinted with an inset ring in `--chip-accent` when active. */
+ * a soft text tint at rest, tinted with an inset ring in `--chip-accent` when active. */
 export function sheetChipClassName({
 	active,
 	size = "md",
-	onCard = false,
 }: {
 	active: boolean;
 	size?: "sm" | "md";
+	/** No longer changes anything, see the resting fill below; kept for callers. */
 	onCard?: boolean;
 }) {
 	return cn(
@@ -49,12 +49,10 @@ export function sheetChipClassName({
 		size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
 		active
 			? "bg-[color-mix(in_srgb,var(--chip-accent)_16%,var(--surface-2))] text-[var(--text)] ring-2 ring-inset ring-[var(--chip-accent)]"
-			: cn(
-					"text-[var(--text-muted)] hover:text-[var(--text)]",
-					onCard
-						? "bg-[var(--surface)] hover:bg-[color-mix(in_srgb,var(--surface)_80%,var(--text)_8%)]"
-						: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]",
-				),
+			: // A see-through text tint rather than a fixed surface color, so the
+				// resting chip reads on any background: sheets, SheetCards and the
+				// page cards alike.
+				"ink-tint-10 text-[var(--text-muted)] hover:ink-tint-14 hover:text-[var(--text)]",
 	);
 }
 

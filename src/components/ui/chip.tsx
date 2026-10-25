@@ -52,7 +52,7 @@ export function Badge({
 				"inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.1em]",
 				variant === "default"
 					? "bg-[var(--accent)]/90 text-[var(--accent-contrast)]"
-					: "bg-[var(--surface-2)] text-[var(--text-muted)]",
+					: "ink-tint-10 text-[var(--text-muted)]",
 				className,
 			)}
 			{...props}
