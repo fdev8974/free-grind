@@ -1658,6 +1658,14 @@ dialog::backdrop {
 .sheet-footer:first-child {
 	margin-top: 0;
 }
+/* The panel's bottom padding (safe area + the hidden bleed, see
+ * SHEET_BOTTOM_PADDING) would otherwise sit below the footer in the plain
+ * sheet color, a light strip under the fade. The footer takes that padding
+ * over, so its fade runs down to the screen edge (like the map sheets). */
+.sheet-footer {
+	margin-bottom: calc(-1 * (max(16px, env(safe-area-inset-bottom)) + 48px));
+	padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
+}
 /* A floating SheetSearchInput is pulled down over the scroll area after it;
  * that area starts its content just under the pill (48px + a small gap). */
 :where(.sheet-search + *) {
