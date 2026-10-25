@@ -89,13 +89,14 @@ function CodeBlock({ title, text, tone = "default" }: { title: string; text: str
 				</button>
 			) : undefined}
 		>
+			{/* Full length: the sheet itself scrolls (and grows when expanded),
+			    rather than a small box scrolling inside it. */}
 			<pre
 				className={cn(
-					"max-h-72 min-w-0 overflow-y-auto whitespace-pre-wrap break-all rounded-xl px-3 py-2.5 font-mono text-xs leading-relaxed",
+					"min-w-0 whitespace-pre-wrap break-all rounded-xl px-3 py-2.5 font-mono text-xs leading-relaxed",
 					tone === "error" ? "bg-red-500/10 text-red-500" : "bg-[var(--surface-2)] text-[var(--text)]",
 					!text && "text-[var(--text-muted)]",
 				)}
-				data-lenis-prevent
 			>
 				{text ?? "(empty)"}
 			</pre>
@@ -295,10 +296,9 @@ function ComposerSheet({
 							<div className="relative">
 								<pre
 									className={cn(
-										"max-h-80 min-w-0 overflow-y-auto whitespace-pre-wrap break-all rounded-xl px-3 py-2.5 pr-10 font-mono text-xs leading-relaxed",
+										"min-w-0 whitespace-pre-wrap break-all rounded-xl px-3 py-2.5 pr-10 font-mono text-xs leading-relaxed",
 										result.ok ? "bg-[var(--surface-2)] text-[var(--text)]" : "bg-red-500/10 text-red-500",
 									)}
-									data-lenis-prevent
 								>
 									{result.text}
 								</pre>
