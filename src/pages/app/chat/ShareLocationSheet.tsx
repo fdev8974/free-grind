@@ -2,14 +2,15 @@ import { Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
-import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../../components/icons/FilledIcons";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { HomeFilled, LocateFixedFilled } from "../../../components/icons/FilledIcons";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useHomeLocation } from "../../../hooks/queries/useProfileQueries";
 import { loadSavedLocations, type SavedLocation } from "../../../services/savedLocations";
 import { decodeGeohash, encodeGeohash } from "../../../utils/geohash";
 import { LocationChip, SavedLocationChip, useGeohashLabel } from "../gridpage/components/LocationChips";
 import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
+import { MAP_SHEET_HINT_CLASS, MapSheetLayout, MapSheetQuickPicks, mapSheetPanelClass } from "../gridpage/components/MapSheetLayout";
 import { reverseGeocodeGeohash } from "../gridpage/geocoding";
 
 type LatLon = { lat: number; lon: number };
@@ -57,77 +58,75 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 			onClose={onClose}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="px-4"
+			panelClassName={mapSheetPanelClass(isDesktop)}
 		>
-			<div className="mb-4 flex items-center justify-between">
+			<div className="mb-3 flex shrink-0 items-center justify-between">
 				<h3 className="text-sm font-semibold text-[var(--text)]">
 					{t("chat.share_location_label")}
 				</h3>
 				<SheetCloseButton />
 			</div>
 
-			<div className="relative overflow-hidden rounded-2xl" style={{ height: isDesktop ? "45vh" : "40dvh" }}>
-				<MapLocationPicker
-					selectedLocation={location}
-					onPick={(lat, lon) => onChange({ lat, lon })}
-					onError={(msg) => toast.error(msg)}
-					className="h-full w-full"
-					defaultZoom={18}
-				/>
-				{/* Resolved address of the pin, floating over the map. */}
-				<div className="pointer-events-none absolute inset-x-2 bottom-2 flex justify-center">
-					<div className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur-md">
-						<MapPinFilled className="h-3.5 w-3.5 shrink-0" />
-						<span className="truncate">
-							{pinAddress.resolved
-								? pinAddress.value ?? `${location.lat.toFixed(5)}, ${location.lon.toFixed(5)}`
-								: t("browse_location.resolving_location")}
-						</span>
-					</div>
-				</div>
-			</div>
-
-			<div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-				{currentLocation ? (
-					<LocationChip
-						icon={<LocateFixedFilled className="h-4 w-4" />}
-						title={t("chat.share_location_current")}
-						subtitle={locationName ?? null}
-						isActive={isCurrentActive}
-						onClick={() => onChange(currentLocation)}
+			<MapSheetLayout
+				map={
+					<MapLocationPicker
+						selectedLocation={location}
+						onPick={(lat, lon) => onChange({ lat, lon })}
+						onError={(msg) => toast.error(msg)}
+						className="h-full w-full"
+						defaultZoom={18}
 					/>
-				) : null}
-				{homeLocation ? (
-					<LocationChip
-						icon={<HomeFilled className="h-4 w-4" />}
-						title={t("browse_location.home_location_label")}
-						subtitle={homeLocation.name ?? null}
-						isActive={isSameSpot(location, homeLocation)}
-						onClick={() => onChange({ lat: homeLocation.lat, lon: homeLocation.lon })}
-					/>
-				) : null}
-				{savedLocations.map((saved) => (
-					<SavedLocationChip
-						key={saved.id}
-						location={saved}
-						isActive={isSameSpot(location, saved)}
-						onClick={() => onChange({ lat: saved.lat, lon: saved.lon })}
-					/>
-				))}
-			</div>
-			{savedLocations.length === 0 ? (
-				<p className="mt-2 px-1 text-[11px] text-[var(--text-muted)]">{t("chat.share_location_saved_hint")}</p>
-			) : null}
-
-			<div className={SHEET_FOOTER_CLASS}>
-				<SheetClose
-					onClick={() => onSend(location)}
-					className={sheetButtonClass()}
-				>
-					<Send className="h-4 w-4" />
-					<span className="truncate">{t("chat.send")}</span>
-				</SheetClose>
-			</div>
+				}
+				pinLabel={
+					pinAddress.resolved
+						? pinAddress.value ?? `${location.lat.toFixed(5)}, ${location.lon.toFixed(5)}`
+						: t("browse_location.resolving_location")
+				}
+				picks={
+					<>
+						<MapSheetQuickPicks>
+							{currentLocation ? (
+								<LocationChip
+									icon={<LocateFixedFilled className="h-4 w-4" />}
+									title={t("chat.share_location_current")}
+									subtitle={locationName ?? null}
+									isActive={isCurrentActive}
+									onClick={() => onChange(currentLocation)}
+								/>
+							) : null}
+							{homeLocation ? (
+								<LocationChip
+									icon={<HomeFilled className="h-4 w-4" />}
+									title={t("browse_location.home_location_label")}
+									subtitle={homeLocation.name ?? null}
+									isActive={isSameSpot(location, homeLocation)}
+									onClick={() => onChange({ lat: homeLocation.lat, lon: homeLocation.lon })}
+								/>
+							) : null}
+							{savedLocations.map((saved) => (
+								<SavedLocationChip
+									key={saved.id}
+									location={saved}
+									isActive={isSameSpot(location, saved)}
+									onClick={() => onChange({ lat: saved.lat, lon: saved.lon })}
+								/>
+							))}
+						</MapSheetQuickPicks>
+						{savedLocations.length === 0 ? (
+							<p className={MAP_SHEET_HINT_CLASS}>{t("chat.share_location_saved_hint")}</p>
+						) : null}
+					</>
+				}
+				footer={
+					<SheetClose
+						onClick={() => onSend(location)}
+						className={sheetButtonClass()}
+					>
+						<Send className="h-4 w-4" />
+						<span className="truncate">{t("chat.send")}</span>
+					</SheetClose>
+				}
+			/>
 		</BottomSheet>
 	);
 }
