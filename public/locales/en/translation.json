@@ -911,6 +911,7 @@
       "search_placeholder": "Search songs or artists...",
       "search_hint": "Search Spotify to add songs",
       "no_matches": "No songs match your search.",
+      "no_matches_hint": "Try a different song title or artist name.",
       "apply": "Apply"
     }
   },

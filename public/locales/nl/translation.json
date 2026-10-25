@@ -911,6 +911,7 @@
             "search_placeholder": "Nummers of artiesten zoeken...",
             "search_hint": "Zoek op Spotify om nummers toe te voegen",
             "no_matches": "Geen nummers gevonden.",
+            "no_matches_hint": "",
             "apply": ""
         }
     },

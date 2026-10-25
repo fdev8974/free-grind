@@ -925,6 +925,7 @@
             "search_placeholder": "Išči pesmi ali izvajalce...",
             "search_hint": "Išči na Spotifyju, da dodaš pesmi",
             "no_matches": "Nobena pesem se ne ujema z iskanjem.",
+            "no_matches_hint": "",
             "apply": ""
         },
         "tags_count_two": "{{count}} oznaki",

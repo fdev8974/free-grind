@@ -918,6 +918,7 @@
             "search_placeholder": "Buscar canciones o artistas...",
             "search_hint": "Busca en Spotify para añadir canciones",
             "no_matches": "Ninguna canción coincide con tu búsqueda.",
+            "no_matches_hint": "",
             "apply": ""
         },
         "tags_count_many": "{{count}} etiquetas"

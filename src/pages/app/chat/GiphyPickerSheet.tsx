@@ -207,6 +207,12 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 		void loadRecentGifs().then(setRecentGifsState);
 	}, []);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const contentRef = useRef<HTMLDivElement>(null);
+
+	// New results (a search, or trending again) start at the top.
+	useEffect(() => {
+		contentRef.current?.scrollTo({ top: 0 });
+	}, [gifs]);
 
 	const loadTrending = useCallback(async () => {
 		setIsLoading(true);
@@ -301,7 +307,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 			)}
 
 			{/* Content */}
-			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent {...tabSwipe}>
+			<div ref={contentRef} className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent {...tabSwipe}>
 				{tab === "trending" ? (
 					isLoading ? (
 						<GifGridSkeleton />

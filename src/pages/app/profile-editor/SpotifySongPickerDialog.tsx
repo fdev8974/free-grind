@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { Check, Loader2, Music } from "lucide-react";
+import { Check, Loader2, Music, SearchX } from "lucide-react";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { SheetSearchInput } from "../../../components/ui/sheet-section";
+import { DrawerEmptyState } from "../chat/drawerUi";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { useSpotifyTrackSearch } from "../../../hooks/queries/useProfileQueries";
 import type { SpotifyTrack } from "../../../services/spotify";
@@ -112,11 +113,16 @@ export function SpotifySongPickerDialog({ selected, onApply, onClose }: SpotifyS
 						})}
 					</div>
 				) : (
-					<p className="py-8 text-center text-sm text-[var(--text-muted)]">
-						{debouncedQuery.trim()
+					<DrawerEmptyState
+						icon={debouncedQuery.trim() ? <SearchX /> : <Music />}
+						fanned={false}
+						title={debouncedQuery.trim()
 							? t("profile_editor.spotify.no_matches")
 							: t("profile_editor.spotify.search_hint")}
-					</p>
+						hint={debouncedQuery.trim()
+							? t("profile_editor.spotify.no_matches_hint", { defaultValue: "Try a different song title or artist name." })
+							: t("profile_editor.spotify.empty")}
+					/>
 				)}
 			</div>
 			<div className={SHEET_FOOTER_CLASS}>

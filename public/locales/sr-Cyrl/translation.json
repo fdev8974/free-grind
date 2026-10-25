@@ -921,6 +921,7 @@
             "search_placeholder": "Претражи песме или извођаче...",
             "search_hint": "Претражите Spotify да додате песме",
             "no_matches": "Ниједна песма не одговара претрази.",
+            "no_matches_hint": "",
             "apply": ""
         }
     },
