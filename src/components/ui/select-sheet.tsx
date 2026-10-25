@@ -39,6 +39,10 @@ interface SelectSheetProps<T extends string> {
 	/** Below the list, e.g. a loading or error note. */
 	footer?: ReactNode;
 	zIndex?: string;
+	/** For long option lists: opens at `mediumDetent` and can be dragged up to almost full screen. */
+	expandable?: boolean;
+	/** Starting height of an `expandable` sheet, as a fraction of the viewport. */
+	mediumDetent?: number;
 }
 
 /**
@@ -46,12 +50,14 @@ interface SelectSheetProps<T extends string> {
  * and rounded rows as the filter/location sheets and action sheets), with a
  * check mark on the selected option. Shared by every "pick one" sheet.
  */
-export function SelectSheet<T extends string>({ onClose, isDesktop, zIndex, ...props }: SelectSheetProps<T>) {
+export function SelectSheet<T extends string>({ onClose, isDesktop, zIndex, expandable, mediumDetent, ...props }: SelectSheetProps<T>) {
 	return (
 		<BottomSheet
 			onClose={onClose}
 			isDesktop={isDesktop}
 			zIndex={zIndex}
+			expandable={expandable}
+			mediumDetent={mediumDetent}
 			bg={NATIVE_SHEET_BG}
 			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
 		>

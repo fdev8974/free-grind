@@ -566,6 +566,9 @@ export function AutomationRuleEditor({
 			{/* Pickers stacked on top; portaled so the panel's transform doesn't move them. */}
 			{picker === "condition" && createPortal(
 				<SelectSheet<ConditionKind>
+					// Long list: starts small, drag up for the rest.
+					expandable
+					mediumDetent={0.45}
 					title={t("settings_automation.add_condition")}
 					value={null}
 					options={availableConditionKinds.map((kind) => ({ value: kind, label: conditionLabel(kind) }))}
