@@ -500,7 +500,8 @@ function RightNowMapCard({
 					<button
 						type="button"
 						onClick={() => onMessage(item.profileId)}
-						className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--right-now)] px-4 text-sm font-semibold text-white shadow-lg shadow-[var(--right-now)]/30 transition hover:brightness-110 active:scale-[0.98]"
+						className={cn(sheetButtonClass("primary"), "shadow-[0_4px_14px_color-mix(in_srgb,var(--right-now)_35%,transparent)]")}
+						style={{ backgroundColor: "var(--right-now)", color: "white" }}
 					>
 						<MessageSquare className="h-4 w-4" />
 						{t("profile_details.message")}
@@ -1077,10 +1078,10 @@ export function RightNowPage() {
 						<div
 							className={cn(
 								"absolute inset-x-0 z-20 px-3",
-								// Flush on the full-width bar, a small gap above the floating card.
+								// Clear of the nav bar, a bit more room above the floating one.
 								navFullWidth
-									? "bottom-[var(--nav-height,env(safe-area-inset-bottom,0px))]"
-									: "bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.5rem)]",
+									? "bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.75rem)]"
+									: "bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+1rem)]",
 							)}
 						>
 							<RightNowMapCard
