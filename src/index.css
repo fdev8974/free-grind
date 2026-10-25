@@ -1218,19 +1218,21 @@
 
 	/* Borderless grouped card for app pages. Opaque, so nested sticky/absolute content needs no isolation.
 	   Light: white on the grey page. Dark: the regular surface. AMOLED's surface
-	   is nearly black, so there it gets a slight text-tinted lift instead. */
+	   is nearly black, so there it's a darkened surface-2 instead: same lift as
+	   before, but keeping the palette's blue tint (a text-color mix came out
+	   neutral grey next to the bluish borders and icon tiles). */
 	.native-card {
 		border-radius: 20px;
 		background: var(--surface);
 	}
 	:root[data-scheme="dark"][data-amoled="true"] .native-card,
 	:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
-		background: color-mix(in srgb, var(--text) 8%, var(--bg));
+		background: color-mix(in srgb, var(--surface-2) 90%, black);
 	}
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
 		:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
-			background: color-mix(in srgb, var(--text) 8%, var(--bg));
+			background: color-mix(in srgb, var(--surface-2) 90%, black);
 		}
 	}
 

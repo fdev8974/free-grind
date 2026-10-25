@@ -939,7 +939,8 @@ export function ProfileEditorPage() {
 					<div
 						className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4 pb-3 pt-10 [&>*]:pointer-events-auto"
 						style={{
-							bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px) - 12px)",
+							// Flush on the nav bar's measured height (published by NavBar).
+							bottom: "var(--nav-height, calc(env(safe-area-inset-bottom, 0px) + 80px))",
 							// Same idea as the sheets' floating footer: the page darkens towards
 							// the buttons, so they stand out from the cards scrolling behind.
 							background: "linear-gradient(to top, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 55%, transparent)",

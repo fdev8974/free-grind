@@ -8,7 +8,7 @@ import {
 import { CalculatorFilled, CloudSunFilled, EyeFilled, EyeOffFilled, GhostFilled, StickyNoteFilled, TriangleAlertFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
-import { Chip } from "../../components/ui/chip";
+import { SelectRow } from "../../components/ui/select-row";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -28,11 +28,11 @@ import {
 	setShowReadReceiptToggle as persistShowReadReceiptToggle,
 } from "../../utils/privacy";
 
-const DISGUISE_OPTIONS: { id: AppDisguiseId; icon: typeof GhostFilled; labelKey: string }[] = [
-	{ id: "default", icon: GhostFilled, labelKey: "privacy.app_disguise_off" },
-	{ id: "calculator", icon: CalculatorFilled, labelKey: "privacy.app_disguise_calculator" },
-	{ id: "notes", icon: StickyNoteFilled, labelKey: "privacy.app_disguise_notes" },
-	{ id: "weather", icon: CloudSunFilled, labelKey: "privacy.app_disguise_weather" },
+const DISGUISE_OPTIONS: { id: AppDisguiseId; icon: typeof GhostFilled; iconClass: string; labelKey: string }[] = [
+	{ id: "default", icon: GhostFilled, iconClass: "bg-[var(--accent)]/15 text-[var(--accent)]", labelKey: "privacy.app_disguise_off" },
+	{ id: "calculator", icon: CalculatorFilled, iconClass: "bg-orange-500/15 text-orange-400", labelKey: "privacy.app_disguise_calculator" },
+	{ id: "notes", icon: StickyNoteFilled, iconClass: "bg-amber-500/15 text-amber-400", labelKey: "privacy.app_disguise_notes" },
+	{ id: "weather", icon: CloudSunFilled, iconClass: "bg-sky-500/15 text-sky-400", labelKey: "privacy.app_disguise_weather" },
 ];
 
 export function SettingsPrivacyPage() {
@@ -193,24 +193,28 @@ export function SettingsPrivacyPage() {
 					<div>
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.app_disguise")}</p>
 						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
-							<div className="p-4">
-								<p className="text-sm font-semibold leading-snug">{t("privacy.app_disguise")}</p>
-								<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">{t("privacy.app_disguise_desc")}</p>
-								<div className="mt-3 flex flex-wrap gap-2">
-									{DISGUISE_OPTIONS.map(({ id, icon: Icon, labelKey }) => (
-										<Chip
-											key={id}
-											size="sm"
-											selected={disguise === id}
-											onClick={() => handleSelectDisguise(id)}
-											className="inline-flex items-center gap-1.5"
-										>
-											<Icon className="h-3.5 w-3.5" />
-											{t(labelKey)}
-										</Chip>
-									))}
-								</div>
-							</div>
+							{(() => {
+								const current = DISGUISE_OPTIONS.find((option) => option.id === disguise) ?? DISGUISE_OPTIONS[0];
+								const CurrentIcon = current.icon;
+								return (
+									<SelectRow<AppDisguiseId>
+										id="privacy-app-disguise"
+										highlighted={highlightId === "privacy-app-disguise"}
+										icon={<CurrentIcon className="h-5 w-5" />}
+										iconClass={current.iconClass}
+										label={t("privacy.app_disguise")}
+										description={t("privacy.app_disguise_desc")}
+										value={disguise}
+										onChange={handleSelectDisguise}
+										options={DISGUISE_OPTIONS.map((option) => ({
+											value: option.id,
+											label: t(option.labelKey),
+											icon: option.icon,
+											iconClassName: option.iconClass,
+										}))}
+									/>
+								);
+							})()}
 							<div className="px-4 py-3">
 								<p className="text-xs text-[var(--text-muted)] leading-relaxed">
 									{t("privacy.app_disguise_note")}
