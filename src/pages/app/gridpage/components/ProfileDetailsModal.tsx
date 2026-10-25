@@ -1,5 +1,5 @@
 import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
-import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
+import { BananaFilled, EyeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -142,7 +142,33 @@ export type ProfileSwipePreview = {
 	imageUrl: string | null;
 	name: string | null;
 	age: number | null;
+	distance: number | null;
+	lastSeen: number | null;
+	onlineUntil: number | null;
 };
+
+type ProfileStatusLevel = "online" | "ending_soon" | "recent" | "offline";
+
+/** Status line text ("Online", "Last online 5m ago", …) and dot level for a profile. */
+function getProfileStatusDisplay(
+	meta: ReturnType<typeof getOnlineStatusMeta>,
+	t: ReturnType<typeof useTranslation>["t"],
+): { label: string; level: ProfileStatusLevel } {
+	const label = meta.isOnline
+		? t(meta.labelKey, { count: meta.count })
+		: meta.labelKey === "browse_page.status_offline"
+			? t(meta.labelKey)
+			: t("profile_details.last_online", {
+					value: t(meta.labelKey, {
+						count: meta.count,
+					}),
+				});
+	const level: ProfileStatusLevel =
+		meta.isOnline ? (meta.isEndingSoon ? "ending_soon" : "online")
+		: meta.labelKey === "browse_page.status_minutes_ago" && (meta.count ?? 99) <= 10 ? "recent"
+		: "offline";
+	return { label, level };
+}
 
 // Same height as the photo carousel in the page variant.
 const PAGE_CAROUSEL_HEIGHT = "min(78dvh, calc(100vw * 1.55))";
@@ -150,7 +176,14 @@ const PAGE_CAROUSEL_HEIGHT = "min(78dvh, calc(100vw * 1.55))";
 /** Neighbouring profile's photo and name, sitting just off-screen next to the swipeable page. */
 function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePreview; side: "prev" | "next" }) {
 	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
 	const src = proxyMediaUrl(preview.imageUrl);
+	const hasStatus = preview.lastSeen != null || preview.onlineUntil != null;
+	const status = hasStatus ? getProfileStatusDisplay(getOnlineStatusMeta(preview.lastSeen, preview.onlineUntil), t) : null;
+	const name = preview.name?.trim() || t("profile_details.anonymous", "Someone");
+	const hasAge = preview.age != null && Number.isFinite(preview.age);
+	const distanceLabel = preview.distance != null ? formatDistance(preview.distance, t, unitsPreset) : null;
+	const headerSubtitle = [status?.label, distanceLabel].filter(Boolean).join(" · ");
 
 	useEffect(() => {
 		if (!src) return;
@@ -171,14 +204,51 @@ function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePrev
 					className="absolute inset-x-0 top-0"
 					style={{ height: "12rem", background: "linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%)" }}
 				/>
+				{/* Same layout as the page's floating header (unscrolled state). */}
+				<div
+					className="absolute inset-x-0 top-0 flex items-center gap-3 px-[var(--app-px)]"
+					style={{ paddingTop: "calc(var(--header-icon-center) - 1.25rem)", paddingBottom: "0.75rem" }}
+				>
+					<span className="header-icon-btn header-icon-btn--back shrink-0 rounded-xl border border-white/45 p-2 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+						<ChevronLeft className="h-4 w-4" />
+					</span>
+					<div className="min-w-0 flex-1 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]">
+						<div className="flex min-w-0 items-center gap-1.5">
+							<p className="truncate text-base font-semibold leading-tight text-white">{name}</p>
+							{hasAge && <span className="shrink-0 text-sm text-white/70">{preview.age}</span>}
+						</div>
+						{headerSubtitle && <p className="text-xs leading-tight text-white/70">{headerSubtitle}</p>}
+					</div>
+				</div>
 			</div>
 			<div className="px-7 pt-4 sm:px-8 sm:pt-5">
 				<h2 className="truncate text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
-					{preview.name?.trim() || t("profile_details.anonymous", "Someone")}
-					{preview.age != null && Number.isFinite(preview.age) && (
+					{name}
+					{hasAge && (
 						<span className="ml-2 text-xl font-normal text-[var(--text-muted)] sm:text-2xl">{preview.age}</span>
 					)}
 				</h2>
+				{/* Same status line as ProfileDetailsContent's header. */}
+				{(status || distanceLabel) && (
+					<div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-muted)]">
+						{status && (
+							<span className="flex items-center gap-1.5">
+								<span className={`h-2 w-2 rounded-full ${
+									status.level === "online" ? "bg-emerald-400"
+									: status.level === "ending_soon" ? "bg-amber-400"
+									: "bg-[var(--text-muted)]/40"
+								}`} />
+								{status.label}
+							</span>
+						)}
+						{distanceLabel && (
+							<span className="flex items-center gap-1">
+								<MapPinFilled className="h-3.5 w-3.5" />
+								{distanceLabel}
+							</span>
+						)}
+					</div>
+				)}
 			</div>
 		</div>
 	);
@@ -333,19 +403,7 @@ export function ProfileDetailsModal({
 		profileLastSeen,
 		profileOnlineUntil,
 	);
-	const profileStatusLabel = profileStatusMeta.isOnline
-		? t(profileStatusMeta.labelKey, { count: profileStatusMeta.count })
-		: profileStatusMeta.labelKey === "browse_page.status_offline"
-			? t(profileStatusMeta.labelKey)
-			: t("profile_details.last_online", {
-					value: t(profileStatusMeta.labelKey, {
-						count: profileStatusMeta.count,
-					}),
-				});
-	const profileStatusLevel: "online" | "ending_soon" | "recent" | "offline" =
-		profileStatusMeta.isOnline ? (profileStatusMeta.isEndingSoon ? "ending_soon" : "online")
-		: profileStatusMeta.labelKey === "browse_page.status_minutes_ago" && (profileStatusMeta.count ?? 99) <= 10 ? "recent"
-		: "offline";
+	const { label: profileStatusLabel, level: profileStatusLevel } = getProfileStatusDisplay(profileStatusMeta, t);
 	const estimatedCreatedAt = formatEstimatedAccountCreation(activeProfile?.profileId, t);
 	const { data: travelPlans } = useTravelPlans(activeProfile?.profileId);
 	const visualStateValue = typeof tapVisualState === "string" ? tapVisualState : tapVisualState.state;

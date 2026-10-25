@@ -258,7 +258,7 @@ export function GridProfilePage() {
 	const prevProfileId = currentIndex > 0 ? profileIds[currentIndex - 1] : null;
 	const nextProfileId = currentIndex >= 0 && currentIndex < profileIds.length - 1 ? profileIds[currentIndex + 1] : null;
 
-	// Photo and name of the neighbouring profiles, from whatever the grid or an
+	// Photo, name and status of the neighbouring profiles, from whatever the grid or an
 	// earlier visit already cached — shown beside the page while swiping.
 	const [prevProfilePreview, nextProfilePreview] = useMemo(() => {
 		if (!prevProfileId && !nextProfileId) return [null, null];
@@ -275,6 +275,9 @@ export function GridProfilePage() {
 				imageUrl: hash ? getProfileImageUrl(hash, "1024x1024") : (card?.primaryImageUrl ?? null),
 				name: detail?.displayName ?? card?.displayName ?? null,
 				age: detail?.age ?? card?.age ?? null,
+				distance: detail?.distance ?? card?.distanceMeters ?? null,
+				lastSeen: detail?.seen ?? card?.lastOnline ?? null,
+				onlineUntil: detail?.onlineUntil ?? card?.onlineUntil ?? null,
 			};
 		};
 		return [toPreview(prevProfileId), toPreview(nextProfileId)];
