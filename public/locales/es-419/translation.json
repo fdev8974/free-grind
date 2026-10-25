@@ -1029,6 +1029,7 @@
             "enable": "Habilitar efecto de revelación",
             "enable_desc": "Muestra los elementos con una animación sutil cuando entren a la vista.",
             "strengths": {
+                "off": "",
                 "subtle": "Sutil",
                 "pronounced": "Pronunciado"
             }

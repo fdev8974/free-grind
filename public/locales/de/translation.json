@@ -1021,6 +1021,7 @@
             "enable": "Reveal-Effekt aktivieren",
             "enable_desc": "Elemente beim Erscheinen im Sichtfeld dezent animieren.",
             "strengths": {
+                "off": "",
                 "subtle": "Dezent",
                 "pronounced": "Ausgeprägt"
             }

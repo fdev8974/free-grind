@@ -1029,6 +1029,7 @@
             "enable": "Uključi efekat otkrivanja",
             "enable_desc": "Animiraj stavke dok ulaze u prikaz. Odaberi između suptilnog i izraženog efekta.",
             "strengths": {
+                "off": "",
                 "subtle": "Suptilno",
                 "pronounced": "Izraženo"
             }

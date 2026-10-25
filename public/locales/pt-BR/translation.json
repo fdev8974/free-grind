@@ -1029,6 +1029,7 @@
             "enable": "Ativar efeito de revelação",
             "enable_desc": "Mostrar itens com uma animação sutil quando eles entrarem na área de visualização da tela.",
             "strengths": {
+                "off": "",
                 "subtle": "Sutil",
                 "pronounced": "Pronunciado"
             }

@@ -1029,6 +1029,7 @@
             "enable": "Activer l'effet de révélation",
             "enable_desc": "Afficher les éléments avec une animation subtile lorsqu'ils entrent dans la fenêtre d'affichage.",
             "strengths": {
+                "off": "",
                 "subtle": "Subtile",
                 "pronounced": "Prononcé"
             }

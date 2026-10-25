@@ -1021,6 +1021,7 @@
       "enable": "Enable Reveal Effect",
       "enable_desc": "Animate items as they scroll into view. Choose between a subtle and a pronounced effect.",
       "strengths": {
+        "off": "Off",
         "subtle": "Subtle",
         "pronounced": "Pronounced"
       }

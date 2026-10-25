@@ -388,34 +388,21 @@ export function CustomizabilityPage() {
 					<SectionLabel>{t("customizability.grid_page")}</SectionLabel>
 					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						{isMobilePlatform && (
-							<div
+							<SelectRow
 								id="cust-browse-grid"
-								className={`p-4 ${highlightId === "cust-browse-grid" ? "animate-settings-highlight" : ""}`}
-							>
-								<div className="flex items-start gap-3">
-									<div className="rounded-2xl bg-blue-500/15 p-2.5 text-blue-400 shrink-0">
-										<LayoutGridFilled className="h-5 w-5" />
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">{t("customizability.grid_layout")}</p>
-										<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
-											{t("customizability.browse_grid_mobile_desc")}
-										</p>
-										<div className="mt-3 grid grid-cols-3 gap-2">
-											{(["2", "3", "4"] as const).map((cols) => (
-												<button
-													key={cols}
-													type="button"
-													onClick={() => void setPreferences({ mobileGridColumns: cols })}
-													className={`rounded-2xl p-3 text-sm font-semibold transition-[transform,background-color] duration-150 active:scale-[0.98] ${mobileGridColumns === cols ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
-												>
-													{t(`customizability.columns_${cols}`)}
-												</button>
-											))}
-										</div>
-									</div>
-								</div>
-							</div>
+								highlighted={highlightId === "cust-browse-grid"}
+								icon={<LayoutGridFilled className="h-5 w-5" />}
+								iconClass="bg-blue-500/15 text-blue-400"
+								label={t("customizability.grid_layout")}
+								description={t("customizability.browse_grid_mobile_desc")}
+								value={mobileGridColumns}
+								onChange={(cols) => void setPreferences({ mobileGridColumns: cols })}
+								options={[
+									{ value: "2", label: t("customizability.columns_2") },
+									{ value: "3", label: t("customizability.columns_3") },
+									{ value: "4", label: t("customizability.columns_4") },
+								]}
+							/>
 						)}
 						<ToggleRow
 							id="cust-grid-tap-status"
@@ -521,34 +508,21 @@ export function CustomizabilityPage() {
 								]}
 							/>
 							{isMobilePlatform && (
-								<div
+								<SelectRow
 									id="cust-views-grid"
-									className={`p-4 ${highlightId === "cust-views-grid" ? "animate-settings-highlight" : ""}`}
-								>
-									<div className="flex items-start gap-3">
-										<div className="rounded-2xl bg-blue-500/15 p-2.5 text-blue-400 shrink-0">
-											<LayoutGridFilled className="h-5 w-5" />
-										</div>
-										<div className="min-w-0 flex-1">
-											<p className="text-sm font-semibold leading-snug">{t("customizability.views_grid_layout")}</p>
-											<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
-												{t("customizability.views_grid_mobile_desc")}
-											</p>
-											<div className="mt-3 grid grid-cols-3 gap-2">
-												{(["2", "3", "4"] as const).map((cols) => (
-													<button
-														key={cols}
-														type="button"
-														onClick={() => void setPreferences({ mobileViewsGridColumns: cols })}
-														className={`rounded-2xl p-3 text-sm font-semibold transition-[transform,background-color] duration-150 active:scale-[0.98] ${mobileViewsGridColumns === cols ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
-													>
-														{t(`customizability.columns_${cols}`)}
-													</button>
-												))}
-											</div>
-										</div>
-									</div>
-								</div>
+									highlighted={highlightId === "cust-views-grid"}
+									icon={<LayoutGridFilled className="h-5 w-5" />}
+									iconClass="bg-blue-500/15 text-blue-400"
+									label={t("customizability.views_grid_layout")}
+									description={t("customizability.views_grid_mobile_desc")}
+									value={mobileViewsGridColumns}
+									onChange={(cols) => void setPreferences({ mobileViewsGridColumns: cols })}
+									options={[
+										{ value: "2", label: t("customizability.columns_2") },
+										{ value: "3", label: t("customizability.columns_3") },
+										{ value: "4", label: t("customizability.columns_4") },
+									]}
+								/>
 							)}
 						</div>
 					</div>
@@ -577,30 +551,27 @@ export function CustomizabilityPage() {
 				<div>
 					<SectionLabel>{t("customizability.visual_effects")}</SectionLabel>
 					<div className="native-card overflow-hidden">
-						<ToggleRow
+						{/* Off and both strengths in one picker. */}
+						<SelectRow
 							id="cust-reveal-effect"
 							highlighted={highlightId === "cust-reveal-effect"}
 							icon={<SparklesFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("customizability.reveal_effect.title")}
-							description={t("customizability.reveal_effect.enable_desc")}
-							checked={revealEffectEnabled}
-							onChange={(checked) => void setPreferences({ revealEffectEnabled: checked })}
+							description={t("customizability.reveal_effect.description")}
+							value={revealEffectEnabled ? revealEffectStrength : "off"}
+							onChange={(choice) =>
+								void setPreferences(
+									choice === "off"
+										? { revealEffectEnabled: false }
+										: { revealEffectEnabled: true, revealEffectStrength: choice },
+								)}
+							options={[
+								{ value: "off", label: t("customizability.reveal_effect.strengths.off", { defaultValue: "Off" }) },
+								{ value: "subtle", label: t("customizability.reveal_effect.strengths.subtle") },
+								{ value: "pronounced", label: t("customizability.reveal_effect.strengths.pronounced") },
+							]}
 						/>
-						{revealEffectEnabled && (
-							<div className="grid grid-cols-2 gap-2 pb-4 pl-[68px] pr-[76px]">
-								{(["subtle", "pronounced"] as const).map((s) => (
-									<button
-										key={s}
-										type="button"
-										onClick={() => void setPreferences({ revealEffectStrength: s })}
-										className={`rounded-2xl p-3 text-sm font-semibold transition-[transform,background-color] duration-150 active:scale-[0.98] ${revealEffectStrength === s ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
-									>
-										{t(`customizability.reveal_effect.strengths.${s}`)}
-									</button>
-								))}
-							</div>
-						)}
 					</div>
 				</div>
 

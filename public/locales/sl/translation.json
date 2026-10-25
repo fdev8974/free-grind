@@ -1037,6 +1037,7 @@
             "enable": "Vklopi učinek razkritja",
             "enable_desc": "Animiraj elemente, ko se pomaknejo v pogled. Izberi med subtilnim in izrazitim učinkom.",
             "strengths": {
+                "off": "",
                 "subtle": "Subtilno",
                 "pronounced": "Izrazito"
             }

@@ -1021,6 +1021,7 @@
             "enable": "Onthullingseffect inschakelen",
             "enable_desc": "Animeer items wanneer ze in beeld scrollen. Kies tussen een subtiel en een uitgesproken effect.",
             "strengths": {
+                "off": "",
                 "subtle": "Subtiel",
                 "pronounced": "Uitgesproken"
             }
