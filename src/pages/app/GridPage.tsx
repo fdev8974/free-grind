@@ -1606,7 +1606,7 @@ export function GridPage() {
 									aria-label={t("browse_filters.local_filters.name_title")}
 									className={cn(
 										"inline-flex h-12 w-12 shrink-0 items-center justify-center transition-all active:scale-95",
-										nicknameFilter
+										effectiveNicknameFilter
 											? exploreLocation
 												? "rounded-full border border-[var(--explore)] bg-[var(--explore)] text-white shadow-lg shadow-[var(--explore)]/40"
 												: "rounded-full border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/40"
@@ -1615,7 +1615,7 @@ export function GridPage() {
 												: "glass-pill text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
 									)}
 									style={
-										!nicknameFilter
+										!effectiveNicknameFilter
 											? ({ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties)
 											: undefined
 									}

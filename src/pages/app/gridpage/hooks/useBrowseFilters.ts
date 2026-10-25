@@ -251,7 +251,8 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 	const activeFilterCount = useMemo(() => {
 		let count = Object.keys(browseRequestFilters).length;
 		if (browseFilters.isVisiting) count += 1;
-		if (nicknameFilter) count += 1;
+		// A purely numeric entry is a profile ID lookup, not a name filter.
+		if (nicknameFilter && !/^\d+$/.test(nicknameFilter.trim())) count += 1;
 		return count;
 	}, [browseRequestFilters, browseFilters.isVisiting, nicknameFilter]);
 
