@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Check, ChevronRight, Copy, Download, Loader2, Repeat, Send, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { saveTextFile } from "../../services/saveTextFile";
+import { isAndroid, isIos } from "../../services/saveMedia";
 import { PageHeader } from "../../components/PageHeader";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { NATIVE_SHEET_BG, afterSheetClose } from "../../components/ui/action-sheet";
@@ -354,16 +356,23 @@ export function ApiInspectorPage() {
 		});
 	}, [entries, kind, query]);
 
-	const handleExport = () => {
-		const blob = new Blob([exportApiTraceEntries()], { type: "application/json" });
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = `free-grind-api-trace-${new Date().toISOString().slice(0, 10)}.json`;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		URL.revokeObjectURL(url);
+	const [isExporting, setIsExporting] = useState(false);
+
+	const handleExport = async () => {
+		setIsExporting(true);
+		try {
+			const fileName = `free-grind-api-trace-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.json`;
+			await saveTextFile(fileName, exportApiTraceEntries(), "application/json");
+			toast.success(
+				isAndroid() || !isIos()
+					? `Saved to Downloads/FreeGrind/${fileName}`
+					: `Saved to Files → On My iPhone/iPad → Free Grind/${fileName}`,
+			);
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Export failed");
+		} finally {
+			setIsExporting(false);
+		}
 	};
 
 	const filters: { value: KindFilter; label: string }[] = [
@@ -383,8 +392,8 @@ export function ApiInspectorPage() {
 					subtitleClassName="-mt-3 mb-0"
 					actions={
 						<>
-							<button type="button" onClick={handleExport} disabled={entries.length === 0} className={HEADER_ICON_BUTTON_CLASS} aria-label="Export" title="Export as JSON">
-								<Download className="h-4 w-4" />
+							<button type="button" onClick={() => void handleExport()} disabled={entries.length === 0 || isExporting} className={HEADER_ICON_BUTTON_CLASS} aria-label="Export" title="Export as JSON">
+								{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
 							</button>
 							<button type="button" onClick={() => setIsConfirmClearOpen(true)} disabled={entries.length === 0} className={cn(HEADER_ICON_BUTTON_CLASS, "hover:text-red-500")} aria-label="Clear" title="Clear all">
 								<Trash2 className="h-4 w-4" />

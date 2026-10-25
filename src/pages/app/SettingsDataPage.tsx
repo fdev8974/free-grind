@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { CalendarDaysFilled, FileUpFilled, MessageSquareQuoteFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
+import { saveTextFile } from "../../services/saveTextFile";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
 import { RowActionPill } from "../../components/ui/row-action-pill";
@@ -20,8 +21,6 @@ import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-fs-api";
-import { BaseDirectory, mkdir, writeFile as writeFsFile } from "@tauri-apps/plugin-fs";
 import * as chatDb from "../../services/chatDb";
 import {
 	BACKUP_CATEGORY_IDS,
@@ -284,38 +283,8 @@ export function SettingsDataPage() {
 		}
 		setIsExportingPhrases(true);
 		try {
-			const bytes = new TextEncoder().encode(`${content}\n`);
 			const fileName = `free-grind-saved-phrases-${new Date().toISOString().slice(0, 10)}.txt`;
-
-			if (isAndroid()) {
-				// Blob-URL + <a download> doesn't trigger a save on Android's WebView
-				// (same reasoning as the other exports on this page), so this writes
-				// via the same open-stream + writer pattern used for the encounters
-				// export.
-				const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "text/plain", {
-					isPending: true,
-				});
-				try {
-					const writable = await AndroidFs.openWriteFileStream(uri);
-					const writer = writable.getWriter();
-					try {
-						await writer.write(bytes);
-						await writer.close();
-					} catch (error) {
-						await writer.abort(error).catch(() => {});
-						throw error;
-					}
-					await AndroidFs.setPublicFilePending(uri, false);
-					await AndroidFs.scanPublicFile(uri);
-				} catch (error) {
-					await AndroidFs.removeFile(uri).catch(() => {});
-					throw error;
-				}
-			} else {
-				const baseDir = isIos() ? BaseDirectory.Document : BaseDirectory.Download;
-				await mkdir("FreeGrind", { baseDir, recursive: true });
-				await writeFsFile(`FreeGrind/${fileName}`, bytes, { baseDir });
-			}
+			await saveTextFile(fileName, `${content}\n`, "text/plain");
 
 			toast.success(
 				isAndroid()
@@ -364,40 +333,8 @@ export function SettingsDataPage() {
 				toast.error(t("data_backup.encounters_export_empty", { defaultValue: "No logged encounters to export." }));
 				return;
 			}
-			const bytes = new TextEncoder().encode(encountersToIcs(encounters));
 			const fileName = `free-grind-encounters-${new Date().toISOString().slice(0, 10)}.ics`;
-
-			if (isAndroid()) {
-				// Blob-URL + <a download> doesn't trigger a save on Android's
-				// WebView. Writes via the same open-stream + writer pattern as the
-				// saved phrases export above — a
-				// direct AndroidFs.writeFile(uri, bytes) call on a freshly-created
-				// pending MediaStore entry was unreliable on-device even though it
-				// type-checks and works on desktop.
-				const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "text/calendar", {
-					isPending: true,
-				});
-				try {
-					const writable = await AndroidFs.openWriteFileStream(uri);
-					const writer = writable.getWriter();
-					try {
-						await writer.write(bytes);
-						await writer.close();
-					} catch (error) {
-						await writer.abort(error).catch(() => {});
-						throw error;
-					}
-					await AndroidFs.setPublicFilePending(uri, false);
-					await AndroidFs.scanPublicFile(uri);
-				} catch (error) {
-					await AndroidFs.removeFile(uri).catch(() => {});
-					throw error;
-				}
-			} else {
-				const baseDir = isIos() ? BaseDirectory.Document : BaseDirectory.Download;
-				await mkdir("FreeGrind", { baseDir, recursive: true });
-				await writeFsFile(`FreeGrind/${fileName}`, bytes, { baseDir });
-			}
+			await saveTextFile(fileName, encountersToIcs(encounters), "text/calendar");
 
 			toast.success(
 				isAndroid()
