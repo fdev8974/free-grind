@@ -1,5 +1,4 @@
 import { Images } from "lucide-react";
-import { BusyOverlay } from "../../components/ui/busy-overlay";
 import { PromptDialog } from "../../components/ui/prompt-dialog";
 import {
 	type FormEvent,
@@ -5965,7 +5964,10 @@ export function ChatPage() {
 				if (!useSheet) setAlbumViewerMediaIndex(resolveIndex(cached.content));
 				setIsAlbumViewerLoading(false);
 			} else {
-				setAlbumViewer(null);
+				// Nothing cached yet: open right away and let the viewer or sheet
+				// show its own loading state until the live fetch below lands.
+				setAlbumViewer({ albumId, albumName: null, content: [], isOwn: isOwnAlbum });
+				if (!useSheet) setAlbumViewerMediaIndex(0);
 				setIsAlbumViewerLoading(true);
 			}
 
@@ -6966,10 +6968,6 @@ export function ChatPage() {
 				);
 			})() : null}
 
-			{isAlbumViewerLoading && !albumViewer ? (
-				<BusyOverlay label={t("shared_albums.opening")} zIndex="z-[85]" />
-			) : null}
-
 			{isAlbumMediaSheetOpen && albumViewer ? (
 				<AlbumMediaSheet
 					albumName={albumViewer.albumName}
@@ -6977,6 +6975,7 @@ export function ChatPage() {
 					onClose={closeAlbumMediaSheet}
 					onSelect={openAlbumMediaAtIndex}
 					locked={albumViewerMediaIndex !== null}
+					isLoading={isAlbumViewerLoading}
 				/>
 			) : null}
 
@@ -6989,6 +6988,7 @@ export function ChatPage() {
 				conversationId={selectedConversation?.data.conversationId ?? null}
 				menuActions={albumMenuActions}
 				albumHeader={albumHeader}
+				isLoading={isAlbumViewerLoading}
 				// Only gate directly-opened albums — once the user has already
 				// browsed the album's contents in the browse-first sheet, the
 				// warning would be redundant for every item tapped from it.

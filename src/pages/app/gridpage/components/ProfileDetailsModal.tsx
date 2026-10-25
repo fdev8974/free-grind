@@ -1,5 +1,4 @@
 import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
-import { BusyOverlay } from "../../../../components/ui/busy-overlay";
 import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
@@ -1192,7 +1191,12 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	const albumSheetOpenRef = useRef(false);
 	albumSheetOpenRef.current = isAlbumSheetOpen;
 
+	// The album an open is in flight for; cleared when the viewer closes.
+	const pendingAlbumOpenIdRef = useRef<number | null>(null);
 	const resetAlbumViewerState = useCallback(() => {
+		// Closed while still loading: the pending open is dropped.
+		pendingAlbumOpenIdRef.current = null;
+		setIsOpeningAlbum(false);
 		setAlbumViewer(null);
 		setAlbumViewerIndex(0);
 		setIsAlbumSheetOpen(false);
@@ -1353,22 +1357,30 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			setIsAlbumViewerShown(true);
 			pushAlbumViewerHistory();
 		};
+		const meta = {
+			albumId,
+			albumName: null,
+			profileId: profileIdNum,
+			profileName: activeProfileName,
+			profileMediaHash: activeProfilePhotoHashes[0] ?? null,
+			onlineUntil: profileOnlineUntil,
+			distanceMetres: profileDistance,
+			conversationId: null,
+		};
+		// Open right away; the viewer or sheet shows its own loading state
+		// until the content arrives.
+		pendingAlbumOpenIdRef.current = albumId;
 		setIsOpeningAlbum(true);
+		setAlbumViewer({ ...meta, content: [] });
+		presentAlbum();
+		// Ignored once the album was closed meanwhile.
+		const isStillOpening = () => pendingAlbumOpenIdRef.current === albumId;
 		try {
 			await apiFunctions.openSharedAlbum({ albumId });
 			const details = await apiFunctions.getAlbum(albumId);
-			setAlbumViewer({
-				albumId: details.albumId,
-				albumName: details.albumName,
-				profileId: profileIdNum,
-				profileName: activeProfileName,
-				profileMediaHash: activeProfilePhotoHashes[0] ?? null,
-				onlineUntil: profileOnlineUntil,
-				distanceMetres: profileDistance,
-				conversationId: null,
-				content: details.content,
-			});
-			presentAlbum();
+			if (isStillOpening()) {
+				setAlbumViewer({ ...meta, albumId: details.albumId, albumName: details.albumName, content: details.content });
+			}
 			void captureAlbum({
 				albumId: details.albumId,
 				albumName: details.albumName,
@@ -1381,26 +1393,21 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			});
 		} catch (error) {
 			const local = await getLocalAlbum(albumId).catch(() => null);
+			if (!isStillOpening()) return;
 			if (local && local.content.length > 0) {
-				setAlbumViewer({
-					albumId: local.albumId,
-					albumName: local.albumName,
-					profileId: profileIdNum,
-					profileName: activeProfileName,
-					profileMediaHash: activeProfilePhotoHashes[0] ?? null,
-					onlineUntil: profileOnlineUntil,
-					distanceMetres: profileDistance,
-					conversationId: null,
-					content: local.content,
-				});
-				presentAlbum();
+				setAlbumViewer({ ...meta, albumId: local.albumId, albumName: local.albumName, content: local.content });
 			} else {
+				if (openAlbumAsBottomSheet) resetAlbumViewerState();
+				else closeAlbumViewer();
 				toast.error(error instanceof Error ? error.message : t("shared_albums.error_open_fallback"));
 			}
 		} finally {
-			setIsOpeningAlbum(false);
+			if (isStillOpening()) {
+				pendingAlbumOpenIdRef.current = null;
+				setIsOpeningAlbum(false);
+			}
 		}
-	}, [albumStatus.hasSharedWithMe, albumStatus.albumId, isOpeningAlbum, apiFunctions, messageProfileId, activeProfileName, activeProfilePhotoHashes, profileOnlineUntil, profileDistance, t, openAlbumAsBottomSheet, pushAlbumViewerHistory]);
+	}, [albumStatus.hasSharedWithMe, albumStatus.albumId, isOpeningAlbum, apiFunctions, messageProfileId, activeProfileName, activeProfilePhotoHashes, profileOnlineUntil, profileDistance, t, openAlbumAsBottomSheet, pushAlbumViewerHistory, resetAlbumViewerState, closeAlbumViewer]);
 
 	const albumViewerPhotos = useMemo(() => {
 		if (!albumViewer) return [];
@@ -1409,10 +1416,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			type: (item.contentType?.startsWith("video/") ? "video" : "image") as "image" | "video",
 		}));
 	}, [albumViewer]);
-
-	const albumOpeningOverlay = isOpeningAlbum && (
-		<BusyOverlay label={t("shared_albums.opening")} zIndex="z-[85]" />
-	);
 
 	// "We just hooked up" — same encounter logging as the chat header
 	// menu, gated by the same Sexual Health optional-feature toggle.
@@ -1548,6 +1551,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				onClose={resetAlbumViewerState}
 				onSelect={handleSelectAlbumContent}
 				locked={isAlbumViewerShown}
+				isLoading={isOpeningAlbum}
 			/>
 		) : null}
 		<PhotoViewer
@@ -1558,6 +1562,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			onIndexChange={handleAlbumViewerIndexChange}
 			menuActions={albumMenuActions}
 			albumHeader={albumHeader}
+			isLoading={isOpeningAlbum}
 			// Only gate directly-opened albums — the sheet already showed the
 			// album's contents, so the warning would be redundant per item.
 			contentWarning={showAlbumSensitiveContentWarning && !isAlbumSheetOpen}
@@ -1688,10 +1693,19 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				) : (
 					<div
 						ref={controlsBarRef}
-						className="pointer-events-auto flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] p-1 shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl transition focus-within:ring-2 focus-within:ring-[var(--accent)]"
+						className="pointer-events-auto flex items-center gap-1"
 						onPointerDown={(e) => e.stopPropagation()}
 					>
-						<div className="min-w-0 flex-1" style={{ pointerEvents: barInputVisible ? "auto" : "none" }}>
+						{/* Just the field floats as a pill; tap and chat sit next to it.
+						    It fades out while the tap picker is open. */}
+						<div
+							className="min-w-0 flex-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] p-1 shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl focus-within:ring-2 focus-within:ring-[var(--accent)]"
+							style={{
+								pointerEvents: barInputVisible ? "auto" : "none",
+								opacity: barInputVisible ? 1 : 0,
+								transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s",
+							}}
+						>
 							<input
 								type="text"
 								value={quickMessageDraft}
@@ -1701,8 +1715,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								}}
 								enterKeyHint="send"
 								placeholder={t("profile_details.quick_message_placeholder", "Message...")}
-								className="h-10 w-full bg-transparent pl-4 pr-2 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
-								style={{ opacity: barInputVisible ? 1 : 0, transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s" }}
+								className="h-10 w-full bg-transparent px-4 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
 							/>
 						</div>
 						<div
@@ -1717,7 +1730,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 										onClick={() => fireTap(id)}
 										onMouseEnter={() => setBarTapHoverId(id)}
 										onMouseLeave={() => setBarTapHoverId(null)}
-										className={`flex h-10 w-13 cursor-pointer items-center justify-center text-2xl leading-none transition-all duration-150 ${barTapHoverId === id ? "origin-bottom scale-[2] opacity-100" : "opacity-60"}`}
+										className={`flex h-12 w-13 cursor-pointer items-center justify-center text-2xl leading-none transition-all duration-150 ${barTapHoverId === id ? "origin-bottom scale-[2] opacity-100" : "opacity-60"}`}
 										style={barTapHoverId === id ? { filter: barTapGlow(id) } : undefined}
 									>
 										{barTapEmoji(id)}
@@ -1734,7 +1747,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							onPointerCancel={() => { setBarTapPickerOpen(false); setBarTapHoverId(null); barTapStickyRef.current = false; if (barTapLongPressRef.current) clearTimeout(barTapLongPressRef.current); barInputTimerRef.current = setTimeout(() => setBarInputVisible(true), 210); }}
 							disabled={isTapDisabled}
 							aria-label={t("profile_details.tap", { defaultValue: "Tap" })}
-							className={`tap-btn-base relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-[var(--text-muted)]" : isTapActive || barTapHoverId !== null ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}
+							className={`tap-btn-base relative inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-white/70" : isTapActive || barTapHoverId !== null ? "text-white" : "text-white/70"}`}
 							style={isTapBlocked ? { filter: barTapGlow(tapVisualState.tapId) } : !barTapPickerOpen && barTapHoverId !== null ? { filter: barTapGlow(barTapHoverId) } : undefined}
 						>
 							{barTapPickerOpen
@@ -1754,7 +1767,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									else onMessageProfile?.(String(messageProfileId));
 								}}
 								aria-label={hasDraft ? t("chat.send") : t("profile_details.message")}
-								className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition hover:opacity-80 ${hasDraft ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "text-[var(--accent)]"}`}
+								className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:opacity-80 ${hasDraft ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "text-[var(--accent)]"}`}
 							>
 								{hasDraft ? (
 									<SendHorizontalFilled className="h-5 w-5" />
@@ -2103,7 +2116,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				>
 				{renderInlineLayout()}
 				{photoViewerOverlay}
-				{albumOpeningOverlay}
 				{albumViewerOverlay}
 				{encounterSheet}
 				{nicknamePrompt}
@@ -2522,7 +2534,6 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				</>
 			)}
 			{photoViewerOverlay}
-			{albumOpeningOverlay}
 			{albumViewerOverlay}
 			{encounterSheet}
 			{nicknamePrompt}

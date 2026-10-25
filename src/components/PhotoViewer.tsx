@@ -46,6 +46,8 @@ export type PhotoViewerProps = {
 	};
 	/** When true, a "could contain sensitive content" gate screen is shown first — the actual media only reveals after the user confirms. Re-shown every time the viewer opens. */
 	contentWarning?: boolean;
+	/** The album's media are still loading: opens right away with the header and a spinner instead of nothing. */
+	isLoading?: boolean;
 };
 
 export type PhotoViewerMenuAction = {
@@ -167,6 +169,7 @@ export function PhotoViewer({
 	menuActions,
 	albumHeader,
 	contentWarning,
+	isLoading = false,
 }: PhotoViewerProps) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
@@ -743,7 +746,7 @@ export function PhotoViewer({
 		setVideoCurrentTime(el.currentTime);
 	}, [videoDuration]);
 
-	if (!isOpen || N === 0) return null;
+	if (!isOpen || (N === 0 && !isLoading)) return null;
 
 	if (contentWarning && !hasAcknowledgedWarning) {
 		return createPortal(
@@ -780,6 +783,42 @@ export function PhotoViewer({
 				>
 					{t("shared_albums.sensitive_content_confirm", { defaultValue: "View album" })}
 				</button>
+			</div>,
+			document.body,
+		);
+	}
+
+	// Still loading: the viewer's own chrome (back, album header) over black,
+	// with a spinner where the media will appear.
+	if (N === 0) {
+		return createPortal(
+			<div className="fixed inset-0 z-[80] bg-black">
+				<div className="absolute inset-x-0 top-0 z-[83] flex items-center gap-3 px-[var(--app-px)]" style={{ paddingTop: chromeTopOffset }}>
+					<button
+						type="button"
+						onClick={onClose}
+						className="header-icon-btn header-icon-btn--back inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
+						aria-label={t("profile_details.close_photo_viewer")}
+					>
+						<ChevronLeft className="h-4 w-4" />
+					</button>
+					{albumHeader && (
+						<div className="header-back-adjacent flex min-w-0 items-center gap-3">
+							<div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-white/10">
+								<ProfileImage src={albumHeader.avatarUrl} alt={albumHeader.name} />
+							</div>
+							<div className="min-w-0">
+								<p className="truncate text-lg font-semibold leading-tight text-white">{albumHeader.name}</p>
+								{albumHeader.subtitle && (
+									<p className="truncate text-sm leading-tight text-white/70">{albumHeader.subtitle}</p>
+								)}
+							</div>
+						</div>
+					)}
+				</div>
+				<div className="flex h-full items-center justify-center" role="status" aria-label={t("shared_albums.opening")}>
+					<Loader2 className="h-8 w-8 animate-spin text-white/70" />
+				</div>
 			</div>,
 			document.body,
 		);

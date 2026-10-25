@@ -1,5 +1,4 @@
 import { Album, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Video } from "lucide-react";
-import { BusyOverlay } from "../../components/ui/busy-overlay";
 import type { TFunction } from "i18next";
 import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -172,6 +171,8 @@ export function SharedAlbumsPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [items, setItems] = useState<SharedAlbumItem[]>([]);
 	const [isOpeningAlbum, setIsOpeningAlbum] = useState(false);
+	// The album an open is in flight for; cleared when the viewer closes.
+	const pendingOpenAlbumIdRef = useRef<AlbumViewer["albumId"] | null>(null);
 	const [openAlbumError, setOpenAlbumError] = useState<string | null>(null);
 	const [viewer, setViewer] = useState<AlbumViewer | null>(null);
 	const [viewerIndex, setViewerIndex] = useState(0);
@@ -533,6 +534,25 @@ export function SharedAlbumsPage() {
 		[openAlbumAsBottomSheet],
 	);
 
+	const closeViewerState = useCallback(() => {
+		// Closed while still loading: the pending open is dropped.
+		pendingOpenAlbumIdRef.current = null;
+		setIsOpeningAlbum(false);
+		setViewer(null);
+		setViewerIndex(0);
+		setIsContentSheetOpen(false);
+		viewerHistoryPushedRef.current = false;
+	}, []);
+
+	const closeViewer = useCallback(() => {
+		if (viewerHistoryPushedRef.current) {
+			window.history.back();
+			return;
+		}
+
+		closeViewerState();
+	}, [closeViewerState]);
+
 	const openViewer = useCallback(
 		async (item: SharedAlbumItem) => {
 			if (isOpeningAlbum) {
@@ -552,6 +572,33 @@ export function SharedAlbumsPage() {
 
 			const albumId = item.album.albumId;
 
+			// Open right away with what the tile already knows; the viewer or
+			// sheet shows its own loading state until the content arrives.
+			const meta = {
+				albumId,
+				albumName: item.album.albumName ?? null,
+				profileId: item.profileId,
+				profileName: item.profileName,
+				profileMediaHash: item.profileMediaHash,
+				onlineUntil: item.onlineUntil,
+				lastOnline: item.lastOnline,
+				distanceMetres: item.distanceMetres,
+				conversationId: item.conversationId,
+			};
+			pendingOpenAlbumIdRef.current = albumId;
+			setIsOpeningAlbum(true);
+			openLoadedAlbum({ ...meta, content: [] });
+			// Ignored once the album was closed (or another one opened) meanwhile.
+			const isStillOpening = () => pendingOpenAlbumIdRef.current === albumId;
+			const present = (data: AlbumViewer) => {
+				if (isStillOpening()) setViewer(data);
+			};
+			const failOpen = (message: string) => {
+				if (!isStillOpening()) return;
+				closeViewer();
+				reportOpenError(message);
+			};
+
 			// Opens straight from chatDb's cached content — used both for
 			// localOnly items (album dropped out of the live feed entirely)
 			// and as a fallback for "hybrid" items that are still live on the
@@ -565,16 +612,10 @@ export function SharedAlbumsPage() {
 				if (!local || local.content.length === 0) {
 					return false;
 				}
-				openLoadedAlbum({
+				present({
+					...meta,
 					albumId: local.albumId,
-					albumName: local.albumName ?? item.album.albumName ?? null,
-					profileId: item.profileId,
-					profileName: item.profileName,
-					profileMediaHash: item.profileMediaHash,
-					onlineUntil: item.onlineUntil,
-					lastOnline: item.lastOnline,
-					distanceMetres: item.distanceMetres,
-					conversationId: item.conversationId,
+					albumName: local.albumName ?? meta.albumName,
 					content: local.content,
 				});
 				return true;
@@ -583,18 +624,19 @@ export function SharedAlbumsPage() {
 			// The album has dropped out of the live feed entirely, so local
 			// cache is the only source.
 			if (item.localOnly) {
-				setIsOpeningAlbum(true);
 				try {
 					if (!(await openFromLocalCache())) {
-						reportOpenError(t("shared_albums.error_open_fallback"));
+						failOpen(t("shared_albums.error_open_fallback"));
 					}
 				} finally {
-					setIsOpeningAlbum(false);
+					if (isStillOpening()) {
+						pendingOpenAlbumIdRef.current = null;
+						setIsOpeningAlbum(false);
+					}
 				}
 				return;
 			}
 
-			setIsOpeningAlbum(true);
 			try {
 				await apiFunctions.openSharedAlbum({ albumId });
 
@@ -628,16 +670,10 @@ export function SharedAlbumsPage() {
 					...localOnly,
 				];
 
-				openLoadedAlbum({
+				present({
+					...meta,
 					albumId: details.albumId,
-					albumName: details.albumName ?? local?.albumName ?? null,
-					profileId: item.profileId,
-					profileName: item.profileName,
-					profileMediaHash: item.profileMediaHash,
-					onlineUntil: item.onlineUntil,
-					lastOnline: item.lastOnline,
-					distanceMetres: item.distanceMetres,
-					conversationId: item.conversationId,
+					albumName: details.albumName ?? local?.albumName ?? meta.albumName,
 					content: mergedContent,
 				});
 
@@ -661,16 +697,19 @@ export function SharedAlbumsPage() {
 				if (await openFromLocalCache().catch(() => false)) {
 					return;
 				}
-				reportOpenError(
+				failOpen(
 					openError instanceof Error
 						? openError.message
 						: t("shared_albums.error_open_fallback"),
 				);
 			} finally {
-				setIsOpeningAlbum(false);
+				if (isStillOpening()) {
+					pendingOpenAlbumIdRef.current = null;
+					setIsOpeningAlbum(false);
+				}
 			}
 		},
-		[apiFunctions, isOpeningAlbum, t, openLoadedAlbum],
+		[apiFunctions, isOpeningAlbum, t, openLoadedAlbum, closeViewer],
 	);
 
 	// Tapping an item inside the album's browse-first sheet — the sheet stays
@@ -749,22 +788,6 @@ export function SharedAlbumsPage() {
 			type: item.contentType?.startsWith("video/") ? "video" : "image",
 		}));
 	}, [viewer]);
-
-	const closeViewerState = useCallback(() => {
-		setViewer(null);
-		setViewerIndex(0);
-		setIsContentSheetOpen(false);
-		viewerHistoryPushedRef.current = false;
-	}, []);
-
-	const closeViewer = useCallback(() => {
-		if (viewerHistoryPushedRef.current) {
-			window.history.back();
-			return;
-		}
-
-		closeViewerState();
-	}, [closeViewerState]);
 
 	const handleIndexChange = useCallback((index: number) => {
 		setViewerIndex((prev) => (prev === index ? prev : index));
@@ -1067,10 +1090,6 @@ export function SharedAlbumsPage() {
 			 * app-screen's padding (a gap at the top) and trap them under the
 			 * bottom NavBar's stacking context instead of covering it.
 			 */}
-			{isOpeningAlbum ? (
-				<BusyOverlay label={t("shared_albums.opening")} zIndex="z-40" />
-			) : null}
-
 			{viewer !== null && openAlbumAsBottomSheet ? (
 				<AlbumMediaSheet
 					albumName={viewer.albumName}
@@ -1078,6 +1097,7 @@ export function SharedAlbumsPage() {
 					onClose={closeViewerState}
 					onSelect={handleSelectAlbumContent}
 					locked={!isContentSheetOpen}
+					isLoading={isOpeningAlbum}
 				/>
 			) : null}
 
@@ -1091,6 +1111,7 @@ export function SharedAlbumsPage() {
 					conversationId={albumViewerFolderKey(viewer)}
 					menuActions={albumMenuActions}
 					albumHeader={albumHeader}
+					isLoading={isOpeningAlbum}
 					// Only gate directly-opened albums — once the user has already
 					// browsed the album's contents in the browse-first sheet, the
 					// warning would be redundant for every item tapped from it.

@@ -7,6 +7,7 @@ import {
 	DrawerBody,
 	DrawerEmptyState,
 	DrawerGrid,
+	DrawerGridSkeleton,
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
@@ -29,12 +30,14 @@ type Props = {
 	onSelect: (index: number) => void;
 	/** True while the full-screen viewer is open on top of this sheet — disables the sheet's own Escape/backdrop/swipe dismissal so those gestures act on the viewer instead of closing the (currently hidden) sheet underneath it. */
 	locked?: boolean;
+	/** The album's content is still loading: placeholder tiles instead of the empty state. */
+	isLoading?: boolean;
 };
 
 /** Browse-first grid for an album's content — the same tiles, spacing and
  * hold-to-peek as the media drawers, but for a single album. Tapping an item
  * opens it in the full-screen album viewer at that index. */
-export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked = false }: Props) {
+export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked = false, isLoading = false }: Props) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
 	const { preview, bind, consumeClick } = useDrawerMediaPreview();
@@ -52,7 +55,9 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 			<DrawerBody
 				isDesktop={isDesktop}
 				className={isDesktop ? "min-h-[60vh] pb-4" : "pb-4"}
-				empty={content.length === 0 ? (
+				empty={content.length === 0 && isLoading ? (
+					<DrawerGridSkeleton isDesktop={isDesktop} />
+				) : content.length === 0 ? (
 					<div className="flex h-full items-center justify-center py-8">
 						<DrawerEmptyState
 							icon={<Images className="h-5 w-5" />}
