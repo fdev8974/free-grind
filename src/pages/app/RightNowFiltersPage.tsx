@@ -7,7 +7,7 @@ import { SheetChip, SheetSection } from "../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { HomeFilled } from "../../components/icons/FilledIcons";
 import type { RightNowFiltersDraft } from "./rightnow/rightnow-filters-storage";
-import { getSexualPositionFilterOptions } from "./profile-option-builders";
+import { getSexualPositionFilterOptions, SEXUAL_POSITION_ICONS } from "./profile-option-builders";
 
 interface RightNowFiltersPageProps {
 	onClose: () => void;
@@ -64,16 +64,24 @@ export function RightNowFiltersPage({ onClose, onApply, initialDraft }: RightNow
 
 					<SheetSection title={t("right_now_filters.position")}>
 						<div className="flex flex-wrap gap-2">
-							{positionFilterOptions.map((option) => (
-								<SheetChip
-									key={option.value || "any"}
-									active={option.value === positionFilter}
-									onClick={() => setPositionFilter(option.value)}
-									accentColor="var(--right-now)"
-								>
-									{option.label}
-								</SheetChip>
-							))}
+							{positionFilterOptions.map((option) => {
+								const Icon = option.value ? SEXUAL_POSITION_ICONS[Number(option.value)] : undefined;
+								return (
+									<SheetChip
+										key={option.value || "any"}
+										active={option.value === positionFilter}
+										onClick={() => setPositionFilter(option.value)}
+										accentColor="var(--right-now)"
+									>
+										{Icon ? (
+											<span className="inline-flex items-center gap-1.5">
+												<Icon className="h-3.5 w-3.5 shrink-0" />
+												{option.label}
+											</span>
+										) : option.label}
+									</SheetChip>
+								);
+							})}
 						</div>
 					</SheetSection>
 

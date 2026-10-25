@@ -49,7 +49,7 @@ import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { RightNowMap, getRightNowAvatarUrl, getRightNowItemKey, getRightNowProfileImageUrl, hasMapPosition } from "./rightnow/RightNowMap";
 import { proxyMediaUrl } from "../../utils/mediaProxy";
-import { sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { SHEET_ICON_BUTTON_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 
 type SortOption = RightNowSortOption;
 
@@ -393,10 +393,10 @@ function RightNowMapCard({
 				onClick={onClose}
 				aria-label={t("common.close")}
 				className={cn(
-					"absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full transition",
+					"absolute right-3 top-3 z-10",
 					heroSrc
-						? "bg-black/45 text-white backdrop-blur-md hover:bg-black/60"
-						: "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
+						? "inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-md transition hover:bg-black/60"
+						: SHEET_ICON_BUTTON_CLASS,
 				)}
 			>
 				<X className="h-4 w-4" />
