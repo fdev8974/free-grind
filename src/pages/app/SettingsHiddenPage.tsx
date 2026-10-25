@@ -172,17 +172,17 @@ export function SettingsHiddenPage() {
 				{isLoading ? (
 					<div>
 						<div className="mb-2 flex items-center gap-2 px-1">
-							<div className="h-3 w-16 animate-pulse rounded-full bg-[var(--surface-2)]" />
+							<div className="h-3 w-16 animate-pulse rounded-full ink-tint-10" />
 						</div>
-						<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 							{Array.from({ length: 4 }).map((_, i) => (
 								<div key={i} className="flex items-center gap-3 px-4 py-3">
-									<div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-[var(--surface-2)]" />
+									<div className="h-10 w-10 shrink-0 animate-pulse rounded-full ink-tint-10" />
 									<div className="min-w-0 flex-1 space-y-1.5">
-										<div className="h-3.5 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
-										<div className="h-3 w-16 animate-pulse rounded-full bg-[var(--surface-2)]" />
+										<div className="h-3.5 w-28 animate-pulse rounded-full ink-tint-10" />
+										<div className="h-3 w-16 animate-pulse rounded-full ink-tint-10" />
 									</div>
-									<div className="h-7 w-20 animate-pulse rounded-xl bg-[var(--surface-2)]" />
+									<div className="h-7 w-20 animate-pulse rounded-full ink-tint-10" />
 								</div>
 							))}
 						</div>
@@ -204,11 +204,11 @@ export function SettingsHiddenPage() {
 							<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 								{t("settings_hidden.section_label", { defaultValue: "Hidden" })}
 							</p>
-							<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
+							<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
 								{hiddenProfiles.length}
 							</span>
 						</div>
-						<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 							{hiddenProfiles.map((profile) => {
 								const isMutating = mutatingProfileId === profile.profileId;
 								return (
@@ -242,7 +242,7 @@ export function SettingsHiddenPage() {
 												handleUnhidePress(profile.profileId);
 											}}
 											disabled={isMutating}
-											className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-[var(--border)] px-2.5 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/5 hover:text-[var(--accent)] disabled:opacity-50"
+											className="inline-flex shrink-0 items-center gap-1.5 rounded-full ink-tint-10 px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] transition-[transform,background-color,color] duration-150 hover:ink-tint-14 hover:text-[var(--accent)] active:scale-[0.96] disabled:opacity-50"
 										>
 											<Eye className="h-3.5 w-3.5" />
 											{t("settings_hidden.unhide", { defaultValue: "Unhide" })}
@@ -254,9 +254,9 @@ export function SettingsHiddenPage() {
 					</div>
 				)}
 				{!isLoading && !error && hiddenProfiles.length > 0 && (
-					<div className="surface-card overflow-hidden">
+					<div className="native-card overflow-hidden">
 						<div className="flex items-start gap-3 p-4">
-							<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
+							<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--text-muted)]">
 								<EyeOffFilled className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
@@ -273,7 +273,7 @@ export function SettingsHiddenPage() {
 											<button
 												type="button"
 												onClick={() => setConfirmUnhideAll(true)}
-												className="shrink-0 inline-flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm font-semibold transition hover:bg-[var(--surface)]"
+												className="shrink-0 inline-flex items-center justify-center rounded-full ink-tint-10 px-4 py-2 text-sm font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97]"
 											>
 												{t("settings_hidden.unhide_all_title", { defaultValue: "Unhide All" })}
 											</button>

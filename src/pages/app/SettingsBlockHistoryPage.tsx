@@ -66,13 +66,13 @@ export function SettingsBlockHistoryPage() {
 
 			<div className="grid gap-6">
 				{isLoading ? (
-					<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+					<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 						{Array.from({ length: 4 }).map((_, i) => (
 							<div key={i} className="flex items-center gap-3 px-4 py-3">
-								<div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-[var(--surface-2)]" />
+								<div className="h-10 w-10 shrink-0 animate-pulse rounded-full ink-tint-10" />
 								<div className="min-w-0 flex-1 space-y-1.5">
-									<div className="h-3.5 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
-									<div className="h-3 w-24 animate-pulse rounded-full bg-[var(--surface-2)]" />
+									<div className="h-3.5 w-28 animate-pulse rounded-full ink-tint-10" />
+									<div className="h-3 w-24 animate-pulse rounded-full ink-tint-10" />
 								</div>
 							</div>
 						))}
@@ -94,11 +94,11 @@ export function SettingsBlockHistoryPage() {
 							<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 								{t("settings_block_history.section_label")}
 							</p>
-							<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
+							<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
 								{events.length}
 							</span>
 						</div>
-						<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 							{events.map((event) => {
 								const displayName =
 									event.displayName || t("settings_block_history.name_fallback");
@@ -123,7 +123,7 @@ export function SettingsBlockHistoryPage() {
 											</p>
 										</div>
 										<span
-											className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold ${
+											className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
 												isBlocked
 													? "bg-red-500/10 text-red-400"
 													: "bg-emerald-500/10 text-emerald-400"
