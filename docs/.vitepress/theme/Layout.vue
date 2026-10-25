@@ -3,6 +3,8 @@ import { useData } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 import { nextTick, provide } from "vue";
 import AppScreenshots from "./AppScreenshots.vue";
+import HomeBackdrop from "./HomeBackdrop.vue";
+import HomeCta from "./HomeCta.vue";
 
 const { isDark } = useData();
 
@@ -40,8 +42,12 @@ provide("toggle-appearance", async () => {
 
 <template>
 	<DefaultTheme.Layout>
+		<template #home-hero-before>
+			<HomeBackdrop />
+		</template>
 		<template #home-features-after>
 			<AppScreenshots />
+			<HomeCta />
 		</template>
 	</DefaultTheme.Layout>
 </template>
