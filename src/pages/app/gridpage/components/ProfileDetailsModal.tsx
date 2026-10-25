@@ -1,5 +1,5 @@
 import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
-import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled } from "../../../../components/icons/FilledIcons";
+import { BananaFilled, EyeFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1661,6 +1661,122 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		);
 	};
 
+	// Floating bar to message or tap the profile: one frosted pill hovering
+	// over the content, like the location sheet's search (MapSheetSearch).
+	// Message turns into a filled send button once there's text.
+	const renderQuickMessageBar = (paddingBottom: string) => {
+		const sendDraft = () => {
+			if (!quickMessageDraft.trim()) return;
+			onSendQuickMessage?.(String(messageProfileId), quickMessageDraft.trim());
+			setQuickMessageDraft("");
+		};
+		const hasDraft = quickMessageDraft.trim().length > 0;
+		return (
+			// The dark fade stays from before; only the pill takes touches.
+			<div
+				className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-3"
+				style={{
+					paddingTop: "5rem",
+					paddingBottom,
+					background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.7) 45%, transparent 100%)",
+				}}
+			>
+				{isProfileUnavailable ? (
+					<div className="flex items-center justify-center gap-2 pb-1">
+						<ShieldCheck className="h-4 w-4 text-white/60" />
+						<p className="text-sm font-medium text-white/70">{t("profile_details.snapshot_banner.title")}</p>
+					</div>
+				) : (
+					<div
+						ref={controlsBarRef}
+						className="pointer-events-auto flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] p-1 shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl transition focus-within:ring-2 focus-within:ring-[var(--accent)]"
+						onPointerDown={(e) => e.stopPropagation()}
+					>
+						<div className="min-w-0 flex-1" style={{ pointerEvents: barInputVisible ? "auto" : "none" }}>
+							<input
+								type="text"
+								value={quickMessageDraft}
+								onChange={(e) => setQuickMessageDraft(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Enter") sendDraft();
+								}}
+								enterKeyHint="send"
+								placeholder={t("profile_details.quick_message_placeholder", "Message...")}
+								className="h-10 w-full bg-transparent pl-4 pr-2 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+								style={{ opacity: barInputVisible ? 1 : 0, transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s" }}
+							/>
+						</div>
+						<div
+							className="transition-[max-width] duration-200 ease-out"
+							style={{ maxWidth: barTapPickerOpen ? `${3 * 52}px` : "0px", overflowX: barTapPickerOpen ? "visible" : "clip", overflowY: "visible" }}
+						>
+							<div ref={barTapOptionsRef} className="flex items-center">
+								{[0, 2, 1].map((id) => (
+									<div
+										key={id}
+										data-tap-id={id}
+										onClick={() => fireTap(id)}
+										onMouseEnter={() => setBarTapHoverId(id)}
+										onMouseLeave={() => setBarTapHoverId(null)}
+										className={`flex h-10 w-13 cursor-pointer items-center justify-center text-2xl leading-none transition-all duration-150 ${barTapHoverId === id ? "origin-bottom scale-[2] opacity-100" : "opacity-60"}`}
+										style={barTapHoverId === id ? { filter: barTapGlow(id) } : undefined}
+									>
+										{barTapEmoji(id)}
+									</div>
+								))}
+							</div>
+						</div>
+						<button
+							ref={barTapButtonRef}
+							type="button"
+							onPointerDown={handleBarTapPointerDown}
+							onPointerMove={handleBarTapPointerMove}
+							onPointerUp={handleBarTapPointerUp}
+							onPointerCancel={() => { setBarTapPickerOpen(false); setBarTapHoverId(null); barTapStickyRef.current = false; if (barTapLongPressRef.current) clearTimeout(barTapLongPressRef.current); barInputTimerRef.current = setTimeout(() => setBarInputVisible(true), 210); }}
+							disabled={isTapDisabled}
+							aria-label={t("profile_details.tap", { defaultValue: "Tap" })}
+							className={`tap-btn-base relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-[var(--text-muted)]" : isTapActive || barTapHoverId !== null ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}
+							style={isTapBlocked ? { filter: barTapGlow(tapVisualState.tapId) } : !barTapPickerOpen && barTapHoverId !== null ? { filter: barTapGlow(barTapHoverId) } : undefined}
+						>
+							{barTapPickerOpen
+								? <X className="h-5 w-5" strokeWidth={2} />
+								: barTapHoverId !== null
+									? barTapEmoji(barTapHoverId)
+									: isTapActive
+										? barTapEmoji(tapVisualState.tapId)
+										: <Flame className="h-5 w-5" strokeWidth={1.8} />
+							}
+						</button>
+						{(onMessageProfile || onSendQuickMessage) && (
+							<button
+								type="button"
+								onClick={() => {
+									if (hasDraft) sendDraft();
+									else onMessageProfile?.(String(messageProfileId));
+								}}
+								aria-label={hasDraft ? t("chat.send") : t("profile_details.message")}
+								className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition hover:opacity-80 ${hasDraft ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "text-[var(--accent)]"}`}
+							>
+								{hasDraft ? (
+									<SendHorizontalFilled className="h-5 w-5" />
+								) : (
+									<span className="relative inline-flex">
+										<MessageCircle className="h-5 w-5" strokeWidth={1.8} />
+										{(chatContactStatus?.unreadCount ?? 0) > 0 && (
+											<span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-contrast)] shadow-sm">
+												{chatContactStatus?.unreadCount}
+											</span>
+										)}
+									</span>
+								)}
+							</button>
+						)}
+					</div>
+				)}
+			</div>
+		);
+	};
+
 	const renderInlineLayout = () => (
 		<>
 			{/* Floating header — transparent over carousel, opaque after scrolling */}
@@ -1965,119 +2081,9 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				</div>
 			</div>
 
-			{/* Floating footer with gradient */}
-			{messageProfileId && !isOwnProfile && (
-				<div
-					className="pointer-events-none absolute inset-x-0 bottom-0 z-30"
-					style={{
-						paddingTop: "5rem",
-						paddingBottom: variant === "page" ? "calc(env(safe-area-inset-bottom,0px) + 0.75rem)" : "0.75rem",
-						background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.7) 45%, transparent 100%)",
-					}}
-				>
-					{isProfileUnavailable ? (
-						<div className="flex items-center justify-center gap-2 px-3 pb-1">
-							<ShieldCheck className="h-4 w-4 text-white/60" />
-							<p className="text-sm font-medium text-white/70">{t("profile_details.snapshot_banner.title")}</p>
-						</div>
-					) : (
-					<div
-						ref={controlsBarRef}
-						className="pointer-events-auto flex items-center gap-1 px-3"
-						onPointerDown={(e) => e.stopPropagation()}
-					>
-						<div className="relative min-w-0 flex-1" style={{ pointerEvents: barInputVisible ? "auto" : "none" }}>
-							<div
-								className="pointer-events-none absolute inset-0 rounded-xl backdrop-blur-md"
-								style={{
-									background: "color-mix(in srgb, var(--surface-2) 50%, transparent)",
-									border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)",
-									opacity: barInputVisible ? 1 : 0,
-									transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s",
-								}}
-							/>
-							<input
-								type="text"
-								value={quickMessageDraft}
-								onChange={(e) => setQuickMessageDraft(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter" && quickMessageDraft.trim()) {
-										onSendQuickMessage?.(String(messageProfileId), quickMessageDraft.trim());
-										setQuickMessageDraft("");
-									}
-								}}
-								placeholder={t("profile_details.quick_message_placeholder", "Message...")}
-								className="relative h-11 w-full rounded-xl bg-transparent px-4 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
-								style={{ opacity: barInputVisible ? 1 : 0, transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s" }}
-							/>
-						</div>
-						<div
-							className="transition-[max-width] duration-200 ease-out"
-							style={{ maxWidth: barTapPickerOpen ? `${3 * 52}px` : "0px", overflowX: barTapPickerOpen ? "visible" : "clip", overflowY: "visible" }}
-						>
-							<div ref={barTapOptionsRef} className="flex items-center">
-								{[0, 2, 1].map((id) => (
-									<div
-										key={id}
-										data-tap-id={id}
-										onClick={() => fireTap(id)}
-										onMouseEnter={() => setBarTapHoverId(id)}
-										onMouseLeave={() => setBarTapHoverId(null)}
-										className={`flex h-11 w-13 cursor-pointer items-center justify-center text-2xl leading-none transition-all duration-150 ${barTapHoverId === id ? "origin-bottom scale-[2] opacity-100" : "opacity-60"}`}
-										style={barTapHoverId === id ? { filter: barTapGlow(id) } : undefined}
-									>
-										{barTapEmoji(id)}
-									</div>
-								))}
-							</div>
-						</div>
-						<button
-							ref={barTapButtonRef}
-							type="button"
-							onPointerDown={handleBarTapPointerDown}
-							onPointerMove={handleBarTapPointerMove}
-							onPointerUp={handleBarTapPointerUp}
-							onPointerCancel={() => { setBarTapPickerOpen(false); setBarTapHoverId(null); barTapStickyRef.current = false; if (barTapLongPressRef.current) clearTimeout(barTapLongPressRef.current); barInputTimerRef.current = setTimeout(() => setBarInputVisible(true), 210); }}
-							disabled={isTapDisabled}
-							className={`tap-btn-base relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-[var(--text-muted)]" : isTapActive || barTapHoverId !== null ? "text-white" : "text-[var(--text-muted)]"}`}
-							style={isTapBlocked ? { filter: barTapGlow(tapVisualState.tapId) } : !barTapPickerOpen && barTapHoverId !== null ? { filter: barTapGlow(barTapHoverId) } : undefined}
-						>
-							{barTapPickerOpen
-								? <X className="h-5 w-5" strokeWidth={2} />
-								: barTapHoverId !== null
-									? barTapEmoji(barTapHoverId)
-									: isTapActive
-										? barTapEmoji(tapVisualState.tapId)
-										: <Flame className="h-5 w-5" strokeWidth={1.8} />
-							}
-						</button>
-						{(onMessageProfile || onSendQuickMessage) && (
-							<button
-								type="button"
-								onClick={() => {
-									if (quickMessageDraft.trim()) {
-										onSendQuickMessage?.(String(messageProfileId), quickMessageDraft.trim());
-										setQuickMessageDraft("");
-									} else {
-										onMessageProfile?.(String(messageProfileId));
-									}
-								}}
-								className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none bg-transparent text-[var(--accent)] transition hover:brightness-110"
-							>
-								<span className="relative inline-flex">
-									<MessageCircle className="h-5 w-5" strokeWidth={1.8} />
-									{(chatContactStatus?.unreadCount ?? 0) > 0 && (
-										<span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-contrast)] shadow-sm">
-											{chatContactStatus?.unreadCount}
-										</span>
-									)}
-								</span>
-							</button>
-						)}
-					</div>
-					)}
-				</div>
-			)}
+			{/* Floating message bar, like the chat's composer */}
+			{messageProfileId && !isOwnProfile &&
+				renderQuickMessageBar(variant === "page" ? "calc(env(safe-area-inset-bottom,0px) + 0.75rem)" : "0.75rem")}
 		</>
 	);
 
@@ -2473,58 +2479,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								</div>
 							</div>
 							{/* Split-mode footer */}
-							{messageProfileId && !isOwnProfile && (
-								<div className="pointer-events-none absolute inset-x-0 bottom-0 z-30" style={{ paddingTop: "5rem", paddingBottom: "0.75rem", background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.7) 45%, transparent 100%)" }}>
-									{isProfileUnavailable ? (
-									<div className="flex items-center justify-center gap-2 px-3 pb-1">
-										<ShieldCheck className="h-4 w-4 text-white/60" />
-										<p className="text-sm font-medium text-white/70">{t("profile_details.snapshot_banner.title")}</p>
-									</div>
-									) : (
-									<div ref={controlsBarRef} className="pointer-events-auto flex items-center gap-1 px-3" onPointerDown={(e) => e.stopPropagation()}>
-										<div className="relative min-w-0 flex-1" style={{ pointerEvents: barInputVisible ? "auto" : "none" }}>
-											<div className="pointer-events-none absolute inset-0 rounded-xl backdrop-blur-md" style={{ background: "color-mix(in srgb, var(--surface-2) 50%, transparent)", border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", opacity: barInputVisible ? 1 : 0, transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s" }} />
-											<input type="text" value={quickMessageDraft} onChange={(e) => setQuickMessageDraft(e.target.value)}
-												onKeyDown={(e) => { if (e.key === "Enter" && quickMessageDraft.trim()) { onSendQuickMessage?.(String(messageProfileId), quickMessageDraft.trim()); setQuickMessageDraft(""); } }}
-												placeholder={t("profile_details.quick_message_placeholder", "Message...")}
-												className="relative h-11 w-full rounded-xl bg-transparent px-4 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
-												style={{ opacity: barInputVisible ? 1 : 0, transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s" }} />
-										</div>
-										<div className="transition-[max-width] duration-200 ease-out" style={{ maxWidth: barTapPickerOpen ? `${3 * 52}px` : "0px", overflowX: barTapPickerOpen ? "visible" : "clip", overflowY: "visible" }}>
-											<div ref={barTapOptionsRef} className="flex items-center">
-												{[0, 2, 1].map((id) => (
-													<div key={id} data-tap-id={id} onClick={() => fireTap(id)} onMouseEnter={() => setBarTapHoverId(id)} onMouseLeave={() => setBarTapHoverId(null)}
-														className={`flex h-11 w-13 cursor-pointer items-center justify-center text-2xl leading-none transition-all duration-150 ${barTapHoverId === id ? "origin-bottom scale-[2] opacity-100" : "opacity-60"}`}
-														style={barTapHoverId === id ? { filter: barTapGlow(id) } : undefined}>
-														{barTapEmoji(id)}
-													</div>
-												))}
-											</div>
-										</div>
-										<button ref={barTapButtonRef} type="button" onPointerDown={handleBarTapPointerDown} onPointerMove={handleBarTapPointerMove} onPointerUp={handleBarTapPointerUp}
-											onPointerCancel={() => { setBarTapPickerOpen(false); setBarTapHoverId(null); barTapStickyRef.current = false; if (barTapLongPressRef.current) clearTimeout(barTapLongPressRef.current); barInputTimerRef.current = setTimeout(() => setBarInputVisible(true), 210); }}
-											disabled={isTapDisabled}
-											className={`tap-btn-base relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-[var(--text-muted)]" : isTapActive || barTapHoverId !== null ? "text-white" : "text-[var(--text-muted)]"}`}
-											style={isTapBlocked ? { filter: barTapGlow(tapVisualState.tapId) } : !barTapPickerOpen && barTapHoverId !== null ? { filter: barTapGlow(barTapHoverId) } : undefined}>
-											{barTapPickerOpen ? <X className="h-5 w-5" strokeWidth={2} /> : barTapHoverId !== null ? barTapEmoji(barTapHoverId) : isTapActive ? barTapEmoji(tapVisualState.tapId) : <Flame className="h-5 w-5" strokeWidth={1.8} />}
-										</button>
-										{(onMessageProfile || onSendQuickMessage) && (
-											<button type="button" onClick={() => { if (quickMessageDraft.trim()) { onSendQuickMessage?.(String(messageProfileId), quickMessageDraft.trim()); setQuickMessageDraft(""); } else { onMessageProfile?.(String(messageProfileId)); } }}
-												className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none bg-transparent text-[var(--accent)] transition hover:brightness-110">
-												<span className="relative inline-flex">
-													<MessageCircle className="h-5 w-5" strokeWidth={1.8} />
-													{(chatContactStatus?.unreadCount ?? 0) > 0 && (
-														<span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[9px] font-bold text-[var(--accent-contrast)] shadow-sm">
-															{chatContactStatus?.unreadCount}
-														</span>
-													)}
-												</span>
-											</button>
-										)}
-									</div>
-									)}
-								</div>
-							)}
+							{messageProfileId && !isOwnProfile && renderQuickMessageBar("0.75rem")}
 						</>
 					)}
 				</div>
