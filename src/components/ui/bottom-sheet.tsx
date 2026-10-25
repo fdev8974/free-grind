@@ -90,12 +90,15 @@ export function SheetClose({ children, className, style, disabled, onClick, "ari
 export const SHEET_ICON_BUTTON_CLASS =
 	"inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ink-tint-8 text-[var(--text-muted)] transition active:scale-90 active:ink-tint-16 hover:ink-tint-12 hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-40";
 
-/** Makes a sheet's bottom action row float: it overlaps the content above by
- * its top padding and fades from the sheet's background (--sheet-bg, set on
- * the panel) to transparent, so content scrolls away under the buttons
- * instead of ending at a hard edge. For footers in sheets without px-4. */
+/** Makes a sheet's bottom action row float like the map sheets' footer: it
+ * is pulled up over the content above by its own height (pt-8 + 48px button)
+ * on a fade that darkens the sheet's background (--sheet-bg, set on the
+ * panel) towards the bottom, so content scrolls on behind the buttons. The
+ * `.sheet-footer` rule in index.css gives the element right before it the
+ * matching bottom padding, so nothing ends up stuck under the buttons. For
+ * footers in sheets without px-4. */
 export const SHEET_FOOTER_FADE_CLASS =
-	"relative z-10 -mt-5 pt-7 bg-[linear-gradient(to_top,var(--sheet-bg)_55%,transparent)]";
+	"sheet-footer pointer-events-none relative z-10 -mt-20 pt-8 [&>*]:pointer-events-auto bg-[linear-gradient(to_top,color-mix(in_srgb,var(--sheet-bg)_85%,black)_0%,color-mix(in_srgb,var(--sheet-bg)_70%,transparent)_55%,transparent)]";
 
 /** Bottom action row of a sheet (in a px-4 panel). */
 export const SHEET_FOOTER_CLASS = `-mx-4 flex shrink-0 gap-2.5 px-4 ${SHEET_FOOTER_FADE_CLASS}`;

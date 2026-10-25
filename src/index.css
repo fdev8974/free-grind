@@ -1628,3 +1628,15 @@ dialog::backdrop {
 		transition: opacity 150ms;
 	}
 }
+
+/* Floating sheet footers (SHEET_FOOTER_FADE_CLASS) overlap the content above
+ * by their height (-mt-20). The element right before one gets that much
+ * bottom padding back, so a list can still scroll its last entry above the
+ * buttons and short content isn't covered. */
+:where(*):has(+ .sheet-footer) {
+	padding-bottom: calc(5rem + 0.75rem) !important;
+}
+/* Nothing before it to float over (e.g. wrapped in its own mt-auto div). */
+.sheet-footer:first-child {
+	margin-top: 0;
+}

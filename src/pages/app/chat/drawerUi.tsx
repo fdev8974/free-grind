@@ -519,7 +519,7 @@ export function DrawerTileCornerButton({
 	);
 }
 
-/** Bottom bar for the sheet's main action(s), separated by a full-width rule. */
+/** Bottom bar for the sheet's main action(s), floating over the content above. */
 export function DrawerFooter({ children }: { children: ReactNode }) {
 	return <div className={SHEET_FOOTER_CLASS}>{children}</div>;
 }
