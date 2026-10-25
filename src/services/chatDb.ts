@@ -2353,6 +2353,21 @@ export async function getAlbumMedia(albumId: string): Promise<StoredAlbumMedia[]
 	return rows.map(rowToStoredAlbumMedia);
 }
 
+/** Photo and video counts of every stored album, keyed by album id — read
+ * without loading any media bytes (unlike getAlbumMedia). */
+export async function getAlbumMediaCounts(): Promise<Map<string, { imageCount: number; videoCount: number }>> {
+	const db = await getDb();
+	const rows = await db.select<{ album_id: string; total: number; videos: number | null }[]>(
+		"SELECT album_id, COUNT(*) AS total, SUM(CASE WHEN content_type LIKE 'video/%' THEN 1 ELSE 0 END) AS videos FROM album_media GROUP BY album_id",
+	);
+	return new Map(
+		rows.map((row) => {
+			const videos = Number(row.videos ?? 0);
+			return [String(row.album_id), { imageCount: Number(row.total) - videos, videoCount: videos }] as const;
+		}),
+	);
+}
+
 type AlbumVideoRow = {
 	content_id: string;
 	album_id: string;

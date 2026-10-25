@@ -25,7 +25,7 @@ import {
 	getCachedAlbumCoverUri,
 	getLocalAlbum,
 } from "../../services/albumStore";
-import { getAllAlbums, getConversation } from "../../services/chatDb";
+import { getAlbumMediaCounts, getAllAlbums, getConversation } from "../../services/chatDb";
 import { toDataUri } from "../../services/mediaStore";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { PhotoViewer, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
@@ -305,6 +305,11 @@ export function SharedAlbumsPage() {
 				: (await getAllAlbums().catch(() => [])).filter(
 					(stored) => !liveAlbumIds.has(Number(stored.albumId)),
 				);
+			// Counts only, in one query: loading each album's media just to count
+			// it read every stored photo and video into memory and crashed the page.
+			const localCounts = cachedOnlyAlbums.length > 0
+				? await getAlbumMediaCounts().catch(() => new Map<string, { imageCount: number; videoCount: number }>())
+				: new Map<string, { imageCount: number; videoCount: number }>();
 			const cachedOnlyItems = (
 				await Promise.all(
 					cachedOnlyAlbums.map(async (stored): Promise<SharedAlbumItem | null> => {
@@ -324,12 +329,7 @@ export function SharedAlbumsPage() {
 								}
 							}
 						}
-						const localContent = (await getLocalAlbum(Number(stored.albumId)).catch(() => null))?.content ?? [];
-						const localVideoCount = localContent.filter((c) => c.contentType?.startsWith("video/")).length;
-						const localContentCount = {
-							imageCount: localContent.length - localVideoCount,
-							videoCount: localVideoCount,
-						};
+						const localContentCount = localCounts.get(String(stored.albumId)) ?? { imageCount: 0, videoCount: 0 };
 						const cachedCover =
 							getCachedAlbumCoverUri(Number(stored.albumId)) ??
 							(stored.previewCoverBase64 && stored.previewCoverMimeType
