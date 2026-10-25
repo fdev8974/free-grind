@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Check, Loader2, Music, SearchX } from "lucide-react";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
 import { SheetSearchInput } from "../../../components/ui/sheet-section";
 import { DrawerEmptyState } from "../chat/drawerUi";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
@@ -46,7 +47,13 @@ export function SpotifySongPickerDialog({ selected, onApply, onClose }: SpotifyS
 	};
 
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh] px-4">
+		<BottomSheet
+			onClose={onClose}
+			expandable
+			isDesktop={isDesktop}
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
+		>
 			<div className="mb-3 flex items-center justify-between gap-3">
 				<p className="text-sm font-semibold text-[var(--text)]">
 					{t("profile_editor.spotify.picker_title", { count: picked.length, max: MAX_SPOTIFY_FAVORITES })}
