@@ -1640,3 +1640,13 @@ dialog::backdrop {
 .sheet-footer:first-child {
 	margin-top: 0;
 }
+
+/* QR scan (services/qrScanner.ts): the camera sits behind the webview, so the
+   page goes see-through and only the portaled QrScanOverlay stays visible. */
+html.qr-scanning,
+html.qr-scanning body {
+	background: transparent !important;
+}
+html.qr-scanning #app {
+	visibility: hidden;
+}

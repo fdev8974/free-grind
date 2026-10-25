@@ -13,7 +13,7 @@ const CORNERS = [
 
 /**
  * Controls drawn over the camera while scanQrCode() runs. Portaled outside
- * #app, which is hidden (and see-through) during the scan — see layout.css.
+ * #app, which is hidden (and see-through) during the scan — see index.css.
  */
 export function QrScanOverlay({
 	hint,

@@ -7,7 +7,7 @@ import { isTauriRuntime } from "./tauriWebSocket";
 
 type PermissionState = "granted" | "denied" | "prompt" | "prompt-with-rationale";
 
-/** Set on <html> while scanning; layout.css makes the app see-through then. */
+/** Set on <html> while scanning; index.css makes the app see-through then. */
 const SCANNING_CLASS = "qr-scanning";
 
 export class QrScanError extends Error {

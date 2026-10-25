@@ -143,13 +143,3 @@ body {
 a {
 	-webkit-user-drag: none;
 }
-
-/* QR scan (services/qrScanner.ts): the camera sits behind the webview, so the
-   page goes see-through and only the portaled QrScanOverlay stays visible. */
-html.qr-scanning,
-html.qr-scanning body {
-	background: transparent !important;
-}
-html.qr-scanning #app {
-	visibility: hidden;
-}
