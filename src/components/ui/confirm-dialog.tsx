@@ -1,6 +1,9 @@
-import { Loader2, TriangleAlert } from "lucide-react";
-import { useEffect, useRef } from "react";
-import { sheetButtonClass } from "./bottom-sheet";
+import { Loader2, ShieldAlert, TriangleAlert } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { BottomSheet, SHEET_FOOTER_CLASS, sheetButtonClass } from "./bottom-sheet";
+import { NATIVE_SHEET_BG } from "./action-sheet";
 
 type ConfirmDialogProps = {
 	isOpen: boolean;
@@ -19,11 +22,106 @@ type ConfirmDialogProps = {
 	onDontAskAgainChange?: (checked: boolean) => void;
 };
 
-export function ConfirmDialog({
+/** A confirm with a `warning` (a risky action, e.g. spoofing the location):
+ * shown as a bottom sheet with a warning icon instead of a small alert, so
+ * the risk gets the room it needs. Slides out when `isOpen` turns false. */
+function RiskConfirmSheet({
 	isOpen,
 	title,
 	message,
 	warning,
+	confirmLabel,
+	cancelLabel,
+	onConfirm,
+	onCancel,
+	isProcessing,
+}: Required<Pick<ConfirmDialogProps, "isOpen" | "title" | "message" | "warning" | "confirmLabel" | "cancelLabel" | "onConfirm" | "onCancel" | "isProcessing">>) {
+	const isDesktop = useDesktopBreakpoint();
+	const [isMounted, setIsMounted] = useState(isOpen);
+	const closeRef = useRef<(() => void) | null>(null);
+	const isOpenRef = useRef(isOpen);
+	isOpenRef.current = isOpen;
+
+	useEffect(() => {
+		if (isOpen) setIsMounted(true);
+		// Closed from outside (confirmed, cancelled): slide out, then unmount.
+		else closeRef.current?.();
+	}, [isOpen]);
+
+	if (!isMounted) return null;
+	return createPortal(
+		<BottomSheet
+			onClose={() => {
+				setIsMounted(false);
+				// Swiped away or back pressed while still open: that's a cancel.
+				if (isOpenRef.current) onCancel();
+			}}
+			closeRef={closeRef}
+			isDesktop={isDesktop}
+			isProcessing={isProcessing}
+			bg={NATIVE_SHEET_BG}
+			panelClassName="max-h-[92dvh] px-4"
+		>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<div className="flex flex-col items-center px-2 pt-2 text-center">
+					<span className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 text-red-500">
+						<ShieldAlert className="h-7 w-7" />
+					</span>
+					<h3 className="mt-4 text-base font-semibold text-[var(--text)]">{title}</h3>
+					<p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
+				</div>
+				<div role="alert" className="mt-5 flex items-start gap-3 rounded-2xl bg-red-500/10 px-4 py-3">
+					<TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+					<p className="text-sm font-medium leading-relaxed text-red-500">{warning}</p>
+				</div>
+			</div>
+			<div className={SHEET_FOOTER_CLASS}>
+				<button
+					type="button"
+					onClick={() => closeRef.current?.()}
+					disabled={isProcessing}
+					className={sheetButtonClass("secondary")}
+				>
+					{cancelLabel}
+				</button>
+				<button
+					type="button"
+					onClick={() => void onConfirm()}
+					disabled={isProcessing}
+					className={sheetButtonClass("destructive")}
+				>
+					{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+					<span className="truncate">{confirmLabel}</span>
+				</button>
+			</div>
+		</BottomSheet>,
+		document.body,
+	);
+}
+
+export function ConfirmDialog(props: ConfirmDialogProps) {
+	if (props.warning) {
+		return (
+			<RiskConfirmSheet
+				isOpen={props.isOpen}
+				title={props.title}
+				message={props.message}
+				warning={props.warning}
+				confirmLabel={props.confirmLabel}
+				cancelLabel={props.cancelLabel}
+				onConfirm={props.onConfirm}
+				onCancel={props.onCancel}
+				isProcessing={props.isProcessing ?? false}
+			/>
+		);
+	}
+	return <AlertConfirmDialog {...props} />;
+}
+
+function AlertConfirmDialog({
+	isOpen,
+	title,
+	message,
 	confirmLabel,
 	cancelLabel,
 	onConfirm,
@@ -99,16 +197,6 @@ export function ConfirmDialog({
 			<div className="p-4">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
 				<p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
-
-				{warning ? (
-					<div
-						role="alert"
-						className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/50 bg-red-500/15 p-3 text-sm font-medium leading-relaxed text-red-300"
-					>
-						<TriangleAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />
-						<span>{warning}</span>
-					</div>
-				) : null}
 
 				{dontAskAgainLabel && onDontAskAgainChange ? (
 					<label className="mt-4 flex cursor-pointer items-center justify-between gap-3 text-sm text-[var(--text-muted)]">
