@@ -87,7 +87,7 @@ import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { ReportProfileDialog } from "../../../components/ReportProfileDialog";
 import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
-import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden } from "../../../utils/privacy";
+import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
 import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { ToggleRow } from "../../../components/ui/toggle-row";
@@ -968,13 +968,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	}, [threadMessages]);
 
     const [showReadReceiptToggle] = useState(() => getShowReadReceiptToggle());
-    const [readReceiptsHidden, setReadReceiptsHidden] = useState(true);
-
-    useEffect(() => {
-        if (selectedConversation) {
-            setReadReceiptsHidden(isReadReceiptsHidden(selectedConversation.data.conversationId));
-        }
-    }, [selectedConversation]);
+    // Derived from the privacy cache so a toggle from the chat list's context menu shows up here too.
+    useReadReceiptsChanged();
+    const readReceiptsHidden = selectedConversation ? isReadReceiptsHidden(selectedConversation.data.conversationId) : true;
 
 	const messageTranslations = useMessageTranslations(
 		selectedConversation?.data.conversationId ?? null,
@@ -1651,7 +1647,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														if (!selectedConversation) return;
 														setIsHeaderActionsMenuOpen(false);
 														const newState = toggleReadReceiptsHidden(selectedConversation.data.conversationId);
-														setReadReceiptsHidden(newState);
 														if (!newState) {
 															const lastMsg = threadMessages[threadMessages.length - 1];
 															if (lastMsg) {

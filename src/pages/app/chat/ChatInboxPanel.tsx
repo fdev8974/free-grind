@@ -1,4 +1,4 @@
-import { Archive, BellOff, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2 } from "lucide-react";
+import { Archive, BellOff, Check, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2 } from "lucide-react";
 import { BellOffFilled, EyeOffFilled, HomeFilled, LocateFixedFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
@@ -24,7 +24,9 @@ import {
 	getParticipantOnlineMeta,
 	getPreviewText,
 } from "../chat/chatUtils";
-import { isReadReceiptsHidden, isReadReceiptsOverridden, useReadReceiptsChanged } from "../../../utils/privacy";
+import toast from "react-hot-toast";
+import { getShowReadReceiptToggle, isReadReceiptsHidden, isReadReceiptsOverridden, toggleReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
+import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import {
 	SKIP_DELETE_CONVERSATION_CONFIRM_KEY,
 	isDeleteConversationConfirmSkipped,
@@ -149,6 +151,8 @@ type ConversationActionHandlers = {
 	onTogglePin: () => void;
 	onToggleMute: () => void;
 	onToggleHide: () => void;
+	/** Only set while the per-chat read-receipts toggle is enabled in Privacy settings. */
+	onToggleReadReceipts?: () => void;
 	onDelete: () => void;
 	/** Only set while the optional Locate feature is enabled. */
 	onLocate?: () => void;
@@ -190,6 +194,17 @@ function buildConversationActions(
 			icon: isHidden ? <EyeOffFilled className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />,
 			onSelect: handlers.onToggleHide,
 		},
+		...(handlers.onToggleReadReceipts && !isArchived
+			? (() => {
+				const hidden = isReadReceiptsHidden(conversation.data.conversationId);
+				return [{
+					key: "read-receipts",
+					label: `${t("chat.read_receipts_label")}: ${hidden ? t("chat.read_receipts_off") : t("chat.read_receipts_on")}`,
+					icon: hidden ? <Check className="h-4 w-4" /> : <CheckCheck className="h-4 w-4" />,
+					onSelect: handlers.onToggleReadReceipts,
+				}];
+			})()
+			: []),
 		...(handlers.onLocate
 			? [{
 				key: "locate",
@@ -217,7 +232,10 @@ function ConversationActionSheet({
 	actions: ConversationAction[];
 	onClose: () => void;
 }) {
-	return (
+	// Portal to <body> for the same reason as ConversationContextMenu: inside
+	// PullToRefreshContainer's transformed wrapper the fixed sheet gets trapped
+	// in its stacking context and ends up under the bottom nav.
+	return createPortal(
 		<SheetActionList
 			title={title}
 			isDesktop={false}
@@ -232,7 +250,8 @@ function ConversationActionSheet({
 				// (e.g. the delete confirmation).
 				onSelect: () => afterSheetClose(action.onSelect),
 			}))}
-		/>
+		/>,
+		document.body,
 	);
 }
 
@@ -250,6 +269,7 @@ function ConversationContextMenu({
 	onTogglePin,
 	onToggleMute,
 	onToggleHide,
+	onToggleReadReceipts,
 	onDelete,
 	onLocate,
 	isLocating,
@@ -264,6 +284,7 @@ function ConversationContextMenu({
 	onTogglePin: () => void;
 	onToggleMute: () => void;
 	onToggleHide: () => void;
+	onToggleReadReceipts?: () => void;
 	onDelete: () => void;
 	onLocate?: () => void;
 	isLocating?: boolean;
@@ -306,6 +327,7 @@ function ConversationContextMenu({
 		onTogglePin,
 		onToggleMute,
 		onToggleHide,
+		onToggleReadReceipts,
 		onDelete,
 		onLocate,
 		isLocating,
@@ -730,6 +752,9 @@ export function ChatInboxPanel({
 }: ChatInboxPanelProps) {
 	const { t } = useTranslation();
 	useReadReceiptsChanged();
+	const apiFunctions = useApiFunctions();
+	// Read on mount, same as the thread header; toggled in Privacy settings.
+	const [showReadReceiptToggle] = useState(getShowReadReceiptToggle);
 	const lastScrollAtRef = useRef(0);
 	const lastRequestedPageRef = useRef<number | null>(null);
 	const [contextMenuState, setContextMenuState] = useState<{
@@ -765,6 +790,22 @@ export function ChatInboxPanel({
 				hiddenConversationIds.has(conversation.data.conversationId),
 			);
 		},
+		...(showReadReceiptToggle
+			? {
+				onToggleReadReceipts: () => {
+					close();
+					const conversationId = conversation.data.conversationId;
+					const nowHidden = toggleReadReceiptsHidden(conversationId);
+					// Same as the thread header toggle: once receipts are back on, tell the
+					// server we've read what's already there.
+					const lastMessageId = conversation.data.preview?.messageId;
+					if (!nowHidden && lastMessageId) {
+						apiFunctions.markRead(conversationId, lastMessageId).catch(() => {});
+					}
+					toast.success(nowHidden ? "Read receipts turned off for this chat." : "Read receipts turned on for this chat.");
+				},
+			}
+			: {}),
 		onDelete: () => {
 			close();
 			requestDeleteConversation(conversation, isArchived);
@@ -1038,7 +1079,7 @@ export function ChatInboxPanel({
 				/>
 			) : null}
 
-			{locateSheet}
+			{locateSheet ? createPortal(locateSheet, document.body) : null}
 
 			{actionSheetState ? (
 				<ConversationActionSheet
