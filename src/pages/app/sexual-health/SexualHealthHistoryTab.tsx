@@ -60,11 +60,11 @@ function HistoryRow({
 			)}
 		>
 			{item.kind === "dose" ? (
-				<div className="h-15 w-15 shrink-0 squircle drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
+				<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
 					<Pill className="h-6 w-6" />
 				</div>
 			) : (
-				<div className="h-15 w-15 shrink-0 squircle drop-shadow-sm bg-[var(--surface-2)]">
+				<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm bg-[var(--surface-2)]">
 					<ProfileImage src={avatarSrc} alt={item.encounter.displayName} />
 				</div>
 			)}

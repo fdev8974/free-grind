@@ -605,7 +605,7 @@ function ChatConversationRow({
 						}}
 						className="relative shrink-0 disabled:cursor-default disabled:opacity-80"
 					>
-						<div className="h-15 w-15 squircle bg-[var(--surface-2)] drop-shadow-sm">
+						<div className="h-15 w-15 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 							<ProfileImage
 								src={resolveAvatarSrc(
 									otherParticipant?.primaryMediaHash,
@@ -968,7 +968,7 @@ export function ChatInboxPanel({
 								<div className="flex flex-col">
 									{Array.from({ length: 12 }).map((_, i) => (
 										<div key={i} className="flex items-center gap-4 border-b border-[var(--surface-2)] py-3 px-4">
-											<div className="h-15 w-15 shrink-0 squircle animate-pulse bg-[var(--surface-2)]" />
+											<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]" />
 											<div className="flex flex-1 flex-col gap-2">
 												<div className="flex items-center justify-between gap-3">
 													<div className="h-3 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />

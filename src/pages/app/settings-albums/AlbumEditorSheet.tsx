@@ -924,7 +924,7 @@ export function AlbumEditorSheet({
 							<div className="-mx-4">
 								{[0, 1, 2].map((i) => (
 									<div key={i} className="flex items-center gap-3 px-4 py-2.5">
-										<div className="h-12 w-12 shrink-0 squircle animate-pulse bg-[var(--surface-2)]" />
+										<div className="h-12 w-12 shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]" />
 										<div className="min-w-0 flex-1 space-y-1.5">
 											<div className="h-3.5 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
 											<div className="h-3 w-16 animate-pulse rounded-full bg-[var(--surface-2)]" />
@@ -953,7 +953,7 @@ export function AlbumEditorSheet({
 												onClick={() => { pendingProfileIdRef.current = profile.profileId; }}
 												className="flex min-w-0 flex-1 items-center gap-3 text-left active:opacity-70"
 											>
-												<div className="h-12 w-12 shrink-0 squircle bg-[var(--surface-2)] drop-shadow-sm">
+												<div className="h-12 w-12 shrink-0 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 													<ProfileImage src={profile.avatarUrl} alt={profile.displayName} />
 												</div>
 												<div className="min-w-0 flex-1">

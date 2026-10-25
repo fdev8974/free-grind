@@ -151,7 +151,7 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 							}
 							className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:ink-tint-6 active:ink-tint-10"
 						>
-							<div className="h-11 w-11 shrink-0 squircle bg-[var(--surface-2)] drop-shadow-sm">
+							<div className="h-11 w-11 shrink-0 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 								<ProfileImage src={row.avatarSrc} alt={row.name} />
 							</div>
 							<span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text)]">{row.name}</span>
@@ -163,7 +163,7 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 					onClick={() => setFreeTextMode(true)}
 					className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-[var(--accent)] transition-colors hover:ink-tint-6 active:ink-tint-10"
 				>
-					<span className="flex h-11 w-11 shrink-0 items-center justify-center squircle accent-tint-14">
+					<span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full overflow-hidden accent-tint-14">
 						<UserPlus className="h-5 w-5" />
 					</span>
 					{t("sexualHealth.encounter.someone_not_listed", { defaultValue: "Someone not listed" })}

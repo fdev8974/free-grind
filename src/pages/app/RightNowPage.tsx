@@ -263,7 +263,7 @@ function RightNowRow({
 				className="relative shrink-0"
 				onClick={() => onSelect(item.profileId)}
 			>
-				<div className="h-15 w-15 squircle drop-shadow-sm bg-[var(--surface-2)]">
+				<div className="h-15 w-15 rounded-full overflow-hidden drop-shadow-sm bg-[var(--surface-2)]">
 					<ProfileImage src={imageUrl} alt={name || ""} />
 				</div>
 				{isOnline ? (
@@ -515,7 +515,7 @@ function RightNowMapCard({
 function RightNowSkeleton() {
 	return (
 		<div className="flex items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4">
-			<div className="h-15 w-15 shrink-0 squircle animate-pulse bg-[var(--surface-2)]" />
+			<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]" />
 			<div className="flex flex-1 flex-col gap-2">
 				<div className="flex items-center justify-between gap-3">
 					<div className="h-3 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />

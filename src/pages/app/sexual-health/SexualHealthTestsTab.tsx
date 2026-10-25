@@ -61,7 +61,7 @@ function TestRow({
 				revealClass,
 			)}
 		>
-			<div className="h-15 w-15 shrink-0 squircle drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
+			<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
 				<FlaskConical className="h-6 w-6" />
 			</div>
 			<div className="min-w-0 flex-1">

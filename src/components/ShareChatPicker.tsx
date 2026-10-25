@@ -35,7 +35,7 @@ type PickerChat = {
 function Avatar({ chat, selected, small }: { chat: PickerChat; selected: boolean; small?: boolean }) {
 	return (
 		<div className="relative shrink-0">
-			<div className={`${small ? "h-11 w-11" : "h-15 w-15"} squircle bg-[var(--surface-2)] drop-shadow-sm`}>
+			<div className={`${small ? "h-11 w-11" : "h-15 w-15"} rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm`}>
 				<ProfileImage
 					src={resolveAvatarSrc(chat.mediaHash, getParticipantAvatarUrl(chat.mediaHash))}
 					alt={chat.name}

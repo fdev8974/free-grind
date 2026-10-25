@@ -202,7 +202,7 @@ export const InterestRow = memo(function InterestRow({
 				disabled={isLocked}
 				className="relative shrink-0"
 			>
-				<div className="h-15 w-15 squircle drop-shadow-sm bg-[var(--surface-2)]">
+				<div className="h-15 w-15 rounded-full overflow-hidden drop-shadow-sm bg-[var(--surface-2)]">
 					<ProfileImage
 						src={imageSrc}
 						alt={displayName}

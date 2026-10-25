@@ -233,7 +233,7 @@ function AppointmentRow({
 					event.stopPropagation();
 					onToggleDone();
 				}}
-				className={`h-15 w-15 shrink-0 squircle drop-shadow-sm flex items-center justify-center transition-colors active:scale-95 ${
+				className={`h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm flex items-center justify-center transition-colors active:scale-95 ${
 					appointment.completedAt != null
 						? "bg-emerald-500 text-white"
 						: "bg-[var(--surface-2)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]/70"

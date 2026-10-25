@@ -70,7 +70,7 @@ export function SettingsBlockHistoryPage() {
 					<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 						{Array.from({ length: 4 }).map((_, i) => (
 							<div key={i} className="flex items-center gap-3 px-4 py-3">
-								<div className="h-11 w-11 shrink-0 animate-pulse squircle ink-tint-10" />
+								<div className="h-11 w-11 shrink-0 animate-pulse rounded-full overflow-hidden ink-tint-10" />
 								<div className="min-w-0 flex-1 space-y-1.5">
 									<div className="h-3.5 w-28 animate-pulse rounded-full ink-tint-10" />
 									<div className="h-3 w-24 animate-pulse rounded-full ink-tint-10" />
@@ -113,7 +113,7 @@ export function SettingsBlockHistoryPage() {
 								const rowClassName = "flex w-full items-center gap-3 px-4 py-3 text-left";
 								const content = (
 									<>
-										<div className="relative h-11 w-11 shrink-0 squircle bg-[var(--surface-2)] drop-shadow-sm">
+										<div className="relative h-11 w-11 shrink-0 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 											<ProfileImage
 												className="bg-slate-500/15 text-slate-400"
 												src={avatarSrc}
