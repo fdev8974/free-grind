@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +11,18 @@ const packageJsonPath = fileURLToPath(new URL("./package.json", import.meta.url)
 const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 const appVersion = packageJson.version ?? "0.0.0";
 
+// Short commit the frontend was built from, shown next to the version in
+// Settings. Always read from git (not CI env), so a rebuild of the same commit
+// bakes in the same string and stays reproducible. Empty outside a checkout.
+function shortCommitHash() {
+	try {
+		return execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { encoding: "utf8" }).trim();
+	} catch {
+		return "";
+	}
+}
+const commitHash = shortCommitHash();
+
 // https://vite.dev/config/
 export default defineConfig(async () => ({
 	plugins: [react(), tailwindcss()],
@@ -18,6 +31,7 @@ export default defineConfig(async () => ({
 	envDir: process.env.FG_REPRODUCIBLE_BUILD ? false : undefined,
 	define: {
 		"import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion),
+		"import.meta.env.VITE_COMMIT_HASH": JSON.stringify(commitHash),
 	},
 	build: {
 		outDir: "dist",

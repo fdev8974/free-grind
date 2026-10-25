@@ -433,6 +433,8 @@ export function SettingsPage() {
 		useState<HotswapChannel>(getCurrentHotswapChannel());
 	const visibleChannels = getHotswapChannels();
 	const frontendVersion = import.meta.env.VITE_APP_VERSION;
+	const commitHash: string = import.meta.env.VITE_COMMIT_HASH ?? "";
+	const frontendBuild = commitHash ? `${frontendVersion} (${commitHash})` : frontendVersion;
 	// The installed app (APK / desktop binary) can lag behind the frontend when an
 	// OTA bundle was applied on top of it, so show both when they differ.
 	const [nativeVersion, setNativeVersion] = useState<string | null>(null);
@@ -1149,15 +1151,15 @@ export function SettingsPage() {
 											{t("settings.check_updates")}
 										</p>
 										<p className="mt-0.5 truncate text-xs leading-snug tabular-nums text-[var(--text-muted)]">
-											{nativeVersion && nativeVersion !== frontendVersion
+											{nativeVersion
 												? t("settings.installed_versions", {
 														defaultValue: "Frontend {{frontend}} · App {{app}}",
-														frontend: frontendVersion,
+														frontend: frontendBuild,
 														app: nativeVersion,
 													})
 												: t("settings.installed_version", {
 														defaultValue: "Version {{version}}",
-														version: frontendVersion,
+														version: frontendBuild,
 													})}
 										</p>
 									</div>
