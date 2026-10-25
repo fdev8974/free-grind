@@ -55,6 +55,8 @@ export default defineConfig({
 
 	cleanUrls: true,
 
+	appearance: "force-dark",
+
 	rewrites: { "generated/:path*": ":path*" },
 
 	title: "Free Grind",
@@ -156,11 +158,5 @@ export default defineConfig({
 				link: "https://t.me/freegrind",
 			},
 		],
-
-		footer: {
-			message: "Free Grind is not affiliated with Grindr in any way.",
-			copyright:
-				'Licensed under the <a href="https://github.com/fdev8974/free-grind/blob/main/LICENSE">MIT License</a>.',
-		},
 	},
 });

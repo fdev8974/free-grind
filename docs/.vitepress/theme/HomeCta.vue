@@ -6,6 +6,7 @@ import { VPButton } from "vitepress/theme";
 <template>
 	<section class="HomeCta">
 		<div class="container">
+			<p class="eyebrow">Get started</p>
 			<h2>Grindr, the way it should be.</h2>
 			<p>Free, open source and private. On every device you own.</p>
 			<div class="actions">
@@ -49,24 +50,33 @@ import { VPButton } from "vitepress/theme";
 	margin: 0 auto;
 	max-width: 1152px;
 	overflow: hidden;
-	/* A crisp yellow-to-orange border: the fill is clipped to the padding box,
+	/* A crisp violet-to-fuchsia border: the fill is clipped to the padding box,
 	   the gradient underneath only shows through the transparent border. */
 	border: 1px solid transparent;
 	border-radius: 28px;
 	padding: 56px 24px;
 	text-align: center;
 	background:
-		radial-gradient(ellipse 60% 80% at 20% 0%, rgba(255, 204, 1, 0.22), transparent 70%) padding-box,
-		radial-gradient(ellipse 60% 80% at 80% 100%, rgba(249, 115, 22, 0.18), transparent 70%) padding-box,
+		radial-gradient(ellipse 60% 80% at 20% 0%, color-mix(in srgb, var(--home-accent) 22%, transparent), transparent 70%) padding-box,
+		radial-gradient(ellipse 60% 80% at 80% 100%, color-mix(in srgb, var(--home-accent-2) 18%, transparent), transparent 70%) padding-box,
 		linear-gradient(var(--vp-c-bg-soft), var(--vp-c-bg-soft)) padding-box,
-		linear-gradient(120deg, rgba(255, 204, 1, 0.8), rgba(249, 115, 22, 0.8)) border-box;
-	box-shadow: 0 24px 64px -32px rgba(249, 115, 22, 0.5);
+		linear-gradient(120deg, color-mix(in srgb, var(--home-accent) 80%, transparent), color-mix(in srgb, var(--home-accent-2) 80%, transparent)) border-box;
+	box-shadow: 0 24px 64px -32px color-mix(in srgb, var(--home-accent) 50%, transparent);
 }
 
 @media (min-width: 640px) {
 	.container {
 		padding: 72px 48px;
 	}
+}
+
+.eyebrow {
+	margin: 0 0 12px;
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--vp-c-brand-1);
 }
 
 h2 {
@@ -85,7 +95,7 @@ h2 {
 	}
 }
 
-p {
+p:not(.eyebrow) {
 	margin: 16px auto 0;
 	max-width: 520px;
 	font-size: 18px;

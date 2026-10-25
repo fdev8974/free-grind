@@ -8,15 +8,6 @@ type IconSpec = {
 	license?: { spdx: string; url: string };
 };
 
-const FEATURES: Record<string, IconSpec> = {
-	"i-grid": { icon: "lucide:layout-grid" },
-	"i-history": { icon: "lucide:history" },
-	"i-teleport": { icon: "lucide:map-pin" },
-	"i-no-ads": { icon: "lucide:megaphone-off" },
-	"i-platforms": { icon: "lucide:monitor-smartphone" },
-	"i-privacy": { icon: "lucide:eye-off" },
-};
-
 const ACTIONS: Record<string, IconSpec> = {
 	"i-download": { icon: "lucide:download" },
 	"i-github": { icon: "simple-icons:github" },
@@ -24,24 +15,8 @@ const ACTIONS: Record<string, IconSpec> = {
 	"i-telegram": { icon: "simple-icons:telegram" },
 };
 
-const PLATFORMS: Record<string, IconSpec> = {
-	"i-android": {
-		icon: "simple-icons:android",
-		license: {
-			spdx: "CC-BY-3.0",
-			url: "https://developer.android.com/distribute/marketing-tools/brand-guidelines#brand-android",
-		},
-	},
-	"i-ios": { icon: "simple-icons:ios" },
-	"i-windows": { icon: "simple-icons:windows" },
-	"i-linux": { icon: "simple-icons:linux" },
-	"i-apple": { icon: "simple-icons:apple" },
-};
-
 const SECTIONS: Array<[string, Record<string, IconSpec>]> = [
-	["Features", FEATURES],
 	["Hero actions", ACTIONS],
-	["Platforms", PLATFORMS],
 ];
 
 const HEADER = `/*! Icon licenses. Every rule below names its source as \`prefix:name\`.
@@ -70,7 +45,6 @@ const HEADER = `/*! Icon licenses. Every rule below names its source as \`prefix
  *   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  *   DEALINGS IN THE SOFTWARE.
  *
- * simple-icons:android — Android robot by Google, CC-BY-3.0.
  * The remaining Simple Icons marks are CC0-1.0 and require no notice.
  */`;
 

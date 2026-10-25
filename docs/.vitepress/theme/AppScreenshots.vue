@@ -1,106 +1,109 @@
 <script setup lang="ts">
 import { withBase } from "vitepress";
 
-// Every image in content/screenshots/ becomes a card, sorted by file name
-// ("1-grid.jpg", "2-chat.jpg", …). The name minus the number picks the card's
-// text below; unknown names just get a title from the file name.
+// One open tile per feature: the whole phone screenshot, then its text. A
+// screenshot in content/screenshots/ named after a feature's key
+// ("1-grid.jpg", "chat.webp", …) is what its phone shows; features without
+// one are text only.
 const files = import.meta.glob<string>(
 	"../../content/screenshots/*.{png,jpg,jpeg,webp,avif}",
 	{ eager: true, query: "?url", import: "default" },
 );
 
-const details: Record<string, { title: string; text: string; link?: string }> = {
-	grid: {
-		title: "Unlocked grid",
-		text: "Browse everyone nearby, page after page, without a subscription.",
-		link: "/guide/features/unlocked-grid",
-	},
-	chat: {
-		title: "Chats that stay",
-		text: "Messages and media stay on your device, even after unsends and blocks.",
-		link: "/guide/features/chat-history",
-	},
-	filters: {
-		title: "Filters for everything",
-		text: "Age, height, weight, tags and quick filters for the grid.",
-		link: "/guide/features/unlocked-grid",
-	},
-	location: {
-		title: "Teleport anywhere",
-		text: "Pick any spot on the map and show up in the grid there.",
-		link: "/guide/features/location-spoofing",
-	},
-	profile: {
-		title: "Full profiles",
-		text: "Every detail at a glance, with taps, favorites and private notes.",
-	},
-	customization: {
-		title: "Make it yours",
-		text: "Color scheme, accent color, pure black mode and more.",
-	},
-};
-
-const shots = Object.entries(files)
-	.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
-	.map(([path, src]) => {
-		const key = path
+const screenshots = new Map(
+	Object.entries(files).map(([path, src]) => [
+		path
 			.split("/")
 			.pop()!
 			.replace(/\.[^.]+$/, "")
 			.replace(/^\d+[-_ ]*/, "")
-			.toLowerCase();
-		const name = key.replace(/[-_]+/g, " ");
-		const info = details[key] ?? {
-			title: name.charAt(0).toUpperCase() + name.slice(1),
-			text: "",
-		};
-		return { src, ...info, link: info.link && withBase(info.link) };
-	});
+			.toLowerCase(),
+		src,
+	]),
+);
+
+const features = [
+	{
+		key: "grid",
+		title: "Unlocked grid",
+		text: "Browse everyone nearby, page after page, without a subscription.",
+		link: "/guide/features/unlocked-grid",
+	},
+	{
+		key: "chat",
+		title: "Chats that stay",
+		text: "Messages and media stay on your device, even after unsends and blocks.",
+		link: "/guide/features/chat-history",
+	},
+	{
+		key: "filters",
+		title: "Filters for everything",
+		text: "Age, height, weight, tags and quick filters for the grid.",
+		link: "/guide/features/unlocked-grid",
+	},
+	{
+		key: "location",
+		title: "Teleport anywhere",
+		text: "Pick any spot on the map and show up in the grid there.",
+		link: "/guide/features/location-spoofing",
+	},
+	{
+		key: "profile",
+		title: "Full profiles",
+		text: "Every detail at a glance, with taps, favorites and private notes.",
+		link: "/guide/features/interest",
+	},
+	{
+		key: "customization",
+		title: "Make it yours",
+		text: "Color scheme, accent color, pure black mode and more.",
+		link: "/guide/faq",
+	},
+].map((feature) => ({
+	...feature,
+	src: screenshots.get(feature.key),
+	link: withBase(feature.link),
+}));
 </script>
 
 <template>
-	<section v-if="shots.length" class="AppScreenshots">
+	<section class="AppScreenshots">
 		<div class="container">
 			<header>
-				<p class="eyebrow">Take a look</p>
+				<p class="eyebrow">Features</p>
 				<h2>Everything Grindr should have been</h2>
 				<p class="lead">No paywalls, no ads, no tracking. Just the app, the way you'd build it yourself.</p>
 			</header>
 
-			<div class="cards">
-				<component
-					:is="shot.link ? 'a' : 'div'"
-					v-for="shot in shots"
-					:key="shot.src"
-					:href="shot.link"
-					class="card"
-				>
-					<h3>{{ shot.title }}</h3>
-					<p v-if="shot.text">{{ shot.text }}</p>
-					<div class="stage">
-						<img :src="shot.src" :alt="`Free Grind: ${shot.title}`" loading="lazy" />
+			<div class="tiles">
+				<a v-for="feature in features" :key="feature.key" :href="feature.link" class="tile">
+					<div v-if="feature.src" class="shot">
+						<div class="glow" />
+						<img :src="feature.src" :alt="`Free Grind: ${feature.title}`" loading="lazy" />
 					</div>
-				</component>
+					<h3>{{ feature.title }}</h3>
+					<p>{{ feature.text }}</p>
+					<span class="more">Learn more →</span>
+				</a>
 			</div>
 		</div>
 	</section>
 </template>
 
 <style scoped>
-/* Same width and gutters as the feature boxes above (VPFeatures). */
 .AppScreenshots {
-	padding: 72px 24px 48px;
+	padding: 24px 24px 64px;
 }
 
 @media (min-width: 640px) {
 	.AppScreenshots {
-		padding: 96px 48px 64px;
+		padding: 32px 48px 96px;
 	}
 }
 
 @media (min-width: 960px) {
 	.AppScreenshots {
-		padding: 112px 64px 64px;
+		padding: 32px 64px 96px;
 	}
 }
 
@@ -110,7 +113,7 @@ const shots = Object.entries(files)
 }
 
 header {
-	margin: 0 auto 40px;
+	margin: 0 auto 56px;
 	max-width: 760px;
 	text-align: center;
 }
@@ -147,27 +150,28 @@ h2 {
 	color: var(--vp-c-text-2);
 }
 
-/* Swipeable row on phones, a grid from tablets up. */
-.cards {
+/* Swipeable row on phones, an open grid from tablets up. */
+.tiles {
 	display: grid;
 	grid-auto-flow: column;
-	grid-auto-columns: 78%;
-	gap: 16px;
+	grid-auto-columns: 72%;
+	gap: 24px;
 	margin: 0 -24px;
-	padding: 4px 24px 16px;
+	padding: 0 24px 8px;
 	overflow-x: auto;
 	scroll-snap-type: x mandatory;
 	scrollbar-width: none;
 }
 
-.cards::-webkit-scrollbar {
+.tiles::-webkit-scrollbar {
 	display: none;
 }
 
 @media (min-width: 640px) {
-	.cards {
+	.tiles {
 		grid-auto-flow: row;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 56px 40px;
 		margin: 0;
 		padding: 0;
 		overflow: visible;
@@ -175,32 +179,67 @@ h2 {
 }
 
 @media (min-width: 960px) {
-	.cards {
+	.tiles {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
 }
 
-.card {
+.tile {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
+	text-align: center;
 	scroll-snap-align: center;
-	border: 1px solid var(--home-card-border);
-	border-radius: 24px;
-	padding: 28px;
 	color: inherit;
 	text-decoration: none;
-	background:
-		radial-gradient(ellipse 80% 45% at 50% 100%, color-mix(in srgb, var(--vp-button-brand-bg) 22%, transparent), transparent 70%),
-		var(--home-card-bg);
-	backdrop-filter: blur(12px);
-	transition:
-		border-color 0.25s,
-		box-shadow 0.25s;
 }
 
-a.card:hover {
-	border-color: rgba(255, 204, 1, 0.7);
-	box-shadow: 0 16px 40px -16px rgba(249, 115, 22, 0.45);
+/* The whole phone, at its own aspect ratio. */
+.shot {
+	position: relative;
+	display: flex;
+	justify-content: center;
+	align-items: flex-start;
+	margin-bottom: 24px;
+	width: 100%;
+}
+
+.glow {
+	position: absolute;
+	top: 12%;
+	left: 50%;
+	width: 90%;
+	height: 70%;
+	translate: -50% 0;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, color-mix(in srgb, var(--home-accent) 40%, transparent), transparent);
+	filter: blur(30px);
+	opacity: 0.7;
+	transition: opacity 0.4s;
+}
+
+img {
+	position: relative;
+	display: block;
+	box-sizing: border-box;
+	margin-top: 12px;
+	width: 62%;
+	height: auto;
+	border: 5px solid #0b0f15;
+	border-radius: 28px;
+	background-color: #0b0f15;
+	box-shadow:
+		0 0 0 1px #2b3646,
+		0 32px 64px -24px color-mix(in srgb, var(--home-accent) 45%, transparent);
+	transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.tile:hover img {
+	transform: translateY(-10px);
+}
+
+.tile:hover .glow {
+	opacity: 1;
 }
 
 h3 {
@@ -209,39 +248,26 @@ h3 {
 	font-weight: 700;
 	line-height: 26px;
 	color: var(--vp-c-text-1);
+	transition: color 0.25s;
 }
 
-.card p {
+.tile:hover h3 {
+	color: var(--vp-c-brand-1);
+}
+
+.tile p {
 	margin: 6px 0 0;
+	max-width: 320px;
 	font-size: 14px;
 	line-height: 22px;
 	color: var(--vp-c-text-2);
 }
 
-.stage {
-	display: flex;
-	justify-content: center;
-	margin-top: auto;
-	padding-top: 28px;
-}
-
-/* The whole screenshot in a phone bezel. */
-img {
-	display: block;
-	box-sizing: border-box;
-	width: 72%;
-	height: auto;
-	border: 6px solid #111;
-	border-radius: 34px;
-	background-color: #0a0a0a;
-	box-shadow:
-		0 0 0 1px #3a3a3a,
-		0 24px 48px -16px rgba(0, 0, 0, 0.45);
-	transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.card:hover img {
-	transform: translateY(-8px);
+.more {
+	margin-top: 12px;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--vp-c-brand-1);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -249,7 +275,7 @@ img {
 		transition: none;
 	}
 
-	.card:hover img {
+	.tile:hover img {
 		transform: none;
 	}
 }
