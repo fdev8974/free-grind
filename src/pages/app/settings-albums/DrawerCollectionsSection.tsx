@@ -109,7 +109,7 @@ export function DrawerCollectionsSection({
 			</div>
 
 			{collections.length > 0 && (
-			<div className="surface-card overflow-hidden">
+			<div className="native-card overflow-hidden">
 					<div className="divide-y divide-[var(--border)]">
 						{collections.map((collection) => {
 							const presentIds = collection.mediaIds.filter((id) => drawerMedia.some((m) => m.id === id));
@@ -151,7 +151,7 @@ export function DrawerCollectionsSection({
 			)}
 			{collections.length === 0 && (
 				// Same empty state as the chat drawer's Collections tab.
-				<div className="surface-card overflow-hidden px-4">
+				<div className="native-card overflow-hidden px-4">
 					<DrawerEmptyState
 						icon={<Layers className="h-5 w-5" />}
 						title={t("chat_drawer.collections_empty", { defaultValue: "You don't have any collections yet." })}

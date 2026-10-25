@@ -78,7 +78,7 @@ function ErrorPage() {
 
 	return (
 		<div className="app-screen flex items-center justify-center">
-			<div className="surface-card w-full max-w-md p-6 text-center sm:p-8">
+			<div className="native-card w-full max-w-md p-6 text-center sm:p-8">
 				<h1 className="text-4xl font-bold mb-4">{t("errors.title")}</h1>
 				<p className="text-[var(--text-muted)]">{t("errors.subtitle")}</p>
 				<div className="mt-5">

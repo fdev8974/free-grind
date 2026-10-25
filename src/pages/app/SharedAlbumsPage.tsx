@@ -84,7 +84,7 @@ function AlbumCard({
 
 	return (
 		<div ref={ref} className={revealClass}>
-			<div className="surface-card relative w-full overflow-hidden rounded-2xl transition-transform hover:-translate-y-0.5">
+			<div className="native-card relative w-full overflow-hidden rounded-2xl transition-transform hover:-translate-y-0.5">
 				<button
 					type="button"
 					onClick={onClick}
@@ -971,7 +971,7 @@ export function SharedAlbumsPage() {
 								}}
 							>
 								{Array.from({ length: 12 }).map((_, i) => (
-									<div key={i} className="surface-card overflow-hidden rounded-2xl">
+									<div key={i} className="native-card overflow-hidden rounded-2xl">
 										<div className="relative aspect-[4/6] w-full animate-pulse bg-[var(--surface-2)]">
 											<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-3">
 												<div className="h-20 w-20 rounded-full bg-[var(--border)]" />
@@ -1059,7 +1059,7 @@ export function SharedAlbumsPage() {
 			 */}
 			{isOpeningAlbum ? (
 				<div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-					<div className="surface-card p-4 text-sm text-[var(--text-muted)]">
+					<div className="native-card p-4 text-sm text-[var(--text-muted)]">
 						{t("shared_albums.opening")}
 					</div>
 				</div>

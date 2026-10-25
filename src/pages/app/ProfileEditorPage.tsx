@@ -14,7 +14,14 @@ import { useAuth } from "../../contexts/useAuth";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { useManagedGenders, useManagedPronouns, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
+import {
+	useManagedGenders,
+	useManagedPronouns,
+	useManagedTagCategories,
+	useProfileSpotifyFavorites,
+	useUpdateSpotifyFavorites,
+} from "../../hooks/queries/useProfileQueries";
+import type { SpotifyTrack } from "../../services/spotify";
 import { validateMediaHash } from "../../utils/media";
 import { sanitizeUploadFile } from "../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../utils/tags";
@@ -39,6 +46,7 @@ import {
 	getPrimaryGenderIds,
 } from "./profile-option-builders";
 import { ProfileEditorFormSections, type ToggleMultiValueKey } from "./profile-editor/ProfileEditorFormSections";
+import { sameTrackIds } from "./profile-editor/SpotifyFavoritesSection";
 import { ProfilePictureDrawer, type ProfilePoolImage } from "./profile-editor/ProfilePictureDrawer";
 import {
 	MAX_GENDERS,
@@ -318,7 +326,17 @@ export function ProfileEditorPage() {
 		[draft, savedDraft],
 	);
 
-	const hasChanges = hasProfileChanges;
+	// Favorite songs live on their own endpoint but save and reset together
+	// with the rest of the draft. null = untouched, so the saved list shows.
+	const ownProfileId = profile?.profileId ?? userId;
+	const spotifyProfileId = ownProfileId != null ? String(ownProfileId) : null;
+	const { data: savedSpotifyTracks, isLoading: isLoadingSpotify } = useProfileSpotifyFavorites(spotifyProfileId);
+	const updateSpotifyFavorites = useUpdateSpotifyFavorites(spotifyProfileId);
+	const [spotifyDraft, setSpotifyDraft] = useState<SpotifyTrack[] | null>(null);
+	const spotifyTracks = spotifyDraft ?? savedSpotifyTracks ?? [];
+	const hasSpotifyChanges = spotifyDraft !== null && !sameTrackIds(spotifyDraft, savedSpotifyTracks ?? []);
+
+	const hasChanges = hasProfileChanges || hasSpotifyChanges;
 
 	const tagList = useMemo(
 		() => normalizeTagList(draft.profileTagsText),
@@ -512,6 +530,13 @@ export function ProfileEditorPage() {
 						};
 					});
 				}
+			}
+
+			if (hasSpotifyChanges && spotifyDraft) {
+				await updateSpotifyFavorites.mutateAsync(spotifyDraft.map((track) => track.id));
+				// Show the saved list right away instead of the stale cache until the refetch.
+				queryClient.setQueryData(["spotify-favorites", spotifyProfileId], spotifyDraft);
+				setSpotifyDraft(null);
 			}
 
 			// Keeps the grid/chat header avatar, account switcher, and the HIV
@@ -838,6 +863,7 @@ export function ProfileEditorPage() {
 
 	const handleResetDraft = () => {
 		setDraft(savedDraft);
+		setSpotifyDraft(null);
 	};
 
 	return (
@@ -887,6 +913,9 @@ export function ProfileEditorPage() {
 								onRemovePhoto={handleRemovePhoto}
 								onReorderPhotos={handleReorderPhotos}
 								profileId={profile?.profileId ?? userId}
+								spotifyTracks={spotifyTracks}
+								isLoadingSpotify={isLoadingSpotify}
+								onSpotifyChange={setSpotifyDraft}
 								ethnicityOptions={ethnicityOptions}
 								bodyTypeOptions={bodyTypeOptions}
 								positionOptions={positionOptions}
@@ -908,8 +937,13 @@ export function ProfileEditorPage() {
 
 				{hasChanges && !(isLoadingProfile && !profile) && !(profileError && !profile) && (
 					<div
-						className="fixed inset-x-0 z-40 flex justify-center px-4"
-						style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px))" }}
+						className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4 pb-3 pt-10 [&>*]:pointer-events-auto"
+						style={{
+							bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px) - 12px)",
+							// Same idea as the sheets' floating footer: the page darkens towards
+							// the buttons, so they stand out from the cards scrolling behind.
+							background: "linear-gradient(to top, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 55%, transparent)",
+						}}
 					>
 						{/* Two floating buttons like the sheets' footer, no shared pill around them. */}
 						<div className="animate-badge-in flex items-center gap-2.5">
@@ -919,9 +953,11 @@ export function ProfileEditorPage() {
 								disabled={isSaving}
 								aria-label={t("profile_editor.actions.reset")}
 								title={t("profile_editor.actions.reset")}
-								className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[var(--text)] shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition-transform duration-150 active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50"
+								className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[var(--text)] transition-transform duration-150 active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50"
 								style={{
-									background: "color-mix(in srgb, var(--surface-2) 82%, transparent)",
+									background: "color-mix(in srgb, color-mix(in srgb, var(--text) 16%, var(--bg)) 90%, transparent)",
+									// Inset hairline + drop shadow, so the glass edge reads on dark cards.
+									boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent), 0 8px 24px rgba(0,0,0,0.35)",
 									backdropFilter: "blur(16px)",
 									WebkitBackdropFilter: "blur(16px)",
 								}}

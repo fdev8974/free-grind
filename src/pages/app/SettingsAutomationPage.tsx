@@ -249,16 +249,16 @@ export function SettingsAutomationPage() {
 					</div>
 
 					{!settingsReady ? (
-						<div className="surface-card flex items-center justify-center p-6">
+						<div className="native-card flex items-center justify-center p-6">
 							<p className="text-sm text-[var(--text-muted)]">{t("settings_automation.loading_rules")}</p>
 						</div>
 					) : rules.length === 0 ? (
-						<div className="surface-card flex flex-col items-center gap-2 p-6 text-center">
+						<div className="native-card flex flex-col items-center gap-2 p-6 text-center">
 							<Workflow className="h-6 w-6 text-[var(--text-muted)]" />
 							<p className="text-sm text-[var(--text-muted)]">{t("settings_automation.no_rules_yet")}</p>
 						</div>
 					) : (
-						<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
 							{rules.map((rule) => (
 								<div
 									key={rule.id}
@@ -318,7 +318,7 @@ export function SettingsAutomationPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("settings_automation.forbidden_keywords_title")}
 					</p>
-					<div className="surface-card overflow-hidden">
+					<div className="native-card overflow-hidden">
 						<div className="flex items-start gap-3 p-4">
 							<div className="shrink-0 rounded-2xl bg-orange-500/15 p-2.5 text-orange-400">
 								<TagFilled className="h-5 w-5" />

@@ -68,10 +68,8 @@ export const fullscreenPrimaryButtonClass =
 export const fullscreenSecondaryButtonClass =
 	"w-full rounded-full py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60";
 
-/** Borderless soft card for a prompt's content. 12% rather than the sheets' 8%:
- * prompts sit on the page background, which is pure black in AMOLED mode
- * (12% lands near iOS's #1c1c1e card color there). */
-export const fullscreenCardClass = "rounded-2xl ink-tint-12";
+/** Same borderless card as the app pages (.native-card in index.css). */
+export const fullscreenCardClass = "native-card";
 
 /** The prompt's big accent icon tile, also used by the onboarding steps. */
 export const fullscreenIconTileClass =

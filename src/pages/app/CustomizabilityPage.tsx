@@ -195,7 +195,7 @@ export function CustomizabilityPage() {
 					<div className="grid gap-3">
 
 						{/* Color Scheme */}
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<div
 							id="cust-color-scheme"
 							className={`p-4 ${highlightId === "cust-color-scheme" ? "animate-settings-highlight" : ""}`}
@@ -241,7 +241,7 @@ export function CustomizabilityPage() {
 						</div>
 
 						{/* Accent Color + Preview combined */}
-						<div className="surface-card overflow-hidden">
+						<div className="native-card overflow-hidden">
 						<div
 							id="cust-accent-color"
 							className={`p-4 ${highlightId === "cust-accent-color" ? "animate-settings-highlight" : ""}`}
@@ -393,7 +393,7 @@ export function CustomizabilityPage() {
 				{/* GRID PAGE (column count only affects the mobile app) */}
 				<div>
 					<SectionLabel>{t("customizability.grid_page")}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						{isMobilePlatform && (
 							<div
 								id="cust-browse-grid"
@@ -449,7 +449,7 @@ export function CustomizabilityPage() {
 				{/* NAVIGATION */}
 				<div>
 					<SectionLabel>{t("customizability.navigation_bar")}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						{/* Bar style options only exist in the mobile app. */}
 						{isMobilePlatform && (
 							<>
@@ -518,7 +518,7 @@ export function CustomizabilityPage() {
 				{showInterest && (
 					<div>
 						<SectionLabel>{t("customizability.interest_page")}</SectionLabel>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<SelectRow
 								icon={<FlameFilled className="h-5 w-5 opacity-50" />}
 								iconClass="bg-yellow-500/10 text-yellow-400"
@@ -578,7 +578,7 @@ export function CustomizabilityPage() {
 				{/* CHAT */}
 				<div>
 					<SectionLabel>{t("customizability.chat_section", { defaultValue: "Chat Page" })}</SectionLabel>
-					<div className="surface-card overflow-hidden">
+					<div className="native-card overflow-hidden">
 						<ToggleRow
 							id="cust-drawer-layout"
 							highlighted={highlightId === "cust-drawer-layout"}
@@ -597,7 +597,7 @@ export function CustomizabilityPage() {
 				{/* VISUAL EFFECTS */}
 				<div>
 					<SectionLabel>{t("customizability.visual_effects")}</SectionLabel>
-					<div className="surface-card overflow-hidden">
+					<div className="native-card overflow-hidden">
 						<ToggleRow
 							id="cust-reveal-effect"
 							highlighted={highlightId === "cust-reveal-effect"}
@@ -636,7 +636,7 @@ export function CustomizabilityPage() {
 				{isMobilePlatform && (
 					<div>
 						<SectionLabel>{t("customizability.interaction")}</SectionLabel>
-						<div className="surface-card overflow-hidden">
+						<div className="native-card overflow-hidden">
 							<ToggleRow
 								id="cust-haptics"
 								highlighted={highlightId === "cust-haptics"}
@@ -657,7 +657,7 @@ export function CustomizabilityPage() {
 				{/* REGIONAL */}
 				<div>
 					<SectionLabel>{t("customizability.regional")}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<SelectRow
 							id="cust-language"
 							highlighted={highlightId === "cust-language"}

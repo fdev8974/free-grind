@@ -914,7 +914,8 @@
             "picker_title": "Dodaj pjesme ({{count}}/{{max}})",
             "search_placeholder": "Pretraži pjesme ili izvođače...",
             "search_hint": "Pretraži Spotify da dodaš pjesme",
-            "no_matches": "Nijedna pjesma ne odgovara pretrazi."
+            "no_matches": "Nijedna pjesma ne odgovara pretrazi.",
+            "apply": ""
         },
         "tags_count_few": "{{count}} oznake"
     },

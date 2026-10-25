@@ -935,7 +935,8 @@
             "picker_title": "إضافة أغانٍ ({{count}}/{{max}})",
             "search_placeholder": "ابحث عن أغانٍ أو فنانين...",
             "search_hint": "ابحث في Spotify لإضافة أغانٍ",
-            "no_matches": "لا توجد أغانٍ تطابق بحثك."
+            "no_matches": "لا توجد أغانٍ تطابق بحثك.",
+            "apply": ""
         },
         "tags_count_zero": "لا وسوم",
         "tags_count_two": "وسمان",

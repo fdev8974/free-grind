@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { Check, Loader2, Music, Search, X } from "lucide-react";
-import { BottomSheet, SheetCloseButton } from "../../../components/ui/bottom-sheet";
+import { Check, Loader2, Music } from "lucide-react";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { SheetSearchInput } from "../../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { useSpotifyTrackSearch } from "../../../hooks/queries/useProfileQueries";
 import type { SpotifyTrack } from "../../../services/spotify";
@@ -10,15 +11,17 @@ import { MAX_SPOTIFY_FAVORITES } from "./profileEditorUtils";
 
 interface SpotifySongPickerDialogProps {
 	selected: SpotifyTrack[];
-	onToggle: (track: SpotifyTrack) => void;
+	/** Called with the picked songs from the Apply button; closing otherwise discards them. */
+	onApply: (tracks: SpotifyTrack[]) => void;
 	onClose: () => void;
 }
 
-export function SpotifySongPickerDialog({ selected, onToggle, onClose }: SpotifySongPickerDialogProps) {
+export function SpotifySongPickerDialog({ selected, onApply, onClose }: SpotifySongPickerDialogProps) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
 	const [query, setQuery] = useState("");
 	const [debouncedQuery, setDebouncedQuery] = useState("");
+	const [picked, setPicked] = useState(selected);
 
 	// Debounce so we don't hammer Spotify's search on every keystroke.
 	useEffect(() => {
@@ -27,46 +30,36 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 	}, [query]);
 
 	const { data: results, isFetching } = useSpotifyTrackSearch(debouncedQuery);
-	const selectedIds = new Set(selected.map((track) => track.id));
+	const pickedIds = new Set(picked.map((track) => track.id));
 
 	const handleToggle = (track: SpotifyTrack) => {
-		if (!selectedIds.has(track.id) && selected.length >= MAX_SPOTIFY_FAVORITES) {
+		if (pickedIds.has(track.id)) {
+			setPicked((current) => current.filter((item) => item.id !== track.id));
+			return;
+		}
+		if (picked.length >= MAX_SPOTIFY_FAVORITES) {
 			toast.error(t("profile_editor.spotify.max_reached", { max: MAX_SPOTIFY_FAVORITES }));
 			return;
 		}
-		onToggle(track);
+		setPicked((current) => [...current, track]);
 	};
 
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
-			<div className="flex items-center justify-between px-4 pb-3">
+		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh] px-4">
+			<div className="mb-3 flex items-center justify-between gap-3">
 				<p className="text-sm font-semibold text-[var(--text)]">
-					{t("profile_editor.spotify.picker_title", { count: selected.length, max: MAX_SPOTIFY_FAVORITES })}
+					{t("profile_editor.spotify.picker_title", { count: picked.length, max: MAX_SPOTIFY_FAVORITES })}
 				</p>
 				<SheetCloseButton />
 			</div>
-			<div className="px-4 pb-4">
-				<label className="relative block">
-					<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-					<input
-						type="text"
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						placeholder={t("profile_editor.spotify.search_placeholder")}
-						className="input-field pl-9 pr-9"
-					/>
-					{query && (
-						<button
-							type="button"
-							onClick={() => setQuery("")}
-							className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-						>
-							<X className="h-4 w-4" />
-						</button>
-					)}
-				</label>
+			<div className="mb-4">
+				<SheetSearchInput
+					value={query}
+					onChange={setQuery}
+					placeholder={t("profile_editor.spotify.search_placeholder")}
+				/>
 			</div>
-			<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3" data-lenis-prevent>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				{isFetching ? (
 					<div className="flex items-center justify-center py-8 text-[var(--text-muted)]">
 						<Loader2 className="h-5 w-5 animate-spin" />
@@ -74,7 +67,7 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 				) : (results?.length ?? 0) > 0 ? (
 					<div className="grid min-w-0 gap-1.5">
 						{results!.map((track) => {
-							const active = selectedIds.has(track.id);
+							const active = pickedIds.has(track.id);
 							const subtitle = [track.artists.join(", "), track.albumName]
 								.filter((part) => part && part.trim().length > 0)
 								.join(" · ");
@@ -83,10 +76,8 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 									key={track.id}
 									type="button"
 									onClick={() => handleToggle(track)}
-									className={`flex min-h-12 w-full min-w-0 items-center gap-3 rounded-xl border px-2 py-1.5 text-left transition ${
-										active
-											? "border-[var(--accent)] bg-[var(--accent)]/10"
-											: "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--text-muted)]"
+									className={`flex min-h-12 w-full min-w-0 items-center gap-3 rounded-2xl px-2 py-1.5 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] ${
+										active ? "accent-tint-15" : "ink-tint-6 hover:ink-tint-10"
 									}`}
 								>
 									{track.albumImageUrl ? (
@@ -97,7 +88,7 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 											className="h-10 w-10 shrink-0 rounded-md object-cover"
 										/>
 									) : (
-										<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--surface-3)]">
+										<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md ink-tint-10">
 											<Music className="h-4 w-4 text-[var(--text-muted)]" />
 										</span>
 									)}
@@ -108,13 +99,13 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 										)}
 									</span>
 									<span
-										className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition ${
+										className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${
 											active
-												? "border-[var(--accent)] bg-[var(--accent)] text-white"
-												: "border-[var(--border)] text-transparent"
+												? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
+												: "border-[color-mix(in_srgb,var(--text)_25%,transparent)] text-transparent"
 										}`}
 									>
-										<Check className="h-3.5 w-3.5" />
+										<Check className="h-3.5 w-3.5" strokeWidth={3} />
 									</span>
 								</button>
 							);
@@ -127,6 +118,11 @@ export function SpotifySongPickerDialog({ selected, onToggle, onClose }: Spotify
 							: t("profile_editor.spotify.search_hint")}
 					</p>
 				)}
+			</div>
+			<div className={SHEET_FOOTER_CLASS}>
+				<SheetClose onClick={() => onApply(picked)} className={sheetButtonClass()}>
+					{t("profile_editor.spotify.apply", { defaultValue: "Apply" })}
+				</SheetClose>
 			</div>
 		</BottomSheet>
 	);

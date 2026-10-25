@@ -795,7 +795,7 @@ export function SettingsPage() {
 									{t("settings.search_no_results", { query: searchQuery.trim() })}
 								</p>
 							) : (
-								<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 									{searchResults.map((entry) => (
 										<button
 											key={entry.id}
@@ -835,7 +835,7 @@ export function SettingsPage() {
 						    switching never shows a leftover account's data. */}
 						<div className="min-w-0">
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Profile</p>
-							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								{(() => {
 									const activeAccount = userId != null
 										? savedAccounts.find((account) => String(userId) === account.profileId)
@@ -954,7 +954,7 @@ export function SettingsPage() {
 						{/* Chat */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Chat</p>
-							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								<div className="flex items-center gap-3 px-4 py-3.5">
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
@@ -1017,7 +1017,7 @@ export function SettingsPage() {
 						{/* Safety */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Safety</p>
-							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/blocked"),
 									<UserXFilled className="h-5 w-5" />,
@@ -1066,7 +1066,7 @@ export function SettingsPage() {
 						{/* Customizability */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Customizability</p>
-							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/customizability"),
 									<PaletteFilled className="h-5 w-5" />,
@@ -1112,7 +1112,7 @@ export function SettingsPage() {
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 								{t("settings.data_section", { defaultValue: "Backup & Restore" })}
 							</p>
-							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/data"),
 									<ArchiveRestoreFilled className="h-5 w-5" />,
@@ -1126,7 +1126,7 @@ export function SettingsPage() {
 						{/* Updates — same row pattern as the rest of the settings list. */}
 						<div className="min-w-0">
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
-							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								{/* The whole row checks; the pill on the right is the visible affordance. */}
 								<button
 									type="button"
@@ -1256,7 +1256,7 @@ export function SettingsPage() {
 						{developerMode ? (
 							<div>
 								<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Developer</p>
-								<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+								<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 									<ToggleRow
 										checked={showDebugInfo}
 										onChange={(checked) => void setPreferences({ showDebugInfo: checked })}
@@ -1317,7 +1317,7 @@ export function SettingsPage() {
 						{/* About */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">About</p>
-							<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 								{navRow(
 									() => navigate("/settings/about"),
 									<InfoFilled className="h-5 w-5" />,

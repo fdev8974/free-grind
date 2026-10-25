@@ -413,7 +413,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 										key={key}
 										type="button"
 										onClick={() => setPreferences({ colorScheme: value, amoledMode: amoled })}
-										className={`flex items-center gap-4 rounded-2xl p-4 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] ${active ? "accent-tint-18" : "ink-tint-12 hover:ink-tint-16"}`}
+										className={`flex items-center gap-4 rounded-2xl p-4 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] native-card ${active ? "accent-tint-18" : "hover:brightness-110"}`}
 									>
 										<div
 											className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"

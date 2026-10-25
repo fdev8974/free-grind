@@ -178,7 +178,7 @@ export function AgeVerificationPage() {
 										key={method}
 										type="button"
 										onClick={() => void handleSelectMethod(method)}
-										className="surface-card flex w-full items-center justify-between p-4 text-left transition-transform hover:-translate-y-0.5 sm:p-5"
+										className="native-card flex w-full items-center justify-between p-4 text-left transition-transform hover:-translate-y-0.5 sm:p-5"
 									>
 										<div className="flex items-center gap-3">
 											<div className="rounded-xl bg-[var(--surface-2)] p-2.5">

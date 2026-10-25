@@ -921,7 +921,8 @@
             "picker_title": "Dodaj pesmi ({{count}}/{{max}})",
             "search_placeholder": "Išči pesmi ali izvajalce...",
             "search_hint": "Išči na Spotifyju, da dodaš pesmi",
-            "no_matches": "Nobena pesem se ne ujema z iskanjem."
+            "no_matches": "Nobena pesem se ne ujema z iskanjem.",
+            "apply": ""
         },
         "tags_count_two": "{{count}} oznaki",
         "tags_count_few": "{{count}} oznake"

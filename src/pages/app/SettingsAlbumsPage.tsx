@@ -194,7 +194,7 @@ export function SettingsAlbumsPage() {
 					) : (
 						<>
 						{albums.length > 0 ? (
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							{albums.map((album) => {
 								const detail = albumDetails[album.albumId];
 								const mediaCounts = countAlbumMedia(detail);
@@ -231,7 +231,7 @@ export function SettingsAlbumsPage() {
 						</div>
 						) : (
 							// Same empty state as the chat drawer's Albums tab.
-							<div className="surface-card overflow-hidden px-4">
+							<div className="native-card overflow-hidden px-4">
 								<DrawerEmptyState
 									icon={<AlbumIcon className="h-5 w-5" />}
 									title={t("chat_drawer.albums_empty", { defaultValue: "You don't have any albums yet." })}

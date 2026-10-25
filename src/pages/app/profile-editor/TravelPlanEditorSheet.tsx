@@ -389,7 +389,7 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 						</div>
 
 						{/* Show on profile */}
-						<div className="surface-card overflow-hidden">
+						<div className="overflow-hidden rounded-2xl ink-tint-8">
 							<ToggleRow
 								label={t("travel_plans.show_on_profile")}
 								description={t("travel_plans.show_on_profile_desc")}

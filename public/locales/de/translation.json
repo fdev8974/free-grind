@@ -907,7 +907,8 @@
             "picker_title": "Songs hinzufügen ({{count}}/{{max}})",
             "search_placeholder": "Songs oder Künstler suchen...",
             "search_hint": "Durchsuche Spotify, um Songs hinzuzufügen",
-            "no_matches": "Keine Songs passen zu deiner Suche."
+            "no_matches": "Keine Songs passen zu deiner Suche.",
+            "apply": ""
         }
     },
     "privacy": {

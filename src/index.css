@@ -1049,27 +1049,12 @@
 	}
 
 
-	/* Standard card with borders, shadows, and rounded corners used for modals and focused UI elements */
-	.surface-card {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 18px;
-		box-shadow: 0 16px 34px rgba(0, 0, 0, 0.17);
-		box-shadow:
-			0 16px 34px color-mix(in srgb, #000 17%, transparent),
-			0 1px 0 color-mix(in srgb, var(--surface) 74%, transparent) inset;
-	}
-
-	/* Search bar sitting directly above the settings list — shares surface-card's
-	   elevation so it reads as part of the same card system instead of a flat,
-	   unrelated strip, with an accent border on focus like other search inputs. */
+	/* Search bar sitting directly above the settings list, with an accent
+	   border on focus like other search inputs. */
 	.settings-search-bar {
 		background: var(--surface);
-		border: 1px solid var(--border);
+		border: 1px solid transparent;
 		border-radius: 16px;
-		box-shadow:
-			0 10px 24px color-mix(in srgb, #000 12%, transparent),
-			0 1px 0 color-mix(in srgb, var(--surface) 74%, transparent) inset;
 		transition: border-color 140ms ease;
 	}
 	.settings-search-bar:focus-within {
@@ -1231,19 +1216,20 @@
 		}
 	}
 
-	/* Borderless grouped card for app pages, in place of surface-card's border
-	   and shadow. Opaque, so nested sticky/absolute content needs no isolation.
+	/* Borderless grouped card for app pages. Opaque, so nested sticky/absolute content needs no isolation.
 	   Light: white on the grey page. Dark: the regular surface. AMOLED's surface
 	   is nearly black, so there it gets a slight text-tinted lift instead. */
 	.native-card {
 		border-radius: 20px;
 		background: var(--surface);
 	}
-	:root[data-scheme="dark"][data-amoled="true"] .native-card {
+	:root[data-scheme="dark"][data-amoled="true"] .native-card,
+	:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
 		background: color-mix(in srgb, var(--text) 8%, var(--bg));
 	}
 	@media (prefers-color-scheme: dark) {
-		:root:not([data-scheme="light"])[data-amoled="true"] .native-card {
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
+		:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
 			background: color-mix(in srgb, var(--text) 8%, var(--bg));
 		}
 	}
@@ -1467,6 +1453,11 @@
 }
 
 @media (min-width: 640px) {
+  /* The centered fs-card is itself var(--surface), so a .native-card inside
+     it would vanish there; step it up a level instead. */
+  .fs-card-inner .native-card {
+    background: var(--surface-2);
+  }
   .fs-card-inner::before {
     display: none;
   }

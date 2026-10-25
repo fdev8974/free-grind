@@ -63,7 +63,7 @@ export function PasswordResetPage() {
 		>
 			{sent ? (
 				<div className="animate-fade-in space-y-5">
-					<div className="flex items-start gap-3 rounded-2xl ink-tint-12 px-3 py-3">
+					<div className="flex items-start gap-3 native-card rounded-2xl px-3 py-3">
 						<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)]">
 							<MailCheck className="h-4 w-4" />
 						</span>

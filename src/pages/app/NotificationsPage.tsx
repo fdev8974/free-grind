@@ -98,7 +98,7 @@ export function NotificationsPage() {
 			/>
 
 			<div className="grid gap-6">
-				<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+				<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 					<ToggleRow
 						id="notif-chat-enabled"
 						highlighted={highlightId === "notif-chat-enabled"}
@@ -145,7 +145,7 @@ export function NotificationsPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("notifications_page.activity_section")}
 						</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							{pushSettings === null ? (
 								<p className="px-4 py-3.5 text-sm text-[var(--text-muted)]">
 									{t("notifications_page.push_settings_loading")}

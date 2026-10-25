@@ -324,7 +324,7 @@ export function SettingsTranslationPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("auto_translate.provider_section", { defaultValue: "Provider" })}
 					</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<button
 							id="translation-provider"
 							type="button"
@@ -381,7 +381,7 @@ export function SettingsTranslationPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("auto_translate.guide_section", { defaultValue: "Get an API key" })}
 					</p>
-					<div className="surface-card overflow-hidden">
+					<div className="native-card overflow-hidden">
 						<ol className="divide-y divide-[var(--border)]">
 							{guideSteps.map((step, index) => {
 								const content = (

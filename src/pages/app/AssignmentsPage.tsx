@@ -159,7 +159,7 @@ export function AssignmentsPage() {
 				</div>
 
 				{isLoading && !sources ? (
-					<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+					<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
 						{Array.from({ length: 6 }).map((_, i) => (
 							<div key={i} className="flex items-center gap-3 px-4 py-3">
 								<div className="h-3.5 flex-1 animate-pulse rounded-full bg-[var(--surface-2)]" />
@@ -183,7 +183,7 @@ export function AssignmentsPage() {
 						}
 					/>
 				) : (
-					<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+					<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
 						{filtered.map((a) => {
 							const expandable = hasPayload(a.payload);
 							const expanded = expandable && expandedKey === a.key;

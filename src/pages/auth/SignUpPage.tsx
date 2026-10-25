@@ -103,7 +103,7 @@ export function SignUpPage() {
 				subtitle={t("auth.sign_up.subtitle", { defaultValue: "Create a new Grindr account with your email and password." })}
 				footer={<BugReportButton />}
 			>
-				<div className="animate-fade-in flex items-start gap-3 rounded-2xl ink-tint-12 px-3 py-3">
+				<div className="animate-fade-in flex items-start gap-3 native-card rounded-2xl px-3 py-3">
 					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-[var(--accent-contrast)]">
 						<Smartphone className="h-4 w-4" />
 					</span>

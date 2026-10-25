@@ -68,7 +68,7 @@ export function SettingsPrivacyPage() {
 				{/* Incognito Mode */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.grid_visibility")}</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="privacy-incognito-mode"
 							highlighted={highlightId === "privacy-incognito-mode"}
@@ -93,7 +93,7 @@ export function SettingsPrivacyPage() {
 				{/* Read Receipts */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.read_receipts")}</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="privacy-send-read-receipts"
 							highlighted={highlightId === "privacy-send-read-receipts"}
@@ -134,7 +134,7 @@ export function SettingsPrivacyPage() {
 				{/* Profile Views */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.profile_views")}</p>
-					<div className="surface-card overflow-hidden">
+					<div className="native-card overflow-hidden">
 						<ToggleRow
 							id="privacy-record-profile-views"
 							highlighted={highlightId === "privacy-record-profile-views"}
@@ -154,7 +154,7 @@ export function SettingsPrivacyPage() {
 				{/* NSFW Content */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.nsfw_content")}</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="privacy-blur-incoming-media"
 							highlighted={highlightId === "privacy-blur-incoming-media"}
@@ -192,7 +192,7 @@ export function SettingsPrivacyPage() {
 				{disguiseSupported && (
 					<div>
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.app_disguise")}</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<div className="p-4">
 								<p className="text-sm font-semibold leading-snug">{t("privacy.app_disguise")}</p>
 								<p className="mt-0.5 text-xs text-[var(--text-muted)] leading-relaxed">{t("privacy.app_disguise_desc")}</p>

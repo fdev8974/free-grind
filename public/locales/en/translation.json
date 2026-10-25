@@ -907,7 +907,8 @@
       "picker_title": "Add songs ({{count}}/{{max}})",
       "search_placeholder": "Search songs or artists...",
       "search_hint": "Search Spotify to add songs",
-      "no_matches": "No songs match your search."
+      "no_matches": "No songs match your search.",
+      "apply": "Apply"
     }
   },
   "privacy": {

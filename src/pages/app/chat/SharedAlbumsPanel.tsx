@@ -564,7 +564,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 									key={`${item.profileId}:${item.album.albumId}`}
 									type="button"
 									onClick={() => void openViewer(item)}
-									className="surface-card relative overflow-hidden rounded-2xl text-left transition-transform hover:-translate-y-0.5"
+									className="native-card relative overflow-hidden rounded-2xl text-left transition-transform hover:-translate-y-0.5"
 								>
 									<div className="relative aspect-[4/6] w-full bg-[var(--surface-2)]">
 										{previewUrl ? (
@@ -604,7 +604,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 
 			{isOpeningAlbum ? (
 				<div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-					<div className="surface-card p-4 text-sm text-[var(--text-muted)]">
+					<div className="native-card p-4 text-sm text-[var(--text-muted)]">
 						{t("shared_albums.opening")}
 					</div>
 				</div>

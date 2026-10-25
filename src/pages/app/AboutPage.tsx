@@ -133,7 +133,7 @@ export function AboutPage() {
 			<PageHeader backTo="/settings" title={t("settings.about")} />
 
 			<div className="grid gap-6">
-				<div className="surface-card overflow-hidden">
+				<div className="native-card overflow-hidden">
 					{/* Tapping the app row 7 times toggles Developer Mode. */}
 					<button
 						type="button"
@@ -157,7 +157,7 @@ export function AboutPage() {
 
 				<div>
 					<SectionLabel>{t("about_page.section_principles", { defaultValue: "Why Free Grind" })}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ProjectRow
 							icon={LockFilled}
 							iconClass="bg-emerald-500/15 text-emerald-400"
@@ -187,7 +187,7 @@ export function AboutPage() {
 
 				<div>
 					<SectionLabel>{t("about_page.section_community", { defaultValue: "Community" })}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						{/* Brand colors as solid tiles on purpose: no color-mix (see accent-tint in index.css). */}
 						<ProjectRow
 							icon={DiscordIcon}
@@ -210,7 +210,7 @@ export function AboutPage() {
 
 				<div>
 					<SectionLabel>{t("about_page.section_project", { defaultValue: "Project" })}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						{announcement && (
 							<ProjectRow
 								icon={MegaphoneFilled}

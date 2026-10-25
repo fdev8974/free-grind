@@ -95,7 +95,7 @@ export function SettingsTransferAccountPage() {
 			/>
 
 			<div className="grid gap-6">
-				<div className="surface-card flex items-start gap-3 p-4">
+				<div className="native-card flex items-start gap-3 p-4">
 					<div className="shrink-0 rounded-2xl bg-amber-500/15 p-2.5 text-amber-400">
 						<ShieldAlertFilled className="h-5 w-5" />
 					</div>
@@ -113,7 +113,7 @@ export function SettingsTransferAccountPage() {
 				</div>
 
 				{shown ? (
-					<div className="surface-card flex flex-col items-center gap-4 p-5 animate-fade-in">
+					<div className="native-card flex flex-col items-center gap-4 p-5 animate-fade-in">
 						{/* Always dark on white, whatever the theme: scanners expect it. */}
 						<img
 							src={`data:image/svg+xml;utf8,${encodeURIComponent(shown.qrSvg)}`}
@@ -148,7 +148,7 @@ export function SettingsTransferAccountPage() {
 					</Button>
 				)}
 
-				<div className="surface-card flex items-start gap-3 p-4">
+				<div className="native-card flex items-start gap-3 p-4">
 					<div className="shrink-0 rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
 						<SmartphoneFilled className="h-5 w-5" />
 					</div>
@@ -170,7 +170,7 @@ export function SettingsTransferAccountPage() {
 				<button
 					type="button"
 					onClick={() => navigate("/settings/data#data-export")}
-					className="surface-card flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+					className="native-card flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 				>
 					<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
 						<DatabaseBackup className="h-5 w-5" />

@@ -40,6 +40,7 @@ import { LastTestedMonthPicker } from "../../../components/LastTestedMonthPicker
 import { CategoryHeader, ChipGroup, ToggleRow } from "./ProfileEditorComponents";
 import { TravelPlansSection } from "./TravelPlansSection";
 import { SpotifyFavoritesSection } from "./SpotifyFavoritesSection";
+import type { SpotifyTrack } from "../../../services/spotify";
 import { TagsPickerDialog } from "./TagsPickerDialog";
 import { ManagedOptionsPickerDialog } from "./ManagedOptionsPickerDialog";
 import {
@@ -188,6 +189,9 @@ type ProfileEditorFormSectionsProps = {
 	onRemovePhoto: (hash: string) => void;
 	onReorderPhotos: (newHashes: string[]) => void;
 	profileId?: string | number | null;
+	spotifyTracks: SpotifyTrack[];
+	isLoadingSpotify: boolean;
+	onSpotifyChange: (tracks: SpotifyTrack[]) => void;
 	ethnicityOptions: Option[];
 	bodyTypeOptions: Option[];
 	positionOptions: Option[];
@@ -223,6 +227,9 @@ export function ProfileEditorFormSections({
 	onRemovePhoto,
 	onReorderPhotos,
 	profileId,
+	spotifyTracks,
+	isLoadingSpotify,
+	onSpotifyChange,
 	ethnicityOptions,
 	bodyTypeOptions,
 	positionOptions,
@@ -894,7 +901,12 @@ export function ProfileEditorFormSections({
 				</div>
 			</div>
 
-			<SpotifyFavoritesSection profileId={profileId} />
+			<SpotifyFavoritesSection
+				tracks={spotifyTracks}
+				isLoading={isLoadingSpotify}
+				disabled={profileId == null}
+				onChange={onSpotifyChange}
+			/>
 
 			{/* Other / Account Info */}
 			<div>

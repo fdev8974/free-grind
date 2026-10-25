@@ -914,7 +914,8 @@
             "picker_title": "Agregar canciones ({{count}}/{{max}})",
             "search_placeholder": "Buscar canciones o artistas...",
             "search_hint": "Busca en Spotify para agregar canciones",
-            "no_matches": "Ninguna canción coincide con tu búsqueda."
+            "no_matches": "Ninguna canción coincide con tu búsqueda.",
+            "apply": ""
         },
         "tags_count_many": "{{count}} etiquetas"
     },

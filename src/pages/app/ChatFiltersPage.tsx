@@ -154,7 +154,7 @@ export function ChatFiltersPage() {
 					}
 				/>
 
-				<div className="surface-card space-y-4 p-4 sm:p-5">
+				<div className="native-card space-y-4 p-4 sm:p-5">
 					<div>
 						<p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
 							{t("browse_filters.quick_filters")}

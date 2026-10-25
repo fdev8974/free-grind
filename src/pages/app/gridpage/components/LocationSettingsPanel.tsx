@@ -50,7 +50,7 @@ export function LocationSettingsPanel({
 	}
 
 	return (
-		<div className="surface-card mb-4 rounded-2xl p-4 sm:p-5">
+		<div className="native-card mb-4 rounded-2xl p-4 sm:p-5">
 			<div className="mb-4">
 				<p className="text-sm font-semibold">{t("browse_location.panel_title")}</p>
 				<p className="text-xs text-[var(--text-muted)]">

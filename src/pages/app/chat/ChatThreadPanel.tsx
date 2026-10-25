@@ -1228,7 +1228,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const renderThread = (selectedConversation || targetProfileId) ? (
 		<div
 			className={`relative flex h-full flex-col ${!isDesktop ? "overflow-hidden p-0" : "overflow-hidden p-3 sm:p-4"} ${
-				isDesktop ? "surface-card" : ""
+				isDesktop ? "native-card" : ""
 			}`}
 			style={
 				!isDesktop
@@ -3165,7 +3165,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	) : (
 		<div
 			className={`flex h-full overflow-hidden items-center justify-center p-6 text-center text-[var(--text-muted)] ${
-				isDesktop ? "surface-card" : ""
+				isDesktop ? "native-card" : ""
 			}`}
 		>
 			{t("chat.select_conversation")}

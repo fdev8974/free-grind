@@ -901,7 +901,7 @@ export function ChatInboxPanel({
 	return (
 		<PullToRefreshContainer
 			className={`flex min-h-0 flex-col overflow-hidden ${
-				isDesktop ? "surface-card h-full" : "h-dvh p-0"
+				isDesktop ? "native-card h-full" : "h-dvh p-0"
 			}`}
 			contentClassName="flex flex-1 flex-col min-h-0"
 			style={

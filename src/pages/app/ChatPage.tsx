@@ -6967,7 +6967,7 @@ export function ChatPage() {
 
 			{isAlbumViewerLoading && !albumViewer ? (
 				<div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-4">
-					<div className="surface-card p-4 text-sm text-[var(--text-muted)]">
+					<div className="native-card p-4 text-sm text-[var(--text-muted)]">
 						{t("shared_albums.opening")}
 					</div>
 				</div>

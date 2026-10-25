@@ -437,7 +437,7 @@ export function SettingsDataPage() {
 
 			<div className="grid gap-8">
 				<div>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<button
 							id="data-export"
 							type="button"
@@ -526,7 +526,7 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.media_storage", { defaultValue: "Media Storage" })}
 						</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<div
 								id="data-storage-used"
 								className={`flex items-center justify-between gap-4 px-4 py-3.5 ${highlightId === "data-storage-used" ? "animate-settings-highlight" : ""}`}
@@ -563,7 +563,7 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.phrases_section", { defaultValue: "Saved Phrases" })}
 						</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<button
 								id="data-phrases-export"
 								type="button"
@@ -634,7 +634,7 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.encounters_section", { defaultValue: "Sexual Encounters" })}
 						</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<button
 								id="data-encounters-export"
 								type="button"
@@ -670,7 +670,7 @@ export function SettingsDataPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("data_backup.danger_zone", { defaultValue: "Danger Zone" })}
 					</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<div
 							id="data-reset-all"
 							className={`flex items-center justify-between gap-4 px-4 py-3.5 ${highlightId === "data-reset-all" ? "animate-settings-highlight" : ""}`}

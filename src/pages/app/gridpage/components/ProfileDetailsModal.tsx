@@ -1411,7 +1411,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 
 	const albumOpeningOverlay = isOpeningAlbum && (
 		<div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-4">
-			<div className="surface-card p-4 text-sm text-[var(--text-muted)]">{t("shared_albums.opening")}</div>
+			<div className="native-card p-4 text-sm text-[var(--text-muted)]">{t("shared_albums.opening")}</div>
 		</div>
 	);
 
@@ -2197,7 +2197,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			onClick={handleBackdropClose}
 		>
 			<div
-				className="surface-card flex w-full max-w-[min(80vw,1300px)] overflow-hidden rounded-2xl"
+				className="native-card flex w-full max-w-[min(80vw,1300px)] overflow-hidden rounded-2xl"
 				style={{
 					flexDirection: isModalSplit ? "row" : "column",
 					maxHeight: isModalSplit ? "calc(100dvh - 8rem)" : "calc(100dvh - 1.5rem)",

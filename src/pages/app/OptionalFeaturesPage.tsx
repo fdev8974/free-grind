@@ -33,7 +33,7 @@ export function OptionalFeaturesPage() {
 			/>
 
 			<div className="grid gap-6">
-				<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+				<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 					<ToggleRow
 						id="cust-show-video-gallery"
 						highlighted={highlightId === "cust-show-video-gallery"}
