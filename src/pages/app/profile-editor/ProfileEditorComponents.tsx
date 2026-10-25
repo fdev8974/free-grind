@@ -15,7 +15,7 @@ export function CategoryHeader({
 }) {
 	return (
 		<div className="mb-5 flex items-start gap-3">
-			<div className="rounded-2xl p-2.5 bg-[var(--surface-2)] text-[var(--text-muted)] shrink-0">
+			<div className="rounded-2xl p-2.5 ink-tint-8 text-[var(--text-muted)] shrink-0">
 				<Icon className="h-5 w-5" strokeWidth={2.1} />
 			</div>
 			<div className="min-w-0 flex-1">

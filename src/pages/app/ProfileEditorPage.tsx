@@ -851,13 +851,13 @@ export function ProfileEditorPage() {
 				/>
 
 				{isLoadingProfile && !profile ? (
-					<div className="surface-card p-5 sm:p-6">
+					<div className="native-card p-5 sm:p-6">
 						<p className="text-sm font-medium text-[var(--text-muted)]">
 							{t("profile_editor.loading")}
 						</p>
 					</div>
 				) : profileError && !profile ? (
-					<div className="surface-card p-5 sm:p-6">
+					<div className="native-card p-5 sm:p-6">
 						<p className="text-sm font-semibold">
 							{t("profile_editor.error_load")}
 						</p>
@@ -911,22 +911,20 @@ export function ProfileEditorPage() {
 						className="fixed inset-x-0 z-40 flex justify-center px-4"
 						style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px))" }}
 					>
-						<div
-							className="animate-badge-in flex items-center gap-1.5 rounded-full border border-[var(--border)] p-1.5 shadow-xl"
-							style={{
-								backgroundColor: "rgba(22, 29, 39, 0.9)",
-								background: "color-mix(in srgb, var(--surface) 92%, transparent)",
-								backdropFilter: "blur(16px)",
-								WebkitBackdropFilter: "blur(16px)",
-							}}
-						>
+						{/* Two floating buttons like the sheets' footer, no shared pill around them. */}
+						<div className="animate-badge-in flex items-center gap-2.5">
 							<button
 								type="button"
 								onClick={handleResetDraft}
 								disabled={isSaving}
 								aria-label={t("profile_editor.actions.reset")}
 								title={t("profile_editor.actions.reset")}
-								className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40"
+								className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[var(--text)] shadow-[0_8px_24px_rgba(0,0,0,0.25)] transition-transform duration-150 active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50"
+								style={{
+									background: "color-mix(in srgb, var(--surface-2) 82%, transparent)",
+									backdropFilter: "blur(16px)",
+									WebkitBackdropFilter: "blur(16px)",
+								}}
 							>
 								<RefreshCw className="h-[18px] w-[18px]" />
 							</button>
@@ -934,10 +932,10 @@ export function ProfileEditorPage() {
 								type="button"
 								onClick={handleSaveProfile}
 								disabled={!canSave}
-								className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 font-semibold text-[var(--accent-contrast)] transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+								className={`${sheetButtonClass()} flex-none px-6`}
 								style={{
 									boxShadow: canSave
-										? "0 8px 20px -6px color-mix(in srgb, var(--accent), transparent 45%)"
+										? "0 8px 24px -6px color-mix(in srgb, var(--accent), transparent 40%)"
 										: undefined,
 								}}
 							>

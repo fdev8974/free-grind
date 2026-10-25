@@ -68,7 +68,7 @@ export function SpotifyFavoritesSection({ profileId }: SpotifyFavoritesSectionPr
 	};
 
 	return (
-		<div className="surface-card min-w-0 p-4 sm:p-5">
+		<div className="native-card min-w-0 p-4 sm:p-5">
 			<CategoryHeader
 				title={t("profile_editor.spotify.title")}
 				description={t("profile_editor.spotify.description")}
@@ -83,7 +83,7 @@ export function SpotifyFavoritesSection({ profileId }: SpotifyFavoritesSectionPr
 								? t("profile_editor.spotify.max_reached", { max: MAX_SPOTIFY_FAVORITES })
 								: undefined
 						}
-						className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm font-medium transition-colors hover:border-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+						className="inline-flex h-9 items-center gap-1.5 rounded-full ink-tint-10 px-3.5 text-sm font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
 					>
 						<Plus className="h-4 w-4" />
 						{t("profile_editor.spotify.add")}
@@ -100,23 +100,23 @@ export function SpotifyFavoritesSection({ profileId }: SpotifyFavoritesSectionPr
 					type="button"
 					onClick={() => setPickerOpen(true)}
 					disabled={stringProfileId == null}
-					className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--border)] py-8 text-center transition hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+					className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl ink-tint-6 py-8 text-center transition hover:ink-tint-10 disabled:cursor-not-allowed disabled:opacity-40"
 				>
-					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+					<div className="flex h-9 w-9 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
 						<Music className="h-4 w-4" />
 					</div>
 					<p className="text-sm text-[var(--text-muted)]">{t("profile_editor.spotify.empty")}</p>
 				</button>
 			) : (
-				<div className="overflow-hidden rounded-2xl border border-[var(--border)]">
-					{selected.map((track, i) => {
+				<div className="overflow-hidden rounded-2xl ink-tint-6 divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)]">
+					{selected.map((track) => {
 						const subtitle = [track.artists.join(", "), track.albumName]
 							.filter((part) => part && part.trim().length > 0)
 							.join(" · ");
 						return (
 							<div
 								key={track.id}
-								className={`flex items-center gap-3 bg-[var(--surface-2)] px-3 py-2.5 ${i > 0 ? "border-t border-[var(--border)]" : ""}`}
+								className="flex items-center gap-3 px-3 py-2.5"
 							>
 								{track.albumImageUrl ? (
 									<img

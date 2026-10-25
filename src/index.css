@@ -1231,6 +1231,23 @@
 		}
 	}
 
+	/* Borderless grouped card for app pages, in place of surface-card's border
+	   and shadow. Opaque, so nested sticky/absolute content needs no isolation:
+	   white on the grey page in light mode; in dark mode a text-tinted lift that
+	   still reads on AMOLED's pure black (12% lands near iOS's #1c1c1e). */
+	.native-card {
+		border-radius: 20px;
+		background: var(--surface);
+	}
+	:root[data-scheme="dark"] .native-card {
+		background: color-mix(in srgb, var(--text) 12%, var(--bg));
+	}
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-scheme="light"]) .native-card {
+			background: color-mix(in srgb, var(--text) 12%, var(--bg));
+		}
+	}
+
 	.no-touch-callout {
 		-webkit-touch-callout: none;
 		-webkit-user-select: none;

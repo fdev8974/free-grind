@@ -293,7 +293,7 @@ export function ProfileEditorFormSections({
 	return (
 		<div className="grid gap-5">
 			{/* Pictures */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.pictures.title")}
 					description={t("profile_editor.sections.pictures.description")}
@@ -307,16 +307,16 @@ export function ProfileEditorFormSections({
 									onClick={onOpenPhotoDrawer}
 									disabled={uploadDisabled}
 									className={[
-										"inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-medium transition-colors",
+										"inline-flex min-h-9 items-center gap-1.5 rounded-full ink-tint-10 px-3.5 py-2 text-sm font-semibold transition-[transform,background-color] duration-150",
 										uploadDisabled
 											? "cursor-not-allowed opacity-40"
-											: "cursor-pointer hover:border-[var(--text-muted)]",
+											: "cursor-pointer hover:ink-tint-14 active:scale-[0.97]",
 									].join(" ")}
 								>
 									{isUploadingPhoto
 										? t("profile_editor.sections.pictures.uploading")
 										: t("profile_editor.sections.pictures.add")}
-									<span className="ml-1 rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
+									<span className="ml-1 rounded-full ink-tint-10 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
 										{profilePhotoHashes.length}/{MAX_PROFILE_PHOTOS}
 									</span>
 								</button>
@@ -351,7 +351,7 @@ export function ProfileEditorFormSections({
 										key={`empty-${i}`}
 										type="button"
 										onClick={onOpenPhotoDrawer}
-										className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+										className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl ink-tint-8 text-[var(--text-muted)] transition-[transform,color] duration-150 hover:ink-tint-12 hover:text-[var(--accent)] active:scale-[0.98]"
 									>
 										<Plus className="h-6 w-6" />
 										<span className="text-xs font-medium">
@@ -372,7 +372,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Profile / Basic Info */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.profile.title")}
 					description={t("profile_editor.sections.profile.description")}
@@ -460,7 +460,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Stats / States */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.states.title")}
 					description={t("profile_editor.sections.states.description")}
@@ -596,7 +596,7 @@ export function ProfileEditorFormSections({
 					</div>
 
 					{/* Role/Position — separated from the stats above by a thin divider, not its own box */}
-					<div className="grid gap-4 border-t border-[var(--border)] pt-4">
+					<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
 						<ToggleRow
 							checked={draft.showPosition}
 							onChange={(checked) => onDraftChange("showPosition", checked)}
@@ -625,7 +625,7 @@ export function ProfileEditorFormSections({
 					</div>
 
 					{/* Tribes — separated by a thin divider, not its own box */}
-					<div className="grid gap-4 border-t border-[var(--border)] pt-4">
+					<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
 						<ToggleRow
 							checked={draft.showTribes}
 							onChange={(checked) => onDraftChange("showTribes", checked)}
@@ -661,7 +661,7 @@ export function ProfileEditorFormSections({
 			<TravelPlansSection profileId={profileId} />
 
 			{/* Expectations */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.expectations.title")}
 					description={t("profile_editor.sections.expectations.description")}
@@ -709,7 +709,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Identity */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.identity.title")}
 					description={t("profile_editor.sections.identity.description")}
@@ -769,7 +769,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Health */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.health.title")}
 					description={t("profile_editor.sections.health.description")}
@@ -807,7 +807,7 @@ export function ProfileEditorFormSections({
 					</div>
 
 					{isTestOverdue && (
-						<div className="flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3.5 py-3">
+						<div className="flex items-start gap-2.5 rounded-2xl bg-amber-500/12 px-3.5 py-3">
 							<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
 							<p className="text-xs leading-relaxed text-amber-400 sm:text-sm">
 								{t("profile_editor.sections.health.test_reminder")}
@@ -848,7 +848,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Social */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.social.title")}
 					description={t("profile_editor.sections.social.description")}
@@ -901,12 +901,12 @@ export function ProfileEditorFormSections({
 				<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 					{t("profile_editor.sections.other.title")}
 				</p>
-				<div className="surface-card overflow-hidden">
+				<div className="native-card overflow-hidden">
 					<div className="flex items-center justify-between px-4 py-3.5">
 						<span className="text-sm text-[var(--text-muted)]">
 							{t("profile_editor.sections.other.user_id")}
 						</span>
-						<span className="rounded-lg bg-[var(--surface-2)] px-2.5 py-1 font-mono text-sm font-semibold">
+						<span className="rounded-full ink-tint-8 px-2.5 py-1 font-mono text-sm font-semibold">
 							{profileId ?? "—"}
 						</span>
 					</div>
