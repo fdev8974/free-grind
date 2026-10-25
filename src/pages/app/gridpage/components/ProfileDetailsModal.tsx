@@ -867,9 +867,11 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	const onNextProfileRef = useRef(onNextProfile);
 	onNextProfileRef.current = onNextProfile;
 	const hasProfileNeighbors = Boolean(onPrevProfile || onNextProfile);
-	// Set once a swipe has slid the neighbour's preview fully in; the offset is
-	// reset only when that profile actually renders, so the old one never flashes.
+	// Set once a swipe has slid the neighbour's preview fully in. The preview
+	// stays on screen as the loading state; the offset is only reset once the
+	// new profile has loaded, so neither the old profile nor the skeleton flashes.
 	const pendingSwipeResetRef = useRef(false);
+	const swipeFromProfileIdRef = useRef<string | null>(null);
 	const swipeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const resetProfileSwipeOffset = useCallback(() => {
@@ -884,11 +886,17 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		el.style.transform = "";
 	}, []);
 
+	const currentProfileId = activeProfile?.profileId != null ? String(activeProfile.profileId) : null;
 	useLayoutEffect(() => {
-		if (pendingSwipeResetRef.current) resetProfileSwipeOffset();
-	}, [activeProfile?.profileId, isLoadingActiveProfile, resetProfileSwipeOffset]);
+		if (!pendingSwipeResetRef.current) return;
+		if (isLoadingActiveProfile || currentProfileId === swipeFromProfileIdRef.current) return;
+		resetProfileSwipeOffset();
+	}, [currentProfileId, isLoadingActiveProfile, resetProfileSwipeOffset]);
 
 	useEffect(() => resetProfileSwipeOffset, [resetProfileSwipeOffset]);
+
+	const currentProfileIdRef = useRef(currentProfileId);
+	currentProfileIdRef.current = currentProfileId;
 
 	useEffect(() => {
 		const el = pageWrapRef.current;
@@ -965,10 +973,11 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			el.style.transition = "transform 200ms ease-out";
 			el.style.transform = `translateX(${dx < 0 ? -width : width}px)`;
 			pendingSwipeResetRef.current = true;
+			swipeFromProfileIdRef.current = currentProfileIdRef.current;
 			swipeResetTimerRef.current = setTimeout(() => {
 				go();
-				// Fallback in case the switch didn't change anything we watch.
-				swipeResetTimerRef.current = setTimeout(resetProfileSwipeOffset, 600);
+				// Fallback in case loading hangs or nothing we watch changes.
+				swipeResetTimerRef.current = setTimeout(resetProfileSwipeOffset, 10_000);
 			}, 200);
 		};
 
