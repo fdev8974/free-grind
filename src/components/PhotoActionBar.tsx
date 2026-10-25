@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Flame, Loader2, SendHorizontal } from "lucide-react";
+import { Flame, Loader2 } from "lucide-react";
+import { SendHorizontalFilled } from "./icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 
 type PhotoActionBarProps = {
@@ -13,9 +14,8 @@ type PhotoActionBarProps = {
  * Bottom bar for replying to (or 🔥-reacting to) a specific photo shown in
  * PhotoViewer — mirrors the floating "quick message + tap" footer in
  * ProfileDetailsModal, but scoped to a single reaction (no emoji picker,
- * since album-photo reactions only ever imply 🔥). Circular glass buttons
- * match PhotoViewer's own close/save/nav chrome so the whole overlay reads
- * as one consistent control language.
+ * since album-photo reactions only ever imply 🔥). Built like that footer:
+ * a floating pill for the text, tap and send as round buttons beside it.
  */
 export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoActionBarProps) {
 	const { t } = useTranslation();
@@ -45,6 +45,8 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 		}
 	};
 
+	const hasText = text.trim().length > 0;
+
 	return (
 		<div
 			className="px-3"
@@ -55,17 +57,12 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 			}}
 		>
 			<div
-				className="mx-auto flex w-full max-w-lg items-center gap-2"
+				className="mx-auto flex w-full max-w-lg items-center gap-1"
 				onClick={(e) => e.stopPropagation()}
 			>
-				<div className="relative min-w-0 flex-1">
-					<div
-						className="pointer-events-none absolute inset-0 rounded-xl backdrop-blur-md"
-						style={{
-							background: "rgba(0,0,0,0.4)",
-							border: "1px solid rgba(255,255,255,0.15)",
-						}}
-					/>
+				{/* Same as the profile's bar: the field floats as a frosted pill,
+				    tap and send sit next to it. */}
+				<div className="min-w-0 flex-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] p-1 shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl focus-within:ring-2 focus-within:ring-[var(--accent)]">
 					<input
 						type="text"
 						value={text}
@@ -77,41 +74,33 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 							}
 						}}
 						disabled={isSending}
+						enterKeyHint="send"
 						placeholder={placeholder ?? t("photo_viewer.reply_placeholder", { defaultValue: "Reply…" })}
-						className="relative h-11 w-full rounded-xl bg-transparent px-4 text-sm text-white placeholder:text-white/55 outline-none disabled:opacity-50"
+						className="h-10 w-full bg-transparent px-4 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none disabled:opacity-50"
 					/>
 				</div>
-				<button
-					type="button"
-					onClick={() => void handleSend()}
-					disabled={isSending || text.trim().length === 0}
-					aria-label={t("photo_viewer.send", { defaultValue: "Send" })}
-					className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none bg-transparent text-white transition active:scale-90 disabled:opacity-40"
-				>
-					{isSending ? (
-						<Loader2 className="h-5 w-5 animate-spin" />
-					) : (
-						<SendHorizontal className="h-5 w-5 text-[var(--accent)]" />
-					)}
-				</button>
 				{onReact && (
 					<button
 						type="button"
 						onClick={() => void handleReact()}
 						disabled={isReacting}
 						aria-label={t("photo_viewer.react", { defaultValue: "React" })}
-						className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-none bg-transparent text-white transition active:scale-90 disabled:opacity-50"
+						className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:text-white active:scale-90 disabled:opacity-50"
 					>
-						{isReacting ? (
-							<Loader2 className="h-5 w-5 animate-spin" />
-						) : (
-							<Flame
-								className="h-5 w-5 text-orange-400"
-								style={{ filter: "drop-shadow(0 0 4px rgba(255,140,0,0.75))" }}
-							/>
-						)}
+						{isReacting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Flame className="h-5 w-5" strokeWidth={1.8} />}
 					</button>
 				)}
+				<button
+					type="button"
+					onClick={() => void handleSend()}
+					disabled={isSending || !hasText}
+					aria-label={t("photo_viewer.send", { defaultValue: "Send" })}
+					className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition active:scale-90 ${
+						hasText || isSending ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "text-white/40"
+					}`}
+				>
+					{isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizontalFilled className="h-5 w-5" />}
+				</button>
 			</div>
 		</div>
 	);
