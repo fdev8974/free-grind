@@ -116,11 +116,11 @@ export function MapSheetLayout({
 			{/* With a search on top, MapLibre's zoom control moves below it. */}
 			<div className={`absolute inset-0 ${hasSearch ? "[&_.maplibregl-ctrl-top-right]:top-[3.75rem]" : ""}`}>{map}</div>
 
-			{/* Short fade from the sheet's own background (NATIVE_SHEET_BG) so the
+			{/* Short fade from the sheet's own background (--sheet-bg) so the
 			    header flows into the map instead of meeting it at a hard edge.
 			    No z-index: MapLibre's controls (z-index 2) stay above it. */}
 			<div
-				className={`pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--surface)_92%,black_8%)] via-[color-mix(in_srgb,var(--surface)_92%,black_8%)]/60 to-transparent ${hasSearch ? "h-28" : "h-20"}`}
+				className={`pointer-events-none absolute inset-x-0 top-0 bg-[linear-gradient(to_bottom,var(--sheet-bg),color-mix(in_srgb,var(--sheet-bg)_60%,transparent)_45%,transparent)] ${hasSearch ? "h-28" : "h-20"}`}
 			/>
 
 			{pinLabel != null ? (

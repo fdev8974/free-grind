@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
 import { BackupProgressBar } from "./BackupProgressBar";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
-import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass } from "./ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import * as chatDb from "../services/chatDb";
 import {
@@ -215,7 +215,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleCategory} />
 					</div>
 					<BackupProgressBar kind="import" active={isBusy} />
-					<div className="flex gap-2.5 px-4 pb-4 pt-2">
+					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
 						<SheetClose
 							disabled={isBusy}
 							className={sheetButtonClass("secondary")}

@@ -644,7 +644,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 
 			{/* Bottom actions */}
 			{canPost && (
-				<div className={`relative ${SHEET_FOOTER_CLASS} flex-col`}>
+				<div className={`${SHEET_FOOTER_CLASS} flex-col`}>
 					<button
 						type="button"
 						onClick={handlePost}

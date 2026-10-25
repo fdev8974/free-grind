@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass } from "./bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./bottom-sheet";
 
 interface BottomDrawerProps {
 	title: string;
@@ -39,7 +39,7 @@ export function BottomDrawer({
 				<SheetCloseButton disabled={isProcessing} />
 			</div>
 			{children}
-			<div className="flex gap-2.5 px-4 pt-1">
+			<div className={`flex shrink-0 gap-2.5 px-4 ${SHEET_FOOTER_FADE_CLASS}`}>
 				{footerLeft}
 				{cancelLabel && (
 					<SheetClose

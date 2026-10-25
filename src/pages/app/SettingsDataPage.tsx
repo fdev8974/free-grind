@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
 import { BackupProgressBar } from "../../components/BackupProgressBar";
-import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../components/ui/bottom-sheet";
 import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
@@ -775,7 +775,7 @@ export function SettingsDataPage() {
 						</div>
 					</div>
 					<BackupProgressBar kind="export" active={isExporting} />
-					<div className="flex gap-2.5 px-4 pb-4 pt-2">
+					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
 						<SheetClose
 							disabled={isExporting}
 							className={sheetButtonClass("secondary")}
@@ -819,7 +819,7 @@ export function SettingsDataPage() {
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleImportCategory} />
 					</div>
 					<BackupProgressBar kind="import" active={isImporting} />
-					<div className="flex gap-2.5 px-4 pb-4 pt-2">
+					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
 						<SheetClose
 							disabled={isImporting}
 							className={sheetButtonClass("secondary")}

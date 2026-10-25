@@ -90,9 +90,21 @@ export function SheetClose({ children, className, style, disabled, onClick, "ari
 export const SHEET_ICON_BUTTON_CLASS =
 	"inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ink-tint-8 text-[var(--text-muted)] transition active:scale-90 active:ink-tint-16 hover:ink-tint-12 hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-40";
 
-/** Bottom action row of a sheet. No divider: like native sheets, the
- * buttons just sit on the sheet's own background. */
-export const SHEET_FOOTER_CLASS = "-mx-4 mt-3 flex shrink-0 gap-2.5 px-4 pt-3";
+/** Makes a sheet's bottom action row float: it overlaps the content above by
+ * its top padding and fades from the sheet's background (--sheet-bg, set on
+ * the panel) to transparent, so content scrolls away under the buttons
+ * instead of ending at a hard edge. For footers in sheets without px-4. */
+export const SHEET_FOOTER_FADE_CLASS =
+	"relative z-10 -mt-5 pt-7 bg-[linear-gradient(to_top,var(--sheet-bg)_55%,transparent)]";
+
+/** Bottom action row of a sheet (in a px-4 panel). */
+export const SHEET_FOOTER_CLASS = `-mx-4 flex shrink-0 gap-2.5 px-4 ${SHEET_FOOTER_FADE_CLASS}`;
+
+/** The color inside a `bg-[...]` class, so the footer fade can match it. */
+function sheetBgColor(bgClass: string): string {
+	const match = /(?:^|\s)bg-\[([^\]]+)\]/.exec(bgClass);
+	return match ? match[1].replace(/_/g, " ") : "var(--surface)";
+}
 
 const SHEET_BUTTON_BASE =
 	"inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-[transform,filter,background-color,color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
@@ -551,12 +563,13 @@ export function BottomSheet({
 					// transform, height and transition are set by applyLayout.
 					style={{
 						willChange: "transform",
+						"--sheet-bg": sheetBgColor(bg),
 						// Extends SHEET_BLEED past the screen edge so the open/settle overshoot
 						// never shows a gap under the sheet.
 						marginBottom: -SHEET_BLEED,
 						paddingBottom: SHEET_BOTTOM_PADDING,
 						minHeight: isDesktop || isDetented ? undefined : `calc(50dvh + ${SHEET_BLEED}px)`,
-					}}
+					} as CSSProperties}
 					onClick={(e) => e.stopPropagation()}
 				>
 					{!isDesktop && (

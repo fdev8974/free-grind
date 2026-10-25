@@ -2,7 +2,7 @@ import { Check, Copy, Loader2, TriangleAlert } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { BottomSheet, SheetCloseButton, sheetButtonClass } from "../../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../../../components/ui/bottom-sheet";
 import { isIos } from "../../../../services/saveMedia";
 import { appLog } from "../../../../utils/logger";
 import { MapLocationPreview } from "./MapLocationPreview";
@@ -185,7 +185,7 @@ export function LocateResultSheet({ progress, onClose, onCancel, isDesktop }: Pr
 				) : null}
 			</div>
 
-			<div className="flex gap-2.5 px-4 pt-1">
+			<div className={`flex shrink-0 gap-2.5 px-4 ${SHEET_FOOTER_FADE_CLASS}`}>
 				{isRunning ? (
 					<button
 						type="button"
