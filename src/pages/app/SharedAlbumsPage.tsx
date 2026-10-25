@@ -1,4 +1,5 @@
-import { Album, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Wifi } from "lucide-react";
+import { Album, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Video } from "lucide-react";
+import type { TFunction } from "i18next";
 import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -70,7 +71,7 @@ function AlbumCard({
 	onClick: () => void;
 	onDelete: () => void;
 	isDeleting: boolean;
-	t: (key: string) => string;
+	t: TFunction;
 }) {
 	const { ref, revealClass } = useRevealOnScroll();
 	const previewUrl =
@@ -79,63 +80,65 @@ function AlbumCard({
 		item.album.content?.coverUrl ||
 		null;
 	const avatarUrl = item.profileMediaHash
-		? getThumbImageUrl(item.profileMediaHash, "320x320")
+		? getThumbImageUrl(item.profileMediaHash, "75x75")
 		: null;
+	const { imageCount, videoCount } = item.album.contentCount;
+	const showsAlbumNumber = !item.localOnly && item.totalAlbumsShared != null && item.totalAlbumsShared > 1;
 
 	return (
 		<div ref={ref} className={revealClass}>
-			<div className="native-card relative w-full overflow-hidden rounded-2xl transition-transform hover:-translate-y-0.5">
+			<div className="group relative w-full overflow-hidden rounded-2xl bg-[var(--surface-2)] transition-transform hover:-translate-y-0.5">
 				<button
 					type="button"
 					onClick={onClick}
-					className="block w-full text-left"
+					className="relative block aspect-[4/6] w-full text-left"
 				>
-					<div className="relative aspect-[4/6] w-full bg-[var(--surface-2)]">
-						{previewUrl ? (
-							<>
-								<img
-									src={proxyMediaUrl(previewUrl)}
-									alt={item.album.albumName ?? t("shared_albums.preview_alt")}
-									className="h-full w-full scale-110 object-cover"
-								/>
-								<div className="absolute inset-0 bg-black/25" />
-							</>
-						) : (
-							<div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
-								<Album className="h-8 w-8" />
-							</div>
-						)}
-						<div className="absolute left-2 top-2 flex items-center gap-1">
-							{item.album.contentCount.videoCount > 0 ? (
-								<div
-									className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold text-white/85 backdrop-blur-sm"
-									title={t("shared_albums.video_label")}
-									aria-label={t("shared_albums.video_label")}
-								>
-									<Film className="h-3 w-3" />
-								</div>
-							) : null}
+					{previewUrl ? (
+						<img
+							src={proxyMediaUrl(previewUrl)}
+							alt={item.album.albumName ?? t("shared_albums.preview_alt")}
+							loading="lazy"
+							className="h-full w-full object-cover transition group-hover:scale-105"
+						/>
+					) : (
+						<div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
+							<Album className="h-8 w-8 opacity-40" />
 						</div>
-						{!item.localOnly && item.totalAlbumsShared != null && item.totalAlbumsShared > 1 ? (
-							<div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold tabular-nums text-white/85 backdrop-blur-sm">
-								<Layers className="h-3 w-3" />
-								{item.albumNumber}/{item.totalAlbumsShared}
-							</div>
+					)}
+					{showsAlbumNumber ? (
+						<div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold tabular-nums text-white/85 backdrop-blur-sm">
+							<Layers className="h-3 w-3" />
+							{item.albumNumber}/{item.totalAlbumsShared}
+						</div>
+					) : null}
+					{/* Owner and contents, like the chat's album bubble */}
+					<div className="absolute inset-x-0 bottom-0 space-y-1 bg-gradient-to-t from-black/75 via-black/40 to-transparent px-2 pb-2 pt-10">
+						{item.album.albumName ? (
+							<p className="truncate text-xs font-semibold leading-tight text-white drop-shadow">
+								{item.album.albumName}
+							</p>
 						) : null}
-						<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-white">
-							<div className="h-14 w-14 overflow-hidden rounded-full border-white/25 bg-white/15 text-white shadow-lg backdrop-blur-sm">
-								<ProfileImage src={avatarUrl} alt={item.profileName} />
-							</div>
-							<div className="min-w-0">
-								<p className="truncate text-sm font-semibold leading-tight text-white drop-shadow">
-									{item.profileName}
-								</p>
-								{item.album.albumName ? (
-									<p className="mt-0.5 truncate text-[11px] font-medium leading-tight text-white/75 drop-shadow">
-										{item.album.albumName}
-									</p>
+						{imageCount > 0 || videoCount > 0 ? (
+							<div className="flex items-center gap-2 text-[11px] font-medium text-white/90">
+								{imageCount > 0 ? (
+									<span className="inline-flex items-center gap-1 tabular-nums" title={t("chat.thread.album_photo_count", { count: imageCount })}>
+										<Images className="h-3 w-3" />
+										{imageCount}
+									</span>
+								) : null}
+								{videoCount > 0 ? (
+									<span className="inline-flex items-center gap-1 tabular-nums" title={t("chat.thread.album_video_count", { count: videoCount })}>
+										<Video className="h-3 w-3" />
+										{videoCount}
+									</span>
 								) : null}
 							</div>
+						) : null}
+						<div className="flex items-center gap-1.5">
+							<div className="h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white/15">
+								<ProfileImage src={avatarUrl} alt={item.profileName} />
+							</div>
+							<p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{item.profileName}</p>
 						</div>
 					</div>
 				</button>
@@ -319,6 +322,12 @@ export function SharedAlbumsPage() {
 								}
 							}
 						}
+						const localContent = (await getLocalAlbum(Number(stored.albumId)).catch(() => null))?.content ?? [];
+						const localVideoCount = localContent.filter((c) => c.contentType?.startsWith("video/")).length;
+						const localContentCount = {
+							imageCount: localContent.length - localVideoCount,
+							videoCount: localVideoCount,
+						};
 						const cachedCover =
 							getCachedAlbumCoverUri(Number(stored.albumId)) ??
 							(stored.previewCoverBase64 && stored.previewCoverMimeType
@@ -338,7 +347,7 @@ export function SharedAlbumsPage() {
 								content: cachedCover
 									? { thumbUrl: cachedCover, url: cachedCover, coverUrl: cachedCover }
 									: null,
-								contentCount: { imageCount: 0, videoCount: 0 },
+								contentCount: localContentCount,
 							},
 							albumNumber: Number.MAX_SAFE_INTEGER,
 							localOnly: true,
@@ -916,7 +925,7 @@ export function SharedAlbumsPage() {
 								)}
 								style={!filters.isFavorite ? { "--pill-color": "var(--accent)" } as CSSProperties : undefined}
 							>
-								<Star className={`h-3.5 w-3.5 ${filters.isFavorite ? "fill-current" : ""}`} />
+								<Star className="h-3.5 w-3.5 fill-current" />
 								{t("shared_albums.filter_favorites")}
 							</button>
 							<button
@@ -931,7 +940,7 @@ export function SharedAlbumsPage() {
 								)}
 								style={!filters.isOnline ? { "--pill-color": "var(--accent)" } as CSSProperties : undefined}
 							>
-								<Wifi className="h-3.5 w-3.5" />
+								<span className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
 								{t("shared_albums.filter_online")}
 							</button>
 							<button
