@@ -157,9 +157,16 @@ export function MapLocationPicker({
 				// size and rendering blank. A ResizeObserver catches any size
 				// change after the fact — including that animation settling —
 				// and tells maplibre to re-measure.
+				// resize() clears the canvas and only repaints on the next frame,
+				// so a container resized every frame (dragging an expandable sheet
+				// between its detents) flickers blank. Redrawing synchronously
+				// fills it again before the browser paints.
 				if (mapContainerRef.current && "ResizeObserver" in window) {
 					resizeObserverRef.current = new ResizeObserver(() => {
-						mapRef.current?.resize();
+						const currentMap = mapRef.current;
+						if (!currentMap) return;
+						currentMap.resize();
+						if (currentMap.isStyleLoaded()) currentMap.redraw();
 					});
 					resizeObserverRef.current.observe(mapContainerRef.current);
 				}
