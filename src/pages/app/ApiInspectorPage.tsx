@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Copy, Download, RotateCcw, Search, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Activity, Check, ChevronRight, Copy, Download, Loader2, Repeat, Send, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { Button } from "../../components/ui/button";
 import { PageHeader } from "../../components/PageHeader";
-import { Card } from "../../components/ui/card";
+import { ConfirmDialog } from "../../components/ui/confirm-dialog";
+import { NATIVE_SHEET_BG, afterSheetClose } from "../../components/ui/action-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { SHEET_FIELD_CLASS, SheetChip, SheetSearchInput, SheetSection } from "../../components/ui/sheet-section";
 import { useApi } from "../../hooks/useApi";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { cn } from "../../utils/cn";
+import { DrawerEmptyState } from "./chat/drawerUi";
 import {
 	clearApiTraceEntries,
 	exportApiTraceEntries,
@@ -14,94 +19,343 @@ import {
 	type ApiTraceEntry,
 } from "../../services/apiTrace";
 
+// A developer tool, so its texts stay English (as before).
+
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+const METHODS: Method[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+type KindFilter = "all" | "rest" | "command" | "errors";
+
+/** What the composer starts with: blank, or a captured request to resend. */
+type ComposerDraft = { method: Method; path: string; body: string };
+
+const HEADER_ICON_BUTTON_CLASS =
+	"header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 text-[var(--text-muted)] transition-colors hover:text-[var(--text)] disabled:opacity-40";
+
 function formatTimestamp(timestamp: number): string {
-	return new Date(timestamp).toLocaleTimeString([], {
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-	});
+	return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
-function statusClass(status: number | null, success: boolean): string {
-	if (!success) {
-		return "bg-red-500/20 text-red-200 border-red-400/40";
+function isErrorEntry(entry: ApiTraceEntry): boolean {
+	return !entry.success || (entry.status != null && entry.status >= 400);
+}
+
+/** Readable in light and dark: tinted fill, 500-ish text. */
+function statusPillClass(entry: ApiTraceEntry): string {
+	if (isErrorEntry(entry)) return "bg-red-500/15 text-red-500";
+	if (entry.status != null && entry.status >= 200 && entry.status < 300) return "bg-emerald-500/15 text-emerald-500";
+	return "bg-amber-500/15 text-amber-500";
+}
+
+function methodBadgeClass(method: string): string {
+	switch (method.toUpperCase()) {
+		case "GET": return "bg-sky-500/15 text-sky-500";
+		case "POST": return "bg-emerald-500/15 text-emerald-500";
+		case "PUT":
+		case "PATCH": return "bg-amber-500/15 text-amber-500";
+		case "DELETE": return "bg-red-500/15 text-red-500";
+		default: return "bg-violet-500/15 text-violet-500";
 	}
-	if (status && status >= 200 && status < 300) {
-		return "bg-green-500/20 text-green-200 border-green-400/40";
+}
+
+function prettyJson(text: string | null): string | null {
+	if (text == null) return null;
+	try {
+		return JSON.stringify(JSON.parse(text), null, 2);
+	} catch {
+		return text;
 	}
-	return "bg-yellow-500/20 text-yellow-200 border-yellow-400/40";
+}
+
+function copyText(text: string, what: string) {
+	void navigator.clipboard.writeText(text).then(
+		() => toast.success(`${what} copied`, { id: "api-inspector-copy" }),
+		() => toast.error("Couldn't copy", { id: "api-inspector-copy" }),
+	);
+}
+
+/** A labelled code block with its own copy button. */
+function CodeBlock({ title, text, tone = "default" }: { title: string; text: string | null; tone?: "default" | "error" }) {
+	return (
+		<SheetSection
+			title={title}
+			badge={text ? (
+				<button
+					type="button"
+					onClick={() => copyText(text, title)}
+					className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold text-[var(--accent)] transition hover:accent-tint-14"
+				>
+					<Copy className="h-3 w-3" />
+					Copy
+				</button>
+			) : undefined}
+		>
+			<pre
+				className={cn(
+					"max-h-72 min-w-0 overflow-y-auto whitespace-pre-wrap break-all rounded-xl px-3 py-2.5 font-mono text-xs leading-relaxed",
+					tone === "error" ? "bg-red-500/10 text-red-500" : "bg-[var(--surface-2)] text-[var(--text)]",
+					!text && "text-[var(--text-muted)]",
+				)}
+				data-lenis-prevent
+			>
+				{text ?? "(empty)"}
+			</pre>
+		</SheetSection>
+	);
+}
+
+function EntryDetailSheet({
+	entry,
+	onClose,
+	onResend,
+	isDesktop,
+}: {
+	entry: ApiTraceEntry;
+	onClose: () => void;
+	onResend: (draft: ComposerDraft) => void;
+	isDesktop: boolean;
+}) {
+	const method = entry.method.toUpperCase();
+	const canResend = entry.kind === "rest" && (METHODS as string[]).includes(method);
+	return (
+		<BottomSheet
+			onClose={onClose}
+			expandable
+			isDesktop={isDesktop}
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[85dvh] px-4" : "px-4"}
+		>
+			<div className="mb-3 flex shrink-0 items-start justify-between gap-3">
+				<div className="min-w-0">
+					<div className="flex items-center gap-2">
+						<span className={cn("shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold", methodBadgeClass(entry.method))}>
+							{entry.method}
+						</span>
+						<span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums", statusPillClass(entry))}>
+							{entry.status ?? "Error"}
+						</span>
+					</div>
+					<p className="mt-1.5 break-all font-mono text-sm font-semibold text-[var(--text)]">{entry.path}</p>
+					<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+						{formatTimestamp(entry.timestamp)} · {entry.durationMs} ms · {entry.kind === "rest" ? "REST" : "Invoke"}
+					</p>
+				</div>
+				<SheetCloseButton />
+			</div>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<div className="space-y-5">
+					{entry.error ? <CodeBlock title="Error" text={entry.error} tone="error" /> : null}
+					<CodeBlock title="Request" text={prettyJson(entry.requestBody)} />
+					<CodeBlock title="Response" text={prettyJson(entry.responseBody)} />
+				</div>
+			</div>
+			<div className={SHEET_FOOTER_CLASS}>
+				<button
+					type="button"
+					onClick={() => copyText(JSON.stringify(entry, null, 2), "Entry")}
+					className={sheetButtonClass("secondary")}
+				>
+					<Copy className="h-4 w-4" />
+					<span className="truncate">Copy all</span>
+				</button>
+				{canResend && (
+					// Closes this sheet (animated); the composer opens once it's gone.
+					<SheetClose
+						onClick={() => onResend({ method: method as Method, path: entry.path, body: prettyJson(entry.requestBody) ?? "" })}
+						className={sheetButtonClass()}
+					>
+						<Repeat className="h-4 w-4" />
+						<span className="truncate">Edit &amp; resend</span>
+					</SheetClose>
+				)}
+			</div>
+		</BottomSheet>
+	);
+}
+
+function ComposerSheet({
+	initial,
+	onClose,
+	isDesktop,
+}: {
+	initial: ComposerDraft;
+	onClose: () => void;
+	isDesktop: boolean;
+}) {
+	const { asAppError } = useApi();
+	const apiFunctions = useApiFunctions();
+	const [method, setMethod] = useState<Method>(initial.method);
+	const [path, setPath] = useState(initial.path);
+	const [body, setBody] = useState(initial.body);
+	const [isSending, setIsSending] = useState(false);
+	const [result, setResult] = useState<{ ok: boolean; status: number | null; text: string } | null>(null);
+	const hasBodyField = method !== "GET" && method !== "DELETE";
+
+	const trimmedPath = path.trim();
+	const pathError = trimmedPath && !trimmedPath.startsWith("/") ? "Starts with /, e.g. /v3/me/profile" : null;
+	const bodyError = useMemo(() => {
+		if (!hasBodyField || !body.trim()) return null;
+		try {
+			JSON.parse(body);
+			return null;
+		} catch {
+			return "Not valid JSON (check quotes, commas and braces)";
+		}
+	}, [body, hasBodyField]);
+
+	const send = async () => {
+		if (!trimmedPath || pathError || bodyError || isSending) return;
+		setIsSending(true);
+		setResult(null);
+		try {
+			const response = await apiFunctions.request(trimmedPath, {
+				method,
+				...(hasBodyField && body.trim() ? { body: JSON.parse(body) } : {}),
+			});
+			let text = "";
+			try {
+				text = JSON.stringify(response.json(), null, 2);
+			} catch {
+				text = response.text();
+			}
+			setResult({ ok: true, status: response.status, text: text || "(empty response body)" });
+		} catch (error) {
+			const appError = asAppError(error);
+			setResult({
+				ok: false,
+				status: null,
+				text: appError?.prettyMessage ?? (error instanceof Error ? error.message : String(error)),
+			});
+		} finally {
+			setIsSending(false);
+		}
+	};
+
+	return (
+		<BottomSheet
+			onClose={onClose}
+			expandable
+			isDesktop={isDesktop}
+			isProcessing={isSending}
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[85dvh] px-4" : "px-4"}
+		>
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">New request</h3>
+				<SheetCloseButton disabled={isSending} />
+			</div>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<div className="space-y-5">
+					<SheetSection title="Method">
+						<div className="flex flex-wrap gap-2">
+							{METHODS.map((value) => (
+								<SheetChip key={value} size="sm" active={method === value} onClick={() => setMethod(value)}>
+									<span className="font-mono">{value}</span>
+								</SheetChip>
+							))}
+						</div>
+					</SheetSection>
+					<SheetSection title="Path">
+						<input
+							type="text"
+							value={path}
+							onChange={(event) => setPath(event.target.value)}
+							onKeyDown={(event) => {
+								if (event.key === "Enter") void send();
+							}}
+							placeholder="/v3/me/profile"
+							autoCapitalize="off"
+							autoCorrect="off"
+							spellCheck={false}
+							className={cn(SHEET_FIELD_CLASS, "h-11 px-4 font-mono", pathError && "border-red-500 focus:border-red-500")}
+						/>
+						{pathError && <p className="mt-1.5 px-1 text-xs text-red-500">{pathError}</p>}
+					</SheetSection>
+					{hasBodyField && (
+						<SheetSection title="JSON body (optional)">
+							<textarea
+								value={body}
+								onChange={(event) => setBody(event.target.value)}
+								placeholder={'{\n  "key": "value"\n}'}
+								rows={7}
+								spellCheck={false}
+								className={cn(SHEET_FIELD_CLASS, "resize-y px-4 py-3 font-mono text-xs leading-relaxed", bodyError && "border-red-500 focus:border-red-500")}
+							/>
+							{bodyError && <p className="mt-1.5 px-1 text-xs text-red-500">{bodyError}</p>}
+						</SheetSection>
+					)}
+					{result && (
+						<SheetSection
+							title="Response"
+							badge={
+								<span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums", result.ok ? "bg-emerald-500/15 text-emerald-500" : "bg-red-500/15 text-red-500")}>
+									{result.ok ? result.status : "Error"}
+								</span>
+							}
+						>
+							<div className="relative">
+								<pre
+									className={cn(
+										"max-h-80 min-w-0 overflow-y-auto whitespace-pre-wrap break-all rounded-xl px-3 py-2.5 pr-10 font-mono text-xs leading-relaxed",
+										result.ok ? "bg-[var(--surface-2)] text-[var(--text)]" : "bg-red-500/10 text-red-500",
+									)}
+									data-lenis-prevent
+								>
+									{result.text}
+								</pre>
+								<button
+									type="button"
+									onClick={() => copyText(result.text, "Response")}
+									aria-label="Copy response"
+									className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:ink-tint-10 hover:text-[var(--text)]"
+								>
+									<Copy className="h-3.5 w-3.5" />
+								</button>
+							</div>
+						</SheetSection>
+					)}
+				</div>
+			</div>
+			<div className={SHEET_FOOTER_CLASS}>
+				<button
+					type="button"
+					onClick={() => void send()}
+					disabled={isSending || !trimmedPath || !!pathError || !!bodyError}
+					className={sheetButtonClass()}
+				>
+					{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+					<span>Send</span>
+				</button>
+			</div>
+		</BottomSheet>
+	);
 }
 
 export function ApiInspectorPage() {
-	const { asAppError } = useApi();
-	const apiFunctions = useApiFunctions();
-	const [entries, setEntries] = useState<ApiTraceEntry[]>(() =>
-		getApiTraceEntries(),
-	);
+	const isDesktop = useDesktopBreakpoint();
+	const [entries, setEntries] = useState<ApiTraceEntry[]>(() => getApiTraceEntries());
 	const [query, setQuery] = useState("");
-	const [kind, setKind] = useState<"all" | "rest" | "command">("all");
-	const [selectedId, setSelectedId] = useState<string | null>(null);
-	const [composerMethod, setComposerMethod] = useState<
-		"GET" | "POST" | "PUT" | "PATCH" | "DELETE"
-	>("POST");
-	const [composerPath, setComposerPath] = useState("/v1/albums");
-	const [composerPayload, setComposerPayload] = useState("{\n  \"albumName\": \"My Album\"\n}");
-	const [composerResponse, setComposerResponse] = useState<string>("");
-	const [composerError, setComposerError] = useState<string>("");
-	const [composerBusy, setComposerBusy] = useState(false);
+	const [kind, setKind] = useState<KindFilter>("all");
+	const [openEntry, setOpenEntry] = useState<ApiTraceEntry | null>(null);
+	const [composerDraft, setComposerDraft] = useState<ComposerDraft | null>(null);
+	const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+	// "Edit & resend" picked in the detail sheet: opened once that sheet has closed.
+	const pendingResendRef = useRef<ComposerDraft | null>(null);
 
-	useEffect(() => {
-		return subscribeApiTraceEntries(setEntries);
-	}, []);
+	useEffect(() => subscribeApiTraceEntries(setEntries), []);
+
+	const errorCount = useMemo(() => entries.filter(isErrorEntry).length, [entries]);
 
 	const filtered = useMemo(() => {
 		const needle = query.trim().toLowerCase();
 		return entries.filter((entry) => {
-			if (kind !== "all" && entry.kind !== kind) {
-				return false;
-			}
-			if (!needle) {
-				return true;
-			}
-			const haystack = `${entry.method} ${entry.path} ${entry.status ?? ""} ${entry.error ?? ""}`.toLowerCase();
-			return haystack.includes(needle);
+			if (kind === "errors" ? !isErrorEntry(entry) : kind !== "all" && entry.kind !== kind) return false;
+			if (!needle) return true;
+			return `${entry.method} ${entry.path} ${entry.status ?? ""} ${entry.error ?? ""}`.toLowerCase().includes(needle);
 		});
 	}, [entries, kind, query]);
 
-	const selected = filtered.find((entry) => entry.id === selectedId) ?? null;
-
-	const copyResponseBody = (entry: ApiTraceEntry) => {
-		if (entry.responseBody) {
-			navigator.clipboard.writeText(entry.responseBody).catch(() => {});
-			toast.success("Response body copied to clipboard", { id: "api-inspector-copy" });
-		}
-	};
-
-	const toggleEntry = (entry: ApiTraceEntry) => {
-		if (selectedId === entry.id) {
-			setSelectedId(null);
-			return;
-		}
-		setSelectedId(entry.id);
-		copyResponseBody(entry);
-	};
-
-	useEffect(() => {
-		if (selectedId && !filtered.some((entry) => entry.id === selectedId)) {
-			setSelectedId(null);
-		}
-	}, [filtered, selectedId]);
-
-	const handleCopy = async () => {
-		if (!selected) {
-			return;
-		}
-		await navigator.clipboard.writeText(JSON.stringify(selected, null, 2));
-	};
-
 	const handleExport = () => {
-		const payload = exportApiTraceEntries();
-		const blob = new Blob([payload], { type: "application/json" });
+		const blob = new Blob([exportApiTraceEntries()], { type: "application/json" });
 		const url = URL.createObjectURL(blob);
 		const link = document.createElement("a");
 		link.href = url;
@@ -112,302 +366,139 @@ export function ApiInspectorPage() {
 		URL.revokeObjectURL(url);
 	};
 
-	const handleSendRequest = async () => {
-		const path = composerPath.trim();
-		if (!path.startsWith("/")) {
-			setComposerError("Path must start with '/'. Example: /v1/albums");
-			setComposerResponse("");
-			return;
-		}
-
-		let parsedBody: unknown = undefined;
-		const hasPayload = composerPayload.trim().length > 0;
-		if (hasPayload) {
-			try {
-				parsedBody = JSON.parse(composerPayload);
-			} catch {
-				setComposerError(
-					"Payload is not valid JSON. Fix syntax first (missing quotes/comma/braces).",
-				);
-				setComposerResponse("");
-				return;
-			}
-		}
-
-		setComposerBusy(true);
-		setComposerError("");
-		setComposerResponse("");
-
-		try {
-			const response = await apiFunctions.request(path, {
-				method: composerMethod,
-				...(hasPayload ? { body: parsedBody } : {}),
-			});
-
-			let prettyBody = "";
-			try {
-				prettyBody = JSON.stringify(response.json(), null, 2);
-			} catch {
-				prettyBody = response.text();
-			}
-
-			setComposerResponse(
-				`Status ${response.status}\n\n${prettyBody || "(empty response body)"}`,
-			);
-			if (prettyBody) {
-				await navigator.clipboard.writeText(prettyBody).catch(() => {});
-				toast.success("Response body copied to clipboard", { id: "api-inspector-copy" });
-			}
-		} catch (error) {
-			const appError = asAppError(error);
-			const message = appError?.prettyMessage ??
-				(error instanceof Error ? error.message : String(error));
-			setComposerError(
-				`${message}\n\nIf payload fields don't match the API schema, compare your JSON keys/types with endpoint docs and captured successful requests in the trace list.`,
-			);
-		} finally {
-			setComposerBusy(false);
-		}
-	};
+	const filters: { value: KindFilter; label: string }[] = [
+		{ value: "all", label: "All" },
+		{ value: "rest", label: "REST" },
+		{ value: "command", label: "Invoke" },
+		{ value: "errors", label: errorCount > 0 ? `Errors · ${errorCount}` : "Errors" },
+	];
 
 	return (
 		<section className="app-screen">
-			<div className="mx-auto grid w-full min-w-0 max-w-4xl gap-4">
+			<div className="mx-auto grid w-full min-w-0 max-w-4xl gap-5">
 				<PageHeader
 					backTo="/settings"
 					title="API Inspector"
-					subtitle="Inspect recent request and response history for REST and invoke commands."
+					subtitle="Every request the app makes, live. Tap one for details, or send your own."
 					subtitleClassName="-mt-3 mb-0"
+					actions={
+						<>
+							<button type="button" onClick={handleExport} disabled={entries.length === 0} className={HEADER_ICON_BUTTON_CLASS} aria-label="Export" title="Export as JSON">
+								<Download className="h-4 w-4" />
+							</button>
+							<button type="button" onClick={() => setIsConfirmClearOpen(true)} disabled={entries.length === 0} className={cn(HEADER_ICON_BUTTON_CLASS, "hover:text-red-500")} aria-label="Clear" title="Clear all">
+								<Trash2 className="h-4 w-4" />
+							</button>
+						</>
+					}
 				/>
-				<div className="flex flex-wrap items-center gap-2">
-					<Button type="button" onClick={() => setEntries(getApiTraceEntries())}>
-						<RotateCcw className="h-4 w-4" />
-						Refresh
-					</Button>
-					<Button type="button" onClick={handleCopy} disabled={!selected}>
-						<Copy className="h-4 w-4" />
-						Copy Selected
-					</Button>
-					<Button type="button" onClick={handleExport}>
-						<Download className="h-4 w-4" />
-						Export
-					</Button>
-					<Button type="button" variant="danger" onClick={clearApiTraceEntries}>
-						<Trash2 className="h-4 w-4" />
-						Clear
-					</Button>
+
+				{/* New request */}
+				<div className="native-card overflow-hidden">
+					<button
+						type="button"
+						onClick={() => setComposerDraft({ method: "GET", path: "", body: "" })}
+						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+					>
+						<div className="shrink-0 rounded-2xl accent-tint-15 p-2.5 text-[var(--accent)]">
+							<Send className="h-5 w-5" />
+						</div>
+						<div className="min-w-0 flex-1">
+							<p className="text-sm font-semibold leading-snug">New request</p>
+							<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">Send any REST call with your session</p>
+						</div>
+						<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+					</button>
 				</div>
 
-				<Card className="p-4">
-					<div className="mb-3 grid gap-1">
-						<h2 className="text-sm font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-							Request Composer
-						</h2>
-						<p className="text-sm text-[var(--text-muted)]">
-							Send manual REST calls (including POST) and validate JSON payloads before sending.
-						</p>
+				<div className="grid min-w-0 gap-3">
+					<SheetSearchInput value={query} onChange={setQuery} placeholder="Search path, method, status or error" />
+					<div className="flex flex-wrap gap-2">
+						{filters.map((filter) => (
+							<SheetChip key={filter.value} size="sm" active={kind === filter.value} onClick={() => setKind(filter.value)}>
+								{filter.label}
+							</SheetChip>
+						))}
 					</div>
+				</div>
 
-					<div className="grid gap-3 lg:grid-cols-[130px_1fr]">
-						<select
-							value={composerMethod}
-							onChange={(event) =>
-								setComposerMethod(
-									event.target.value as "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
-								)
-							}
-							className="input-field"
-						>
-							<option value="GET">GET</option>
-							<option value="POST">POST</option>
-							<option value="PUT">PUT</option>
-							<option value="PATCH">PATCH</option>
-							<option value="DELETE">DELETE</option>
-						</select>
-						<input
-							type="text"
-							value={composerPath}
-							onChange={(event) => setComposerPath(event.target.value)}
-							placeholder="/v1/albums"
-							className="input-field"
-						/>
+				<div className="min-w-0">
+					<div className="mb-2 flex items-center gap-2 px-1">
+						<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Requests</p>
+						<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
+							{filtered.length}
+						</span>
 					</div>
-
-					<div className="mt-3 grid gap-2">
-						<p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-							JSON Payload (optional)
-						</p>
-						<textarea
-							value={composerPayload}
-							onChange={(event) => setComposerPayload(event.target.value)}
-							rows={8}
-							className="input-field min-h-[170px] font-mono text-xs"
-							placeholder='{"key":"value"}'
-						/>
-						<div className="flex flex-wrap gap-2">
-							<Button type="button" onClick={handleSendRequest} disabled={composerBusy}>
-								{composerBusy ? "Sending..." : "Send Request"}
-							</Button>
-							<Button
-								type="button"
-								onClick={() => {
-									setComposerPayload("");
-									setComposerResponse("");
-									setComposerError("");
-								}}
-							>
-								Clear Payload
-							</Button>
-						</div>
-					</div>
-
-					{composerError ? (
-						<pre className="mt-3 min-w-0 max-h-64 overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-all rounded-lg border border-red-400/40 bg-red-500/10 p-3 text-xs text-red-100">
-							{composerError}
-						</pre>
-					) : null}
-
-					{composerResponse ? (
-						<pre className="mt-3 min-w-0 max-h-64 overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-all rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 text-xs text-[var(--text)]">
-							{composerResponse}
-						</pre>
-					) : null}
-				</Card>
-
-				<Card className="p-4">
-					<div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-						<label className="relative block">
-							<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-							<input
-								type="text"
-								value={query}
-								onChange={(event) => setQuery(event.target.value)}
-								placeholder="Filter by path, method, status, or error"
-								className="input-field pl-9"
-							/>
-						</label>
-						<div className="flex items-center gap-2">
-							<button
-								type="button"
-								onClick={() => setKind("all")}
-								className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
-									kind === "all"
-										? "border-transparent bg-[var(--accent)] text-[var(--accent-contrast)]"
-										: "border-[var(--border)] text-[var(--text-muted)]"
-								}`}
-							>
-								All
-							</button>
-							<button
-								type="button"
-								onClick={() => setKind("rest")}
-								className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
-									kind === "rest"
-										? "border-transparent bg-[var(--accent)] text-[var(--accent-contrast)]"
-										: "border-[var(--border)] text-[var(--text-muted)]"
-								}`}
-							>
-								REST
-							</button>
-							<button
-								type="button"
-								onClick={() => setKind("command")}
-								className={`rounded-lg border px-3 py-2 text-xs font-semibold ${
-									kind === "command"
-										? "border-transparent bg-[var(--accent)] text-[var(--accent-contrast)]"
-										: "border-[var(--border)] text-[var(--text-muted)]"
-								}`}
-							>
-								Invoke
-							</button>
-						</div>
-					</div>
-				</Card>
-
-				<Card className="max-h-[70vh] min-w-0 overflow-y-auto p-2">
 					{filtered.length === 0 ? (
-						<div className="p-4 text-sm text-[var(--text-muted)]">
-							No entries yet. Perform actions in the app to capture requests.
+						<div className="native-card overflow-hidden px-4">
+							<DrawerEmptyState
+								icon={<Activity />}
+								fanned={false}
+								title={entries.length === 0 ? "No requests yet" : "Nothing matches"}
+								hint={entries.length === 0
+									? "Use the app as usual; its API calls show up here as they happen."
+									: "Try another search or filter."}
+							/>
 						</div>
 					) : (
-						<div className="grid min-w-0 gap-1">
-							{filtered.map((entry) => {
-								const isExpanded = selected?.id === entry.id;
-								return (
-									<div
-										key={entry.id}
-										className={`min-w-0 rounded-lg border transition ${
-											isExpanded
-												? "border-[var(--accent)] bg-[var(--surface-2)]"
-												: "border-transparent hover:border-[var(--border)]"
-										}`}
-									>
-										<button
-											type="button"
-											onClick={() => toggleEntry(entry)}
-											className="w-full min-w-0 p-3 text-left"
-										>
-											<div className="mb-1 flex items-center justify-between gap-2">
-												<p className="truncate text-sm font-semibold">
-													{entry.method} {entry.path}
-												</p>
-												<div className="flex shrink-0 items-center gap-2">
-													<span
-														className={`rounded-md border px-2 py-0.5 text-[10px] font-semibold ${statusClass(entry.status, entry.success)}`}
-													>
-														{entry.status ?? "ERR"}
-													</span>
-													<ChevronDown
-														className={`h-4 w-4 text-[var(--text-muted)] transition-transform ${
-															isExpanded ? "rotate-180" : ""
-														}`}
-													/>
-												</div>
-											</div>
-											<p className="text-xs text-[var(--text-muted)]">
-												{formatTimestamp(entry.timestamp)} · {entry.durationMs} ms · {entry.kind}
-											</p>
-										</button>
-
-										{isExpanded ? (
-											<div className="grid min-w-0 gap-3 border-t border-[var(--border)] p-3">
-												<div className="min-w-0">
-													<p className="mb-1 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-														Request Body
-													</p>
-													<pre className="min-w-0 max-h-64 overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-all rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--text)]">
-														{entry.requestBody ?? "(empty)"}
-													</pre>
-												</div>
-
-												<div className="min-w-0">
-													<p className="mb-1 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-														Response Body
-													</p>
-													<pre className="min-w-0 max-h-64 overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-all rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--text)]">
-														{entry.responseBody ?? "(empty)"}
-													</pre>
-												</div>
-
-												{entry.error ? (
-													<div className="min-w-0">
-														<p className="mb-1 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-															Error
-														</p>
-														<pre className="min-w-0 max-h-64 overflow-x-hidden overflow-y-auto whitespace-pre-wrap break-all rounded-lg border border-red-400/40 bg-red-500/10 p-3 text-xs text-red-100">
-															{entry.error}
-														</pre>
-													</div>
-												) : null}
-											</div>
-										) : null}
+						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+							{filtered.map((entry) => (
+								<button
+									key={entry.id}
+									type="button"
+									onClick={() => setOpenEntry(entry)}
+									className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
+								>
+									<span className={cn("w-14 shrink-0 rounded-md py-0.5 text-center font-mono text-[10px] font-bold", methodBadgeClass(entry.method))}>
+										{entry.method.length > 6 ? entry.method.slice(0, 6) : entry.method}
+									</span>
+									<div className="min-w-0 flex-1">
+										<p className="truncate font-mono text-[13px] font-semibold text-[var(--text)]">{entry.path}</p>
+										<p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+											{formatTimestamp(entry.timestamp)} · {entry.durationMs} ms{entry.kind === "command" ? " · Invoke" : ""}
+										</p>
 									</div>
-								);
-							})}
+									<span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums", statusPillClass(entry))}>
+										{entry.status ?? (entry.success ? <Check className="h-3 w-3" /> : "Error")}
+									</span>
+								</button>
+							))}
 						</div>
 					)}
-				</Card>
+				</div>
 			</div>
+
+			{openEntry && (
+				<EntryDetailSheet
+					key={openEntry.id}
+					entry={openEntry}
+					onClose={() => {
+						setOpenEntry(null);
+						const draft = pendingResendRef.current;
+						pendingResendRef.current = null;
+						if (draft) afterSheetClose(() => setComposerDraft(draft));
+					}}
+					onResend={(draft) => { pendingResendRef.current = draft; }}
+					isDesktop={isDesktop}
+				/>
+			)}
+			{composerDraft && (
+				<ComposerSheet initial={composerDraft} onClose={() => setComposerDraft(null)} isDesktop={isDesktop} />
+			)}
+
+			<ConfirmDialog
+				isOpen={isConfirmClearOpen}
+				title="Clear all requests?"
+				message="Removes the captured history from this list. The app keeps working as usual."
+				confirmLabel="Clear"
+				cancelLabel="Cancel"
+				confirmTone="danger"
+				onConfirm={() => {
+					clearApiTraceEntries();
+					setIsConfirmClearOpen(false);
+				}}
+				onCancel={() => setIsConfirmClearOpen(false)}
+			/>
 		</section>
 	);
 }
