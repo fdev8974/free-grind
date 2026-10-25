@@ -145,6 +145,7 @@ export type ProfileSwipePreview = {
 	distance: number | null;
 	lastSeen: number | null;
 	onlineUntil: number | null;
+	isFavorite: boolean;
 };
 
 type ProfileStatusLevel = "online" | "ending_soon" | "recent" | "offline";
@@ -218,6 +219,22 @@ function ProfileSwipePreviewPanel({ preview, side }: { preview: ProfileSwipePrev
 							{hasAge && <span className="shrink-0 text-sm text-white/70">{preview.age}</span>}
 						</div>
 						{headerSubtitle && <p className="text-xs leading-tight text-white/70">{headerSubtitle}</p>}
+					</div>
+					{/* Look-alikes of the header actions; the real ones appear once the profile loads. */}
+					<div className="flex shrink-0 items-center gap-1.5">
+						<span className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] ${
+							preview.isFavorite
+								? "header-icon-btn--active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
+								: "border-white/45 text-white"
+						}`}>
+							<Star className={`h-4 w-4 ${preview.isFavorite ? "fill-current" : ""}`} />
+						</span>
+						<span className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-red-500 p-2 text-red-500 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+							<Ban className="h-4 w-4" />
+						</span>
+						<span className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 p-2 text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+							<EllipsisVertical className="h-4 w-4" />
+						</span>
 					</div>
 				</div>
 			</div>
@@ -930,10 +947,18 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	// new profile has loaded, so neither the old profile nor the skeleton flashes.
 	const pendingSwipeResetRef = useRef(false);
 	const swipeFromProfileIdRef = useRef<string | null>(null);
+	// The preview the swipe landed on, frozen: after the switch the host passes
+	// the new profile's neighbours, which would otherwise replace it on screen.
+	const [swipeLanding, setSwipeLanding] = useState<{ side: "prev" | "next"; preview: ProfileSwipePreview } | null>(null);
+	const prevProfilePreviewRef = useRef(prevProfilePreview);
+	prevProfilePreviewRef.current = prevProfilePreview;
+	const nextProfilePreviewRef = useRef(nextProfilePreview);
+	nextProfilePreviewRef.current = nextProfilePreview;
 	const swipeResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 	const resetProfileSwipeOffset = useCallback(() => {
 		pendingSwipeResetRef.current = false;
+		setSwipeLanding(null);
 		if (swipeResetTimerRef.current) {
 			clearTimeout(swipeResetTimerRef.current);
 			swipeResetTimerRef.current = null;
@@ -1032,6 +1057,9 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			el.style.transform = `translateX(${dx < 0 ? -width : width}px)`;
 			pendingSwipeResetRef.current = true;
 			swipeFromProfileIdRef.current = currentProfileIdRef.current;
+			const side = dx < 0 ? "next" : "prev";
+			const landingPreview = side === "next" ? nextProfilePreviewRef.current : prevProfilePreviewRef.current;
+			if (landingPreview) setSwipeLanding({ side, preview: landingPreview });
 			swipeResetTimerRef.current = setTimeout(() => {
 				go();
 				// Fallback in case loading hangs or nothing we watch changes.
@@ -2303,8 +2331,16 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					// translateX is driven by the profile swipe handler.
 					className="relative flex h-full flex-col"
 				>
-				{prevProfilePreview && onPrevProfile && <ProfileSwipePreviewPanel preview={prevProfilePreview} side="prev" />}
-				{nextProfilePreview && onNextProfile && <ProfileSwipePreviewPanel preview={nextProfilePreview} side="next" />}
+				{swipeLanding?.side === "prev" ? (
+					<ProfileSwipePreviewPanel preview={swipeLanding.preview} side="prev" />
+				) : prevProfilePreview && onPrevProfile ? (
+					<ProfileSwipePreviewPanel preview={prevProfilePreview} side="prev" />
+				) : null}
+				{swipeLanding?.side === "next" ? (
+					<ProfileSwipePreviewPanel preview={swipeLanding.preview} side="next" />
+				) : nextProfilePreview && onNextProfile ? (
+					<ProfileSwipePreviewPanel preview={nextProfilePreview} side="next" />
+				) : null}
 				{renderInlineLayout()}
 				{photoViewerOverlay}
 				{albumViewerOverlay}

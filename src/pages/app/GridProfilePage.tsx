@@ -278,6 +278,7 @@ export function GridProfilePage() {
 				distance: detail?.distance ?? card?.distanceMeters ?? null,
 				lastSeen: detail?.seen ?? card?.lastOnline ?? null,
 				onlineUntil: detail?.onlineUntil ?? card?.onlineUntil ?? null,
+				isFavorite: detail?.isFavorite ?? card?.favorite ?? false,
 			};
 		};
 		return [toPreview(prevProfileId), toPreview(nextProfileId)];
