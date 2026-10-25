@@ -1,10 +1,9 @@
 import { Bookmark, Check, Compass, Home, Loader2, MapPin, Navigation, Search, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "../../utils/cn";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import z from "zod";
 import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import { SlidingTabs } from "../../components/ui/sliding-tabs";
 import { SelectSheet } from "../../components/ui/select-sheet";
@@ -13,12 +12,12 @@ import { usePreferences } from "../../contexts/PreferencesContext";
 import { appLog } from "../../utils/logger";
 import { getCurrentLocation, getLocationErrorMessageKey } from "../../services/currentLocation";
 import { decodeGeohash, encodeGeohash } from "../../utils/geohash";
-import { type GeocodeResult, type SelectedLocation, geocodeResultSchema } from "./GridPage.types";
+import { type GeocodeResult, type SelectedLocation } from "./GridPage.types";
 import { LocationChip, SavedLocationChip } from "./gridpage/components/LocationChips";
 import { MAP_SHEET_HINT_CLASS, MAP_SHEET_ICON_BUTTON_CLASS, MapSheetLayout, MapSheetQuickPicks, MapSheetSearch, mapSheetProps } from "./gridpage/components/MapSheetLayout";
 import { MapLocationPicker } from "./gridpage/components/MapLocationPicker";
+import { useLocationSearch } from "./gridpage/hooks/useLocationSearch";
 import {
-	formatNominatimAddress,
 	getCityFromAddress,
 	reverseGeocodeCityForGeohash,
 	reverseGeocodeGeohash,
@@ -98,11 +97,8 @@ function LocationSheetContent({
 	const tabContrast = isExploreTab ? "#fff" : "var(--accent-contrast)";
 
 	const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-	const [locationQuery, setLocationQuery] = useState("");
-	const [isSearchingLocation, setIsSearchingLocation] = useState(false);
-	const [locationResults, setLocationResults] = useState<GeocodeResult[]>([]);
+	const search = useLocationSearch();
 	const [mapPickerError, setMapPickerError] = useState<string | null>(null);
-	const [lastSearchedQuery, setLastSearchedQuery] = useState("");
 	const [selectedLocation, setSelectedLocation] = useState<PinnedLocation | null>(null);
 	const [locationError, setLocationError] = useState<string | null>(null);
 	const [currentLocationError, setCurrentLocationError] = useState<string | null>(null);
@@ -110,7 +106,6 @@ function LocationSheetContent({
 	const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
 	const [isNamingLocation, setIsNamingLocation] = useState(false);
 	const [newLocationName, setNewLocationName] = useState("");
-	const searchInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		void loadSavedLocations().then(setSavedLocations);
@@ -198,7 +193,7 @@ function LocationSheetContent({
 	useEffect(() => {
 		if (!autoFocusLocationSearch) return;
 		// Wait for the sheet's slide-in before focusing (and opening the keyboard).
-		const timer = setTimeout(() => searchInputRef.current?.focus(), 320);
+		const timer = setTimeout(() => search.inputRef.current?.focus(), 320);
 		return () => clearTimeout(timer);
 	}, [autoFocusLocationSearch]);
 
@@ -257,37 +252,7 @@ function LocationSheetContent({
 		}
 	};
 
-	const performSearch = async (query: string, signal?: AbortSignal) => {
-		if (!query || query === lastSearchedQuery) { setIsSearchingLocation(false); return; }
-		setLastSearchedQuery(query);
-		setIsSearchingLocation(true);
-		try {
-			const res = await fetch(
-				`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`,
-				{ signal, headers: { "User-Agent": "Mozilla/5.0 (compatible)" } },
-			);
-			if (!res.ok) throw new Error("search failed");
-			setLocationResults(z.array(geocodeResultSchema).parse(await res.json()));
-			setLocationError(null);
-		} catch (e) {
-			if (e instanceof Error && e.name === "AbortError") return;
-			appLog.error("Location search failed", e);
-			setLocationError(t("browse_location.error_search_failed"));
-		} finally {
-			setIsSearchingLocation(false);
-		}
-	};
-
-	useEffect(() => {
-		const query = locationQuery.trim();
-		if (query.length < 2) { setLocationResults([]); setIsSearchingLocation(false); setLastSearchedQuery(""); return; }
-		const ctrl = new AbortController();
-		const timer = setTimeout(() => void performSearch(query, ctrl.signal), 500);
-		return () => { clearTimeout(timer); ctrl.abort(); };
-	}, [locationQuery]);
-
-	const clearSearch = () => { setLocationQuery(""); setLocationResults([]); setLastSearchedQuery(""); searchInputRef.current?.focus(); };
-	const isSearching = locationQuery.trim().length > 0;
+	const isSearching = search.isActive;
 
 	const pinGeohash = selectedLocation ? encodeGeohash(selectedLocation.lat, selectedLocation.lon) : null;
 	const isPinManual = !selectedLocation?.isAuto;
@@ -325,21 +290,15 @@ function LocationSheetContent({
 		});
 	};
 
-	const handleSelectSearchResult = (result: GeocodeResult) => {
+	const handleSelectSearchResult = (result: GeocodeResult, initialLabel: string) => {
 		const lat = Number(result.lat);
 		const lon = Number(result.lon);
-		// Search results carry an address breakdown (addressdetails=1), so
-		// format it the same way as everywhere else right away; the
-		// reverse-geocode call below still refines it afterwards in case
-		// that lookup resolves a more precise/different address.
-		const initialLabel = (result.address && formatNominatimAddress(result.address, result.display_name)) ?? result.display_name;
+		// initialLabel is the result's address breakdown (addressdetails=1),
+		// formatted like everywhere else; the reverse-geocode call below still
+		// refines it in case that lookup resolves a more precise address.
 		const initialCity = result.address ? getCityFromAddress(result.address) : null;
 		setSelectedLocation({ lat, lon, label: initialLabel, city: initialCity });
 		setIsNamingLocation(false);
-		setLocationQuery("");
-		setLocationResults([]);
-		setLastSearchedQuery("");
-		searchInputRef.current?.blur();
 		const geohashForResult = encodeGeohash(lat, lon);
 		void reverseGeocodeGeohash(geohashForResult).then((label) => {
 			if (!label) return;
@@ -472,12 +431,9 @@ function LocationSheetContent({
 			<MapSheetLayout
 				search={
 					<MapSheetSearch
-						inputRef={searchInputRef}
-						value={locationQuery}
-						onChange={setLocationQuery}
-						onClear={clearSearch}
+						search={search}
+						onSelect={handleSelectSearchResult}
 						placeholder={t("browse_location.search_placeholder")}
-						isLoading={isSearchingLocation}
 						focusColor={tabColor}
 					/>
 				}
@@ -498,32 +454,6 @@ function LocationSheetContent({
 					)
 				}
 				pinLabel={selectedLocation && !isSearching ? selectedLocation.label : undefined}
-				// The map stays mounted under the results so it doesn't reload after picking one.
-				overlay={isSearching ? (
-					<>
-						{locationResults.length > 0 ? (
-							<div className="divide-y divide-[var(--border)]">
-								{locationResults.map((result) => (
-									<button
-										key={`${result.lat}:${result.lon}`}
-										type="button"
-										onClick={() => handleSelectSearchResult(result)}
-										className="flex w-full items-center gap-3.5 px-4 py-3.5 text-left transition hover:bg-[var(--surface-3,var(--surface))] active:bg-[var(--surface)]"
-									>
-										<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--text-muted)]">
-											<MapPin className="h-3.5 w-3.5" />
-										</div>
-										<span className="line-clamp-2 text-sm text-[var(--text)]">
-											{(result.address && formatNominatimAddress(result.address, result.display_name)) ?? result.display_name}
-										</span>
-									</button>
-								))}
-							</div>
-						) : !isSearchingLocation ? (
-							<p className="px-4 py-4 text-sm text-[var(--text-muted)]">{t("browse_location.error_search_failed_general")}</p>
-						) : null}
-					</>
-				) : undefined}
 				picks={isSearching ? undefined : (
 					<>
 						{/* Quick picks — same chip row as the chat's share-location sheet.

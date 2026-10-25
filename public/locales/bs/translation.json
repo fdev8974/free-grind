@@ -2163,6 +2163,7 @@
         "delete_confirm_message": "Ovo ga odmah uklanja s tvog profila."
     },
     "common": {
+        "clear": "",
         "back": "Nazad",
         "cancel": "Otkaži",
         "save": "Sačuvaj",

@@ -2163,6 +2163,7 @@
         "delete_confirm_message": "Isso a remove do seu perfil imediatamente."
     },
     "common": {
+        "clear": "",
         "back": "Voltar",
         "cancel": "Cancelar",
         "save": "Guardar",

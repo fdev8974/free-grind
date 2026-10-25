@@ -10,7 +10,8 @@ import { loadSavedLocations, type SavedLocation } from "../../../services/savedL
 import { decodeGeohash, encodeGeohash } from "../../../utils/geohash";
 import { LocationChip, SavedLocationChip, useGeohashLabel } from "../gridpage/components/LocationChips";
 import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
-import { MAP_SHEET_HINT_CLASS, MapSheetLayout, MapSheetQuickPicks, mapSheetProps } from "../gridpage/components/MapSheetLayout";
+import { MAP_SHEET_HINT_CLASS, MapSheetLayout, MapSheetQuickPicks, MapSheetSearch, mapSheetProps } from "../gridpage/components/MapSheetLayout";
+import { useLocationSearch } from "../gridpage/hooks/useLocationSearch";
 import { reverseGeocodeGeohash } from "../gridpage/geocoding";
 
 type LatLon = { lat: number; lon: number };
@@ -42,6 +43,7 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 	const { geohash, locationName } = usePreferences();
 	const [savedLocations, setSavedLocations] = useState<SavedLocation[]>([]);
 	const { data: homeLocation } = useHomeLocation();
+	const search = useLocationSearch();
 
 	useEffect(() => {
 		void loadSavedLocations().then(setSavedLocations);
@@ -68,6 +70,14 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 			</div>
 
 			<MapSheetLayout
+				search={
+					<MapSheetSearch
+						search={search}
+						onSelect={(result) => onChange({ lat: Number(result.lat), lon: Number(result.lon) })}
+						placeholder={t("browse_location.search_placeholder")}
+						focusColor="var(--accent)"
+					/>
+				}
 				map={
 					<MapLocationPicker
 						selectedLocation={location}
@@ -78,11 +88,13 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 					/>
 				}
 				pinLabel={
-					pinAddress.resolved
-						? pinAddress.value ?? `${location.lat.toFixed(5)}, ${location.lon.toFixed(5)}`
-						: t("browse_location.resolving_location")
+					search.isActive
+						? undefined
+						: pinAddress.resolved
+							? pinAddress.value ?? `${location.lat.toFixed(5)}, ${location.lon.toFixed(5)}`
+							: t("browse_location.resolving_location")
 				}
-				picks={
+				picks={search.isActive ? undefined : (
 					<>
 						<MapSheetQuickPicks>
 							{currentLocation ? (
@@ -116,7 +128,7 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 							<p className={MAP_SHEET_HINT_CLASS}>{t("chat.share_location_saved_hint")}</p>
 						) : null}
 					</>
-				}
+				)}
 				footer={
 					<SheetClose
 						onClick={() => onSend(location)}

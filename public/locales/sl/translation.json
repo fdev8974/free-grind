@@ -2179,6 +2179,7 @@
         "delete_confirm_message": "S tem ga takoj odstraniš s profila."
     },
     "common": {
+        "clear": "",
         "back": "Nazaj",
         "cancel": "Prekliči",
         "save": "Shrani",

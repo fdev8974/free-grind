@@ -1,7 +1,11 @@
-import type { ReactNode, Ref } from "react";
-import { Loader2, Search, X } from "lucide-react";
+import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { Loader2, MapPin, Search, X } from "lucide-react";
 import { MapPinFilled } from "../../../../components/icons/FilledIcons";
 import { SHEET_BOTTOM_PADDING } from "../../../../components/ui/bottom-sheet";
+import type { GeocodeResult } from "../../../../types/grid";
+import { formatNominatimAddress } from "../geocoding";
+import type { useLocationSearch } from "../hooks/useLocationSearch";
 
 // Shared layout of the map sheets (browse location picker, chat's share
 // location): the map runs full width down to the sheet's bottom edge, an
@@ -38,48 +42,85 @@ export function MapSheetQuickPicks({ children }: { children: ReactNode }) {
 	);
 }
 
-/** Search pill floating at the top of the map, like in a maps app. */
+/** Search pill floating at the top of the map, like in a maps app. While
+ * there's a query, the results hang off it as one frosted card (the pill's
+ * lower corners square off into the list) so the map stays visible around
+ * and behind them. */
 export function MapSheetSearch({
-	inputRef,
-	value,
-	onChange,
-	onClear,
+	search,
+	onSelect,
 	placeholder,
-	isLoading,
 	focusColor,
 }: {
-	inputRef?: Ref<HTMLInputElement>;
-	value: string;
-	onChange: (value: string) => void;
-	onClear: () => void;
+	search: ReturnType<typeof useLocationSearch>;
+	onSelect: (result: GeocodeResult, label: string) => void;
 	placeholder: string;
-	isLoading?: boolean;
 	focusColor: string;
 }) {
+	const { t } = useTranslation();
+	const { query, setQuery, results, isLoading, error, isActive, clear, inputRef } = search;
+	const showList = isActive && (results.length > 0 || error != null || (!isLoading && query.trim().length >= 2));
+
 	return (
 		<div
-			className="relative rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl transition focus-within:ring-2 focus-within:ring-[var(--focus-color)]"
+			// 24px radius = a full pill at the 48px input height, and a rounded
+			// card once the list opens below it.
+			className="pointer-events-auto flex max-h-full min-h-0 flex-col overflow-hidden rounded-[24px] bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl focus-within:ring-2 focus-within:ring-[var(--focus-color)]"
 			style={{ "--focus-color": focusColor } as React.CSSProperties}
 		>
-			<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-			<input
-				ref={inputRef}
-				type="text"
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				placeholder={placeholder}
-				className="h-12 w-full rounded-full bg-transparent pl-11 pr-11 text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
-			/>
-			{isLoading ? (
-				<Loader2 className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--text-muted)]" />
-			) : value ? (
-				<button
-					type="button"
-					onClick={onClear}
-					className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-				>
-					<X className="h-3.5 w-3.5" />
-				</button>
+			<div className="relative shrink-0">
+				<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+				<input
+					ref={inputRef}
+					type="text"
+					value={query}
+					onChange={(e) => setQuery(e.target.value)}
+					placeholder={placeholder}
+					className="h-12 w-full bg-transparent pl-11 pr-11 text-[15px] text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
+				/>
+				{isLoading ? (
+					<Loader2 className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-[var(--text-muted)]" />
+				) : query ? (
+					<button
+						type="button"
+						onClick={() => clear(true)}
+						aria-label={t("common.clear", { defaultValue: "Clear" })}
+						className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+					>
+						<X className="h-3.5 w-3.5" />
+					</button>
+				) : null}
+			</div>
+
+			{showList ? (
+				// data-sheet-no-drag: scrolling the list must not drag the sheet.
+				<div className="min-h-0 overflow-y-auto overscroll-contain border-t border-[var(--border)]/60 py-1" data-lenis-prevent data-sheet-no-drag>
+					{error ? (
+						<p className="px-4 py-3 text-sm text-red-400">{error}</p>
+					) : results.length > 0 ? (
+						results.map((result) => {
+							const label = (result.address && formatNominatimAddress(result.address, result.display_name)) ?? result.display_name;
+							return (
+								<button
+									key={`${result.lat}:${result.lon}`}
+									type="button"
+									onClick={() => {
+										clear(false);
+										onSelect(result, label);
+									}}
+									className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-[var(--text)]/5 active:bg-[var(--text)]/10"
+								>
+									<span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full ink-tint-8 text-[var(--text-muted)]">
+										<MapPin className="h-3.5 w-3.5" />
+									</span>
+									<span className="line-clamp-2 text-sm text-[var(--text)]">{label}</span>
+								</button>
+							);
+						})
+					) : (
+						<p className="px-4 py-3 text-sm text-[var(--text-muted)]">{t("browse_location.error_search_failed_general")}</p>
+					)}
+				</div>
 			) : null}
 		</div>
 	);
@@ -89,7 +130,6 @@ export function MapSheetLayout({
 	map,
 	search,
 	pinLabel,
-	overlay,
 	picks,
 	footer,
 }: {
@@ -99,8 +139,6 @@ export function MapSheetLayout({
 	search?: ReactNode;
 	/** Text of the floating pill naming the pinned spot; omitted → no pill. */
 	pinLabel?: ReactNode;
-	/** Laid over the map below the search (e.g. search results); scrolls on its own. */
-	overlay?: ReactNode;
 	/** Quick picks and hints above the footer, on the fade. */
 	picks?: ReactNode;
 	footer: ReactNode;
@@ -132,19 +170,17 @@ export function MapSheetLayout({
 				</div>
 			) : null}
 
-			{overlay != null ? (
-				// z-10: MapLibre's controls carry their own z-index and would poke through.
+			{/* z-30: its results dropdown opens over the bottom fade (z-20). The
+			    box only bounds the dropdown's height (it stops above the footer);
+			    it lets taps through to the map around the search card. */}
+			{hasSearch ? (
 				<div
-					className={`absolute inset-0 z-10 overflow-y-auto bg-[var(--surface-2)] ${hasSearch ? "pt-[4.25rem]" : ""}`}
-					style={{ paddingBottom: `calc(${SHEET_BOTTOM_PADDING} + 72px)` }}
-					data-lenis-prevent
+					className="pointer-events-none absolute inset-x-3 top-3 z-30 flex flex-col"
+					style={{ bottom: `calc(${SHEET_BOTTOM_PADDING} + 4rem)` }}
 				>
-					{overlay}
+					{search}
 				</div>
 			) : null}
-
-			{/* z-20: above the overlay it opens. */}
-			{hasSearch ? <div className="absolute inset-x-3 top-3 z-20">{search}</div> : null}
 
 			{/* The fade itself lets map gestures through, only the controls on it catch taps. */}
 			<div

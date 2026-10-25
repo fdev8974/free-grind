@@ -2147,6 +2147,7 @@
         "delete_confirm_message": "Hiermee wordt hij direct van je profiel verwijderd."
     },
     "common": {
+        "clear": "",
         "back": "Terug",
         "cancel": "Annuleren",
         "save": "Opslaan",

@@ -2147,6 +2147,7 @@
         "delete_confirm_message": "Er wird sofort von deinem Profil entfernt."
     },
     "common": {
+        "clear": "",
         "back": "Zurück",
         "cancel": "Abbrechen",
         "save": "Speichern",

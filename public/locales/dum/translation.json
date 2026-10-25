@@ -2179,6 +2179,7 @@
         "delete_confirm_message": "تم"
     },
     "common": {
+        "clear": "",
         "back": "رجوع",
         "cancel": "إلغاء",
         "save": "حفظ",
