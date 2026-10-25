@@ -43,6 +43,9 @@
 	--animate-sin-mode-title-in: sin-mode-title-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 	--animate-sin-mode-rays: sin-mode-rays-spin 14s linear infinite;
 	--animate-sin-mode-shimmer: sin-mode-shimmer 1.6s ease-in-out infinite;
+	/* Expiring things (album bubbles, the drawer's expiry toggle): flips over
+	   like a real hourglass, then rests while the sand runs. */
+	--animate-hourglass-rotate: hourglass-rotate 2.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 
 	@keyframes morph-glow {
 		0%, 100% {
@@ -72,6 +75,12 @@
 			opacity: 1;
 			transform: scale(1.12);
 		}
+	}
+
+	@keyframes hourglass-rotate {
+		0%, 35% { transform: rotate(0deg); }
+		50%, 85% { transform: rotate(180deg); }
+		100% { transform: rotate(360deg); }
 	}
 
 	@keyframes badge-in {
@@ -1596,6 +1605,7 @@ dialog::backdrop {
 
 @media (prefers-reduced-motion: reduce) {
   .tile-flame-ember { display: none; }
+  .animate-hourglass-rotate { animation: none; }
 }
 
 /* Glow on the "taken on Grindr" logo; global so drawer tiles get it on every page. */

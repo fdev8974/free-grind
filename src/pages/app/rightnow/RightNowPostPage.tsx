@@ -362,19 +362,6 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 					</h3>
 					{isEditMode && activeRightNowExpiresAt ? (
 						<p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-[var(--right-now)]">
-							<style>
-								{`
-									@keyframes hourglass-rotate {
-										0% { transform: rotate(0deg); }
-										40% { transform: rotate(180deg); }
-										60% { transform: rotate(180deg); }
-										100% { transform: rotate(360deg); }
-									}
-									.animate-hourglass-rotate {
-										animation: hourglass-rotate 4.5s infinite ease-in-out;
-									}
-								`}
-							</style>
 							<Hourglass className="h-3 w-3 shrink-0 animate-hourglass-rotate" />
 							<span className="tabular-nums">
 								{displayMins}m {t("right_now.remaining")}
