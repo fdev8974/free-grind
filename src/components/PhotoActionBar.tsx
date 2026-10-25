@@ -15,7 +15,7 @@ type PhotoActionBarProps = {
  * PhotoViewer — mirrors the floating "quick message + tap" footer in
  * ProfileDetailsModal, but scoped to a single reaction (no emoji picker,
  * since album-photo reactions only ever imply 🔥). Built like that footer:
- * a floating pill for the text, tap and send as round buttons beside it.
+ * a floating pill for the text, send and tap as round buttons beside it.
  */
 export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoActionBarProps) {
 	const { t } = useTranslation();
@@ -79,6 +79,16 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 						className="h-10 w-full bg-transparent px-4 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none disabled:opacity-50"
 					/>
 				</div>
+				<button
+					type="button"
+					onClick={() => void handleSend()}
+					disabled={isSending || !hasText}
+					aria-label={t("photo_viewer.send", { defaultValue: "Send" })}
+					// Same round accent button as the chat composer's send.
+					className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] transition active:scale-90 disabled:opacity-40"
+				>
+					{isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizontalFilled className="h-5 w-5" />}
+				</button>
 				{onReact && (
 					<button
 						type="button"
@@ -90,17 +100,6 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 						{isReacting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Flame className="h-5 w-5" strokeWidth={1.8} />}
 					</button>
 				)}
-				<button
-					type="button"
-					onClick={() => void handleSend()}
-					disabled={isSending || !hasText}
-					aria-label={t("photo_viewer.send", { defaultValue: "Send" })}
-					className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition active:scale-90 ${
-						hasText || isSending ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "text-white/40"
-					}`}
-				>
-					{isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <SendHorizontalFilled className="h-5 w-5" />}
-				</button>
 			</div>
 		</div>
 	);
