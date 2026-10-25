@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
-import { BottomSheet, SheetClose, SheetCloseButton } from "./bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass } from "./bottom-sheet";
 
 interface BottomDrawerProps {
 	title: string;
@@ -39,12 +39,12 @@ export function BottomDrawer({
 				<SheetCloseButton disabled={isProcessing} />
 			</div>
 			{children}
-			<div className="flex gap-2 px-3">
+			<div className="flex gap-2.5 px-4 pt-1">
 				{footerLeft}
 				{cancelLabel && (
 					<SheetClose
 						disabled={isProcessing}
-						className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2.5 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+						className={sheetButtonClass("secondary")}
 					>
 						{cancelLabel}
 					</SheetClose>
@@ -53,7 +53,7 @@ export function BottomDrawer({
 					type="button"
 					onClick={onConfirm}
 					disabled={isProcessing}
-					className="flex-1 rounded-xl border border-[var(--accent)] bg-[var(--accent)] py-2.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+					className={sheetButtonClass()}
 				>
 					{isProcessing ? (
 						<Loader2 className="mx-auto h-4 w-4 animate-spin" />

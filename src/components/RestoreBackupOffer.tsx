@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
 import { BackupProgressBar } from "./BackupProgressBar";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
-import { BottomSheet, SheetClose, SheetCloseButton } from "./ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import * as chatDb from "../services/chatDb";
 import {
@@ -215,10 +215,10 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleCategory} />
 					</div>
 					<BackupProgressBar kind="import" active={isBusy} />
-					<div className="flex gap-2 px-4 pb-4 pt-2">
+					<div className="flex gap-2.5 px-4 pb-4 pt-2">
 						<SheetClose
 							disabled={isBusy}
-							className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+							className={sheetButtonClass("secondary")}
 						>
 							{t("common.cancel", { defaultValue: "Cancel" })}
 						</SheetClose>
@@ -226,7 +226,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 							type="button"
 							onClick={() => void handleConfirmImport()}
 							disabled={isBusy || pendingImport.selected.size === 0}
-							className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+							className={sheetButtonClass()}
 						>
 							{isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 							<span>{t("restore_offer.confirm", { defaultValue: "Restore" })}</span>

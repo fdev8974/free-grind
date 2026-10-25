@@ -1,10 +1,11 @@
 import { Bookmark, Check, Compass, Home, Loader2, MapPin, Navigation, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { cn } from "../../utils/cn";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import z from "zod";
-import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../components/ui/bottom-sheet";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS, SHEET_FOOTER_CLASS, SHEET_FOOTER_ICON_BUTTON_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import { SlidingTabs } from "../../components/ui/sliding-tabs";
 import { SelectSheet } from "../../components/ui/select-sheet";
 import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../components/icons/FilledIcons";
@@ -632,7 +633,7 @@ function LocationSheetContent({
 			</div>
 
 			{/* Footer: pin actions + confirm */}
-			<div className="-mx-4 mt-3 flex shrink-0 gap-2 border-t border-[var(--border)] px-4 pt-3">
+			<div className={SHEET_FOOTER_CLASS}>
 				{!isExploreTab && (
 					<button
 						type="button"
@@ -640,7 +641,7 @@ function LocationSheetContent({
 						disabled={!selectedLocation || updateHomeLocation.isPending || isPinOnHome}
 						title={t("browse_location.set_as_home")}
 						aria-label={t("browse_location.set_as_home")}
-						className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
+						className={SHEET_FOOTER_ICON_BUTTON_CLASS}
 					>
 						{updateHomeLocation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Home className="h-4 w-4" />}
 					</button>
@@ -652,9 +653,7 @@ function LocationSheetContent({
 					title={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
 					aria-label={pinnedSavedLocation ? t("browse_location.delete_saved_location") : t("browse_location.save_as")}
 					style={isNamingLocation ? { color: tabColor } : undefined}
-					className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] transition disabled:opacity-50 ${
-						pinnedSavedLocation ? "hover:bg-red-500/10 hover:text-red-400" : "hover:text-[var(--text)]"
-					}`}
+					className={cn(SHEET_FOOTER_ICON_BUTTON_CLASS, pinnedSavedLocation && "hover:text-red-400")}
 				>
 					{pinnedSavedLocation ? <Trash2 className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
 				</button>
@@ -662,8 +661,8 @@ function LocationSheetContent({
 					type="button"
 					disabled={!selectedLocation || isActiveLocationSelected || isSaving}
 					onClick={handleConfirm}
-					style={{ backgroundColor: tabColor, borderColor: tabColor, color: tabContrast }}
-					className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-semibold transition hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+					style={{ backgroundColor: tabColor, color: tabContrast }}
+					className={sheetButtonClass()}
 				>
 					{isSaving ? (
 						<Loader2 className="h-4 w-4 animate-spin" />

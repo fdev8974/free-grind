@@ -1,7 +1,7 @@
 import { Check, Clock, Loader2, Search, Send, Sticker, TrendingUp, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
 import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
@@ -349,7 +349,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 
 			{/* Send footer */}
 			{selectedGif && (
-				<div className="-mx-4 mt-3 flex shrink-0 border-t border-[var(--border)] px-4 pt-3">
+				<div className={SHEET_FOOTER_CLASS}>
 					{/* SheetClose so the sheet animates out and pops its history entry. */}
 					<SheetClose
 						onClick={() => {
@@ -357,7 +357,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 							onSelect(selectedGif);
 						}}
 						disabled={isSending}
-						className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+						className={sheetButtonClass()}
 					>
 						{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
 						<span>{isSending ? t("chat_drawer.sending") : t("chat.send")}</span>

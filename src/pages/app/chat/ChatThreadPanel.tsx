@@ -92,7 +92,7 @@ import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
-import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS, SHEET_FOOTER_FIELD_CLASS } from "../../../components/ui/bottom-sheet";
 import { SheetActionList } from "../../../components/ui/action-sheet";
 import {
 	DndContext,
@@ -2642,12 +2642,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							footerLeft={(() => {
 								const isVideo = pendingAttachmentFile.type.startsWith("video/");
 								return (
-									<div className="relative inline-flex h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] min-w-[120px]">
+									<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-[120px]`}>
 										<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
 										<select
 											value={attachmentMaxViews}
 											onChange={(e) => setAttachmentMaxViews(Number(e.target.value))}
-											className="h-full w-full appearance-none rounded-xl bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
+											className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
 										>
 											{isVideo ? (
 												<>

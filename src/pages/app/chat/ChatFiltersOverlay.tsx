@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { ChatFiltersPanel } from "./ChatFiltersPanel";
 import { buildChatFiltersDraft, type ChatFiltersDraft } from "./chatUtils";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 
 type Props = {
 	isDesktop: boolean;
@@ -49,16 +49,16 @@ export function ChatFiltersOverlay({
 			</div>
 
 			{/* SheetClose closes animated and pops the sheet's history entry. */}
-			<div className="-mx-4 mt-3 flex shrink-0 gap-2 border-t border-[var(--border)] px-4 pt-3">
+			<div className={SHEET_FOOTER_CLASS}>
 				<SheetClose
 					onClick={() => onApply(buildChatFiltersDraft({}))}
-					className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text)]"
+					className={sheetButtonClass("secondary")}
 				>
 					{t("browse_filters.clear_all")}
 				</SheetClose>
 				<SheetClose
 					onClick={() => onApply(draft)}
-					className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 active:scale-[0.98]"
+					className={sheetButtonClass()}
 				>
 					{t("browse_filters.apply")}
 				</SheetClose>

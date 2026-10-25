@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import { SheetChip, SheetSection } from "../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { HomeFilled } from "../../components/icons/FilledIcons";
@@ -102,16 +102,17 @@ export function RightNowFiltersPage({ onClose, onApply, initialDraft }: RightNow
 			</div>
 
 			{/* SheetClose closes animated and pops the sheet's history entry. */}
-			<div className="-mx-4 mt-3 flex shrink-0 gap-2 border-t border-[var(--border)] px-4 pt-3">
+			<div className={SHEET_FOOTER_CLASS}>
 				<SheetClose
 					onClick={() => onApply({ ageMin: 18, ageMax: 99, positionFilter: "", hostingOnly: false, favoritesOnly: false })}
-					className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text)]"
+					className={sheetButtonClass("secondary")}
 				>
 					{t("browse_filters.clear_all")}
 				</SheetClose>
 				<SheetClose
 					onClick={() => onApply({ ageMin, ageMax, positionFilter, hostingOnly, favoritesOnly })}
-					className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--right-now)] bg-[var(--right-now)] px-4 text-sm font-semibold text-white transition hover:brightness-110 active:scale-[0.98]"
+					style={{ backgroundColor: "var(--right-now)", color: "white" }}
+					className={sheetButtonClass()}
 				>
 					{t("right_now_filters.apply")}
 				</SheetClose>

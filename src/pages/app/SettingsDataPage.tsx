@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
 import { BackupProgressBar } from "../../components/BackupProgressBar";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
@@ -775,10 +775,10 @@ export function SettingsDataPage() {
 						</div>
 					</div>
 					<BackupProgressBar kind="export" active={isExporting} />
-					<div className="flex gap-2 px-4 pb-4 pt-2">
+					<div className="flex gap-2.5 px-4 pb-4 pt-2">
 						<SheetClose
 							disabled={isExporting}
-							className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+							className={sheetButtonClass("secondary")}
 						>
 							{t("common.cancel", { defaultValue: "Cancel" })}
 						</SheetClose>
@@ -793,7 +793,7 @@ export function SettingsDataPage() {
 								})();
 							}}
 							disabled={isExporting || exportCategories.size === 0}
-							className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+							className={sheetButtonClass()}
 						>
 							{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 							<span>{t("data_backup.export_confirm", { defaultValue: "Export" })}</span>
@@ -819,10 +819,10 @@ export function SettingsDataPage() {
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleImportCategory} />
 					</div>
 					<BackupProgressBar kind="import" active={isImporting} />
-					<div className="flex gap-2 px-4 pb-4 pt-2">
+					<div className="flex gap-2.5 px-4 pb-4 pt-2">
 						<SheetClose
 							disabled={isImporting}
-							className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+							className={sheetButtonClass("secondary")}
 						>
 							{t("common.cancel", { defaultValue: "Cancel" })}
 						</SheetClose>
@@ -830,7 +830,7 @@ export function SettingsDataPage() {
 							type="button"
 							onClick={() => void handleConfirmImport()}
 							disabled={isImporting || pendingImport.selected.size === 0}
-							className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+							className={sheetButtonClass()}
 						>
 							{isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 							<span>{t("data_backup.import_confirm", { defaultValue: "Restore" })}</span>

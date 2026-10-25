@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { SheetChip, SheetSearchInput } from "../../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
@@ -94,11 +94,11 @@ export function ManagedOptionsPickerDialog({
 					<p className="py-6 text-center text-sm text-[var(--text-muted)]">{noMatchesLabel}</p>
 				)}
 			</div>
-			<div className="-mx-4 mt-3 flex shrink-0 border-t border-[var(--border)] px-4 pt-3">
+			<div className={SHEET_FOOTER_CLASS}>
 				<SheetClose
 					style={{ backgroundColor: accentColor }}
 					className={cn(
-						"inline-flex h-11 flex-1 items-center justify-center rounded-xl px-4 text-sm font-semibold transition hover:brightness-110 active:scale-[0.98]",
+						sheetButtonClass(),
 						accentColor === "var(--accent)" ? "text-[var(--accent-contrast)]" : "text-white",
 					)}
 				>

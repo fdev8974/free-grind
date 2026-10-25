@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
-import { BottomSheet, useBottomSheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import { SheetChip, SheetMoreButton, SheetSection } from "../../components/ui/sheet-section";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useManagedGenders, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
@@ -483,22 +483,19 @@ function BrowseFiltersSheetContent({
 				</div>
 			</div>
 
-			<div className="-mx-4 mt-3 flex shrink-0 gap-2 border-t border-[var(--border)] px-4 pt-3">
+			<div className={SHEET_FOOTER_CLASS}>
 				<button
 					type="button"
 					onClick={clearAll}
-					className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text-muted)] transition hover:text-[var(--text)]"
+					className={sheetButtonClass("secondary")}
 				>
 					{t("browse_filters.clear_all")}
 				</button>
 				<button
 					type="button"
 					onClick={handleApply}
-					style={{ backgroundColor: accentColor, borderColor: accentColor }}
-					className={cn(
-						"inline-flex h-11 flex-1 items-center justify-center rounded-xl border px-4 text-sm font-semibold transition hover:brightness-110 active:scale-[0.98]",
-						isExploreActive ? "text-white" : "text-[var(--accent-contrast)]",
-					)}
+					style={{ backgroundColor: accentColor }}
+					className={cn(sheetButtonClass(), isExploreActive && "text-white")}
 				>
 					{t("browse_filters.apply")}
 				</button>

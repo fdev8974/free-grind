@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { sheetButtonClass } from "../../components/ui/bottom-sheet";
 import {
 	RefreshCw,
 	Save,
@@ -963,7 +964,7 @@ export function ProfileEditorPage() {
 							type="button"
 							onClick={() => setPhotoUploadStep("crop")}
 							disabled={isUploadingPhoto}
-							className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2.5 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+							className={sheetButtonClass("secondary")}
 						>
 							{t("profile_editor.photo_upload.back", { defaultValue: "Back" })}
 						</button>

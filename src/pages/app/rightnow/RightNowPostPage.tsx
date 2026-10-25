@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { appLog } from "../../../utils/logger";
 import toast from "react-hot-toast";
 import { cn } from "../../../utils/cn";
-import { BottomSheet, useBottomSheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { usePreferences } from "../../../contexts/PreferencesContext";
@@ -644,12 +644,13 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 
 			{/* Bottom actions */}
 			{canPost && (
-				<div className="relative -mx-4 mt-3 flex shrink-0 flex-col gap-2 border-t border-[var(--border)] px-4 pt-3">
+				<div className={`relative ${SHEET_FOOTER_CLASS} flex-col`}>
 					<button
 						type="button"
 						onClick={handlePost}
 						disabled={isPosting}
-						className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--right-now)] px-4 text-sm font-semibold text-white shadow-lg shadow-[var(--right-now)]/30 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-70"
+						style={{ backgroundColor: "var(--right-now)", color: "white" }}
+						className={cn(sheetButtonClass(), "w-full flex-none shadow-[0_4px_16px_color-mix(in_srgb,var(--right-now)_35%,transparent)]")}
 					>
 						{isPosting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RightNowIcon className="h-4 w-4" />}
 						{isPosting
@@ -666,7 +667,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							type="button"
 							onClick={handleEndSession}
 							disabled={isEnding || isPosting}
-							className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-sm font-semibold text-red-500 transition active:scale-[0.98] disabled:opacity-50"
+							className={cn(sheetButtonClass("destructive"), "w-full flex-none")}
 						>
 							{isEnding && <Loader2 className="h-4 w-4 animate-spin" />}
 							{isEnding ? t("right_now.ending_session") : t("right_now.end_session")}

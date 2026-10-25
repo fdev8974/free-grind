@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Check, Image as ImageIcon, Loader2, Play, RefreshCw, Video, X } from "lucide-react";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
-import { holdSheetDrag, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
+import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
@@ -521,11 +521,10 @@ export function DrawerTileCornerButton({
 
 /** Bottom bar for the sheet's main action(s), separated by a full-width rule. */
 export function DrawerFooter({ children }: { children: ReactNode }) {
-	return <div className="mt-3 -mx-4 flex gap-2 border-t border-[var(--border)] px-4 pt-3">{children}</div>;
+	return <div className={SHEET_FOOTER_CLASS}>{children}</div>;
 }
 
-export const DRAWER_PRIMARY_BUTTON_CLASS =
-	"inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60";
+export const DRAWER_PRIMARY_BUTTON_CLASS = sheetButtonClass();
 
 export type DrawerAddAction = { key: string; label: string; icon: ReactNode; onClick: () => void };
 

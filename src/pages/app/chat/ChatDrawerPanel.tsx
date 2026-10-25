@@ -42,7 +42,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useModalClose } from "../../../hooks/useModalClose";
-import { BottomSheet } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SHEET_FOOTER_FIELD_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
@@ -743,7 +743,7 @@ export function ChatDrawerPanel({
 													void Promise.all([...selectedAlbumIds].map(id => onStopAlbumShare!(id))).then(() => { setSelectedAlbumIds(new Set()); closeSheet(); });
 												}}
 												disabled={isSharingAlbum}
-												className="min-w-0 flex-1 inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-500/10 px-4 text-sm font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:opacity-60"
+												className={sheetButtonClass("warning")}
 											>
 												{isSharingAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 												<span>{t("chat.actions.stop_sharing", { defaultValue: "Stop Sharing" })} ({selectedAlbumIds.size})</span>
@@ -751,12 +751,12 @@ export function ChatDrawerPanel({
 										</>
 									) : (
 										<>
-											<div className="relative inline-flex h-11 min-w-0 flex-1 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]">
+											<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-0 flex-1`}>
 												<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
 												<select
 													value={albumExpirationType}
 													onChange={(e) => setAlbumExpirationType(e.target.value)}
-													className="h-full w-full appearance-none rounded-xl bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
+													className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
 												>
 													{EXPIRY_OPTIONS.map((opt) => (
 														<option key={opt} value={opt}>{EXPIRY_LABELS[opt]}</option>
@@ -783,12 +783,12 @@ export function ChatDrawerPanel({
 						{/* Footer - Send button */}
 						{hasSelection || hasCollectionSelection ? (
 							<DrawerFooter>
-								<div className="relative inline-flex h-11 min-w-0 flex-1 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]">
+								<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-0 flex-1`}>
 									<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
 									<select
 										value={mediaMaxViews}
 										onChange={(e) => setMediaMaxViews(Number(e.target.value))}
-										className="h-full w-full appearance-none rounded-xl bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
+										className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
 									>
 										{isMixedSelection ? (
 											<>

@@ -31,7 +31,7 @@ import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
-import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import {
 	ErrorState,
 	LoadingState,
@@ -1376,12 +1376,12 @@ export function SettingsAlbumsPage() {
 							)}
 						</div>
 						{shareProfiles && shareProfiles.length > 0 && !isLoadingShares && (
-							<div className="-mx-4 mt-3 flex shrink-0 border-t border-[var(--border)] px-4 pt-3">
+							<div className={SHEET_FOOTER_CLASS}>
 								<button
 									type="button"
 									onClick={() => setConfirmUnshareAllAlbumId(albumId)}
 									disabled={unsharingAllAlbumId === albumId}
-									className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-red-500/10 px-4 text-sm font-semibold text-red-400 transition hover:bg-red-500/20 active:scale-[0.98] disabled:opacity-50"
+									className={sheetButtonClass("destructive")}
 								>
 									{unsharingAllAlbumId === albumId
 										? t("settings_albums.unsharing_all", { defaultValue: "Removing…" })

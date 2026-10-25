@@ -2,7 +2,7 @@ import { Check, Copy, Loader2, TriangleAlert } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { BottomSheet, SheetCloseButton } from "../../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetCloseButton, sheetButtonClass } from "../../../../components/ui/bottom-sheet";
 import { isIos } from "../../../../services/saveMedia";
 import { appLog } from "../../../../utils/logger";
 import { MapLocationPreview } from "./MapLocationPreview";
@@ -185,12 +185,12 @@ export function LocateResultSheet({ progress, onClose, onCancel, isDesktop }: Pr
 				) : null}
 			</div>
 
-			<div className="flex gap-2 px-3">
+			<div className="flex gap-2.5 px-4 pt-1">
 				{isRunning ? (
 					<button
 						type="button"
 						onClick={onCancel}
-						className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2.5 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
+						className={sheetButtonClass("secondary")}
 					>
 						{t("profile_details.location_finder_stop", { defaultValue: "Stop" })}
 					</button>
@@ -199,7 +199,7 @@ export function LocateResultSheet({ progress, onClose, onCancel, isDesktop }: Pr
 					type="button"
 					onClick={handleOpenMaps}
 					disabled={!hasEstimate}
-					className="flex-1 rounded-xl border border-[var(--accent)] bg-[var(--accent)] py-2.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-50"
+					className={sheetButtonClass()}
 				>
 					{t("profile_details.location_finder_open_maps", { defaultValue: "Open in Maps" })}
 				</button>

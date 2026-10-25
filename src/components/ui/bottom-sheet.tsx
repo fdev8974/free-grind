@@ -85,6 +85,37 @@ export function SheetClose({ children, className, style, disabled, onClick, "ari
 export const SHEET_ICON_BUTTON_CLASS =
 	"inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ink-tint-8 text-[var(--text-muted)] transition active:scale-90 active:ink-tint-16 hover:ink-tint-12 hover:text-[var(--text)] disabled:pointer-events-none disabled:opacity-40";
 
+/** Bottom action row of a sheet. No divider: like native sheets, the
+ * buttons just sit on the sheet's own background. */
+export const SHEET_FOOTER_CLASS = "-mx-4 mt-3 flex shrink-0 gap-2.5 px-4 pt-3";
+
+const SHEET_BUTTON_BASE =
+	"inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-[transform,filter,background-color,color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
+
+const SHEET_BUTTON_VARIANTS = {
+	/** Filled with the accent. Callers may recolor it via `style` (backgroundColor/color). */
+	primary: "bg-[var(--accent)] text-[var(--accent-contrast)] shadow-[0_4px_14px_rgba(0,0,0,0.2)] hover:brightness-110",
+	/** Soft neutral fill, same ink tint as the header buttons. */
+	secondary: "ink-tint-10 text-[var(--text)] hover:ink-tint-14 active:ink-tint-18",
+	destructive: "bg-red-500/12 text-red-500 hover:bg-red-500/20",
+	warning: "bg-orange-500/12 text-orange-400 hover:bg-orange-500/20",
+} as const;
+
+export type SheetButtonVariant = keyof typeof SHEET_BUTTON_VARIANTS;
+
+/** Pill button for a sheet's footer, see SHEET_FOOTER_CLASS. */
+export function sheetButtonClass(variant: SheetButtonVariant = "primary"): string {
+	return `${SHEET_BUTTON_BASE} ${SHEET_BUTTON_VARIANTS[variant]}`;
+}
+
+/** Square-ish round icon button that sits next to footer pills. */
+export const SHEET_FOOTER_ICON_BUTTON_CLASS =
+	"inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full ink-tint-10 text-[var(--text-muted)] transition-[transform,color] duration-150 hover:ink-tint-14 hover:text-[var(--text)] active:scale-[0.94] active:ink-tint-18 disabled:pointer-events-none disabled:opacity-50";
+
+/** Shell for a control (e.g. the expiry <select>) sharing a footer row with pills. */
+export const SHEET_FOOTER_FIELD_CLASS =
+	"relative inline-flex h-12 items-center rounded-full ink-tint-10 text-[var(--text-muted)] transition-colors hover:ink-tint-14 hover:text-[var(--text)]";
+
 export function SheetCloseIcon() {
 	return <X className="h-4 w-4" strokeWidth={2.5} />;
 }

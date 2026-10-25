@@ -2,7 +2,7 @@ import { Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { HomeFilled, LocateFixedFilled, MapPinFilled } from "../../../components/icons/FilledIcons";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useHomeLocation } from "../../../hooks/queries/useProfileQueries";
@@ -119,10 +119,10 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 				<p className="mt-2 px-1 text-[11px] text-[var(--text-muted)]">{t("chat.share_location_saved_hint")}</p>
 			) : null}
 
-			<div className="-mx-4 mt-3 flex border-t border-[var(--border)] px-4 pt-3">
+			<div className={SHEET_FOOTER_CLASS}>
 				<SheetClose
 					onClick={() => onSend(location)}
-					className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+					className={sheetButtonClass()}
 				>
 					<Send className="h-4 w-4" />
 					<span className="truncate">{t("chat.send")}</span>
