@@ -10,7 +10,7 @@ import { loadSavedLocations, type SavedLocation } from "../../../services/savedL
 import { decodeGeohash, encodeGeohash } from "../../../utils/geohash";
 import { LocationChip, SavedLocationChip, useGeohashLabel } from "../gridpage/components/LocationChips";
 import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
-import { MAP_SHEET_HINT_CLASS, MapSheetLayout, MapSheetQuickPicks, mapSheetPanelClass } from "../gridpage/components/MapSheetLayout";
+import { MAP_SHEET_HINT_CLASS, MapSheetLayout, MapSheetQuickPicks, mapSheetProps } from "../gridpage/components/MapSheetLayout";
 import { reverseGeocodeGeohash } from "../gridpage/geocoding";
 
 type LatLon = { lat: number; lon: number };
@@ -58,7 +58,7 @@ export function ShareLocationSheet({ location, onChange, onClose, onSend, isDesk
 			onClose={onClose}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName={mapSheetPanelClass(isDesktop)}
+			{...mapSheetProps(isDesktop)}
 		>
 			<div className="mb-3 flex shrink-0 items-center justify-between">
 				<h3 className="text-sm font-semibold text-[var(--text)]">

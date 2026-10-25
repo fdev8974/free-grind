@@ -15,7 +15,7 @@ import { getCurrentLocation, getLocationErrorMessageKey } from "../../services/c
 import { decodeGeohash, encodeGeohash } from "../../utils/geohash";
 import { type GeocodeResult, type SelectedLocation, geocodeResultSchema } from "./GridPage.types";
 import { LocationChip, SavedLocationChip } from "./gridpage/components/LocationChips";
-import { MAP_SHEET_HINT_CLASS, MAP_SHEET_ICON_BUTTON_CLASS, MapSheetLayout, MapSheetQuickPicks, MapSheetSearch, mapSheetPanelClass } from "./gridpage/components/MapSheetLayout";
+import { MAP_SHEET_HINT_CLASS, MAP_SHEET_ICON_BUTTON_CLASS, MapSheetLayout, MapSheetQuickPicks, MapSheetSearch, mapSheetProps } from "./gridpage/components/MapSheetLayout";
 import { MapLocationPicker } from "./gridpage/components/MapLocationPicker";
 import {
 	formatNominatimAddress,
@@ -71,7 +71,7 @@ export function LocationOverlay({ onClose, isDesktop, ...props }: LocationOverla
 			onClose={onClose}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName={mapSheetPanelClass(isDesktop)}
+			{...mapSheetProps(isDesktop)}
 		>
 			<LocationSheetContent isDesktop={isDesktop} {...props} />
 		</BottomSheet>

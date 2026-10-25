@@ -142,6 +142,8 @@ interface BottomSheetProps {
 	 * panel then has a fixed height, so its scrolling content should be a
 	 * `min-h-0 flex-1` child that fills it. Mobile only. */
 	expandable?: boolean;
+	/** Medium detent of an `expandable` sheet, as a fraction of the viewport height. */
+	mediumDetent?: number;
 	isDesktop?: boolean;
 	isProcessing?: boolean;
 	zIndex?: string;
@@ -158,6 +160,7 @@ interface BottomSheetProps {
 export function BottomSheet({
 	onClose,
 	expandable = false,
+	mediumDetent = 0.55,
 	isDesktop = false,
 	isProcessing = false,
 	zIndex = "z-[60]",
@@ -321,7 +324,7 @@ export function BottomSheet({
 	const layout = layoutRef.current;
 	layout.detented = isDetented;
 	layout.visible = isVisible;
-	layout.medium = Math.round(viewportHeight * 0.55);
+	layout.medium = Math.round(viewportHeight * mediumDetent);
 	layout.large = Math.round(Math.min(viewportHeight * 0.94, viewportHeight - 48));
 
 	const applyLayout = useCallback((animate: boolean) => {

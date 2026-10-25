@@ -8,10 +8,17 @@ import { SHEET_BOTTOM_PADDING } from "../../../../components/ui/bottom-sheet";
 // optional search floats on top of it, and the quick picks plus footer float
 // over a dark fade at the bottom.
 
-/** Panel class for a map sheet: a fixed, nearly full-screen height so the map
- * gets all the room left under the header. +48px is the panel's offscreen bleed. */
-export function mapSheetPanelClass(isDesktop: boolean): string {
-	return isDesktop ? "h-[min(86vh,calc(92dvh+48px))] px-4" : "h-[calc(92dvh+48px)] px-4";
+/** BottomSheet props for a map sheet. On mobile it opens at a medium detent
+ * and can be dragged up to almost full screen (the map itself keeps its own
+ * pan gestures, so the header and the fade's controls drag the sheet). On
+ * desktop it's a fixed height; +48px is the panel's offscreen bleed. In both
+ * cases the map takes all the room left under the header. */
+export function mapSheetProps(isDesktop: boolean) {
+	return {
+		expandable: true,
+		mediumDetent: 0.7,
+		panelClassName: isDesktop ? "h-[min(72vh,calc(92dvh+48px))] px-4" : "px-4",
+	};
 }
 
 // Footer icon buttons sit on the dark fade, so they're white glass instead of
@@ -108,6 +115,13 @@ export function MapSheetLayout({
 		>
 			{/* With a search on top, MapLibre's zoom control moves below it. */}
 			<div className={`absolute inset-0 ${hasSearch ? "[&_.maplibregl-ctrl-top-right]:top-[3.75rem]" : ""}`}>{map}</div>
+
+			{/* Short fade from the sheet's own background (NATIVE_SHEET_BG) so the
+			    header flows into the map instead of meeting it at a hard edge.
+			    No z-index: MapLibre's controls (z-index 2) stay above it. */}
+			<div
+				className={`pointer-events-none absolute inset-x-0 top-0 bg-gradient-to-b from-[color-mix(in_srgb,var(--surface)_92%,black_8%)] via-[color-mix(in_srgb,var(--surface)_92%,black_8%)]/60 to-transparent ${hasSearch ? "h-28" : "h-20"}`}
+			/>
 
 			{pinLabel != null ? (
 				<div className={`pointer-events-none absolute inset-x-16 flex justify-center ${hasSearch ? "top-[4.25rem]" : "top-3"}`}>
