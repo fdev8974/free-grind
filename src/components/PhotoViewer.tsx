@@ -1016,7 +1016,10 @@ export function PhotoViewer({
 
 	return createPortal(
 		<div
-			className="fixed inset-0 z-[80]"
+			// overscroll-none + data-lenis-prevent: a swipe here never scrolls the
+			// page below, neither natively nor through Lenis' smooth scroll.
+			data-lenis-prevent
+			className="fixed inset-0 z-[80] overscroll-none"
 			onClick={closeAnimated}
 			style={{
 				backgroundColor: `rgba(0, 0, 0, ${isHeroBeforeFlight ? 0 : 1 - dismissProgress * 0.85})`,
@@ -1284,7 +1287,11 @@ export function PhotoViewer({
 
 			<div
 				ref={trackContainerRef}
-				className="h-full w-full overflow-hidden"
+				// touch-none: every gesture here (swipe, pinch, drag-to-dismiss) is
+				// handled in JS. Without it the browser also pans the page underneath
+				// along with a dismiss swipe, and the next tap after closing only
+				// stops that leftover fling instead of reaching what was tapped.
+				className="h-full w-full touch-none overflow-hidden"
 				style={
 					heroPhase === "measure"
 						? { visibility: "hidden" }
