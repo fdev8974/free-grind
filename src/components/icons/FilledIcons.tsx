@@ -83,13 +83,16 @@ export function MapPinOffFilled(props: IconProps) {
 	);
 }
 
-// Dashed outline pin with a tilde inside, for distances that are only
-// estimated ("approximately here").
+// Solid pin with a tilde cut out instead of the dot, for distances that are
+// only estimated ("approximately here").
 export function MapPinApproximate(props: IconProps) {
+	const id = useMaskId();
 	return (
 		<FilledSvg {...props}>
-			<path d={MAP_PIN_PATH} fill="none" strokeWidth={2.25} strokeDasharray="3 2.5" />
-			<path d="M8.25 11c1.25-2 2.5-2 3.75-1s2.5 1 3.75-1" fill="none" strokeWidth={2.25} />
+			<CutoutMask id={id}>
+				<path d="M8 11c1.25-2 2.75-2 4-1s2.75 1 4-1" fill="none" strokeWidth={2.25} />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d={MAP_PIN_PATH} />
 		</FilledSvg>
 	);
 }

@@ -342,7 +342,7 @@ export function BrowseCardTile({
 					<div className="absolute bottom-2 left-2 z-10 flex h-5 items-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
 						{card.distanceMeters == null || !Number.isFinite(card.distanceMeters) ? (
 							card.estimatedDistanceMeters != null && Number.isFinite(card.estimatedDistanceMeters) ? (
-								<span className="inline-flex items-center gap-1 text-xs font-semibold opacity-80">
+								<span className="inline-flex items-center gap-1 text-xs font-semibold">
 									<MapPinApproximate className="h-3.5 w-3.5" />
 									{formatDistance(card.estimatedDistanceMeters, t, unitsPreset)}
 								</span>
