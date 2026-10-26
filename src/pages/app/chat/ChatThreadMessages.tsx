@@ -10,7 +10,6 @@ import React, { Fragment, useEffect, useState, useMemo, useCallback, useRef, use
 
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { tapDebug } from "../../../utils/tapDebug";
 import { appLog } from "../../../utils/logger";
 import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
 import { loadSavedPhrases, saveSavedPhrases } from "../../../services/savedPhrases";
@@ -151,6 +150,12 @@ function ReadStatusRelativeTime({ readAt, t }: { readAt: number; t: any }) {
 }
 
 /** Glass pill in a media bubble's top-left corner (Album, View once, Replay, GIF). */
+// Media tile tap fallback (see mediaTapProps): what still counts as a tap,
+// and how long to wait for the browser's own click before standing in for it.
+const MEDIA_TAP_MAX_MS = 500;
+const MEDIA_TAP_SLOP_PX = 10;
+const MISSING_CLICK_WAIT_MS = 120;
+
 function MediaBadge({ icon, label }: { icon: React.ReactNode; label: React.ReactNode }) {
 	return (
 		<div className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/50 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md">
@@ -685,11 +690,56 @@ export function ChatThreadMessages({
 		if (state) resetSwipeVisual(state.messageId);
 	}, [endMessageLongPress, resetSwipeVisual]);
 
+	// Android's WebView sometimes delivers a clean tap on a media tile
+	// (touchstart/touchend, no movement, nothing prevented) without the click
+	// that should follow: reliably on the tile last opened, right after the
+	// full-screen viewer was swiped away. Media tiles therefore also detect the
+	// tap themselves: if no click arrives shortly after a clean touchend, the
+	// tap handler runs anyway, and a click that does arrive later is dropped.
+	// Each touch counts exactly once, so double-tap to react keeps working.
+	const mediaTouchRef = useRef<{ x: number; y: number; time: number; handled: boolean } | null>(null);
+	const mediaTapProps = useCallback(
+		(onTap: (tile: HTMLElement) => void) => ({
+			onTouchStart: (event: React.TouchEvent<HTMLElement>) => {
+				const touch = event.touches[0];
+				mediaTouchRef.current =
+					event.touches.length === 1 && touch
+						? { x: touch.clientX, y: touch.clientY, time: performance.now(), handled: false }
+						: null;
+			},
+			onTouchEnd: (event: React.TouchEvent<HTMLElement>) => {
+				const start = mediaTouchRef.current;
+				const touch = event.changedTouches[0];
+				if (!start || !touch) return;
+				const isCleanTap =
+					performance.now() - start.time < MEDIA_TAP_MAX_MS &&
+					Math.hypot(touch.clientX - start.x, touch.clientY - start.y) < MEDIA_TAP_SLOP_PX;
+				if (!isCleanTap) return;
+				const tile = event.currentTarget;
+				window.setTimeout(() => {
+					if (mediaTouchRef.current !== start || start.handled) return;
+					start.handled = true;
+					onTap(tile);
+				}, MISSING_CLICK_WAIT_MS);
+			},
+			onClick: (event: React.MouseEvent<HTMLElement>) => {
+				event.stopPropagation();
+				const start = mediaTouchRef.current;
+				// This touch already ran through the fallback.
+				if (start && performance.now() - start.time < 1000) {
+					if (start.handled) return;
+					start.handled = true;
+				}
+				onTap(event.currentTarget);
+			},
+		}),
+		[],
+	);
+
 	const scheduleMobileTap = useCallback(
 		(message: UiMessage, action: (() => void) | null) => {
 			if (messageLongPressTriggeredRef.current) {
 				messageLongPressTriggeredRef.current = false;
-				if (action) tapDebug("schedule: swallowed by long-press flag");
 				return;
 			}
 
@@ -704,7 +754,6 @@ export function ChatThreadMessages({
 
 			if (last && last.messageId === message.messageId && now - last.time < 300) {
 				lastTapRef.current = null;
-				tapDebug(`schedule: double-tap -> react (${now - last.time}ms)`);
 				void handleReact(message);
 				return;
 			}
@@ -713,12 +762,10 @@ export function ChatThreadMessages({
 
 			if (action) {
 				pendingTapActionRef.current = action;
-				tapDebug("schedule: open in 280ms");
 				pendingTapTimerRef.current = setTimeout(() => {
 					const act = pendingTapActionRef.current;
 					pendingTapTimerRef.current = null;
 					pendingTapActionRef.current = null;
-					tapDebug(`schedule: timer fired, action ${act ? "runs" : "MISSING"}`);
 					act?.();
 				}, 280);
 			}
@@ -1573,12 +1620,9 @@ export function ChatThreadMessages({
                                         <div
                                             role="button"
                                             tabIndex={0}
-                                            onClick={(event) => {
-                                                event.stopPropagation();
-                                                tapDebug(`image click (long-press flag: ${messageLongPressTriggeredRef.current})`);
+                                            {...mediaTapProps((tile) => {
                                                 // Read when the viewer actually opens (a mobile tap waits for a
                                                 // possible double-tap first), so the hero starts where it is then.
-                                                const tile = event.currentTarget;
                                                 const getHeroRect = () => getHeroRectFromElement(tile);
                                                 if (isDesktop) {
                                                     openFullScreenImage(imageUrl, {
@@ -1606,7 +1650,7 @@ export function ChatThreadMessages({
                                                         timestamp: message.timestamp,
                                                     }, "image", message.messageId, Number(message.senderId), getHeroRect());
                                                 });
-                                            }}
+                                            })}
                                             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                                             className={`group/media ${isImageOnlyBubble ? `block w-full overflow-hidden ${hasReply ? "" : `rounded-2xl ${tailCorner}`}` : "mb-2 block overflow-hidden rounded-xl border border-black/10"}`}
                                             onMouseEnter={() => handleMediaMouseEnter(message.messageId)}
@@ -1852,16 +1896,13 @@ export function ChatThreadMessages({
                                                     }`}
                                                     onMouseEnter={() => handleMediaMouseEnter(message.messageId)}
                                                     onMouseLeave={() => handleMediaMouseLeave(message.messageId)}
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        tapDebug(`video click (long-press flag: ${messageLongPressTriggeredRef.current})`);
+                                                    {...mediaTapProps((tile) => {
                                                         if (shouldBlurIncomingMedia && !isDesktop) {
                                                             revealMediaMessage(message.messageId);
                                                             lastTapRef.current = null;
                                                             return;
                                                         }
                                                         // Same hero open as images, read when the viewer opens.
-                                                        const tile = event.currentTarget;
                                                         const getHeroRect = () => getHeroRectFromElement(tile);
                                                         if (isDesktop) {
                                                             openFullScreenImage(videoUrl, undefined, "video", message.messageId, Number(message.senderId), getHeroRect());
@@ -1874,7 +1915,7 @@ export function ChatThreadMessages({
                                                         scheduleMobileTap(message, () => {
                                                             openFullScreenImage(videoUrl, undefined, "video", message.messageId, Number(message.senderId), getHeroRect());
                                                         });
-                                                    }}
+                                                    })}
                                                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                                                 >
                                                     <div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">

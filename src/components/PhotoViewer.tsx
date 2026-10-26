@@ -3,7 +3,6 @@ import React, { useEffect, useLayoutEffect, useRef, useState, useCallback } from
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { tapDebug, watchRawTapsAfterClose } from "../utils/tapDebug";
 import { isIos, saveMediaToDevice } from "../services/saveMedia";
 import { appLog } from "../utils/logger";
 import { haptic } from "../utils/haptics";
@@ -266,8 +265,6 @@ export function PhotoViewer({
 	const onCloseRef = useRef(onClose);
 	onCloseRef.current = onClose;
 	const closeAnimated = useCallback(() => {
-		tapDebug(`viewer closeAnimated${closeTimerRef.current ? " (already closing)" : ""}`);
-		watchRawTapsAfterClose();
 		if (closeTimerRef.current) return;
 		setIsClosing(true);
 		closeTimerRef.current = setTimeout(() => {
@@ -366,7 +363,6 @@ export function PhotoViewer({
 		setIsEntered(false);
 		setHeroPhase(heroRectRef.current ? "measure" : "none");
 		setHeroFromStyle(null);
-		tapDebug(`viewer opened (hero: ${heroRectRef.current ? "yes" : "no"})`);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen]);
 
