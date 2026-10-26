@@ -24,6 +24,15 @@ export function markGridGesturesIntroSeen(): void {
 	}
 }
 
+/** Clears the seen flag so the grid shows the intro again on its next mount (dev tool). */
+export function resetGridGesturesIntro(): void {
+	try {
+		window.localStorage.removeItem(GRID_GESTURES_INTRO_SEEN_KEY);
+	} catch {
+		// Ignore storage write failures.
+	}
+}
+
 function GestureRow({ icon, title, description, children }: { icon: ReactNode; title: string; description: string; children?: ReactNode }) {
 	return (
 		<div className="flex items-start gap-3 px-4 py-3.5">

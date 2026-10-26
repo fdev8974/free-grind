@@ -27,6 +27,7 @@ import {
 	QrCode,
 	Ban,
 	Clock,
+	Pointer,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
@@ -80,6 +81,7 @@ import { isAndroid } from "../../services/saveMedia";
 import { useSettingsSearchIndex } from "../../data/settingsSearchIndex";
 import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
 import { replayOnboarding } from "../../utils/onboardingStorage";
+import { resetGridGesturesIntro } from "./gridpage/components/GridGesturesIntro";
 import { replayRestoreOffer } from "../../utils/restoreOfferStorage";
 import { showLegalAgreementsPrompt } from "../../utils/legalAgreementsDebug";
 import { showAccountWarningsPrompt } from "../../utils/accountWarningsDebug";
@@ -1326,6 +1328,16 @@ export function SettingsPage() {
 					// Each preview opens after this sheet has closed (and popped its history entry).
 					actions={[
 						{ key: "onboarding", icon: RotateCcw, label: "Replay Onboarding", description: "The first-launch setup flow.", onSelect: () => afterSheetClose(replayOnboarding) },
+						{
+							key: "grid-gestures",
+							icon: Pointer,
+							label: "Grid Gestures Intro",
+							description: "The one-time tile gestures intro, shown on the grid once profiles load.",
+							onSelect: () => afterSheetClose(() => {
+								resetGridGesturesIntro();
+								navigate("/");
+							}),
+						},
 						{ key: "restore", icon: FileUpFilled, label: "Restore Offer", description: "The first-login backup restore dialog.", onSelect: () => afterSheetClose(replayRestoreOffer) },
 						{ key: "legal", icon: ScrollText, label: "Legal Agreements", description: "Terms of Service / Privacy Policy, even if already accepted.", onSelect: () => afterSheetClose(showLegalAgreementsPrompt) },
 						{ key: "ban", icon: Ban, label: "Ban Screen", description: "A permanent profile ban (DRUG_SALES) with its explanation.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_BAN_STATUS)) },
