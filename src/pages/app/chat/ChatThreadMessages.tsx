@@ -697,10 +697,18 @@ export function ChatThreadMessages({
 	// tap themselves: if no click arrives shortly after a clean touchend, the
 	// tap handler runs anyway, and a click that does arrive later is dropped.
 	// Each touch counts exactly once, so double-tap to react keeps working.
-	const mediaTouchRef = useRef<{ x: number; y: number; time: number; handled: boolean } | null>(null);
+	// The touch on a media tile; a clean tap still waiting for its click
+	// carries `fire`, which stands in for that click.
+	type MediaTouch = { x: number; y: number; time: number; handled: boolean; fire?: () => void };
+	const mediaTouchRef = useRef<MediaTouch | null>(null);
 	const mediaTapProps = useCallback(
 		(onTap: (tile: HTMLElement) => void) => ({
 			onTouchStart: (event: React.TouchEvent<HTMLElement>) => {
+				// A new touch while the previous tap still waits for its click:
+				// that tap happened, run it now instead of dropping it. Otherwise
+				// the first tap of a double-tap got lost and the second one opened
+				// the viewer instead of reacting.
+				mediaTouchRef.current?.fire?.();
 				const touch = event.touches[0];
 				mediaTouchRef.current =
 					event.touches.length === 1 && touch
@@ -716,17 +724,23 @@ export function ChatThreadMessages({
 					Math.hypot(touch.clientX - start.x, touch.clientY - start.y) < MEDIA_TAP_SLOP_PX;
 				if (!isCleanTap) return;
 				const tile = event.currentTarget;
-				window.setTimeout(() => {
-					if (mediaTouchRef.current !== start || start.handled) return;
+				const fire = () => {
+					window.clearTimeout(timer);
+					start.fire = undefined;
+					if (start.handled) return;
 					start.handled = true;
 					onTap(tile);
-				}, MISSING_CLICK_WAIT_MS);
+				};
+				const timer = window.setTimeout(fire, MISSING_CLICK_WAIT_MS);
+				start.fire = fire;
 			},
 			onClick: (event: React.MouseEvent<HTMLElement>) => {
 				event.stopPropagation();
 				const start = mediaTouchRef.current;
-				// This touch already ran through the fallback.
+				// The browser's own click for this touch, unless the fallback
+				// already stood in for it.
 				if (start && performance.now() - start.time < 1000) {
+					start.fire = undefined;
 					if (start.handled) return;
 					start.handled = true;
 				}
