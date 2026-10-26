@@ -8,7 +8,6 @@ import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseB
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
-import { peekDebug } from "../../../utils/peekDebug";
 import { SheetActionList } from "../../../components/ui/action-sheet";
 
 // Shared building blocks for every media drawer sheet (chat drawer, collection
@@ -195,15 +194,9 @@ export function useDrawerMediaPreview() {
 		releaseSheetDrag();
 	}, [cancelTimer, releaseSheetDrag]);
 
-	useEffect(() => {
-		peekDebug("hook mount");
-		return () => peekDebug("hook unmount");
-	}, []);
-
 	const bind = useCallback(
 		(media: DrawerPreviewContent) => ({
 			onPointerDown: (event: PointerEvent<HTMLElement>) => {
-				peekDebug(`pointerdown ${event.pointerType} id:${event.pointerId} video:${!("items" in media) && media.isVideo}`);
 				if (event.pointerType === "mouse" && event.button !== 0) return;
 				suppressClickRef.current = false;
 				startRef.current = { x: event.clientX, y: event.clientY };
@@ -216,7 +209,6 @@ export function useDrawerMediaPreview() {
 					haptic(20);
 					releaseSheetDrag();
 					releaseSheetDragRef.current = holdSheetDrag();
-					peekDebug("timer -> open");
 					setPreview(media);
 				}, LONG_PRESS_MS);
 			},
@@ -224,29 +216,17 @@ export function useDrawerMediaPreview() {
 				const start = startRef.current;
 				if (!start || !timerRef.current) return;
 				if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > LONG_PRESS_MOVE_TOLERANCE_PX) {
-					peekDebug("move > tolerance, cancel timer");
 					cancelTimer();
 				}
 			},
-			onPointerUp: (event: PointerEvent<HTMLElement>) => {
-				peekDebug(`pointerup id:${event.pointerId}`);
-				end();
-			},
-			onPointerCancel: (event: PointerEvent<HTMLElement>) => {
-				peekDebug(`pointercancel id:${event.pointerId}`);
-				end();
-			},
-			onPointerLeave: (event: PointerEvent<HTMLElement>) => {
-				peekDebug(`pointerleave id:${event.pointerId} pending:${!!timerRef.current}`);
+			onPointerUp: end,
+			onPointerCancel: end,
+			onPointerLeave: () => {
 				// Leaving the tile only aborts a pending press; an open peek stays
 				// until the finger is lifted.
 				cancelTimer();
 			},
-			onDragStart: () => peekDebug("dragstart"),
-			onContextMenu: (event: MouseEvent<HTMLElement>) => {
-				peekDebug(`contextmenu on ${(event.target as Element).tagName}`);
-				event.preventDefault();
-			},
+			onContextMenu: (event: MouseEvent<HTMLElement>) => event.preventDefault(),
 		}),
 		[cancelTimer, end, releaseSheetDrag],
 	);
@@ -278,7 +258,6 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 	const markLoaded = useCallback(() => setLoadedMedia(shown), [shown]);
 
 	useEffect(() => {
-		peekDebug(`preview media ${media ? "set" : "null"}`);
 		if (media) {
 			setShown(media);
 			return;
@@ -307,15 +286,11 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 		};
 	}, [media, isLoaded]);
 
-	useEffect(() => {
-		peekDebug(`preview visible:${isVisible} loaded:${isLoaded}`);
-	}, [isVisible, isLoaded]);
-
 	if (!shown) return null;
 	const transition = `opacity ${PREVIEW_ANIMATION_MS}ms ease-out, transform ${PREVIEW_ANIMATION_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1)`;
 	return createPortal(
 		<div
-			className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-6"
+			className="pointer-events-none fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-6 backdrop-blur-md"
 			style={{ opacity: isVisible ? 1 : 0, transition: `opacity ${PREVIEW_ANIMATION_MS}ms ease-out` }}
 		>
 			<div
@@ -639,10 +614,6 @@ export function DrawerMediaTile({
 			) : (
 				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} className={`h-full w-full object-cover ${mediaClassName}`} />
 			)}
-			{/* Keeps a long press from landing on the <img>/<video>: Android's
-			    native image long-press (drag/menu) fires right as the peek fades
-			    in and makes it flicker. */}
-			<div className="absolute inset-0" aria-hidden />
 
 			{children}
 

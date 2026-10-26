@@ -106,7 +106,7 @@ function AlbumCard({
 						</div>
 					)}
 					{showsAlbumNumber ? (
-						<div className="absolute left-2 top-2 inline-flex h-6 items-center gap-1 rounded-full bg-black/50 px-2 text-[10px] font-semibold leading-none tabular-nums text-white/85 backdrop-blur-sm">
+						<div className="absolute left-2 top-2 inline-flex h-6 items-center gap-1 rounded-full bg-black/60 px-2 text-[10px] font-semibold leading-none tabular-nums text-white/85">
 							<Layers className="h-3 w-3" />
 							{item.albumNumber}/{item.totalAlbumsShared}
 						</div>
@@ -150,7 +150,7 @@ function AlbumCard({
 					}}
 					disabled={isDeleting}
 					title={t("shared_albums.delete")}
-					className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/50 text-white/85 backdrop-blur-sm transition hover:bg-red-500/80 hover:text-white disabled:opacity-50"
+					className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/85 transition hover:bg-red-500/80 hover:text-white disabled:opacity-50"
 				>
 					<Trash2 className="h-3 w-3" />
 				</button>
@@ -900,8 +900,7 @@ export function SharedAlbumsPage() {
 			<PullToRefreshContainer
 				className="app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
 				contentClassName="flex flex-1 flex-col min-h-0"
-				// TEMP peek-flicker experiment: hide the feed while the album sheet is open.
-				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)", visibility: viewer !== null && openAlbumAsBottomSheet ? "hidden" : undefined }}
+				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}
 				onRefresh={handleRefresh}
 				isDisabled={isLoading || isRefreshing}
 				isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
