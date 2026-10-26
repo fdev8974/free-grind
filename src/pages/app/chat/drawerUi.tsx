@@ -242,8 +242,9 @@ export function useDrawerMediaPreview() {
 				// until the finger is lifted.
 				cancelTimer();
 			},
+			onDragStart: () => peekDebug("dragstart"),
 			onContextMenu: (event: MouseEvent<HTMLElement>) => {
-				peekDebug("contextmenu");
+				peekDebug(`contextmenu on ${(event.target as Element).tagName}`);
 				event.preventDefault();
 			},
 		}),
@@ -630,6 +631,10 @@ export function DrawerMediaTile({
 			) : (
 				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} className={`h-full w-full object-cover ${mediaClassName}`} />
 			)}
+			{/* Keeps a long press from landing on the <img>/<video>: Android's
+			    native image long-press (drag/menu) fires right as the peek fades
+			    in and makes it flicker. */}
+			<div className="absolute inset-0" aria-hidden />
 
 			{children}
 
