@@ -1,6 +1,6 @@
 import type { BrowseCard } from "../../GridPage.types";
 import { Flame, MessageCircle, Plane, Satellite, Star, Zap } from "lucide-react";
-import { MapPinFilled, MapPinOffFilled } from "../../../../components/icons/FilledIcons";
+import { MapPinDashed, MapPinFilled, MapPinOffFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { useTranslation } from "react-i18next";
 import {
@@ -341,7 +341,14 @@ export function BrowseCardTile({
 					<div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none" />
 					<div className="absolute bottom-2 left-2 z-10 flex h-5 items-center text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
 						{card.distanceMeters == null || !Number.isFinite(card.distanceMeters) ? (
-							<MapPinOffFilled className="h-3.5 w-3.5" />
+							card.estimatedDistanceMeters != null && Number.isFinite(card.estimatedDistanceMeters) ? (
+								<span className="inline-flex items-center gap-1 text-xs font-semibold opacity-80">
+									<MapPinDashed className="h-3.5 w-3.5" />
+									~{formatDistance(card.estimatedDistanceMeters, t, unitsPreset)}
+								</span>
+							) : (
+								<MapPinOffFilled className="h-3.5 w-3.5" />
+							)
 						) : (
 							<span className="inline-flex items-center gap-1 text-xs font-semibold">
 								<MapPinFilled className="h-3.5 w-3.5" />

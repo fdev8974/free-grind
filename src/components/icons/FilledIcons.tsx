@@ -83,6 +83,16 @@ export function MapPinOffFilled(props: IconProps) {
 	);
 }
 
+// Dashed outline pin for distances that are only estimated.
+export function MapPinDashed(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d={MAP_PIN_PATH} fill="none" strokeWidth={2.25} strokeDasharray="3 2.5" />
+			<circle cx="12" cy="10" r="2.25" stroke="none" />
+		</FilledSvg>
+	);
+}
+
 export function MessageSquareQuoteFilled(props: IconProps) {
 	const id = useMaskId();
 	return (

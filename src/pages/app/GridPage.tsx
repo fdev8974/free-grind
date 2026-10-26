@@ -1124,6 +1124,22 @@ export function GridPage() {
 				.sort((a, b) => a.distanceMeters! - b.distanceMeters!);
 			let nextWithDistance = 0;
 			results = allCards.map((card) => card.distanceMeters == null ? card : withDistance[nextWithDistance++]);
+			// The server orders by real distance even for hidden ones, so the
+			// nearest visible distances before and after bracket the hidden one.
+			// Estimate before filtering so the neighbours are the true ones.
+			results = results.map((card, index) => {
+				if (card.distanceMeters != null) return card;
+				let before: number | undefined;
+				for (let i = index - 1; i >= 0 && before === undefined; i--) {
+					before = results[i].distanceMeters ?? undefined;
+				}
+				let after: number | undefined;
+				for (let i = index + 1; i < results.length && after === undefined; i++) {
+					after = results[i].distanceMeters ?? undefined;
+				}
+				const estimate = before != null && after != null ? (before + after) / 2 : (before ?? after);
+				return estimate == null ? card : { ...card, estimatedDistanceMeters: estimate };
+			});
 		} else {
 			results = [...allCards].sort((a, b) => {
 				if (sortBy === "age-asc" || sortBy === "age-desc") {
