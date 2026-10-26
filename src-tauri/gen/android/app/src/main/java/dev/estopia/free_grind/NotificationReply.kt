@@ -28,6 +28,9 @@ object NotificationReply {
     const val EXTRA_CONVERSATION_ID = "dev.estopia.free_grind.extra.REPLY_CONVERSATION_ID"
     const val EXTRA_TARGET_PROFILE_ID = "dev.estopia.free_grind.extra.REPLY_TARGET_PROFILE_ID"
     const val EXTRA_NOTIFICATION_TAG = "dev.estopia.free_grind.extra.REPLY_NOTIFICATION_TAG"
+    // The account the chat belongs to (PushAccounts); the frontend refuses
+    // a reply once a different account is active.
+    const val EXTRA_ACCOUNT_ID = "dev.estopia.free_grind.extra.REPLY_ACCOUNT_ID"
 
     private const val PREFS_NAME = "free_grind_notification_replies"
     private const val PREF_PENDING = "pending"
@@ -65,6 +68,7 @@ class NotificationReplyReceiver : BroadcastReceiver() {
         val tag = intent.getStringExtra(NotificationReply.EXTRA_NOTIFICATION_TAG) ?: return
         val conversationId = intent.getStringExtra(NotificationReply.EXTRA_CONVERSATION_ID)
         val targetProfileId = intent.getStringExtra(NotificationReply.EXTRA_TARGET_PROFILE_ID)
+        val accountId = intent.getStringExtra(NotificationReply.EXTRA_ACCOUNT_ID)
         val text = RemoteInput.getResultsFromIntent(intent)
             ?.getCharSequence(NotificationReply.KEY_TEXT)
             ?.toString()
@@ -85,6 +89,7 @@ class NotificationReplyReceiver : BroadcastReceiver() {
                     .put("id", id)
                     .put("conversationId", conversationId)
                     .put("targetProfileId", targetProfileId)
+                    .put("accountId", accountId ?: JSONObject.NULL)
                     .put("text", text)
                     .put("notificationTag", tag)
                     .put("createdAt", System.currentTimeMillis())

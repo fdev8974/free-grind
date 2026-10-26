@@ -144,6 +144,13 @@ export const methodSchemas = {
 		}),
 		response: z.undefined(),
 	},
+	sync_push_token_for_saved_accounts: {
+		request: z.object({
+			token: z.string().min(1),
+		}),
+		// Profile ids the token was registered for.
+		response: z.array(z.string()),
+	},
 	logout: {
 		request: z.undefined(),
 		response: z.undefined(),
@@ -176,6 +183,8 @@ export const methodSchemas = {
 	remove_saved_account: {
 		request: z.object({
 			profileId: z.string(),
+			// Unregistered from Grindr for this account before removal.
+			pushToken: z.string().nullish(),
 		}),
 		response: z.undefined(),
 	},

@@ -17,10 +17,12 @@ import { AppToaster } from "./components/AppToaster";
 import { installGlobalCrashHandlers } from "./utils/crashOverlay";
 import { installTouchUiClass } from "./hooks/useDesktopBreakpoint";
 import { getRuntimeContext } from "./services/runtimeContext";
+import { startPushEventLog } from "./services/pushEventLog";
 import "./index.css";
 
 installGlobalCrashHandlers();
 installTouchUiClass();
+startPushEventLog();
 
 const queryClient = new QueryClient({
 	defaultOptions: {

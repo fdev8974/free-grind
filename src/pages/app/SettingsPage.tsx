@@ -31,13 +31,12 @@ import {
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
-import { useState, useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
+import { useState, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { appLog } from "../../utils/logger";
 import { useAuth } from "../../contexts/useAuth";
-import { useApi } from "../../hooks/useApi";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useInboxSyncStatus } from "../../hooks/useInboxSyncStatus";
 import type { InboxSyncStatus } from "../../services/inboxSync";
@@ -60,7 +59,7 @@ import { RowActionPill } from "../../components/ui/row-action-pill";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { hasDemoProfileImages, isDemoProfileImagesEnabled, setDemoProfileImagesEnabled } from "../../utils/demoProfileImages";
 import { UpdateChannelSheet } from "./UpdateChannelSheet";
-import { FingerprintCheckSheet, PushTokenSheet } from "./settings-dev/DiagnosticsSheets";
+import { FingerprintCheckSheet } from "./settings-dev/DiagnosticsSheets";
 import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
 import { ControlledBottomSheet } from "../../components/ui/controlled-sheet";
 import { SHEET_FIELD_CLASS } from "../../components/ui/sheet-section";
@@ -89,8 +88,6 @@ import { showSharePickerDebug } from "../../utils/sharePickerDebug";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
 import { SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 
-const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
-const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
 // Always previews whichever entry was added/edited most recently, regardless
 // of whether it matches the app's current running version yet.
 const LATEST_ANNOUNCEMENT = VERSION_ANNOUNCEMENTS[VERSION_ANNOUNCEMENTS.length - 1] ?? null;
@@ -350,7 +347,6 @@ export function SettingsPage() {
 	const [logoutConfirmTarget, setLogoutConfirmTarget] = useState<"active" | string | null>(null);
 	const navigate = useNavigate();
 	const logoutToNextAccount = useLogoutToNextAccount();
-	const { callMethod, asAppError } = useApi();
 	const { developerMode, showDebugInfo, setPreferences } = usePreferences();
 	const [previewAnnouncement, setPreviewAnnouncement] = useState(false);
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
@@ -362,41 +358,10 @@ export function SettingsPage() {
 	const [isSwitchingChannel, setIsSwitchingChannel] = useState(false);
 	const hotswapAutoUpdate = useSyncExternalStore(subscribeHotswapAutoUpdate, isHotswapAutoUpdateEnabled);
 	const fingerprintCheck = useFingerprintCheck();
-	const [isSyncingFcm, setIsSyncingFcm] = useState(false);
-	const [fcmToken, setFcmToken] = useState<string | null>(() => {
-		const stored = window.localStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
-		if (stored) return stored;
-		const win = window as Window & { __FG_FCM_TOKEN?: string };
-		return typeof win.__FG_FCM_TOKEN === "string" ? win.__FG_FCM_TOKEN : null;
-	});
-	const [fcmSyncedToken, setFcmSyncedToken] = useState<string | null>(() => window.localStorage.getItem(PUSH_TOKEN_SYNCED_STORAGE_KEY));
-	const [fcmEventLog, setFcmEventLog] = useState<{ time: string; token: string }[]>([]);
-	const [manualToken, setManualToken] = useState("");
-	const [isPushTokenSheetOpen, setIsPushTokenSheetOpen] = useState(false);
 	const [isFingerprintSheetOpen, setIsFingerprintSheetOpen] = useState(false);
 	const [isPreviewsSheetOpen, setIsPreviewsSheetOpen] = useState(false);
 	const [isChannelSheetOpen, setIsChannelSheetOpen] = useState(false);
 	const isDesktop = useDesktopBreakpoint();
-	// Sync marker is `${token}::${userId}` (see AuthContext) since the device
-	// token is shared across saved accounts but sync is per-account.
-	const isFcmSynced = fcmToken != null && fcmSyncedToken === `${fcmToken}::${userId}`;
-	const fcmLogRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		const onFcmToken = (event: Event) => {
-			const token = (event as CustomEvent<{ token: string }>).detail?.token;
-			if (typeof token !== "string") return;
-			setFcmToken(token);
-			setFcmSyncedToken(window.localStorage.getItem(PUSH_TOKEN_SYNCED_STORAGE_KEY));
-			const time = new Date().toLocaleTimeString();
-			setFcmEventLog((prev) => [...prev, { time, token }]);
-			setTimeout(() => {
-				fcmLogRef.current?.scrollTo({ top: fcmLogRef.current.scrollHeight, behavior: "smooth" });
-			}, 50);
-		};
-		window.addEventListener("fg:fcm-token", onFcmToken as EventListener);
-		return () => window.removeEventListener("fg:fcm-token", onFcmToken as EventListener);
-	}, []);
 	const [updateChannel, setUpdateChannel] =
 		useState<HotswapChannel>(getCurrentHotswapChannel());
 	const visibleChannels = getHotswapChannels();
@@ -420,29 +385,6 @@ export function SettingsPage() {
 	const [contributorCodeInput, setContributorCodeInput] = useState("");
 	const [isActivatingContributor, setIsActivatingContributor] = useState(false);
 	const [isContributorDialogOpen, setIsContributorDialogOpen] = useState(false);
-
-	const handleForceSyncFcm = useCallback(async (overrideToken?: string) => {
-		const tokenToSync = overrideToken ?? fcmToken;
-		if (!tokenToSync) {
-			toast.error("No FCM token to sync.");
-			return;
-		}
-		setIsSyncingFcm(true);
-		try {
-			await callMethod("sync_push_token", { token: tokenToSync });
-			// Marker must match AuthContext's `${token}::${userId}` format — the same
-			// FCM token is shared across saved accounts, but sync is per-account.
-			const syncMarker = `${tokenToSync}::${userId}`;
-			window.localStorage.setItem(PUSH_TOKEN_SYNCED_STORAGE_KEY, syncMarker);
-			setFcmSyncedToken(syncMarker);
-			toast.success("FCM token synced to Grindr.");
-		} catch (error) {
-			const appError = asAppError(error);
-			toast.error(appError?.prettyMessage ?? (error instanceof Error ? error.message : "Sync failed"));
-		} finally {
-			setIsSyncingFcm(false);
-		}
-	}, [fcmToken, userId, callMethod, asAppError]);
 
 	const handleLogout = async () => {
 		setIsLoggingOut(true);
@@ -1211,11 +1153,11 @@ export function SettingsPage() {
 										"Server-side flags and A/B experiments assigned to this account.",
 									)}
 									{isAndroid() && navRow(
-										() => setIsPushTokenSheetOpen(true),
+										() => navigate("/settings/push-inspector"),
 										<BellFilled className="h-5 w-5" />,
 										"bg-slate-500/15 text-slate-400",
-										"Push Token (FCM)",
-										"Inspect the device push token and re-sync it to Grindr.",
+										"Push Inspector (FCM)",
+										"Every push and notification tap with its full payload, plus the device push token.",
 									)}
 									{navRow(
 										() => setIsFingerprintSheetOpen(true),
@@ -1291,20 +1233,6 @@ export function SettingsPage() {
 				}}
 				onCancel={() => setLogoutConfirmTarget(null)}
 			/>
-
-			{isPushTokenSheetOpen && (
-				<PushTokenSheet
-					token={fcmToken}
-					isSynced={isFcmSynced}
-					isSyncing={isSyncingFcm}
-					eventLog={fcmEventLog}
-					logRef={fcmLogRef}
-					manualToken={manualToken}
-					onManualTokenChange={setManualToken}
-					onSync={(override) => void handleForceSyncFcm(override)}
-					onClose={() => setIsPushTokenSheetOpen(false)}
-				/>
-			)}
 
 			{isChannelSheetOpen && (
 				<UpdateChannelSheet

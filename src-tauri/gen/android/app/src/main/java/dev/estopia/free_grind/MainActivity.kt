@@ -352,6 +352,12 @@ class MainActivity : TauriActivity() {
       }
     }
 
+    /** The active and saved accounts pushes are delivered for — see PushAccounts. */
+    @JavascriptInterface
+    fun setPushAccounts(json: String) {
+      PushAccounts.update(this@MainActivity, json)
+    }
+
     /** Localized notification texts for the native push pipeline — see NotificationStrings. */
     @JavascriptInterface
     fun setNotificationStrings(json: String) {

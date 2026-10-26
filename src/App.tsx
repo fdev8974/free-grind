@@ -29,6 +29,7 @@ import { AgeVerificationPage } from "./pages/app/AgeVerificationPage.tsx";
 import { SharedAlbumsPage } from "./pages/app/SharedAlbumsPage.tsx";
 import { VideoGalleryPage } from "./pages/app/VideoGalleryPage.tsx";
 import { ApiInspectorPage } from "./pages/app/ApiInspectorPage.tsx";
+import { PushInspectorPage } from "./pages/app/PushInspectorPage.tsx";
 import { AssignmentsPage } from "./pages/app/AssignmentsPage.tsx";
 import { CustomizabilityPage } from "./pages/app/CustomizabilityPage.tsx";
 import { BehaviorPage } from "./pages/app/BehaviorPage.tsx";
@@ -288,6 +289,14 @@ export default function App() {
 									element={
 										<DeveloperModeRoute>
 											<ApiInspectorPage />
+										</DeveloperModeRoute>
+									}
+								/>
+								<Route
+									path="/settings/push-inspector"
+									element={
+										<DeveloperModeRoute>
+											<PushInspectorPage />
 										</DeveloperModeRoute>
 									}
 								/>

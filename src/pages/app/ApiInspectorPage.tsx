@@ -13,6 +13,7 @@ import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { cn } from "../../utils/cn";
 import { DrawerEmptyState } from "./chat/drawerUi";
+import { CodeBlock, HEADER_ICON_BUTTON_CLASS, copyText, formatTimestamp } from "./settings-dev/inspectorUi";
 import {
 	clearApiTraceEntries,
 	exportApiTraceEntries,
@@ -29,13 +30,6 @@ type KindFilter = "all" | "rest" | "command" | "errors";
 
 /** What the composer starts with: blank, or a captured request to resend. */
 type ComposerDraft = { method: Method; path: string; body: string };
-
-const HEADER_ICON_BUTTON_CLASS =
-	"header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-2 text-[var(--text-muted)] transition-colors hover:text-[var(--text)] disabled:opacity-40";
-
-function formatTimestamp(timestamp: number): string {
-	return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
 
 function isErrorEntry(entry: ApiTraceEntry): boolean {
 	return !entry.success || (entry.status != null && entry.status >= 400);
@@ -66,44 +60,6 @@ function prettyJson(text: string | null): string | null {
 	} catch {
 		return text;
 	}
-}
-
-function copyText(text: string, what: string) {
-	void navigator.clipboard.writeText(text).then(
-		() => toast.success(`${what} copied`, { id: "api-inspector-copy" }),
-		() => toast.error("Couldn't copy", { id: "api-inspector-copy" }),
-	);
-}
-
-/** A labelled code block with its own copy button. */
-function CodeBlock({ title, text, tone = "default" }: { title: string; text: string | null; tone?: "default" | "error" }) {
-	return (
-		<SheetSection
-			title={title}
-			badge={text ? (
-				<button
-					type="button"
-					onClick={() => copyText(text, title)}
-					className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold text-[var(--accent)] transition hover:accent-tint-14"
-				>
-					<Copy className="h-3 w-3" />
-					Copy
-				</button>
-			) : undefined}
-		>
-			{/* Full length: the sheet itself scrolls (and grows when expanded),
-			    rather than a small box scrolling inside it. */}
-			<pre
-				className={cn(
-					"min-w-0 whitespace-pre-wrap break-all rounded-xl px-3 py-2.5 font-mono text-xs leading-relaxed",
-					tone === "error" ? "bg-red-500/10 text-red-500" : "bg-[var(--surface-2)] text-[var(--text)]",
-					!text && "text-[var(--text-muted)]",
-				)}
-			>
-				{text ?? "(empty)"}
-			</pre>
-		</SheetSection>
-	);
 }
 
 function EntryDetailSheet({
