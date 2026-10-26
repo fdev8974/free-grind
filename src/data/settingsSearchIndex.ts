@@ -161,7 +161,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			route: "/settings/customizability",
 			anchor: "cust-views-grid",
 			label: t("customizability.views_grid_layout"),
-			description: t("customizability.views_grid_mobile_desc"),
+			description: t("customizability.views_display_desc"),
 			section: "Look & Feel",
 			icon: LayoutGrid,
 			iconClass: "bg-blue-500/15 text-blue-400",

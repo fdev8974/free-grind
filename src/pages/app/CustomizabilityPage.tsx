@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Languages, PanelBottom, Ruler, Type, Vibrate } from "lucide-react";
-import { ClockFilled, EyeFilled, FlameFilled, ImagesFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
+import { Columns2, Columns3, Columns4, Languages, LayoutGrid, List, PanelBottom, Ruler, Type, Vibrate } from "lucide-react";
+import { ClockFilled, FlameFilled, ImagesFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -509,39 +509,33 @@ export function CustomizabilityPage() {
 								]}
 							/>
 							<SelectRow
-								id="cust-views-display"
-								highlighted={highlightId === "cust-views-display"}
-								icon={<EyeFilled className="h-5 w-5" />}
+								id="cust-views-grid"
+								highlighted={highlightId === "cust-views-grid"}
+								icon={<LayoutGridFilled className="h-5 w-5" />}
 								iconClass="bg-blue-500/15 text-blue-400"
-								label={t("customizability.views_display")}
+								label={t("customizability.views_grid_layout")}
 								description={t("customizability.views_display_desc")}
-								value={viewsLayout}
+								// Mobile picks the column count right here; desktop's grid sizes itself.
+								value={viewsLayout === "list" ? "list" : isMobilePlatform ? mobileViewsGridColumns : "grid"}
 								onChange={(val) => {
-									setViewsLayout(val);
-									window.localStorage.setItem("fg-interest-views-layout", val);
+									const layout = val === "list" ? "list" : "grid";
+									setViewsLayout(layout);
+									window.localStorage.setItem("fg-interest-views-layout", layout);
+									if (val === "2" || val === "3" || val === "4") {
+										void setPreferences({ mobileViewsGridColumns: val });
+									}
 								}}
 								options={[
-									{ value: "grid", label: t("customizability.views_display_grid") },
-									{ value: "list", label: t("customizability.views_display_list") },
+									{ value: "list", label: t("customizability.views_display_list"), icon: List },
+									...(isMobilePlatform
+										? [
+											{ value: "2", label: t("customizability.columns_2"), icon: Columns2 },
+											{ value: "3", label: t("customizability.columns_3"), icon: Columns3 },
+											{ value: "4", label: t("customizability.columns_4"), icon: Columns4 },
+										]
+										: [{ value: "grid", label: t("customizability.views_display_grid"), icon: LayoutGrid }]),
 								]}
 							/>
-							{isMobilePlatform && viewsLayout === "grid" && (
-								<SelectRow
-									id="cust-views-grid"
-									highlighted={highlightId === "cust-views-grid"}
-									icon={<LayoutGridFilled className="h-5 w-5" />}
-									iconClass="bg-blue-500/15 text-blue-400"
-									label={t("customizability.views_grid_layout")}
-									description={t("customizability.views_grid_mobile_desc")}
-									value={mobileViewsGridColumns}
-									onChange={(cols) => void setPreferences({ mobileViewsGridColumns: cols })}
-									options={[
-										{ value: "2", label: t("customizability.columns_2") },
-										{ value: "3", label: t("customizability.columns_3") },
-										{ value: "4", label: t("customizability.columns_4") },
-									]}
-								/>
-							)}
 						</div>
 					</div>
 				)}
