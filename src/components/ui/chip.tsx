@@ -9,6 +9,8 @@ interface ChipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 	onCard?: boolean;
 	/** Ring/tint color for the selected state. */
 	accentColor?: string;
+	/** Resting fill, see sheetChipClassName: "card" for chips on the page, "tint" (default) on cards. */
+	fill?: "tint" | "card";
 }
 
 /** Same look as SheetChip (see sheetChipClassName), for toggle chips outside sheets. */
@@ -17,6 +19,7 @@ export function Chip({
 	size = "md",
 	onCard = false,
 	accentColor = "var(--accent)",
+	fill = "tint",
 	className,
 	style,
 	type = "button",
@@ -28,7 +31,7 @@ export function Chip({
 			aria-pressed={selected}
 			style={{ "--chip-accent": accentColor, ...style } as CSSProperties}
 			className={cn(
-				sheetChipClassName({ active: selected, size, onCard }),
+				sheetChipClassName({ active: selected, size, onCard, fill }),
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--chip-accent)] disabled:pointer-events-none disabled:opacity-50",
 				className,
 			)}

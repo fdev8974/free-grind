@@ -176,6 +176,8 @@ type ProfileDetailsContentProps = {
 	hidePicturesSection?: boolean;
 	/** Display-only copy (e.g. a swipe preview): skips its own data fetches. */
 	isPreview?: boolean;
+	/** The content sits on a native card (the desktop modal) rather than the page. */
+	isOnCard?: boolean;
 	isChatLinkedProfile?: boolean;
 };
 
@@ -227,6 +229,7 @@ export function ProfileDetailsContent({
 	extraTopSection,
 	hidePicturesSection = false,
 	isPreview = false,
+	isOnCard = false,
 	isChatLinkedProfile = false,
 }: ProfileDetailsContentProps) {
 	const { t, i18n } = useTranslation();
@@ -673,6 +676,8 @@ export function ProfileDetailsContent({
 										<Chip
 											key={tag}
 											size="sm"
+											// The card color on the page; on a card that would vanish, so the tint.
+											fill={isOnCard ? "tint" : "card"}
 											selected={isMatch}
 											onClick={() => onTagClick?.(tag)}
 											className={onTagClick ? undefined : "cursor-default"}

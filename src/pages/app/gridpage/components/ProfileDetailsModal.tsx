@@ -2441,6 +2441,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							extraTopSection={notesSectionJsx}
 							isChatLinkedProfile={isChatLinkedProfile}
 							hidePicturesSection={true}
+							isOnCard={variant !== "page"}
 						/>
 					) : null}
 				</div>
@@ -2848,6 +2849,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											extraTopSection={notesSectionJsx}
 											isChatLinkedProfile={isChatLinkedProfile}
 											hidePicturesSection={true}
+											isOnCard
 										/>
 									) : null}
 								</div>

@@ -39,21 +39,27 @@ export function SheetSection({
 export function sheetChipClassName({
 	active,
 	size = "md",
+	fill = "tint",
 }: {
 	active: boolean;
 	size?: "sm" | "md";
 	/** No longer changes anything, see the resting fill below; kept for callers. */
 	onCard?: boolean;
+	/** Resting fill: "tint" (default) reads on any background, cards included;
+	 * "card" uses the native card color, for chips sitting on the page itself. */
+	fill?: "tint" | "card";
 }) {
 	return cn(
 		"shrink-0 rounded-xl font-semibold transition active:scale-95",
 		size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
 		active
 			? "bg-[color-mix(in_srgb,var(--chip-accent)_16%,var(--surface-2))] text-[var(--text)] ring-2 ring-inset ring-[var(--chip-accent)]"
-			: // A see-through text tint rather than a fixed surface color, so the
-				// resting chip reads on any background: sheets, SheetCards and the
-				// page cards alike.
-				"ink-tint-10 text-[var(--text-muted)] hover:ink-tint-14 hover:text-[var(--text)]",
+			: fill === "card"
+				? "native-card-fill text-[var(--text-muted)] hover:text-[var(--text)]"
+				: // A see-through text tint rather than a fixed surface color, so the
+					// resting chip reads on any background: sheets, SheetCards and the
+					// page cards alike.
+					"ink-tint-10 text-[var(--text-muted)] hover:ink-tint-14 hover:text-[var(--text)]",
 	);
 }
 

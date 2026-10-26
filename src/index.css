@@ -1240,7 +1240,12 @@
 		border-radius: 20px;
 		background: var(--surface);
 	}
+	/* Just the card's fill (incl. AMOLED below), e.g. for chips sitting on the page. */
+	.native-card-fill {
+		background: var(--surface);
+	}
 	:root[data-scheme="dark"][data-amoled="true"] .native-card,
+	:root[data-scheme="dark"][data-amoled="true"] .native-card-fill,
 	:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
 		background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 	}
@@ -1249,6 +1254,7 @@
 	}
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-card-fill,
 		:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
 			background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 		}
