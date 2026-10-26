@@ -847,6 +847,8 @@
                 "description": "A qué estás abierto y cómo",
                 "looking_for": "En busca de",
                 "meet_at": "Encontrarnos en",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "¿Aceptar fotos no apropiadas para el trabajo?"
             },
             "identity": {

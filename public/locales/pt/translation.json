@@ -847,6 +847,8 @@
                 "description": "A que você está aberto(a) e como",
                 "looking_for": "A procurar por",
                 "meet_at": "Local do encontro",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "Aceita fotos NSFW"
             },
             "identity": {

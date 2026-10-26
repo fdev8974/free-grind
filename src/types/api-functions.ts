@@ -154,6 +154,12 @@ export interface ManagedGender {
 	sortFilter: number | null;
 }
 
+/** The subset of GET /v3/me/prefs/settings the app uses. */
+export interface MySettings {
+	/** Opt-in to explicit images in Right Now. */
+	viewRightNowNsfw: boolean;
+}
+
 export interface ManagedPronoun {
 	pronounId: number;
 	pronoun: string;

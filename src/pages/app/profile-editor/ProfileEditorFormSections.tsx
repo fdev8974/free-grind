@@ -200,6 +200,9 @@ type ProfileEditorFormSectionsProps = {
 	lookingForOptions: Option[];
 	meetAtOptions: Option[];
 	nsfwOptions: Option[];
+	/** Account setting; undefined until /v3/me/prefs/settings has loaded. */
+	viewRightNowNsfw: boolean | undefined;
+	onViewRightNowNsfwChange: (value: boolean) => void;
 	genderOptions: Option[];
 	defaultGenderIds: number[];
 	pronounOptions: Option[];
@@ -238,6 +241,8 @@ export function ProfileEditorFormSections({
 	lookingForOptions,
 	meetAtOptions,
 	nsfwOptions,
+	viewRightNowNsfw,
+	onViewRightNowNsfwChange,
 	genderOptions,
 	defaultGenderIds,
 	pronounOptions,
@@ -702,6 +707,18 @@ export function ProfileEditorFormSections({
 							))}
 						</select>
 					</div>
+					{viewRightNowNsfw !== undefined && (
+						<ToggleRow
+							checked={viewRightNowNsfw}
+							onChange={onViewRightNowNsfwChange}
+							label={t("profile_editor.sections.expectations.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" })}
+							description={t("profile_editor.sections.expectations.view_right_now_nsfw_desc", {
+								defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
+							})}
+							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+							padding=""
+						/>
+					)}
 				</div>
 			</div>
 

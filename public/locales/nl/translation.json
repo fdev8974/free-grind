@@ -839,6 +839,8 @@
                 "description": "Waar je voor openstaat en hoe",
                 "looking_for": "Op zoek naar",
                 "meet_at": "Afspreken bij",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "NSFW-foto's"
             },
             "identity": {

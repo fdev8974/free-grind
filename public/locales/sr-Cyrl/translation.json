@@ -850,6 +850,8 @@
                 "description": "За шта сте отворени и како",
                 "looking_for": "Тражим",
                 "meet_at": "Место састанка",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "NSFW слике"
             },
             "identity": {

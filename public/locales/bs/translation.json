@@ -847,6 +847,8 @@
                 "description": "Za šta si otvoren i kako",
                 "looking_for": "Tražim",
                 "meet_at": "Mjesto susreta",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "NSFW slike"
             },
             "identity": {

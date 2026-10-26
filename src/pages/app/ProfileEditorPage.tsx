@@ -18,6 +18,7 @@ import {
 	useManagedGenders,
 	useManagedPronouns,
 	useManagedTagCategories,
+	useMySettings,
 	useProfileSpotifyFavorites,
 	useUpdateSpotifyFavorites,
 } from "../../hooks/queries/useProfileQueries";
@@ -336,7 +337,15 @@ export function ProfileEditorPage() {
 	const spotifyTracks = spotifyDraft ?? savedSpotifyTracks ?? [];
 	const hasSpotifyChanges = spotifyDraft !== null && !sameTrackIds(spotifyDraft, savedSpotifyTracks ?? []);
 
-	const hasChanges = hasProfileChanges || hasSpotifyChanges;
+	// Right Now explicit images is an account setting (/v3/me/prefs/settings),
+	// not a profile field, but it's edited and saved along with the draft.
+	const { data: mySettings } = useMySettings();
+	const [viewRightNowNsfwDraft, setViewRightNowNsfwDraft] = useState<boolean | null>(null);
+	const viewRightNowNsfw = viewRightNowNsfwDraft ?? mySettings?.viewRightNowNsfw;
+	const hasSettingsChanges =
+		viewRightNowNsfwDraft !== null && mySettings !== undefined && viewRightNowNsfwDraft !== mySettings.viewRightNowNsfw;
+
+	const hasChanges = hasProfileChanges || hasSpotifyChanges || hasSettingsChanges;
 
 	const tagList = useMemo(
 		() => normalizeTagList(draft.profileTagsText),
@@ -529,6 +538,12 @@ export function ProfileEditorPage() {
 						};
 					});
 				}
+			}
+
+			if (hasSettingsChanges && viewRightNowNsfwDraft !== null) {
+				await apiFunctions.updateMySettings({ viewRightNowNsfw: viewRightNowNsfwDraft });
+				queryClient.setQueryData(["my-settings"], { ...mySettings, viewRightNowNsfw: viewRightNowNsfwDraft });
+				setViewRightNowNsfwDraft(null);
 			}
 
 			if (hasSpotifyChanges && spotifyDraft) {
@@ -863,6 +878,7 @@ export function ProfileEditorPage() {
 	const handleResetDraft = () => {
 		setDraft(savedDraft);
 		setSpotifyDraft(null);
+		setViewRightNowNsfwDraft(null);
 	};
 
 	return (
@@ -923,6 +939,8 @@ export function ProfileEditorPage() {
 								lookingForOptions={lookingForOptions}
 								meetAtOptions={meetAtOptions}
 								nsfwOptions={nsfwOptions}
+								viewRightNowNsfw={viewRightNowNsfw}
+								onViewRightNowNsfwChange={setViewRightNowNsfwDraft}
 								genderOptions={genderOptions}
 								defaultGenderIds={defaultGenderIds}
 								pronounOptions={pronounOptions}

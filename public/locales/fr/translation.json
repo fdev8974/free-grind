@@ -847,6 +847,8 @@
                 "description": "Ce que vous recherchez et vos limites",
                 "looking_for": "Je recherche",
                 "meet_at": "Lieu de rencontre",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "Photos NSFW (+18)"
             },
             "identity": {

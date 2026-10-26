@@ -179,6 +179,17 @@ export function useMyOwnProfile(enabled: boolean = true) {
 	});
 }
 
+/** Account-level prefs from /v3/me/prefs/settings (e.g. Right Now explicit images). */
+export function useMySettings(enabled: boolean = true) {
+	const api = useApiFunctions();
+	return useQuery({
+		queryKey: ["my-settings"],
+		queryFn: () => api.getMySettings(),
+		enabled,
+		staleTime: 1000 * 60 * 5,
+	});
+}
+
 /**
  * Hook to fetch the current account's visiting mode (Auto/Home/Visiting).
  */

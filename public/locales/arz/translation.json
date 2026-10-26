@@ -867,6 +867,8 @@
                 "description": "ما إنت منفتح عليه وكيف",
                 "looking_for": "بدور على",
                 "meet_at": "نتقابل في",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "صور غير لائقة"
             },
             "identity": {

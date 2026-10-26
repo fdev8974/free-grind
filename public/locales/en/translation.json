@@ -839,6 +839,8 @@
         "description": "What you're open to and how",
         "looking_for": "Looking For",
         "meet_at": "Meet At",
+        "view_right_now_nsfw": "Explicit Images in Right Now",
+        "view_right_now_nsfw_desc": "Opt in to seeing explicit sexual and other adult content in Right Now.",
         "accept_nsfw": "NSFW pics"
       },
       "identity": {

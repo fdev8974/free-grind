@@ -9,6 +9,7 @@ import {
 import type {
 	ManagedGender,
 	ManagedPronoun,
+	MySettings,
 	ProfileImageUploadResult,
 } from "../../types/api-functions";
 import type { RestFetcher } from "../../types/chat-service";
@@ -448,10 +449,20 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			return { ok: true };
 		},
 
-		// Account-level prefs (incognito, hideViewedMe, approximateDistance, …).
+		// Account-level prefs (incognito, hideViewedMe, approximateDistance,
+		// viewRightNowNsfw, …), returned as a flat object.
+		async getMySettings(): Promise<MySettings> {
+			const response = await fetchRest("/v3/me/prefs/settings");
+			await assertSuccess(response, t("api.errors.load_profile"));
+			const payload = (await parseJsonSafe(response)) as Record<string, unknown> | null;
+			return {
+				viewRightNowNsfw: payload?.viewRightNowNsfw === true,
+			};
+		},
+
 		// Fields left out stay untouched, so callers send only what changed —
 		// the official app's distance screen sends just `approximateDistance`.
-		async updateMySettings(settings: { approximateDistance?: boolean }): Promise<{ ok: true }> {
+		async updateMySettings(settings: { approximateDistance?: boolean; viewRightNowNsfw?: boolean }): Promise<{ ok: true }> {
 			const response = await fetchRest("/v3/me/prefs/settings", {
 				method: "PUT",
 				body: { settings },

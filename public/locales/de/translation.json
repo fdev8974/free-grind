@@ -839,6 +839,8 @@
                 "description": "Wofür du offen bist und wie",
                 "looking_for": "Ich suche",
                 "meet_at": "Treffen bei",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "NSFW-Bilder akzeptieren"
             },
             "identity": {
