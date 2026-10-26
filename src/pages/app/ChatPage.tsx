@@ -111,7 +111,7 @@ import {
 	type ChatFiltersDraft,
 } from "./chat/chatUtils";
 import { loadChatFiltersDraft, saveChatFiltersDraft } from "./chat/chat-filters-storage";
-import { fetchAndStoreMedia, getDrawerMediaKey, hydrateMediaByMessageId, isSignedUrlExpired, toDataUri } from "../../services/mediaStore";
+import { fetchAndStoreMedia, getCachedMediaUri, getDrawerMediaKey, getMessageFallbackMediaKey, hydrateMediaByMessageId, isSignedUrlExpired } from "../../services/mediaStore";
 import { captureAlbum, captureAlbumsForMessages, deleteLocalAlbum, getLocalAlbum } from "../../services/albumStore";
 import { saveAllAlbumMedia } from "../../utils/albumMedia";
 import { formatDistance } from "./gridpage/utils";
@@ -201,6 +201,29 @@ function canHaveOwnMedia(message: UiMessage): boolean {
 		chat1Type === "nonexpiringvideo" ||
 		chat1Type === "audio"
 	);
+}
+
+/**
+ * A thread message's image/video as its bubble shows it: the locally stored
+ * copy when it's in the memory cache (by its media key, else by message id),
+ * otherwise the live URL — unless that's an already-expired signed URL. Null
+ * for anything without one (text, audio, Giphy, …).
+ */
+function resolveThreadMessageMedia(message: UiMessage): { url: string; type: "image" | "video" } | null {
+	const target = getMediaCaptureTarget(message);
+	if (target) {
+		if (target.kind === "audio") return null;
+		const cached =
+			getCachedMediaUri(target.mediaKey) ?? getCachedMediaUri(getMessageFallbackMediaKey(message.messageId));
+		if (cached) return { url: cached, type: target.kind };
+		return isSignedUrlExpired(target.url) ? null : { url: target.url, type: target.kind };
+	}
+	if (message.type === "Giphy" || !canHaveOwnMedia(message)) return null;
+	// No live URL anymore (expired, archived): whatever was stored for it.
+	const fallback = getCachedMediaUri(getMessageFallbackMediaKey(message.messageId));
+	if (fallback?.startsWith("data:image/")) return { url: fallback, type: "image" };
+	if (fallback?.startsWith("data:video/")) return { url: fallback, type: "video" };
+	return null;
 }
 
 // Returns a promise so callers that need the captures actually finished
@@ -779,11 +802,6 @@ export function ChatPage() {
 	const [fullScreenMediaList, setFullScreenMediaList] = useState<ThreadMediaItem[]>([]);
 	const [fullScreenMediaIndex, setFullScreenMediaIndex] = useState(0);
 	const [fullScreenHeroRect, setFullScreenHeroRect] = useState<HeroRect | null>(null);
-	// Guards openFullScreenImage's async carousel build against a second tap
-	// landing while the first is still resolving — without this, whichever
-	// resolves last wins even if it's the stale one, snapping the viewer back
-	// to an earlier tap's image/index.
-	const fullScreenRequestIdRef = useRef(0);
 	const fullScreenImageUrl = fullScreenMediaList.length > 0 ? fullScreenMediaList[fullScreenMediaIndex]?.url ?? null : null;
 
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
@@ -6568,21 +6586,14 @@ export function ChatPage() {
 	};
 
 	/**
-	 * Opens the full-screen carousel for a tapped message's media, expanded to
-	 * every image/video the same sender (me vs. the other participant) has in
-	 * this conversation — sourced from the same chatDb cache as the "received
-	 * media" sheet rather than whatever's currently paged into threadMessages,
-	 * that in-memory window being only a fraction of the conversation for any
-	 * chat with real history.
-	 *
-	 * Resolves the whole list before opening (one atomic state update) rather
-	 * than opening instantly with a single-item placeholder and swapping in
-	 * the real list a moment later — that two-step version raced with
-	 * PhotoViewer's own swipe state (which assumes `photos` is stable for the
-	 * life of one open) and made mid-swipe list swaps snap the view back to
-	 * the tapped item's new index. The cost is a brief (usually
-	 * cache-hit-fast) delay before the viewer appears instead of appearing
-	 * instantly with one photo.
+	 * Opens the full-screen viewer on a tapped chat image/video, as a carousel
+	 * of every image/video on the same side (sent vs received) of the loaded
+	 * thread, in chat order. Built synchronously from the thread with the same
+	 * sources the bubbles show (the locally stored copy once there is one), so
+	 * the viewer opens at once; it used to wait for a capture pass over every
+	 * message plus a full chatDb read first. No capture here either: loading
+	 * the thread already does that, and re-running it on open swapped bubble
+	 * sources mid-view (images reloading, the list jumping under the finger).
 	 */
 	const openFullScreenImage = useCallback((
 		imageUrl: string,
@@ -6595,74 +6606,52 @@ export function ChatPage() {
 		tapDebug(`openFullScreenImage (${mediaType})`);
 		// The tapped bubble's picture, so the viewer can fly it in from there.
 		setFullScreenHeroRect(heroRect ?? null);
+		const tapped: ThreadMediaItem = { url: imageUrl, type: mediaType, meta: meta ?? undefined };
 		const conversationId = selectedConversation?.data.conversationId;
 		if (!conversationId || messageId == null || senderId == null) {
-			fullScreenRequestIdRef.current += 1;
-			setFullScreenMediaList([{ url: imageUrl, type: mediaType, meta: meta ?? undefined }]);
+			setFullScreenMediaList([tapped]);
 			setFullScreenMediaIndex(0);
 			return;
 		}
 
-		const requestId = ++fullScreenRequestIdRef.current;
-
-		void (async () => {
-			let list: ThreadMediaItem[] = [{ url: imageUrl, type: mediaType, meta: meta ?? undefined }];
-			let idx = 0;
-			try {
-				// Re-capture every currently-loaded message before looking the
-				// tapped one up — guarantees each media_files row is correctly
-				// associated with its real message, even if a same-content
-				// reply-quote/reaction preview capture (which always uses
-				// messageId: null, see replyMediaStore.ts) previously grabbed
-				// that mediaKey first, or the read-status poll's frequent
-				// silent reloads (loadThread's 10s/20s interval, further up
-				// this file) re-ran that same preview capture since. Without
-				// this, images could keep failing to resolve their own sender
-				// indefinitely, since nothing else re-triggers a capture pass
-				// for a page once it's no longer the one being (re)loaded.
-				await captureMediaForMessages(threadMessages, conversationId);
-
-				const files = await chatDb.getMediaFilesForConversation(conversationId);
-				const mine = userId != null && Number(senderId) === Number(userId);
-				const matching = files
-					.filter((f) => (f.senderId != null && userId != null && Number(f.senderId) === Number(userId)) === mine)
-					// newest-first from the query — reverse to chronological order,
-					// matching the old threadMessages-order carousel.
-					.reverse();
-				const foundIdx = matching.findIndex((f) => f.messageId === messageId);
-				if (foundIdx !== -1) {
-					const messagesById = new Map(threadMessages.map((m) => [m.messageId, m] as const));
-					list = matching.map((f) => {
-						const msg = f.messageId ? messagesById.get(f.messageId) : undefined;
-						const createdAt = msg && f.kind === "image" ? getMessageImageCreatedAt(msg) : null;
-						return {
-							url: toDataUri(f.mimeType, f.dataBase64),
-							type: f.kind === "video" ? "video" : "image",
-							meta:
-								msg && f.kind === "image"
-									? {
-											takenOnGrindr: getMessageTakenOnGrindr(msg),
-											createdAt,
-											createdAtLabel: createdAt != null ? formatDateTime24(createdAt) : null,
-											timestamp: msg.timestamp,
-										}
-									: undefined,
-						};
-					});
-					idx = foundIdx;
-				}
-			} catch (error) {
-				appLog.warn("[ChatPage] failed to build full-screen media carousel", error);
+		const isMine = (id: number | string | null | undefined) => userId != null && id != null && Number(id) === Number(userId);
+		const mine = isMine(senderId);
+		const list: ThreadMediaItem[] = [];
+		let idx = -1;
+		for (const message of threadMessages) {
+			if (message.messageId === messageId) {
+				// Exactly what the bubble showed, so the hero lands on the same picture.
+				idx = list.length;
+				list.push(tapped);
+				continue;
 			}
-			if (fullScreenRequestIdRef.current !== requestId) {
-				// Superseded by a newer tap while this one was still resolving.
-				tapDebug("open: superseded, dropped");
-				return;
-			}
+			if (isMine(message.senderId) !== mine) continue;
+			const media = resolveThreadMessageMedia(message);
+			if (!media) continue;
+			const createdAt = media.type === "image" ? getMessageImageCreatedAt(message) : null;
+			list.push({
+				url: media.url,
+				type: media.type,
+				meta:
+					media.type === "image"
+						? {
+								takenOnGrindr: getMessageTakenOnGrindr(message),
+								createdAt,
+								createdAtLabel: createdAt != null ? formatDateTime24(createdAt) : null,
+								timestamp: message.timestamp,
+							}
+						: undefined,
+			});
+		}
+		if (idx === -1) {
+			setFullScreenMediaList([tapped]);
+			setFullScreenMediaIndex(0);
+		} else {
 			tapDebug(`open: list set (${list.length} items, idx ${idx})`);
 			setFullScreenMediaList(list);
 			setFullScreenMediaIndex(idx);
-		})();
+		}
+
 	}, [selectedConversation, userId, threadMessages]);
 
 	const closeFullScreenImage = useCallback(() => {
@@ -6671,7 +6660,6 @@ export function ChatPage() {
 			return;
 		}
 
-		fullScreenRequestIdRef.current += 1;
 		setFullScreenMediaList([]);
 		setFullScreenMediaIndex(0);
 
