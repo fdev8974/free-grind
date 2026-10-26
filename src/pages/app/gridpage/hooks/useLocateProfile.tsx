@@ -165,6 +165,25 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
             }
         };
 
+        const measureAt = async (lat: number, lon: number): Promise<number | null> => {
+            await putServerLocation(lat, lon, encodeGeohash(lat, lon));
+            throwIfCancelled();
+            await waitMs(5000); // Wait for distance calculation to propagate on server
+            throwIfCancelled();
+            const d = await getDistanceFromProfile();
+            throwIfCancelled();
+            return d;
+        };
+
+        // Point `meters` away from (lat, lon) in direction `bearingDeg` (0 = north)
+        const offsetPoint = (lat: number, lon: number, meters: number, bearingDeg: number) => {
+            const rad = bearingDeg * (Math.PI / 180);
+            return {
+                lat: lat + (meters * Math.cos(rad)) / 111320,
+                lon: lon + (meters * Math.sin(rad)) / (111320 * Math.cos(lat * (Math.PI / 180))),
+            };
+        };
+
         try {
             const initialDist = await getDistanceFromProfile();
             throwIfCancelled();
@@ -172,46 +191,70 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
                 throw new Error(t("profile_details.location_finder_error_distance"));
             }
 
-            let currentLat = originalLat;
-            let currentLon = originalLon;
             const targetPrecision = 15;
             let rounds = Math.ceil(Math.log(initialDist / targetPrecision) / Math.log(3));
             rounds = Math.max(2, Math.min(rounds, 6));
 
-            // Degrees per meter (approximate)
-            let offset = (initialDist*1.5) / 111320;
+            // Each round trilaterates from a known point (the user's own position in round 1,
+            // the previous estimate afterwards) plus two jumps around it. Measuring the previous
+            // estimate tells us its real error, so we can stop as soon as it is close enough.
+            let anchor = { lat: originalLat, lon: originalLon, dist: initialDist };
+            let currentLat = originalLat;
+            let currentLon = originalLon;
+            let hasUnverifiedEstimate = false;
 
             const roundResults: LocateRoundResult[] = [];
             updateProgress({ status: "running", initialDistance: initialDist, totalRounds: rounds });
 
             for (let i = 0; i < rounds; i++) {
                 updateProgress({ round: i, step: 0 });
+
+                if (hasUnverifiedEstimate) {
+                    const d = await measureAt(currentLat, currentLon);
+                    updateProgress({ step: 1 });
+                    if (d === null) {
+                        roundResults.push({ round: i + 1, lat: currentLat, lon: currentLon, errorMeters: Math.round(anchor.dist), failed: true });
+                        updateProgress({ rounds: [...roundResults] });
+                        continue;
+                    }
+                    hasUnverifiedEstimate = false;
+                    roundResults[roundResults.length - 1].errorMeters = Math.round(d);
+
+                    if (d >= anchor.dist) {
+                        // No improvement — fall back to the closer known point
+                        currentLat = anchor.lat;
+                        currentLon = anchor.lon;
+                        updateProgress({ lat: currentLat, lon: currentLon, errorMeters: Math.round(anchor.dist), rounds: [...roundResults] });
+                        break;
+                    }
+                    anchor = { lat: currentLat, lon: currentLon, dist: d };
+                    updateProgress({ errorMeters: Math.round(d), rounds: [...roundResults] });
+                    if (d <= targetPrecision) break;
+                } else {
+                    updateProgress({ step: 1 });
+                }
+
+                const offsetMeters = Math.max(anchor.dist * 1.5, targetPrecision * 2);
                 const points = [
-                    { lat: currentLat + offset, lon: currentLon }, // Top
-                    { lat: currentLat - (offset / 2), lon: currentLon + (offset * 0.866) }, // Bottom Right
-                    { lat: currentLat - (offset / 2), lon: currentLon - (offset * 0.866) }, // Bottom Left
+                    offsetPoint(anchor.lat, anchor.lon, offsetMeters, 0),
+                    offsetPoint(anchor.lat, anchor.lon, offsetMeters, 120),
                 ];
 
-                const results: { lat: number, lon: number, dist: number }[] = [];
+                const results: { lat: number, lon: number, dist: number }[] = [anchor];
 
                 for (const [pointIndex, p] of points.entries()) {
-                    await putServerLocation(p.lat, p.lon, encodeGeohash(p.lat, p.lon));
-                    throwIfCancelled();
-                    await waitMs(5000); // Wait for distance calculation to propagate on server
-                    throwIfCancelled();
-                    const d = await getDistanceFromProfile();
-                    throwIfCancelled();
+                    const d = await measureAt(p.lat, p.lon);
                     if (d !== null) results.push({ lat: p.lat, lon: p.lon, dist: d });
-                    updateProgress({ step: pointIndex + 1 });
+                    updateProgress({ step: pointIndex + 2 });
                 }
 
                 if (results.length === 3) {
                     const estimate = solveTrilateration(results);
                     currentLat = estimate.lat;
                     currentLon = estimate.lon;
-                    offset /= 3; // Zoom in for the next round
+                    hasUnverifiedEstimate = true;
 
-                    const errorMeters = Math.round(offset * 111320);
+                    const errorMeters = Math.round(offsetMeters / 3);
                     roundResults.push({ round: i + 1, lat: currentLat, lon: currentLon, errorMeters, failed: false });
                     updateProgress({
                         lat: currentLat,
@@ -220,7 +263,7 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
                         rounds: [...roundResults],
                     });
                 } else {
-                    roundResults.push({ round: i + 1, lat: currentLat, lon: currentLon, errorMeters: Math.round(offset * 111320), failed: true });
+                    roundResults.push({ round: i + 1, lat: currentLat, lon: currentLon, errorMeters: Math.round(offsetMeters / 3), failed: true });
                     updateProgress({ rounds: [...roundResults] });
                 }
             }
