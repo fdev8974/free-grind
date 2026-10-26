@@ -44,10 +44,7 @@ import {
 	checkForHotswapUpdate,
 	getCurrentHotswapChannel,
 	getHotswapChannels,
-	getHotswapProgress,
-	subscribeHotswapProgress,
 	getHotswapChannelLabel,
-	installHotswapUpdate,
 	isHotswapAvailable,
 	isHotswapAutoUpdateEnabled,
 	setHotswapAutoUpdateEnabled,
@@ -153,10 +150,6 @@ function getErrorMessage(error: unknown, fallback: string): string {
 	}
 
 	return fallback;
-}
-
-function formatMegabytes(bytes: number): string {
-	return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function describeInboxSyncStatus(status: InboxSyncStatus, t: TFunction) {
@@ -365,7 +358,6 @@ export function SettingsPage() {
 	const [appUpdateRelease, setAppUpdateRelease] = useState<ReleaseInfo | null>(null);
 	const updateChecksEnabled = useSyncExternalStore(subscribeUpdateChecks, areUpdateChecksEnabled);
 	const [isSwitchingChannel, setIsSwitchingChannel] = useState(false);
-	const hotswapProgress = useSyncExternalStore(subscribeHotswapProgress, getHotswapProgress);
 	const hotswapAutoUpdate = useSyncExternalStore(subscribeHotswapAutoUpdate, isHotswapAutoUpdateEnabled);
 	const fingerprintCheck = useFingerprintCheck();
 	const [isSyncingFcm, setIsSyncingFcm] = useState(false);
@@ -529,13 +521,13 @@ export function SettingsPage() {
 			// is still here once it's dismissed with "Later".
 			if (appUpdate) setAppUpdateRelease(appUpdate);
 			if (frontendUpdate) {
-				if (hotswapAutoUpdate) {
-					await installHotswapUpdate();
-					toast.success(t("settings.update_installed"));
-					window.location.reload();
-					return;
-				}
-				showHotswapUpdatePrompt({ version: frontendUpdate.version, notes: frontendUpdate.notes });
+				// With auto-install on, the prompt starts the download itself and
+				// shows its progress until the reload.
+				showHotswapUpdatePrompt({
+					version: frontendUpdate.version,
+					notes: frontendUpdate.notes,
+					autoStart: hotswapAutoUpdate,
+				});
 			}
 		} catch (error) {
 			const msg = getErrorMessage(error, t("settings.failed_update_check"));
@@ -565,9 +557,7 @@ export function SettingsPage() {
 
 			const result = await checkForHotswapUpdate();
 			if (!result.requiresBinaryUpdate && result.available) {
-				await installHotswapUpdate();
-				toast.success(t("settings.switched_and_updated", { channel: getHotswapChannelLabel(channel) }));
-				window.location.reload();
+				showHotswapUpdatePrompt({ version: result.version, notes: result.notes, autoStart: true });
 				return;
 			}
 
@@ -612,9 +602,7 @@ export function SettingsPage() {
 				toast.error(result.notes ?? "Binary update required.");
 				return;
 			}
-			await installHotswapUpdate();
-			toast.success(`Switched to ${handle}'s channel and updated!`);
-			window.location.reload();
+			showHotswapUpdatePrompt({ version: result.version, notes: result.notes, autoStart: true });
 		} catch (error) {
 			if (import.meta.env.DEV) {
 				appLog.error("Contributor channel switch failed:", error);
@@ -1140,50 +1128,6 @@ export function SettingsPage() {
 										{t("settings.check_now")}
 									</RowActionPill>
 								</button>
-
-								{hotswapProgress.phase !== "idle" && hotswapProgress.phase !== "checking" && (() => {
-											const percent =
-												hotswapProgress.phase === "downloading" && hotswapProgress.total
-													? Math.min(100, Math.round((hotswapProgress.downloaded / hotswapProgress.total) * 100))
-													: hotswapProgress.phase === "done"
-														? 100
-														: null;
-											const label =
-												hotswapProgress.phase === "downloading"
-													? t("settings.ota_progress_downloading", {
-															defaultValue: "Downloading update… {{size}}",
-															size: hotswapProgress.total
-																? `${formatMegabytes(hotswapProgress.downloaded)} / ${formatMegabytes(hotswapProgress.total)}`
-																: formatMegabytes(hotswapProgress.downloaded),
-														})
-													: hotswapProgress.phase === "installing"
-														? t("settings.ota_progress_installing", { defaultValue: "Installing update…" })
-														: t("settings.ota_progress_done", { defaultValue: "Update installed. Reloading…" });
-											return (
-												<div className="px-4 py-3">
-													<div className="flex items-center justify-between gap-2">
-														<p className="text-xs leading-snug tabular-nums text-[var(--text-muted)]">{label}</p>
-														{percent != null && (
-															<p className="shrink-0 text-xs font-semibold tabular-nums text-[var(--accent)]">
-																{percent}%
-															</p>
-														)}
-													</div>
-													{hotswapProgress.phase === "downloading" && (
-														<div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
-															<div
-																className={
-																	percent == null
-																		? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
-																		: "h-full rounded-full bg-[var(--accent)] transition-[width] duration-200"
-																}
-																style={percent != null ? { width: `${percent}%` } : undefined}
-															/>
-														</div>
-													)}
-												</div>
-											);
-										})()}
 
 								<ToggleRow
 									checked={updateChecksEnabled}

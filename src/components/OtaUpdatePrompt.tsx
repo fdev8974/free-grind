@@ -1,5 +1,5 @@
 import { Download, Loader2, RefreshCcw, Zap } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
@@ -168,12 +168,63 @@ export function OtaUpdatePromptView({
 			});
 	};
 
+	// Ref guard: StrictMode runs mount effects twice.
+	const autoStarted = useRef(false);
+	useEffect(() => {
+		if (!update.autoStart || autoStarted.current) return;
+		autoStarted.current = true;
+		start();
+	});
+
 	const percent =
 		progress.phase === "downloading" && progress.total
 			? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
 			: progress.phase === "installing" || progress.phase === "done"
 				? 100
 				: null;
+
+	// Started from Settings: only the download progress. The installing/done
+	// phases aren't reliable enough to show, so the bar just stays full until
+	// the reload. Buttons only come back if the download fails.
+	if (update.autoStart) {
+		return (
+			<FullscreenPrompt
+				icon={RefreshCcw}
+				title={t("ota_prompt.downloading_title", { defaultValue: "Downloading Update" })}
+				footer={
+					failed ? (
+						<>
+							<p className="mb-1 text-center text-xs leading-relaxed text-red-400">
+								{t("ota_prompt.failed", { defaultValue: "The update couldn't be downloaded. Check your connection and try again." })}
+							</p>
+							<button type="button" onClick={start} className={fullscreenPrimaryButtonClass}>
+								{t("update_prompt.try_again", { defaultValue: "Try again" })}
+							</button>
+							<button type="button" onClick={onLater} className={fullscreenSecondaryButtonClass}>
+								{t("ota_prompt.later", { defaultValue: "Later" })}
+							</button>
+						</>
+					) : null
+				}
+			>
+				{!failed && (
+					<div className="flex flex-col gap-2">
+						<div className="h-2 w-full overflow-hidden rounded-full ink-tint-10">
+							<div
+								className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ${percent === null ? "w-1/3 animate-pulse" : ""}`}
+								style={percent === null ? undefined : { width: `${percent}%` }}
+							/>
+						</div>
+						<p className="text-center text-xs tabular-nums text-[var(--text-muted)]">
+							{percent === null
+								? t("update_prompt.downloading", { defaultValue: "Downloading…" })
+								: t("update_prompt.downloading_percent", { defaultValue: "Downloading… {{percent}}%", percent })}
+						</p>
+					</div>
+				)}
+			</FullscreenPrompt>
+		);
+	}
 
 	return (
 		<FullscreenPrompt

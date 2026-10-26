@@ -2851,6 +2851,7 @@
         "releases_ahead_many": "{{count}} versiones más nuevas"
     },
     "ota_prompt": {
+        "downloading_title": "",
         "title": "Actualización disponible",
         "description": "Hay una nueva versión de la interfaz lista para descargar. Solo tarda un momento y después la app se recarga.",
         "failed": "No se pudo descargar la actualización. Comprueba tu conexión e inténtalo de nuevo.",

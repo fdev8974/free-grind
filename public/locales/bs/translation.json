@@ -2851,6 +2851,7 @@
         "releases_ahead_few": "{{count}} izdanja novije"
     },
     "ota_prompt": {
+        "downloading_title": "",
         "title": "Dostupno ažuriranje",
         "description": "Nova verzija interfejsa aplikacije spremna je za preuzimanje. Traje samo trenutak, a aplikacija se nakon toga ponovo učitava.",
         "failed": "Ažuriranje se nije moglo preuzeti. Provjeri vezu i pokušaj ponovo.",

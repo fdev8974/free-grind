@@ -2826,6 +2826,7 @@
         "releases_ahead_other": "{{count}} releases nieuwer"
     },
     "ota_prompt": {
+        "downloading_title": "",
         "title": "Update beschikbaar",
         "description": "Er staat een nieuwe versie van de app-interface klaar om te downloaden. Het duurt maar even en daarna herlaadt de app.",
         "failed": "De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw.",

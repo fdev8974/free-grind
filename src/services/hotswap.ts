@@ -219,6 +219,8 @@ export interface PendingHotswapUpdate {
 	notes: string | null;
 	/** Dev preview (UI Previews): "Update now" only simulates the download. */
 	preview?: boolean;
+	/** Install started from Settings: the prompt downloads right away and just shows the progress. */
+	autoStart?: boolean;
 }
 
 // An update found by the startup check that waits for the user's confirmation.
