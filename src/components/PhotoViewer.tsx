@@ -155,6 +155,12 @@ function MediaCornerOverlay({
 
 /** Vertical drag distance (px) past which releasing closes the viewer. */
 const DISMISS_THRESHOLD_PX = 120;
+// Double-tap to zoom: how long to wait for the second tap, how far it may land
+// from the first, the zoom it jumps to, and how long that jump animates.
+const DOUBLE_TAP_MS = 260;
+const DOUBLE_TAP_SLOP_PX = 40;
+const DOUBLE_TAP_ZOOM = 2.5;
+const ZOOM_ANIMATION_MS = 250;
 
 export function PhotoViewer({
 	isOpen,
@@ -259,6 +265,26 @@ export function PhotoViewer({
 	useEffect(() => { zoomScaleRef.current = zoomScale; }, [zoomScale]);
 	useEffect(() => { zoomOffsetRef.current = zoomOffset; }, [zoomOffset]);
 
+	// Double-tap (double-click on desktop) to zoom: a tap on an image waits
+	// DOUBLE_TAP_MS for a second one before toggling the chrome, so the first
+	// tap of a double-tap doesn't also flash the chrome away.
+	const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+	const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Animates the zoom transform only for a double-tap jump, not for pinch/pan.
+	const [isZoomAnimating, setIsZoomAnimating] = useState(false);
+	const zoomAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const clearPendingTap = useCallback(() => {
+		lastTapRef.current = null;
+		if (singleTapTimerRef.current) {
+			clearTimeout(singleTapTimerRef.current);
+			singleTapTimerRef.current = null;
+		}
+	}, []);
+	useEffect(() => () => {
+		if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+		if (zoomAnimTimerRef.current) clearTimeout(zoomAnimTimerRef.current);
+	}, []);
+
 	// Desktop-only mouse equivalents of the touch pinch-zoom/pan above: wheel
 	// to zoom (centered on the cursor), click-and-drag to pan once zoomed.
 	const trackContainerRef = useRef<HTMLDivElement | null>(null);
@@ -310,6 +336,7 @@ export function PhotoViewer({
 	}, [isOpen]);
 
 	useEffect(() => {
+		clearPendingTap();
 		setIsMenuOpen(false);
 		setIsVideoPlaying(false);
 		setIsVideoMuted(true);
@@ -414,6 +441,24 @@ export function PhotoViewer({
 			y: Math.min(maxY, Math.max(-maxY, offset.y)),
 		};
 	}, []);
+
+	// Zooms in on the given screen point, or back out when already zoomed.
+	const toggleZoomAt = useCallback((clientX: number, clientY: number) => {
+		setIsZoomAnimating(true);
+		if (zoomAnimTimerRef.current) clearTimeout(zoomAnimTimerRef.current);
+		zoomAnimTimerRef.current = setTimeout(() => setIsZoomAnimating(false), ZOOM_ANIMATION_MS);
+		haptic(8);
+		if (zoomScaleRef.current > 1) {
+			setZoomScale(1);
+			setZoomOffset({ x: 0, y: 0 });
+			return;
+		}
+		// Same origin math as the pinch: the transform origin is the screen centre.
+		const cx = clientX - window.innerWidth / 2;
+		const cy = clientY - window.innerHeight / 2;
+		setZoomScale(DOUBLE_TAP_ZOOM);
+		setZoomOffset(clampOffset({ x: -cx * (DOUBLE_TAP_ZOOM - 1), y: -cy * (DOUBLE_TAP_ZOOM - 1) }, DOUBLE_TAP_ZOOM));
+	}, [clampOffset]);
 
 	// Mouse wheel zoom, centered on the cursor — desktop's equivalent of the
 	// touch pinch gesture. Attached as a native listener (not React's onWheel)
@@ -1144,13 +1189,17 @@ export function PhotoViewer({
 							? ("grab" as const)
 							: undefined;
 
+						const zoomTransition = isCurrent && isZoomAnimating
+							? `transform ${ZOOM_ANIMATION_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`
+							: undefined;
 						const zoomStyle =
 							isCurrent && (zoomScale !== 1 || zoomOffset.x !== 0 || zoomOffset.y !== 0)
 								? {
 										transform: `translate(${zoomOffset.x}px, ${zoomOffset.y}px) scale(${zoomScale})`,
+										transition: zoomTransition,
 										touchAction: "none" as const,
 									}
-								: { touchAction: "none" as const };
+								: { transition: zoomTransition, touchAction: "none" as const };
 
 						return (
 							<div
@@ -1171,6 +1220,12 @@ export function PhotoViewer({
 							>
 								<div
 									className="relative w-full"
+									onDoubleClick={isDesktop && isCurrent && type !== "video" ? (e) => {
+										const rect = mediaRef.current ? getObjectContainRect(mediaRef.current) : null;
+										if (!rect || e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+										e.stopPropagation();
+										toggleZoomAt(e.clientX, e.clientY);
+									} : undefined}
 									onClick={(e) => {
 										// A desktop drag-to-pan ends with a click firing on
 										// mouseup (unlike touch, where a moved gesture doesn't
@@ -1210,7 +1265,27 @@ export function PhotoViewer({
 												// paused/freshly-swiped-to video) — nothing else forces
 												// chrome back on except an actual pause/end event, so a
 												// hidden-then-swiped-to video must stay tap-revealable.
-												setShowChrome((prev) => !prev);
+												if (type === "video" || !isCurrent) {
+													setShowChrome((prev) => !prev);
+													return;
+												}
+												// Images: a second tap close by within DOUBLE_TAP_MS
+												// zooms instead; otherwise the chrome toggles once
+												// that window has passed.
+												const now = performance.now();
+												const last = lastTapRef.current;
+												if (last && now - last.time < DOUBLE_TAP_MS && Math.hypot(e.clientX - last.x, e.clientY - last.y) < DOUBLE_TAP_SLOP_PX) {
+													clearPendingTap();
+													toggleZoomAt(e.clientX, e.clientY);
+													return;
+												}
+												clearPendingTap();
+												lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
+												singleTapTimerRef.current = setTimeout(() => {
+													singleTapTimerRef.current = null;
+													lastTapRef.current = null;
+													setShowChrome((prev) => !prev);
+												}, DOUBLE_TAP_MS);
 											}
 										}
 									}}
