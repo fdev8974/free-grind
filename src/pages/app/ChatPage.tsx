@@ -6032,6 +6032,19 @@ export function ChatPage() {
 					...details.content.map((item) => mergedByContentId.get(item.contentId) ?? item),
 					...localOnly,
 				];
+				// Nothing to show: the viewer would just flash open and vanish,
+				// so close it (and its history entry) and say why instead.
+				if (finalContent.length === 0) {
+					if (albumHistoryModeRef.current === "direct") {
+						albumHistoryModeRef.current = null;
+						window.history.back();
+					}
+					setAlbumViewer(null);
+					setAlbumViewerMediaIndex(null);
+					setIsAlbumMediaSheetOpen(false);
+					toast(t("shared_albums.empty_album_title"));
+					return;
+				}
 				setAlbumViewer({
 					albumId: details.albumId,
 					albumName: merged?.albumName ?? details.albumName,

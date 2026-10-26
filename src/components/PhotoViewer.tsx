@@ -924,7 +924,9 @@ export function PhotoViewer({
 
 	if (!isOpen || (N === 0 && !isLoading)) return null;
 
-	if (contentWarning && !hasAcknowledgedWarning) {
+	// Only once there's media to hide — while loading the viewer shows nothing
+	// sensitive yet, and an album that turns out empty never gets the warning.
+	if (contentWarning && !hasAcknowledgedWarning && N > 0) {
 		return createPortal(
 			<div
 				className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6 bg-black px-8 text-center"

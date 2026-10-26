@@ -2,6 +2,7 @@ import { Album, Images, MessageCircle, RefreshCw, UserRound } from "lucide-react
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import { useAuth } from "../../../contexts/useAuth";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
@@ -53,7 +54,6 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 	const [isOpeningAlbum, setIsOpeningAlbum] = useState(false);
 	// The album an open is in flight for; cleared when the viewer closes.
 	const pendingOpenAlbumIdRef = useRef<AlbumViewer["albumId"] | null>(null);
-	const [openAlbumError, setOpenAlbumError] = useState<string | null>(null);
 	const [viewer, setViewer] = useState<AlbumViewer | null>(null);
 	const [viewerIndex, setViewerIndex] = useState(0);
 	const [isSavingAll, setIsSavingAll] = useState(false);
@@ -323,7 +323,6 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 	const openViewer = useCallback(
 		async (item: SharedAlbumItem) => {
 			if (isOpeningAlbum) return;
-			setOpenAlbumError(null);
 			const albumId = item.album.albumId;
 			const meta = {
 				albumId,
@@ -350,7 +349,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 			const failOpen = (message: string) => {
 				if (!isStillOpening()) return;
 				closeViewer();
-				setOpenAlbumError(message);
+				toast.error(message);
 			};
 			try {
 				if (item.localOnly) {
@@ -365,6 +364,15 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 				} else {
 					await apiFunctions.openSharedAlbum({ albumId });
 					const details = await apiFunctions.getAlbum(albumId);
+					// Nothing to show: the viewer would just flash open and vanish,
+					// so close it and say why instead.
+					if (details.content.length === 0) {
+						if (isStillOpening()) {
+							closeViewer();
+							toast(t("shared_albums.empty_album_title"));
+						}
+						return;
+					}
 					if (isStillOpening()) {
 						setViewer({ ...meta, albumId: details.albumId, albumName: details.albumName, content: details.content });
 					}
@@ -529,14 +537,6 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 
 			{/* Content */}
 			<div className={`${px} py-4`}>
-				{openAlbumError ? (
-					<ErrorState
-						title={t("shared_albums.error_open_title")}
-						description={openAlbumError}
-						onRetry={() => setOpenAlbumError(null)}
-					/>
-				) : null}
-
 				{isLoading ? (
 					<LoadingState
 						title={t("shared_albums.loading_title")}

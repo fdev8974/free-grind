@@ -173,7 +173,6 @@ export function SharedAlbumsPage() {
 	const [isOpeningAlbum, setIsOpeningAlbum] = useState(false);
 	// The album an open is in flight for; cleared when the viewer closes.
 	const pendingOpenAlbumIdRef = useRef<AlbumViewer["albumId"] | null>(null);
-	const [openAlbumError, setOpenAlbumError] = useState<string | null>(null);
 	const [viewer, setViewer] = useState<AlbumViewer | null>(null);
 	const [viewerIndex, setViewerIndex] = useState(0);
 	const [isContentSheetOpen, setIsContentSheetOpen] = useState(false);
@@ -559,17 +558,6 @@ export function SharedAlbumsPage() {
 				return;
 			}
 
-			setOpenAlbumError(null);
-
-			// Also visible as a toast, not just the inline banner at the top of
-			// the grid — that banner is scrolled out of view as soon as the
-			// user has scrolled past the first row, which otherwise makes a
-			// failed open look like the tap did nothing at all.
-			const reportOpenError = (message: string) => {
-				setOpenAlbumError(message);
-				toast.error(message);
-			};
-
 			const albumId = item.album.albumId;
 
 			// Open right away with what the tile already knows; the viewer or
@@ -596,7 +584,7 @@ export function SharedAlbumsPage() {
 			const failOpen = (message: string) => {
 				if (!isStillOpening()) return;
 				closeViewer();
-				reportOpenError(message);
+				toast.error(message);
 			};
 
 			// Opens straight from chatDb's cached content — used both for
@@ -669,6 +657,16 @@ export function SharedAlbumsPage() {
 					}),
 					...localOnly,
 				];
+
+				// Nothing to show: the viewer would just flash open and vanish,
+				// so close it and say why instead.
+				if (mergedContent.length === 0) {
+					if (isStillOpening()) {
+						closeViewer();
+						toast(t("shared_albums.empty_album_title"));
+					}
+					return;
+				}
 
 				present({
 					...meta,
@@ -991,14 +989,6 @@ export function SharedAlbumsPage() {
 
 				<FeedScrollContainer ref={feedContainerRef}>
 					<div className="mx-auto w-full max-w-6xl px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)]">
-						{openAlbumError ? (
-							<ErrorState
-								title={t("shared_albums.error_open_title")}
-								description={openAlbumError}
-								onRetry={() => setOpenAlbumError(null)}
-							/>
-						) : null}
-
 						{isLoading ? (
 							<div
 								className="grid gap-4"

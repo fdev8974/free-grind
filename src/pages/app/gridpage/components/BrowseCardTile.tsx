@@ -1,6 +1,6 @@
 import type { BrowseCard } from "../../GridPage.types";
 import { Flame, MessageCircle, Plane, Satellite, Star, Zap } from "lucide-react";
-import { MapPinApproximate, MapPinFilled, MapPinOffFilled } from "../../../../components/icons/FilledIcons";
+import { MapPinFilled, MapPinOffFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { useTranslation } from "react-i18next";
 import {
@@ -343,7 +343,7 @@ export function BrowseCardTile({
 						{card.distanceMeters == null || !Number.isFinite(card.distanceMeters) ? (
 							card.estimatedDistanceMeters != null && Number.isFinite(card.estimatedDistanceMeters) ? (
 								<span className="inline-flex items-center gap-1 text-xs font-semibold">
-									<MapPinApproximate className="h-3.5 w-3.5" />
+									<MapPinOffFilled className="h-3.5 w-3.5" />
 									{formatDistance(card.estimatedDistanceMeters, t, unitsPreset)}
 								</span>
 							) : (
