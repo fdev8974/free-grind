@@ -93,8 +93,10 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 								</button>
 							);
 						}
-						// The peek plays the real file when there is one (the video itself).
+						// The peek shows the real file when there is one (the video itself,
+						// or the full-res image over the tile's already-loaded thumbnail).
 						const peekSrc = item.url ?? src;
+						const peekPlaceholder = !isVideo && peekSrc !== src ? src : undefined;
 						return (
 							<DrawerMediaTile
 								key={item.contentId}
@@ -102,7 +104,7 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 								alt={t("shared_albums.content_alt", { index: idx + 1 })}
 								busy={item.processing}
 								onSelect={item.processing ? undefined : (tile) => onSelect(idx, getHeroRectFromElement(tile))}
-								previewProps={item.processing ? undefined : bind({ src: peekSrc, isVideo: isVideo && !!item.url })}
+								previewProps={item.processing ? undefined : bind({ src: peekSrc, isVideo: isVideo && !!item.url, placeholderSrc: peekPlaceholder })}
 								consumePreviewClick={consumeClick}
 							>
 								{isVideo && !item.processing && (

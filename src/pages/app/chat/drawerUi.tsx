@@ -140,7 +140,12 @@ export function DrawerEmptyState({
 	);
 }
 
-export type DrawerPreviewMedia = { src: string; isVideo: boolean };
+export type DrawerPreviewMedia = {
+	src: string;
+	isVideo: boolean;
+	/** Already-loaded lower-res image to show until `src` has loaded (images only). */
+	placeholderSrc?: string;
+};
 /** A group peek (a collection): all its media at once, in order. */
 export type DrawerPreviewGroup = { title: string; items: DrawerPreviewMedia[] };
 export type DrawerPreviewContent = DrawerPreviewMedia | DrawerPreviewGroup;
@@ -196,6 +201,8 @@ export function useDrawerMediaPreview() {
 				suppressClickRef.current = false;
 				startRef.current = { x: event.clientX, y: event.clientY };
 				cancelTimer();
+				// Warm the cache during the hold so the peek usually opens already loaded.
+				if (!("items" in media) && !media.isVideo) new Image().src = proxyMediaUrl(media.src);
 				timerRef.current = setTimeout(() => {
 					timerRef.current = null;
 					suppressClickRef.current = true;
@@ -235,29 +242,49 @@ export function useDrawerMediaPreview() {
 }
 
 const PREVIEW_ANIMATION_MS = 180;
+/** Longest a peek waits for its media before opening anyway. */
+const PREVIEW_LOAD_TIMEOUT_MS = 1000;
 
 export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | null }) {
 	// Keep the last media mounted while it animates out, then drop it.
 	const [shown, setShown] = useState<DrawerPreviewContent | null>(media);
+	// Opening before the media has loaded would scale in an empty box that
+	// then jumps to the media's size — a visible flicker on uncached files.
+	// Tracked per media so a late load of the one animating out can't count
+	// for the next peek.
+	const [loadedMedia, setLoadedMedia] = useState<DrawerPreviewContent | null>(null);
 	const [isVisible, setIsVisible] = useState(false);
+	const isLoaded = media !== null && ("items" in media || loadedMedia === media);
+	const markLoaded = useCallback(() => setLoadedMedia(shown), [shown]);
 
 	useEffect(() => {
 		if (media) {
 			setShown(media);
-			// Two frames so the hidden start state is painted before transitioning in.
-			let inner = 0;
-			const outer = requestAnimationFrame(() => {
-				inner = requestAnimationFrame(() => setIsVisible(true));
-			});
-			return () => {
-				cancelAnimationFrame(outer);
-				cancelAnimationFrame(inner);
-			};
+			return;
 		}
 		setIsVisible(false);
 		const timer = setTimeout(() => setShown(null), PREVIEW_ANIMATION_MS);
 		return () => clearTimeout(timer);
 	}, [media]);
+
+	useEffect(() => {
+		if (!media || isLoaded) return;
+		const timer = setTimeout(() => setLoadedMedia(media), PREVIEW_LOAD_TIMEOUT_MS);
+		return () => clearTimeout(timer);
+	}, [media, isLoaded]);
+
+	useEffect(() => {
+		if (!media || !isLoaded) return;
+		// Two frames so the hidden start state is painted before transitioning in.
+		let inner = 0;
+		const outer = requestAnimationFrame(() => {
+			inner = requestAnimationFrame(() => setIsVisible(true));
+		});
+		return () => {
+			cancelAnimationFrame(outer);
+			cancelAnimationFrame(inner);
+		};
+	}, [media, isLoaded]);
 
 	if (!shown) return null;
 	const transition = `opacity ${PREVIEW_ANIMATION_MS}ms ease-out, transform ${PREVIEW_ANIMATION_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1)`;
@@ -273,13 +300,71 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 				{"items" in shown ? (
 					<DrawerPreviewGroupGrid group={shown} />
 				) : shown.isVideo ? (
-					<video src={proxyMediaUrl(shown.src, { as: "video" })} autoPlay muted loop playsInline className="max-h-[80dvh] max-w-full object-contain" />
+					<video
+						src={proxyMediaUrl(shown.src, { as: "video" })}
+						autoPlay
+						muted
+						loop
+						playsInline
+						onLoadedData={markLoaded}
+						onError={markLoaded}
+						className="max-h-[80dvh] max-w-full object-contain"
+					/>
 				) : (
-					<img src={proxyMediaUrl(shown.src)} alt="" className="max-h-[80dvh] max-w-full object-contain" />
+					<DrawerPreviewImage key={shown.src} media={shown} onReady={markLoaded} />
 				)}
 			</div>
 		</div>,
 		document.body,
+	);
+}
+
+/** A peek image. With a `placeholderSrc` (an already-loaded thumbnail) it opens
+ * on that right away, scaled up to peek size, and fades the full file in on top
+ * once it has loaded. `onReady` fires once there is something to show. */
+function DrawerPreviewImage({ media, onReady }: { media: DrawerPreviewMedia; onReady: () => void }) {
+	const [aspect, setAspect] = useState<number | null>(null);
+	const [isFullLoaded, setIsFullLoaded] = useState(false);
+	const handleFullLoaded = () => {
+		if (media.placeholderSrc) setIsFullLoaded(true);
+		else onReady();
+	};
+	const fullImg = (
+		<img
+			ref={(el) => {
+				if (el?.complete && el.naturalWidth) handleFullLoaded();
+			}}
+			src={proxyMediaUrl(media.src)}
+			alt=""
+			onLoad={handleFullLoaded}
+			onError={media.placeholderSrc ? undefined : onReady}
+			className={media.placeholderSrc ? "absolute inset-0 h-full w-full object-cover" : "max-h-[80dvh] max-w-full object-contain"}
+			style={media.placeholderSrc ? { opacity: isFullLoaded ? 1 : 0, transition: `opacity ${PREVIEW_ANIMATION_MS}ms ease-out` } : undefined}
+		/>
+	);
+	if (!media.placeholderSrc) return fullImg;
+
+	const handlePlaceholder = (el: HTMLImageElement) => {
+		if (el.naturalWidth && el.naturalHeight) setAspect(el.naturalWidth / el.naturalHeight);
+		onReady();
+	};
+	return (
+		<div className="relative">
+			<img
+				ref={(el) => {
+					if (el?.complete && el.naturalWidth && aspect === null) handlePlaceholder(el);
+				}}
+				src={proxyMediaUrl(media.placeholderSrc)}
+				alt=""
+				onLoad={(event) => handlePlaceholder(event.currentTarget)}
+				onError={onReady}
+				// The thumbnail is smaller than the peek: size the box from its aspect
+				// instead of its pixels so it fills the peek like the full file will.
+				className="block max-h-[80dvh] max-w-full object-contain"
+				style={aspect ? { aspectRatio: aspect, width: `min(calc(100vw - 3rem), calc(80dvh * ${aspect}))` } : undefined}
+			/>
+			{fullImg}
+		</div>
 	);
 }
 
