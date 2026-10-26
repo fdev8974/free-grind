@@ -17,6 +17,7 @@ import {
 	useSearchParams,
 } from "react-router-dom";
 import toast from "react-hot-toast";
+import { tapDebug } from "../../utils/tapDebug";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useBlockProfile, useUnblockProfile, useBlockedProfileIds, useMyOwnProfile } from "../../hooks/queries/useProfileQueries";
 import { getProfilePhotoHash } from "./profile-editor/profileEditorUtils";
@@ -6591,6 +6592,7 @@ export function ChatPage() {
 		senderId?: number,
 		heroRect?: HeroRect | null,
 	) => {
+		tapDebug(`openFullScreenImage (${mediaType})`);
 		// The tapped bubble's picture, so the viewer can fly it in from there.
 		setFullScreenHeroRect(heroRect ?? null);
 		const conversationId = selectedConversation?.data.conversationId;
@@ -6654,14 +6656,17 @@ export function ChatPage() {
 			}
 			if (fullScreenRequestIdRef.current !== requestId) {
 				// Superseded by a newer tap while this one was still resolving.
+				tapDebug("open: superseded, dropped");
 				return;
 			}
+			tapDebug(`open: list set (${list.length} items, idx ${idx})`);
 			setFullScreenMediaList(list);
 			setFullScreenMediaIndex(idx);
 		})();
 	}, [selectedConversation, userId, threadMessages]);
 
 	const closeFullScreenImage = useCallback(() => {
+		tapDebug(`closeFullScreenImage (list ${fullScreenMediaList.length})`);
 		if (fullScreenMediaList.length === 0) {
 			return;
 		}
@@ -6691,6 +6696,7 @@ export function ChatPage() {
 				return;
 			}
 
+			tapDebug("popstate closed viewer");
 			imageViewerHistoryPushedRef.current = false;
 			setFullScreenMediaList([]);
 			setFullScreenMediaIndex(0);

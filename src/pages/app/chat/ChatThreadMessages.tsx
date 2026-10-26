@@ -10,6 +10,7 @@ import React, { Fragment, useEffect, useState, useMemo, useCallback, useRef, use
 
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { tapDebug } from "../../../utils/tapDebug";
 import { appLog } from "../../../utils/logger";
 import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
 import { loadSavedPhrases, saveSavedPhrases } from "../../../services/savedPhrases";
@@ -688,6 +689,7 @@ export function ChatThreadMessages({
 		(message: UiMessage, action: (() => void) | null) => {
 			if (messageLongPressTriggeredRef.current) {
 				messageLongPressTriggeredRef.current = false;
+				if (action) tapDebug("schedule: swallowed by long-press flag");
 				return;
 			}
 
@@ -702,6 +704,7 @@ export function ChatThreadMessages({
 
 			if (last && last.messageId === message.messageId && now - last.time < 300) {
 				lastTapRef.current = null;
+				tapDebug(`schedule: double-tap -> react (${now - last.time}ms)`);
 				void handleReact(message);
 				return;
 			}
@@ -710,10 +713,12 @@ export function ChatThreadMessages({
 
 			if (action) {
 				pendingTapActionRef.current = action;
+				tapDebug("schedule: open in 280ms");
 				pendingTapTimerRef.current = setTimeout(() => {
 					const act = pendingTapActionRef.current;
 					pendingTapTimerRef.current = null;
 					pendingTapActionRef.current = null;
+					tapDebug(`schedule: timer fired, action ${act ? "runs" : "MISSING"}`);
 					act?.();
 				}, 280);
 			}
@@ -1570,6 +1575,7 @@ export function ChatThreadMessages({
                                             tabIndex={0}
                                             onClick={(event) => {
                                                 event.stopPropagation();
+                                                tapDebug(`image click (long-press flag: ${messageLongPressTriggeredRef.current})`);
                                                 // Read when the viewer actually opens (a mobile tap waits for a
                                                 // possible double-tap first), so the hero starts where it is then.
                                                 const tile = event.currentTarget;
@@ -1848,6 +1854,7 @@ export function ChatThreadMessages({
                                                     onMouseLeave={() => handleMediaMouseLeave(message.messageId)}
                                                     onClick={(event) => {
                                                         event.stopPropagation();
+                                                        tapDebug(`video click (long-press flag: ${messageLongPressTriggeredRef.current})`);
                                                         if (shouldBlurIncomingMedia && !isDesktop) {
                                                             revealMediaMessage(message.messageId);
                                                             lastTapRef.current = null;
