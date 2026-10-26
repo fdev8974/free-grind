@@ -64,6 +64,7 @@ import type { MessageTranslations } from "../../../hooks/useMessageTranslations"
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { getHeroRectFromElement, type HeroRect } from "../../../components/PhotoViewer";
 
 type ChatThreadMessagesProps = {
 	isDesktop: boolean;
@@ -86,7 +87,7 @@ type ChatThreadMessagesProps = {
 	startMessageLongPress: (messageId: string) => void;
 	endMessageLongPress: () => void;
 	messageLongPressTriggeredRef: { current: boolean };
-	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number) => void;
+	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number, heroRect?: HeroRect | null) => void;
 	openAlbumViewerById: (albumId: number, isOwnAlbum?: boolean, targetContentId?: number) => void | Promise<void>;
 	onJumpToMessage: (messageId: string) => void;
 	highlightedMessageId: string | null;
@@ -1569,13 +1570,17 @@ export function ChatThreadMessages({
                                             tabIndex={0}
                                             onClick={(event) => {
                                                 event.stopPropagation();
+                                                // Read when the viewer actually opens (a mobile tap waits for a
+                                                // possible double-tap first), so the hero starts where it is then.
+                                                const tile = event.currentTarget;
+                                                const getHeroRect = () => getHeroRectFromElement(tile);
                                                 if (isDesktop) {
                                                     openFullScreenImage(imageUrl, {
                                                         takenOnGrindr: messageTakenOnGrindr,
                                                         createdAt: imageCreatedAt,
                                                         createdAtLabel: imageCreatedAtLabel,
                                                         timestamp: message.timestamp,
-                                                    }, "image", message.messageId, Number(message.senderId));
+                                                    }, "image", message.messageId, Number(message.senderId), getHeroRect());
                                                     return;
                                                 }
                                                 if (messageLongPressTriggeredRef.current) {
@@ -1593,7 +1598,7 @@ export function ChatThreadMessages({
                                                         createdAt: imageCreatedAt,
                                                         createdAtLabel: imageCreatedAtLabel,
                                                         timestamp: message.timestamp,
-                                                    }, "image", message.messageId, Number(message.senderId));
+                                                    }, "image", message.messageId, Number(message.senderId), getHeroRect());
                                                 });
                                             }}
                                             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
@@ -1848,8 +1853,11 @@ export function ChatThreadMessages({
                                                             lastTapRef.current = null;
                                                             return;
                                                         }
+                                                        // Same hero open as images, read when the viewer opens.
+                                                        const tile = event.currentTarget;
+                                                        const getHeroRect = () => getHeroRectFromElement(tile);
                                                         if (isDesktop) {
-                                                            openFullScreenImage(videoUrl, undefined, "video", message.messageId, Number(message.senderId));
+                                                            openFullScreenImage(videoUrl, undefined, "video", message.messageId, Number(message.senderId), getHeroRect());
                                                             return;
                                                         }
                                                         if (messageLongPressTriggeredRef.current) {
@@ -1857,7 +1865,7 @@ export function ChatThreadMessages({
                                                             return;
                                                         }
                                                         scheduleMobileTap(message, () => {
-                                                            openFullScreenImage(videoUrl, undefined, "video", message.messageId, Number(message.senderId));
+                                                            openFullScreenImage(videoUrl, undefined, "video", message.messageId, Number(message.senderId), getHeroRect());
                                                         });
                                                     }}
                                                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}

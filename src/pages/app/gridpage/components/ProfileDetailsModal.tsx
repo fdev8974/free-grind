@@ -1503,7 +1503,10 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		return () => window.removeEventListener("popstate", onPopState);
 	}, [resetAlbumViewerState]);
 
-	const handleSelectAlbumContent = useCallback((index: number) => {
+	// Where the tapped tile sits in the album sheet, for the viewer's hero open.
+	const [albumViewerHeroRect, setAlbumViewerHeroRect] = useState<HeroRect | null>(null);
+	const handleSelectAlbumContent = useCallback((index: number, heroRect?: HeroRect | null) => {
+		setAlbumViewerHeroRect(heroRect ?? null);
 		setAlbumViewerIndex(index);
 		setIsAlbumViewerShown(true);
 		pushAlbumViewerHistory();
@@ -1838,6 +1841,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			menuActions={albumMenuActions}
 			albumHeader={albumHeader}
 			isLoading={isOpeningAlbum}
+			heroRect={albumViewerHeroRect}
 			// Only gate directly-opened albums — the sheet already showed the
 			// album's contents, so the warning would be redundant per item.
 			contentWarning={showAlbumSensitiveContentWarning && !isAlbumSheetOpen}

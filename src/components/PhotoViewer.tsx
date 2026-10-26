@@ -53,7 +53,30 @@ export type PhotoViewerProps = {
 	heroRect?: HeroRect | null;
 };
 
-export type HeroRect = { left: number; top: number; width: number; height: number };
+export type HeroRect = {
+	left: number;
+	top: number;
+	width: number;
+	height: number;
+	/** Corner radius of the source (e.g. a chat bubble's image), animated down to square. */
+	borderRadius?: number;
+};
+
+/** The picture or video inside `tile` (object-cover) as it sits on screen, plus
+ * the tile's corner radius: the `heroRect` for opening it in the viewer. */
+export function getHeroRectFromElement(tile: HTMLElement): HeroRect | null {
+	const media = tile.querySelector("img, video");
+	if (!media) return null;
+	const rect = media.getBoundingClientRect();
+	const style = getComputedStyle(tile);
+	const borderRadius = Math.max(
+		parseFloat(style.borderTopLeftRadius) || 0,
+		parseFloat(style.borderTopRightRadius) || 0,
+		parseFloat(style.borderBottomLeftRadius) || 0,
+		parseFloat(style.borderBottomRightRadius) || 0,
+	);
+	return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, borderRadius };
+}
 
 /** measure: laid out but hidden, to find where the photo lands; from: drawn exactly over
  * heroRect; to: animating into place; none: no hero (or finished). */
@@ -352,10 +375,17 @@ export function PhotoViewer({
 		const start = () => {
 			if (cancelled) return;
 			const hero = heroRectRef.current;
-			const content = el instanceof HTMLImageElement ? getObjectContainRect(el) : null;
+			const content = el ? getObjectContainRect(el) : null;
 			if (!hero || !content || !hero.width || !hero.height) {
 				setHeroPhase("none");
 				return;
+			}
+			if (el instanceof HTMLVideoElement) {
+				// Its preview frame normally fades in; here it has to be there
+				// from the first frame of the flight.
+				el.style.transition = "none";
+				el.style.opacity = "1";
+				setTimeout(() => { el.style.transition = ""; }, HERO_ANIMATION_MS + 50);
 			}
 			const scale = Math.max(hero.width / content.width, hero.height / content.height);
 			// transform-origin 0 0: screen = local * scale + translate.
@@ -365,22 +395,31 @@ export function PhotoViewer({
 			const left = (hero.left - tx) / scale;
 			const right = window.innerWidth - (hero.left + hero.width - tx) / scale;
 			const bottom = window.innerHeight - (hero.top + hero.height - ty) / scale;
+			// The clip is drawn in the scaled layer, so the radius is too.
+			const radius = (hero.borderRadius ?? 0) / scale;
 			setHeroFromStyle({
 				transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
-				clipPath: `inset(${top}px ${right}px ${bottom}px ${left}px)`,
+				clipPath: `inset(${top}px ${right}px ${bottom}px ${left}px round ${radius}px)`,
 			});
 			setHeroPhase("from");
 		};
-		if (el instanceof HTMLImageElement && !(el.complete && el.naturalWidth)) {
-			// Not decoded yet: wait briefly, otherwise open the normal way.
+		// Ready once there's something to draw: a decoded image, or a video's
+		// preview frame (the seek to 0.001 in onLoadedMetadata lands).
+		const isVideo = el instanceof HTMLVideoElement;
+		const isReady = isVideo
+			? el.readyState >= 2 && el.videoWidth > 0 && el.style.opacity === "1"
+			: el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0;
+		if (el && !isReady) {
+			// Not ready yet: wait briefly (videos need longer), otherwise open the normal way.
+			const readyEvent = isVideo ? "seeked" : "load";
 			const fail = () => { if (!cancelled) setHeroPhase("none"); };
-			el.addEventListener("load", start, { once: true });
+			el.addEventListener(readyEvent, start, { once: true });
 			el.addEventListener("error", fail, { once: true });
-			const timer = setTimeout(fail, 250);
+			const timer = setTimeout(fail, isVideo ? 600 : 250);
 			return () => {
 				cancelled = true;
 				clearTimeout(timer);
-				el.removeEventListener("load", start);
+				el.removeEventListener(readyEvent, start);
 				el.removeEventListener("error", fail);
 			};
 		}
@@ -1255,7 +1294,7 @@ export function PhotoViewer({
 								? {
 										transformOrigin: "0 0",
 										transform: "translate(0px, 0px) scale(1)",
-										clipPath: "inset(0px 0px 0px 0px)",
+										clipPath: "inset(0px 0px 0px 0px round 0px)",
 										transition: `transform ${HERO_ANIMATION_MS}ms ${HERO_EASING}, clip-path ${HERO_ANIMATION_MS}ms ${HERO_EASING}`,
 									}
 								: {

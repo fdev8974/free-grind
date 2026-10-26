@@ -54,7 +54,7 @@ import {
 	getChatRealtimeStatus,
 	type TypingStatusDetail,
 } from "../../components/ChatRealtimeBridge";
-import { PhotoViewer, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
+import { PhotoViewer, type HeroRect, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
 import { AlbumMediaSheet } from "../../components/AlbumMediaSheet";
 import { PhotoActionBar } from "../../components/PhotoActionBar";
 import {
@@ -777,6 +777,7 @@ export function ChatPage() {
 	type ThreadMediaItem = PhotoViewerMedia & { meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number } };
 	const [fullScreenMediaList, setFullScreenMediaList] = useState<ThreadMediaItem[]>([]);
 	const [fullScreenMediaIndex, setFullScreenMediaIndex] = useState(0);
+	const [fullScreenHeroRect, setFullScreenHeroRect] = useState<HeroRect | null>(null);
 	// Guards openFullScreenImage's async carousel build against a second tap
 	// landing while the first is still resolving — without this, whichever
 	// resolves last wins even if it's the stale one, snapping the viewer back
@@ -6057,7 +6058,10 @@ export function ChatPage() {
 	// Tapping an item inside the album's browse-first sheet — the sheet stays
 	// mounted underneath so closing the full-screen viewer returns to it
 	// instead of exiting all the way back to the chat.
-	const openAlbumMediaAtIndex = useCallback((index: number) => {
+	// Where the tapped tile sits in the album sheet, for the viewer's hero open.
+	const [albumViewerHeroRect, setAlbumViewerHeroRect] = useState<HeroRect | null>(null);
+	const openAlbumMediaAtIndex = useCallback((index: number, heroRect?: HeroRect | null) => {
+		setAlbumViewerHeroRect(heroRect ?? null);
 		setAlbumViewerMediaIndex(index);
 	}, []);
 
@@ -6585,7 +6589,10 @@ export function ChatPage() {
 		mediaType: "image" | "video" = "image",
 		messageId?: string,
 		senderId?: number,
+		heroRect?: HeroRect | null,
 	) => {
+		// The tapped bubble's picture, so the viewer can fly it in from there.
+		setFullScreenHeroRect(heroRect ?? null);
 		const conversationId = selectedConversation?.data.conversationId;
 		if (!conversationId || messageId == null || senderId == null) {
 			fullScreenRequestIdRef.current += 1;
@@ -6989,6 +6996,7 @@ export function ChatPage() {
 				menuActions={albumMenuActions}
 				albumHeader={albumHeader}
 				isLoading={isAlbumViewerLoading}
+				heroRect={albumViewerHeroRect}
 				// Only gate directly-opened albums — once the user has already
 				// browsed the album's contents in the browse-first sheet, the
 				// warning would be redundant for every item tapped from it.
@@ -7014,6 +7022,7 @@ export function ChatPage() {
 				initialIndex={fullScreenMediaIndex}
 				onIndexChange={setFullScreenMediaIndex}
 				conversationId={selectedConversation?.data.conversationId ?? null}
+				heroRect={fullScreenHeroRect}
 				renderExtraInfo={(idx) => {
 					const meta = fullScreenMediaList[idx]?.meta;
 					const label = meta ? meta.createdAtLabel ?? (meta.timestamp ? formatDateTime24(meta.timestamp) : null) : null;

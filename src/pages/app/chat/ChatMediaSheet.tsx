@@ -19,7 +19,7 @@ import {
 	GroupTileOverlay,
 	useDrawerMediaPreview,
 } from "./drawerUi";
-import { PhotoViewer, type PhotoViewerMedia } from "../../../components/PhotoViewer";
+import { getHeroRectFromElement, PhotoViewer, type HeroRect, type PhotoViewerMedia } from "../../../components/PhotoViewer";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { isIos, saveMediaBytesBatch } from "../../../services/saveMedia";
 import { fetchAndEncode, toDataUri } from "../../../services/mediaStore";
@@ -99,6 +99,8 @@ export function ChatMediaSheet({
 	const [mediaLoading, setMediaLoading] = useState(true);
 	const [failedCovers, setFailedCovers] = useState<Set<number>>(new Set());
 	const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+	// Where the tapped tile sits, for the viewer's hero open.
+	const [viewerHeroRect, setViewerHeroRect] = useState<HeroRect | null>(null);
 	const [isSavingAll, setIsSavingAll] = useState(false);
 
 	const isMine = (senderId: number | null) => senderId != null && userId != null && Number(senderId) === Number(userId);
@@ -471,7 +473,10 @@ export function ChatMediaSheet({
 							key={item.mediaKey}
 							src={item.dataUri}
 							isVideo={item.kind === "video"}
-							onSelect={() => setViewerIndex(idx)}
+							onSelect={(tile) => {
+								setViewerHeroRect(getHeroRectFromElement(tile));
+								setViewerIndex(idx);
+							}}
 							previewProps={bindPreview({ src: item.dataUri, isVideo: item.kind === "video" })}
 							consumePreviewClick={consumePreviewClick}
 						/>
@@ -489,6 +494,7 @@ export function ChatMediaSheet({
 				photos={viewerPhotos}
 				initialIndex={viewerIndex}
 				conversationId={conversationId}
+				heroRect={viewerHeroRect}
 			/>,
 			document.body,
 		)}

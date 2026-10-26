@@ -2,6 +2,7 @@ import { Images, Loader2, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { getHeroRectFromElement, type HeroRect } from "./PhotoViewer";
 import {
 	DRAWER_TILE_CLASS,
 	DrawerBody,
@@ -27,7 +28,8 @@ type Props = {
 	albumName: string | null;
 	content: AlbumMediaSheetItem[];
 	onClose: () => void;
-	onSelect: (index: number) => void;
+	/** `heroRect`: where the tapped tile's picture is, for the viewer's hero open. */
+	onSelect: (index: number, heroRect?: HeroRect | null) => void;
 	/** True while the full-screen viewer is open on top of this sheet — disables the sheet's own Escape/backdrop/swipe dismissal so those gestures act on the viewer instead of closing the (currently hidden) sheet underneath it. */
 	locked?: boolean;
 	/** The album's content is still loading: placeholder tiles instead of the empty state. */
@@ -99,7 +101,7 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 								src={src}
 								alt={t("shared_albums.content_alt", { index: idx + 1 })}
 								busy={item.processing}
-								onSelect={item.processing ? undefined : () => onSelect(idx)}
+								onSelect={item.processing ? undefined : (tile) => onSelect(idx, getHeroRectFromElement(tile))}
 								previewProps={item.processing ? undefined : bind({ src: peekSrc, isVideo: isVideo && !!item.url })}
 								consumePreviewClick={consumeClick}
 							>

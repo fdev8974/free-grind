@@ -457,7 +457,8 @@ export function DrawerMediaTile({
 	muted?: boolean;
 	/** Work in progress on this tile (e.g. adding, deleting). */
 	busy?: boolean;
-	onSelect?: () => void;
+	/** Gets the tile element, e.g. for the viewer's hero open (getHeroRectFromElement). */
+	onSelect?: (tile: HTMLElement) => void;
 	/** From useDrawerMediaPreview: `bind(...)` result and its `consumeClick`. */
 	previewProps?: Record<string, unknown>;
 	consumePreviewClick?: () => boolean;
@@ -469,17 +470,17 @@ export function DrawerMediaTile({
 	deleteLabel?: string;
 	children?: ReactNode;
 }) {
-	const select = () => {
+	const select = (tile: HTMLElement) => {
 		if (consumePreviewClick?.()) return;
-		onSelect?.();
+		onSelect?.(tile);
 	};
 	return (
 		<div
 			role="button"
 			tabIndex={onSelect && !muted ? 0 : -1}
 			{...previewProps}
-			onClick={select}
-			onKeyDown={(e) => { if (e.key === "Enter") onSelect?.(); }}
+			onClick={(e) => select(e.currentTarget)}
+			onKeyDown={(e) => { if (e.key === "Enter") onSelect?.(e.currentTarget); }}
 			className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${onSelect ? "cursor-pointer" : "cursor-default"} ${busy ? "opacity-60" : ""} ${muted ? "pointer-events-none opacity-30" : ""}`}
 			style={{ outline: selected ? "2px solid var(--accent)" : "none", outlineOffset: "-2px" }}
 		>

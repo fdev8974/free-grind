@@ -147,6 +147,7 @@ import { DrawerEmptyState, ExpiryToggleButton, MediaToolButton, MediaToolDivider
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import type { HeroRect } from "../../../components/PhotoViewer";
 
 type ChatThreadPanelProps = {
 	navigate: NavigateFunction;
@@ -193,7 +194,7 @@ type ChatThreadPanelProps = {
 	startMessageLongPress: (messageId: string) => void;
 	endMessageLongPress: () => void;
 	messageLongPressTriggeredRef: { current: boolean };
-	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number) => void;
+	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number, heroRect?: HeroRect | null) => void;
 	openAlbumViewerById: (albumId: number, isOwnAlbum?: boolean) => void | Promise<void>;
 	onJumpToMessage: (messageId: string) => void;
 	highlightedMessageId: string | null;

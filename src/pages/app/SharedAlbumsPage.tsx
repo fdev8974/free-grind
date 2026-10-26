@@ -28,7 +28,7 @@ import {
 import { getAlbumMediaCounts, getAllAlbums, getConversation } from "../../services/chatDb";
 import { toDataUri } from "../../services/mediaStore";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
-import { PhotoViewer, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
+import { PhotoViewer, type HeroRect, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
 import { AlbumMediaSheet } from "../../components/AlbumMediaSheet";
 import { PhotoActionBar } from "../../components/PhotoActionBar";
 import { useRevealOnScroll } from "../../hooks/useRevealOnScroll";
@@ -715,7 +715,10 @@ export function SharedAlbumsPage() {
 	// Tapping an item inside the album's browse-first sheet — the sheet stays
 	// mounted underneath so closing the full-screen viewer returns to it
 	// instead of exiting all the way back to the album grid.
-	const handleSelectAlbumContent = useCallback((index: number) => {
+	// Where the tapped tile sits in the album sheet, for the viewer's hero open.
+	const [viewerHeroRect, setViewerHeroRect] = useState<HeroRect | null>(null);
+	const handleSelectAlbumContent = useCallback((index: number, heroRect?: HeroRect | null) => {
+		setViewerHeroRect(heroRect ?? null);
 		setIsContentSheetOpen(false);
 		setViewerIndex(index);
 		if (!viewerHistoryPushedRef.current) {
@@ -1112,6 +1115,7 @@ export function SharedAlbumsPage() {
 					menuActions={albumMenuActions}
 					albumHeader={albumHeader}
 					isLoading={isOpeningAlbum}
+					heroRect={viewerHeroRect}
 					// Only gate directly-opened albums — once the user has already
 					// browsed the album's contents in the browse-first sheet, the
 					// warning would be redundant for every item tapped from it.
