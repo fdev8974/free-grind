@@ -155,6 +155,10 @@ export type DrawerPreviewContent = DrawerPreviewMedia | DrawerPreviewGroup;
 const GROUP_PREVIEW_MAX = 9;
 
 const LONG_PRESS_MS = 400;
+// Touch opens on the platform's own long press (contextmenu) instead: Android
+// fires it ~500ms in, and a peek already fading in at that moment flickers.
+// This is only the fallback for when no contextmenu comes.
+const TOUCH_LONG_PRESS_FALLBACK_MS = 700;
 const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
 
 /**
@@ -167,6 +171,8 @@ export function useDrawerMediaPreview() {
 	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const startRef = useRef<{ x: number; y: number } | null>(null);
 	const suppressClickRef = useRef(false);
+	// Opens the peek for the press in progress (see onContextMenu).
+	const openRef = useRef<((source: string) => void) | null>(null);
 	// While a peek is open the finger belongs to it: moving it mustn't start
 	// dragging (or dismissing) the sheet underneath.
 	const releaseSheetDragRef = useRef<(() => void) | null>(null);
@@ -210,15 +216,21 @@ export function useDrawerMediaPreview() {
 				cancelTimer();
 				// Warm the cache during the hold so the peek usually opens already loaded.
 				if (!("items" in media) && !media.isVideo) new Image().src = proxyMediaUrl(media.src);
-				timerRef.current = setTimeout(() => {
-					timerRef.current = null;
+				const open = (source: string) => {
+					cancelTimer();
+					openRef.current = null;
 					suppressClickRef.current = true;
 					haptic(20);
 					releaseSheetDrag();
 					releaseSheetDragRef.current = holdSheetDrag();
-					peekDebug("timer -> open");
+					peekDebug(`${source} -> open`);
 					setPreview(media);
-				}, LONG_PRESS_MS);
+				};
+				openRef.current = open;
+				timerRef.current = setTimeout(
+					() => open("timer"),
+					event.pointerType === "touch" ? TOUCH_LONG_PRESS_FALLBACK_MS : LONG_PRESS_MS,
+				);
 			},
 			onPointerMove: (event: PointerEvent<HTMLElement>) => {
 				const start = startRef.current;
@@ -245,6 +257,7 @@ export function useDrawerMediaPreview() {
 			onDragStart: () => peekDebug("dragstart"),
 			onContextMenu: (event: MouseEvent<HTMLElement>) => {
 				peekDebug(`contextmenu on ${(event.target as Element).tagName}`);
+				if (timerRef.current) openRef.current?.("contextmenu");
 				event.preventDefault();
 			},
 		}),
