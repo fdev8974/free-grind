@@ -49,19 +49,29 @@ object AppDisguise {
     // regardless of which alias is enabled.
     val labelRes: Int,
     val iconRes: Int,
+    // Monochrome status-bar/notification small icon; the fox silhouette
+    // would otherwise give every decoy away on each incoming notification.
+    val notificationIconRes: Int,
   ) {
-    DEFAULT("default", "DisguiseDefaultAlias", "Chat Messages", "Taps", "Activity", R.string.app_name, R.mipmap.ic_launcher),
+    DEFAULT(
+      "default", "DisguiseDefaultAlias", "Chat Messages", "Taps", "Activity",
+      R.string.app_name, R.mipmap.ic_launcher,
+      R.drawable.ic_notification_silhouette,
+    ),
     CALCULATOR(
       "calculator", "DisguiseCalculatorAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_calculator, R.mipmap.ic_launcher_calculator,
+      R.drawable.ic_notification_calculator,
     ),
     NOTES(
       "notes", "DisguiseNotesAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_notes, R.mipmap.ic_launcher_notes,
+      R.drawable.ic_notification_notes,
     ),
     WEATHER(
       "weather", "DisguiseWeatherAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_weather, R.mipmap.ic_launcher_weather,
+      R.drawable.ic_notification_weather,
     );
 
     companion object {

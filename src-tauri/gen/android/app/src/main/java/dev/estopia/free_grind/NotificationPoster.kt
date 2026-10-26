@@ -235,7 +235,7 @@ object NotificationPoster {
         )
 
         val builder = NotificationCompat.Builder(context, AppDisguise.ACTIVITY_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification_silhouette)
+            .setSmallIcon(AppDisguise.currentDisguise(context).notificationIconRes)
             .setColor(Color.TRANSPARENT)
             .setColorized(false)
             .setContentTitle(title)
@@ -398,7 +398,7 @@ object NotificationPoster {
 
         val builder = NotificationCompat.Builder(context, channelId)
             // Status-bar icon: monochrome stencil with transparent background only.
-            .setSmallIcon(R.drawable.ic_notification_silhouette)
+            .setSmallIcon(AppDisguise.currentDisguise(context).notificationIconRes)
             .addPerson(sender)
             // Keep the badge overlay neutral and avoid OEM color plates.
             .setColor(Color.TRANSPARENT)
