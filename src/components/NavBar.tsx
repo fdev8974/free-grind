@@ -584,21 +584,13 @@ export function NavBar() {
 									className={cn(
 										isSwitcherTab && "select-none [-webkit-touch-callout:none]",
 										"flex h-full flex-col items-center justify-center gap-1 rounded-xl text-[var(--text-muted)] transition-colors duration-150 hover:text-[var(--text)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] md:gap-1.5",
-										fullWidth
-											? // Mobile app: no filled pill on the full-width bar, highlight via text color only.
-												cn(
-													"data-[state=active]:bg-transparent data-[state=active]:shadow-none",
-													item.value === "right-now" || (item.value === "browse" && isRightNowLive)
-														? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
-														: item.value === "browse" && isExploreActive
-															? "focus-visible:ring-[var(--explore)] data-[state=active]:text-[var(--explore)]"
-															: "focus-visible:ring-[var(--accent)] data-[state=active]:text-[var(--accent)]",
-												)
-											: item.value === "right-now" || (item.value === "browse" && isRightNowLive)
-												? "focus-visible:ring-[var(--right-now)] data-[state=active]:bg-[var(--right-now)] data-[state=active]:text-white"
-												: item.value === "browse" && isExploreActive
-													? "focus-visible:ring-[var(--explore)] data-[state=active]:bg-[var(--explore)] data-[state=active]:text-white"
-													: "focus-visible:ring-[var(--accent)] data-[state=active]:bg-[var(--accent)] data-[state=active]:text-[var(--accent-contrast)]"
+										// No filled pill (full-width and floating alike), highlight via text color only.
+										"data-[state=active]:bg-transparent data-[state=active]:shadow-none",
+										item.value === "right-now" || (item.value === "browse" && isRightNowLive)
+											? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
+											: item.value === "browse" && isExploreActive
+												? "focus-visible:ring-[var(--explore)] data-[state=active]:text-[var(--explore)]"
+												: "focus-visible:ring-[var(--accent)] data-[state=active]:text-[var(--accent)]",
 									)}
 								>
 									{/* Fixed icon-sized slot so the slightly larger avatar overflows evenly
@@ -617,10 +609,7 @@ export function NavBar() {
 													"h-6 w-6 shrink-0 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
 													activeTab !== "settings" && !isAccountSwitcherOpen
 														? "ring-transparent"
-														: // The floating bar fills the active tab with the accent, so the ring flips to its contrast color there.
-															fullWidth || activeTab !== "settings"
-															? "ring-[var(--accent)]"
-															: "ring-[var(--accent-contrast)]",
+														: "ring-[var(--accent)]",
 												)}
 											/>
 										)}
