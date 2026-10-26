@@ -1,4 +1,4 @@
-import { Album, Ban, Check, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
+import { Album, Ban, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, Loader2, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
 import { BananaFilled, EyeFilled, HomeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
@@ -6,6 +6,8 @@ import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { useQueryClient } from "@tanstack/react-query";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { useNavigate } from "react-router-dom";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { appLog } from "../../../../utils/logger";
 import { useTranslation } from "react-i18next";
 import {
 	createBackdropCloseHandler,
@@ -723,115 +725,140 @@ export function ProfileDetailsModal({
 		setBanNamePrompt({ text: actualProfileName });
 	};
 
+	// Grows with the note while editing, so it's always shown in full.
+	const noteTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+	useLayoutEffect(() => {
+		const el = noteTextareaRef.current;
+		if (!el) return;
+		el.style.height = "auto";
+		el.style.height = `${el.scrollHeight}px`;
+	}, [noteDraft, isEditingNote]);
+
+	// Native list look (like SheetCard rows): the note and the phone number as
+	// rows of one card with inset dividers, plain text actions in the header.
+	const noteHeaderButtonClass = "-my-1.5 rounded-lg px-2 py-1.5 text-sm transition active:opacity-60 disabled:opacity-40";
 	const notesSectionJsx = isFavorite && !isOwnProfile ? (
 		<div className="px-3">
-			{/* Header row */}
-			<div className="mb-2.5 flex items-center justify-between">
+			<div className="mb-2 flex min-h-5 items-center justify-between">
 				<div className="flex items-center gap-2">
 					<p className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 						{t("favorites.note_section_title")}
 					</p>
-					{isLoadingNote && (
-						<div className="h-3 w-3 animate-spin rounded-full border-2 border-[var(--text-muted)] border-t-transparent" />
+					{(isLoadingNote || isSavingNote) && (
+						<Loader2 className="h-3 w-3 animate-spin text-[var(--text-muted)]" />
 					)}
 				</div>
 				{isEditingNote ? (
 					<div className="flex items-center gap-1">
 						<button
 							type="button"
-							onClick={handleSaveNote}
+							onClick={() => setIsEditingNote(false)}
 							disabled={isSavingNote}
-							className="inline-flex items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 py-1 text-xs font-medium text-[var(--accent-contrast)] transition hover:opacity-90 disabled:opacity-50"
+							className={`${noteHeaderButtonClass} font-medium text-[var(--text-muted)]`}
 						>
-							<Check className="h-3 w-3" />
-							{t("common.save")}
+							{t("common.cancel")}
 						</button>
 						<button
 							type="button"
-							onClick={() => setIsEditingNote(false)}
+							onClick={handleSaveNote}
 							disabled={isSavingNote}
-							className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
+							className={`${noteHeaderButtonClass} font-semibold text-[var(--accent)]`}
 						>
-							<X className="h-3 w-3" />
-							{t("common.cancel")}
+							{t("common.save")}
 						</button>
 					</div>
-				) : (
+				) : profileNote || profilePhoneNumber ? (
 					<button
 						type="button"
 						onClick={() => { setNoteDraft(profileNote); setPhoneNumberDraft(profilePhoneNumber); setIsEditingNote(true); }}
 						disabled={isLoadingNote}
-						className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-xs text-[var(--text-muted)] transition hover:text-[var(--text)]"
+						className={`${noteHeaderButtonClass} font-semibold text-[var(--accent)]`}
 					>
-						<Pencil className="h-3 w-3" />
 						{t("common.edit")}
 					</button>
-				)}
+				) : null}
 			</div>
 
-			{/* Body */}
-			{isEditingNote ? (
-				<div className="space-y-2">
-					<div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] transition-colors focus-within:border-[var(--accent)]">
-						<div className="flex items-start gap-2.5 px-3 pt-3 pb-2">
-							<StickyNoteFilled className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+			<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+				{isEditingNote ? (
+					<>
+						<label className="flex items-start gap-3 px-4 py-3">
+							<StickyNoteFilled className="mt-[3px] h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 							<textarea
+								ref={noteTextareaRef}
 								autoFocus
 								value={noteDraft}
 								onChange={(e) => setNoteDraft(e.target.value)}
 								placeholder={t("favorites.note_placeholder")}
-								rows={3}
-								className="min-w-0 flex-1 resize-none bg-transparent text-sm leading-relaxed text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+								rows={2}
+								className="min-w-0 flex-1 resize-none overflow-hidden bg-transparent text-[15px] leading-relaxed text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
 							/>
-						</div>
-						<div className="flex items-center gap-2.5 border-t border-[var(--border)] px-3 py-2.5">
-							<Phone className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)] fill-current" />
+						</label>
+						<div className="ml-11 h-px bg-[var(--border)]" />
+						<label className="flex min-h-12 items-center gap-3 px-4">
+							<Phone className="h-4 w-4 shrink-0 fill-current text-[var(--text-muted)]" />
 							<input
 								type="tel"
 								value={phoneNumberDraft}
 								onChange={(e) => setPhoneNumberDraft(e.target.value)}
 								placeholder={t("favorites.phone_number_placeholder")}
-								className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
+								className="min-w-0 flex-1 bg-transparent text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
 							/>
-						</div>
-					</div>
-					{(profileNote || profilePhoneNumber) && (
-						<div className="flex justify-end">
+						</label>
+						{(profileNote || profilePhoneNumber) && (
+							<>
+								<div className="h-px bg-[var(--border)]" />
+								<button
+									type="button"
+									onClick={handleDeleteNote}
+									disabled={isSavingNote}
+									className="flex min-h-12 w-full items-center gap-3 px-4 text-left text-[15px] text-red-400 transition active:bg-red-500/10 disabled:opacity-50"
+								>
+									<Trash2 className="h-4 w-4 shrink-0" />
+									{t("favorites.delete_note")}
+								</button>
+							</>
+						)}
+					</>
+				) : profileNote || profilePhoneNumber ? (
+					<>
+						{profileNote && (
+							<div className="flex items-start gap-3 px-4 py-3">
+								<StickyNoteFilled className="mt-[3px] h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+								<p className="min-w-0 flex-1 whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--text)] [overflow-wrap:anywhere] select-text">
+									{profileNote}
+								</p>
+							</div>
+						)}
+						{profileNote && profilePhoneNumber && <div className="ml-11 h-px bg-[var(--border)]" />}
+						{profilePhoneNumber && (
+							// Tapping the number starts a call (through the opener, like
+							// other external links — a plain tel: link isn't handed on by the webview).
 							<button
 								type="button"
-								onClick={handleDeleteNote}
-								disabled={isSavingNote}
-								className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
+								onClick={() => {
+									const url = `tel:${profilePhoneNumber.replace(/[^\d+]/g, "")}`;
+									openUrl(url).catch((error) => appLog.error("Failed to open phone link", error));
+								}}
+								className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition active:bg-[var(--surface)]"
 							>
-								<Trash2 className="h-3 w-3" />
-								{t("favorites.delete_note")}
+								<Phone className="h-4 w-4 shrink-0 fill-current text-[var(--text-muted)]" />
+								<span className="min-w-0 flex-1 truncate text-[15px] text-[var(--accent)]">{profilePhoneNumber}</span>
 							</button>
-						</div>
-					)}
-				</div>
-			) : profileNote ? (
-				<div className="space-y-1.5">
-					<div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
-						<p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)] select-text">{profileNote}</p>
-					</div>
-					{profilePhoneNumber && (
-						<div className="flex min-h-10 items-center gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3">
-							<Phone className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)] fill-current" />
-							<span className="text-sm text-[var(--text)] select-text">{profilePhoneNumber}</span>
-						</div>
-					)}
-				</div>
-			) : (
-				<button
-					type="button"
-					onClick={() => { setNoteDraft(""); setPhoneNumberDraft(""); setIsEditingNote(true); }}
-					disabled={isLoadingNote}
-					className="flex w-full items-center gap-2.5 rounded-xl border border-dashed border-[var(--border)] px-4 py-3 text-left transition hover:border-[var(--accent)]/60 hover:bg-[var(--surface-2)]"
-				>
-					<StickyNoteFilled className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-					<span className="text-sm text-[var(--text-muted)]">{t("favorites.note_empty")}</span>
-				</button>
-			)}
+						)}
+					</>
+				) : (
+					<button
+						type="button"
+						onClick={() => { setNoteDraft(""); setPhoneNumberDraft(""); setIsEditingNote(true); }}
+						disabled={isLoadingNote}
+						className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition active:bg-[var(--surface)] disabled:opacity-50"
+					>
+						<StickyNoteFilled className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+						<span className="text-[15px] text-[var(--text-muted)]">{t("favorites.note_empty")}</span>
+					</button>
+				)}
+			</div>
 		</div>
 	) : null;
 

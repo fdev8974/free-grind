@@ -58,6 +58,15 @@ import { haptic } from "../../../../utils/haptics";
 
 type LabelMap = Record<number, string>;
 
+// Profile-written text (About, Right Now): shown in full, line breaks kept,
+// long words/links wrapped instead of running off the card.
+const INSTAGRAM_ICON_PATH = "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z";
+const X_ICON_PATH = "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.26 5.632L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z";
+const FACEBOOK_ICON_PATH = "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z";
+
+const PROFILE_TEXT_CLASS =
+	"whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--text)] [overflow-wrap:anywhere] select-text";
+
 function TravelPlanRow({
 	plan,
 	t,
@@ -253,6 +262,13 @@ export function ProfileDetailsContent({
 	// post (rightNowPosted) and would otherwise render an empty box.
 	const hasRightNowDetail = hasRightNow && Boolean(rightNowTextTrimmed);
 	const isRightNowHosting = activeProfile.rightNow === "HOSTING";
+	const socialNetworks = activeProfile.socialNetworks;
+	const socialLinks = [
+		{ key: "instagram", handle: socialNetworks?.instagram?.userId, url: `https://instagram.com/${socialNetworks?.instagram?.userId}`, iconPath: INSTAGRAM_ICON_PATH },
+		{ key: "twitter", handle: socialNetworks?.twitter?.userId, url: `https://x.com/${socialNetworks?.twitter?.userId}`, iconPath: X_ICON_PATH },
+		{ key: "facebook", handle: socialNetworks?.facebook?.userId, url: `https://facebook.com/${socialNetworks?.facebook?.userId}`, iconPath: FACEBOOK_ICON_PATH },
+	].filter((link): link is typeof link & { handle: string } => Boolean(link.handle));
+	const rightNowPostedLabel = hasRightNow ? formatRelativeTime(activeProfile.rightNowPosted ?? null) : null;
 
 	const renderPhotoCreatedBadge = (_hash: string) => null;
 
@@ -627,16 +643,18 @@ export function ProfileDetailsContent({
 								className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em]"
 								style={{ color: "var(--right-now)" }}
 							>
-								{t("profile_details.right_now")}
+								{isRightNowHosting ? <HomeFilled className="h-3.5 w-3.5" /> : <RightNowIcon className="h-3.5 w-3.5" />}
+								{isRightNowHosting ? t("right_now.hosting") : t("profile_details.right_now")}
+								{rightNowPostedLabel && (
+									<span className="font-medium normal-case tracking-normal text-[var(--text-muted)]">· {rightNowPostedLabel}</span>
+								)}
 							</p>
+							{/* Same card as the About text, tinted in the Right Now color. */}
 							<div
-								className="rounded-xl px-4 py-3"
-								style={{
-									backgroundColor: "color-mix(in srgb, var(--right-now), transparent 88%)",
-									border: "1px solid color-mix(in srgb, var(--right-now), transparent 70%)",
-								}}
+								className="rounded-2xl px-4 py-3"
+								style={{ backgroundColor: "color-mix(in srgb, var(--right-now) 14%, var(--surface-2))" }}
 							>
-								<p className="whitespace-pre-wrap text-base leading-relaxed text-[var(--text)] select-text">{rightNowTextTrimmed}</p>
+								<p className={PROFILE_TEXT_CLASS}>{rightNowTextTrimmed}</p>
 							</div>
 						</div>
 					)}
@@ -672,10 +690,9 @@ export function ProfileDetailsContent({
 							<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 								{t("profile_details.about")}
 							</p>
-							<div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
-								<p className="whitespace-pre-wrap text-base leading-relaxed text-[var(--text)] select-text">
-									{activeProfile.aboutMe?.trim()}
-								</p>
+							{/* Native card (like SheetCard): no border, the full text as written. */}
+							<div className="rounded-2xl bg-[var(--surface-2)] px-4 py-3">
+								<p className={PROFILE_TEXT_CLASS}>{activeProfile.aboutMe?.trim()}</p>
 							</div>
 						</div>
 					)}
@@ -867,49 +884,27 @@ export function ProfileDetailsContent({
 							<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 								{t("profile_details.social")}
 							</p>
-							<div className="grid gap-2">
-								{activeProfile.socialNetworks?.instagram?.userId && (
-									<a
-										href={`https://instagram.com/${activeProfile.socialNetworks.instagram.userId}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 transition hover:border-[var(--accent)]"
-									>
-										<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]">
-											<path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-										</svg>
-										<span className="text-sm font-medium text-[var(--text)]">{activeProfile.socialNetworks.instagram.userId}</span>
-										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									</a>
-								)}
-								{activeProfile.socialNetworks?.twitter?.userId && (
-									<a
-										href={`https://x.com/${activeProfile.socialNetworks.twitter.userId}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 transition hover:border-[var(--accent)]"
-									>
-										<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]">
-											<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.26 5.632L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"/>
-										</svg>
-										<span className="text-sm font-medium text-[var(--text)]">{activeProfile.socialNetworks.twitter.userId}</span>
-										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									</a>
-								)}
-								{activeProfile.socialNetworks?.facebook?.userId && (
-									<a
-										href={`https://facebook.com/${activeProfile.socialNetworks.facebook.userId}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 transition hover:border-[var(--accent)]"
-									>
-										<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]">
-											<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-										</svg>
-										<span className="text-sm font-medium text-[var(--text)]">{activeProfile.socialNetworks.facebook.userId}</span>
-										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									</a>
-								)}
+							{/* One native list card (like the private notes): a row per network,
+							    inset dividers, opened through the opener like the Spotify songs. */}
+							<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+								{socialLinks.map((link, index) => (
+									<div key={link.key}>
+										{index > 0 && <div className="ml-11 h-px bg-[var(--border)]" />}
+										<button
+											type="button"
+											onClick={() => {
+												openUrl(link.url).catch((error) => appLog.error("Failed to open social link", error));
+											}}
+											className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition active:bg-[var(--surface)]"
+										>
+											<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]" aria-hidden="true">
+												<path d={link.iconPath} />
+											</svg>
+											<span className="min-w-0 flex-1 truncate text-[15px] text-[var(--text)]">{link.handle}</span>
+											<ExternalLink className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+										</button>
+									</div>
+								))}
 							</div>
 						</div>
 					)}
