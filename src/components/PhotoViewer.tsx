@@ -179,7 +179,8 @@ function MediaCornerOverlay({
 			ref={anchorRef}
 			className="pointer-events-none absolute left-0 top-0"
 			style={{
-				transform: `translate(${x}px, ${y}px) translate(0.75rem, calc(-100% - 0.75rem))`,
+				// Same inset as in the image-only chat bubble's footer row (px-3 py-2).
+				transform: `translate(${x}px, ${y}px) translate(0.75rem, calc(-100% - 0.5rem))`,
 				visibility: content ? "visible" : "hidden",
 			}}
 		>
