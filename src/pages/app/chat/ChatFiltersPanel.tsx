@@ -4,7 +4,7 @@ import { Slider } from "../../../components/ui/range-slider";
 import { SheetCard, SheetChip, SheetSection } from "../../../components/ui/sheet-section";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { formatDistanceForUnits } from "../../../utils/units";
-import { getSexualPositionOptions } from "../profile-option-builders";
+import { getSexualPositionOptions, SEXUAL_POSITION_ICONS } from "../profile-option-builders";
 import type { InboxFilterKey, InboxVisibilityFilter } from "../../../types/chat-page";
 import type { ChatFiltersDraft } from "../chat/chatUtils";
 
@@ -152,11 +152,19 @@ export function ChatFiltersPanel({ isDesktop: _isDesktop, draft, onChangeDraft, 
 
 			<SheetSection title={t("profile_editor.sections.states.position")}>
 				<div className="flex flex-wrap gap-2">
-					{positionFilterOptions.map(({ value: positionId, label }) => (
-						<SheetChip key={positionId} active={draft.positions.includes(positionId)} onClick={() => togglePosition(positionId)}>
-							{label}
-						</SheetChip>
-					))}
+					{positionFilterOptions.map(({ value: positionId, label }) => {
+						const Icon = SEXUAL_POSITION_ICONS[positionId];
+						return (
+							<SheetChip key={positionId} active={draft.positions.includes(positionId)} onClick={() => togglePosition(positionId)}>
+								{Icon ? (
+									<span className="inline-flex items-center gap-1.5">
+										<Icon className="h-3.5 w-3.5 shrink-0" />
+										{label}
+									</span>
+								) : label}
+							</SheetChip>
+						);
+					})}
 				</div>
 			</SheetSection>
 		</div>
