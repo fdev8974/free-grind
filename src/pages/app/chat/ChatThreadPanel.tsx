@@ -1423,13 +1423,14 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									className="min-w-0 text-left transition active:opacity-70 disabled:cursor-default disabled:active:opacity-100"
 								>
 									<span className="flex items-center gap-1.5 min-w-0">
-										<span className="block truncate text-lg font-semibold leading-tight">
+										<span className="block truncate text-base font-semibold leading-tight">
 											{displayName}
 										</span>
 									</span>
-									{/* leading-tight keeps this block at the 40px button/avatar height, so the
-									    header row (and its icons) sits exactly like the profile / photo viewer. */}
-									<span className="block text-sm leading-tight text-[var(--text-muted)]">
+									{/* Same type sizes as the profile's floating header (name text-base,
+									    status line text-xs); leading-tight keeps the block within the
+									    40px avatar height, so the row sits like the profile / photo viewer. */}
+									<span className="block text-xs leading-tight text-[var(--text-muted)]">
 										{[
 											onlineMeta.label,
 											distanceLabel,
