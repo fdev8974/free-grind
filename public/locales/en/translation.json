@@ -1109,7 +1109,6 @@
     "foreground": "Notifications While App Is Open",
     "foreground_desc": "Show notifications (for the types enabled above) while you have the app open. Turn this off to only be notified once the app is in the background or closed.",
     "activity_section": "Activity",
-    "activity_section_desc": "Saved on your Grindr account, so these apply to every device you're signed in on.",
     "push_settings_loading": "Loading…",
     "push_settings_load_failed": "Couldn't load notification settings.",
     "push_settings_save_failed": "Couldn't save notification setting.",
@@ -1126,7 +1125,7 @@
       "unreadChatsPushNotification_desc": "Get reminded about chats you haven't read yet.",
       "viewedProfilePushNotification": "Views",
       "viewedProfilePushNotification_desc": "Get notified when your profile gets views.",
-      "tapPushNotification": "Taps (Server)",
+      "tapPushNotification": "Taps",
       "tapPushNotification_desc": "Whether Grindr sends tap pushes to your account at all."
     }
   },

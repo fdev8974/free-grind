@@ -1117,7 +1117,6 @@
         "foreground": "Obavještenja dok je aplikacija otvorena",
         "foreground_desc": "Prikazuj obavještenja (za gore uključene vrste) dok je aplikacija otvorena. Isključi ovo da dobijaš obavještenja samo kad je aplikacija u pozadini ili zatvorena.",
         "activity_section": "",
-        "activity_section_desc": "",
         "push_settings_loading": "",
         "push_settings_load_failed": "",
         "push_settings_save_failed": "",

@@ -1109,7 +1109,6 @@
         "foreground": "Benachrichtigungen bei geöffneter App",
         "foreground_desc": "Zeigt Benachrichtigungen (für die oben aktivierten Typen) an, während die App geöffnet ist. Schalte dies aus, um nur benachrichtigt zu werden, wenn die App im Hintergrund oder geschlossen ist.",
         "activity_section": "",
-        "activity_section_desc": "",
         "push_settings_loading": "",
         "push_settings_load_failed": "",
         "push_settings_save_failed": "",

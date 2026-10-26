@@ -168,9 +168,6 @@ export function NotificationsPage() {
 								))
 							)}
 						</div>
-						<p className="mt-2 px-1 text-xs text-[var(--text-muted)]">
-							{t("notifications_page.activity_section_desc")}
-						</p>
 					</div>
 				)}
 			</div>

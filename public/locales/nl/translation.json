@@ -1109,7 +1109,6 @@
         "foreground": "Meldingen terwijl de app open is",
         "foreground_desc": "Toon meldingen (voor de hierboven ingeschakelde types) terwijl je de app open hebt. Zet dit uit om alleen meldingen te krijgen als de app op de achtergrond draait of gesloten is.",
         "activity_section": "",
-        "activity_section_desc": "",
         "push_settings_loading": "",
         "push_settings_load_failed": "",
         "push_settings_save_failed": "",

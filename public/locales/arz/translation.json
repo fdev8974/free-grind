@@ -1133,7 +1133,6 @@
         "foreground": "الإشعارات أثناء فتح التطبيق",
         "foreground_desc": "اعرض الإشعارات (للأنواع المفعّلة أعلاه) أثناء فتح التطبيق. أوقف تشغيل هذا الخيار لتلقّي الإشعارات فقط عندما يكون التطبيق في الخلفية أو مغلقًا.",
         "activity_section": "",
-        "activity_section_desc": "",
         "push_settings_loading": "",
         "push_settings_load_failed": "",
         "push_settings_save_failed": "",

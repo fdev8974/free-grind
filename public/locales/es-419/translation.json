@@ -1117,7 +1117,6 @@
         "foreground": "Notificaciones mientras la aplicación está abierta",
         "foreground_desc": "Mostrar notificaciones (de los tipos habilitados anteriormente) mientras la aplicación esté abierta. Desactive esta opción para recibir notificaciones únicamente cuando la aplicación esté en segundo plano o cerrada.",
         "activity_section": "",
-        "activity_section_desc": "",
         "push_settings_loading": "",
         "push_settings_load_failed": "",
         "push_settings_save_failed": "",

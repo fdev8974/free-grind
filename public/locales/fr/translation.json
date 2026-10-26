@@ -1117,7 +1117,6 @@
         "foreground": "Notifications lorsque l'application est ouverte",
         "foreground_desc": "Afficher les notifications (pour les types activés ci-dessus) lorsque l'application est ouverte. Désactivez cette option pour ne recevoir des notifications que lorsque l'application est en arrière-plan ou fermée.",
         "activity_section": "",
-        "activity_section_desc": "",
         "push_settings_loading": "",
         "push_settings_load_failed": "",
         "push_settings_save_failed": "",
