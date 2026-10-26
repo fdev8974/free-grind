@@ -1,5 +1,7 @@
 import { Images, Loader2, Play } from "lucide-react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { peekDebug } from "../utils/peekDebug";
 import { BottomSheet } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { getHeroRectFromElement, type HeroRect } from "./PhotoViewer";
@@ -43,6 +45,11 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
 	const { preview, bind, consumeClick } = useDrawerMediaPreview();
+
+	useEffect(() => {
+		peekDebug("album sheet mount");
+		return () => peekDebug("album sheet unmount");
+	}, []);
 
 	return (
 		<BottomSheet

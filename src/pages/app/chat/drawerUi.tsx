@@ -8,6 +8,7 @@ import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseB
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { peekDebug } from "../../../utils/peekDebug";
 import { SheetActionList } from "../../../components/ui/action-sheet";
 
 // Shared building blocks for every media drawer sheet (chat drawer, collection
@@ -194,9 +195,15 @@ export function useDrawerMediaPreview() {
 		releaseSheetDrag();
 	}, [cancelTimer, releaseSheetDrag]);
 
+	useEffect(() => {
+		peekDebug("hook mount");
+		return () => peekDebug("hook unmount");
+	}, []);
+
 	const bind = useCallback(
 		(media: DrawerPreviewContent) => ({
 			onPointerDown: (event: PointerEvent<HTMLElement>) => {
+				peekDebug(`pointerdown ${event.pointerType} id:${event.pointerId} video:${!("items" in media) && media.isVideo}`);
 				if (event.pointerType === "mouse" && event.button !== 0) return;
 				suppressClickRef.current = false;
 				startRef.current = { x: event.clientX, y: event.clientY };
@@ -209,6 +216,7 @@ export function useDrawerMediaPreview() {
 					haptic(20);
 					releaseSheetDrag();
 					releaseSheetDragRef.current = holdSheetDrag();
+					peekDebug("timer -> open");
 					setPreview(media);
 				}, LONG_PRESS_MS);
 			},
@@ -216,17 +224,28 @@ export function useDrawerMediaPreview() {
 				const start = startRef.current;
 				if (!start || !timerRef.current) return;
 				if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > LONG_PRESS_MOVE_TOLERANCE_PX) {
+					peekDebug("move > tolerance, cancel timer");
 					cancelTimer();
 				}
 			},
-			onPointerUp: end,
-			onPointerCancel: end,
-			onPointerLeave: () => {
+			onPointerUp: (event: PointerEvent<HTMLElement>) => {
+				peekDebug(`pointerup id:${event.pointerId}`);
+				end();
+			},
+			onPointerCancel: (event: PointerEvent<HTMLElement>) => {
+				peekDebug(`pointercancel id:${event.pointerId}`);
+				end();
+			},
+			onPointerLeave: (event: PointerEvent<HTMLElement>) => {
+				peekDebug(`pointerleave id:${event.pointerId} pending:${!!timerRef.current}`);
 				// Leaving the tile only aborts a pending press; an open peek stays
 				// until the finger is lifted.
 				cancelTimer();
 			},
-			onContextMenu: (event: MouseEvent<HTMLElement>) => event.preventDefault(),
+			onContextMenu: (event: MouseEvent<HTMLElement>) => {
+				peekDebug("contextmenu");
+				event.preventDefault();
+			},
 		}),
 		[cancelTimer, end, releaseSheetDrag],
 	);
@@ -258,6 +277,7 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 	const markLoaded = useCallback(() => setLoadedMedia(shown), [shown]);
 
 	useEffect(() => {
+		peekDebug(`preview media ${media ? "set" : "null"}`);
 		if (media) {
 			setShown(media);
 			return;
@@ -285,6 +305,10 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 			cancelAnimationFrame(inner);
 		};
 	}, [media, isLoaded]);
+
+	useEffect(() => {
+		peekDebug(`preview visible:${isVisible} loaded:${isLoaded}`);
+	}, [isVisible, isLoaded]);
 
 	if (!shown) return null;
 	const transition = `opacity ${PREVIEW_ANIMATION_MS}ms ease-out, transform ${PREVIEW_ANIMATION_MS}ms cubic-bezier(0.34, 1.3, 0.64, 1)`;
