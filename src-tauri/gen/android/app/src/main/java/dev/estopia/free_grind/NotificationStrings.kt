@@ -22,6 +22,10 @@ object NotificationStrings {
     const val GENERIC_MESSAGE = "GENERIC_MESSAGE"
     const val OPEN_CHAT = "OPEN_CHAT"
     const val OPEN_PROFILE = "OPEN_PROFILE"
+    const val REPLY = "REPLY"
+    const val REPLY_HINT = "REPLY_HINT"
+    const val REPLY_QUEUED = "REPLY_QUEUED"
+    const val REPLY_FAILED = "REPLY_FAILED"
     const val TAPS_TITLE = "TAPS_TITLE"
     const val MESSAGE_REACTION_NO_NAME = "CHAT_MESSAGE_REACTION_NO_NAME_NOTIFICATION_BODY"
 
@@ -32,6 +36,10 @@ object NotificationStrings {
         GENERIC_MESSAGE to "Sent you a message",
         OPEN_CHAT to "Open chat",
         OPEN_PROFILE to "Open profile",
+        REPLY to "Reply",
+        REPLY_HINT to "Message",
+        REPLY_QUEUED to "Sends when you open the app",
+        REPLY_FAILED to "Not sent",
         TAPS_TITLE to "Taps",
         MESSAGE_REACTION_NO_NAME to "Reacted to your message",
     )

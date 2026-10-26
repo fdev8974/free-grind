@@ -95,6 +95,18 @@ class MainActivity : TauriActivity() {
       activity.dispatchPushNotificationToWebview(payloadJson, 0)
     }
 
+    /**
+     * Hands an inline notification reply (already persisted by
+     * NotificationReply) to the WebView. False when there's none alive — it
+     * then goes out from onWebViewCreate the next time the app is opened.
+     */
+    fun enqueueNotificationReply(replyJson: String): Boolean {
+      val activity = activityRef?.get() ?: return false
+      if (activity.webViewRef == null) return false
+      activity.dispatchNotificationReplyToWebview(replyJson, 0)
+      return true
+    }
+
     fun hasActiveWebView(): Boolean {
       return activityRef?.get()?.webViewRef != null
     }
@@ -279,6 +291,7 @@ class MainActivity : TauriActivity() {
       pendingSharePayloads.clear()
       pending
     }.forEach { dispatchShareToWebview(it, 0) }
+    dispatchPendingNotificationReplies()
     pendingGoogleToken?.let {
       pendingGoogleToken = null
       dispatchGoogleTokenToWebview(it, 0)
@@ -374,6 +387,27 @@ class MainActivity : TauriActivity() {
           NotificationPoster.postNotification(this@MainActivity, JSONObject(payloadJson))
         } catch (e: Exception) {
           Log.e("FCM", "Failed to post local notification", e)
+        }
+      }
+    }
+
+    /**
+     * NotificationReplyBridge's outcome for an inline reply:
+     * `{ id, notificationTag, ok }`. A failed one gets flagged on its line.
+     */
+    @JavascriptInterface
+    fun notificationReplyResult(json: String) {
+      localNotifExecutor.execute {
+        try {
+          val result = JSONObject(json)
+          val tag = result.optString("notificationTag").ifBlank { return@execute }
+          if (result.optBoolean("ok")) {
+            NotificationPoster.refreshAfterReply(this@MainActivity, tag)
+          } else {
+            NotificationPoster.markReplyFailed(this@MainActivity, tag, result.optString("id"))
+          }
+        } catch (e: Exception) {
+          Log.e("FCM", "Failed to apply notification reply result", e)
         }
       }
     }
@@ -880,6 +914,44 @@ class MainActivity : TauriActivity() {
           mainHandler.postDelayed({
             dispatchPushNotificationToWebview(payloadJson, attempt + 1)
           }, 400)
+        }
+      }
+    }
+  }
+
+  private fun dispatchPendingNotificationReplies() {
+    val pending = NotificationReply.pending(this)
+    for (i in 0 until pending.length()) {
+      pending.optJSONObject(i)?.let { dispatchNotificationReplyToWebview(it.toString(), 0) }
+    }
+  }
+
+  // Dropped from NotificationReply's store once the page has queued it;
+  // NotificationReplyBridge dedupes by id, so a reply dispatched twice (from
+  // the receiver and again from onWebViewCreate) is still sent once.
+  private fun dispatchNotificationReplyToWebview(replyJson: String, attempt: Int) {
+    val script =
+      "(function(){" +
+      "var reply = ${JSONObject.quote(replyJson)};" +
+      "var href = String(location && location.href || '');" +
+      "if (href.indexOf('tauri.localhost') === -1) { return 'retry:not-ready:' + href; }" +
+      "try { reply = JSON.parse(reply); } catch (e) { return 'drop:json'; }" +
+      "var queue = Array.isArray(window.__FG_NOTIFICATION_REPLIES) ? window.__FG_NOTIFICATION_REPLIES : [];" +
+      "queue.push(reply);" +
+      "window.__FG_NOTIFICATION_REPLIES = queue;" +
+      "window.dispatchEvent(new CustomEvent('fg:notification-reply', { detail: reply }));" +
+      "return 'ok';" +
+      "})();"
+    val id = runCatching { JSONObject(replyJson).optString("id") }.getOrDefault("")
+
+    runOnUiThread {
+      val webView = webViewRef ?: return@runOnUiThread
+      webView.evaluateJavascript(script) { result ->
+        when {
+          result.contains("retry") && attempt < 50 ->
+            mainHandler.postDelayed({ dispatchNotificationReplyToWebview(replyJson, attempt + 1) }, 400)
+          result.contains("ok") || result.contains("drop") ->
+            localNotifExecutor.execute { NotificationReply.remove(this, id) }
         }
       }
     }

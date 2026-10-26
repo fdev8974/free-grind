@@ -14,6 +14,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
+import androidx.core.app.RemoteInput
 import androidx.core.graphics.drawable.IconCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -46,6 +47,8 @@ object NotificationPoster {
     // (as open-grind's ConversationNotification does): the dedupe key is the
     // push's notificationId (FCM) or the messageId (realtime bridge).
     private const val EXTRA_LINE_KEY = "dev.estopia.free_grind.extra.LINE_KEY"
+    // Marks a line as the user's own inline reply (see NotificationReply.kt).
+    private const val EXTRA_LINE_FROM_ME = "dev.estopia.free_grind.extra.LINE_FROM_ME"
 
     // Messages kept in one conversation's notification (newest win).
     private const val CONVERSATION_LINES_MAX = 8
@@ -57,7 +60,14 @@ object NotificationPoster {
     // (two executor threads) can post into the same conversation at once.
     private val postLock = Any()
 
-    private data class Line(val key: String, val text: CharSequence, val timestamp: Long, val dataMimeType: String?, val dataUri: Uri?)
+    private data class Line(
+        val key: String,
+        val text: CharSequence,
+        val timestamp: Long,
+        val dataMimeType: String?,
+        val dataUri: Uri?,
+        val fromMe: Boolean = false,
+    )
 
     private val recentlyNotifiedKeys = mutableMapOf<String, Long>()
     // Grindr has no server-side dedupe and can deliver the same push more
@@ -152,7 +162,10 @@ object NotificationPoster {
 
     private fun linesOf(style: NotificationCompat.MessagingStyle): List<Line> = style.messages.mapNotNull { message ->
         message.extras.getString(EXTRA_LINE_KEY)?.let { key ->
-            Line(key, message.text ?: "", message.timestamp, message.dataMimeType, message.dataUri)
+            Line(
+                key, message.text ?: "", message.timestamp, message.dataMimeType, message.dataUri,
+                fromMe = message.extras.getBoolean(EXTRA_LINE_FROM_ME, false),
+            )
         }
     }
 
@@ -166,12 +179,62 @@ object NotificationPoster {
     private fun styleOf(me: Person, peer: Person, lines: List<Line>): NotificationCompat.MessagingStyle =
         lines.fold(NotificationCompat.MessagingStyle(me).setGroupConversation(false)) { style, line ->
             style.addMessage(
-                NotificationCompat.MessagingStyle.Message(line.text, line.timestamp, peer).apply {
+                // A null person renders the line as the style's own user ("Me").
+                NotificationCompat.MessagingStyle.Message(line.text, line.timestamp, if (line.fromMe) null else peer).apply {
                     extras.putString(EXTRA_LINE_KEY, line.key)
+                    if (line.fromMe) extras.putBoolean(EXTRA_LINE_FROM_ME, true)
                     if (line.dataMimeType != null && line.dataUri != null) setData(line.dataMimeType, line.dataUri)
                 },
             )
         }
+
+    /**
+     * Shows an inline reply as the user's own line on the conversation's
+     * card, which also stops System UI's spinner on the reply field. [note]
+     * (e.g. "Sends when you open the app") goes in the header's sub text.
+     */
+    fun appendReplyLine(context: Context, tag: String, key: String, text: String, note: String?) {
+        updateConversationCard(context, tag, note) { lines ->
+            appendLines(lines, Line(key, text, System.currentTimeMillis(), null, null, fromMe = true))
+        }
+    }
+
+    /** The reply keyed [key] couldn't be sent: flag its line. */
+    fun markReplyFailed(context: Context, tag: String, key: String) {
+        val failed = NotificationStrings.text(context, NotificationStrings.REPLY_FAILED)
+        updateConversationCard(context, tag, note = null) { lines ->
+            lines.map { if (it.key == key && it.fromMe) it.copy(text = "⚠ $failed: ${it.text}") else it }
+        }
+    }
+
+    /** Re-posts the card as is (clearing any reply note), e.g. after an empty reply. */
+    fun refreshAfterReply(context: Context, tag: String) {
+        updateConversationCard(context, tag, note = null) { it }
+    }
+
+    private fun updateConversationCard(
+        context: Context,
+        tag: String,
+        note: String?,
+        transform: (List<Line>) -> List<Line>,
+    ) {
+        synchronized(postLock) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val posted = notificationManager.activeNotifications
+                .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID } ?: return
+            val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification) ?: return
+            val peer = style.messages.firstNotNullOfOrNull { it.person } ?: return
+            val lines = transform(linesOf(style))
+            if (lines.isEmpty()) return
+            val notification = NotificationCompat.Builder(context, posted.notification)
+                .setStyle(styleOf(style.user, peer, lines))
+                .setWhen(lines.last().timestamp)
+                .setSubText(note)
+                .setOnlyAlertOnce(true)
+                .build()
+            notificationManager.notify(posted.tag, posted.id, notification)
+        }
+    }
 
     /** grindr://clear?conversationId= — withdraw a conversation's notification. */
     fun withdrawConversation(context: Context, conversationId: String) {
@@ -404,7 +467,9 @@ object NotificationPoster {
 
         // WhatsApp-style action buttons on chat notifications. Taps already
         // open the sender's profile and have no conversation to open.
-        if (!isTap && normalizeNullableString(payload.optString("senderId")) != null) {
+        val senderId = normalizeNullableString(payload.optString("senderId"))
+        if (!isTap && senderId != null) {
+            if (conversationId != null) builder.addAction(replyAction(context, notificationKey, conversationId, senderId))
             builder
                 .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_CHAT), pendingIntent).build())
                 .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_PROFILE), openIntent("profile")).build())
@@ -429,6 +494,30 @@ object NotificationPoster {
             notificationManager.notify(notificationKey, NOTIFICATION_INSTANCE_ID, builder.build())
             Log.d("FCM", "Local notification posted successfully key=$notificationKey lines=${lines.size}")
         }
+    }
+
+    // Inline reply field (handled by NotificationReplyReceiver). The intent
+    // must be mutable so System UI can attach the typed text, hence explicit.
+    private fun replyAction(context: Context, tag: String, conversationId: String, targetProfileId: String): NotificationCompat.Action {
+        val intent = Intent(context, NotificationReplyReceiver::class.java).apply {
+            action = NotificationReply.ACTION_REPLY
+            data = Uri.parse("freegrind-notification://reply/${Uri.encode(tag)}")
+            putExtra(NotificationReply.EXTRA_NOTIFICATION_TAG, tag)
+            putExtra(NotificationReply.EXTRA_CONVERSATION_ID, conversationId)
+            putExtra(NotificationReply.EXTRA_TARGET_PROFILE_ID, targetProfileId)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, tag.hashCode(), intent, PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val remoteInput = RemoteInput.Builder(NotificationReply.KEY_TEXT)
+            .setLabel(NotificationStrings.text(context, NotificationStrings.REPLY_HINT))
+            .build()
+        return NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.REPLY), pendingIntent)
+            .addRemoteInput(remoteInput)
+            .setAllowGeneratedReplies(false)
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+            .setShowsUserInterface(false)
+            .build()
     }
 
     // MessagingStyle image lines are rendered by System UI, which can't read

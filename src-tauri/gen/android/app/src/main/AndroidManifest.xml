@@ -198,6 +198,11 @@
             android:name=".ApkUpdateResultReceiver"
             android:exported="false" />
 
+        <!-- Inline "Reply" on chat notifications, see NotificationReply.kt. -->
+        <receiver
+            android:name=".NotificationReplyReceiver"
+            android:exported="false" />
+
         <service
             android:name=".FreeGrindFirebaseMessagingService"
             android:exported="false">
