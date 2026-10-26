@@ -181,7 +181,12 @@ export function OtaUpdatePromptView({
 			? Math.min(100, Math.round((progress.downloaded / progress.total) * 100))
 			: progress.phase === "installing" || progress.phase === "done"
 				? 100
-				: null;
+				// Nothing received yet: an empty bar, not the indeterminate one —
+				// otherwise it starts at a third and grows from there once the
+				// first event brings the total.
+				: progress.phase === "downloading" && progress.downloaded === 0
+					? 0
+					: null;
 
 	// Started from Settings: only the download progress is shown — the
 	// installing/done phases aren't reliable, so the bar just stays full until
