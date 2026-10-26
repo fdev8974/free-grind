@@ -2,7 +2,6 @@ import {
 	Album,
 	Check,
 	HardDrive,
-	Images,
 	Layers,
 	LayoutGrid,
 	LayoutPanelTop,
@@ -12,10 +11,9 @@ import {
 	Hourglass,
 	Send,
 	Share2,
-	Video,
 	X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDrawerMediaDelete } from "./useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "./useDrawerUploadQueue";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
@@ -37,6 +35,7 @@ import {
 	DRAWER_TILE_CLASS,
 	DrawerTileCornerButton,
 	ExpiryToggleButton,
+	GroupTileOverlay,
 	useDrawerMediaPreview,
 	VideoExpiryButton,
 } from "./drawerUi";
@@ -65,36 +64,6 @@ import { DrawerCollectionEditorSheet } from "../settings-albums/DrawerCollection
  * the name in the middle (so these read differently from plain media
  * tiles), media counts along the bottom — inset and sized like the corner
  * buttons up top, so a badge there lines up with them. */
-function GroupTileOverlay({ icon, name, counts, badge }: { icon: ReactNode; name: string; counts?: AlbumMediaCount; badge?: ReactNode }) {
-	return (
-		<>
-			<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2 pb-3 text-white">
-				<div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/35 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
-					{icon}
-				</div>
-				<p className="max-w-full truncate text-[11px] font-semibold leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{name}</p>
-			</div>
-			<div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex h-5 items-center justify-between gap-1 text-[10px] font-semibold tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
-				<span className="inline-flex min-w-0 items-center gap-2">
-					{counts && (counts.images > 0 || counts.videos === 0) ? (
-						<span className="inline-flex items-center gap-0.5">
-							<Images className="h-3 w-3" />
-							{counts.images}
-						</span>
-					) : null}
-					{counts && counts.videos > 0 ? (
-						<span className="inline-flex items-center gap-0.5">
-							<Video className="h-3 w-3" />
-							{counts.videos}
-						</span>
-					) : null}
-				</span>
-				{badge}
-			</div>
-		</>
-	);
-}
-
 export interface DrawerMedia {
 	id: number;
 	url: string;

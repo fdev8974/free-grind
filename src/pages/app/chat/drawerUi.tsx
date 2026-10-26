@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Infinity as InfinityIcon, Loader2, Play, RefreshCw, Repeat, Video, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, RefreshCw, Repeat, Video, X } from "lucide-react";
+import type { AlbumMediaCount } from "../../../types/chat-page";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
@@ -385,6 +386,37 @@ export function DrawerBody({
 		<div data-lenis-prevent {...gestureProps} className={`min-h-0 flex-1 overflow-y-auto ${isDetented ? "" : className}`}>
 			{content}
 		</div>
+	);
+}
+
+/** Centre icon + name and bottom image/video counts on a group tile (album, collection). */
+export function GroupTileOverlay({ icon, name, counts, badge }: { icon: ReactNode; name: string; counts?: AlbumMediaCount; badge?: ReactNode }) {
+	return (
+		<>
+			<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-2 pb-3 text-white">
+				<div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/35 backdrop-blur-md shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+					{icon}
+				</div>
+				<p className="max-w-full truncate text-[11px] font-semibold leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{name}</p>
+			</div>
+			<div className="pointer-events-none absolute inset-x-1.5 bottom-1.5 flex h-5 items-center justify-between gap-1 text-[10px] font-semibold tabular-nums text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">
+				<span className="inline-flex min-w-0 items-center gap-2">
+					{counts && (counts.images > 0 || counts.videos === 0) ? (
+						<span className="inline-flex items-center gap-0.5">
+							<Images className="h-3 w-3" />
+							{counts.images}
+						</span>
+					) : null}
+					{counts && counts.videos > 0 ? (
+						<span className="inline-flex items-center gap-0.5">
+							<Video className="h-3 w-3" />
+							{counts.videos}
+						</span>
+					) : null}
+				</span>
+				{badge}
+			</div>
+		</>
 	);
 }
 
