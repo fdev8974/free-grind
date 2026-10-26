@@ -16,8 +16,8 @@
         "behavior_desc": "Potvrde prije blokiranja i brisanja razgovora.",
         "notifications": "Obavještenja",
         "notifications_desc": "Odaberi koja obavještenja primaš i da li se prikazuju dok je aplikacija otvorena.",
-        "privacy": "",
-        "privacy_desc": "",
+        "privacy": "Privatnost",
+        "privacy_desc": "Potvrde čitanja, pregledi profila, inkognito način, zamućivanje medija i maskiranje aplikacije.",
         "sexual_health": "Seksualno zdravlje",
         "sexual_health_desc": "Prati doze PrEP-a, susrete, testove i termine.",
         "automation": "Automatizacija",
@@ -44,11 +44,11 @@
         "check_updates_desc": "Preuzmi i instaliraj najnoviju verziju Free Grinda.",
         "installed_version": "Verzija {{version}}",
         "installed_versions": "Frontend {{frontend}} · Aplikacija {{app}}",
-        "app_version": "",
-        "frontend_version": "",
+        "app_version": "Aplikacija {{version}}",
+        "frontend_version": "Frontend {{version}}",
         "check_now": "Provjeri sada",
-        "update_channel": "",
-        "update_channel_desc": "",
+        "update_channel": "Kanal ažuriranja",
+        "update_channel_desc": "S kojeg kanala izdanja ova aplikacija dobija ažuriranja.",
         "environment": "Okruženje",
         "switching": "Prebacivanje…",
         "checking": "Provjeravanje…",
@@ -69,13 +69,13 @@
         "ota_progress_installing": "Instaliranje ažuriranja…",
         "ota_progress_done": "Ažuriranje instalirano. Ponovno učitavanje…",
         "search_results_count_few": "{{count}} rezultata",
-        "auto_update": "",
-        "auto_update_desc": "",
-        "update_checks": "",
-        "update_checks_desc": "",
-        "update_channel_main_desc": "",
-        "update_channel_development_desc": "",
-        "update_channel_contributor_desc": ""
+        "auto_update": "Instaliraj automatski",
+        "auto_update_desc": "Odmah instalira nove verzije frontenda (OTA) iz GitHub Actions i ponovo učitava aplikaciju. Kada je isključeno, prvo ćeš biti upitan.",
+        "update_checks": "Provjeravaj automatski",
+        "update_checks_desc": "Pri svakom pokretanju aplikacije traži nove verzije aplikacije i frontenda na GitHubu. Kada je isključeno, GitHubu se ne šalje nikakav zahtjev osim ako ručno provjeriš gore.",
+        "update_channel_main_desc": "Testirana izdanja. Preporučeno.",
+        "update_channel_development_desc": "Najnovije promjene čim se izgrade. Može biti nestabilno.",
+        "update_channel_contributor_desc": "Kanal za saradnike"
     },
     "settings_blocked": {
         "title": "Blokirani računi",
@@ -129,17 +129,17 @@
         "apply_to_inbox_desc": "Odmah blokira nove razgovore koji odgovaraju tvojim kriterijima.",
         "forbidden_keywords_title": "Zabranjene riječi",
         "forbidden_keywords_desc": "Zajednička lista riječi — odvoji zarezima (npr. snapchat, crypto, bot). Sama po sebi ništa ne blokira; koristi je kao izvor riječi (\"Zabranjene riječi\") u uslovu automatizacije da napraviš pravilo koje provjerava biografije, poruke ili prikazana imena.",
-        "forbidden_list_row_title": "",
-        "forbidden_list_count_one": "",
-        "forbidden_list_count_other": "",
-        "forbidden_list_empty": "",
-        "forbidden_used_by": "",
-        "forbidden_not_used": "",
-        "forbidden_usage_footnote": "",
-        "forbidden_editor_placeholder": "",
-        "forbidden_editor_hint": "",
-        "rule_on": "",
-        "rule_off": "",
+        "forbidden_list_row_title": "Lista ključnih riječi",
+        "forbidden_list_count_one": "{{count}} ključna riječ",
+        "forbidden_list_count_other": "{{count}} ključnih riječi",
+        "forbidden_list_empty": "Još nema ključnih riječi",
+        "forbidden_used_by": "Koristi je",
+        "forbidden_not_used": "Nijedno pravilo još ne koristi ovu listu.",
+        "forbidden_usage_footnote": "Lista sama po sebi ne radi ništa. Pravilo je koristi kada je jedan od njegovih uslova s ključnim riječima (ime, bio, poruka ili društveni profil) postavljen na „Zabranjene ključne riječi“ umjesto na vlastite riječi. Ugrađeno pravilo „Blokiraj zabranjene ključne riječi“ blokira svakoga čije ime, bio ili poruka sadrži ključnu riječ; uključi ga gore.",
+        "forbidden_editor_placeholder": "snapchat, kripto, bot",
+        "forbidden_editor_hint": "Odvoji ključne riječi zarezima ili novim redovima. Podudaraju se cijele riječi, velika i mala slova nisu bitna.",
+        "rule_on": "Uključeno",
+        "rule_off": "Isključeno",
         "keywords_placeholder": "Upiši riječi ovdje...",
         "export_txt": "Izvezi (.txt)",
         "import_txt": "Uvezi (.txt)",
@@ -155,7 +155,7 @@
         "custom_rules_desc": "Napravi vlastita pravila \"kad X onda Y\" za nečiju prvu poruku tebi — provjeri pošiljaoca, pa automatski blokiraj, odgovori ili podijeli album. Svako pravilo se izvršava jednom po novom razgovoru.",
         "add_rule": "Dodaj pravilo",
         "no_rules_yet": "Još nema vlastitih automatizacija. Dodaj jednu za početak.",
-        "no_rules_hint": "",
+        "no_rules_hint": "Pravila se pokreću sama kada ti neko pošalje poruku ili tap, npr. da ga blokiraju ili mu odgovore.",
         "unnamed_rule": "Neimenovano pravilo",
         "rule_when": "Kada: ",
         "edit_rule": "Uredi pravilo",
@@ -166,7 +166,7 @@
         "rule_needs_action": "Dodaj barem jednu radnju prije čuvanja.",
         "action_needs_message_text": "Unesi poruku za slanje prije čuvanja.",
         "rule_name_placeholder": "Imenuj ovu automatizaciju",
-        "rule_name_label": "",
+        "rule_name_label": "Naziv",
         "trigger_label": "Kada (okidač)",
         "conditions_label": "Ako (uslovi)",
         "rule_no_conditions": "uvijek",
@@ -280,7 +280,8 @@
         "phrase_facebook_handle_prefix": "Facebook korisničko ime pošiljaoca sadrži",
         "phrase_facebook_handle_suffix": " ",
         "phrase_facebook_handle_prefix_not": "Facebook korisničko ime pošiljaoca ne sadrži",
-        "phrase_facebook_handle_suffix_not": " "
+        "phrase_facebook_handle_suffix_not": " ",
+        "forbidden_list_count_few": "{{count}} ključne riječi"
     },
     "video_gallery": {
         "title": "Videozapisi",
@@ -370,7 +371,7 @@
         "session_placeholder": "Šta tražiš?",
         "char_limit": "{{count}}/140",
         "add_photo": "Dodaj fotografiju",
-        "photo_hint": "",
+        "photo_hint": "Dodirni da izabereš sliku ili je prevuci ovdje",
         "add_video": "Dodaj videozapis",
         "i_am_hosting": "Primam",
         "i_am_hosting_desc": "Javi drugima da imaš mjesto",
@@ -381,8 +382,8 @@
         "visibility": "Vidljivost",
         "status_hidden": "Trenutno skriveno",
         "status_visible": "Javno vidljivo",
-        "visibility_visible_desc": "",
-        "visibility_hidden_desc": "",
+        "visibility_visible_desc": "Tvoja sesija se prikazuje u Right Now feedu",
+        "visibility_hidden_desc": "Pauzirano, niko u blizini ne vidi tvoju sesiju",
         "weekly_limit": "Sedmične sesije",
         "remaining_count": "dostupno",
         "next_refresh": "Sljedeće osvježavanje",
@@ -396,8 +397,8 @@
         "end_session": "Završi sesiju",
         "session_updated": "Sesija ažurirana!",
         "session_created": "Sesija pokrenuta!",
-        "started_overlay_subtitle": "",
-        "started_overlay_tagline": "",
+        "started_overlay_subtitle": "Sesija pokrenuta",
+        "started_overlay_tagline": "Sad si vidljiv. Spreman, voljan i u blizini.",
         "session_ended": "Sesija završena",
         "session_expired": "Sesija je istekla",
         "error_fetch_session": "Nije moguće učitati podatke sesije",
@@ -407,16 +408,16 @@
         "error_end_failed": "Završavanje sesije nije uspjelo",
         "upload_preview_alt": "Pregled otpremanja",
         "close_aria": "Zatvori",
-        "create_session_subtitle": "",
-        "section_message": "",
-        "section_photo": "",
-        "section_options": "",
-        "view_list": "",
-        "view_map": "",
-        "map_recenter": "",
-        "map_center": "",
-        "map_you": "",
-        "map_no_positions": ""
+        "create_session_subtitle": "Pokaži ljudima u blizini šta ti je na umu.",
+        "section_message": "Poruka",
+        "section_photo": "Fotografija",
+        "section_options": "Opcije",
+        "view_list": "Lista",
+        "view_map": "Mapa",
+        "map_recenter": "Prikaži sve",
+        "map_center": "Centriraj",
+        "map_you": "Ti",
+        "map_no_positions": "Trenutno niko u blizini ne dijeli svoju lokaciju na mapi."
     },
     "right_now_filters": {
         "title": "Right Now filteri",
@@ -434,13 +435,13 @@
         "height": "Visina",
         "weight": "Težina",
         "tags": "Oznake",
-        "tags_more": "",
+        "tags_more": "Više tagova",
         "clear_all": "Očisti sve",
         "apply": "Primijeni",
         "not_specified": "Nije navedeno",
         "sort": {
             "default": "Zadano",
-            "original": "",
+            "original": "Original",
             "youngest": "Najmlađi",
             "oldest": "Najstariji",
             "popular": "Popularno",
@@ -495,8 +496,8 @@
         "map_picker_hide": "Sakrij",
         "map_picker_open": "Otvori",
         "map_picker_instructions": "Otvori mapu da postaviš pribadaču, a zatim sačuvaj tu lokaciju.",
-        "choose_destination": "",
-        "use_destination": "",
+        "choose_destination": "Izaberi odredište",
+        "use_destination": "Koristi ovo odredište",
         "map_picker_tap_hint": "Dodirni mapu da postaviš pribadaču.",
         "use_selected_location": "Koristi ovu lokaciju",
         "mode_gps": "GPS · Automatski",
@@ -518,7 +519,7 @@
         "home_location_label": "Kuća",
         "home_updated_toast": "Kućna lokacija ažurirana",
         "home_update_failed": "Ažuriranje kućne lokacije nije uspjelo",
-        "saved_hint": ""
+        "saved_hint": "Dodirni oznaku ispod da sačuvaš označeno mjesto za brzi pristup."
     },
     "nav": {
         "browse": "Pregledaj",
@@ -591,10 +592,10 @@
             "double_tap_title": "Dvostruki dodir",
             "double_tap_title_desktop": "Dvostruki klik",
             "double_tap_desc": "Šalje tap bez otvaranja profila.",
-            "double_tap_chat_desc": "",
-            "double_tap_off_desc": "",
-            "double_tap_send_tap": "",
-            "settings_hint_change": "",
+            "double_tap_chat_desc": "Otvara razgovor bez otvaranja profila.",
+            "double_tap_off_desc": "Isključeno. Profili se otvaraju odmah jednim dodirom.",
+            "double_tap_send_tap": "Pošalji tap",
+            "settings_hint_change": "Ovo i vrstu tapa možeš kasnije promijeniti u Postavke → Ponašanje.",
             "long_press_title": "Dugi pritisak",
             "long_press_title_desktop": "Desni klik",
             "long_press_desc": "Brze radnje: poruka, favorit, nadimak, sakrij ili blokiraj.",
@@ -632,26 +633,26 @@
             "discord_title": "Discord",
             "telegram_title": "Telegram"
         },
-        "section_community": "",
-        "founder_credit": "",
-        "discord_cta": "",
-        "telegram_cta": "",
-        "section_project": "",
-        "whats_new": "",
-        "whats_new_desc": "",
-        "built_with": "",
+        "section_community": "Zajednica",
+        "founder_credit": "Prvobitno napravio {{name}}.",
+        "discord_cta": "Pridruži se serveru",
+        "telegram_cta": "Prati novosti",
+        "section_project": "Projekat",
+        "whats_new": "Šta je novo",
+        "whats_new_desc": "Istaknuto u verziji {{version}}",
+        "built_with": "Napravljeno uz {{stack}}",
         "highlights": {
-            "privacy_title": "",
-            "privacy_desc": "",
-            "open_source_title": "",
-            "open_source_desc": "",
-            "no_ads_title": "",
-            "no_ads_desc": "",
-            "free_title": "",
-            "free_desc": ""
+            "privacy_title": "Privatnost na prvom mjestu",
+            "privacy_desc": "Bez praćenja, bez trikova za zadržavanje pažnje.",
+            "open_source_title": "Otvoreni kod",
+            "open_source_desc": "Sav kod je javno dostupan na GitHubu.",
+            "no_ads_title": "Bez reklama",
+            "no_ads_desc": "Čist interfejs, ništa ne smeta.",
+            "free_title": "Zauvijek besplatno",
+            "free_desc": "Ako neko traži da platiš, to je prevara."
         },
-        "section_principles": "",
-        "tagline": ""
+        "section_principles": "Zašto Free Grind",
+        "tagline": "Klijent koji stavlja privatnost na prvo mjesto, napravljen od zajednice"
     },
     "settings_albums": {
         "label": "Albumi",
@@ -691,8 +692,8 @@
         "refresh": "Osvježi",
         "loading_media": "Učitavanje medija albuma…",
         "no_media": "Još nema medija u ovom albumu.",
-        "no_media_hint": "",
-        "not_shared_hint": "",
+        "no_media_hint": "Snimi fotografiju ili video, otpremi s uređaja ili dodaj medije iz galerije razgovora.",
+        "not_shared_hint": "Podijeli ga iz razgovora i svi s pristupom pojavit će se ovdje.",
         "media_alt": "Medij albuma {{index}}",
         "cancel_delete_content": "Otkaži brisanje",
         "add_from_drawer": "Dodaj iz galerije",
@@ -702,7 +703,7 @@
         "add_drawer_desc": "Mediji sačuvani u galeriji razgovora",
         "drawer_picker_title": "Odaberi medije",
         "drawer_empty": "Još nema medija u tvojoj galeriji.",
-        "error_drawer_video_download": "",
+        "error_drawer_video_download": "Nije moguće učitati video iz tvoje galerije.",
         "add_to_album_button": "Dodaj u album",
         "toast_created": "Album napravljen",
         "toast_renamed": "Album preimenovan",
@@ -728,10 +729,10 @@
         "collections_edit": "Uredi kolekciju",
         "collections_delete": "Obriši kolekciju",
         "collections_name_placeholder": "Naziv kolekcije",
-        "name_label": "",
-        "new_short": "",
-        "limits_albums_used": "",
-        "limits_details": "",
+        "name_label": "Naziv",
+        "new_short": "Novo",
+        "limits_albums_used": "Albumi",
+        "limits_details": "Detalji",
         "collections_editor_hint": "Dodirni medije redoslijedom kojim ih treba poslati. Novi otpremljeni fajlovi dodaju se u tvoju galeriju.",
         "collections_save": "Sačuvaj kolekciju ({{count}})",
         "collections_item_count_one": "{{count}} stavka",
@@ -906,10 +907,10 @@
         "photo_upload": {
             "title": "Otpremi sliku",
             "confirm": "Otpremi",
-            "next": "",
-            "back": "",
-            "crop_hint": "",
-            "thumbnail_hint": "",
+            "next": "Dalje",
+            "back": "Nazad",
+            "crop_hint": "Izreži fotografiju",
+            "thumbnail_hint": "Izaberi sličicu koja se prikazuje u mreži",
             "taken_on_grindr": "Vodeni žig „Taken on Grindr“",
             "taken_on_grindr_description": "Uključi vremensku oznaku da potvrdiš autentičnost i svježinu fotografije"
         },
@@ -933,8 +934,8 @@
             "search_placeholder": "Pretraži pjesme ili izvođače...",
             "search_hint": "Pretraži Spotify da dodaš pjesme",
             "no_matches": "Nijedna pjesma ne odgovara pretrazi.",
-            "no_matches_hint": "",
-            "apply": ""
+            "no_matches_hint": "Pokušaj s drugim naslovom pjesme ili imenom izvođača.",
+            "apply": "Primijeni"
         },
         "tags_count_few": "{{count}} oznake"
     },
@@ -1028,21 +1029,21 @@
         "visual_effects": "Vizuelni efekti",
         "browse_grid_mobile": "Grid pregledanja (mobilni)",
         "browse_grid_mobile_desc": "Odaberi koliko se profila prikazuje po redu na Gridu na mobilnom.",
-        "views_grid_layout": "",
-        "views_grid_mobile_desc": "",
+        "views_grid_layout": "Raspored pregleda",
+        "views_grid_mobile_desc": "Izaberi koliko profila se prikazuje po redu na kartici Pregledi na mobitelu.",
         "columns_2": "2 kolone",
         "columns_3": "3 kolone",
-        "columns_4": "",
-        "chat_section": "",
-        "drawer_layout": "",
-        "drawer_layout_desc": "",
+        "columns_4": "4 kolone",
+        "chat_section": "Stranica razgovora",
+        "drawer_layout": "Podijeli galeriju u kategorije",
+        "drawer_layout_desc": "Prikazuje medije, albume i kolekcije u odvojenim karticama umjesto svega na jednoj stranici.",
         "reveal_effect": {
             "title": "Efekat otkrivanja",
             "description": "Efekat otkrivanja animira stavke dok skrolaš prema dolje. Možeš ga isključiti ili promijeniti jačinu.",
             "enable": "Uključi efekat otkrivanja",
             "enable_desc": "Animiraj stavke dok ulaze u prikaz. Odaberi između suptilnog i izraženog efekta.",
             "strengths": {
-                "off": "",
+                "off": "Isključeno",
                 "subtle": "Suptilno",
                 "pronounced": "Izraženo"
             }
@@ -1059,8 +1060,8 @@
             "dark": "Tamna"
         },
         "amoled": {
-            "title": "",
-            "desc": ""
+            "title": "Potpuno crna (AMOLED)",
+            "desc": "Koristi potpuno crnu pozadinu u tamnom načinu. Štedi bateriju na OLED ekranima."
         },
         "analytics": {
             "title": "Analitika i otkrivanje",
@@ -1090,8 +1091,8 @@
         "location": "Lokacija",
         "auto_focus_location_search": "Automatski fokusiraj polje za pretragu",
         "auto_focus_location_search_desc": "Automatski fokusiraj polje za pretragu pri otvaranju prozora lokacije. Isključi ako ti smeta da se tastatura odmah pojavi.",
-        "auto_focus_right_now_text": "",
-        "auto_focus_right_now_text_desc": "",
+        "auto_focus_right_now_text": "Automatski fokus na tekst sesije",
+        "auto_focus_right_now_text_desc": "Automatski fokusira tekstualno polje i otvara tastaturu kada pokreneš ili uređuješ Right Now sesiju.",
         "display": "Ekran",
         "keep_screen_on": "Drži ekran uključenim",
         "keep_screen_on_desc": "Spriječi zatamnjivanje ili zaključavanje ekrana dok je aplikacija otvorena. Automatski se isključuje kad napustiš aplikaciju.",
@@ -1099,14 +1100,14 @@
         "double_tap_tap_type": "Dvostruki dodir šalje tap",
         "double_tap_tap_type_desc": "Dvaput dodirni profil u Gridu da pošalješ ovaj tap. Isključi da se profili odmah otvaraju jednim dodirom.",
         "double_tap_off": "Isključeno",
-        "double_tap_action": "",
-        "double_tap_action_desc": "",
-        "double_tap_open_chat": "",
-        "chats": "",
-        "chat_row_swipe_actions": "",
-        "chat_row_swipe_actions_desc": "",
-        "mobile_enter_to_send": "",
-        "mobile_enter_to_send_desc": ""
+        "double_tap_action": "Radnja dvostrukog dodira",
+        "double_tap_action_desc": "Dvaput dodirni profil u mreži da pošalješ tap ili direktno otvoriš razgovor. Isključi da se profili otvaraju odmah jednim dodirom.",
+        "double_tap_open_chat": "Otvori razgovor",
+        "chats": "Razgovori",
+        "chat_row_swipe_actions": "Radnje prevlačenjem u listi razgovora",
+        "chat_row_swipe_actions_desc": "Prevuci razgovor udesno da ga zakačiš ili ulijevo da ga obrišeš. Dugi pritisak i dalje otvara sve radnje.",
+        "mobile_enter_to_send": "Enter za slanje na mobitelu",
+        "mobile_enter_to_send_desc": "Tipka Enter na tastaturi telefona šalje poruku umjesto da započne novi red."
     },
     "notifications_page": {
         "subtitle": "Odaberi koja obavještenja primaš i da li se prikazuju dok je aplikacija otvorena.",
@@ -1116,25 +1117,25 @@
         "taps_enabled_desc": "Primi obavještenje kada te neko tapne.",
         "foreground": "Obavještenja dok je aplikacija otvorena",
         "foreground_desc": "Prikazuj obavještenja (za gore uključene vrste) dok je aplikacija otvorena. Isključi ovo da dobijaš obavještenja samo kad je aplikacija u pozadini ili zatvorena.",
-        "activity_section": "",
-        "push_settings_loading": "",
-        "push_settings_load_failed": "",
-        "push_settings_save_failed": "",
+        "activity_section": "Aktivnost",
+        "push_settings_loading": "Učitavanje…",
+        "push_settings_load_failed": "Nije moguće učitati postavke obavještenja.",
+        "push_settings_save_failed": "Nije moguće sačuvati postavku obavještenja.",
         "push_settings": {
-            "favoritePushNotification": "",
-            "favoritePushNotification_desc": "",
-            "mediaRecipientPushNotification": "",
-            "mediaRecipientPushNotification_desc": "",
-            "tappedPushNotification": "",
-            "tappedPushNotification_desc": "",
-            "recommendedPushNotification": "",
-            "recommendedPushNotification_desc": "",
-            "unreadChatsPushNotification": "",
-            "unreadChatsPushNotification_desc": "",
-            "viewedProfilePushNotification": "",
-            "viewedProfilePushNotification_desc": "",
-            "tapPushNotification": "",
-            "tapPushNotification_desc": ""
+            "favoritePushNotification": "Favoriti na mreži",
+            "favoritePushNotification_desc": "Primi obavještenje kada neko od tvojih favorita dođe na mrežu.",
+            "mediaRecipientPushNotification": "Primalac slika na mreži",
+            "mediaRecipientPushNotification_desc": "Primi obavještenje kada na mrežu dođe neko kome si slao slike.",
+            "tappedPushNotification": "Tapnuti na mreži",
+            "tappedPushNotification_desc": "Primi obavještenje kada na mrežu dođe neko koga si tapnuo.",
+            "recommendedPushNotification": "Preporuke",
+            "recommendedPushNotification_desc": "Primi obavještenje kada je preporučeni profil u blizini na mreži.",
+            "unreadChatsPushNotification": "Podsjetnik za nepročitane razgovore",
+            "unreadChatsPushNotification_desc": "Primaj podsjetnike za razgovore koje još nisi pročitao.",
+            "viewedProfilePushNotification": "Pregledi",
+            "viewedProfilePushNotification_desc": "Primi obavještenje kada tvoj profil dobije preglede.",
+            "tapPushNotification": "Tapovi",
+            "tapPushNotification_desc": "Da li Grindr uopće šalje push obavještenja o tapovima na tvoj račun."
         }
     },
     "issue_search": {
@@ -1195,7 +1196,7 @@
             "password": "Lozinka",
             "show_password": "Prikaži lozinku",
             "hide_password": "Sakrij lozinku",
-            "error_details": ""
+            "error_details": "Detalji"
         },
         "sign_in": {
             "title": "Prijava",
@@ -1221,26 +1222,26 @@
             "facebook_sign_in": "Prijavi se putem Facebooka",
             "facebook_waiting": "Čeka se Facebook…",
             "google_help": "Za račune napravljene putem Googlea.",
-            "google_native_error": "",
+            "google_native_error": "Prijava putem Googlea nije se mogla otvoriti. Pokušaj ponovo.",
             "jwt_label": "JWT token",
             "signing_in": "Prijavljivanje...",
             "submit": "Prijavi se",
             "add_profile_title": "Dodaj profil",
             "add_profile_subtitle": "Prijavi se računom koji želiš dodati.",
             "forgot_password": "Zaboravljena lozinka?",
-            "qr_camera_denied": "",
-            "qr_scan_failed": "",
-            "qr_step_show": "",
-            "qr_step_show_hint": "",
-            "qr_step_scan": "",
-            "qr_step_paste": "",
-            "qr_step_paste_hint": "",
-            "qr_scan": "",
-            "qr_or_paste": "",
-            "qr_code_placeholder": "",
-            "qr_back": "",
-            "qr_entry": "",
-            "qr_scan_hint": ""
+            "qr_camera_denied": "Free Grind treba pristup kameri da skenira kod.",
+            "qr_scan_failed": "Nije moguće skenirati kod. Pokušaj ponovo.",
+            "qr_step_show": "Prikaži kod na uređaju na kojem si prijavljen",
+            "qr_step_show_hint": "U Free Grindu na tom uređaju otvori Postavke i dodirni \"Prijavi se na drugom uređaju\".",
+            "qr_step_scan": "Skeniraj ga ovdje",
+            "qr_step_paste": "Zalijepi kod ovdje",
+            "qr_step_paste_hint": "Tamo dodirni \"Kopiraj kod\" ispod QR koda i pošalji ga na ovaj uređaj.",
+            "qr_scan": "Skeniraj QR kod",
+            "qr_or_paste": "ili zalijepi kod",
+            "qr_code_placeholder": "Kod za prijavu",
+            "qr_back": "Nazad na ostale opcije prijave",
+            "qr_entry": "Prijavljen si na drugom uređaju? Koristi QR kod",
+            "qr_scan_hint": "Usmjeri kameru prema QR kodu na drugom uređaju"
         },
         "reset": {
             "title": "Resetuj lozinku",
@@ -1270,7 +1271,7 @@
             "limit_reached_title": "Dostignuto ograničenje računa",
             "limit_reached_desc": "Ova aplikacija je već napravila {{limit}} računa. Kako bi se spriječila zloupotreba, ne mogu se praviti novi računi.",
             "android_only_title": "Dostupno samo na Androidu",
-            "android_only_desc": "",
+            "android_only_desc": "Za kreiranje računa potrebna je captcha verifikacija, koja je dostupna samo na Androidu.",
             "back": "Nazad"
         },
         "sms_verification": {
@@ -1291,9 +1292,9 @@
             "sign_in": "Prijavi se",
             "send_in": "Pošalji kod ({{seconds}} s)",
             "resend_in": "Ponovo pošalji kod ({{seconds}} s)",
-            "copy_report": "",
-            "report_copied": "",
-            "report_copy_failed": ""
+            "copy_report": "Kopiraj informacije za otklanjanje grešaka",
+            "report_copied": "Informacije za otklanjanje grešaka kopirane",
+            "report_copy_failed": "Nije moguće kopirati informacije za otklanjanje grešaka"
         }
     },
     "chat": {
@@ -1409,8 +1410,8 @@
         "share_album_label": "Podijeli album",
         "share_location_label": "Podijeli lokaciju",
         "share_location_confirm": "Podijeliti ovu lokaciju?",
-        "share_location_current": "",
-        "share_location_saved_hint": "",
+        "share_location_current": "Trenutna lokacija",
+        "share_location_saved_hint": "Sačuvaj mjesta u postavkama lokacije da ih ovdje brzo dijeliš.",
         "drawer_label": "Galerija",
         "giphy": {
             "title": "GIF-ovi",
@@ -1455,17 +1456,17 @@
         "time": {
             "one_min_ago": "prije 1 min",
             "mins_ago": "prije {{count}} min",
-            "hours_ago": "",
+            "hours_ago": "prije {{count}} h",
             "now": "Sada",
             "last_week": "Prošle sedmice",
-            "one_hour_ago": "",
-            "hours_ago_long": "",
-            "one_day_ago": "",
-            "days_ago": "",
-            "taken_now": "",
-            "taken_ago": "",
-            "taken_last_week": "",
-            "taken_in": ""
+            "one_hour_ago": "prije 1 sat",
+            "hours_ago_long": "prije {{count}} sati",
+            "one_day_ago": "prije 1 dan",
+            "days_ago": "prije {{count}} dana",
+            "taken_now": "Snimljeno upravo sada",
+            "taken_ago": "Snimljeno {{time}}",
+            "taken_last_week": "Snimljeno prošle sedmice",
+            "taken_in": "Snimljeno u {{time}}"
         },
         "preview": {
             "sent_image": "Poslao sliku",
@@ -1517,11 +1518,11 @@
             "album_cover": "Naslovnica albuma",
             "album_share": "Dijeljeni album",
             "album_image": "Slika iz albuma",
-            "album_label": "",
-            "album_photo_count_one": "",
-            "album_photo_count_other": "",
-            "album_video_count_one": "",
-            "album_video_count_other": "",
+            "album_label": "Album",
+            "album_photo_count_one": "{{count}} fotografija",
+            "album_photo_count_other": "{{count}} fotografija",
+            "album_video_count_one": "{{count}} video",
+            "album_video_count_other": "{{count}} videa",
             "profile_photo": "Profilna fotografija",
             "replied_to_myself": "Odgovorio sam sebi",
             "replied_to_name": "Odgovorio na \"{{name}}\"",
@@ -1530,7 +1531,9 @@
             "reacted_to_image": "Reagovao na tvoju sliku iz albuma",
             "audio_label": "Audio",
             "unsupported_message": "Nepodržana poruka",
-            "unsupported_message_description": "Ova vrsta poruke još nije podržana u ovoj verziji aplikacije."
+            "unsupported_message_description": "Ova vrsta poruke još nije podržana u ovoj verziji aplikacije.",
+            "album_photo_count_few": "{{count}} fotografije",
+            "album_video_count_few": "{{count}} videa"
         },
         "actions": {
             "title": "Radnje poruke",
@@ -1583,7 +1586,7 @@
             "max_views": "Maks. pregleda",
             "view_once": "Pogledaj jednom",
             "view_once_description": "Slika se može pogledati samo jednom, 10 sekundi",
-            "replay": "",
+            "replay": "Ponovi",
             "taken_on_grindr": "Vodeni žig „Taken on Grindr“",
             "taken_on_grindr_description": "Uključi vremensku oznaku da potvrdiš autentičnost i svježinu fotografije",
             "add_to_drawer": "Dodaj u galeriju",
@@ -1698,19 +1701,19 @@
         "media_alt": "Medij iz galerije",
         "take_photo": "Snimi fotografiju",
         "upload_photo": "Otpremi fotografiju",
-        "add_media": "",
+        "add_media": "Dodaj medije",
         "add_to_drawer": "Dodaj u galeriju",
         "invalid_file_type": "Odaberi fotografiju.",
         "delete_confirm_title": "Obrisati iz galerije?",
         "delete_confirm_message": "Jesi li siguran da želiš obrisati ovaj medij iz galerije?",
-        "delete_confirm_message_everywhere": "",
+        "delete_confirm_message_everywhere": "Ovo ga uklanja iz tvoje galerije i iz svake kolekcije koja ga koristi.",
         "delete_confirm_label": "Obriši",
-        "album_delete_confirm_title": "",
-        "album_delete_confirm_message": "",
-        "album_edit": "",
-        "album_delete": "",
-        "collection_edit": "",
-        "collection_delete": "",
+        "album_delete_confirm_title": "Obrisati album?",
+        "album_delete_confirm_message": "Ovo briše album i sve u njemu. Svi s kojima si ga podijelio gube pristup.",
+        "album_edit": "Uredi album",
+        "album_delete": "Obriši album",
+        "collection_edit": "Uredi kolekciju",
+        "collection_delete": "Obriši kolekciju",
         "is_expiring_toggle_on": "1×",
         "is_expiring_toggle_off": "neograničeno",
         "is_expiring_send": "Pošalji nestajuće ({{count}})",
@@ -1720,22 +1723,22 @@
         "collection_empty_send": "Nijedan medij iz ove kolekcije više nije u tvojoj galeriji.",
         "collection_manage": "Upravljaj kolekcijama",
         "album_manage": "Upravljaj albumima",
-        "tab_media": "",
-        "tab_albums": "",
-        "tab_collections": "",
-        "albums_empty": "",
-        "albums_create": "",
-        "video_expiry_title": "",
-        "video_expiry_unlimited_desc": "",
-        "video_expiry_once_desc": "",
-        "video_expiry_repeat_desc": "",
-        "empty_hint": "",
-        "albums_empty_hint": "",
-        "collections_empty": "",
-        "collections_empty_hint": "",
-        "collections_create": "",
-        "view_combined": "",
-        "view_split": ""
+        "tab_media": "Mediji",
+        "tab_albums": "Albumi",
+        "tab_collections": "Kolekcije",
+        "albums_empty": "Još nemaš nijedan album.",
+        "albums_create": "Napravi album",
+        "video_expiry_title": "Pregledi videa",
+        "video_expiry_unlimited_desc": "Može se gledati koliko god puta žele",
+        "video_expiry_once_desc": "Može se pogledati jednom",
+        "video_expiry_repeat_desc": "Može se pogledati dvaput",
+        "empty_hint": "Snimi fotografiju ili video, ili otpremi s uređaja.",
+        "albums_empty_hint": "Albumi ti omogućavaju da podijeliš više fotografija odjednom i prekineš dijeljenje bilo kada.",
+        "collections_empty": "Još nemaš nijednu kolekciju.",
+        "collections_empty_hint": "Kolekcije grupišu fotografije iz galerije da ih pošalješ zajedno jednim dodirom.",
+        "collections_create": "Napravi kolekciju",
+        "view_combined": "Prikaži sve na jednoj stranici",
+        "view_split": "Podijeli u kategorije"
     },
     "favorites": {
         "added": "Dodano u favorite",
@@ -1790,9 +1793,9 @@
         "ban_bio_title": "Dodaj zabranjenu riječ",
         "ban_bio_prompt": "Skrati ovu biografiju na tačnu frazu koju želiš zabraniti:",
         "ban_bio_added": "\"{{word}}\" dodano u zabranjene riječi!",
-        "ban_keyword_source_bio": "",
-        "ban_keyword_source_name": "",
-        "more_actions": "",
+        "ban_keyword_source_bio": "Fraza iz bia",
+        "ban_keyword_source_name": "Ime profila",
+        "more_actions": "Više radnji",
         "profile_fallback": "Profil {{id}}",
         "last_online": "Posljednji put na mreži {{value}}",
         "close_photo_viewer": "Zatvori pregled fotografija",
@@ -1881,6 +1884,7 @@
         "location_finder_initial_distance": "Početna udaljenost: {{distance}} m",
         "location_finder_restoring": "Vraćanje tvoje lokacije…",
         "location_finder_stop": "Zaustavi",
+        "location_finder_busy": "Lociranje je već pokrenuto za drugi profil.",
         "locating": "Lociranje...",
         "locate": "Lociraj",
         "about": "O meni",
@@ -2158,8 +2162,8 @@
             "load_photos": "Učitavanje profilnih fotografija nije uspjelo",
             "load_legal_agreements": "Učitavanje pravnih ugovora nije uspjelo",
             "accept_legal_agreements": "Prihvatanje pravnih ugovora nije uspjelo",
-            "load_warnings": "",
-            "acknowledge_warnings": ""
+            "load_warnings": "Učitavanje upozorenja za račun nije uspjelo",
+            "acknowledge_warnings": "Potvrda upozorenja za račun nije uspjela"
         }
     },
     "errors": {
@@ -2215,19 +2219,19 @@
         "delete_confirm_message": "Ovo ga odmah uklanja s tvog profila."
     },
     "common": {
-        "clear": "",
+        "clear": "Očisti",
         "back": "Nazad",
         "cancel": "Otkaži",
         "save": "Sačuvaj",
         "edit": "Uredi",
         "unknown_display_name": "Neko",
-        "close": "",
-        "done": ""
+        "close": "Zatvori",
+        "done": "Gotovo"
     },
     "grid": {
         "refresh": "Osvježi Grid",
-        "name_or_id_placeholder": "",
-        "open_profile_id": ""
+        "name_or_id_placeholder": "Ime ili ID profila…",
+        "open_profile_id": "Otvori profil {{id}}"
     },
     "test_reminder": {
         "title": "Vrijeme za pregled?",
@@ -2250,8 +2254,8 @@
             "description": "Grindr je zabranio ovaj račun{{reason}}. Ne možeš se prijaviti dok se zabrana ne ukine.",
             "copy_details": "Kopiraj detalje",
             "copy_details_success": "Detalji kopirani u međuspremnik",
-            "subscriptions_description": "",
-            "appeal": ""
+            "subscriptions_description": "Zabrana ne otkazuje Grindr pretplatu. Ako je imaš, otkaži je u postavkama pretplate u prodavnici aplikacija.",
+            "appeal": "Uloži žalbu na zabranu"
         },
         "age_verification": {
             "title": "Potrebna provjera dobi",
@@ -2266,13 +2270,13 @@
             "device": "Zabrana uređaja",
             "network": "Zabrana mreže",
             "underage": "Maloljetno lice",
-            "timed": ""
+            "timed": "Privremena zabrana"
         },
         "details": {
             "reason": "Razlog",
             "region": "Regija",
-            "decision_automated": "",
-            "decision_human": ""
+            "decision_automated": "Pri donošenju ove odluke korištena su automatizirana sredstva.",
+            "decision_human": "Ovu odluku je donio ljudski moderator. Automatizirana sredstva nisu korištena."
         },
         "timed_ban": {
             "title": "Privremeno zabranjen",
@@ -2284,16 +2288,16 @@
             "accept_failed": "Nije moguće prihvatiti ugovor",
             "agreement_completed_title": "Sve je spremno",
             "agreement_completed_description": "Prihvatio si Grindrov ugovor o zabrani. Ne moraš ništa više raditi.",
-            "agree_label": "",
-            "agreed_label": "",
-            "agree_hint": ""
+            "agree_label": "Pročitaj i prihvati smjernice",
+            "agreed_label": "Smjernice pročitane i prihvaćene",
+            "agree_hint": "Pročitaj i prihvati smjernice iznad da ponovo dobiješ pristup računu."
         },
         "device_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_sign_out": ""
+            "title": "Uređaj blokiran",
+            "description": "Trenutno ne možeš koristiti račun na ovom uređaju.",
+            "card_title": "Često nije prava zabrana",
+            "card_text": "Grindr je odgovorio s ACCOUNT_BANNED, što šalje i za zahtjeve kojima ne vjeruje, npr. zbog otiska uređaja.",
+            "fix_sign_out": "Odjava stvara novi identitet uređaja, što obično rješava problem."
         },
         "regions": {
             "uk": "Ujedinjeno Kraljevstvo",
@@ -2301,184 +2305,184 @@
             "au": "Australija",
             "us": "Sjedinjene Države"
         },
-        "read_guidelines": "",
-        "reason_label": "",
-        "learn_more": "",
+        "read_guidelines": "Smjernice zajednice",
+        "reason_label": "Razlog zabrane",
+        "learn_more": "Saznaj više",
         "ban_reasons": {
             "blackmail": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Ucjena, iznuda i direktne prijetnje",
+                "summary": "Grindr strogo zabranjuje ucjenu, iznudu i direktne prijetnje nasiljem. Takvo ponašanje ugrožava korisnike, krši smjernice i može dovesti do zabrane računa.",
+                "details": "Ucjena, iznuda i direktne prijetnje nasiljem, uključujući manipulaciju ličnim slikama ili informacijama, strogo su zabranjene na Grindru. Takvo ponašanje ugrožava sigurnost zajednice i protivno je smjernicama."
             },
             "bot_activity": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Automatizirana aktivnost / botovi",
+                "summary": "Grindru je stalo do stvarnih veza. Zabranjeno je masovno slanje poruka, kreiranje mnogo profila odjednom ili korištenje alata koji oponašaju radnje stvarnih korisnika.",
+                "details": "Ovaj račun je označen zbog kršenja Grindrovih pravila o automatiziranoj aktivnosti. Takvo ponašanje ugrožava sigurnost i autentičnost zajednice i protivno je smjernicama. Ako misliš da je ovo greška, možeš uložiti žalbu u službenoj Grindr aplikaciji."
             },
             "bullying": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Ciljano maltretiranje i ponovljeno zlostavljanje",
+                "summary": "Budi ljubazan prema drugima na Grindru. Maltretiranje, uznemiravanje i zastrašivanje su zabranjeni jer stvaraju neprijateljsko okruženje. Ponovljeno zlostavljanje može dovesti do daljnjih mjera protiv računa.",
+                "details": "Grindr se zalaže za siguran prostor za sve. Ponovljeno ili ciljano maltretiranje krši smjernice i narušava iskustvo zajednice. Odvoji vrijeme da pregledaš smjernice zajednice i pobrini se da tvoje buduće interakcije budu s poštovanjem i podrškom. Daljnja kršenja mogu dovesti do novih mjera, uključujući zabranu računa."
             },
             "business_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Poslovno vrbovanje",
+                "summary": "Nije dozvoljeno koristiti Grindr za promociju firmi, plaćenih usluga ili događaja. Neka interakcije budu lične i bez poslovnih ciljeva.",
+                "details": "Grindr je namijenjen ličnim vezama, a ne regrutovanju ili vrbovanju korisnika za profitne poduhvate poput promocije firmi, plaćenih usluga ili događaja. Takve aktivnosti odvlače platformu od njene svrhe i protivne su smjernicama."
             },
             "casual_substances": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Usputno spominjanje legalnih supstanci",
+                "summary": "Legalne supstance poput CBD-a ili marihuane (gdje je legalna) smiju se spominjati na Grindru. Međutim, pretjerana promocija ili fokus na te supstance može dovesti do toga da zajednica prijavi račun, pa čak i do suspenzije.",
+                "details": "Profili usmjereni na ove supstance ili koji ih pretjerano promovišu mogu narušiti iskustvo zajednice i drugi korisnici ih mogu prijaviti. Grindr zabranjuje sadržaj ili slike vezane za droge koje bi mogle promovisati štetne prakse."
             },
             "consent_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Kršenje pristanka",
+                "summary": "Pristanak nije samo seksi, on je obavezan – uporni seksualni zahtjevi, prisilno ponašanje i svako drugo ponašanje koje zanemaruje pristanak zabranjeni su na Grindru.",
+                "details": "Grindr potiče korisnike da u svim interakcijama daju jasan i izričit pristanak. Uporni seksualni zahtjevi, prisilno ponašanje ili bilo kakve radnje koje zanemaruju granice drugog korisnika su zabranjeni. Takvo ponašanje može stvoriti nesigurno i neugodno okruženje i krši smjernice zajednice te principe poštovanja i sigurnosti."
             },
             "drug_facilitation": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "Posredovanje u nabavci droga",
+                "summary": "Pomaganje drugima da dođu do ilegalnih droga nije dozvoljeno na Grindru. Daljnja kršenja mogu dovesti do zabrane računa.",
+                "details": "Povezivanje drugih s ilegalnim drogama — nuđenje da podijeliš ono što imaš, dogovaranje preuzimanja ili povezivanje nekoga s izvorom — nije dozvoljeno, čak i ako se ništa ne prodaje. To je protivno Grindrovim smjernicama jer je Grindru stalo do tvoje dobrobiti i nastoji održati sigurnu zajednicu punu poštovanja.",
+                "summary_banned": "Pomaganje drugima da dođu do ilegalnih droga nije dozvoljeno na Grindru. Ovaj račun je zabranjen nakon ponovljenih kršenja."
             },
             "drug_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Promocija ili veličanje droga",
+                "summary": "Ponovljeni pokušaji promocije droga nisu dozvoljeni na Grindru.",
+                "details": "Spominjanje kanabisa, duhana i alkohola dozvoljeno je u određenim kontekstima, ali Grindr ne dozvoljava profile usmjerene na droge ili koji ih promovišu, uključujući razgovor o kupovini ili prodaji droga (bilo koje vrste) ili učešće u tome. Ovo pravilo važi i za slike i emojije koji traže droge ili promovišu njihovu upotrebu."
             },
             "drug_seeking": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Traženje droga",
+                "summary": "Traženje droga na Grindru krši smjernice.",
+                "details": "Traženje droga, čak i povremeno, na profilu ili u razgovorima nije dozvoljeno. To je protivno Grindrovim smjernicama jer je Grindru stalo do tvoje dobrobiti i nastoji održati sigurnu zajednicu punu poštovanja."
             },
             "occasional_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Povremeno traženje droga",
+                "summary": "Traženje droga na Grindru krši smjernice.",
+                "details": "Traženje droga, čak i povremeno, na profilu ili u razgovorima nije dozvoljeno. To je protivno Grindrovim smjernicama jer je Grindru stalo do tvoje dobrobiti i nastoji održati sigurnu zajednicu punu poštovanja."
             },
             "frequent_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Često traženje droga",
+                "summary": "Ponovljeni pokušaji nabavke droga nisu dozvoljeni na Grindru.",
+                "details": "Grindr je platforma za stvarne lične veze. Ponovljeni pokušaji nabavke droga, direktno ili indirektno, narušavaju iskustvo zajednice i krše smjernice. Ako se takvo ponašanje nastavi, može dovesti do duže suspenzije ili čak zabrane."
             },
             "fraudulent_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Prevare i lažne promocije",
+                "summary": "Grindr strogo zabranjuje prevare ili šeme koje iskorištavaju ili štete drugima.",
+                "details": "To uključuje prevarne šeme ili obmanjujuće ponašanje s ciljem iskorištavanja drugih korisnika. Grindr ozbiljno shvata sigurnost svoje zajednice i ne toleriše takvo ponašanje."
             },
             "general_advertising": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Opće oglašavanje i vrbovanje",
+                "summary": "Grindr je za autentične lične veze, a ne za oglašavanje proizvoda, usluga ili vanjskih platformi. Promotivni sadržaj nije dozvoljen na profilima ni u porukama.",
+                "details": "Korištenje profila ili poruka za promociju proizvoda ili usluga ili dijeljenje vanjskih linkova protivno je smjernicama i narušava iskustvo drugih."
             },
             "hate_speech": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Govor mržnje i uvredljiv sadržaj",
+                "summary": "Govor mržnje i diskriminatorni jezik zabranjeni su na Grindru. Ponovljene uvredljive interakcije stvaraju neprijateljsko okruženje. Daljnja kršenja mogu dovesti do novih mjera, uključujući zabranu računa.",
+                "details": "Grindr se zalaže za inkluzivnu zajednicu punu poštovanja. Govor mržnje i diskriminatorni jezik mogu stvoriti neprijateljsko i nesigurno okruženje za druge. Pregledaj smjernice zajednice i pobrini se da tvoje buduće interakcije odražavaju poštovanje i inkluzivnost."
             },
             "impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Lažno predstavljanje i zloupotreba identiteta",
+                "summary": "Grindr zabranjuje lažno predstavljanje kao drugi ili kreiranje profila koji lažno prikazuju nečiji identitet. Takvo ponašanje krši smjernice i može dovesti do zabrane računa.",
+                "details": "To uključuje korištenje imena, fotografija ili ličnih podataka druge osobe. Lažno predstavljanje narušava povjerenje, ugrožava sigurnost i krši smjernice."
             },
             "mild_insults": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Blage uvrede i nepoštovanje",
+                "summary": "Neke tvoje poruke označene su kao potencijalno nepristojne. Budi ljubazan na Grindru i pobrini se da tvoje interakcije ostanu s poštovanjem, u skladu sa smjernicama zajednice.",
+                "details": "Grindr nastoji pružiti prostor za interakcije s poštovanjem i autentične interakcije. Komentari koji mogu djelovati neljubazno ili nepristojno mogu negativno uticati na druge i protivni su smjernicama zajednice. Daljnja kršenja mogu dovesti do mjera poput suspenzije ili zabrane."
             },
             "mild_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Blago vrbovanje i usputne ponude",
+                "summary": "Grindr je za stvarne lične veze. Finansijski zahtjevi mogu zamagliti granice i nisu u skladu sa smjernicama.",
+                "details": "Grindr je za lične veze — ne za promociju plaćenog sadržaja ili finansijskih aranžmana."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "Intimne slike bez pristanka",
+                "summary": "Dijeljenje intimnih slika ili videa druge osobe bez njenog pristanka nije dozvoljeno na Grindru. Daljnja kršenja mogu dovesti do zabrane računa.",
+                "details": "Intimne slike ili videi druge osobe smiju se dijeliti samo uz njen pristanak — a pristanak da se slika napravi ili primi nije pristanak da se dijeli. Ovo važi i za uređene slike i slike generisane umjetnom inteligencijom.",
+                "summary_banned": "Dijeljenje intimnih slika ili videa druge osobe bez njenog pristanka nije dozvoljeno na Grindru."
             },
             "offline_incident": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Ozbiljni incidenti van mreže",
+                "summary": "Ovaj račun je zabranjen nakon prijave štetnog ponašanja. O sigurnosti i poštovanju se na Grindru ne pregovara.",
+                "details": "Grindr poduzima ove mjere da zaštiti sigurnost svoje zajednice i održi okruženje puno poštovanja za sve korisnike."
             },
             "paid_sexual_services": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Plaćene seksualne usluge",
+                "summary": "Nuđenje ili traženje seksualnih usluga za novac ili naknadu nije dozvoljeno na Grindru.",
+                "details": "Grindr je za lične veze, a ne za komercijalne transakcije. Nuđenje ili traženje seksualnih usluga za naknadu, bez obzira na okolnosti, krši smjernice."
             },
             "phishing": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Phishing, prevare i štetni linkovi",
+                "summary": "Grindr strogo zabranjuje dijeljenje zlonamjernih linkova, pokušaje phishinga ili štetni softver.",
+                "details": "Dijeljenje zlonamjernih linkova, pokušaji phishinga ili štetni softver mogu obmanuti druge ili ugroziti njihovu sigurnost. Računi koji se bave takvim aktivnostima mogu biti zabranjeni radi zaštite platforme i korisnika."
             },
             "privacy_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Kršenje privatnosti i doxxing",
+                "summary": "Dijeljenje nečijih ličnih podataka bez dozvole strogo je zabranjeno i ugrožava sigurnost.",
+                "details": "Dijeljenje privatnih ili ličnih podataka druge osobe, poput kontakt podataka ili podataka koji je identifikuju, bez njene dozvole teško je kršenje smjernica. Takvo ponašanje dovodi druge u opasnost i narušava povjerenje u zajednici."
             },
             "profile_spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Spam na profilu i oglašavanje",
+                "summary": "Grindr je za autentične veze, a ne za promociju proizvoda, usluga ili vanjskih platformi. Promotivni sadržaj nije dozvoljen na profilima ni u razgovorima.",
+                "details": "Dijeljenje oglasa, linkova za donacije ili promocija događaja na profilu ili u razgovorima nije dozvoljeno i umanjuje autentično iskustvo. Grindr je namijenjen stvarnim interakcijama — ne prodaji usluga ili reklamiranju događaja."
             },
             "drug_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Prodaja i distribucija droga",
+                "summary": "Grindr strogo zabranjuje svaku aktivnost vezanu za prodaju ili distribuciju droga. Računi koji se tako ponašaju bit će zabranjeni.",
+                "details": "Grindr ne dozvoljava profile, razgovore ili sadržaj koji olakšavaju prodaju, distribuciju ili promociju ilegalnih supstanci. Ovo pravilo postoji radi dobrobiti korisnika i održavanja sigurnog, autentičnog okruženja za sve, a kršenja ove vrste shvataju se vrlo ozbiljno."
             },
             "sextortion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Seksualna iznuda",
+                "summary": "Prijetnja dijeljenjem nečijih intimnih slika ili videa nije dozvoljena na Grindru.",
+                "details": "Ucjena, iznuda i direktne prijetnje nasiljem, uključujući manipulaciju ličnim slikama ili informacijama, strogo su zabranjene. Takvo ponašanje ugrožava sigurnost zajednice."
             },
             "sexual_content_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Prodaja seksualno eksplicitnog sadržaja",
+                "summary": "Grindr je za stvaranje autentičnih veza, a ne za komercijalne transakcije vezane za seksualni sadržaj. Prodaja ili promocija seksualno eksplicitnog sadržaja (uključujući tvoje slike ili videe) nije dozvoljena na Grindru.",
+                "details": "Prodaja ili promocija seksualno eksplicitnog materijala, uključujući fotografije ili videe, krši smjernice i narušava iskustvo zajednice. Pobrini se da tvoj profil i poruke budu usmjereni na stvaranje stvarnih veza u zajednici."
             },
             "spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Ponovljene ili neželjene poruke",
+                "summary": "Slanje ponovljenih poruka ili pretjerano zapitkivanje smatra se spamom. Daljnja kršenja mogu dovesti do suspenzije računa.",
+                "details": "Slanje previše poruka u kratkom vremenu krši smjernice. Uvijek poštuj druge korisnike — čitaj profile da saznaš njihove sklonosti, podijeli svoje granice i poštuj tuđe."
             },
             "transactional_service": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Transakcijske usluge",
+                "summary": "Grindr zabranjuje nuđenje ili traženje transakcijskih usluga, poput plaćenog društva, čak i kada nisu seksualne prirode.",
+                "details": "Takvo ponašanje udaljava platformu od njenog fokusa na lične, smislene veze i krši smjernice. Pobrini se da tvoje interakcije ostanu bez komercijalnih namjera."
             },
             "underage_endangerment": {
-                "title": "",
-                "summary": ""
+                "title": "Zaštita djece i ugrožavanje",
+                "summary": "Ovaj račun je zabranjen nakon prijave štetnog ponašanja. O sigurnosti i poštovanju se na Grindru ne pregovara."
             },
             "underage_impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Predstavljanje kao maloljetnik",
+                "summary": "Grindr je samo za odrasle – moraš imati najmanje 18 godina (ili više, u nekim regijama) da koristiš Grindr. Aktivnost kao maloljetnik, čak i u igri uloga, zabranjena je.",
+                "details": "Predstavljanje kao maloljetnik, bilo u igri uloga ili iz nekog drugog razloga, krši Grindrova pravila i može dovesti do zabrane računa. Profili koji se lažno predstavljaju kao druge osobe, bez obzira na namjeru, narušavaju povjerenje u zajednici i nisu dozvoljeni."
             },
             "underage": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Pristup maloljetnika",
+                "summary": "Grindr je samo za odrasle – moraš imati najmanje 18 godina (ili više, u nekim regijama) da koristiš Grindr.",
+                "details": "Moraš ispunjavati ovaj starosni uslov da koristiš usluge, i Grindr ovo pravilo shvata vrlo ozbiljno. Osim toga, komunikacija s maloljetnicima ili dijeljenje bilo kakvih slika s maloljetnicima, bez obzira na kontekst, teško je kršenje Grindrovih pravila."
             }
         },
-        "reason_unknown": "",
-        "ends_in": "",
-        "appeal_link": "",
+        "reason_unknown": "Razlog nije naveden",
+        "ends_in": "Ističe za {{time}}",
+        "appeal_link": "Žalba",
         "network_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_vpn": "",
-            "fix_switch": ""
+            "title": "Mreža blokirana",
+            "description": "Ne možeš se prijaviti s mreže na kojoj si trenutno.",
+            "card_title": "Sumnjiva mreža",
+            "card_text": "Grindr na ovaj način označava VPN-ove, proxyje i dijeljene IP adrese. Sam tvoj račun nije zabranjen.",
+            "fix_vpn": "Isključi VPN ili proxy.",
+            "fix_switch": "Prebaci se između Wi-Fi mreže i mobilnih podataka, pa se ponovo prijavi."
         },
         "underage_ban": {
-            "title": "",
-            "description": ""
+            "title": "Račun maloljetnika",
+            "description": "Ne možeš se prijaviti dok se zabrana ne ukine. Ako imaš 18 ili više godina, uloži žalbu da potvrdiš svoje godine."
         },
-        "what_happened": "",
-        "code_chip": ""
+        "what_happened": "Šta se desilo",
+        "code_chip": "Kod {{code}}"
     },
     "sexualHealth": {
         "title": "Seksualno zdravlje",
@@ -2496,16 +2500,18 @@
             "unknown": "Još se ne prati"
         },
         "history": {
-            "subtitle_encounters_one": "",
-            "subtitle_encounters_other": "",
-            "subtitle_doses_one": "",
-            "subtitle_doses_other": "",
+            "subtitle_encounters_one": "{{count}} susret",
+            "subtitle_encounters_other": "{{count}} susreta",
+            "subtitle_doses_one": "{{count}} doza",
+            "subtitle_doses_other": "{{count}} doza",
             "log_encounter": "Zabilježi susret",
             "open_chat": "Otvori razgovor",
             "loading": "Učitavanje historije…",
             "empty": "Još nema historije",
             "empty_desc": "Zabilježi dozu ili susret i pojavit će se ovdje.",
-            "unprotected_tag": "Nezaštićeno"
+            "unprotected_tag": "Nezaštićeno",
+            "subtitle_encounters_few": "{{count}} susreta",
+            "subtitle_doses_few": "{{count}} doze"
         },
         "doses": {
             "title": "Doza PrEP-a",
@@ -2531,8 +2537,8 @@
             "delete_confirm_action": "Obriši"
         },
         "encounter": {
-            "person": "",
-            "no_matches_hint": "",
+            "person": "Ko",
+            "no_matches_hint": "Nije u tvojim razgovorima? Dodaj ga po imenu ispod.",
             "sheet_title": "Zabilježi susret",
             "edit_title": "Uredi susret",
             "change_person": "Promijeni",
@@ -2557,9 +2563,9 @@
             "delete_confirm_action": "Obriši"
         },
         "appointments": {
-            "subtitle_upcoming_one": "",
-            "subtitle_upcoming_other": "",
-            "subtitle_none_upcoming": "",
+            "subtitle_upcoming_one": "{{count}} predstojeći",
+            "subtitle_upcoming_other": "{{count}} predstojećih",
+            "subtitle_none_upcoming": "Nema predstojećih termina",
             "add": "Dodaj termin",
             "add_title": "Dodaj termin",
             "edit_title": "Uredi termin",
@@ -2585,7 +2591,8 @@
             "delete_confirm_message": "Ovo se ne može poništiti.",
             "delete_confirm_action": "Obriši",
             "kind_one": "Ostalo",
-            "kind_few": "Ostalo"
+            "kind_few": "Ostalo",
+            "subtitle_upcoming_few": "{{count}} predstojeća"
         },
         "tests": {
             "add": "Dodaj test",
@@ -2623,7 +2630,7 @@
         "info": {
             "sheet_title": "PrEP postavke",
             "settings_button": "PrEP postavke",
-            "scheme_section": "",
+            "scheme_section": "Shema doziranja",
             "scheme_daily_label": "Dnevno",
             "scheme_daily_tagline": "Jedna tableta, svaki dan",
             "scheme_on_demand_label": "Po potrebi (2-1-1)",
@@ -2641,7 +2648,7 @@
         "description": "Odaberi fotografije za dodavanje na profil ili otpremi nove.",
         "upload": "Otpremi fotografiju",
         "empty": "Još nema slika",
-        "empty_hint": "",
+        "empty_hint": "Snimi fotografiju ili je otpremi s uređaja da je dodaš na profil.",
         "retry": "Pokušaj ponovo",
         "image_alt": "Otpremljena fotografija",
         "delete_image": "Obriši fotografiju",
@@ -2660,23 +2667,23 @@
         "category_saved_locations": "Sačuvane lokacije",
         "category_settings": "Postavke",
         "category_sexual_health": "Seksualno zdravlje",
-        "progress_step": "",
-        "progress_preparing": "",
+        "progress_step": "Korak {{step}} od {{steps}} · {{rows}} unosa",
+        "progress_preparing": "Priprema…",
         "export_no_categories": "Odaberi barem jednu kategoriju za izvoz.",
         "export_categories_title": "Šta želiš izvesti?",
         "export_confirm": "Izvezi",
         "import_categories_title": "Šta želiš vratiti?",
         "import_categories_desc": "Mogu se vratiti samo kategorije koje postoje u ovoj datoteci.",
         "import_confirm": "Vrati",
-        "export_success_picker": "",
-        "export_destination_title": "",
-        "export_destination_downloads": "",
-        "export_destination_picker": "",
-        "export_destination_picker_hint": "",
-        "export_destination_downloads_hint": "",
-        "export_destination_picker_hint_desktop": "",
-        "export_destination_device": "",
-        "export_destination_device_hint_ios": ""
+        "export_success_picker": "Podaci izvezeni na izabranu lokaciju.",
+        "export_destination_title": "Sačuvaj u",
+        "export_destination_downloads": "Preuzimanja",
+        "export_destination_picker": "Izaberi lokaciju…",
+        "export_destination_picker_hint": "Izaberi bilo koji folder ili pohranu u oblaku, npr. Google Drive (potrebna je aplikacija Drive).",
+        "export_destination_downloads_hint": "Sačuvano u Downloads/FreeGrind na ovom uređaju.",
+        "export_destination_picker_hint_desktop": "Izaberi bilo koji folder, npr. onaj koji sinhronizuje Google Drive za računar.",
+        "export_destination_device": "Ovaj uređaj",
+        "export_destination_device_hint_ios": "Sačuvano u aplikaciji Datoteke pod Na mom iPhoneu/iPadu → Free Grind."
     },
     "restore_offer": {
         "title": "Vratiti tvoje podatke?",
@@ -2791,11 +2798,11 @@
         "provider_gemini_tagline": "Razumije sleng · besplatni nivo",
         "provider_openai_tagline": "Razumije sleng · plaćeno",
         "provider_claude_tagline": "Razumije sleng · plaćeno",
-        "provider_section": "",
-        "key_badge_missing": "",
-        "key_badge_invalid": "",
-        "key_badge_valid": "",
-        "guide_paste_inline_desc": "",
+        "provider_section": "Pružalac",
+        "key_badge_missing": "Nije postavljen",
+        "key_badge_invalid": "Ne radi",
+        "key_badge_valid": "Aktivan",
+        "guide_paste_inline_desc": "Zalijepi ključ i dodirni Sačuvaj. Odmah se provjerava.",
         "api_section": "Pružalac i API ključ"
     },
     "legal_agreements": {
@@ -2824,32 +2831,36 @@
         "open_github": "Otvori na GitHubu",
         "dismiss": "Zatvori",
         "get_version": "Preuzmi {{version}}",
-        "description_manual": "",
-        "description_outdated": "",
-        "installed_label": "",
-        "latest_label": "",
-        "released_ago": "",
-        "releases_ahead_one": "",
-        "releases_ahead_other": ""
+        "description_manual": "Nova verzija aplikacije spremna je za instalaciju.",
+        "description_outdated": "Ova verzija više ne dobija OTA ažuriranja. Instaliraj najnoviju da i dalje dobijaš nove funkcije i ispravke.",
+        "installed_label": "Instalirano",
+        "latest_label": "Najnovije",
+        "released_ago": "Objavljeno {{time}}",
+        "releases_ahead_one": "{{count}} izdanje novije",
+        "releases_ahead_other": "{{count}} izdanja novije",
+        "releases_ahead_few": "{{count}} izdanja novije"
     },
     "ota_prompt": {
-        "title": "",
-        "description": "",
-        "failed": "",
-        "update_now": "",
-        "later": "",
-        "version": "",
-        "installed": "",
-        "new": "",
-        "built_in": "",
-        "newer_minutes_one": "",
-        "newer_minutes_other": "",
-        "newer_hours_one": "",
-        "newer_hours_other": "",
-        "newer_days_one": "",
-        "newer_days_other": "",
-        "auto_title": "",
-        "auto_desc": ""
+        "title": "Dostupno ažuriranje",
+        "description": "Nova verzija interfejsa aplikacije spremna je za preuzimanje. Traje samo trenutak, a aplikacija se nakon toga ponovo učitava.",
+        "failed": "Ažuriranje se nije moglo preuzeti. Provjeri vezu i pokušaj ponovo.",
+        "update_now": "Ažuriraj sada",
+        "later": "Kasnije",
+        "version": "Verzija {{version}}",
+        "installed": "Instalirani build",
+        "new": "Novi build",
+        "built_in": "Uključeno u aplikaciju",
+        "newer_minutes_one": "{{count}} minuta noviji",
+        "newer_minutes_other": "{{count}} minuta noviji",
+        "newer_hours_one": "{{count}} sat noviji",
+        "newer_hours_other": "{{count}} sati noviji",
+        "newer_days_one": "{{count}} dan noviji",
+        "newer_days_other": "{{count}} dana noviji",
+        "auto_title": "Instaliraj automatski",
+        "auto_desc": "Instaliraj buduća ažuriranja frontenda bez pitanja.",
+        "newer_minutes_few": "{{count}} minute noviji",
+        "newer_hours_few": "{{count}} sata noviji",
+        "newer_days_few": "{{count}} dana noviji"
     },
     "apk_update": {
         "errors": {
@@ -2866,199 +2877,199 @@
         }
     },
     "account_transfer": {
-        "unsupported": "",
-        "create_failed": "",
-        "copied": "",
-        "copy_failed": "",
-        "title": "",
-        "subtitle": "",
-        "warning_title": "",
-        "warning_desc": "",
-        "qr_alt": "",
-        "hides_in": "",
-        "copy": "",
-        "hide": "",
-        "show": "",
-        "howto_title": "",
-        "howto_desc": "",
-        "settings_desc": "",
-        "backup_title": "",
-        "backup_desc": ""
+        "unsupported": "Ova prijava se ne može prenijeti na drugi uređaj. Umjesto toga prijavi se e-mailom i lozinkom ili putem Googlea.",
+        "create_failed": "Nije moguće napraviti kod za prijavu.",
+        "copied": "Kod kopiran",
+        "copy_failed": "Nije moguće kopirati kod.",
+        "title": "Prijavi se na drugom uređaju",
+        "subtitle": "Prijavi ovaj račun na drugom uređaju bez upisivanja lozinke.",
+        "warning_title": "Ovaj kod je tvoja prijava",
+        "warning_desc": "Svako ko ga skenira ili kopira može se prijaviti na tvoj račun u narednih 10 minuta. Pokaži ga samo uređaju koji je tvoj i nikad ga nikome ne šalji.",
+        "qr_alt": "QR kod za prijavu",
+        "hides_in": "Sakriva se za {{time}}",
+        "copy": "Kopiraj kod",
+        "hide": "Sakrij",
+        "show": "Prikaži kod za prijavu",
+        "howto_title": "Na drugom uređaju",
+        "howto_desc": "Na ekranu za prijavu u Free Grind dodirni \"Koristi QR kod\" i skeniraj ovaj kod. Na računaru umjesto toga kopiraj kod i zalijepi ga tamo. Oba uređaja ostaju prijavljena.",
+        "settings_desc": "Prikaži QR kod da prijaviš ovaj račun negdje drugdje",
+        "backup_title": "Ponesi svoje podatke",
+        "backup_desc": "Historija razgovora, albumi, sačuvane fraze, sačuvane lokacije i postavke čuvaju se samo na ovom uređaju. Izvezi ih pod Sigurnosna kopija i vraćanje i uvezi datoteku na novom uređaju da i tamo imaš sve."
     },
     "unsupported_version": {
-        "title": "",
-        "description": "",
-        "app_version": "",
-        "grindr_says": "",
-        "check": "",
-        "dismiss": "",
-        "no_update": "",
-        "check_failed": ""
+        "title": "Potrebno ažuriranje",
+        "description": "Grindr više ne prihvata verziju aplikacije kojom se Free Grind predstavlja. Ažuriraj Free Grind da ga nastaviš koristiti — do tada prijava i većina funkcija neće raditi.",
+        "app_version": "Verzija aplikacije",
+        "grindr_says": "Grindr kaže",
+        "check": "Provjeri ažuriranje",
+        "dismiss": "Ne sada",
+        "no_update": "Novija verzija još nije izašla. Provjeri ponovo kasnije.",
+        "check_failed": "Provjera ažuriranja nije uspjela"
     },
     "account_warnings": {
-        "title": "",
-        "description": "",
-        "acknowledge": "",
-        "read_guidelines": "",
-        "acknowledge_failed": "",
-        "why": "",
+        "title": "Upozorenje",
+        "description": "Tvoj račun je prekršio naše smjernice zajednice. Ako se to ponovi, možeš biti zabranjen.",
+        "acknowledge": "Razumijem i slažem se",
+        "read_guidelines": "Pročitaj naše smjernice",
+        "acknowledge_failed": "Nije moguće potvrditi upozorenja. Pokušaj ponovo.",
+        "why": "Zašto ovo vidim?",
         "types": {
             "harassment": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Uznemiravanje",
+                "content": "Podržavamo slobodu izražavanja, ali ne ako služi za maltretiranje ili zastrašivanje drugih. Budi ljubazan na Grindru.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog uznemiravanja. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Molimo te da se prema drugima na Grindru odnosiš ljubazno. Maltretiranje, uznemiravanje i zastrašivanje su zabranjeni jer stvaraju neprijateljsko okruženje. Ponovljeno zlostavljanje može dovesti do daljnjih mjera protiv tvog računa."
             },
             "commercial": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Komercijalna aktivnost",
+                "content": "Grindr je samo za ličnu upotrebu. Ne smiješ tražiti novac, oglašavati se ili koristiti Grindr za kupovinu ili prodaju bilo čega. Ako se to ponovi, možeš biti zabranjen.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog komercijalne aktivnosti. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Grindr je namijenjen ličnim vezama, a ne regrutovanju ili vrbovanju korisnika za profitne poduhvate poput promocije firmi, plaćenih usluga ili događaja. Takve aktivnosti odvlače platformu od njene svrhe i protivne su našim smjernicama. Pobrini se da tvoje interakcije ostanu lične i nekomercijalne."
             },
             "mild_insults": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Blage uvrede i nepoštovanje",
+                "content": "Neke tvoje poruke označene su kao potencijalno nepristojne. Podstičemo te da budeš svoj i slobodno se izražavaš na Grindru, ali važno je to činiti bez negativnog uticaja na druge. Budi ljubazan na Grindru i pobrini se da tvoje interakcije ostanu s poštovanjem, u skladu s našim smjernicama zajednice.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog blagih uvreda i nepoštovanja. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Grindr nastoji pružiti prostor za interakcije s poštovanjem i autentične interakcije. Komentari koji mogu djelovati neljubazno ili nepristojno mogu negativno uticati na druge i protivni su našim smjernicama zajednice. Pazi kako tvoje riječi djeluju i pomozi nam da održimo prijatno okruženje za sve. Daljnja kršenja mogu dovesti do mjera poput suspenzije ili zabrane."
             },
             "general_advertising": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Opće oglašavanje i vrbovanje",
+                "content": "Grindr je za autentične lične veze, a ne za oglašavanje proizvoda, usluga ili vanjskih platformi. Promotivni sadržaj nije dozvoljen na profilima ni u porukama. Pobrini se da tvoje interakcije ostanu iskrene i u skladu s našim smjernicama.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog općeg oglašavanja i vrbovanja. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Grindr je namijenjen stvarnim ličnim vezama i nije mjesto za promociju proizvoda, usluga ili vanjskih linkova. Korištenje profila ili poruka za promociju proizvoda ili usluga ili dijeljenje vanjskih linkova protivno je našim smjernicama i narušava iskustvo drugih. Ukloni sav promotivni sadržaj da Grindr ostane prostor za stvarne interakcije."
             },
             "unwanted_messaging": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Ponovljene ili neželjene poruke",
+                "content": "Polako! Slanje ponovljenih poruka ili pretjerano zapitkivanje smatra se spamom. Suzdrži se od toga jer daljnja kršenja mogu dovesti do suspenzije računa.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog ponovljenih ili neželjenih poruka. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Uspori malo. Slanje previše poruka u kratkom vremenu krši naše smjernice. Ovaj sistem pomaže da Grindr ostane siguran i pozitivan za sve. Ako se ovakvo ponašanje nastavi, tvoj račun može biti suspendovan. Uvijek poštuj druge korisnike — čitaj profile da saznaš njihove sklonosti, podijeli svoje granice i poštuj tuđe."
             },
             "drug_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Povremeno traženje droga",
+                "content": "Traženje droga na Grindru krši naše smjernice. Izbjegavaj to da pomogneš održati sigurnu zajednicu punu poštovanja.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog povremenog traženja droga. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Traženje droga, čak i povremeno, na profilu ili u razgovorima nije dozvoljeno. To je protivno Grindrovim smjernicama jer nam je stalo do tvoje dobrobiti i nastojimo održati sigurnu zajednicu punu poštovanja. Ubuduće izbjegavaj takva spominjanja."
             },
             "drug_promotion": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Promocija ili veličanje droga",
+                "content": "Ne dozvoljavamo aktivnosti koje promovišu upotrebu ilegalnih droga. Ako se to ponovi, tvoj račun može biti suspendovan.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog promocije ili veličanja droga. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Duboko nam je stalo do dobrobiti naših korisnika. Spominjanje kanabisa, duhana i alkohola dozvoljeno je u određenim kontekstima, ali ne dozvoljavamo profile usmjerene na droge ili koji ih promovišu, uključujući razgovor o kupovini ili prodaji droga (bilo koje vrste) ili učešće u tome. Ovo pravilo važi i za slike i emojije koji traže droge ili promovišu njihovu upotrebu."
             },
             "non_illicit_substances": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Usputno spominjanje legalnih supstanci",
+                "content": "Legalne supstance poput CBD-a ili marihuane (gdje je legalna) smiju se spominjati na Grindru. Međutim, pretjerana promocija ili fokus na te supstance može dovesti do toga da naša zajednica prijavi tvoj račun, pa čak i do suspenzije.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog usputnog spominjanja legalnih supstanci i simbola. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Na Grindru dozvoljavamo usputno spominjanje legalnih supstanci, poput CBD-a ili marihuane (gdje je legalna). Međutim, profili usmjereni na ove supstance ili koji ih pretjerano promovišu mogu narušiti iskustvo zajednice i drugi korisnici ih mogu prijaviti. Duboko nam je stalo do dobrobiti naše zajednice i zabranjujemo sadržaj ili slike vezane za droge koje bi mogle promovisati štetne prakse. Pobrini se da tvoj profil bude u skladu s našim smjernicama i pomozi nam da održimo sigurnu platformu punu poštovanja za sve."
             },
             "mild_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Blago vrbovanje i usputne ponude",
+                "content": "Grindr je za stvarne lične veze. Finansijski zahtjevi mogu zamagliti granice i nisu u skladu s našim smjernicama. Neka interakcije ostanu autentične i s poštovanjem.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog blagog vrbovanja i usputnih ponuda. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Grindr je za lične veze — ne za promociju plaćenog sadržaja ili finansijskih aranžmana. Pobrini se da tvoj profil i poruke budu u skladu s našim smjernicama da Grindr ostane prostor za stvarne interakcije."
             },
             "drug_seeking": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Traženje droga",
+                "content": "Traženje droga na Grindru krši naše smjernice. Izbjegavaj to da pomogneš održati sigurnu zajednicu punu poštovanja. Ako se to ponovi, tvoj račun može biti suspendovan.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog traženja droga. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Traženje droga, čak i povremeno, na profilu ili u razgovorima nije dozvoljeno. To je protivno Grindrovim smjernicama jer nam je stalo do tvoje dobrobiti i nastojimo održati sigurnu zajednicu punu poštovanja. Ubuduće izbjegavaj takva spominjanja."
             },
             "drug_facilitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Posredovanje u nabavci droga",
+                "content": "Pomaganje drugima da dođu do ilegalnih droga nije dozvoljeno na Grindru. Ako se to ponovi, tvoj račun može biti suspendovan.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog posredovanja u nabavci droga. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Povezivanje drugih s ilegalnim drogama — nuđenje da podijeliš ono što imaš, dogovaranje preuzimanja ili povezivanje nekoga s izvorom — nije dozvoljeno, čak i ako se ništa ne prodaje. To je protivno Grindrovim smjernicama jer nam je stalo do tvoje dobrobiti i nastojimo održati sigurnu zajednicu punu poštovanja. Ubuduće to izbjegavaj."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Intimne slike bez pristanka",
+                "content": "Dijeljenje intimnih slika ili videa druge osobe bez njenog pristanka nije dozvoljeno na Grindru. Ako se to ponovi, tvoj račun može biti suspendovan.",
+                "reason": "Vidiš ovo upozorenje jer si u nedavnoj interakciji označen zbog dijeljenja intimnih slika bez pristanka. Ako naš tim za moderaciju dobije prijave o drugim incidentima, tvoj račun može biti zabranjen zbog kršenja naših smjernica zajednice.",
+                "details": "Intimne slike ili videi druge osobe smiju se dijeliti samo uz njen pristanak — a pristanak da se slika napravi ili primi nije pristanak da se dijeli. Ovo važi i za uređene slike i slike generisane umjetnom inteligencijom. To je protivno Grindrovim smjernicama jer nam je stalo do sigurnosti i privatnosti svih u našoj zajednici. Ubuduće to izbjegavaj."
             }
         }
     },
     "community_guidelines": {
-        "label": "",
+        "label": "Smjernica zajednice",
         "authentic": {
-            "title": "",
-            "text": ""
+            "title": "Budi autentičan",
+            "text": "Budi svoj u aplikaciji, a ne neko drugi. Svaki profil koji se lažno predstavlja kao druge osobe, uključujući poznate ličnosti, bit će zabranjen. Sadržaj koji objavljuješ na Grindru treba biti o tebi ili od tebe, i trebaš se predstavljati iskreno. Ti biraš šta ćeš otkriti o sebi, ali informacije koje dijeliš moraju biti istinite. Svako lažno predstavljanje/catfishing je zabranjeno i može dovesti do zabrane.\n\nNe dozvoljavamo:\n• Fotografije poznatih ličnosti ili javnih osoba bilo koje vrste (glumci, muzičari, političari itd.)\n• Fotografije dvojnika poznatih ličnosti kada nije jasno da li je riječ o dvojniku ili o stvarnoj poznatoj osobi\n• Slike zaštićene autorskim pravima, s vodenim žigom ili za koje vjerujemo da nisu tvoje ili ih nisi ti snimio\n• Besmislene fotografije (poput potpuno crnih kvadrata)\n\nAko tvoj profil bude prijavljen kao lažan, možemo te zamoliti da potvrdiš identitet kako bi profil ostao aktivan."
         },
         "harassment": {
-            "title": "",
-            "text": ""
+            "title": "Uznemiravanje",
+            "text": "Želimo da ovdje budeš svoj i slobodno se izražavaš, ali ne na štetu drugih. Toplo preporučujemo da na profilu pišeš o onome što voliš, a ne o onome što ne voliš. I stara izreka \"ako nemaš ništa lijepo reći, bolje šuti\" važi ovdje jednako kao kod tvoje bake.\n\nTakođer očekujemo da ostaviš nekoga na miru kada pokaže da želi biti ostavljen na miru. To je osnovno pravilo. Zloupotreba našeg sistema prijava radi osvete nekome ko te blokirao ili kreiranje novih računa radi nastavka neželjenog kontakta dovest će do trajne zabrane."
         },
         "hate": {
-            "title": "",
-            "text": ""
+            "title": "Mržnja, nasilje i uvredljiv sadržaj",
+            "text": "Trebalo bi se podrazumijevati, ali ne dozvoljavamo govor mržnje niti nasilje bilo koje vrste. Ako saznamo da si zlostavljao ili ozbiljno prijetio drugom korisniku, bit ćeš zauvijek zabranjen. Možemo ukloniti i sadržaj koji smatramo previše eksplicitnim, uvredljivim ili bezosjećajnim i bolnim, čak i ako nije bilo loše namjere.\n\nPrijave nasilja, prijetnji i napada shvatamo vrlo ozbiljno. To uključuje incidente na našoj platformi i van nje.\n\nSadržaj možemo smatrati govorom mržnje (i poduzeti strože mjere protiv profila) ako promoviše ili opravdava rasizam, netrpeljivost, nasilje, mržnju, dehumanizaciju ili nanošenje štete pojedincima ili grupama na osnovu rase, etničke pripadnosti, invaliditeta, dobi, nacionalnosti, seksualne orijentacije, spola, rodnog identiteta, religije ili izgleda.\n\nSadržaj koji bismo smatrali eksplicitnim, nasilnim ili uvredljivim uključuje, ali nije ograničen na:\n• Fotografije oružja i vatrenog oružja (stvarnog ili igračaka), uključujući paintball puške\n• Fotografije s krvlju ili goreom, uključujući posebno realistične kostime\n• Nasilne slike, uključujući crtane filmove ili ilustracije\n• Znakove bandi ili uvredljive geste rukom (npr. srednji prst)\n• Kink ili fetiš sadržaj koji je nasilan ili promoviše nanošenje štete\n• Prijetnje bilo kojoj osobi ili grupi, uključujući političare\n• Fotografije ili opise samopovređivanja ili samoubistva\n• Fotografije mrtvih životinja, uključujući lovačke fotografije\n• Šale ili meme koji mogu biti bolni i bezosjećajni"
         },
         "minors": {
-            "title": "",
-            "text": ""
+            "title": "Maloljetnici",
+            "text": "Grindr je SAMO za odrasle. Moraš imati najmanje 18 godina da koristiš aplikaciju (ili više u određenim jurisdikcijama). Ovu starosnu granicu shvatamo vrlo, vrlo ozbiljno, i svako kršenje ili sumnja na kršenje dovest će najmanje do zabrane i može nas navesti da uključimo nadležne organe.\n\nTakođer ne dozvoljavamo fotografije bilo koga mlađeg od 18 godina, ni u kakvom kontekstu. To uključuje fotografije na kojima je lice maloljetnika zamućeno ili je u pozadini. Naša potpuna zabrana aktivnosti s maloljetnicima proteže se i na komunikaciju: ako korisnik komunicira s drugim korisnikom za kojeg vjeruje da je mlađi od 18 godina, i to je kršenje naših pravila o dobi."
         },
         "obey_the_law": {
-            "title": "",
-            "text": ""
+            "title": "Poštuj zakon",
+            "text": "Ako je nešto ilegalno van interneta, pogodi šta: ilegalno je i na Grindru! Da, to uključuje droge. Ilegalni sadržaj i prikazi ilegalnih aktivnosti bit će uklonjeni i, kada je prikladno, prijavljeni nadležnim organima.\n\nDozvoljavamo usputno spominjanje marihuane, lijekova bez recepta i propisanih lijekova. Međutim, dokazi o zloupotrebi ili podsticanje drugih na neodgovornu upotrebu, kao i svaki razgovor o kupovini/prodaji, dovest će do zabrane. Ne dozvoljavamo nikakvo spominjanje droga bez recepta, osim marihuane, osim u kontekstu oporavka od ovisnosti. Također ne dozvoljavamo profile uglavnom usmjerene na droge."
         },
         "private_information": {
-            "title": "",
-            "text": ""
+            "title": "Privatni podaci",
+            "text": "Grindr te nikada neće tražiti lične podatke poput lozinke ili podataka o kreditnoj kartici. Ni drugi korisnici to ne trebaju znati. Radi sigurnosti uklonit ćemo sve osjetljive lične podatke prikazane javno, poput brojeva telefona i adresa, i možemo suspendovati ili zabraniti profil.\n\nNeželjeno traženje ličnih podataka drugog korisnika, navođenje korisnika da posjete vanjske linkove ili bilo kakav spam ili prevara dovest će do zabrane.\n\nNe dozvoljavamo objavljivanje privatnih podataka bilo gdje na profilu, npr. na fotografijama ili u tekstu profila, niti direktne linkove na njih, npr. putem QR koda ili linka. Privatni podaci uključuju:\n• Nejavne kontakt podatke, poput brojeva telefona, e-mail adresa, kućne/poslovne adrese\n• JMBG, pasoše, lozinke, finansijske podatke"
         }
     },
     "push_notifications": {
-        "someone": "",
-        "generic_message": "",
-        "open_chat": "",
-        "open_profile": "",
-        "taps_title": "",
-        "tap_notification_body": "",
-        "chat_image_notification_body": "",
-        "chat_expiring_image_notification_body": "",
-        "chat_gif_notification_body": "",
-        "chat_gaymoji_notification_body": "",
-        "chat_location_notification_body": "",
-        "chat_audio_notification_body": "",
-        "chat_video_notification_body": "",
-        "chat_album_notification_body": "",
-        "chat_album_content_reaction_notification_body": "",
-        "chat_message_reaction_notification_body": "",
-        "chat_message_reaction_no_name_notification_body": "",
-        "favorite_online_notification_title": "",
-        "favorite_online_notification_body": "",
-        "multiple_favorites_online_notification_title": "",
-        "multiple_favorites_online_notification_body": "",
-        "tapped_online_notification_title": "",
-        "tapped_online_notification_body": "",
-        "recommended_online_notification_title": "",
-        "recommended_online_notification_body": "",
-        "media_recipient_online_notification_title": "",
-        "media_recipient_online_notification_body": "",
-        "unread_chats_notification_title": "",
-        "unread_chats_notification_body": "",
-        "viewed_profile_notification_title": "",
-        "viewed_profile_notification_body": "",
-        "a_list_updates_title": "",
-        "a_list_updates_body_1": "",
-        "a_list_updates_body_2": "",
-        "a_list_updates_body_3": "",
-        "a_list_updates_body_4": "",
-        "boost_notification_title": "",
-        "boost_notification_body": "",
-        "super_boost_notification_title": "",
-        "super_boost_notification_body": "",
-        "mega_boost_notification_title": "",
-        "mega_boost_notification_body": "",
-        "trial_reminder_notification_title": "",
-        "trial_reminder_notification_body": "",
-        "spank_bank_favorite_update_title": "",
-        "spank_bank_batched_update_title": "",
-        "spank_bank_tap_to_see_body": "",
-        "spank_bank_v2_favorite_update_body": "",
-        "spank_bank_v2_batched_update_body": "",
-        "discover_new_rec_notification_title": "",
-        "discover_new_rec_notification_body": "",
-        "right_now_request_notification_body": "",
-        "right_now_request_approved_notification_body": "",
-        "coupon_auto_applied_title": "",
-        "coupon_auto_applied_body": ""
+        "someone": "Neko",
+        "generic_message": "Poslao ti je poruku",
+        "open_chat": "Otvori razgovor",
+        "open_profile": "Otvori profil",
+        "taps_title": "Tapovi",
+        "tap_notification_body": "Tapnuo te",
+        "chat_image_notification_body": "Poslao ti je sliku",
+        "chat_expiring_image_notification_body": "Poslao ti je sliku koja ističe",
+        "chat_gif_notification_body": "Poslao ti je GIF",
+        "chat_gaymoji_notification_body": "Poslao ti je Gaymoji",
+        "chat_location_notification_body": "Poslao ti je svoju lokaciju",
+        "chat_audio_notification_body": "Poslao ti je glasovnu poruku",
+        "chat_video_notification_body": "Poslao ti je video",
+        "chat_album_notification_body": "Podijelio je svoj album",
+        "chat_album_content_reaction_notification_body": "Svidio mu se sadržaj tvog albuma",
+        "chat_message_reaction_notification_body": "{{arg1}} je reagovao na tvoju poruku",
+        "chat_message_reaction_no_name_notification_body": "Reagovao je na tvoju poruku",
+        "favorite_online_notification_title": "Tvoj favorit je na mreži…",
+        "favorite_online_notification_body": "Pozdravi ga prije nego što ode.",
+        "multiple_favorites_online_notification_title": "Tvoji favoriti su tu…",
+        "multiple_favorites_online_notification_body": "Trenutno na mreži. Biraj.",
+        "tapped_online_notification_title": "Tvoj tap je upravo došao na mrežu…",
+        "tapped_online_notification_body": "Ti si napravio prvi korak. Sad ga pozdravi.",
+        "recommended_online_notification_title": "Tvoj tip je u blizini.",
+        "recommended_online_notification_body": "Trenutno je na mreži. Pozdravi ga prije nego što trenutak prođe…",
+        "media_recipient_online_notification_title": "Tip kome si slao slike…",
+        "media_recipient_online_notification_body": "Sad je na mreži. Nastavite gdje ste stali.",
+        "unread_chats_notification_title": "Novi razgovori čekaju.",
+        "unread_chats_notification_body": "Pogledaj ko ti je pisao. Lopta je kod tebe.",
+        "viewed_profile_notification_title": "Dobijaš preglede…",
+        "viewed_profile_notification_body": "Pogledaj ko te gleda. Tvoji pregledi su otključani 24 sata.",
+        "a_list_updates_title": "A-List novosti",
+        "a_list_updates_body_1": "Imaš aktivnu A-List! {{arg1}} ima novost. Pogledaj šta si propustio!",
+        "a_list_updates_body_2": "Imaš aktivnu A-List! {{arg1}} i {{arg2}} imaju novosti. Pogledaj šta si propustio!",
+        "a_list_updates_body_3": "Imaš aktivnu A-List! {{arg1}}, {{arg2}} i {{arg3}} imaju novosti. Pogledaj šta si propustio!",
+        "a_list_updates_body_4": "Imaš aktivnu A-List! {{arg1}}, {{arg2}} i još {{arg3}} imaju novosti. Pogledaj šta si propustio!",
+        "boost_notification_title": "Boost završen ⚡",
+        "boost_notification_body": "Dodirni da vidiš rezultate",
+        "super_boost_notification_title": "Super Boost završen ⚡",
+        "super_boost_notification_body": "Dodirni da vidiš rezultate",
+        "mega_boost_notification_title": "Mega Boost završen ⚡",
+        "mega_boost_notification_body": "Dodirni da vidiš rezultate",
+        "trial_reminder_notification_title": "Besplatna proba 7 dana",
+        "trial_reminder_notification_body": "Tvoja proba ističe za 48 sati.",
+        "spank_bank_favorite_update_title": "Tvoj favorit je upravo ažurirao album 👀",
+        "spank_bank_batched_update_title": "{{arg1}} ljudi je ažuriralo albume 👀",
+        "spank_bank_tap_to_see_body": "Dodirni za pregled",
+        "spank_bank_v2_favorite_update_body": "Tvoj favorit {{arg1}} je upravo ažurirao album 👀",
+        "spank_bank_v2_batched_update_body": "{{arg1}} ljudi je ažuriralo albume",
+        "discover_new_rec_notification_title": "Novi zgodni u Discoveru",
+        "discover_new_rec_notification_body": "Samo danas u tvom feedu! Dodirni za pregled.",
+        "right_now_request_notification_body": "Zahtjev za {{arg1}} primljen",
+        "right_now_request_approved_notification_body": "Zahtjev za {{arg1}} prihvaćen",
+        "coupon_auto_applied_title": "Čestitamo",
+        "coupon_auto_applied_body": "Besplatan mjesec {{arg1}} je tvoj"
     }
 }

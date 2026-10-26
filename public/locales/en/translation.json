@@ -1866,6 +1866,7 @@
     "location_finder_initial_distance": "Initial distance: {{distance}} m",
     "location_finder_restoring": "Restoring your location…",
     "location_finder_stop": "Stop",
+    "location_finder_busy": "Locate is already running for another profile.",
     "locating": "Locating...",
     "locate": "Locate",
     "about": "About",

@@ -20,8 +20,8 @@
         "behavior_desc": "تأكيدات قبل ما تعمل بلوك أو تمسح الشات.",
         "notifications": "الإشعارات",
         "notifications_desc": "اختار الإشعارات اللي توصلك، وهل تظهر وانت فاتح الطبّق ولا لا.",
-        "privacy": "",
-        "privacy_desc": "",
+        "privacy": "الخصوصية",
+        "privacy_desc": "إيصالات القراءة، مشاهدات البروفايل، وضع التخفي، تمويه الوسائط وتمويه التطبيق.",
         "sexual_health": "الصحة الجنسية",
         "sexual_health_desc": "تابع جرعات الـ PrEP واللقاءات والتحاليل والمواعيد.",
         "automation": "الأتمتة",
@@ -48,11 +48,11 @@
         "check_updates_desc": "حمّل وثبّت أحدث نسخة من Free Grind.",
         "installed_version": "الإصدار {{version}}",
         "installed_versions": "الواجهة {{frontend}} · التطبيق {{app}}",
-        "app_version": "",
-        "frontend_version": "",
+        "app_version": "التطبيق {{version}}",
+        "frontend_version": "الواجهة {{version}}",
         "check_now": "تحقق دلوقتي",
-        "update_channel": "",
-        "update_channel_desc": "",
+        "update_channel": "قناة التحديثات",
+        "update_channel_desc": "التطبيق بياخد التحديثات من أنهي مسار إصدارات.",
         "environment": "البيئة",
         "switching": "بيحوّل…",
         "checking": "بيتحقق…",
@@ -72,13 +72,13 @@
         "ota_progress_downloading": "بينزّل التحديث… {{size}}",
         "ota_progress_installing": "بيثبّت التحديث…",
         "ota_progress_done": "التحديث اتثبّت. بيعيد التحميل…",
-        "auto_update": "",
-        "auto_update_desc": "",
-        "update_checks": "",
-        "update_checks_desc": "",
-        "update_channel_main_desc": "",
-        "update_channel_development_desc": "",
-        "update_channel_contributor_desc": ""
+        "auto_update": "تثبيت تلقائي",
+        "auto_update_desc": "بيثبّت إصدارات الواجهة الجديدة (OTA) من GitHub Actions على طول ويعيد تحميل التطبيق. لو مقفول، هيسألك الأول.",
+        "update_checks": "فحص تلقائي",
+        "update_checks_desc": "بيدوّر على إصدارات جديدة للتطبيق والواجهة على GitHub مع كل تشغيل للتطبيق. لو مقفول، مفيش أي طلب بيتبعت لـ GitHub إلا لو فحصت بنفسك من فوق.",
+        "update_channel_main_desc": "إصدارات متجرّبة. مُوصى بيها.",
+        "update_channel_development_desc": "أحدث التغييرات أول ما تتبني. ممكن تكون مش مستقرة.",
+        "update_channel_contributor_desc": "قناة المساهمين"
     },
     "settings_blocked": {
         "title": "الحسابات المحظورة",
@@ -135,17 +135,17 @@
         "apply_to_inbox_desc": "يبلوك على الفور الشات الجديدة التي تتطابق مع معاييرك.",
         "forbidden_keywords_title": "الكلمات المفتاحية المحظورة",
         "forbidden_keywords_desc": "قائمة كلمات مشتركة - مفصولة بفواصل (مثل: سناب شات، سيربوت، بوت). لا تبلوك أي شيء بمفردها؛ أعد استخدامها كمصدر للكلمات الرئيسية (الكلمات الرئيسية المحظورة) في شرط أتمتة لإنشاء",
-        "forbidden_list_row_title": "",
-        "forbidden_list_count_one": "",
-        "forbidden_list_count_other": "",
-        "forbidden_list_empty": "",
-        "forbidden_used_by": "",
-        "forbidden_not_used": "",
-        "forbidden_usage_footnote": "",
-        "forbidden_editor_placeholder": "",
-        "forbidden_editor_hint": "",
-        "rule_on": "",
-        "rule_off": "",
+        "forbidden_list_row_title": "قايمة الكلمات المفتاحية",
+        "forbidden_list_count_one": "كلمة مفتاحية واحدة",
+        "forbidden_list_count_other": "{{count}} كلمة مفتاحية",
+        "forbidden_list_empty": "لسه مفيش كلمات مفتاحية",
+        "forbidden_used_by": "بتستخدمها",
+        "forbidden_not_used": "لسه مفيش قاعدة بتستخدم القايمة دي.",
+        "forbidden_usage_footnote": "القايمة لوحدها مبتعملش حاجة. القاعدة بتستخدمها لما يكون شرط من شروط الكلمات المفتاحية بتاعتها (الاسم، البايو، الرسالة أو حساب السوشيال) متظبط على \"الكلمات الممنوعة\" بدل كلماتها الخاصة. قاعدة \"بلوك الكلمات الممنوعة\" المدمجة بتعمل بلوك لأي حد اسمه أو البايو بتاعه أو رسالته فيها كلمة مفتاحية؛ شغّلها من فوق.",
+        "forbidden_editor_placeholder": "snapchat, كريبتو, بوت",
+        "forbidden_editor_hint": "افصل الكلمات المفتاحية بفواصل أو سطور جديدة. بتطابق كلمات كاملة، والحروف الكبيرة والصغيرة مش فارقة.",
+        "rule_on": "شغّالة",
+        "rule_off": "مقفولة",
         "keywords_placeholder": "اكتب الكلمات المفتاحية هنا...",
         "export_txt": "تصدير (.txt)",
         "import_txt": "استيراد ملف txt",
@@ -161,7 +161,7 @@
         "custom_rules_desc": "أنشئ قواعدك الخاصة \"عندما X ثم Y\" لأول رسالة تصلك من شخص ما - تحقق من المرسل، ثم ابلوكه أو رد عليه أو شارك ألبومًا تلقائيًا. يتم طبّق كل قاعدة مرة واحدة لكل محادثة جديدة.",
         "add_rule": "إضافة قاعدة",
         "no_rules_yet": "مفيش عمليات رولات مخصصة حتى دلوقتي. أضف واحدة للبدء.",
-        "no_rules_hint": "",
+        "no_rules_hint": "القواعد بتشتغل لوحدها لما حد يبعتلك رسالة أو تاب، زي إنها تعمله بلوك أو ترد عليه.",
         "unnamed_rule": "قاعدة غير مسماة",
         "rule_when": "متى ",
         "edit_rule": "تعديل الرول",
@@ -172,7 +172,7 @@
         "rule_needs_action": "أضف إجراءً واحداً على الأقل قبل الحفظ.",
         "action_needs_message_text": "أدخل الرسالة المراد إرسالها قبل الحفظ.",
         "rule_name_placeholder": "اسماء هذه الرولات",
-        "rule_name_label": "",
+        "rule_name_label": "الاسم",
         "trigger_label": "اين(المحفز)",
         "conditions_label": "إذا (الشروط)",
         "rule_no_conditions": "دائما",
@@ -286,7 +286,11 @@
         "phrase_facebook_handle_prefix": "يحتوي اسم المستخدم الخاص بالمرسل على فيسبوك",
         "phrase_facebook_handle_suffix": " ",
         "phrase_facebook_handle_prefix_not": "لا يحتوي اسم المستخدم الخاص بالمرسل على فيسبوك",
-        "phrase_facebook_handle_suffix_not": " "
+        "phrase_facebook_handle_suffix_not": " ",
+        "forbidden_list_count_zero": "مفيش كلمات مفتاحية",
+        "forbidden_list_count_two": "كلمتين مفتاحيتين",
+        "forbidden_list_count_few": "{{count}} كلمات مفتاحية",
+        "forbidden_list_count_many": "{{count}} كلمة مفتاحية"
     },
     "video_gallery": {
         "title": "الفيديوهات",
@@ -385,7 +389,7 @@
         "session_placeholder": "ماذا تدور هنا",
         "char_limit": "{{count}}/140",
         "add_photo": "اضافه صور",
-        "photo_hint": "",
+        "photo_hint": "دوس عشان تختار صورة أو اسحبها هنا",
         "add_video": "اضافه فيديو",
         "i_am_hosting": "يستضيف",
         "i_am_hosting_desc": "فى مكانى",
@@ -396,8 +400,8 @@
         "visibility": "الرؤية",
         "status_hidden": "مخفي دلوقتي",
         "status_visible": "مرئي للعامة",
-        "visibility_visible_desc": "",
-        "visibility_hidden_desc": "",
+        "visibility_visible_desc": "السيشن بتاعتك ظاهرة في فيد Right Now",
+        "visibility_hidden_desc": "متوقفة مؤقتًا، محدش قريب يقدر يشوف السيشن بتاعتك",
         "weekly_limit": "جلسات أسبوعية",
         "remaining_count": "متاح",
         "next_refresh": "التحديث التالي",
@@ -411,8 +415,8 @@
         "end_session": "إنهاء الجلسة",
         "session_updated": "تم تحديث الجلسة!",
         "session_created": "بدأت الجلسة!",
-        "started_overlay_subtitle": "",
-        "started_overlay_tagline": "",
+        "started_overlay_subtitle": "السيشن بدأت",
+        "started_overlay_tagline": "إنت دلوقتي ظاهر. جاهز ومستعد وقريب.",
         "session_ended": "انتهاء الجلسة",
         "session_expired": "انتهت الجلسة",
         "error_fetch_session": "تعذر تحميل بيانات الجلسة",
@@ -422,16 +426,16 @@
         "error_end_failed": "فشل إنهاء الجلسة",
         "upload_preview_alt": "معاينة التحميل",
         "close_aria": "انهاء",
-        "create_session_subtitle": "",
-        "section_message": "",
-        "section_photo": "",
-        "section_options": "",
-        "view_list": "",
-        "view_map": "",
-        "map_recenter": "",
-        "map_center": "",
-        "map_you": "",
-        "map_no_positions": ""
+        "create_session_subtitle": "ورّي الناس اللي حواليك إنت ناوي على إيه.",
+        "section_message": "الرسالة",
+        "section_photo": "الصورة",
+        "section_options": "الخيارات",
+        "view_list": "قايمة",
+        "view_map": "خريطة",
+        "map_recenter": "اعرض الكل",
+        "map_center": "توسيط",
+        "map_you": "إنت",
+        "map_no_positions": "محدش قريب بيشارك موقعه على الخريطة دلوقتي."
     },
     "right_now_filters": {
         "title": "فلتره right now",
@@ -449,13 +453,13 @@
         "height": "الطول",
         "weight": "الوزن",
         "tags": "تاج",
-        "tags_more": "",
+        "tags_more": "تاجات أكتر",
         "clear_all": "مسح الكل",
         "apply": "تاكيد",
         "not_specified": "غير محدد",
         "sort": {
             "default": "تقصير",
-            "original": "",
+            "original": "الأصلي",
             "youngest": "الأصغر سناً",
             "oldest": "الاكبر سناً",
             "popular": "شائع",
@@ -510,8 +514,8 @@
         "map_picker_hide": "يخفي",
         "map_picker_open": "مرئي",
         "map_picker_instructions": "افتح الخريطة لوضع علامة ثم احفظ ذلك الموقع.",
-        "choose_destination": "",
-        "use_destination": "",
+        "choose_destination": "اختار الوجهة",
+        "use_destination": "استخدم الوجهة دي",
         "map_picker_tap_hint": "انقر على الخريطة لوضع علامة.",
         "use_selected_location": "استخدم هذا الموقع",
         "mode_gps": "نظام تحديد المواقع العالمي (GPS) · تلقائي",
@@ -533,7 +537,7 @@
         "home_location_label": "المنزل",
         "home_updated_toast": "تم تحديث موقع المنزل",
         "home_update_failed": "فشل تحديث موقع المنزل",
-        "saved_hint": ""
+        "saved_hint": "دوس على علامة الحفظ اللي تحت عشان تحفظ المكان المثبّت وتوصله بسرعة."
     },
     "nav": {
         "browse": "تصفح",
@@ -606,10 +610,10 @@
             "double_tap_title": "دوستين",
             "double_tap_title_desktop": "دبل كليك",
             "double_tap_desc": "يبعت تاب من غير ما يفتح البروفايل.",
-            "double_tap_chat_desc": "",
-            "double_tap_off_desc": "",
-            "double_tap_send_tap": "",
-            "settings_hint_change": "",
+            "double_tap_chat_desc": "يفتح الشات من غير ما يفتح البروفايل.",
+            "double_tap_off_desc": "مقفول. البروفايلات بتفتح على طول بدوسة واحدة.",
+            "double_tap_send_tap": "ابعت تاب",
+            "settings_hint_change": "تقدر تغيّر ده ونوع التاب بعدين من الإعدادات ← السلوك.",
             "long_press_title": "دوسة طويلة",
             "long_press_title_desktop": "كليك يمين",
             "long_press_desc": "حاجات سريعة: رسالة، مفضلة، اسم مستعار، إخفاء أو بلوك.",
@@ -647,26 +651,26 @@
             "discord_title": "ديسكورد",
             "telegram_title": "تيليجرام"
         },
-        "section_community": "",
-        "founder_credit": "",
-        "discord_cta": "",
-        "telegram_cta": "",
-        "section_project": "",
-        "whats_new": "",
-        "whats_new_desc": "",
-        "built_with": "",
+        "section_community": "المجتمع",
+        "founder_credit": "اتعمل في الأصل بواسطة {{name}}.",
+        "discord_cta": "انضم للسيرفر",
+        "telegram_cta": "تابع التحديثات",
+        "section_project": "المشروع",
+        "whats_new": "الجديد",
+        "whats_new_desc": "أهم حاجات في إصدار {{version}}",
+        "built_with": "متعمل بـ {{stack}}",
         "highlights": {
-            "privacy_title": "",
-            "privacy_desc": "",
-            "open_source_title": "",
-            "open_source_desc": "",
-            "no_ads_title": "",
-            "no_ads_desc": "",
-            "free_title": "",
-            "free_desc": ""
+            "privacy_title": "الخصوصية أولًا",
+            "privacy_desc": "من غير تتبّع ولا حيل عشان تفضل قاعد.",
+            "open_source_title": "مفتوح المصدر",
+            "open_source_desc": "كل الكود متاح للعامة على GitHub.",
+            "no_ads_title": "من غير إعلانات",
+            "no_ads_desc": "واجهة نضيفة، مفيش حاجة في طريقك.",
+            "free_title": "مجاني على طول",
+            "free_desc": "لو حد طلب منك تدفع، يبقى نصب."
         },
-        "section_principles": "",
-        "tagline": ""
+        "section_principles": "ليه Free Grind",
+        "tagline": "الكلاينت اللي الخصوصية أولويته، معمول بإيد المجتمع"
     },
     "settings_albums": {
         "label": "ألبومات",
@@ -706,8 +710,8 @@
         "refresh": "حدث",
         "loading_media": "بيتحميل الوسائط",
         "no_media": "مفيش وسائط في هذا الألبوم حتى دلوقتي.",
-        "no_media_hint": "",
-        "not_shared_hint": "",
+        "no_media_hint": "صوّر صورة أو فيديو، ارفع من جهازك، أو ضيف وسائط من وسائط الشات.",
+        "not_shared_hint": "شاركه من شات وكل اللي عندهم وصول هيظهروا هنا.",
         "media_alt": "ميديا الألبوم {{index}}",
         "cancel_delete_content": "رفض وحذف",
         "add_from_drawer": "أضف من البروفايلات",
@@ -717,7 +721,7 @@
         "add_drawer_desc": "الوسائط المحفوظة في درج الدردشة",
         "drawer_picker_title": "اختار الوسائط",
         "drawer_empty": "مفيش وسائط في درجك حتى دلوقتي.",
-        "error_drawer_video_download": "",
+        "error_drawer_video_download": "مقدرناش نحمّل فيديو من الوسائط بتاعتك.",
         "add_to_album_button": "اضافة الى الألبوم",
         "toast_created": "تم إنشاء الألبوم",
         "toast_renamed": "تغيير اسم الألبوم",
@@ -747,10 +751,10 @@
         "collections_edit": "تعديل المجموعة",
         "collections_delete": "حذف المجموعة",
         "collections_name_placeholder": "اسم المجموعة",
-        "name_label": "",
-        "new_short": "",
-        "limits_albums_used": "",
-        "limits_details": "",
+        "name_label": "الاسم",
+        "new_short": "جديد",
+        "limits_albums_used": "الألبومات",
+        "limits_details": "التفاصيل",
         "collections_editor_hint": "اضغط على الوسائط بالترتيب الذي يجب إرسالها به. تُضاف البروفايلات المرفوعة الجديدة إلى درجك.",
         "collections_save": "حفظ المجموعة ({{count}})",
         "collections_item_count_one": "عنصر واحد",
@@ -923,10 +927,10 @@
         "photo_upload": {
             "title": "تحميل صورة",
             "confirm": "رفع",
-            "next": "",
-            "back": "",
-            "crop_hint": "",
-            "thumbnail_hint": "",
+            "next": "التالي",
+            "back": "رجوع",
+            "crop_hint": "قص الصورة بتاعتك",
+            "thumbnail_hint": "اختار الصورة المصغّرة اللي هتظهر في الشبكة",
             "taken_on_grindr": "اتتقاط الصورة باستخدام علامة Grindr المائية",
             "taken_on_grindr_description": "أضف الطابع الزمني للتحقق من صحة الصورة وحداثتها."
         },
@@ -950,8 +954,8 @@
             "search_placeholder": "ابحث عن أغانٍ أو فنانين...",
             "search_hint": "ابحث في Spotify لإضافة أغانٍ",
             "no_matches": "لا توجد أغانٍ تطابق بحثك.",
-            "no_matches_hint": "",
-            "apply": ""
+            "no_matches_hint": "جرّب اسم أغنية أو فنان تاني.",
+            "apply": "تطبيق"
         }
     },
     "privacy": {
@@ -1044,21 +1048,21 @@
         "visual_effects": "التأثيرات المرئية",
         "browse_grid_mobile": "تصفح الشبكة (الجوال)",
         "browse_grid_mobile_desc": "اضبط عدد البروفايلات الشخصية التي تظهر في كل صف على الهاتف المحمول",
-        "views_grid_layout": "",
-        "views_grid_mobile_desc": "",
+        "views_grid_layout": "تخطيط المشاهدات",
+        "views_grid_mobile_desc": "اختار كام بروفايل يظهر في كل صف في تاب المشاهدات على الموبايل.",
         "columns_2": "عمودان",
         "columns_3": "3 أعمدة",
-        "columns_4": "",
-        "chat_section": "",
-        "drawer_layout": "",
-        "drawer_layout_desc": "",
+        "columns_4": "4 أعمدة",
+        "chat_section": "صفحة الشات",
+        "drawer_layout": "قسّم الوسائط لفئات",
+        "drawer_layout_desc": "يعرض الوسائط والألبومات والمجموعات في تابات منفصلة بدل ما كله يبقى في صفحة واحدة.",
         "reveal_effect": {
             "title": "تأثير الكشف",
             "description": "يُظهر تأثير الكشف العناصر أثناء التمرير لأسفل. يمكنك تعطيله أو تغيير شدته.",
             "enable": "تفعيل تأثير الكشف",
             "enable_desc": "اعرض العناصر بحركة خفيفة عند دخولها إلى منطقة العرض.",
             "strengths": {
-                "off": "",
+                "off": "مقفول",
                 "subtle": "دقيق",
                 "pronounced": "يُنطق"
             }
@@ -1075,8 +1079,8 @@
             "dark": "داكن"
         },
         "amoled": {
-            "title": "",
-            "desc": ""
+            "title": "أسود صافي (AMOLED)",
+            "desc": "بيستخدم خلفيات سودا بالكامل في الوضع الداكن. بيوفّر البطارية في شاشات OLED."
         },
         "analytics": {
             "title": "التحليلات والاكتشاف",
@@ -1106,8 +1110,8 @@
         "location": "موقع",
         "auto_focus_location_search": "حقل الدور بالتركيز التلقائي",
         "auto_focus_location_search_desc": "بتفعيل التركيز التلقائي على حقل نص الدور عند فتح نافذة الموقع. أوقف هذه الخاصية إذا كان ظهور لوحة المفاتيح فورًا يزعجك.",
-        "auto_focus_right_now_text": "",
-        "auto_focus_right_now_text_desc": "",
+        "auto_focus_right_now_text": "تركيز تلقائي على نص السيشن",
+        "auto_focus_right_now_text_desc": "بيركّز تلقائيًا على خانة النص ويفتح الكيبورد لما تبدأ أو تعدّل سيشن Right Now.",
         "display": "عرض",
         "keep_screen_on": "أبقِ الشاشة قيد التشغيل",
         "keep_screen_on_desc": "يمنع هذا الطبّق من التعتيم أو القفل أثناء تشغيله. يتم إيقاف تشغيله تلقائيًا بمجرد الخروج من الطبّق.",
@@ -1115,14 +1119,14 @@
         "double_tap_tap_type": "دوستين عشان تبعت تاب",
         "double_tap_tap_type_desc": "دوس مرتين على بروفايل في الشبكة عشان تبعت التاب ده. اقفله عشان البروفايلات تفتح على طول من دوسة واحدة.",
         "double_tap_off": "مقفول",
-        "double_tap_action": "",
-        "double_tap_action_desc": "",
-        "double_tap_open_chat": "",
-        "chats": "",
-        "chat_row_swipe_actions": "",
-        "chat_row_swipe_actions_desc": "",
-        "mobile_enter_to_send": "",
-        "mobile_enter_to_send_desc": ""
+        "double_tap_action": "أكشن الدوسة المزدوجة",
+        "double_tap_action_desc": "دوس دوستين على بروفايل في الشبكة عشان تبعت تاب أو تفتح الشات على طول. اقفلها عشان البروفايلات تفتح على طول بدوسة واحدة.",
+        "double_tap_open_chat": "افتح الشات",
+        "chats": "الشاتات",
+        "chat_row_swipe_actions": "أكشنز السحب في قايمة الشاتات",
+        "chat_row_swipe_actions_desc": "اسحب الشات يمين عشان تثبّته أو شمال عشان تمسحه. الضغطة الطويلة لسه بتفتح كل الأكشنز.",
+        "mobile_enter_to_send": "Enter للإرسال على الموبايل",
+        "mobile_enter_to_send_desc": "زرار Enter في كيبورد الموبايل بيبعت الرسالة بدل ما يبدأ سطر جديد."
     },
     "notifications_page": {
         "subtitle": "اختار الإشعارات التي تريد تلقيها، وما إذا كانت ستظهر أثناء فتح الطبّق.",
@@ -1132,25 +1136,25 @@
         "taps_enabled_desc": "تلقَّ إشعارًا عندما يقوم شخص ما بالنقر عليك",
         "foreground": "الإشعارات أثناء فتح الطبّق",
         "foreground_desc": "اعرض الإشعارات (للأنواع المفعّلة أعلاه) أثناء فتح الطبّق. أوقف تشغيل هذا الخيار لتلقّي الإشعارات فقط عندما يكون الطبّق في الخلفية أو مغلقًا.",
-        "activity_section": "",
-        "push_settings_loading": "",
-        "push_settings_load_failed": "",
-        "push_settings_save_failed": "",
+        "activity_section": "النشاط",
+        "push_settings_loading": "بيحمّل…",
+        "push_settings_load_failed": "مقدرناش نحمّل إعدادات الإشعارات.",
+        "push_settings_save_failed": "مقدرناش نحفظ إعداد الإشعارات.",
         "push_settings": {
-            "favoritePushNotification": "",
-            "favoritePushNotification_desc": "",
-            "mediaRecipientPushNotification": "",
-            "mediaRecipientPushNotification_desc": "",
-            "tappedPushNotification": "",
-            "tappedPushNotification_desc": "",
-            "recommendedPushNotification": "",
-            "recommendedPushNotification_desc": "",
-            "unreadChatsPushNotification": "",
-            "unreadChatsPushNotification_desc": "",
-            "viewedProfilePushNotification": "",
-            "viewedProfilePushNotification_desc": "",
-            "tapPushNotification": "",
-            "tapPushNotification_desc": ""
+            "favoritePushNotification": "المفضّلين أونلاين",
+            "favoritePushNotification_desc": "يجيلك إشعار لما حد من المفضّلين بتوعك يبقى أونلاين.",
+            "mediaRecipientPushNotification": "اللي بعتله صور أونلاين",
+            "mediaRecipientPushNotification_desc": "يجيلك إشعار لما حد بعتله صور يبقى أونلاين.",
+            "tappedPushNotification": "اللي بعتله تاب أونلاين",
+            "tappedPushNotification_desc": "يجيلك إشعار لما حد بعتله تاب يبقى أونلاين.",
+            "recommendedPushNotification": "الترشيحات",
+            "recommendedPushNotification_desc": "يجيلك إشعار لما بروفايل مترشّح قريب منك يبقى أونلاين.",
+            "unreadChatsPushNotification": "تذكير بالشاتات اللي مقريتهاش",
+            "unreadChatsPushNotification_desc": "يفكّرك بالشاتات اللي لسه مقريتهاش.",
+            "viewedProfilePushNotification": "المشاهدات",
+            "viewedProfilePushNotification_desc": "يجيلك إشعار لما بروفايلك ياخد مشاهدات.",
+            "tapPushNotification": "التابات",
+            "tapPushNotification_desc": "هل Grindr بيبعت إشعارات التابات لحسابك أصلًا ولا لا."
         }
     },
     "issue_search": {
@@ -1211,7 +1215,7 @@
             "password": "الرالسري",
             "show_password": "اظهار الرالسري",
             "hide_password": "اخفاء الرالسري",
-            "error_details": ""
+            "error_details": "التفاصيل"
         },
         "sign_in": {
             "title": "تسجيل الدخول",
@@ -1237,26 +1241,26 @@
             "facebook_sign_in": "سجّل دخول بفيسبوك",
             "facebook_waiting": "مستني فيسبوك…",
             "google_help": "للحسابات التي أُنشئت باستخدام Google.",
-            "google_native_error": "",
+            "google_native_error": "مقدرناش نفتح تسجيل الدخول بجوجل. جرّب تاني.",
             "jwt_label": "رمز JWT",
             "signing_in": "بيتسجيل الدخول...",
             "submit": "تسجيل الدخول",
             "add_profile_title": "إضافة حساب شخصي",
             "add_profile_subtitle": "بتسجيل الدخول باستخدام الحساب الذي تريد إضافته.",
             "forgot_password": "نسيت كلمة المرور؟",
-            "qr_camera_denied": "",
-            "qr_scan_failed": "",
-            "qr_step_show": "",
-            "qr_step_show_hint": "",
-            "qr_step_scan": "",
-            "qr_step_paste": "",
-            "qr_step_paste_hint": "",
-            "qr_scan": "",
-            "qr_or_paste": "",
-            "qr_code_placeholder": "",
-            "qr_back": "",
-            "qr_entry": "",
-            "qr_scan_hint": ""
+            "qr_camera_denied": "Free Grind محتاج إذن الكاميرا عشان يسكان الكود.",
+            "qr_scan_failed": "مقدرناش نسكان الكود. جرّب تاني.",
+            "qr_step_show": "اعرض الكود على الجهاز اللي إنت مسجّل دخول عليه",
+            "qr_step_show_hint": "في Free Grind على الجهاز ده، افتح الإعدادات ودوس على \"سجّل دخول على جهاز تاني\".",
+            "qr_step_scan": "سكانه هنا",
+            "qr_step_paste": "الصق الكود هنا",
+            "qr_step_paste_hint": "دوس على \"انسخ الكود\" تحت كود QR هناك وابعته للجهاز ده.",
+            "qr_scan": "سكان كود QR",
+            "qr_or_paste": "أو الصق الكود",
+            "qr_code_placeholder": "كود تسجيل الدخول",
+            "qr_back": "ارجع لباقي طرق تسجيل الدخول",
+            "qr_entry": "مسجّل دخول على جهاز تاني؟ استخدم كود QR",
+            "qr_scan_hint": "وجّه الكاميرا على كود QR اللي على جهازك التاني"
         },
         "reset": {
             "title": "إعادة تعيين كلمة المرور",
@@ -1286,7 +1290,7 @@
             "limit_reached_title": "تم بلوغ حد الحسابات",
             "limit_reached_desc": "أنشأ هذا التطبيق {{limit}} حسابات بالفعل. لمنع إساءة الاستخدام، لا يمكن إنشاء حسابات أخرى.",
             "android_only_title": "متاح على Android فقط",
-            "android_only_desc": "",
+            "android_only_desc": "عمل حساب محتاج تحقق كابتشا، وده متاح بس على أندرويد.",
             "back": "رجوع"
         },
         "sms_verification": {
@@ -1307,9 +1311,9 @@
             "sign_in": "تسجيل الدخول",
             "send_in": "إرسال الرمز ({{seconds}} ث)",
             "resend_in": "إعادة إرسال الرمز ({{seconds}} ث)",
-            "copy_report": "",
-            "report_copied": "",
-            "report_copy_failed": ""
+            "copy_report": "انسخ معلومات الديباج",
+            "report_copied": "معلومات الديباج اتنسخت",
+            "report_copy_failed": "مقدرناش ننسخ معلومات الديباج"
         }
     },
     "chat": {
@@ -1431,8 +1435,8 @@
         "share_album_label": "مشاركه الالبوم",
         "share_location_label": "مشاركه الموقع",
         "share_location_confirm": "مشاركه هذا الموقع",
-        "share_location_current": "",
-        "share_location_saved_hint": "",
+        "share_location_current": "الموقع الحالي",
+        "share_location_saved_hint": "احفظ أماكن في إعدادات الموقع عشان تشاركها هنا بسرعة.",
         "drawer_label": "درج",
         "giphy": {
             "title": "صور متحركه",
@@ -1477,17 +1481,17 @@
         "time": {
             "one_min_ago": "قبل دقيقة واحدة",
             "mins_ago": "من {{count}} دقيقة",
-            "hours_ago": "",
+            "hours_ago": "من {{count}} س",
             "now": "الان",
             "last_week": "الاسبوع الماضي",
-            "one_hour_ago": "",
-            "hours_ago_long": "",
-            "one_day_ago": "",
-            "days_ago": "",
-            "taken_now": "",
-            "taken_ago": "",
-            "taken_last_week": "",
-            "taken_in": ""
+            "one_hour_ago": "من ساعة",
+            "hours_ago_long": "من {{count}} ساعة",
+            "one_day_ago": "من يوم",
+            "days_ago": "من {{count}} يوم",
+            "taken_now": "اتصوّرت دلوقتي",
+            "taken_ago": "اتصوّرت {{time}}",
+            "taken_last_week": "اتصوّرت الأسبوع اللي فات",
+            "taken_in": "اتصوّرت في {{time}}"
         },
         "preview": {
             "sent_image": "تم إرسال صورة",
@@ -1539,11 +1543,11 @@
             "album_cover": "غلاف الألبوم",
             "album_share": "شارك الالبوم",
             "album_image": "البوم صور",
-            "album_label": "",
-            "album_photo_count_one": "",
-            "album_photo_count_other": "",
-            "album_video_count_one": "",
-            "album_video_count_other": "",
+            "album_label": "ألبوم",
+            "album_photo_count_one": "صورة واحدة",
+            "album_photo_count_other": "{{count}} صورة",
+            "album_video_count_one": "فيديو واحد",
+            "album_video_count_other": "{{count}} فيديو",
             "profile_photo": "صوره البروفايل",
             "replied_to_myself": "أجبت نفسي",
             "replied_to_name": "رد على \"{{name}}\"",
@@ -1552,7 +1556,15 @@
             "reacted_to_image": "لقد تفاعلت مع صورة ألبومك",
             "audio_label": "الصوت",
             "unsupported_message": "رسالة غير مدعومة",
-            "unsupported_message_description": "هذا النوع من الرسائل غير مدعوم في هذا الإصدار من الطبّق حتى دلوقتي."
+            "unsupported_message_description": "هذا النوع من الرسائل غير مدعوم في هذا الإصدار من الطبّق حتى دلوقتي.",
+            "album_photo_count_zero": "مفيش صور",
+            "album_photo_count_two": "صورتين",
+            "album_photo_count_few": "{{count}} صور",
+            "album_photo_count_many": "{{count}} صورة",
+            "album_video_count_zero": "مفيش فيديوهات",
+            "album_video_count_two": "فيديوهين",
+            "album_video_count_few": "{{count}} فيديوهات",
+            "album_video_count_many": "{{count}} فيديو"
         },
         "actions": {
             "title": "إجراءات الرسائل",
@@ -1603,7 +1615,7 @@
             "max_views": "أقصى عدد من المشاهدات",
             "view_once": "عرض",
             "view_once_description": "لا يمكن عرض الصورة إلا مرة واحدة لمدة 10 ثوانٍ",
-            "replay": "",
+            "replay": "إعادة",
             "taken_on_grindr": "توكـــن داخل الطبّق والعلامة المائية",
             "taken_on_grindr_description": "أضف الطابع الزمني للتحقق من صحة الصورة وحداثتها.",
             "add_to_drawer": "اضافة من البروفايلات",
@@ -1716,19 +1728,19 @@
         "media_alt": "وسائط الدرج",
         "take_photo": "التقط صورة",
         "upload_photo": "رفع صورة",
-        "add_media": "",
+        "add_media": "ضيف وسائط",
         "add_to_drawer": "اضافة الى البروفايلات",
         "invalid_file_type": "اختيار صورة",
         "delete_confirm_title": "حذف من الدرج",
         "delete_confirm_message": "هل إنت متأكد من رغبتك في حذف هذه الوسائط من درجك؟",
-        "delete_confirm_message_everywhere": "",
+        "delete_confirm_message_everywhere": "ده هيشيله من الوسائط بتاعتك ومن كل مجموعة بتستخدمه.",
         "delete_confirm_label": "حذف",
-        "album_delete_confirm_title": "",
-        "album_delete_confirm_message": "",
-        "album_edit": "",
-        "album_delete": "",
-        "collection_edit": "",
-        "collection_delete": "",
+        "album_delete_confirm_title": "تمسح الألبوم؟",
+        "album_delete_confirm_message": "ده هيمسح الألبوم وكل اللي فيه. كل اللي شاركته معاهم هيفقدوا الوصول.",
+        "album_edit": "عدّل الألبوم",
+        "album_delete": "امسح الألبوم",
+        "collection_edit": "عدّل المجموعة",
+        "collection_delete": "امسح المجموعة",
         "is_expiring_toggle_on": "1×",
         "is_expiring_toggle_off": "غير محدود",
         "is_expiring_send": "ابعت مؤقت ({{count}})",
@@ -1738,22 +1750,22 @@
         "collection_empty_send": "لم تعد أي من وسائط المجموعة دي موجودة في درجك.",
         "collection_manage": "إدارة المجموعات",
         "album_manage": "إدارة الألبومات",
-        "tab_media": "",
-        "tab_albums": "",
-        "tab_collections": "",
-        "albums_empty": "",
-        "albums_create": "",
-        "video_expiry_title": "",
-        "video_expiry_unlimited_desc": "",
-        "video_expiry_once_desc": "",
-        "video_expiry_repeat_desc": "",
-        "empty_hint": "",
-        "albums_empty_hint": "",
-        "collections_empty": "",
-        "collections_empty_hint": "",
-        "collections_create": "",
-        "view_combined": "",
-        "view_split": ""
+        "tab_media": "الوسائط",
+        "tab_albums": "الألبومات",
+        "tab_collections": "المجموعات",
+        "albums_empty": "لسه معندكش ألبومات.",
+        "albums_create": "اعمل ألبوم",
+        "video_expiry_title": "مشاهدات الفيديو",
+        "video_expiry_unlimited_desc": "يتشاف قد ما هما عايزين",
+        "video_expiry_once_desc": "يتشاف مرة واحدة",
+        "video_expiry_repeat_desc": "يتشاف مرتين",
+        "empty_hint": "صوّر صورة أو فيديو، أو ارفع واحد من جهازك.",
+        "albums_empty_hint": "الألبومات بتخليك تشارك كذا صورة مرة واحدة، وتوقف المشاركة في أي وقت.",
+        "collections_empty": "لسه معندكش مجموعات.",
+        "collections_empty_hint": "المجموعات بتجمّع صور من الوسائط عشان تبعتها مع بعض بدوسة واحدة.",
+        "collections_create": "اعمل مجموعة",
+        "view_combined": "اعرض كله في صفحة واحدة",
+        "view_split": "قسّم لفئات"
     },
     "favorites": {
         "added": "اضافات الي المفضلة",
@@ -1807,9 +1819,9 @@
         "ban_bio_title": "أضف الكلمة المحظورة",
         "ban_bio_prompt": "اختصر هذه السيرة الذاتية إلى العبارة التي تريد بلوكها بالضبط",
         "ban_bio_added": "اتضافت \"{{word}}\" للكلمات الممنوعة!",
-        "ban_keyword_source_bio": "",
-        "ban_keyword_source_name": "",
-        "more_actions": "",
+        "ban_keyword_source_bio": "جملة من البايو",
+        "ban_keyword_source_name": "اسم البروفايل",
+        "more_actions": "أكشنز أكتر",
         "profile_fallback": "بروفايل {{id}}",
         "last_online": "آخر ظهور {{value}}",
         "close_photo_viewer": "معاينة الصور عن قرب",
@@ -1898,6 +1910,7 @@
         "location_finder_initial_distance": "المسافة الأولية: {{distance}} م",
         "location_finder_restoring": "جارٍ استعادة موقعك…",
         "location_finder_stop": "إيقاف",
+        "location_finder_busy": "تحديد الموقع شغّال بالفعل لبروفايل تاني.",
         "locating": "تحديد الموقع",
         "locate": "تحديد الموقع",
         "about": "عن",
@@ -2174,8 +2187,8 @@
             "load_photos": "فشل تحميل صور البروفايل",
             "load_legal_agreements": "فشل تحميل الاتفاقيات القانونية",
             "accept_legal_agreements": "فشل قبول الاتفاقيات القانونية",
-            "load_warnings": "",
-            "acknowledge_warnings": ""
+            "load_warnings": "فشل تحميل تحذيرات الحساب",
+            "acknowledge_warnings": "فشل تأكيد تحذيرات الحساب"
         }
     },
     "errors": {
@@ -2231,19 +2244,19 @@
         "delete_confirm_message": "تم"
     },
     "common": {
-        "clear": "",
+        "clear": "مسح",
         "back": "رجوع",
         "cancel": "إلغاء",
         "save": "حفظ",
         "edit": "تعديل",
         "unknown_display_name": "حد",
-        "close": "",
-        "done": ""
+        "close": "قفل",
+        "done": "تمام"
     },
     "grid": {
         "refresh": "تم",
-        "name_or_id_placeholder": "",
-        "open_profile_id": ""
+        "name_or_id_placeholder": "الاسم أو ID البروفايل…",
+        "open_profile_id": "افتح البروفايل {{id}}"
     },
     "test_reminder": {
         "title": "وقت الفحص؟",
@@ -2266,8 +2279,8 @@
             "description": "حظر Grindr الحساب ده{{reason}}. لا يمكنك تسجيل الدخول حتى يُرفع الحظر.",
             "copy_details": "نسخ التفاصيل",
             "copy_details_success": "تم نسخ التفاصيل إلى الحافظة",
-            "subscriptions_description": "",
-            "appeal": ""
+            "subscriptions_description": "الحظر مبيلغيش اشتراك Grindr. لو عندك اشتراك، الغيه من إعدادات الاشتراكات في متجر التطبيقات.",
+            "appeal": "اعترض على الحظر"
         },
         "age_verification": {
             "title": "التحقق من العمر مطلوب",
@@ -2282,13 +2295,13 @@
             "device": "حظر الجهاز",
             "network": "حظر الشبكة",
             "underage": "قاصر",
-            "timed": ""
+            "timed": "حظر مؤقت"
         },
         "details": {
             "reason": "السبب",
             "region": "المنطقة",
-            "decision_automated": "",
-            "decision_human": ""
+            "decision_automated": "استخدمنا وسائل آلية في اتخاذ القرار ده.",
+            "decision_human": "مشرف بشري هو اللي أخد القرار ده. مستخدمناش وسائل آلية."
         },
         "timed_ban": {
             "title": "محظور مؤقتًا",
@@ -2300,16 +2313,16 @@
             "accept_failed": "تعذّر قبول الاتفاقية",
             "agreement_completed_title": "كل شيء جاهز",
             "agreement_completed_description": "لقد قبلت اتفاقية الحظر الخاصة بـ Grindr. لا يلزمك فعل أي شيء آخر.",
-            "agree_label": "",
-            "agreed_label": "",
-            "agree_hint": ""
+            "agree_label": "اقرا الإرشادات ووافق عليها",
+            "agreed_label": "قريت الإرشادات ووافقت عليها",
+            "agree_hint": "اقرا الإرشادات اللي فوق ووافق عليها عشان ترجع تدخل حسابك."
         },
         "device_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_sign_out": ""
+            "title": "الجهاز محظور",
+            "description": "مش هتقدر تستخدم حسابك على الجهاز ده دلوقتي.",
+            "card_title": "غالبًا مش حظر حقيقي",
+            "card_text": "Grindr رد بـ ACCOUNT_BANNED، ودي بيبعتها كمان للطلبات اللي مش واثق فيها، زي مثلًا بسبب بصمة الجهاز.",
+            "fix_sign_out": "تسجيل الخروج بيعمل هوية جهاز جديدة، وده غالبًا بيحل المشكلة."
         },
         "regions": {
             "uk": "المملكة المتحدة",
@@ -2317,184 +2330,184 @@
             "au": "أستراليا",
             "us": "الولايات المتحدة"
         },
-        "read_guidelines": "",
-        "reason_label": "",
-        "learn_more": "",
+        "read_guidelines": "إرشادات المجتمع",
+        "reason_label": "سبب الحظر",
+        "learn_more": "اعرف أكتر",
         "ban_reasons": {
             "blackmail": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "الابتزاز والتهديد المباشر",
+                "summary": "Grindr بيمنع منعًا باتًا الابتزاز والتهديد المباشر بالأذى. التصرفات دي بتعرّض المستخدمين للخطر، وبتخالف الإرشادات، وممكن تؤدي لحظر الحساب.",
+                "details": "الابتزاز والتهديد المباشر بالأذى، ومنهم التلاعب باستخدام صور أو معلومات شخصية، ممنوعين منعًا باتًا على Grindr. التصرف ده بيهدد أمان المجتمع وبيخالف الإرشادات."
             },
             "bot_activity": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "نشاط آلي/بوتات",
+                "summary": "Grindr مهتم بالعلاقات الحقيقية. تصرفات زي بعت رسايل بالجملة، أو عمل بروفايلات كتير مرة واحدة، أو استخدام أدوات بتقلّد تصرفات مستخدمين حقيقيين ممنوعة.",
+                "details": "الحساب ده اتعلّم عليه بسبب مخالفة سياسة Grindr الخاصة بالنشاط الآلي. التصرف ده بيضر بأمان المجتمع ومصداقيته وبيخالف الإرشادات. لو شايف إن ده حصل بالغلط، تقدر تقدّم اعتراض في تطبيق Grindr الرسمي."
             },
             "bullying": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "التنمّر المقصود والإساءة المتكررة",
+                "summary": "عامل الناس بلطف على Grindr. التنمّر والتحرّش والترهيب ممنوعين لأنهم بيعملوا جو عدائي. الإساءة المتكررة ممكن تؤدي لإجراءات تانية ضد الحساب.",
+                "details": "Grindr ملتزم إنه يعمل مساحة آمنة للكل. التنمّر المتكرر أو المقصود بيخالف الإرشادات وبيبوّظ تجربة المجتمع. خد وقتك وراجع إرشادات المجتمع، واتأكد إن تعاملاتك الجاية فيها احترام ودعم. المخالفات المستمرة ممكن تؤدي لإجراءات تانية، منها حظر الحساب."
             },
             "business_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "الترويج التجاري",
+                "summary": "استخدام Grindr للترويج لشركات أو خدمات مدفوعة أو فعاليات مش مسموح. خلي تعاملاتك شخصية ومن غير أغراض تجارية.",
+                "details": "Grindr معمول للعلاقات الشخصية، مش لتجنيد أو استقطاب المستخدمين لمشاريع ربحية زي الترويج لشركات أو خدمات مدفوعة أو فعاليات. الأنشطة دي بتبعد المنصة عن هدفها وبتخالف الإرشادات."
             },
             "casual_substances": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "ذكر عابر لمواد قانونية",
+                "summary": "ذكر مواد قانونية زي CBD أو الماريجوانا (في الأماكن اللي هي فيها قانونية) مسموح على Grindr. بس الترويج الزيادة أو التركيز على المواد دي ممكن يخلي المجتمع يبلّغ عن الحساب، وممكن كمان يتوقف.",
+                "details": "البروفايلات اللي متمحورة حوالين المواد دي أو بتروّج لها بزيادة ممكن تبوّظ تجربة المجتمع وممكن مستخدمين تانيين يبلّغوا عنها. Grindr بيمنع أي محتوى أو صور ليها علاقة بالمخدرات ممكن تشجّع على ممارسات مضرة."
             },
             "consent_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "انتهاك الموافقة",
+                "summary": "الموافقة مش بس سكسي، دي إلزامية – الطلبات الجنسية المُلحّة، والتصرفات القسرية، وأي تصرف بيتجاهل الموافقة ممنوعين على Grindr.",
+                "details": "Grindr بيشجّع المستخدمين يدّوا موافقة واضحة وصريحة في كل تعاملاتهم. الطلبات الجنسية المُلحّة، والتصرفات القسرية، أو أي أفعال بتتجاهل حدود مستخدم تاني ممنوعة. التصرف ده ممكن يعمل جو مش آمن ومش مريح، وبيخالف إرشادات المجتمع ومبادئ الاحترام والأمان."
             },
             "drug_facilitation": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "تسهيل الوصول للمخدرات",
+                "summary": "مساعدة الناس إنهم يجيبوا مخدرات غير قانونية مش مسموحة على Grindr. المخالفات المستمرة ممكن تؤدي لحظر الحساب.",
+                "details": "إنك توصّل ناس لمخدرات غير قانونية — تعرض تشاركهم اللي معاك، أو ترتّب استلام، أو توصّل حد بمصدر — مش مسموح، حتى لو مفيش حاجة بتتباع. ده بيخالف إرشادات Grindr، لأن Grindr مهتم بصحتك وبيسعى يحافظ على مجتمع آمن ومحترم.",
+                "summary_banned": "مساعدة الناس إنهم يجيبوا مخدرات غير قانونية مش مسموحة على Grindr. الحساب ده اتحظر بعد مخالفات متكررة."
             },
             "drug_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "الترويج للمخدرات أو تمجيدها",
+                "summary": "المحاولات المتكررة للترويج للمخدرات مش مسموحة على Grindr.",
+                "details": "الإشارة للحشيش والتبغ والكحول مسموحة في سياقات معينة، بس Grindr مبيسمحش بالبروفايلات المتمحورة حوالين المخدرات أو اللي بتروّج لها، ومن ضمن ده الكلام عن شرا أو بيع المخدرات (من أي نوع) أو المشاركة فيه. السياسة دي كمان بتشمل الصور والإيموجي اللي بتطلب مخدرات أو بتشجّع على تعاطيها."
             },
             "drug_seeking": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "البحث عن مخدرات",
+                "summary": "البحث عن مخدرات على Grindr بيخالف الإرشادات.",
+                "details": "البحث عن مخدرات، حتى لو من وقت للتاني، في البروفايل أو الشاتات مش مسموح. ده بيخالف إرشادات Grindr، لأن Grindr مهتم بصحتك وبيسعى يحافظ على مجتمع آمن ومحترم."
             },
             "occasional_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "طلب مخدرات من وقت للتاني",
+                "summary": "البحث عن مخدرات على Grindr بيخالف الإرشادات.",
+                "details": "البحث عن مخدرات، حتى لو من وقت للتاني، في البروفايل أو الشاتات مش مسموح. ده بيخالف إرشادات Grindr، لأن Grindr مهتم بصحتك وبيسعى يحافظ على مجتمع آمن ومحترم."
             },
             "frequent_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "طلب مخدرات بشكل متكرر",
+                "summary": "المحاولات المتكررة للحصول على مخدرات مش مسموحة على Grindr.",
+                "details": "Grindr منصة للعلاقات الشخصية الحقيقية. المحاولات المتكررة للحصول على مخدرات، بشكل مباشر أو غير مباشر، بتبوّظ تجربة المجتمع وبتخالف الإرشادات. لو التصرف ده استمر، ممكن يؤدي لإيقاف أطول أو حتى حظر."
             },
             "fraudulent_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "النصب والترويج الاحتيالي",
+                "summary": "Grindr بيمنع منعًا باتًا عمليات النصب أو الحيل اللي بتستغل الناس أو بتأذيهم.",
+                "details": "ده بيشمل الحيل الاحتيالية أو التصرفات المضلّلة اللي هدفها استغلال مستخدمين تانيين. Grindr بياخد أمان مجتمعه بجد ومبيتسامحش مع التصرف ده."
             },
             "general_advertising": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "الإعلانات والاستقطاب بشكل عام",
+                "summary": "Grindr للعلاقات الشخصية الحقيقية، مش للإعلان عن منتجات أو خدمات أو منصات خارجية. المحتوى الترويجي مش مسموح في البروفايلات ولا الرسايل.",
+                "details": "استخدام البروفايلات أو الرسايل للترويج لمنتجات أو خدمات أو مشاركة لينكات خارجية بيخالف الإرشادات وبيبوّظ التجربة على الناس التانية."
             },
             "hate_speech": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "خطاب الكراهية والمحتوى المسيء",
+                "summary": "خطاب الكراهية واللغة التمييزية ممنوعين على Grindr. التعاملات المسيئة المتكررة بتعمل جو عدائي. المخالفات المستمرة ممكن تؤدي لإجراءات تانية، منها حظر الحساب.",
+                "details": "Grindr ملتزم إنه يبني مجتمع شامل ومحترم. خطاب الكراهية واللغة التمييزية ممكن يعملوا جو عدائي ومش آمن للناس التانية. راجع إرشادات المجتمع واتأكد إن تعاملاتك الجاية فيها احترام وتقبّل للكل."
             },
             "impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "انتحال الشخصية وإساءة استخدام الهوية",
+                "summary": "Grindr بيمنع انتحال شخصية حد تاني أو عمل بروفايلات بتقدّم هوية حد بشكل مزيّف. التصرف ده بيخالف الإرشادات وممكن يؤدي لحظر الحساب.",
+                "details": "ده بيشمل استخدام اسم أو صور أو بيانات شخصية لحد تاني. انتحال الشخصية بيضر الثقة وبيهدد الأمان وبيخالف الإرشادات."
             },
             "mild_insults": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "إهانات بسيطة وقلة احترام",
+                "summary": "شوية من الرسايل اللي بعتها اتعلّم عليها إنها ممكن تكون فيها قلة احترام. خليك لطيف على Grindr واتأكد إن تعاملاتك فيها احترام وماشية مع إرشادات المجتمع.",
+                "details": "Grindr عايز يوفّر مساحة لتعاملات محترمة وحقيقية. التعليقات اللي ممكن تبان قاسية أو قليلة الاحترام ممكن تأثر سلبًا على الناس وبتخالف إرشادات المجتمع. المخالفات المستمرة ممكن تؤدي لإجراءات زي إيقاف الحساب أو حظره."
             },
             "mild_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "استقطاب بسيط وعروض عابرة",
+                "summary": "Grindr للعلاقات الشخصية الحقيقية. الطلبات المادية ممكن تلخبط الحدود ومش ماشية مع الإرشادات.",
+                "details": "Grindr للعلاقات الشخصية — مش للترويج لمحتوى مدفوع أو اتفاقات مادية."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "صور حميمة من غير موافقة",
+                "summary": "مشاركة صور أو فيديوهات حميمة لحد تاني من غير موافقته مش مسموحة على Grindr. المخالفات المستمرة ممكن تؤدي لحظر الحساب.",
+                "details": "الصور أو الفيديوهات الحميمة لحد تاني متتشاركش أبدًا غير بموافقته — والموافقة على تصوير صورة أو استلامها مش موافقة على مشاركتها. ده كمان بينطبق على الصور المتعدّلة والمعمولة بالذكاء الاصطناعي.",
+                "summary_banned": "مشاركة صور أو فيديوهات حميمة لحد تاني من غير موافقته مش مسموحة على Grindr."
             },
             "offline_incident": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "حوادث خطيرة خارج التطبيق",
+                "summary": "الحساب ده اتحظر بعد بلاغ عن تصرف مؤذي. الأمان والاحترام مش قابلين للتفاوض على Grindr.",
+                "details": "Grindr بياخد الإجراءات دي عشان يحمي أمان مجتمعه ويحافظ على جو محترم لكل المستخدمين."
             },
             "paid_sexual_services": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "خدمات جنسية مدفوعة",
+                "summary": "عرض أو طلب خدمات جنسية مقابل فلوس أو أي مقابل مش مسموح على Grindr.",
+                "details": "Grindr للعلاقات الشخصية، مش للمعاملات التجارية. عرض أو طلب خدمات جنسية مقابل أي حاجة، مهما كانت الظروف، بيخالف الإرشادات."
             },
             "phishing": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "التصيّد والاحتيال واللينكات الضارة",
+                "summary": "Grindr بيمنع منعًا باتًا مشاركة لينكات ضارة أو محاولات تصيّد أو برامج مؤذية.",
+                "details": "مشاركة لينكات ضارة أو محاولات تصيّد أو برامج مؤذية ممكن تخدع الناس أو تهدد أمانهم. الحسابات اللي بتعمل كده ممكن تتحظر عشان نحمي المنصة ومستخدميها."
             },
             "privacy_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "انتهاك الخصوصية والتشهير بالمعلومات الشخصية",
+                "summary": "مشاركة المعلومات الشخصية لحد من غير إذنه ممنوعة منعًا باتًا وبتهدد الأمان.",
+                "details": "مشاركة معلومات خاصة أو شخصية لحد تاني، زي بيانات التواصل أو أي معلومات بتعرّف بيه، من غير إذنه مخالفة خطيرة للإرشادات. التصرف ده بيعرّض الناس للخطر وبيضر الثقة جوه المجتمع."
             },
             "profile_spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "سبام في البروفايل وإعلانات",
+                "summary": "Grindr للعلاقات الحقيقية، مش للترويج لمنتجات أو خدمات أو منصات خارجية. المحتوى الترويجي مش مسموح في البروفايلات ولا الشاتات.",
+                "details": "مشاركة إعلانات أو لينكات تبرعات أو ترويج لفعاليات في البروفايل أو الشاتات مش مسموح وبيقلّل من مصداقية التجربة. Grindr معمول للتعاملات الحقيقية — مش لبيع خدمات أو الترويج لفعاليات."
             },
             "drug_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "بيع المخدرات وتوزيعها",
+                "summary": "Grindr بيمنع منعًا باتًا أي نشاط ليه علاقة ببيع أو توزيع المخدرات. الحسابات اللي بتعمل كده هتتحظر.",
+                "details": "Grindr مبيسمحش ببروفايلات أو شاتات أو محتوى بيسهّل بيع أو توزيع أو الترويج لمواد غير قانونية. السياسة دي موجودة عشان صحة المستخدمين وعشان نحافظ على جو آمن وحقيقي للكل، والمخالفات من النوع ده بتتاخد بجدية شديدة."
             },
             "sextortion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "الابتزاز الجنسي",
+                "summary": "التهديد بنشر صور أو فيديوهات حميمة لحد مش مسموح على Grindr.",
+                "details": "الابتزاز والتهديد المباشر بالأذى، ومنهم التلاعب باستخدام صور أو معلومات شخصية، ممنوعين منعًا باتًا. التصرف ده بيهدد أمان المجتمع."
             },
             "sexual_content_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "بيع محتوى جنسي صريح",
+                "summary": "Grindr لبناء علاقات حقيقية، مش للمعاملات التجارية المتعلقة بالمحتوى الجنسي. بيع أو الترويج لمحتوى جنسي صريح (ومنه صورك أو فيديوهاتك) مش مسموح على Grindr.",
+                "details": "بيع أو الترويج لمواد جنسية صريحة، ومنها الصور أو الفيديوهات، بيخالف الإرشادات وبيبوّظ تجربة المجتمع. اتأكد إن بروفايلك ورسايلك هدفها بناء علاقات حقيقية جوه المجتمع."
             },
             "spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "رسايل متكررة أو مش مرغوب فيها",
+                "summary": "بعت رسايل متكررة أو الإلحاح الزيادة بيتعتبر سبام. المخالفات المستمرة ممكن تؤدي لإيقاف الحساب.",
+                "details": "بعت رسايل كتير في وقت قصير بيخالف الإرشادات. احترم المستخدمين التانيين دايمًا — اقرا البروفايلات عشان تعرف تفضيلاتهم، وقول حدودك، واحترم حدود غيرك."
             },
             "transactional_service": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "خدمات بمقابل",
+                "summary": "Grindr بيمنع عرض أو طلب خدمات بمقابل، زي الصحبة المدفوعة، حتى لو مش جنسية.",
+                "details": "التصرفات دي بتبعد المنصة عن تركيزها على العلاقات الشخصية الحقيقية وبتخالف الإرشادات. اتأكد إن تعاملاتك مفيهاش أي نية تجارية."
             },
             "underage_endangerment": {
-                "title": "",
-                "summary": ""
+                "title": "حماية الأطفال وتعريضهم للخطر",
+                "summary": "الحساب ده اتحظر بعد بلاغ عن تصرف مؤذي. الأمان والاحترام مش قابلين للتفاوض على Grindr."
             },
             "underage_impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "انتحال صفة قاصر",
+                "summary": "Grindr للكبار بس – لازم يكون عندك 18 سنة على الأقل (أو أكتر في بعض المناطق) عشان تستخدم Grindr. أي نشاط على إنك قاصر، حتى في لعب الأدوار، ممنوع.",
+                "details": "إنك تدّعي إنك قاصر، سواء في لعب أدوار أو لأي سبب تاني، بيخالف سياسات Grindr وممكن يؤدي لحظر الحساب. البروفايلات اللي بتنتحل شخصية ناس تانية، مهما كانت النية، بتضر الثقة جوه المجتمع ومش مسموحة."
             },
             "underage": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "دخول القاصرين",
+                "summary": "Grindr للكبار بس – لازم يكون عندك 18 سنة على الأقل (أو أكتر في بعض المناطق) عشان تستخدم Grindr.",
+                "details": "لازم تكون مستوفي شرط السن ده عشان تستخدم الخدمات، وGrindr بياخد القاعدة دي بجدية شديدة. كمان، التواصل مع قاصرين أو مشاركة أي صور فيها قاصرين، مهما كان السياق، مخالفة خطيرة لسياسات Grindr."
             }
         },
-        "reason_unknown": "",
-        "ends_in": "",
-        "appeal_link": "",
+        "reason_unknown": "مفيش سبب متذكور",
+        "ends_in": "بينتهي بعد {{time}}",
+        "appeal_link": "اعتراض",
         "network_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_vpn": "",
-            "fix_switch": ""
+            "title": "الشبكة محظورة",
+            "description": "مش هتقدر تسجّل دخول من الشبكة اللي إنت عليها دلوقتي.",
+            "card_title": "شبكة مشبوهة",
+            "card_text": "Grindr بيعلّم على الـ VPN والبروكسي وعناوين IP المشتركة بالشكل ده. حسابك نفسه مش محظور.",
+            "fix_vpn": "اقفل الـ VPN أو البروكسي.",
+            "fix_switch": "بدّل بين الواي فاي وبيانات الموبايل، وبعدين سجّل دخول تاني."
         },
         "underage_ban": {
-            "title": "",
-            "description": ""
+            "title": "حساب قاصر",
+            "description": "مش هتقدر تسجّل دخول لحد ما الحظر يتشال. لو عندك 18 سنة أو أكتر، اعترض عشان تأكّد سنّك."
         },
-        "what_happened": "",
-        "code_chip": ""
+        "what_happened": "إيه اللي حصل",
+        "code_chip": "كود {{code}}"
     },
     "sexualHealth": {
         "title": "تم",
@@ -2512,16 +2525,24 @@
             "unknown": "تم"
         },
         "history": {
-            "subtitle_encounters_one": "",
-            "subtitle_encounters_other": "",
-            "subtitle_doses_one": "",
-            "subtitle_doses_other": "",
+            "subtitle_encounters_one": "لقاء واحد",
+            "subtitle_encounters_other": "{{count}} لقاء",
+            "subtitle_doses_one": "جرعة واحدة",
+            "subtitle_doses_other": "{{count}} جرعة",
             "log_encounter": "تم",
             "open_chat": "تم",
             "loading": "تم",
             "empty": "مفيش لسه",
             "empty_desc": "تم",
-            "unprotected_tag": "غير محمي"
+            "unprotected_tag": "غير محمي",
+            "subtitle_encounters_zero": "مفيش لقاءات",
+            "subtitle_encounters_two": "لقاءين",
+            "subtitle_encounters_few": "{{count}} لقاءات",
+            "subtitle_encounters_many": "{{count}} لقاء",
+            "subtitle_doses_zero": "مفيش جرعات",
+            "subtitle_doses_two": "جرعتين",
+            "subtitle_doses_few": "{{count}} جرعات",
+            "subtitle_doses_many": "{{count}} جرعة"
         },
         "doses": {
             "title": "PrEP dose",
@@ -2547,8 +2568,8 @@
             "delete_confirm_action": "حذف"
         },
         "encounter": {
-            "person": "",
-            "no_matches_hint": "",
+            "person": "مين",
+            "no_matches_hint": "مش في الشاتات بتاعتك؟ ضيفه بالاسم تحت.",
             "sheet_title": "سجل لقاءً",
             "edit_title": "تحرير المواجهة",
             "change_person": "تغيير",
@@ -2573,9 +2594,9 @@
             "delete_confirm_action": "يحذف"
         },
         "appointments": {
-            "subtitle_upcoming_one": "",
-            "subtitle_upcoming_other": "",
-            "subtitle_none_upcoming": "",
+            "subtitle_upcoming_one": "ميعاد واحد جاي",
+            "subtitle_upcoming_other": "{{count}} ميعاد جاي",
+            "subtitle_none_upcoming": "مفيش مواعيد جاية",
             "add": "أضف موعدا 👬",
             "add_title": "إضافة موعدا",
             "edit_title": "تعديل الموعد",
@@ -2600,7 +2621,11 @@
             "delete_confirm_title": "تمسح الموعد ده؟",
             "delete_confirm_message": "ده مش هيتراجع.",
             "delete_confirm_action": "حذف",
-            "kind_one": "أخرى"
+            "kind_one": "أخرى",
+            "subtitle_upcoming_zero": "مفيش مواعيد جاية",
+            "subtitle_upcoming_two": "ميعادين جايين",
+            "subtitle_upcoming_few": "{{count}} مواعيد جاية",
+            "subtitle_upcoming_many": "{{count}} ميعاد جاي"
         },
         "tests": {
             "add": "اضافة اختبار",
@@ -2637,7 +2662,7 @@
         "info": {
             "sheet_title": "PrEP settings",
             "settings_button": "PrEP settings",
-            "scheme_section": "",
+            "scheme_section": "نظام الجرعات",
             "scheme_daily_label": "يوميًا",
             "scheme_daily_tagline": "حباية واحدة كل يوم",
             "scheme_on_demand_label": "عند الحاجة (2-1-1)",
@@ -2655,7 +2680,7 @@
         "description": "اختار صور تضيفها للبروفايل، أو ارفع صور جديدة.",
         "upload": "رفع صورة",
         "empty": "مفيش صور لسه",
-        "empty_hint": "",
+        "empty_hint": "صوّر صورة أو ارفع واحدة من جهازك عشان تضيفها لبروفايلك.",
         "retry": "حاول تاني",
         "image_alt": "صورة مرفوعة",
         "delete_image": "مسح الصورة",
@@ -2674,23 +2699,23 @@
         "category_saved_locations": "المواقع المحفوظة",
         "category_settings": "الإعدادات",
         "category_sexual_health": "الصحة الجنسية",
-        "progress_step": "",
-        "progress_preparing": "",
+        "progress_step": "خطوة {{step}} من {{steps}} · {{rows}} عنصر",
+        "progress_preparing": "بيجهّز…",
         "export_no_categories": "اختار فئة واحدة على الأقل عشان تصدّر.",
         "export_categories_title": "عايز تصدّر إيه؟",
         "export_confirm": "تصدير",
         "import_categories_title": "عايز تسترجع إيه؟",
         "import_categories_desc": "الفئات الموجودة في الملف ده بس اللي تقدر تسترجعها.",
         "import_confirm": "استرجاع",
-        "export_success_picker": "",
-        "export_destination_title": "",
-        "export_destination_downloads": "",
-        "export_destination_picker": "",
-        "export_destination_picker_hint": "",
-        "export_destination_downloads_hint": "",
-        "export_destination_picker_hint_desktop": "",
-        "export_destination_device": "",
-        "export_destination_device_hint_ios": ""
+        "export_success_picker": "البيانات اتصدّرت للمكان اللي اخترته.",
+        "export_destination_title": "احفظ في",
+        "export_destination_downloads": "التنزيلات",
+        "export_destination_picker": "اختار المكان…",
+        "export_destination_picker_hint": "اختار أي فولدر أو تخزين سحابي، زي Google Drive (محتاج تطبيق Drive).",
+        "export_destination_downloads_hint": "بيتحفظ في Downloads/FreeGrind على الجهاز ده.",
+        "export_destination_picker_hint_desktop": "اختار أي فولدر، زي فولدر متزامن مع Google Drive للكمبيوتر.",
+        "export_destination_device": "الجهاز ده",
+        "export_destination_device_hint_ios": "بيتحفظ في تطبيق الملفات تحت على الـ iPhone/iPad ← Free Grind."
     },
     "restore_offer": {
         "title": "تسترجع بياناتك؟",
@@ -2805,11 +2830,11 @@
         "provider_gemini_tagline": "يفهم العامية · مستوى مجاني",
         "provider_openai_tagline": "يفهم العامية · مدفوع",
         "provider_claude_tagline": "يفهم العامية · مدفوع",
-        "provider_section": "",
-        "key_badge_missing": "",
-        "key_badge_invalid": "",
-        "key_badge_valid": "",
-        "guide_paste_inline_desc": "",
+        "provider_section": "مقدّم الخدمة",
+        "key_badge_missing": "مش متظبط",
+        "key_badge_invalid": "مش شغّال",
+        "key_badge_valid": "شغّال",
+        "guide_paste_inline_desc": "الصق المفتاح ودوس حفظ. بيتفحص على طول.",
         "api_section": "المزوّد ومفتاح API"
     },
     "legal_agreements": {
@@ -2838,32 +2863,48 @@
         "open_github": "افتح على GitHub",
         "dismiss": "اقفل",
         "get_version": "هات {{version}}",
-        "description_manual": "",
-        "description_outdated": "",
-        "installed_label": "",
-        "latest_label": "",
-        "released_ago": "",
-        "releases_ahead_one": "",
-        "releases_ahead_other": ""
+        "description_manual": "في إصدار جديد من التطبيق جاهز للتثبيت.",
+        "description_outdated": "الإصدار ده مبقاش بياخد تحديثات OTA. ثبّت أحدث إصدار عشان تفضل تاخد مميزات وإصلاحات جديدة.",
+        "installed_label": "المتثبّت",
+        "latest_label": "الأحدث",
+        "released_ago": "نزل {{time}}",
+        "releases_ahead_one": "إصدار واحد أحدث",
+        "releases_ahead_other": "{{count}} إصدار أحدث",
+        "releases_ahead_zero": "مفيش إصدارات أحدث",
+        "releases_ahead_two": "إصدارين أحدث",
+        "releases_ahead_few": "{{count}} إصدارات أحدث",
+        "releases_ahead_many": "{{count}} إصدار أحدث"
     },
     "ota_prompt": {
-        "title": "",
-        "description": "",
-        "failed": "",
-        "update_now": "",
-        "later": "",
-        "version": "",
-        "installed": "",
-        "new": "",
-        "built_in": "",
-        "newer_minutes_one": "",
-        "newer_minutes_other": "",
-        "newer_hours_one": "",
-        "newer_hours_other": "",
-        "newer_days_one": "",
-        "newer_days_other": "",
-        "auto_title": "",
-        "auto_desc": ""
+        "title": "في تحديث متاح",
+        "description": "في إصدار جديد من واجهة التطبيق جاهز للتحميل. هياخد لحظة بس والتطبيق هيعيد التحميل بعدها.",
+        "failed": "مقدرناش نحمّل التحديث. اتأكد من الاتصال وجرّب تاني.",
+        "update_now": "حدّث دلوقتي",
+        "later": "بعدين",
+        "version": "إصدار {{version}}",
+        "installed": "البيلد المتثبّت",
+        "new": "البيلد الجديد",
+        "built_in": "جاي مع التطبيق",
+        "newer_minutes_one": "أحدث بدقيقة",
+        "newer_minutes_other": "أحدث بـ {{count}} دقيقة",
+        "newer_hours_one": "أحدث بساعة",
+        "newer_hours_other": "أحدث بـ {{count}} ساعة",
+        "newer_days_one": "أحدث بيوم",
+        "newer_days_other": "أحدث بـ {{count}} يوم",
+        "auto_title": "تثبيت تلقائي",
+        "auto_desc": "ثبّت تحديثات الواجهة الجاية من غير ما يسألك.",
+        "newer_minutes_zero": "أحدث بأقل من دقيقة",
+        "newer_minutes_two": "أحدث بدقيقتين",
+        "newer_minutes_few": "أحدث بـ {{count}} دقايق",
+        "newer_minutes_many": "أحدث بـ {{count}} دقيقة",
+        "newer_hours_zero": "أحدث بأقل من ساعة",
+        "newer_hours_two": "أحدث بساعتين",
+        "newer_hours_few": "أحدث بـ {{count}} ساعات",
+        "newer_hours_many": "أحدث بـ {{count}} ساعة",
+        "newer_days_zero": "أحدث بأقل من يوم",
+        "newer_days_two": "أحدث بيومين",
+        "newer_days_few": "أحدث بـ {{count}} أيام",
+        "newer_days_many": "أحدث بـ {{count}} يوم"
     },
     "apk_update": {
         "errors": {
@@ -2880,199 +2921,199 @@
         }
     },
     "account_transfer": {
-        "unsupported": "",
-        "create_failed": "",
-        "copied": "",
-        "copy_failed": "",
-        "title": "",
-        "subtitle": "",
-        "warning_title": "",
-        "warning_desc": "",
-        "qr_alt": "",
-        "hides_in": "",
-        "copy": "",
-        "hide": "",
-        "show": "",
-        "howto_title": "",
-        "howto_desc": "",
-        "settings_desc": "",
-        "backup_title": "",
-        "backup_desc": ""
+        "unsupported": "تسجيل الدخول ده مينفعش يتنقل لجهاز تاني. سجّل دخول بالإيميل والباسورد أو بجوجل بدل كده.",
+        "create_failed": "مقدرناش نعمل كود تسجيل دخول.",
+        "copied": "الكود اتنسخ",
+        "copy_failed": "مقدرناش ننسخ الكود.",
+        "title": "سجّل دخول على جهاز تاني",
+        "subtitle": "سجّل دخول بالحساب ده على جهاز تاني من غير ما تكتب الباسورد.",
+        "warning_title": "الكود ده هو دخولك",
+        "warning_desc": "أي حد يسكانه أو ينسخه يقدر يدخل حسابك خلال الـ 10 دقايق الجاية. اعرضه بس لجهاز بتاعك، ومتبعتوش لأي حد أبدًا.",
+        "qr_alt": "كود QR لتسجيل الدخول",
+        "hides_in": "هيختفي بعد {{time}}",
+        "copy": "انسخ الكود",
+        "hide": "اخفي",
+        "show": "اعرض كود تسجيل الدخول",
+        "howto_title": "على الجهاز التاني",
+        "howto_desc": "في شاشة تسجيل الدخول في Free Grind، دوس على \"استخدم كود QR\" وسكان الكود ده. على الكمبيوتر، انسخ الكود والصقه هناك بدل كده. الجهازين هيفضلوا مسجّلين دخول.",
+        "settings_desc": "اعرض كود QR عشان تسجّل دخول بالحساب ده في مكان تاني",
+        "backup_title": "خد بياناتك معاك",
+        "backup_desc": "سجل الشاتات والألبومات والجمل المحفوظة والأماكن المحفوظة والإعدادات متخزنة على الجهاز ده بس. صدّرها من النسخ الاحتياطي والاستعادة واستورد الملف على الجهاز الجديد عشان يبقى كل حاجة هناك كمان."
     },
     "unsupported_version": {
-        "title": "",
-        "description": "",
-        "app_version": "",
-        "grindr_says": "",
-        "check": "",
-        "dismiss": "",
-        "no_update": "",
-        "check_failed": ""
+        "title": "لازم تحدّث",
+        "description": "Grindr مبقاش بيقبل إصدار التطبيق اللي Free Grind بيعرّف نفسه بيه. حدّث Free Grind عشان تكمّل تستخدمه — لحد ساعتها تسجيل الدخول ومعظم المميزات مش هتشتغل.",
+        "app_version": "إصدار التطبيق",
+        "grindr_says": "Grindr بيقول",
+        "check": "دوّر على تحديث",
+        "dismiss": "مش دلوقتي",
+        "no_update": "لسه مفيش إصدار أحدث. ابقى شوف تاني بعدين.",
+        "check_failed": "مقدرناش ندوّر على تحديثات"
     },
     "account_warnings": {
-        "title": "",
-        "description": "",
-        "acknowledge": "",
-        "read_guidelines": "",
-        "acknowledge_failed": "",
-        "why": "",
+        "title": "تحذير",
+        "description": "حسابك خالف إرشادات المجتمع بتاعتنا. لو ده اتكرر، ممكن تتحظر.",
+        "acknowledge": "فاهم وموافق",
+        "read_guidelines": "اقرا إرشاداتنا",
+        "acknowledge_failed": "مقدرناش نأكّد التحذيرات. جرّب تاني.",
+        "why": "ليه شايف ده؟",
         "types": {
             "harassment": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "تحرّش",
+                "content": "إحنا بنشجّع حرية التعبير، بس مش لو بتتنمّر على الناس أو بترهبهم. خليك لطيف على Grindr.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب تحرّش في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "بنطلب منك تعامل الناس بلطف على Grindr. التنمّر والتحرّش والترهيب ممنوعين لأنهم بيعملوا جو عدائي. الإساءة المتكررة ممكن تؤدي لإجراءات تانية ضد حسابك."
             },
             "commercial": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "نشاط تجاري",
+                "content": "Grindr للاستخدام الشخصي بس. مينفعش تطلب فلوس، أو تعمل إعلانات، أو تستخدم Grindr عشان تشتري أو تبيع أي حاجة. لو ده اتكرر، ممكن تتحظر.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب نشاط تجاري في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "Grindr معمول للعلاقات الشخصية، مش لتجنيد أو استقطاب المستخدمين لمشاريع ربحية زي الترويج لشركات أو خدمات مدفوعة أو فعاليات. الأنشطة دي بتبعد المنصة عن هدفها وبتخالف إرشاداتنا. اتأكد إن تعاملاتك فاضلة شخصية ومش تجارية."
             },
             "mild_insults": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "إهانات بسيطة وقلة احترام",
+                "content": "شوية من الرسايل اللي بعتها اتعلّم عليها إنها ممكن تكون فيها قلة احترام. إحنا بنشجّعك تكون على طبيعتك وتعبّر عن نفسك بحرية على Grindr، بس المهم تعمل ده من غير ما تأذي غيرك. خليك لطيف على Grindr واتأكد إن تعاملاتك فيها احترام وماشية مع إرشادات المجتمع بتاعتنا.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب إهانات بسيطة وقلة احترام في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "Grindr عايز يوفّر مساحة لتعاملات محترمة وحقيقية. التعليقات اللي ممكن تبان قاسية أو قليلة الاحترام ممكن تأثر سلبًا على الناس وبتخالف إرشادات المجتمع بتاعتنا. خلي بالك كلامك بيوصل إزاي، وساعدنا نحافظ على جو مرحّب بالكل. المخالفات المستمرة ممكن تؤدي لإجراءات زي إيقاف الحساب أو حظره."
             },
             "general_advertising": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "الإعلانات والاستقطاب بشكل عام",
+                "content": "Grindr للعلاقات الشخصية الحقيقية، مش للإعلان عن منتجات أو خدمات أو منصات خارجية. المحتوى الترويجي مش مسموح في البروفايلات ولا الرسايل. اتأكد إن تعاملاتك حقيقية وماشية مع إرشاداتنا.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب إعلانات واستقطاب في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "Grindr معمول للعلاقات الشخصية الحقيقية ومش مكان للترويج لمنتجات أو خدمات أو لينكات خارجية. استخدام البروفايلات أو الرسايل للترويج لمنتجات أو خدمات أو مشاركة لينكات خارجية بيخالف إرشاداتنا وبيبوّظ التجربة على الناس التانية. شيل أي محتوى ترويجي عشان Grindr يفضل مكان للتعاملات الحقيقية."
             },
             "unwanted_messaging": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "رسايل متكررة أو مش مرغوب فيها",
+                "content": "على مهلك! بعت رسايل متكررة أو الإلحاح الزيادة بيتعتبر سبام. بلاش كده، لأن المخالفات المستمرة ممكن تؤدي لإيقاف الحساب.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب رسايل متكررة أو مش مرغوب فيها في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "هدّي شوية. بعت رسايل كتير في وقت قصير بيخالف إرشاداتنا. النظام ده بيساعد إن Grindr يفضل آمن وإيجابي للكل. لو التصرف ده استمر، حسابك ممكن يتوقف. احترم المستخدمين التانيين دايمًا — اقرا البروفايلات عشان تعرف تفضيلاتهم، وقول حدودك، واحترم حدود غيرك."
             },
             "drug_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "طلب مخدرات من وقت للتاني",
+                "content": "البحث عن مخدرات على Grindr بيخالف إرشاداتنا. ابعد عن ده عشان تساعد نحافظ على مجتمع آمن ومحترم.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب طلب مخدرات في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "البحث عن مخدرات، حتى لو من وقت للتاني، في البروفايل أو الشاتات مش مسموح. ده بيخالف إرشادات Grindr، لأننا مهتمين بصحتك وبنسعى نحافظ على مجتمع آمن ومحترم. ابعد عن الكلام ده من هنا ورايح."
             },
             "drug_promotion": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "الترويج للمخدرات أو تمجيدها",
+                "content": "مبنسمحش بأي نشاط بيروّج لتعاطي المخدرات غير القانونية. لو ده اتكرر، حسابك ممكن يتوقف.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب الترويج للمخدرات أو تمجيدها في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "صحة مستخدمينا تهمنا جدًا. الإشارة للحشيش والتبغ والكحول مسموحة في سياقات معينة، بس مبنسمحش بالبروفايلات المتمحورة حوالين المخدرات أو اللي بتروّج لها، ومن ضمن ده الكلام عن شرا أو بيع المخدرات (من أي نوع) أو المشاركة فيه. السياسة دي كمان بتشمل الصور والإيموجي اللي بتطلب مخدرات أو بتشجّع على تعاطيها."
             },
             "non_illicit_substances": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "ذكر عابر لمواد قانونية",
+                "content": "ذكر مواد قانونية زي CBD أو الماريجوانا (في الأماكن اللي هي فيها قانونية) مسموح على Grindr. بس الترويج الزيادة أو التركيز على المواد دي ممكن يخلي مجتمعنا يبلّغ عن حسابك، وممكن كمان يتوقف.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب ذكر عابر لمواد ورموز قانونية في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "بنسمح بالذكر العابر لمواد قانونية، زي CBD أو الماريجوانا (في الأماكن اللي هي فيها قانونية)، على Grindr. بس البروفايلات المتمحورة حوالين المواد دي أو اللي بتروّج لها بزيادة ممكن تبوّظ تجربة المجتمع وممكن مستخدمين تانيين يبلّغوا عنها. صحة مجتمعنا تهمنا جدًا، وبنمنع أي محتوى أو صور ليها علاقة بالمخدرات ممكن تشجّع على ممارسات مضرة. اتأكد إن بروفايلك ماشي مع إرشاداتنا عشان تساعدنا نحافظ على منصة آمنة ومحترمة للكل."
             },
             "mild_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "استقطاب بسيط وعروض عابرة",
+                "content": "Grindr للعلاقات الشخصية الحقيقية. الطلبات المادية ممكن تلخبط الحدود ومش ماشية مع إرشاداتنا. خلّينا نحافظ على التعاملات حقيقية ومحترمة.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب استقطاب بسيط وعروض عابرة في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "Grindr للعلاقات الشخصية — مش للترويج لمحتوى مدفوع أو اتفاقات مادية. اتأكد إن بروفايلك ورسايلك ماشيين مع إرشاداتنا عشان Grindr يفضل مكان للتعاملات الحقيقية."
             },
             "drug_seeking": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "البحث عن مخدرات",
+                "content": "البحث عن مخدرات على Grindr بيخالف إرشاداتنا. ابعد عن ده عشان تساعد نحافظ على مجتمع آمن ومحترم. لو ده اتكرر، حسابك ممكن يتوقف.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب البحث عن مخدرات في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "البحث عن مخدرات، حتى لو من وقت للتاني، في البروفايل أو الشاتات مش مسموح. ده بيخالف إرشادات Grindr، لأننا مهتمين بصحتك وبنسعى نحافظ على مجتمع آمن ومحترم. ابعد عن الكلام ده من هنا ورايح."
             },
             "drug_facilitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "تسهيل الوصول للمخدرات",
+                "content": "مساعدة الناس إنهم يجيبوا مخدرات غير قانونية مش مسموحة على Grindr. لو ده اتكرر، حسابك ممكن يتوقف.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب تسهيل الوصول للمخدرات في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "إنك توصّل ناس لمخدرات غير قانونية — تعرض تشاركهم اللي معاك، أو ترتّب استلام، أو توصّل حد بمصدر — مش مسموح، حتى لو مفيش حاجة بتتباع. ده بيخالف إرشادات Grindr، لأننا مهتمين بصحتك وبنسعى نحافظ على مجتمع آمن ومحترم. ابعد عن ده من هنا ورايح."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "صور حميمة من غير موافقة",
+                "content": "مشاركة صور أو فيديوهات حميمة لحد تاني من غير موافقته مش مسموحة على Grindr. لو ده اتكرر، حسابك ممكن يتوقف.",
+                "reason": "إنت شايف التحذير ده لأنه اتعلّم عليك بسبب مشاركة صور حميمة من غير موافقة في تعامل قريب. لو فريق الإشراف بتاعنا وصله بلاغات عن حوادث تانية، حسابك ممكن يتحظر بسبب مخالفة إرشادات المجتمع.",
+                "details": "الصور أو الفيديوهات الحميمة لحد تاني متتشاركش أبدًا غير بموافقته — والموافقة على تصوير صورة أو استلامها مش موافقة على مشاركتها. ده كمان بينطبق على الصور المتعدّلة والمعمولة بالذكاء الاصطناعي. ده بيخالف إرشادات Grindr، لأن أمان وخصوصية كل اللي في مجتمعنا يهمونا. ابعد عن ده من هنا ورايح."
             }
         }
     },
     "community_guidelines": {
-        "label": "",
+        "label": "إرشاد المجتمع",
         "authentic": {
-            "title": "",
-            "text": ""
+            "title": "خليك حقيقي",
+            "text": "خليك على طبيعتك في التطبيق، مش حد تاني. أي بروفايل بينتحل شخصية ناس تانية، ومنهم المشاهير، هيتحظر. المحتوى اللي بتنشره على Grindr لازم يكون ليك أو من عملك، ولازم تقدّم نفسك بصدق. إنت اللي بتختار تكشف إيه عن نفسك، بس المعلومات اللي بتشاركها لازم تكون صح. أي انتحال شخصية/catfishing ممنوع وممكن يؤدي للحظر.\n\nمبنسمحش بـ:\n• صور مشاهير أو شخصيات عامة من أي نوع (ممثلين، مغنيين، سياسيين، إلخ)\n• صور ناس بيقلّدوا مشاهير لو مش واضح إذا كان المقلّد ولا المشهور الحقيقي\n• صور عليها حقوق نشر، أو عليها علامة مائية، أو إحنا شايفين إنها مش ليك أو مش إنت اللي صوّرتها\n• صور ملهاش معنى (زي مربعات سودا)\n\nلو بروفايلك اتبلّغ عنه إنه مزيّف، ممكن نطلب منك تأكّد هويتك عشان يفضل شغّال."
         },
         "harassment": {
-            "title": "",
-            "text": ""
+            "title": "تحرّش",
+            "text": "عايزينك تكون على طبيعتك وتعبّر عن نفسك بحرية هنا، بس مش على حساب حد تاني. بننصحك جدًا تتكلم في بروفايلك عن اللي بتحبه، مش عن اللي مبتحبوش. والمثل القديم \"لو معندكش حاجة حلوة تقولها، متقولش حاجة\" بينطبق هنا زي ما بينطبق عند تيتة.\n\nكمان متوقعين إنك تسيب الشخص في حاله لما يوضّح إنه عايز يتساب في حاله. دي قاعدة أساسية. إساءة استخدام نظام البلاغات عشان تنتقم من حد عملك بلوك، أو عمل حسابات جديدة عشان تكمّل تواصل مش مرغوب فيه، هيؤدي لحظر نهائي."
         },
         "hate": {
-            "title": "",
-            "text": ""
+            "title": "الكراهية والعنف والمحتوى المسيء",
+            "text": "مش محتاجة كلام، بس مبنسمحش بخطاب الكراهية أو العنف من أي نوع. لو عرفنا إنك أسأت لمستخدم تاني أو هدّدته تهديد جدّي، هتتحظر للأبد. وممكن كمان نشيل محتوى شايفينه صريح زيادة أو مسيء أو جارح ومش مراعي لمشاعر الناس، حتى لو مكانش في نية وحشة.\n\nبناخد بلاغات العنف والتهديد والاعتداء بجدية شديدة. ده بيشمل الحوادث اللي بتحصل على منصتنا وبرّاها.\n\nممكن نعتبر المحتوى خطاب كراهية (وناخد إجراءات أشد ضد البروفايل) لو بيروّج أو بيبرّر العنصرية، أو التعصّب، أو العنف، أو الكراهية، أو نزع الإنسانية، أو الأذى ضد أفراد أو مجموعات بسبب العِرق، أو الإثنية، أو الإعاقة، أو السن، أو الجنسية، أو التوجّه الجنسي، أو الجنس، أو الهوية الجندرية، أو الدين، أو الشكل.\n\nالمحتوى اللي ممكن نعتبره صريح أو عنيف أو مسيء بيشمل، من غير ما يقتصر على:\n• صور أسلحة وأسلحة نارية (حقيقية أو لعب)، ومنها مسدسات البينتبول\n• صور فيها دم أو مشاهد دموية، ومنها الأزياء الواقعية جدًا\n• صور عنيفة، ومنها الكرتون أو الرسومات\n• إشارات عصابات أو إشارات إيد مسيئة (زي الصباع الوسطاني)\n• محتوى كينك أو فيتيش عنيف أو بيشجّع على الأذى\n• تهديدات ضد أي شخص أو مجموعة، ومنهم الشخصيات السياسية\n• صور أو وصف لإيذاء النفس أو الانتحار\n• صور حيوانات ميتة، ومنها صور الصيد\n• نكت أو ميمز ممكن تكون جارحة ومش مراعية لمشاعر الناس"
         },
         "minors": {
-            "title": "",
-            "text": ""
+            "title": "القاصرين",
+            "text": "Grindr للكبار بس. لازم يكون عندك 18 سنة على الأقل عشان تستخدم التطبيق (أو أكتر في بعض الدول). بناخد حد السن ده بجدية شديدة جدًا، وأي مخالفة أو اشتباه في مخالفة هيؤدي على الأقل للحظر، وممكن يخلينا نبلّغ الجهات المختصة.\n\nكمان مبنسمحش بأي صور لحد عنده أقل من 18 سنة، في أي سياق. ده بيشمل الصور اللي وش القاصر فيها متغطّي أو موجود في الخلفية. منعنا الكامل لأي نشاط فيه قاصرين بيشمل التواصل كمان: لو مستخدم بيتواصل مع مستخدم تاني يعتقد إن عنده أقل من 18 سنة، ده كمان مخالفة لسياسة السن بتاعتنا."
         },
         "obey_the_law": {
-            "title": "",
-            "text": ""
+            "title": "احترم القانون",
+            "text": "لو حاجة غير قانونية برّا النت، خمّن إيه: هي كمان غير قانونية على Grindr! أيوه، ده بيشمل المخدرات. المحتوى غير القانوني وأي عرض لأنشطة غير قانونية هيتشال، ولما يكون مناسب هيتبلّغ للجهات المختصة.\n\nبنسمح بالذكر العابر للماريجوانا والأدوية اللي من غير روشتة والأدوية الموصوفة. بس أي دليل على سوء استخدام أو تشجيع غيرك على الاستخدام غير المسؤول، وأي كلام عن شرا/بيع، هيؤدي للحظر. مبنسمحش بأي ذكر لمخدرات مش موصوفة، غير الماريجوانا، إلا في سياق التعافي من الإدمان. وكمان مبنسمحش بالبروفايلات اللي تركيزها الأساسي على المخدرات."
         },
         "private_information": {
-            "title": "",
-            "text": ""
+            "title": "المعلومات الخاصة",
+            "text": "Grindr عمره ما هيطلب منك بيانات شخصية زي الباسورد أو بيانات الكريديت كارد. والمستخدمين التانيين كمان مش محتاجين يعرفوا الحاجات دي. عشان الأمان، هنشيل أي معلومات شخصية حساسة معروضة للعامة، زي أرقام التليفون والعناوين، وممكن نوقف البروفايل أو نحظره.\n\nطلب المعلومات الشخصية لمستخدم تاني بشكل مش مرغوب فيه، أو دفع المستخدمين يزوروا لينكات خارجية، أو أي نوع من السبام أو النصب، هيخليك تتحظر.\n\nمبنسمحش بنشر معلومات خاصة في أي مكان في البروفايل، زي الصور أو نص البروفايل، ولا لينكات مباشرة ليها، زي مثلًا عن طريق كود QR أو لينك. المعلومات الخاصة بتشمل:\n• بيانات تواصل مش منشورة، زي أرقام التليفون والإيميلات وعنوان البيت/الشغل\n• الرقم القومي، الباسبور، الباسوردات، والمعلومات المالية"
         }
     },
     "push_notifications": {
-        "someone": "",
-        "generic_message": "",
-        "open_chat": "",
-        "open_profile": "",
-        "taps_title": "",
-        "tap_notification_body": "",
-        "chat_image_notification_body": "",
-        "chat_expiring_image_notification_body": "",
-        "chat_gif_notification_body": "",
-        "chat_gaymoji_notification_body": "",
-        "chat_location_notification_body": "",
-        "chat_audio_notification_body": "",
-        "chat_video_notification_body": "",
-        "chat_album_notification_body": "",
-        "chat_album_content_reaction_notification_body": "",
-        "chat_message_reaction_notification_body": "",
-        "chat_message_reaction_no_name_notification_body": "",
-        "favorite_online_notification_title": "",
-        "favorite_online_notification_body": "",
-        "multiple_favorites_online_notification_title": "",
-        "multiple_favorites_online_notification_body": "",
-        "tapped_online_notification_title": "",
-        "tapped_online_notification_body": "",
-        "recommended_online_notification_title": "",
-        "recommended_online_notification_body": "",
-        "media_recipient_online_notification_title": "",
-        "media_recipient_online_notification_body": "",
-        "unread_chats_notification_title": "",
-        "unread_chats_notification_body": "",
-        "viewed_profile_notification_title": "",
-        "viewed_profile_notification_body": "",
-        "a_list_updates_title": "",
-        "a_list_updates_body_1": "",
-        "a_list_updates_body_2": "",
-        "a_list_updates_body_3": "",
-        "a_list_updates_body_4": "",
-        "boost_notification_title": "",
-        "boost_notification_body": "",
-        "super_boost_notification_title": "",
-        "super_boost_notification_body": "",
-        "mega_boost_notification_title": "",
-        "mega_boost_notification_body": "",
-        "trial_reminder_notification_title": "",
-        "trial_reminder_notification_body": "",
-        "spank_bank_favorite_update_title": "",
-        "spank_bank_batched_update_title": "",
-        "spank_bank_tap_to_see_body": "",
-        "spank_bank_v2_favorite_update_body": "",
-        "spank_bank_v2_batched_update_body": "",
-        "discover_new_rec_notification_title": "",
-        "discover_new_rec_notification_body": "",
-        "right_now_request_notification_body": "",
-        "right_now_request_approved_notification_body": "",
-        "coupon_auto_applied_title": "",
-        "coupon_auto_applied_body": ""
+        "someone": "حد",
+        "generic_message": "بعتلك رسالة",
+        "open_chat": "افتح الشات",
+        "open_profile": "افتح البروفايل",
+        "taps_title": "التابات",
+        "tap_notification_body": "بعتلك تاب",
+        "chat_image_notification_body": "بعتلك صورة",
+        "chat_expiring_image_notification_body": "بعتلك صورة بتختفي",
+        "chat_gif_notification_body": "بعتلك GIF",
+        "chat_gaymoji_notification_body": "بعتلك Gaymoji",
+        "chat_location_notification_body": "بعتلك موقعه",
+        "chat_audio_notification_body": "بعتلك رسالة صوتية",
+        "chat_video_notification_body": "بعتلك فيديو",
+        "chat_album_notification_body": "شارك ألبومه",
+        "chat_album_content_reaction_notification_body": "عجبه محتوى ألبومك",
+        "chat_message_reaction_notification_body": "{{arg1}} عمل رياكت على رسالتك",
+        "chat_message_reaction_no_name_notification_body": "عمل رياكت على رسالتك",
+        "favorite_online_notification_title": "المفضّل بتاعك أونلاين…",
+        "favorite_online_notification_body": "قوله هاي قبل ما يقفل.",
+        "multiple_favorites_online_notification_title": "المفضّلين بتوعك موجودين…",
+        "multiple_favorites_online_notification_body": "أونلاين دلوقتي. اختار براحتك.",
+        "tapped_online_notification_title": "اللي بعتله تاب لسه فاتح…",
+        "tapped_online_notification_body": "إنت عملت أول خطوة. دلوقتي قوله هاي.",
+        "recommended_online_notification_title": "نوعك قريب منك.",
+        "recommended_online_notification_body": "هو أونلاين دلوقتي. قوله هاي قبل ما اللحظة تعدّي…",
+        "media_recipient_online_notification_title": "الشخص اللي بعتله صور…",
+        "media_recipient_online_notification_body": "أونلاين دلوقتي. كمّلوا من مكان ما وقفتوا.",
+        "unread_chats_notification_title": "في شاتات جديدة مستنياك.",
+        "unread_chats_notification_body": "شوف مين بعتلك. الكورة في ملعبك.",
+        "viewed_profile_notification_title": "بتاخد مشاهدات…",
+        "viewed_profile_notification_body": "شوف مين بيبصّلك. مشاهداتك مفتوحة لمدة 24 ساعة.",
+        "a_list_updates_title": "تحديثات A-List",
+        "a_list_updates_body_1": "عندك A-List شغّالة! {{arg1}} عنده تحديث. شوف اللي فاتك!",
+        "a_list_updates_body_2": "عندك A-List شغّالة! {{arg1}} و{{arg2}} عندهم تحديثات. شوف اللي فاتك!",
+        "a_list_updates_body_3": "عندك A-List شغّالة! {{arg1}} و{{arg2}} و{{arg3}} عندهم تحديثات. شوف اللي فاتك!",
+        "a_list_updates_body_4": "عندك A-List شغّالة! {{arg1}} و{{arg2}} و{{arg3}} تانيين عندهم تحديثات. شوف اللي فاتك!",
+        "boost_notification_title": "الـ Boost خلص ⚡",
+        "boost_notification_body": "دوس عشان تشوف النتايج",
+        "super_boost_notification_title": "الـ Super Boost خلص ⚡",
+        "super_boost_notification_body": "دوس عشان تشوف النتايج",
+        "mega_boost_notification_title": "الـ Mega Boost خلص ⚡",
+        "mega_boost_notification_body": "دوس عشان تشوف النتايج",
+        "trial_reminder_notification_title": "تجربة مجانية 7 أيام",
+        "trial_reminder_notification_body": "التجربة بتاعتك هتخلص بعد 48 ساعة.",
+        "spank_bank_favorite_update_title": "المفضّل بتاعك لسه محدّث ألبومه 👀",
+        "spank_bank_batched_update_title": "{{arg1}} أشخاص حدّثوا ألبوماتهم 👀",
+        "spank_bank_tap_to_see_body": "دوس عشان تشوف",
+        "spank_bank_v2_favorite_update_body": "المفضّل بتاعك {{arg1}} لسه محدّث ألبومه 👀",
+        "spank_bank_v2_batched_update_body": "{{arg1}} أشخاص حدّثوا ألبوماتهم",
+        "discover_new_rec_notification_title": "حلو جديد في Discover",
+        "discover_new_rec_notification_body": "في الفيد بتاعك النهارده بس! دوس عشان تشوف.",
+        "right_now_request_notification_body": "وصلك طلب {{arg1}}",
+        "right_now_request_approved_notification_body": "طلب {{arg1}} اتقبل",
+        "coupon_auto_applied_title": "مبروك",
+        "coupon_auto_applied_body": "شهر مجاني من {{arg1}} بقى بتاعك"
     }
 }

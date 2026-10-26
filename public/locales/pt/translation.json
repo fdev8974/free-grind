@@ -16,8 +16,8 @@
         "behavior_desc": "Avisos de confirmação para bloquear e eliminar conversas.",
         "notifications": "Notificações",
         "notifications_desc": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicação está aberto.",
-        "privacy": "",
-        "privacy_desc": "",
+        "privacy": "Privacidade",
+        "privacy_desc": "Confirmações de leitura, visualizações do perfil, modo anónimo, desfoque de multimédia e disfarce do app.",
         "sexual_health": "Saúde sexual",
         "sexual_health_desc": "Acompanhe doses de PrEP, consultas, exames e agendamentos.",
         "automation": "Automação",
@@ -44,11 +44,11 @@
         "check_updates_desc": "Transfira e instale a versão mais recente do Free Grind.",
         "installed_version": "Versão {{version}}",
         "installed_versions": "Frontend {{frontend}} · App {{app}}",
-        "app_version": "",
-        "frontend_version": "",
+        "app_version": "App {{version}}",
+        "frontend_version": "Frontend {{version}}",
         "check_now": "Confira agora",
-        "update_channel": "",
-        "update_channel_desc": "",
+        "update_channel": "Canal de atualização",
+        "update_channel_desc": "De qual trilha de versões este app recebe atualizações.",
         "environment": "Ambiente",
         "switching": "A alternar…",
         "checking": "A verificar…",
@@ -69,13 +69,13 @@
         "ota_progress_installing": "A instalar atualização…",
         "ota_progress_done": "Atualização instalada. A recarregar…",
         "search_results_count_many": "{{count}} resultados",
-        "auto_update": "",
-        "auto_update_desc": "",
-        "update_checks": "",
-        "update_checks_desc": "",
-        "update_channel_main_desc": "",
-        "update_channel_development_desc": "",
-        "update_channel_contributor_desc": ""
+        "auto_update": "Instalar automaticamente",
+        "auto_update_desc": "Instala novas versões do frontend (OTA) do GitHub Actions na hora e recarrega o app. Se desativado, você será perguntado antes.",
+        "update_checks": "Verificar automaticamente",
+        "update_checks_desc": "Procura novas versões do app e do frontend no GitHub a cada início do app. Se desativado, nenhuma solicitação é enviada ao GitHub, a menos que você verifique manualmente acima.",
+        "update_channel_main_desc": "Versões testadas. Recomendado.",
+        "update_channel_development_desc": "As mudanças mais recentes assim que são compiladas. Pode ser instável.",
+        "update_channel_contributor_desc": "Canal de colaboradores"
     },
     "settings_blocked": {
         "title": "Contas bloqueadas",
@@ -129,17 +129,17 @@
         "apply_to_inbox_desc": "Bloqueia instantaneamente novos chats que correspondam aos seus critérios.",
         "forbidden_keywords_title": "Palavras-chave Proibidas",
         "forbidden_keywords_desc": "Uma lista de palavras partilhada — separe os itens por vírgulas (ex.: snapchat, crypto, bot). Ela não bloqueia nada por si só; utilize-a como fonte de palavras-chave (\"Palavras-chave proibidas\") em uma condição de automação para criar uma regra que verifique biografias, mensagens ou nomes de exibição com base nela.",
-        "forbidden_list_row_title": "",
-        "forbidden_list_count_one": "",
-        "forbidden_list_count_other": "",
-        "forbidden_list_empty": "",
-        "forbidden_used_by": "",
-        "forbidden_not_used": "",
-        "forbidden_usage_footnote": "",
-        "forbidden_editor_placeholder": "",
-        "forbidden_editor_hint": "",
-        "rule_on": "",
-        "rule_off": "",
+        "forbidden_list_row_title": "Lista de palavras-chave",
+        "forbidden_list_count_one": "{{count}} palavra-chave",
+        "forbidden_list_count_other": "{{count}} palavras-chave",
+        "forbidden_list_empty": "Nenhuma palavra-chave ainda",
+        "forbidden_used_by": "Usada por",
+        "forbidden_not_used": "Nenhuma regra usa esta lista ainda.",
+        "forbidden_usage_footnote": "A lista não faz nada sozinha. Uma regra a usa quando uma de suas condições de palavras-chave (nome, bio, mensagem ou perfil social) está definida como “Palavras-chave proibidas” em vez de suas próprias palavras. A regra integrada “Bloquear palavras-chave proibidas” bloqueia qualquer pessoa cujo nome, bio ou mensagem contenha uma palavra-chave; ative-a acima.",
+        "forbidden_editor_placeholder": "snapchat, cripto, bot",
+        "forbidden_editor_hint": "Separe as palavras-chave com vírgulas ou quebras de linha. Elas correspondem a palavras inteiras, sem diferenciar maiúsculas e minúsculas.",
+        "rule_on": "Ativada",
+        "rule_off": "Desativada",
         "keywords_placeholder": "Digite as palavras-chave aqui...",
         "export_txt": "Exportar (.txt)",
         "import_txt": "Importar (.txt)",
@@ -155,7 +155,7 @@
         "custom_rules_desc": "Crie suas próprias regras do tipo \"quando X, então Y\" para a primeira mensagem que alguém lhe enviar — verifique o remetente e, em seguida, bloqueie, responda ou partilhe um álbum automaticamente. Cada regra é executada uma vez por nova conversa.",
         "add_rule": "Adicionar regra",
         "no_rules_yet": "Ainda não há automações personalizadas. Adicione uma para começar.",
-        "no_rules_hint": "",
+        "no_rules_hint": "As regras rodam sozinhas quando alguém envia uma mensagem ou um tap para você, por exemplo para bloquear ou responder.",
         "unnamed_rule": "Regra não nomeada",
         "rule_when": "Quando: ",
         "edit_rule": "Editar regra",
@@ -166,7 +166,7 @@
         "rule_needs_action": "Adicione pelo menos uma ação antes de guardar.",
         "action_needs_message_text": "Insira uma mensagem para enviar antes de guardar.",
         "rule_name_placeholder": "Nomeie esta automação",
-        "rule_name_label": "",
+        "rule_name_label": "Nome",
         "trigger_label": "Quando (Trigger)",
         "conditions_label": "Se (Conditions)",
         "rule_no_conditions": "sempre",
@@ -280,7 +280,8 @@
         "phrase_facebook_handle_prefix": "o nome de utilizador do Facebook do remetente contém",
         "phrase_facebook_handle_suffix": " ",
         "phrase_facebook_handle_prefix_not": "o nome de utilizador do Facebook do remetente não contém",
-        "phrase_facebook_handle_suffix_not": " "
+        "phrase_facebook_handle_suffix_not": " ",
+        "forbidden_list_count_many": "{{count}} palavras-chave"
     },
     "video_gallery": {
         "title": "Vídeos",
@@ -370,7 +371,7 @@
         "session_placeholder": "O que você está a procurar?",
         "char_limit": "{{count}}/140",
         "add_photo": "Adicionar foto",
-        "photo_hint": "",
+        "photo_hint": "Toque para escolher uma imagem ou solte-a aqui",
         "add_video": "Adicionar vídeo",
         "i_am_hosting": "A hospedar",
         "i_am_hosting_desc": "Avise aos outros que você tem um lugar",
@@ -381,8 +382,8 @@
         "visibility": "Visibilidade",
         "status_hidden": "Atualmente oculto",
         "status_visible": "Publicamente visível",
-        "visibility_visible_desc": "",
-        "visibility_hidden_desc": "",
+        "visibility_visible_desc": "Sua sessão aparece no feed do Right Now",
+        "visibility_hidden_desc": "Pausada, ninguém por perto vê sua sessão",
         "weekly_limit": "Sessões Semanais",
         "remaining_count": "disponível",
         "next_refresh": "Próxima atualização",
@@ -396,8 +397,8 @@
         "end_session": "Encerrar sessão",
         "session_updated": "Sessão atualizada!",
         "session_created": "Sessão iniciada!",
-        "started_overlay_subtitle": "",
-        "started_overlay_tagline": "",
+        "started_overlay_subtitle": "Sessão iniciada",
+        "started_overlay_tagline": "Está por aí. Pronto, disposto e por perto.",
         "session_ended": "Sessão encerrada",
         "session_expired": "Sessão expirada",
         "error_fetch_session": "Não foi possível carregar os dados da sessão",
@@ -407,16 +408,16 @@
         "error_end_failed": "Falha ao encerrar sessão",
         "upload_preview_alt": "Prévia do envio",
         "close_aria": "Fechar",
-        "create_session_subtitle": "",
-        "section_message": "",
-        "section_photo": "",
-        "section_options": "",
-        "view_list": "",
-        "view_map": "",
-        "map_recenter": "",
-        "map_center": "",
-        "map_you": "",
-        "map_no_positions": ""
+        "create_session_subtitle": "Mostre para quem está por perto o que você está com vontade de fazer.",
+        "section_message": "Mensagem",
+        "section_photo": "Foto",
+        "section_options": "Opções",
+        "view_list": "Lista",
+        "view_map": "Mapa",
+        "map_recenter": "Mostrar todos",
+        "map_center": "Centralizar",
+        "map_you": "Você",
+        "map_no_positions": "Ninguém por perto está compartilhando a localização no mapa agora."
     },
     "right_now_filters": {
         "title": "Right Now Filtros",
@@ -434,13 +435,13 @@
         "height": "Altura",
         "weight": "Peso",
         "tags": "Etiquetas",
-        "tags_more": "",
+        "tags_more": "Mais tags",
         "clear_all": "Limpar tudo",
         "apply": "Aplicar",
         "not_specified": "Sem especificação",
         "sort": {
             "default": "Padrão",
-            "original": "",
+            "original": "Original",
             "youngest": "Mais jovem",
             "oldest": "Mais velho",
             "popular": "Popular",
@@ -495,8 +496,8 @@
         "map_picker_hide": "Esconder",
         "map_picker_open": "Abrir",
         "map_picker_instructions": "Abra o mapa para marcar um ponto e depois guarde essa localização.",
-        "choose_destination": "",
-        "use_destination": "",
+        "choose_destination": "Escolher destino",
+        "use_destination": "Usar este destino",
         "map_picker_tap_hint": "Toque no mapa para colocar um marcador.",
         "use_selected_location": "Use este local",
         "mode_gps": "GPS · Auto",
@@ -518,7 +519,7 @@
         "home_location_label": "Lar",
         "home_updated_toast": "Localização de casa atualizada",
         "home_update_failed": "Falha ao atualizar o local de casa",
-        "saved_hint": ""
+        "saved_hint": "Toque no marcador abaixo para guardar o local fixado e acessá-lo rapidamente."
     },
     "nav": {
         "browse": "Navegar",
@@ -591,10 +592,10 @@
             "double_tap_title": "Toque duplo",
             "double_tap_title_desktop": "Clique duplo",
             "double_tap_desc": "Envia um toque sem abrir o perfil.",
-            "double_tap_chat_desc": "",
-            "double_tap_off_desc": "",
-            "double_tap_send_tap": "",
-            "settings_hint_change": "",
+            "double_tap_chat_desc": "Abre o chat sem abrir o perfil.",
+            "double_tap_off_desc": "Desativado. Os perfis abrem na hora com um único toque.",
+            "double_tap_send_tap": "Enviar tap",
+            "settings_hint_change": "Você pode mudar isso e o tipo de tap depois em Configurações → Comportamento.",
             "long_press_title": "Manter premido",
             "long_press_title_desktop": "Clique direito",
             "long_press_desc": "Ações rápidas: mensagem, favorito, apelido, ocultar ou bloquear.",
@@ -632,26 +633,26 @@
             "discord_title": "Discord",
             "telegram_title": "Telegram"
         },
-        "section_community": "",
-        "founder_credit": "",
-        "discord_cta": "",
-        "telegram_cta": "",
-        "section_project": "",
-        "whats_new": "",
-        "whats_new_desc": "",
-        "built_with": "",
+        "section_community": "Comunidade",
+        "founder_credit": "Criado originalmente por {{name}}.",
+        "discord_cta": "Entrar no servidor",
+        "telegram_cta": "Acompanhar novidades",
+        "section_project": "Projeto",
+        "whats_new": "Novidades",
+        "whats_new_desc": "Destaques da versão {{version}}",
+        "built_with": "Feito com {{stack}}",
         "highlights": {
-            "privacy_title": "",
-            "privacy_desc": "",
-            "open_source_title": "",
-            "open_source_desc": "",
-            "no_ads_title": "",
-            "no_ads_desc": "",
-            "free_title": "",
-            "free_desc": ""
+            "privacy_title": "Privacidade em primeiro lugar",
+            "privacy_desc": "Sem rastreamento, sem truques para prender sua atenção.",
+            "open_source_title": "Código aberto",
+            "open_source_desc": "Todo o código é público no GitHub.",
+            "no_ads_title": "Sem anúncios",
+            "no_ads_desc": "Uma interface limpa, nada atrapalhando.",
+            "free_title": "Grátis para sempre",
+            "free_desc": "Se alguém pedir para você pagar, é golpe."
         },
-        "section_principles": "",
-        "tagline": ""
+        "section_principles": "Por que Free Grind",
+        "tagline": "O cliente focado em privacidade, feito pela comunidade"
     },
     "settings_albums": {
         "label": "Álbuns",
@@ -691,8 +692,8 @@
         "refresh": "Atualizar",
         "loading_media": "A carregar multimédia do álbum…",
         "no_media": "Ainda não há multimédia neste álbum.",
-        "no_media_hint": "",
-        "not_shared_hint": "",
+        "no_media_hint": "Tire uma foto ou grave um vídeo, envie do seu dispositivo ou adicione multimédia da pasta do chat.",
+        "not_shared_hint": "Compartilhe a partir de um chat e todos com acesso aparecerão aqui.",
         "media_alt": "Multimédia do álbum {{index}}",
         "cancel_delete_content": "Cancelar eliminar",
         "add_from_drawer": "Adicionar a partir da gaveta",
@@ -702,7 +703,7 @@
         "add_drawer_desc": "Multimédia guardadas na pasta do chat",
         "drawer_picker_title": "Selecionar multimédia",
         "drawer_empty": "Ainda não há multimédia na sua gaveta.",
-        "error_drawer_video_download": "",
+        "error_drawer_video_download": "Não foi possível carregar um vídeo da sua pasta.",
         "add_to_album_button": "Adicionar ao álbum",
         "toast_created": "Álbum criado",
         "toast_renamed": "Álbum renomeado",
@@ -728,10 +729,10 @@
         "collections_edit": "Editar coleção",
         "collections_delete": "Eliminar coleção",
         "collections_name_placeholder": "Nome da coleção",
-        "name_label": "",
-        "new_short": "",
-        "limits_albums_used": "",
-        "limits_details": "",
+        "name_label": "Nome",
+        "new_short": "Novo",
+        "limits_albums_used": "Álbuns",
+        "limits_details": "Detalhes",
         "collections_editor_hint": "Toque nas multimédia na ordem em que devem ser enviadas. Novos envios são adicionados à sua pasta.",
         "collections_save": "Guardar coleção ({{count}})",
         "collections_item_count_one": "{{count}} item",
@@ -906,10 +907,10 @@
         "photo_upload": {
             "title": "Carregar foto",
             "confirm": "Carregar",
-            "next": "",
-            "back": "",
-            "crop_hint": "",
-            "thumbnail_hint": "",
+            "next": "Próximo",
+            "back": "Voltar",
+            "crop_hint": "Recorte sua foto",
+            "thumbnail_hint": "Escolha a miniatura exibida na grade",
             "taken_on_grindr": "Foto com marca d'água do Grindr",
             "taken_on_grindr_description": "Inclua a marca de data e hora para comprovar a autenticidade e a atualidade da sua foto"
         },
@@ -933,8 +934,8 @@
             "search_placeholder": "Buscar músicas ou artistas...",
             "search_hint": "Busque no Spotify para adicionar músicas",
             "no_matches": "Nenhuma música corresponde à sua busca.",
-            "no_matches_hint": "",
-            "apply": ""
+            "no_matches_hint": "Tente outro título de música ou nome de artista.",
+            "apply": "Aplicar"
         },
         "tags_count_many": "{{count}} tags"
     },
@@ -1028,21 +1029,21 @@
         "visual_effects": "Efeitos visuais",
         "browse_grid_mobile": "Navegar em grelha (dispositivos móveis)",
         "browse_grid_mobile_desc": "Ajuste quantos perfis aparecem por linha em dispositivos móveis.",
-        "views_grid_layout": "",
-        "views_grid_mobile_desc": "",
+        "views_grid_layout": "Layout de visualizações",
+        "views_grid_mobile_desc": "Escolha quantos perfis aparecem por linha na aba Visualizações no telemóvel.",
         "columns_2": "2 colunas",
         "columns_3": "3 colunas",
-        "columns_4": "",
-        "chat_section": "",
-        "drawer_layout": "",
-        "drawer_layout_desc": "",
+        "columns_4": "4 colunas",
+        "chat_section": "Página de chat",
+        "drawer_layout": "Dividir a pasta em categorias",
+        "drawer_layout_desc": "Mostra multimédia, álbuns e coleções em abas separadas em vez de tudo em uma página.",
         "reveal_effect": {
             "title": "Efeito de Revelação",
             "description": "O efeito de revelação anima os itens conforme você rola a página para baixo. Você pode desativá-lo ou alterar sua intensidade.",
             "enable": "Ativar efeito de revelação",
             "enable_desc": "Mostrar itens com uma animação sutil quando eles entrarem na área de visualização da ecrã.",
             "strengths": {
-                "off": "",
+                "off": "Desativado",
                 "subtle": "Sutil",
                 "pronounced": "Pronunciado"
             }
@@ -1059,8 +1060,8 @@
             "dark": "Escuro"
         },
         "amoled": {
-            "title": "",
-            "desc": ""
+            "title": "Preto puro (AMOLED)",
+            "desc": "Usa fundos totalmente pretos no modo escuro. Economiza bateria em ecrãs OLED."
         },
         "analytics": {
             "title": "Análise e Descoberta",
@@ -1090,8 +1091,8 @@
         "location": "Localização",
         "auto_focus_location_search": "Campo de busca com foco automático",
         "auto_focus_location_search_desc": "Foca automaticamente o campo de texto de busca ao abrir a sobreposição de localização. Desative essa opção se o surgimento imediato do teclado incomodar você.",
-        "auto_focus_right_now_text": "",
-        "auto_focus_right_now_text_desc": "",
+        "auto_focus_right_now_text": "Focar automaticamente o texto da sessão",
+        "auto_focus_right_now_text_desc": "Foca automaticamente o campo de texto e abre o teclado ao iniciar ou editar uma sessão Right Now.",
         "display": "Exibição",
         "keep_screen_on": "Manter ecrã ligada",
         "keep_screen_on_desc": "Impede que a ecrã escureça ou bloqueie enquanto o aplicação estiver aberto. Desativa-se automaticamente ao sair do aplicação.",
@@ -1099,14 +1100,14 @@
         "double_tap_tap_type": "Toque duplo para enviar um toque",
         "double_tap_tap_type_desc": "Toque duas vezes num perfil na grelha para enviar este toque. Desative para abrir os perfis de imediato com um toque simples.",
         "double_tap_off": "Desativado",
-        "double_tap_action": "",
-        "double_tap_action_desc": "",
-        "double_tap_open_chat": "",
-        "chats": "",
-        "chat_row_swipe_actions": "",
-        "chat_row_swipe_actions_desc": "",
-        "mobile_enter_to_send": "",
-        "mobile_enter_to_send_desc": ""
+        "double_tap_action": "Ação de toque duplo",
+        "double_tap_action_desc": "Toque duas vezes em um perfil na grade para enviar um tap ou abrir o chat diretamente. Desative para abrir os perfis na hora com um único toque.",
+        "double_tap_open_chat": "Abrir chat",
+        "chats": "Chats",
+        "chat_row_swipe_actions": "Ações de deslizar na lista de chats",
+        "chat_row_swipe_actions_desc": "Deslize um chat para a direita para fixá-lo ou para a esquerda para excluí-lo. Manter premido continua abrindo todas as ações.",
+        "mobile_enter_to_send": "Enter para enviar no telemóvel",
+        "mobile_enter_to_send_desc": "A tecla Enter do teclado do telemóvel envia a mensagem em vez de começar uma nova linha."
     },
     "notifications_page": {
         "subtitle": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicação está aberto.",
@@ -1116,25 +1117,25 @@
         "taps_enabled_desc": "Receba uma notificação quando alguém tocar em você.",
         "foreground": "Notificações com o aplicação aberto",
         "foreground_desc": "Exibir notificações (para os tipos habilitados acima) enquanto o aplicação estiver aberto. Desative essa opção para receber notificações apenas quando o aplicação estiver em segundo plano ou fechado.",
-        "activity_section": "",
-        "push_settings_loading": "",
-        "push_settings_load_failed": "",
-        "push_settings_save_failed": "",
+        "activity_section": "Atividade",
+        "push_settings_loading": "A carregar…",
+        "push_settings_load_failed": "Não foi possível carregar as configurações de notificação.",
+        "push_settings_save_failed": "Não foi possível guardar a configuração de notificação.",
         "push_settings": {
-            "favoritePushNotification": "",
-            "favoritePushNotification_desc": "",
-            "mediaRecipientPushNotification": "",
-            "mediaRecipientPushNotification_desc": "",
-            "tappedPushNotification": "",
-            "tappedPushNotification_desc": "",
-            "recommendedPushNotification": "",
-            "recommendedPushNotification_desc": "",
-            "unreadChatsPushNotification": "",
-            "unreadChatsPushNotification_desc": "",
-            "viewedProfilePushNotification": "",
-            "viewedProfilePushNotification_desc": "",
-            "tapPushNotification": "",
-            "tapPushNotification_desc": ""
+            "favoritePushNotification": "Favoritos online",
+            "favoritePushNotification_desc": "Seja notificado quando um dos seus favoritos ficar online.",
+            "mediaRecipientPushNotification": "Destinatário de fotos online",
+            "mediaRecipientPushNotification_desc": "Seja notificado quando alguém para quem você enviou fotos ficar online.",
+            "tappedPushNotification": "Taps enviados online",
+            "tappedPushNotification_desc": "Seja notificado quando alguém para quem você enviou um tap ficar online.",
+            "recommendedPushNotification": "Recomendações",
+            "recommendedPushNotification_desc": "Seja notificado quando um perfil recomendado por perto estiver online.",
+            "unreadChatsPushNotification": "Lembrete de chats não lidos",
+            "unreadChatsPushNotification_desc": "Receba lembretes de chats que você ainda não leu.",
+            "viewedProfilePushNotification": "Visualizações",
+            "viewedProfilePushNotification_desc": "Seja notificado quando seu perfil receber visualizações.",
+            "tapPushNotification": "Taps",
+            "tapPushNotification_desc": "Se o Grindr envia ou não notificações de tap para a sua conta."
         }
     },
     "issue_search": {
@@ -1195,7 +1196,7 @@
             "password": "Palavra-passe",
             "show_password": "Mostrar palavra-passe",
             "hide_password": "Ocultar palavra-passe",
-            "error_details": ""
+            "error_details": "Detalhes"
         },
         "sign_in": {
             "title": "Entrar",
@@ -1221,26 +1222,26 @@
             "facebook_sign_in": "Iniciar sessão com o Facebook",
             "facebook_waiting": "A aguardar o Facebook…",
             "google_help": "Para contas criadas com o Google.",
-            "google_native_error": "",
+            "google_native_error": "Não foi possível abrir o início de sessão com o Google. Tente novamente.",
             "jwt_label": "Token JWT",
             "signing_in": "A entrar...",
             "submit": "Entrar",
             "add_profile_title": "Adicionar perfil",
             "add_profile_subtitle": "Entre com a conta que você deseja adicionar.",
             "forgot_password": "Esqueceu a palavra-passe?",
-            "qr_camera_denied": "",
-            "qr_scan_failed": "",
-            "qr_step_show": "",
-            "qr_step_show_hint": "",
-            "qr_step_scan": "",
-            "qr_step_paste": "",
-            "qr_step_paste_hint": "",
-            "qr_scan": "",
-            "qr_or_paste": "",
-            "qr_code_placeholder": "",
-            "qr_back": "",
-            "qr_entry": "",
-            "qr_scan_hint": ""
+            "qr_camera_denied": "O Free Grind precisa de acesso à câmara para digitalizar o código.",
+            "qr_scan_failed": "Não foi possível digitalizar o código. Tente novamente.",
+            "qr_step_show": "Mostre o código no seu dispositivo conectado",
+            "qr_step_show_hint": "No Free Grind desse dispositivo, abra Configurações e toque em \"Entrar em outro dispositivo\".",
+            "qr_step_scan": "Digitalize aqui",
+            "qr_step_paste": "Cole o código aqui",
+            "qr_step_paste_hint": "Toque em \"Copiar código\" abaixo do código QR lá e envie para este dispositivo.",
+            "qr_scan": "Digitalizar código QR",
+            "qr_or_paste": "ou cole o código",
+            "qr_code_placeholder": "Código de início de sessão",
+            "qr_back": "Voltar para as outras opções de início de sessão",
+            "qr_entry": "Conectado em outro dispositivo? Use um código QR",
+            "qr_scan_hint": "Aponte a câmara para o código QR no seu outro dispositivo"
         },
         "reset": {
             "title": "Redefinir palavra-passe",
@@ -1270,7 +1271,7 @@
             "limit_reached_title": "Limite de contas atingido",
             "limit_reached_desc": "Este app já criou {{limit}} contas. Para evitar abusos, não é possível criar mais contas.",
             "android_only_title": "Disponível apenas no Android",
-            "android_only_desc": "",
+            "android_only_desc": "Criar uma conta exige verificação por captcha, que só está disponível no Android.",
             "back": "Voltar"
         },
         "sms_verification": {
@@ -1291,9 +1292,9 @@
             "sign_in": "Entrar",
             "send_in": "Enviar código ({{seconds}} s)",
             "resend_in": "Reenviar código ({{seconds}} s)",
-            "copy_report": "",
-            "report_copied": "",
-            "report_copy_failed": ""
+            "copy_report": "Copiar informações de depuração",
+            "report_copied": "Informações de depuração copiadas",
+            "report_copy_failed": "Não foi possível copiar as informações de depuração"
         }
     },
     "chat": {
@@ -1409,8 +1410,8 @@
         "share_album_label": "Partilhar álbum",
         "share_location_label": "Partilhar localização",
         "share_location_confirm": "Partilhar este local?",
-        "share_location_current": "",
-        "share_location_saved_hint": "",
+        "share_location_current": "Localização atual",
+        "share_location_saved_hint": "Guarde locais nas suas configurações de localização para compartilhá-los rapidamente aqui.",
         "drawer_label": "Pasta",
         "giphy": {
             "title": "GIFs",
@@ -1455,17 +1456,17 @@
         "time": {
             "one_min_ago": "1 min atrás",
             "mins_ago": "{{count}} minutos atrás",
-            "hours_ago": "",
+            "hours_ago": "há {{count}} h",
             "now": "Agora",
             "last_week": "Semana passada",
-            "one_hour_ago": "",
-            "hours_ago_long": "",
-            "one_day_ago": "",
-            "days_ago": "",
-            "taken_now": "",
-            "taken_ago": "",
-            "taken_last_week": "",
-            "taken_in": ""
+            "one_hour_ago": "há 1 hora",
+            "hours_ago_long": "há {{count}} horas",
+            "one_day_ago": "há 1 dia",
+            "days_ago": "há {{count}} dias",
+            "taken_now": "Tirada agora mesmo",
+            "taken_ago": "Tirada {{time}}",
+            "taken_last_week": "Tirada na semana passada",
+            "taken_in": "Tirada em {{time}}"
         },
         "preview": {
             "sent_image": "Enviou uma imagem",
@@ -1517,11 +1518,11 @@
             "album_cover": "Capa do álbum",
             "album_share": "Partilhar álbum",
             "album_image": "Imagem de álbum",
-            "album_label": "",
-            "album_photo_count_one": "",
-            "album_photo_count_other": "",
-            "album_video_count_one": "",
-            "album_video_count_other": "",
+            "album_label": "Álbum",
+            "album_photo_count_one": "{{count}} foto",
+            "album_photo_count_other": "{{count}} fotos",
+            "album_video_count_one": "{{count}} vídeo",
+            "album_video_count_other": "{{count}} vídeos",
             "profile_photo": "Foto do perfil",
             "replied_to_myself": "Respondi a mim mesmo",
             "replied_to_name": "Respondeu a \"{{name}}\"",
@@ -1530,7 +1531,9 @@
             "reacted_to_image": "Reagiu à sua imagem do álbum",
             "audio_label": "Áudio",
             "unsupported_message": "Mensagem não suportada",
-            "unsupported_message_description": "Este tipo de mensagem ainda não é suportado nesta versão do app."
+            "unsupported_message_description": "Este tipo de mensagem ainda não é suportado nesta versão do app.",
+            "album_photo_count_many": "{{count}} fotos",
+            "album_video_count_many": "{{count}} vídeos"
         },
         "actions": {
             "title": "Ações da mensagem",
@@ -1583,7 +1586,7 @@
             "max_views": "Máx. visualizações",
             "view_once": "Ver uma vez",
             "view_once_description": "A imagem só pode ser vista uma vez por 10 segundos",
-            "replay": "",
+            "replay": "Ver de novo",
             "taken_on_grindr": "feitoNoGrindr",
             "taken_on_grindr_description": "Inclua a data e hora para comprovar a autenticidade e a atualidade da sua foto",
             "add_to_drawer": "Adicionar à pasta",
@@ -1698,19 +1701,19 @@
         "media_alt": "Pasta de multimédia",
         "take_photo": "Tirar foto",
         "upload_photo": "Carregar foto",
-        "add_media": "",
+        "add_media": "Adicionar multimédia",
         "add_to_drawer": "Adicionar à pasta",
         "invalid_file_type": "Por favor, escolha uma foto.",
         "delete_confirm_title": "Eliminar da pasta?",
         "delete_confirm_message": "Tem certeza de que deseja eliminar esta multimédia da sua pasta?",
-        "delete_confirm_message_everywhere": "",
+        "delete_confirm_message_everywhere": "Isso remove o item da sua pasta e de todas as coleções que o usam.",
         "delete_confirm_label": "Eliminar",
-        "album_delete_confirm_title": "",
-        "album_delete_confirm_message": "",
-        "album_edit": "",
-        "album_delete": "",
-        "collection_edit": "",
-        "collection_delete": "",
+        "album_delete_confirm_title": "Excluir álbum?",
+        "album_delete_confirm_message": "Isso exclui o álbum e tudo o que há nele. Todos com quem você o compartilhou perdem o acesso.",
+        "album_edit": "Editar álbum",
+        "album_delete": "Excluir álbum",
+        "collection_edit": "Editar coleção",
+        "collection_delete": "Excluir coleção",
         "is_expiring_toggle_on": "1×",
         "is_expiring_toggle_off": "ilimitado",
         "is_expiring_send": "Enviar como temporária ({{count}})",
@@ -1720,22 +1723,22 @@
         "collection_empty_send": "Nenhuma multimédia desta coleção está mais na sua pasta.",
         "collection_manage": "Gerir coleções",
         "album_manage": "Gerir álbuns",
-        "tab_media": "",
-        "tab_albums": "",
-        "tab_collections": "",
-        "albums_empty": "",
-        "albums_create": "",
-        "video_expiry_title": "",
-        "video_expiry_unlimited_desc": "",
-        "video_expiry_once_desc": "",
-        "video_expiry_repeat_desc": "",
-        "empty_hint": "",
-        "albums_empty_hint": "",
-        "collections_empty": "",
-        "collections_empty_hint": "",
-        "collections_create": "",
-        "view_combined": "",
-        "view_split": ""
+        "tab_media": "Multimédia",
+        "tab_albums": "Álbuns",
+        "tab_collections": "Coleções",
+        "albums_empty": "Você ainda não tem álbuns.",
+        "albums_create": "Criar álbum",
+        "video_expiry_title": "Visualizações do vídeo",
+        "video_expiry_unlimited_desc": "Pode ser assistido quantas vezes quiser",
+        "video_expiry_once_desc": "Pode ser assistido uma vez",
+        "video_expiry_repeat_desc": "Pode ser assistido duas vezes",
+        "empty_hint": "Tire uma foto ou grave um vídeo, ou envie um do seu dispositivo.",
+        "albums_empty_hint": "Os álbuns permitem compartilhar várias fotos de uma vez e parar de compartilhar quando quiser.",
+        "collections_empty": "Você ainda não tem coleções.",
+        "collections_empty_hint": "As coleções agrupam fotos da pasta para você enviá-las juntas com um toque.",
+        "collections_create": "Criar coleção",
+        "view_combined": "Mostrar tudo em uma página",
+        "view_split": "Dividir em categorias"
     },
     "favorites": {
         "added": "Adicionado aos favoritos",
@@ -1790,9 +1793,9 @@
         "ban_bio_title": "Adicionar palavra proibida",
         "ban_bio_prompt": "Reduza esta bio até sobrar a frase exata que você quer proibir:",
         "ban_bio_added": "\"{{word}}\" adicionada às palavras proibidas!",
-        "ban_keyword_source_bio": "",
-        "ban_keyword_source_name": "",
-        "more_actions": "",
+        "ban_keyword_source_bio": "Frase da bio",
+        "ban_keyword_source_name": "Nome do perfil",
+        "more_actions": "Mais ações",
         "profile_fallback": "Perfil {{id}}",
         "last_online": "Último online {{value}}",
         "close_photo_viewer": "Fechar visualizador de fotos",
@@ -1881,6 +1884,7 @@
         "location_finder_initial_distance": "Distância inicial: {{distance}} m",
         "location_finder_restoring": "A restaurar sua localização…",
         "location_finder_stop": "Parar",
+        "location_finder_busy": "A localização já está em curso para outro perfil.",
         "locating": "A localizar...",
         "locate": "Localizar",
         "about": "Sobre",
@@ -2158,8 +2162,8 @@
             "load_photos": "Falha ao carregar as fotos do perfil",
             "load_legal_agreements": "Falha ao carregar os acordos legais",
             "accept_legal_agreements": "Falha ao aceitar os acordos legais",
-            "load_warnings": "",
-            "acknowledge_warnings": ""
+            "load_warnings": "Falha ao carregar os avisos da conta",
+            "acknowledge_warnings": "Falha ao confirmar os avisos da conta"
         }
     },
     "errors": {
@@ -2215,19 +2219,19 @@
         "delete_confirm_message": "Isso a remove do seu perfil imediatamente."
     },
     "common": {
-        "clear": "",
+        "clear": "Limpar",
         "back": "Voltar",
         "cancel": "Cancelar",
         "save": "Guardar",
         "edit": "Editar",
         "unknown_display_name": "Alguém",
-        "close": "",
-        "done": ""
+        "close": "Fechar",
+        "done": "Concluído"
     },
     "grid": {
         "refresh": "Atualizar grelha",
-        "name_or_id_placeholder": "",
-        "open_profile_id": ""
+        "name_or_id_placeholder": "Nome ou ID do perfil…",
+        "open_profile_id": "Abrir perfil {{id}}"
     },
     "test_reminder": {
         "title": "Hora de um teste?",
@@ -2250,8 +2254,8 @@
             "description": "O Grindr baniu esta conta{{reason}}. Você não pode entrar até que o banimento seja suspenso.",
             "copy_details": "Copiar detalhes",
             "copy_details_success": "Detalhes copiados para a área de transferência",
-            "subscriptions_description": "",
-            "appeal": ""
+            "subscriptions_description": "Um banimento não cancela uma assinatura do Grindr. Se você tiver uma, cancele-a nas configurações de assinaturas da sua loja de aplicações.",
+            "appeal": "Recorrer do banimento"
         },
         "age_verification": {
             "title": "Verificação de idade necessária",
@@ -2266,13 +2270,13 @@
             "device": "Banimento de dispositivo",
             "network": "Banimento de rede",
             "underage": "Menor de idade",
-            "timed": ""
+            "timed": "Banimento temporário"
         },
         "details": {
             "reason": "Motivo",
             "region": "Região",
-            "decision_automated": "",
-            "decision_human": ""
+            "decision_automated": "Usamos meios automatizados para tomar esta decisão.",
+            "decision_human": "Um moderador humano tomou esta decisão. Não usamos meios automatizados."
         },
         "timed_ban": {
             "title": "Banido temporariamente",
@@ -2284,16 +2288,16 @@
             "accept_failed": "Não foi possível aceitar o acordo",
             "agreement_completed_title": "Tudo certo",
             "agreement_completed_description": "Você aceitou o acordo de banimento do Grindr. Não precisa fazer mais nada.",
-            "agree_label": "",
-            "agreed_label": "",
-            "agree_hint": ""
+            "agree_label": "Ler e concordar com as diretrizes",
+            "agreed_label": "Diretrizes lidas e aceitas",
+            "agree_hint": "Leia e concorde com as diretrizes acima para recuperar o acesso à sua conta."
         },
         "device_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_sign_out": ""
+            "title": "Dispositivo bloqueado",
+            "description": "Você não pode usar sua conta neste dispositivo agora.",
+            "card_title": "Muitas vezes não é um banimento real",
+            "card_text": "O Grindr respondeu com ACCOUNT_BANNED, que ele também envia para solicitações em que não confia, por exemplo por causa da impressão digital do dispositivo.",
+            "fix_sign_out": "Sair da conta cria uma nova identidade de dispositivo, o que geralmente resolve."
         },
         "regions": {
             "uk": "Reino Unido",
@@ -2301,184 +2305,184 @@
             "au": "Austrália",
             "us": "Estados Unidos"
         },
-        "read_guidelines": "",
-        "reason_label": "",
-        "learn_more": "",
+        "read_guidelines": "Diretrizes da comunidade",
+        "reason_label": "Motivo do banimento",
+        "learn_more": "Saiba mais",
         "ban_reasons": {
             "blackmail": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Chantagem, extorsão e ameaças diretas",
+                "summary": "O Grindr proíbe estritamente chantagem, extorsão e ameaças diretas de dano. Esses comportamentos colocam os utilizadores em perigo, violam as diretrizes e podem levar ao banimento da conta.",
+                "details": "Chantagem, extorsão e ameaças diretas de dano, incluindo manipulação envolvendo imagens ou informações pessoais, são estritamente proibidas no Grindr. Esse comportamento coloca em risco a segurança da comunidade e vai contra as diretrizes."
             },
             "bot_activity": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Atividade automatizada/bots",
+                "summary": "O Grindr se importa em promover conexões genuínas. Comportamentos como enviar mensagens em massa, criar vários perfis de uma vez ou usar ferramentas que imitam ações de utilizadores reais são proibidos.",
+                "details": "Esta conta foi sinalizada por violar a política do Grindr sobre atividade automatizada. Esse comportamento compromete a segurança e a autenticidade da comunidade e vai contra as diretrizes. Se você acha que isso foi um erro, pode recorrer no app oficial do Grindr."
             },
             "bullying": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Bullying direcionado e abuso repetido",
+                "summary": "Trate os outros com gentileza no Grindr. Bullying, assédio e intimidação são proibidos, pois criam um ambiente hostil. Comportamento abusivo repetido pode levar a outras medidas contra a conta.",
+                "details": "O Grindr está comprometido em criar um espaço seguro para todos. Bullying repetido ou direcionado viola as diretrizes e prejudica a experiência da comunidade. Aproveite este momento para revisar as diretrizes da comunidade e garantir que suas próximas interações sejam respeitosas e acolhedoras. Novas violações podem levar a outras medidas, incluindo o banimento da conta."
             },
             "business_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Aliciamento comercial",
+                "summary": "Não é permitido usar o Grindr para promover empresas, serviços pagos ou eventos. Mantenha as interações pessoais e sem fins comerciais.",
+                "details": "O Grindr foi feito para conexões pessoais, não para recrutar ou aliciar utilizadores para empreendimentos com fins lucrativos, como promover empresas, serviços pagos ou eventos. Essas atividades desviam a plataforma do seu propósito e vão contra as diretrizes."
             },
             "casual_substances": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Menções casuais a substâncias legais",
+                "summary": "Tudo bem mencionar substâncias legais como CBD ou canábis (onde for legal) no Grindr. Porém, promoção excessiva ou foco nessas substâncias pode fazer com que a conta seja denunciada pela comunidade e até suspensa.",
+                "details": "Perfis centrados nessas substâncias ou que as promovem em excesso podem prejudicar a experiência da comunidade e ser denunciados por outros utilizadores. O Grindr proíbe conteúdos ou imagens relacionados a drogas que possam incentivar práticas prejudiciais."
             },
             "consent_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Violações de consentimento",
+                "summary": "Consentimento não é só sexy, é obrigatório – pedidos sexuais insistentes, comportamento coercitivo e qualquer outra conduta que desrespeite o consentimento são proibidos no Grindr.",
+                "details": "O Grindr incentiva os utilizadores a dar consentimento claro e explícito em todas as interações. Pedidos sexuais insistentes, comportamento coercitivo ou qualquer ação que desrespeite os limites de outro utilizador são proibidos. Esse comportamento pode criar um ambiente inseguro e desconfortável, violando as diretrizes da comunidade e os princípios de respeito e segurança."
             },
             "drug_facilitation": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "Facilitação de drogas",
+                "summary": "Ajudar outras pessoas a conseguir drogas ilegais não é permitido no Grindr. Novas violações podem levar ao banimento da conta.",
+                "details": "Conectar outras pessoas a drogas ilegais — oferecer compartilhar o que você tem, combinar uma retirada ou colocar alguém em contacto com um fornecedor — não é permitido, mesmo que nada seja vendido. Isso vai contra as diretrizes do Grindr, porque o Grindr se importa com o seu bem-estar e busca manter uma comunidade segura e respeitosa.",
+                "summary_banned": "Ajudar outras pessoas a conseguir drogas ilegais não é permitido no Grindr. Esta conta foi banida após violações repetidas."
             },
             "drug_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Promoção ou apologia às drogas",
+                "summary": "Tentativas repetidas de promover drogas não são permitidas no Grindr.",
+                "details": "Referências a cannabis, tabaco e álcool são permitidas em certos contextos, mas o Grindr não permite perfis centrados em drogas ou que as promovam, incluindo falar sobre a compra ou venda de drogas (de qualquer tipo) ou participar dela. Esta política também se aplica a imagens e emojis que pedem drogas ou incentivam seu uso."
             },
             "drug_seeking": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Busca por drogas",
+                "summary": "Procurar drogas no Grindr viola as diretrizes.",
+                "details": "Procurar drogas, mesmo de vez em quando, no seu perfil ou nos chats não é permitido. Isso vai contra as diretrizes do Grindr, porque o Grindr se importa com o seu bem-estar e busca manter uma comunidade segura e respeitosa."
             },
             "occasional_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Pedido ocasional de drogas",
+                "summary": "Procurar drogas no Grindr viola as diretrizes.",
+                "details": "Procurar drogas, mesmo de vez em quando, no seu perfil ou nos chats não é permitido. Isso vai contra as diretrizes do Grindr, porque o Grindr se importa com o seu bem-estar e busca manter uma comunidade segura e respeitosa."
             },
             "frequent_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Pedido frequente de drogas",
+                "summary": "Tentativas repetidas de conseguir drogas não são permitidas no Grindr.",
+                "details": "O Grindr é uma plataforma para conexões pessoais genuínas. Tentativas repetidas de conseguir drogas, direta ou indiretamente, prejudicam a experiência da comunidade e violam as diretrizes. Se esse comportamento continuar, pode levar a uma suspensão mais longa ou até ao banimento."
             },
             "fraudulent_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Golpes e promoções fraudulentas",
+                "summary": "O Grindr proíbe estritamente golpes ou esquemas que exploram ou prejudicam outras pessoas.",
+                "details": "Isso inclui esquemas fraudulentos ou comportamento enganoso com o objetivo de explorar outros utilizadores. O Grindr leva a sério a segurança da sua comunidade e não tolera esse comportamento."
             },
             "general_advertising": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Publicidade e aliciamento em geral",
+                "summary": "O Grindr é para conexões pessoais autênticas, não para anunciar produtos, serviços ou plataformas externas. Conteúdo promocional não é permitido em perfis nem mensagens.",
+                "details": "Usar perfis ou mensagens para promover produtos ou serviços ou compartilhar links externos vai contra as diretrizes e prejudica a experiência dos outros."
             },
             "hate_speech": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Discurso de ódio e conteúdo ofensivo",
+                "summary": "Discurso de ódio e linguagem discriminatória são proibidos no Grindr. Interações abusivas repetidas criam um ambiente hostil. Novas violações podem levar a outras medidas, incluindo o banimento da conta.",
+                "details": "O Grindr está comprometido em promover uma comunidade inclusiva e respeitosa. Discurso de ódio e linguagem discriminatória podem criar um ambiente hostil e inseguro para os outros. Revise as diretrizes da comunidade e garanta que suas próximas interações reflitam respeito e inclusão."
             },
             "impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Falsidade ideológica e uso indevido de identidade",
+                "summary": "O Grindr proíbe se passar por outras pessoas ou criar perfis que representem falsamente a identidade de alguém. Esse comportamento viola as diretrizes e pode levar ao banimento da conta.",
+                "details": "Isso inclui usar o nome, as fotos ou os dados pessoais de outra pessoa. Se passar por outra pessoa prejudica a confiança, compromete a segurança e viola as diretrizes."
             },
             "mild_insults": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Insultos leves e desrespeito",
+                "summary": "Algumas mensagens que você enviou foram sinalizadas como possivelmente desrespeitosas. Seja gentil no Grindr e garanta que suas interações continuem respeitosas, de acordo com as diretrizes da comunidade.",
+                "details": "O Grindr busca oferecer um espaço para interações respeitosas e autênticas. Comentários que possam parecer grosseiros ou desrespeitosos podem afetar negativamente os outros e vão contra as diretrizes da comunidade. Novas violações podem levar a medidas como suspensão ou banimento da conta."
             },
             "mild_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Aliciamento leve e ofertas casuais",
+                "summary": "O Grindr é para conexões pessoais genuínas. Pedidos financeiros podem confundir limites e não estão de acordo com as diretrizes.",
+                "details": "O Grindr é para conexões pessoais — não para promover conteúdo pago ou acordos financeiros."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "Imagens íntimas sem consentimento",
+                "summary": "Compartilhar imagens ou vídeos íntimos de outra pessoa sem o consentimento dela não é permitido no Grindr. Novas violações podem levar ao banimento da conta.",
+                "details": "Imagens ou vídeos íntimos de outra pessoa só devem ser compartilhados com o consentimento dela — e consentir em tirar ou receber uma imagem não é consentir em compartilhá-la. Isso também vale para imagens editadas e geradas por IA.",
+                "summary_banned": "Compartilhar imagens ou vídeos íntimos de outra pessoa sem o consentimento dela não é permitido no Grindr."
             },
             "offline_incident": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Incidentes graves fora do app",
+                "summary": "Esta conta foi banida após uma denúncia de comportamento prejudicial. Segurança e respeito não são negociáveis no Grindr.",
+                "details": "O Grindr toma essas medidas para proteger a segurança da sua comunidade e manter um ambiente respeitoso para todos os utilizadores."
             },
             "paid_sexual_services": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Serviços sexuais pagos",
+                "summary": "Oferecer ou pedir serviços sexuais em troca de dinheiro ou compensação não é permitido no Grindr.",
+                "details": "O Grindr é para conexões pessoais, não para transações comerciais. Oferecer ou pedir serviços sexuais em troca de compensação, quaisquer que sejam as circunstâncias, viola as diretrizes."
             },
             "phishing": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Phishing, fraude e links maliciosos",
+                "summary": "O Grindr proíbe estritamente compartilhar links maliciosos, tentativas de phishing ou software prejudicial.",
+                "details": "Compartilhar links maliciosos, tentativas de phishing ou software prejudicial pode enganar outras pessoas ou comprometer a segurança delas. Contas envolvidas nessas atividades podem ser banidas para proteger a plataforma e seus utilizadores."
             },
             "privacy_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Violações de privacidade e doxxing",
+                "summary": "Compartilhar informações pessoais de alguém sem permissão é estritamente proibido e compromete a segurança.",
+                "details": "Compartilhar informações privadas ou pessoais de outra pessoa, como dados de contacto ou informações de identificação, sem permissão é uma violação grave das diretrizes. Esse comportamento coloca os outros em risco e prejudica a confiança dentro da comunidade."
             },
             "profile_spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Spam no perfil e publicidade",
+                "summary": "O Grindr é para conexões autênticas, não para promover produtos, serviços ou plataformas externas. Conteúdo promocional não é permitido em perfis nem chats.",
+                "details": "Compartilhar anúncios, links de doação ou divulgação de eventos no seu perfil ou nos chats não é permitido e tira a autenticidade da experiência. O Grindr foi feito para interações genuínas — não para vender serviços ou divulgar eventos."
             },
             "drug_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Venda e distribuição de drogas",
+                "summary": "O Grindr proíbe estritamente qualquer atividade envolvendo a venda ou distribuição de drogas. Contas envolvidas nesse comportamento serão banidas.",
+                "details": "O Grindr não permite perfis, chats ou conteúdo que facilitem a venda, distribuição ou promoção de substâncias ilegais. Esta política existe para apoiar o bem-estar dos utilizadores e ajudar a manter um ambiente seguro e autêntico para todos, e violações desse tipo são levadas muito a sério."
             },
             "sextortion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Sextorsão",
+                "summary": "Ameaçar compartilhar imagens ou vídeos íntimos de alguém não é permitido no Grindr.",
+                "details": "Chantagem, extorsão e ameaças diretas de dano, incluindo manipulação envolvendo imagens ou informações pessoais, são estritamente proibidas. Esse comportamento coloca em risco a segurança da comunidade."
             },
             "sexual_content_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Venda de conteúdo sexual explícito",
+                "summary": "O Grindr é para criar conexões autênticas, não para transações comerciais envolvendo conteúdo sexual. Vender ou promover conteúdo sexual explícito (incluindo suas fotos ou vídeos) não é permitido no Grindr.",
+                "details": "Vender ou promover material sexual explícito, incluindo fotos ou vídeos, viola as diretrizes e prejudica a experiência da comunidade. Garanta que seu perfil e suas mensagens estejam focados em criar conexões genuínas dentro da comunidade."
             },
             "spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Mensagens repetidas ou indesejadas",
+                "summary": "Enviar mensagens repetidas ou insistir demais é considerado spam. Novas violações podem levar à suspensão da conta.",
+                "details": "Enviar mensagens demais em pouco tempo viola as diretrizes. Respeite sempre os outros utilizadores — leia os perfis para conhecer as preferências, compartilhe seus limites e respeite os limites dos outros."
             },
             "transactional_service": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Serviços transacionais",
+                "summary": "O Grindr proíbe oferecer ou pedir serviços transacionais, como companhia paga, mesmo que não sejam de natureza sexual.",
+                "details": "Esses comportamentos desviam a plataforma do seu foco em conexões pessoais e significativas e violam as diretrizes. Garanta que suas interações continuem livres de intenção comercial."
             },
             "underage_endangerment": {
-                "title": "",
-                "summary": ""
+                "title": "Proteção e risco a menores",
+                "summary": "Esta conta foi banida após uma denúncia de comportamento prejudicial. Segurança e respeito não são negociáveis no Grindr."
             },
             "underage_impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Se passar por menor de idade",
+                "summary": "O Grindr é só para adultos – você precisa ter pelo menos 18 anos (ou mais, em algumas regiões) para usar o Grindr. Atividade como menor de idade, mesmo em role-play, é proibida.",
+                "details": "Fingir ser menor de idade, seja em role-play ou por qualquer outro motivo, viola as políticas do Grindr e pode levar ao banimento da conta. Perfis que se passam por outras pessoas, independentemente da intenção, prejudicam a confiança dentro da comunidade e não são permitidos."
             },
             "underage": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Acesso de menores de idade",
+                "summary": "O Grindr é só para adultos – você precisa ter pelo menos 18 anos (ou mais, em algumas regiões) para usar o Grindr.",
+                "details": "Você precisa cumprir esse requisito de idade para usar os serviços, e o Grindr leva essa regra muito a sério. Além disso, se comunicar com menores ou compartilhar qualquer imagem envolvendo menores, em qualquer contexto, é uma violação grave das políticas do Grindr."
             }
         },
-        "reason_unknown": "",
-        "ends_in": "",
-        "appeal_link": "",
+        "reason_unknown": "Nenhum motivo informado",
+        "ends_in": "Termina em {{time}}",
+        "appeal_link": "Recorrer",
         "network_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_vpn": "",
-            "fix_switch": ""
+            "title": "Rede bloqueada",
+            "description": "Você não pode entrar pela rede em que está agora.",
+            "card_title": "Rede suspeita",
+            "card_text": "O Grindr sinaliza VPNs, proxies e endereços IP compartilhados dessa forma. Sua conta em si não está banida.",
+            "fix_vpn": "Desative sua VPN ou proxy.",
+            "fix_switch": "Alterne entre Wi-Fi e dados móveis e entre novamente."
         },
         "underage_ban": {
-            "title": "",
-            "description": ""
+            "title": "Conta de menor de idade",
+            "description": "Você não pode entrar até que o banimento seja suspenso. Se você tem 18 anos ou mais, recorra para confirmar sua idade."
         },
-        "what_happened": "",
-        "code_chip": ""
+        "what_happened": "O que aconteceu",
+        "code_chip": "Código {{code}}"
     },
     "sexualHealth": {
         "title": "Saúde sexual",
@@ -2496,16 +2500,18 @@
             "unknown": "Ainda não registado"
         },
         "history": {
-            "subtitle_encounters_one": "",
-            "subtitle_encounters_other": "",
-            "subtitle_doses_one": "",
-            "subtitle_doses_other": "",
+            "subtitle_encounters_one": "{{count}} encontro",
+            "subtitle_encounters_other": "{{count}} encontros",
+            "subtitle_doses_one": "{{count}} dose",
+            "subtitle_doses_other": "{{count}} doses",
             "log_encounter": "Registar encontro",
             "open_chat": "Abrir chat",
             "loading": "A carregar histórico…",
             "empty": "Nenhum histórico ainda",
             "empty_desc": "Registe uma dose ou um encontro e ele aparecerá aqui.",
-            "unprotected_tag": "Sem proteção"
+            "unprotected_tag": "Sem proteção",
+            "subtitle_encounters_many": "{{count}} encontros",
+            "subtitle_doses_many": "{{count}} doses"
         },
         "doses": {
             "title": "Dose de PrEP",
@@ -2531,8 +2537,8 @@
             "delete_confirm_action": "Eliminar"
         },
         "encounter": {
-            "person": "",
-            "no_matches_hint": "",
+            "person": "Quem",
+            "no_matches_hint": "Não está nos seus chats? Adicione pelo nome abaixo.",
             "sheet_title": "Registar um encontro",
             "edit_title": "Editar encontro",
             "change_person": "Alterar",
@@ -2557,9 +2563,9 @@
             "delete_confirm_action": "Eliminar"
         },
         "appointments": {
-            "subtitle_upcoming_one": "",
-            "subtitle_upcoming_other": "",
-            "subtitle_none_upcoming": "",
+            "subtitle_upcoming_one": "{{count}} próxima",
+            "subtitle_upcoming_other": "{{count}} próximas",
+            "subtitle_none_upcoming": "Nenhuma consulta agendada",
             "add": "Adicionar consulta",
             "add_title": "Adicionar consulta",
             "edit_title": "Editar consulta",
@@ -2585,7 +2591,8 @@
             "delete_confirm_message": "Isso não pode ser desfeito.",
             "delete_confirm_action": "Eliminar",
             "kind_one": "Outra",
-            "kind_many": "Outra"
+            "kind_many": "Outra",
+            "subtitle_upcoming_many": "{{count}} próximas"
         },
         "tests": {
             "add": "Adicionar teste",
@@ -2623,7 +2630,7 @@
         "info": {
             "sheet_title": "Configurações de PrEP",
             "settings_button": "Configurações de PrEP",
-            "scheme_section": "",
+            "scheme_section": "Esquema de dosagem",
             "scheme_daily_label": "Diária",
             "scheme_daily_tagline": "Um comprimido, todo dia",
             "scheme_on_demand_label": "Sob demanda (2-1-1)",
@@ -2641,7 +2648,7 @@
         "description": "Selecione fotos para adicionar ao seu perfil ou envie novas.",
         "upload": "Enviar foto",
         "empty": "Nenhuma foto ainda",
-        "empty_hint": "",
+        "empty_hint": "Tire uma foto ou envie uma do seu dispositivo para adicioná-la ao seu perfil.",
         "retry": "Tentar novamente",
         "image_alt": "Foto enviada",
         "delete_image": "Eliminar foto",
@@ -2660,23 +2667,23 @@
         "category_saved_locations": "Localizações guardadas",
         "category_settings": "Configurações",
         "category_sexual_health": "Saúde sexual",
-        "progress_step": "",
-        "progress_preparing": "",
+        "progress_step": "Etapa {{step}} de {{steps}} · {{rows}} registos",
+        "progress_preparing": "A preparar…",
         "export_no_categories": "Escolha pelo menos uma categoria para exportar.",
         "export_categories_title": "O que você quer exportar?",
         "export_confirm": "Exportar",
         "import_categories_title": "O que você quer restaurar?",
         "import_categories_desc": "Apenas as categorias presentes neste ficheiro podem ser restauradas.",
         "import_confirm": "Restaurar",
-        "export_success_picker": "",
-        "export_destination_title": "",
-        "export_destination_downloads": "",
-        "export_destination_picker": "",
-        "export_destination_picker_hint": "",
-        "export_destination_downloads_hint": "",
-        "export_destination_picker_hint_desktop": "",
-        "export_destination_device": "",
-        "export_destination_device_hint_ios": ""
+        "export_success_picker": "Dados exportados para o local escolhido.",
+        "export_destination_title": "Guardar em",
+        "export_destination_downloads": "Downloads",
+        "export_destination_picker": "Escolher local…",
+        "export_destination_picker_hint": "Escolha qualquer pasta ou armazenamento na nuvem, por exemplo o Google Drive (requer o app do Drive).",
+        "export_destination_downloads_hint": "Guardado em Downloads/FreeGrind neste dispositivo.",
+        "export_destination_picker_hint_desktop": "Escolha qualquer pasta, por exemplo uma sincronizada pelo Google Drive para computador.",
+        "export_destination_device": "Este dispositivo",
+        "export_destination_device_hint_ios": "Guardado na app Ficheiros em No Meu iPhone/iPad → Free Grind."
     },
     "restore_offer": {
         "title": "Restaurar seus dados?",
@@ -2791,11 +2798,11 @@
         "provider_gemini_tagline": "Entende gírias · nível gratuito",
         "provider_openai_tagline": "Entende gírias · pago",
         "provider_claude_tagline": "Entende gírias · pago",
-        "provider_section": "",
-        "key_badge_missing": "",
-        "key_badge_invalid": "",
-        "key_badge_valid": "",
-        "guide_paste_inline_desc": "",
+        "provider_section": "Provedor",
+        "key_badge_missing": "Não definida",
+        "key_badge_invalid": "Não funciona",
+        "key_badge_valid": "Ativa",
+        "guide_paste_inline_desc": "Cole a chave e toque em Guardar. Ela é verificada na hora.",
         "api_section": "Provedor e chave de API"
     },
     "legal_agreements": {
@@ -2824,32 +2831,36 @@
         "open_github": "Abrir no GitHub",
         "dismiss": "Ignorar",
         "get_version": "Obter {{version}}",
-        "description_manual": "",
-        "description_outdated": "",
-        "installed_label": "",
-        "latest_label": "",
-        "released_ago": "",
-        "releases_ahead_one": "",
-        "releases_ahead_other": ""
+        "description_manual": "Uma nova versão do app está pronta para instalar.",
+        "description_outdated": "Esta versão não recebe mais atualizações OTA. Instale a mais recente para continuar recebendo novos recursos e correções.",
+        "installed_label": "Instalada",
+        "latest_label": "Mais recente",
+        "released_ago": "Lançada {{time}}",
+        "releases_ahead_one": "{{count}} versão mais nova",
+        "releases_ahead_other": "{{count}} versões mais novas",
+        "releases_ahead_many": "{{count}} versões mais novas"
     },
     "ota_prompt": {
-        "title": "",
-        "description": "",
-        "failed": "",
-        "update_now": "",
-        "later": "",
-        "version": "",
-        "installed": "",
-        "new": "",
-        "built_in": "",
-        "newer_minutes_one": "",
-        "newer_minutes_other": "",
-        "newer_hours_one": "",
-        "newer_hours_other": "",
-        "newer_days_one": "",
-        "newer_days_other": "",
-        "auto_title": "",
-        "auto_desc": ""
+        "title": "Atualização disponível",
+        "description": "Uma nova versão da interface do app está pronta para transferir. Leva só um instante e o app recarrega depois.",
+        "failed": "Não foi possível transferir a atualização. Verifique sua conexão e tente novamente.",
+        "update_now": "Atualizar agora",
+        "later": "Mais tarde",
+        "version": "Versão {{version}}",
+        "installed": "Build instalada",
+        "new": "Nova build",
+        "built_in": "Incluída no app",
+        "newer_minutes_one": "{{count}} minuto mais nova",
+        "newer_minutes_other": "{{count}} minutos mais nova",
+        "newer_hours_one": "{{count}} hora mais nova",
+        "newer_hours_other": "{{count}} horas mais nova",
+        "newer_days_one": "{{count}} dia mais nova",
+        "newer_days_other": "{{count}} dias mais nova",
+        "auto_title": "Instalar automaticamente",
+        "auto_desc": "Instalar futuras atualizações do frontend sem perguntar.",
+        "newer_minutes_many": "{{count}} minutos mais nova",
+        "newer_hours_many": "{{count}} horas mais nova",
+        "newer_days_many": "{{count}} dias mais nova"
     },
     "apk_update": {
         "errors": {
@@ -2866,199 +2877,199 @@
         }
     },
     "account_transfer": {
-        "unsupported": "",
-        "create_failed": "",
-        "copied": "",
-        "copy_failed": "",
-        "title": "",
-        "subtitle": "",
-        "warning_title": "",
-        "warning_desc": "",
-        "qr_alt": "",
-        "hides_in": "",
-        "copy": "",
-        "hide": "",
-        "show": "",
-        "howto_title": "",
-        "howto_desc": "",
-        "settings_desc": "",
-        "backup_title": "",
-        "backup_desc": ""
+        "unsupported": "Este início de sessão não pode ser transferido para outro dispositivo. Entre com e-mail e senha ou com o Google.",
+        "create_failed": "Não foi possível criar um código de início de sessão.",
+        "copied": "Código copiado",
+        "copy_failed": "Não foi possível copiar o código.",
+        "title": "Entrar em outro dispositivo",
+        "subtitle": "Entre com esta conta em outro dispositivo sem digitar sua senha.",
+        "warning_title": "Este código é o seu acesso",
+        "warning_desc": "Qualquer pessoa que digitalizar ou copiar o código pode entrar na sua conta nos próximos 10 minutos. Mostre-o só para um dispositivo seu e nunca o envie para ninguém.",
+        "qr_alt": "Código QR de início de sessão",
+        "hides_in": "Some em {{time}}",
+        "copy": "Copiar código",
+        "hide": "Ocultar",
+        "show": "Mostrar código de início de sessão",
+        "howto_title": "No outro dispositivo",
+        "howto_desc": "No ecrã de início de sessão do Free Grind, toque em \"Usar um código QR\" e digitalize este código. Em um computador, copie o código e cole-o lá. Os dois dispositivos continuam conectados.",
+        "settings_desc": "Mostrar um código QR para entrar com esta conta em outro lugar",
+        "backup_title": "Leve seus dados junto",
+        "backup_desc": "Histórico de chats, álbuns, frases guardadas, locais guardados e configurações ficam guardados só neste dispositivo. Exporte-os em Backup e restauração e importe o ficheiro no novo dispositivo para ter tudo lá também."
     },
     "unsupported_version": {
-        "title": "",
-        "description": "",
-        "app_version": "",
-        "grindr_says": "",
-        "check": "",
-        "dismiss": "",
-        "no_update": "",
-        "check_failed": ""
+        "title": "Atualização necessária",
+        "description": "O Grindr não aceita mais a versão do app com que o Free Grind se identifica. Atualize o Free Grind para continuar usando — até lá, o início de sessão e a maioria dos recursos não vão funcionar.",
+        "app_version": "Versão do app",
+        "grindr_says": "O Grindr diz",
+        "check": "Procurar atualização",
+        "dismiss": "Agora não",
+        "no_update": "Ainda não saiu uma versão mais nova. Verifique novamente mais tarde.",
+        "check_failed": "Não foi possível procurar atualizações"
     },
     "account_warnings": {
-        "title": "",
-        "description": "",
-        "acknowledge": "",
-        "read_guidelines": "",
-        "acknowledge_failed": "",
-        "why": "",
+        "title": "Aviso",
+        "description": "Sua conta violou nossas diretrizes da comunidade. Se isso acontecer de novo, você poderá ser banido.",
+        "acknowledge": "Entendo e concordo",
+        "read_guidelines": "Ler nossas diretrizes",
+        "acknowledge_failed": "Não foi possível confirmar os avisos. Tente novamente.",
+        "why": "Por que estou vendo isto?",
         "types": {
             "harassment": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Assédio",
+                "content": "Incentivamos a liberdade de expressão, mas não quando ela é usada para intimidar ou humilhar outras pessoas. Seja gentil no Grindr.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por assédio em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Pedimos que você trate os outros com gentileza no Grindr. Bullying, assédio e intimidação são proibidos, pois criam um ambiente hostil. Comportamento abusivo repetido pode levar a outras medidas contra a sua conta."
             },
             "commercial": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Atividade comercial",
+                "content": "O Grindr é apenas para uso pessoal. Não é permitido pedir dinheiro, fazer anúncios ou usar o Grindr para comprar ou vender qualquer coisa. Se isso acontecer de novo, você poderá ser banido.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por atividade comercial em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "O Grindr foi feito para conexões pessoais, não para recrutar ou aliciar utilizadores para empreendimentos com fins lucrativos, como promover empresas, serviços pagos ou eventos. Essas atividades desviam a plataforma do seu propósito e vão contra nossas diretrizes. Garanta que suas interações continuem pessoais e não comerciais."
             },
             "mild_insults": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Insultos leves e desrespeito",
+                "content": "Algumas mensagens que você enviou foram sinalizadas como possivelmente desrespeitosas. Incentivamos você a ser você mesmo e se expressar livremente no Grindr, mas é importante fazer isso sem afetar negativamente os outros. Seja gentil no Grindr e garanta que suas interações continuem respeitosas, de acordo com nossas diretrizes da comunidade.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por insultos leves e desrespeito em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "O Grindr busca oferecer um espaço para interações respeitosas e autênticas. Comentários que possam parecer grosseiros ou desrespeitosos podem afetar negativamente os outros e vão contra nossas diretrizes da comunidade. Preste atenção em como suas palavras são recebidas e ajude-nos a manter um ambiente acolhedor para todos. Novas violações podem levar a medidas como suspensão ou banimento da conta."
             },
             "general_advertising": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Publicidade e aliciamento em geral",
+                "content": "O Grindr é para conexões pessoais autênticas, não para anunciar produtos, serviços ou plataformas externas. Conteúdo promocional não é permitido em perfis nem mensagens. Garanta que suas interações continuem genuínas e de acordo com nossas diretrizes.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por publicidade e aliciamento em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "O Grindr foi feito para conexões pessoais genuínas e não é um espaço para promover produtos, serviços ou links externos. Usar perfis ou mensagens para promover produtos ou serviços ou compartilhar links externos vai contra nossas diretrizes e prejudica a experiência dos outros. Remova qualquer conteúdo promocional para manter o Grindr um espaço de interações genuínas."
             },
             "unwanted_messaging": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Mensagens repetidas ou indesejadas",
+                "content": "Calma! Enviar mensagens repetidas ou insistir demais é considerado spam. Evite isso, pois novas violações podem levar à suspensão da conta.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por mensagens repetidas ou indesejadas em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Vá com calma. Enviar mensagens demais em pouco tempo viola nossas diretrizes. Este sistema ajuda a manter o Grindr seguro e positivo para todos. Se esse comportamento continuar, sua conta poderá ser suspensa. Respeite sempre os outros utilizadores — leia os perfis para conhecer as preferências, compartilhe seus limites e respeite os limites dos outros."
             },
             "drug_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Pedido ocasional de drogas",
+                "content": "Procurar drogas no Grindr viola nossas diretrizes. Evite isso para ajudar a manter uma comunidade segura e respeitosa.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por pedido ocasional de drogas em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Procurar drogas, mesmo de vez em quando, no seu perfil ou nos chats não é permitido. Isso vai contra as diretrizes do Grindr, porque nos importamos com o seu bem-estar e buscamos manter uma comunidade segura e respeitosa. Evite esse tipo de menção daqui para frente."
             },
             "drug_promotion": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Promoção ou apologia às drogas",
+                "content": "Não permitimos atividades que promovam o uso de drogas ilegais. Se isso acontecer de novo, sua conta poderá ser suspensa.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por promoção ou apologia às drogas em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Nos importamos muito com o bem-estar dos nossos utilizadores. Referências a cannabis, tabaco e álcool são permitidas em certos contextos, mas não permitimos perfis centrados em drogas ou que as promovam, incluindo falar sobre a compra ou venda de drogas (de qualquer tipo) ou participar dela. Esta política também se aplica a imagens e emojis que pedem drogas ou incentivam seu uso."
             },
             "non_illicit_substances": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Menções casuais a substâncias legais",
+                "content": "Tudo bem mencionar substâncias legais como CBD ou canábis (onde for legal) no Grindr. Porém, promoção excessiva ou foco nessas substâncias pode fazer com que sua conta seja denunciada pela nossa comunidade e até suspensa.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por menções casuais a substâncias e símbolos legais em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Permitimos menções casuais a substâncias legais, como CBD ou canábis (onde for legal), no Grindr. Porém, perfis centrados nessas substâncias ou que as promovem em excesso podem prejudicar a experiência da comunidade e ser denunciados por outros utilizadores. Nos importamos muito com o bem-estar da nossa comunidade e proibimos conteúdos ou imagens relacionados a drogas que possam incentivar práticas prejudiciais. Garanta que seu perfil esteja de acordo com nossas diretrizes para nos ajudar a manter uma plataforma segura e respeitosa para todos."
             },
             "mild_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Aliciamento leve e ofertas casuais",
+                "content": "O Grindr é para conexões pessoais genuínas. Pedidos financeiros podem confundir limites e não estão de acordo com nossas diretrizes. Vamos manter as interações autênticas e respeitosas.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por aliciamento leve e ofertas casuais em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "O Grindr é para conexões pessoais — não para promover conteúdo pago ou acordos financeiros. Garanta que seu perfil e suas mensagens estejam de acordo com nossas diretrizes para manter o Grindr um espaço de interações genuínas."
             },
             "drug_seeking": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Busca por drogas",
+                "content": "Procurar drogas no Grindr viola nossas diretrizes. Evite isso para ajudar a manter uma comunidade segura e respeitosa. Se isso acontecer de novo, sua conta poderá ser suspensa.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por busca por drogas em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Procurar drogas, mesmo de vez em quando, no seu perfil ou nos chats não é permitido. Isso vai contra as diretrizes do Grindr, porque nos importamos com o seu bem-estar e buscamos manter uma comunidade segura e respeitosa. Evite esse tipo de menção daqui para frente."
             },
             "drug_facilitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Facilitação de drogas",
+                "content": "Ajudar outras pessoas a conseguir drogas ilegais não é permitido no Grindr. Se isso acontecer de novo, sua conta poderá ser suspensa.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por facilitação de drogas em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Conectar outras pessoas a drogas ilegais — oferecer compartilhar o que você tem, combinar uma retirada ou colocar alguém em contacto com um fornecedor — não é permitido, mesmo que nada seja vendido. Isso vai contra as diretrizes do Grindr, porque nos importamos com o seu bem-estar e buscamos manter uma comunidade segura e respeitosa. Evite isso daqui para frente."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Imagens íntimas sem consentimento",
+                "content": "Compartilhar imagens ou vídeos íntimos de outra pessoa sem o consentimento dela não é permitido no Grindr. Se isso acontecer de novo, sua conta poderá ser suspensa.",
+                "reason": "Você está vendo este aviso porque foi sinalizado por compartilhar imagens íntimas sem consentimento em uma interação recente. Se nossa equipa de moderação receber denúncias de outros incidentes, sua conta poderá ser banida por violar nossas diretrizes da comunidade.",
+                "details": "Imagens ou vídeos íntimos de outra pessoa só devem ser compartilhados com o consentimento dela — e consentir em tirar ou receber uma imagem não é consentir em compartilhá-la. Isso também vale para imagens editadas e geradas por IA. Isso vai contra as diretrizes do Grindr, porque nos importamos com a segurança e a privacidade de todos na nossa comunidade. Evite isso daqui para frente."
             }
         }
     },
     "community_guidelines": {
-        "label": "",
+        "label": "Diretriz da comunidade",
         "authentic": {
-            "title": "",
-            "text": ""
+            "title": "Seja autêntico",
+            "text": "Seja você mesmo no app, não outra pessoa. Qualquer perfil que se passe por outras pessoas, incluindo celebridades, será banido. O conteúdo que você publica no Grindr deve ser seu ou feito por você, e você deve se apresentar com sinceridade. Você escolhe o que revelar sobre si, mas as informações que compartilha devem ser verdadeiras. Qualquer falsificação de identidade/catfishing é proibida e pode levar ao banimento.\n\nNão permitimos:\n• Fotos de celebridades ou figuras públicas de qualquer tipo (atores, músicos, políticos etc.)\n• Fotos de sósias de celebridades quando não está claro se é o sósia ou a celebridade real\n• Imagens protegidas por direitos autorais, com marca d'água ou que acreditamos não serem suas ou tiradas por você\n• Fotos sem conteúdo (como quadrados pretos)\n\nSe o seu perfil for denunciado como falso, podemos pedir que você verifique sua identidade para mantê-lo ativo."
         },
         "harassment": {
-            "title": "",
-            "text": ""
+            "title": "Assédio",
+            "text": "Queremos que você seja você mesmo e se expresse livremente aqui, mas não às custas de outra pessoa. Recomendamos fortemente que, no seu perfil, você fale do que gosta, não do que não gosta. E o velho ditado \"se não tem nada de bom para dizer, não diga nada\" vale aqui tanto quanto na casa da sua avó.\n\nTambém esperamos que você deixe alguém em paz quando a pessoa indicar que quer ser deixada em paz. Essa é uma regra fundamental. Usar indevidamente nosso sistema de denúncias para se vingar de alguém que bloqueou você, ou criar novas contas para continuar um contacto indesejado, resultará em banimento permanente."
         },
         "hate": {
-            "title": "",
-            "text": ""
+            "title": "Ódio, violência e conteúdo ofensivo",
+            "text": "Nem precisaria dizer, mas não permitimos discurso de ódio nem violência de nenhum tipo. Se soubermos que você abusou de outro utilizador ou o ameaçou seriamente, será banido para sempre. Também podemos remover conteúdos que considerarmos explícitos demais, ofensivos ou insensíveis e dolorosos, mesmo sem má intenção.\n\nLevamos muito a sério denúncias de violência, ameaças e agressões. Isso inclui incidentes que acontecem dentro e fora da nossa plataforma.\n\nPodemos considerar um conteúdo discurso de ódio (e tomar medidas mais severas contra um perfil) se ele promover ou tolerar racismo, intolerância, violência, ódio, desumanização ou dano contra pessoas ou grupos com base em raça, etnia, deficiência, idade, nacionalidade, orientação sexual, sexo, identidade de género, religião ou aparência.\n\nConteúdos que consideramos explícitos, violentos ou ofensivos incluem, entre outros:\n• Fotos de armas e armas de fogo (reais ou de brinquedo), incluindo armas de paintball\n• Fotos com sangue ou gore, incluindo fantasias especialmente realistas\n• Imagens violentas, incluindo desenhos ou ilustrações\n• Sinais de gangue ou gestos ofensivos (por exemplo, o dedo do meio)\n• Conteúdo kink ou de fetiche que seja violento ou incentive danos\n• Ameaças contra qualquer pessoa ou grupo, incluindo figuras políticas\n• Fotos ou descrições de automutilação ou suicídio\n• Fotos de animais mortos, incluindo fotos de caça\n• Piadas ou memes que possam ser considerados ofensivos e insensíveis"
         },
         "minors": {
-            "title": "",
-            "text": ""
+            "title": "Menores de idade",
+            "text": "O Grindr é SOMENTE para adultos. Você precisa ter pelo menos 18 anos para usar o app (ou mais em certas jurisdições). Levamos esse limite de idade muito, muito a sério, e qualquer violação ou suspeita de violação resultará, no mínimo, em banimento e pode nos levar a envolver as autoridades competentes.\n\nTambém não permitimos fotos de ninguém com menos de 18 anos, em nenhum contexto. Isso inclui fotos em que o rosto de um menor está desfocado ou aparece ao fundo. Nossa proibição total de atividade envolvendo menores se estende à comunicação: se um utilizador se comunica com outro que acredita ter menos de 18 anos, isso também é uma violação da nossa política de idade."
         },
         "obey_the_law": {
-            "title": "",
-            "text": ""
+            "title": "Respeite a lei",
+            "text": "Se algo é ilegal fora da internet, adivinha: também é ilegal no Grindr! Sim, isso inclui drogas. Conteúdo ilegal e representações de atividades ilegais serão removidos e, quando apropriado, denunciados às autoridades competentes.\n\nPermitimos menções casuais a canábis, medicamentos sem receita e medicamentos prescritos. Porém, indícios de uso indevido ou de incentivo ao uso irresponsável, assim como qualquer conversa sobre compra/venda, resultarão em banimento. Não permitimos nenhuma menção a drogas não prescritas, além da canábis, a não ser no contexto de recuperação de dependência. Também não permitimos perfis focados principalmente em drogas."
         },
         "private_information": {
-            "title": "",
-            "text": ""
+            "title": "Informações privadas",
+            "text": "O Grindr nunca vai pedir seus dados pessoais, como sua senha ou as informações do seu cartão de crédito. Os outros utilizadores também não precisam saber disso. Por segurança, removeremos qualquer informação pessoal sensível exibida publicamente, como números de telefone e endereços, e podemos suspender ou banir o perfil.\n\nPedir informações pessoais de outro utilizador sem ser bem-vindo, incentivar utilizadores a visitar links externos ou qualquer tipo de spam ou golpe vai fazer você ser banido.\n\nNão permitimos publicar informações privadas em nenhuma parte do perfil, como em fotos ou no texto do perfil, nem links diretos para elas, por exemplo por código QR ou link. Informações privadas incluem:\n• Dados de contacto não públicos, como números de telefone, endereços de e-mail, endereço residencial/comercial\n• Números de identificação fiscal ou de segurança social, passaportes, senhas, informações financeiras"
         }
     },
     "push_notifications": {
-        "someone": "",
-        "generic_message": "",
-        "open_chat": "",
-        "open_profile": "",
-        "taps_title": "",
-        "tap_notification_body": "",
-        "chat_image_notification_body": "",
-        "chat_expiring_image_notification_body": "",
-        "chat_gif_notification_body": "",
-        "chat_gaymoji_notification_body": "",
-        "chat_location_notification_body": "",
-        "chat_audio_notification_body": "",
-        "chat_video_notification_body": "",
-        "chat_album_notification_body": "",
-        "chat_album_content_reaction_notification_body": "",
-        "chat_message_reaction_notification_body": "",
-        "chat_message_reaction_no_name_notification_body": "",
-        "favorite_online_notification_title": "",
-        "favorite_online_notification_body": "",
-        "multiple_favorites_online_notification_title": "",
-        "multiple_favorites_online_notification_body": "",
-        "tapped_online_notification_title": "",
-        "tapped_online_notification_body": "",
-        "recommended_online_notification_title": "",
-        "recommended_online_notification_body": "",
-        "media_recipient_online_notification_title": "",
-        "media_recipient_online_notification_body": "",
-        "unread_chats_notification_title": "",
-        "unread_chats_notification_body": "",
-        "viewed_profile_notification_title": "",
-        "viewed_profile_notification_body": "",
-        "a_list_updates_title": "",
-        "a_list_updates_body_1": "",
-        "a_list_updates_body_2": "",
-        "a_list_updates_body_3": "",
-        "a_list_updates_body_4": "",
-        "boost_notification_title": "",
-        "boost_notification_body": "",
-        "super_boost_notification_title": "",
-        "super_boost_notification_body": "",
-        "mega_boost_notification_title": "",
-        "mega_boost_notification_body": "",
-        "trial_reminder_notification_title": "",
-        "trial_reminder_notification_body": "",
-        "spank_bank_favorite_update_title": "",
-        "spank_bank_batched_update_title": "",
-        "spank_bank_tap_to_see_body": "",
-        "spank_bank_v2_favorite_update_body": "",
-        "spank_bank_v2_batched_update_body": "",
-        "discover_new_rec_notification_title": "",
-        "discover_new_rec_notification_body": "",
-        "right_now_request_notification_body": "",
-        "right_now_request_approved_notification_body": "",
-        "coupon_auto_applied_title": "",
-        "coupon_auto_applied_body": ""
+        "someone": "Alguém",
+        "generic_message": "Enviou uma mensagem para você",
+        "open_chat": "Abrir chat",
+        "open_profile": "Abrir perfil",
+        "taps_title": "Taps",
+        "tap_notification_body": "Enviou um tap para você",
+        "chat_image_notification_body": "Enviou uma foto para você",
+        "chat_expiring_image_notification_body": "Enviou uma imagem temporária para você",
+        "chat_gif_notification_body": "Enviou um GIF para você",
+        "chat_gaymoji_notification_body": "Enviou um Gaymoji para você",
+        "chat_location_notification_body": "Enviou a localização para você",
+        "chat_audio_notification_body": "Enviou uma mensagem de áudio para você",
+        "chat_video_notification_body": "Enviou um vídeo para você",
+        "chat_album_notification_body": "Compartilhou o álbum",
+        "chat_album_content_reaction_notification_body": "Gostou do conteúdo do seu álbum",
+        "chat_message_reaction_notification_body": "{{arg1}} reagiu à sua mensagem",
+        "chat_message_reaction_no_name_notification_body": "Reagiu à sua mensagem",
+        "favorite_online_notification_title": "Seu favorito está online…",
+        "favorite_online_notification_body": "Diga olá antes que ele saia.",
+        "multiple_favorites_online_notification_title": "Seus favoritos estão aí…",
+        "multiple_favorites_online_notification_body": "Online agora. Pode escolher.",
+        "tapped_online_notification_title": "Seu tap acabou de ficar online…",
+        "tapped_online_notification_body": "Você deu o primeiro passo. Agora diga olá.",
+        "recommended_online_notification_title": "Seu tipo está por perto.",
+        "recommended_online_notification_body": "Ele está online agora. Diga olá antes que o momento passe…",
+        "media_recipient_online_notification_title": "O cara para quem você mandou fotos…",
+        "media_recipient_online_notification_body": "Está online agora. Continuem de onde pararam.",
+        "unread_chats_notification_title": "Novos chats esperando.",
+        "unread_chats_notification_body": "Veja quem mandou mensagem. A bola está do seu lado.",
+        "viewed_profile_notification_title": "Você está recebendo visualizações…",
+        "viewed_profile_notification_body": "Veja quem está de olho em você. Suas visualizações estão liberadas por 24 horas.",
+        "a_list_updates_title": "Novidades da A-List",
+        "a_list_updates_body_1": "Você tem uma A-List ativa! {{arg1}} tem novidades. Veja o que você perdeu!",
+        "a_list_updates_body_2": "Você tem uma A-List ativa! {{arg1}} e {{arg2}} têm novidades. Veja o que você perdeu!",
+        "a_list_updates_body_3": "Você tem uma A-List ativa! {{arg1}}, {{arg2}} e {{arg3}} têm novidades. Veja o que você perdeu!",
+        "a_list_updates_body_4": "Você tem uma A-List ativa! {{arg1}}, {{arg2}} e mais {{arg3}} têm novidades. Veja o que você perdeu!",
+        "boost_notification_title": "Boost concluído ⚡",
+        "boost_notification_body": "Toque para ver seus resultados",
+        "super_boost_notification_title": "Super Boost concluído ⚡",
+        "super_boost_notification_body": "Toque para ver seus resultados",
+        "mega_boost_notification_title": "Mega Boost concluído ⚡",
+        "mega_boost_notification_body": "Toque para ver seus resultados",
+        "trial_reminder_notification_title": "Avaliação gratuita de 7 dias",
+        "trial_reminder_notification_body": "A sua avaliação termina em 48 horas.",
+        "spank_bank_favorite_update_title": "Seu favorito acabou de atualizar o álbum 👀",
+        "spank_bank_batched_update_title": "{{arg1}} pessoas atualizaram os álbuns 👀",
+        "spank_bank_tap_to_see_body": "Toque para ver",
+        "spank_bank_v2_favorite_update_body": "Seu favorito {{arg1}} acabou de atualizar o álbum 👀",
+        "spank_bank_v2_batched_update_body": "{{arg1}} pessoas atualizaram os álbuns",
+        "discover_new_rec_notification_title": "Novo bonitão no Discover",
+        "discover_new_rec_notification_body": "No seu feed só hoje! Toque para ver.",
+        "right_now_request_notification_body": "Solicitação de {{arg1}} recebida",
+        "right_now_request_approved_notification_body": "Solicitação de {{arg1}} aceita",
+        "coupon_auto_applied_title": "Parabéns",
+        "coupon_auto_applied_body": "Um mês grátis de {{arg1}} é seu"
     }
 }

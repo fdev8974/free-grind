@@ -16,8 +16,8 @@
         "behavior_desc": "Bevestigingsmeldingen voor het blokkeren en verwijderen van chats.",
         "notifications": "Meldingen",
         "notifications_desc": "Kies welke meldingen je krijgt en of ze verschijnen terwijl de app open is.",
-        "privacy": "",
-        "privacy_desc": "",
+        "privacy": "Privacy",
+        "privacy_desc": "Leesbevestigingen, profielweergaven, incognitomodus, media vervagen en app-vermomming.",
         "sexual_health": "Seksuele gezondheid",
         "sexual_health_desc": "Houd PrEP-innames, ontmoetingen, tests en afspraken bij.",
         "automation": "Automatisering",
@@ -44,11 +44,11 @@
         "check_updates_desc": "Download en installeer de nieuwste versie van Free Grind.",
         "installed_version": "Versie {{version}}",
         "installed_versions": "Frontend {{frontend}} · App {{app}}",
-        "app_version": "",
-        "frontend_version": "",
+        "app_version": "App {{version}}",
+        "frontend_version": "Frontend {{version}}",
         "check_now": "Nu controleren",
-        "update_channel": "",
-        "update_channel_desc": "",
+        "update_channel": "Updatekanaal",
+        "update_channel_desc": "Via welk releasespoor deze app updates krijgt.",
         "environment": "Omgeving",
         "switching": "Overschakelen…",
         "checking": "Controleren…",
@@ -68,13 +68,13 @@
         "ota_progress_downloading": "Update downloaden… {{size}}",
         "ota_progress_installing": "Update installeren…",
         "ota_progress_done": "Update geïnstalleerd. Herladen…",
-        "auto_update": "",
-        "auto_update_desc": "",
-        "update_checks": "",
-        "update_checks_desc": "",
-        "update_channel_main_desc": "",
-        "update_channel_development_desc": "",
-        "update_channel_contributor_desc": ""
+        "auto_update": "Automatisch installeren",
+        "auto_update_desc": "Installeert nieuwe frontendversies (OTA) van GitHub Actions meteen en herlaadt de app. Als dit uit staat, wordt het je eerst gevraagd.",
+        "update_checks": "Automatisch controleren",
+        "update_checks_desc": "Zoekt bij elke app-start op GitHub naar nieuwe app- en frontendversies. Als dit uit staat, wordt er geen verzoek naar GitHub gestuurd, tenzij je hierboven handmatig controleert.",
+        "update_channel_main_desc": "Geteste releases. Aanbevolen.",
+        "update_channel_development_desc": "De nieuwste wijzigingen zodra ze gebouwd zijn. Kan instabiel zijn.",
+        "update_channel_contributor_desc": "Bijdragerskanaal"
     },
     "settings_blocked": {
         "title": "Geblokkeerde accounts",
@@ -127,17 +127,17 @@
         "apply_to_inbox_desc": "Blokkeert direct nieuwe chats die aan je criteria voldoen.",
         "forbidden_keywords_title": "Verboden woorden",
         "forbidden_keywords_desc": "Een gedeelde woordenlijst — scheid met komma's (bijv. snapchat, crypto, bot). Op zichzelf blokkeert deze niets; gebruik hem als woordbron (\"Verboden woorden\") in een automatiseringsvoorwaarde om een regel te maken die bio's, berichten of weergavenamen ermee controleert.",
-        "forbidden_list_row_title": "",
-        "forbidden_list_count_one": "",
-        "forbidden_list_count_other": "",
-        "forbidden_list_empty": "",
-        "forbidden_used_by": "",
-        "forbidden_not_used": "",
-        "forbidden_usage_footnote": "",
-        "forbidden_editor_placeholder": "",
-        "forbidden_editor_hint": "",
-        "rule_on": "",
-        "rule_off": "",
+        "forbidden_list_row_title": "Trefwoordenlijst",
+        "forbidden_list_count_one": "{{count}} trefwoord",
+        "forbidden_list_count_other": "{{count}} trefwoorden",
+        "forbidden_list_empty": "Nog geen trefwoorden",
+        "forbidden_used_by": "Gebruikt door",
+        "forbidden_not_used": "Nog geen regel gebruikt deze lijst.",
+        "forbidden_usage_footnote": "De lijst doet op zichzelf niets. Een regel gebruikt hem wanneer een van de trefwoordvoorwaarden (naam, bio, bericht of social handle) op ‘Verboden trefwoorden’ staat in plaats van eigen woorden. De ingebouwde regel ‘Verboden trefwoorden blokkeren’ blokkeert iedereen van wie de naam, bio of het bericht een trefwoord bevat; zet hem hierboven aan.",
+        "forbidden_editor_placeholder": "snapchat, crypto, bot",
+        "forbidden_editor_hint": "Scheid trefwoorden met komma's of nieuwe regels. Ze matchen hele woorden, hoofdletters maken niet uit.",
+        "rule_on": "Aan",
+        "rule_off": "Uit",
         "keywords_placeholder": "Typ hier woorden...",
         "export_txt": "Exporteren (.txt)",
         "import_txt": "Importeren (.txt)",
@@ -153,7 +153,7 @@
         "custom_rules_desc": "Maak je eigen \"als X dan Y\"-regels voor iemands eerste bericht aan jou — controleer de afzender en blokkeer, antwoord of deel automatisch een album. Elke regel wordt één keer per nieuwe chat uitgevoerd.",
         "add_rule": "Regel toevoegen",
         "no_rules_yet": "Nog geen eigen automatiseringen. Voeg er een toe om te beginnen.",
-        "no_rules_hint": "",
+        "no_rules_hint": "Regels draaien vanzelf wanneer iemand je een bericht stuurt of tapt, bijv. om te blokkeren of te antwoorden.",
         "unnamed_rule": "Naamloze regel",
         "rule_when": "Wanneer: ",
         "edit_rule": "Regel bewerken",
@@ -164,7 +164,7 @@
         "rule_needs_action": "Voeg minstens één actie toe voordat je opslaat.",
         "action_needs_message_text": "Voer een bericht in om te versturen voordat je opslaat.",
         "rule_name_placeholder": "Geef deze automatisering een naam",
-        "rule_name_label": "",
+        "rule_name_label": "Naam",
         "trigger_label": "Wanneer (trigger)",
         "conditions_label": "Als (voorwaarden)",
         "rule_no_conditions": "altijd",
@@ -365,7 +365,7 @@
         "session_placeholder": "Waar ben je naar op zoek?",
         "char_limit": "{{count}}/140",
         "add_photo": "Foto toevoegen",
-        "photo_hint": "",
+        "photo_hint": "Tik om een afbeelding te kiezen of sleep er hier een naartoe",
         "add_video": "Video toevoegen",
         "i_am_hosting": "Kan ontvangen",
         "i_am_hosting_desc": "Laat anderen weten dat je een plek hebt",
@@ -376,8 +376,8 @@
         "visibility": "Zichtbaarheid",
         "status_hidden": "Momenteel verborgen",
         "status_visible": "Openbaar zichtbaar",
-        "visibility_visible_desc": "",
-        "visibility_hidden_desc": "",
+        "visibility_visible_desc": "Je sessie verschijnt in de Right Now-feed",
+        "visibility_hidden_desc": "Gepauzeerd, niemand in de buurt ziet je sessie",
         "weekly_limit": "Wekelijkse sessies",
         "remaining_count": "beschikbaar",
         "next_refresh": "Volgende vernieuwing",
@@ -391,8 +391,8 @@
         "end_session": "Sessie beëindigen",
         "session_updated": "Sessie bijgewerkt!",
         "session_created": "Sessie gestart!",
-        "started_overlay_subtitle": "",
-        "started_overlay_tagline": "",
+        "started_overlay_subtitle": "Sessie gestart",
+        "started_overlay_tagline": "Je bent nu zichtbaar. Klaar, gewillig en dichtbij.",
         "session_ended": "Sessie beëindigd",
         "session_expired": "Sessie verlopen",
         "error_fetch_session": "Kon sessiegegevens niet laden",
@@ -402,16 +402,16 @@
         "error_end_failed": "Sessie beëindigen mislukt",
         "upload_preview_alt": "Uploadvoorbeeld",
         "close_aria": "Sluiten",
-        "create_session_subtitle": "",
-        "section_message": "",
-        "section_photo": "",
-        "section_options": "",
-        "view_list": "",
-        "view_map": "",
-        "map_recenter": "",
-        "map_center": "",
-        "map_you": "",
-        "map_no_positions": ""
+        "create_session_subtitle": "Laat mensen in de buurt zien waar je zin in hebt.",
+        "section_message": "Bericht",
+        "section_photo": "Foto",
+        "section_options": "Opties",
+        "view_list": "Lijst",
+        "view_map": "Kaart",
+        "map_recenter": "Iedereen tonen",
+        "map_center": "Centreren",
+        "map_you": "Jij",
+        "map_no_positions": "Op dit moment deelt niemand in de buurt zijn locatie op de kaart."
     },
     "right_now_filters": {
         "title": "Right Now-filters",
@@ -429,13 +429,13 @@
         "height": "Lengte",
         "weight": "Gewicht",
         "tags": "Tags",
-        "tags_more": "",
+        "tags_more": "Meer tags",
         "clear_all": "Alles wissen",
         "apply": "Toepassen",
         "not_specified": "Niet opgegeven",
         "sort": {
             "default": "Standaard",
-            "original": "",
+            "original": "Origineel",
             "youngest": "Jongste",
             "oldest": "Oudste",
             "popular": "Populair",
@@ -490,8 +490,8 @@
         "map_picker_hide": "Verbergen",
         "map_picker_open": "Openen",
         "map_picker_instructions": "Open de kaart om een speld te plaatsen en sla die locatie daarna op.",
-        "choose_destination": "",
-        "use_destination": "",
+        "choose_destination": "Bestemming kiezen",
+        "use_destination": "Deze bestemming gebruiken",
         "map_picker_tap_hint": "Tik op de kaart om een speld te plaatsen.",
         "use_selected_location": "Deze locatie gebruiken",
         "mode_gps": "GPS · Auto",
@@ -513,7 +513,7 @@
         "home_location_label": "Thuis",
         "home_updated_toast": "Thuislocatie bijgewerkt",
         "home_update_failed": "Thuislocatie bijwerken mislukt",
-        "saved_hint": ""
+        "saved_hint": "Tik op de bladwijzer hieronder om de vastgezette plek op te slaan voor snelle toegang."
     },
     "nav": {
         "browse": "Bladeren",
@@ -586,10 +586,10 @@
             "double_tap_title": "Dubbeltikken",
             "double_tap_title_desktop": "Dubbelklikken",
             "double_tap_desc": "Stuurt een tap zonder het profiel te openen.",
-            "double_tap_chat_desc": "",
-            "double_tap_off_desc": "",
-            "double_tap_send_tap": "",
-            "settings_hint_change": "",
+            "double_tap_chat_desc": "Opent de chat zonder het profiel te openen.",
+            "double_tap_off_desc": "Uit. Profielen openen direct met één tik.",
+            "double_tap_send_tap": "Tap sturen",
+            "settings_hint_change": "Je kunt dit en het taptype later wijzigen in Instellingen → Gedrag.",
             "long_press_title": "Lang indrukken",
             "long_press_title_desktop": "Rechtsklikken",
             "long_press_desc": "Snelle acties: bericht, favoriet, bijnaam, verbergen of blokkeren.",
@@ -627,26 +627,26 @@
             "discord_title": "Discord",
             "telegram_title": "Telegram"
         },
-        "section_community": "",
-        "founder_credit": "",
-        "discord_cta": "",
-        "telegram_cta": "",
-        "section_project": "",
-        "whats_new": "",
-        "whats_new_desc": "",
-        "built_with": "",
+        "section_community": "Community",
+        "founder_credit": "Oorspronkelijk gemaakt door {{name}}.",
+        "discord_cta": "Word lid van de server",
+        "telegram_cta": "Volg updates",
+        "section_project": "Project",
+        "whats_new": "Wat is er nieuw",
+        "whats_new_desc": "Hoogtepunten van versie {{version}}",
+        "built_with": "Gebouwd met {{stack}}",
         "highlights": {
-            "privacy_title": "",
-            "privacy_desc": "",
-            "open_source_title": "",
-            "open_source_desc": "",
-            "no_ads_title": "",
-            "no_ads_desc": "",
-            "free_title": "",
-            "free_desc": ""
+            "privacy_title": "Privacy eerst",
+            "privacy_desc": "Geen tracking, geen trucjes om je vast te houden.",
+            "open_source_title": "Open source",
+            "open_source_desc": "Alle code is openbaar op GitHub.",
+            "no_ads_title": "Geen advertenties",
+            "no_ads_desc": "Een strakke interface, niets dat in de weg zit.",
+            "free_title": "Voor altijd gratis",
+            "free_desc": "Als iemand je vraagt te betalen, is het oplichting."
         },
-        "section_principles": "",
-        "tagline": ""
+        "section_principles": "Waarom Free Grind",
+        "tagline": "De privacyvriendelijke client, gebouwd door de community"
     },
     "settings_albums": {
         "label": "Albums",
@@ -686,8 +686,8 @@
         "refresh": "Vernieuwen",
         "loading_media": "Albummedia laden…",
         "no_media": "Nog geen media in dit album.",
-        "no_media_hint": "",
-        "not_shared_hint": "",
+        "no_media_hint": "Maak een foto of video, upload vanaf je apparaat of voeg media toe uit je chatgalerij.",
+        "not_shared_hint": "Deel het vanuit een chat en iedereen met toegang verschijnt hier.",
         "media_alt": "Albummedia {{index}}",
         "cancel_delete_content": "Verwijderen annuleren",
         "add_from_drawer": "Toevoegen uit galerij",
@@ -697,7 +697,7 @@
         "add_drawer_desc": "Media opgeslagen in je chatgalerij",
         "drawer_picker_title": "Media selecteren",
         "drawer_empty": "Nog geen media in je galerij.",
-        "error_drawer_video_download": "",
+        "error_drawer_video_download": "Kon een video uit je galerij niet laden.",
         "add_to_album_button": "Toevoegen aan album",
         "toast_created": "Album gemaakt",
         "toast_renamed": "Album hernoemd",
@@ -723,10 +723,10 @@
         "collections_edit": "Collectie bewerken",
         "collections_delete": "Collectie verwijderen",
         "collections_name_placeholder": "Naam collectie",
-        "name_label": "",
-        "new_short": "",
-        "limits_albums_used": "",
-        "limits_details": "",
+        "name_label": "Naam",
+        "new_short": "Nieuw",
+        "limits_albums_used": "Albums",
+        "limits_details": "Details",
         "collections_editor_hint": "Tik op media in de volgorde waarin ze verstuurd moeten worden. Nieuwe uploads worden aan je galerij toegevoegd.",
         "collections_save": "Collectie opslaan ({{count}})",
         "collections_item_count_one": "{{count}} item",
@@ -899,10 +899,10 @@
         "photo_upload": {
             "title": "Foto uploaden",
             "confirm": "Uploaden",
-            "next": "",
-            "back": "",
-            "crop_hint": "",
-            "thumbnail_hint": "",
+            "next": "Volgende",
+            "back": "Terug",
+            "crop_hint": "Snijd je foto bij",
+            "thumbnail_hint": "Kies de miniatuur die in het raster wordt getoond",
             "taken_on_grindr": "Watermerk 'Taken on Grindr'",
             "taken_on_grindr_description": "Voeg het tijdstip toe om de echtheid en actualiteit van je foto te bevestigen"
         },
@@ -926,8 +926,8 @@
             "search_placeholder": "Nummers of artiesten zoeken...",
             "search_hint": "Zoek op Spotify om nummers toe te voegen",
             "no_matches": "Geen nummers gevonden.",
-            "no_matches_hint": "",
-            "apply": ""
+            "no_matches_hint": "Probeer een andere songtitel of artiestennaam.",
+            "apply": "Toepassen"
         }
     },
     "privacy": {
@@ -1020,21 +1020,21 @@
         "visual_effects": "Visuele effecten",
         "browse_grid_mobile": "Grid (mobiel)",
         "browse_grid_mobile_desc": "Kies hoeveel profielen er per rij in het Grid op mobiel verschijnen.",
-        "views_grid_layout": "",
-        "views_grid_mobile_desc": "",
+        "views_grid_layout": "Indeling weergaven",
+        "views_grid_mobile_desc": "Kies hoeveel profielen per rij verschijnen op het tabblad Weergaven op mobiel.",
         "columns_2": "2 kolommen",
         "columns_3": "3 kolommen",
-        "columns_4": "",
-        "chat_section": "",
-        "drawer_layout": "",
-        "drawer_layout_desc": "",
+        "columns_4": "4 kolommen",
+        "chat_section": "Chatpagina",
+        "drawer_layout": "Galerij opsplitsen in categorieën",
+        "drawer_layout_desc": "Toont media, albums en collecties in aparte tabbladen in plaats van alles op één pagina.",
         "reveal_effect": {
             "title": "Onthullingseffect",
             "description": "Het onthullingseffect animeert items terwijl je naar beneden scrolt. Je kunt het uitschakelen of de intensiteit aanpassen.",
             "enable": "Onthullingseffect inschakelen",
             "enable_desc": "Animeer items wanneer ze in beeld scrollen. Kies tussen een subtiel en een uitgesproken effect.",
             "strengths": {
-                "off": "",
+                "off": "Uit",
                 "subtle": "Subtiel",
                 "pronounced": "Uitgesproken"
             }
@@ -1051,8 +1051,8 @@
             "dark": "Donker"
         },
         "amoled": {
-            "title": "",
-            "desc": ""
+            "title": "Puur zwart (AMOLED)",
+            "desc": "Gebruikt echt zwarte achtergronden in de donkere modus. Bespaart batterij op OLED-schermen."
         },
         "analytics": {
             "title": "Analyse & ontdekking",
@@ -1082,8 +1082,8 @@
         "location": "Locatie",
         "auto_focus_location_search": "Zoekveld automatisch focussen",
         "auto_focus_location_search_desc": "Focus automatisch op het zoekveld bij het openen van het locatievenster. Zet uit als het meteen verschijnende toetsenbord je stoort.",
-        "auto_focus_right_now_text": "",
-        "auto_focus_right_now_text_desc": "",
+        "auto_focus_right_now_text": "Sessietekst automatisch focussen",
+        "auto_focus_right_now_text_desc": "Focust automatisch op het tekstveld en opent het toetsenbord bij het starten of bewerken van een Right Now-sessie.",
         "display": "Scherm",
         "keep_screen_on": "Scherm aan houden",
         "keep_screen_on_desc": "Voorkom dat het scherm dimt of vergrendelt terwijl de app open is. Wordt automatisch uitgeschakeld zodra je de app verlaat.",
@@ -1091,14 +1091,14 @@
         "double_tap_tap_type": "Dubbeltikken om een tap te sturen",
         "double_tap_tap_type_desc": "Tik twee keer op een profiel in het Grid om deze tap te sturen. Zet het uit om profielen direct met één tik te openen.",
         "double_tap_off": "Uit",
-        "double_tap_action": "",
-        "double_tap_action_desc": "",
-        "double_tap_open_chat": "",
-        "chats": "",
-        "chat_row_swipe_actions": "",
-        "chat_row_swipe_actions_desc": "",
-        "mobile_enter_to_send": "",
-        "mobile_enter_to_send_desc": ""
+        "double_tap_action": "Actie bij dubbeltikken",
+        "double_tap_action_desc": "Dubbeltik op een profiel in het raster om een tap te sturen of de chat direct te openen. Zet dit uit om profielen direct met één tik te openen.",
+        "double_tap_open_chat": "Chat openen",
+        "chats": "Chats",
+        "chat_row_swipe_actions": "Veegacties in de chatlijst",
+        "chat_row_swipe_actions_desc": "Veeg een chat naar rechts om hem vast te zetten of naar links om hem te verwijderen. Lang drukken opent nog steeds alle acties.",
+        "mobile_enter_to_send": "Enter om te verzenden op mobiel",
+        "mobile_enter_to_send_desc": "De Enter-toets op het toetsenbord van je telefoon verstuurt het bericht in plaats van een nieuwe regel te beginnen."
     },
     "notifications_page": {
         "subtitle": "Kies welke meldingen je krijgt en of ze verschijnen terwijl de app open is.",
@@ -1108,25 +1108,25 @@
         "taps_enabled_desc": "Krijg een melding als iemand je tapt.",
         "foreground": "Meldingen terwijl de app open is",
         "foreground_desc": "Toon meldingen (voor de hierboven ingeschakelde types) terwijl je de app open hebt. Zet dit uit om alleen meldingen te krijgen als de app op de achtergrond draait of gesloten is.",
-        "activity_section": "",
-        "push_settings_loading": "",
-        "push_settings_load_failed": "",
-        "push_settings_save_failed": "",
+        "activity_section": "Activiteit",
+        "push_settings_loading": "Laden…",
+        "push_settings_load_failed": "Kon de meldingsinstellingen niet laden.",
+        "push_settings_save_failed": "Kon de meldingsinstelling niet opslaan.",
         "push_settings": {
-            "favoritePushNotification": "",
-            "favoritePushNotification_desc": "",
-            "mediaRecipientPushNotification": "",
-            "mediaRecipientPushNotification_desc": "",
-            "tappedPushNotification": "",
-            "tappedPushNotification_desc": "",
-            "recommendedPushNotification": "",
-            "recommendedPushNotification_desc": "",
-            "unreadChatsPushNotification": "",
-            "unreadChatsPushNotification_desc": "",
-            "viewedProfilePushNotification": "",
-            "viewedProfilePushNotification_desc": "",
-            "tapPushNotification": "",
-            "tapPushNotification_desc": ""
+            "favoritePushNotification": "Favorieten online",
+            "favoritePushNotification_desc": "Krijg een melding als een van je favorieten online komt.",
+            "mediaRecipientPushNotification": "Fotomontvanger online",
+            "mediaRecipientPushNotification_desc": "Krijg een melding als iemand naar wie je foto's hebt gestuurd online komt.",
+            "tappedPushNotification": "Getapt online",
+            "tappedPushNotification_desc": "Krijg een melding als iemand die je hebt getapt online komt.",
+            "recommendedPushNotification": "Aanbevelingen",
+            "recommendedPushNotification_desc": "Krijg een melding als een aanbevolen profiel in de buurt online is.",
+            "unreadChatsPushNotification": "Herinnering ongelezen chats",
+            "unreadChatsPushNotification_desc": "Krijg een herinnering voor chats die je nog niet hebt gelezen.",
+            "viewedProfilePushNotification": "Weergaven",
+            "viewedProfilePushNotification_desc": "Krijg een melding als je profiel wordt bekeken.",
+            "tapPushNotification": "Taps",
+            "tapPushNotification_desc": "Of Grindr wel tap-pushmeldingen naar je account stuurt."
         }
     },
     "issue_search": {
@@ -1187,7 +1187,7 @@
             "password": "Wachtwoord",
             "show_password": "Wachtwoord tonen",
             "hide_password": "Wachtwoord verbergen",
-            "error_details": ""
+            "error_details": "Details"
         },
         "sign_in": {
             "title": "Inloggen",
@@ -1213,26 +1213,26 @@
             "facebook_sign_in": "Inloggen met Facebook",
             "facebook_waiting": "Wachten op Facebook…",
             "google_help": "Voor accounts die met Google zijn aangemaakt.",
-            "google_native_error": "",
+            "google_native_error": "Inloggen met Google kon niet worden geopend. Probeer het opnieuw.",
             "jwt_label": "JWT-token",
             "signing_in": "Inloggen...",
             "submit": "Inloggen",
             "add_profile_title": "Profiel toevoegen",
             "add_profile_subtitle": "Log in met het account dat je wilt toevoegen.",
             "forgot_password": "Wachtwoord vergeten?",
-            "qr_camera_denied": "",
-            "qr_scan_failed": "",
-            "qr_step_show": "",
-            "qr_step_show_hint": "",
-            "qr_step_scan": "",
-            "qr_step_paste": "",
-            "qr_step_paste_hint": "",
-            "qr_scan": "",
-            "qr_or_paste": "",
-            "qr_code_placeholder": "",
-            "qr_back": "",
-            "qr_entry": "",
-            "qr_scan_hint": ""
+            "qr_camera_denied": "Free Grind heeft toegang tot de camera nodig om de code te scannen.",
+            "qr_scan_failed": "Kon de code niet scannen. Probeer het opnieuw.",
+            "qr_step_show": "Toon de code op je ingelogde apparaat",
+            "qr_step_show_hint": "Open in Free Grind op dat apparaat Instellingen en tik op \"Inloggen op een ander apparaat\".",
+            "qr_step_scan": "Scan hem hier",
+            "qr_step_paste": "Plak de code hier",
+            "qr_step_paste_hint": "Tik daar op \"Code kopiëren\" onder de QR-code en stuur hem naar dit apparaat.",
+            "qr_scan": "QR-code scannen",
+            "qr_or_paste": "of plak de code",
+            "qr_code_placeholder": "Inlogcode",
+            "qr_back": "Terug naar de andere inlogopties",
+            "qr_entry": "Ingelogd op een ander apparaat? Gebruik een QR-code",
+            "qr_scan_hint": "Richt de camera op de QR-code op je andere apparaat"
         },
         "reset": {
             "title": "Wachtwoord resetten",
@@ -1262,7 +1262,7 @@
             "limit_reached_title": "Accountlimiet bereikt",
             "limit_reached_desc": "Deze app heeft al {{limit}} accounts aangemaakt. Om misbruik te voorkomen kunnen er geen accounts meer worden aangemaakt.",
             "android_only_title": "Alleen beschikbaar op Android",
-            "android_only_desc": "",
+            "android_only_desc": "Voor het aanmaken van een account is een captcha-verificatie nodig, die alleen op Android beschikbaar is.",
             "back": "Terug"
         },
         "sms_verification": {
@@ -1283,9 +1283,9 @@
             "sign_in": "Inloggen",
             "send_in": "Code versturen ({{seconds}} s)",
             "resend_in": "Code opnieuw versturen ({{seconds}} s)",
-            "copy_report": "",
-            "report_copied": "",
-            "report_copy_failed": ""
+            "copy_report": "Debuginfo kopiëren",
+            "report_copied": "Debuginfo gekopieerd naar klembord",
+            "report_copy_failed": "Kon de debuginfo niet kopiëren"
         }
     },
     "chat": {
@@ -1399,8 +1399,8 @@
         "share_album_label": "Album delen",
         "share_location_label": "Locatie delen",
         "share_location_confirm": "Deze locatie delen?",
-        "share_location_current": "",
-        "share_location_saved_hint": "",
+        "share_location_current": "Huidige locatie",
+        "share_location_saved_hint": "Sla plekken op in je locatie-instellingen om ze hier snel te delen.",
         "drawer_label": "Galerij",
         "giphy": {
             "title": "GIFs",
@@ -1445,17 +1445,17 @@
         "time": {
             "one_min_ago": "1 min geleden",
             "mins_ago": "{{count}} min geleden",
-            "hours_ago": "",
+            "hours_ago": "{{count}} u geleden",
             "now": "Nu",
             "last_week": "Vorige week",
-            "one_hour_ago": "",
-            "hours_ago_long": "",
-            "one_day_ago": "",
-            "days_ago": "",
-            "taken_now": "",
-            "taken_ago": "",
-            "taken_last_week": "",
-            "taken_in": ""
+            "one_hour_ago": "1 uur geleden",
+            "hours_ago_long": "{{count}} uur geleden",
+            "one_day_ago": "1 dag geleden",
+            "days_ago": "{{count}} dagen geleden",
+            "taken_now": "Zojuist gemaakt",
+            "taken_ago": "{{time}} gemaakt",
+            "taken_last_week": "Vorige week gemaakt",
+            "taken_in": "Gemaakt in {{time}}"
         },
         "preview": {
             "sent_image": "Heeft een afbeelding gestuurd",
@@ -1507,11 +1507,11 @@
             "album_cover": "Albumomslag",
             "album_share": "Gedeeld album",
             "album_image": "Albumafbeelding",
-            "album_label": "",
-            "album_photo_count_one": "",
-            "album_photo_count_other": "",
-            "album_video_count_one": "",
-            "album_video_count_other": "",
+            "album_label": "Album",
+            "album_photo_count_one": "{{count}} foto",
+            "album_photo_count_other": "{{count}} foto's",
+            "album_video_count_one": "{{count}} video",
+            "album_video_count_other": "{{count}} video's",
             "profile_photo": "Profielfoto",
             "replied_to_myself": "Mezelf beantwoord",
             "replied_to_name": "Antwoordde op \"{{name}}\"",
@@ -1571,7 +1571,7 @@
             "max_views": "Max. weergaven",
             "view_once": "Eenmalig bekijken",
             "view_once_description": "De afbeelding kan maar één keer 10 seconden lang worden bekeken",
-            "replay": "",
+            "replay": "Opnieuw afspelen",
             "taken_on_grindr": "Watermerk 'Taken on Grindr'",
             "taken_on_grindr_description": "Voeg het tijdstip toe om de echtheid en actualiteit van je foto te bevestigen",
             "add_to_drawer": "Toevoegen aan galerij",
@@ -1684,19 +1684,19 @@
         "media_alt": "Galerijmedia",
         "take_photo": "Foto maken",
         "upload_photo": "Foto uploaden",
-        "add_media": "",
+        "add_media": "Media toevoegen",
         "add_to_drawer": "Toevoegen aan galerij",
         "invalid_file_type": "Kies een foto.",
         "delete_confirm_title": "Verwijderen uit galerij?",
         "delete_confirm_message": "Weet je zeker dat je deze media uit je galerij wilt verwijderen?",
-        "delete_confirm_message_everywhere": "",
+        "delete_confirm_message_everywhere": "Dit verwijdert het uit je galerij en uit elke collectie die het gebruikt.",
         "delete_confirm_label": "Verwijderen",
-        "album_delete_confirm_title": "",
-        "album_delete_confirm_message": "",
-        "album_edit": "",
-        "album_delete": "",
-        "collection_edit": "",
-        "collection_delete": "",
+        "album_delete_confirm_title": "Album verwijderen?",
+        "album_delete_confirm_message": "Dit verwijdert het album en alles erin. Iedereen met wie je het hebt gedeeld, verliest de toegang.",
+        "album_edit": "Album bewerken",
+        "album_delete": "Album verwijderen",
+        "collection_edit": "Collectie bewerken",
+        "collection_delete": "Collectie verwijderen",
         "is_expiring_toggle_on": "1×",
         "is_expiring_toggle_off": "onbeperkt",
         "is_expiring_send": "Verdwijnend versturen ({{count}})",
@@ -1706,22 +1706,22 @@
         "collection_empty_send": "Geen van de media uit deze collectie staat nog in je galerij.",
         "collection_manage": "Collecties beheren",
         "album_manage": "Albums beheren",
-        "tab_media": "",
-        "tab_albums": "",
-        "tab_collections": "",
-        "albums_empty": "",
-        "albums_create": "",
-        "video_expiry_title": "",
-        "video_expiry_unlimited_desc": "",
-        "video_expiry_once_desc": "",
-        "video_expiry_repeat_desc": "",
-        "empty_hint": "",
-        "albums_empty_hint": "",
-        "collections_empty": "",
-        "collections_empty_hint": "",
-        "collections_create": "",
-        "view_combined": "",
-        "view_split": ""
+        "tab_media": "Media",
+        "tab_albums": "Albums",
+        "tab_collections": "Collecties",
+        "albums_empty": "Je hebt nog geen albums.",
+        "albums_create": "Album maken",
+        "video_expiry_title": "Videoweergaven",
+        "video_expiry_unlimited_desc": "Kan zo vaak bekeken worden als ze willen",
+        "video_expiry_once_desc": "Kan één keer bekeken worden",
+        "video_expiry_repeat_desc": "Kan twee keer bekeken worden",
+        "empty_hint": "Maak een foto of video, of upload er een vanaf je apparaat.",
+        "albums_empty_hint": "Met albums deel je meerdere foto's tegelijk en kun je op elk moment stoppen met delen.",
+        "collections_empty": "Je hebt nog geen collecties.",
+        "collections_empty_hint": "Collecties groeperen galerijfoto's zodat je ze met één tik samen kunt versturen.",
+        "collections_create": "Collectie maken",
+        "view_combined": "Alles op één pagina tonen",
+        "view_split": "Opsplitsen in categorieën"
     },
     "favorites": {
         "added": "Toegevoegd aan favorieten",
@@ -1775,9 +1775,9 @@
         "ban_bio_title": "Verboden woord toevoegen",
         "ban_bio_prompt": "Kort deze bio in tot de exacte zin die je wilt verbieden:",
         "ban_bio_added": "\"{{word}}\" toegevoegd aan verboden woorden!",
-        "ban_keyword_source_bio": "",
-        "ban_keyword_source_name": "",
-        "more_actions": "",
+        "ban_keyword_source_bio": "Bio-zin",
+        "ban_keyword_source_name": "Profielnaam",
+        "more_actions": "Meer acties",
         "profile_fallback": "Profiel {{id}}",
         "last_online": "Laatst online {{value}}",
         "close_photo_viewer": "Fotoweergave sluiten",
@@ -1866,6 +1866,7 @@
         "location_finder_initial_distance": "Beginafstand: {{distance}} m",
         "location_finder_restoring": "Je locatie herstellen…",
         "location_finder_stop": "Stoppen",
+        "location_finder_busy": "Lokaliseren loopt al voor een ander profiel.",
         "locating": "Lokaliseren...",
         "locate": "Lokaliseren",
         "about": "Over",
@@ -2142,8 +2143,8 @@
             "load_photos": "Profielfoto's laden mislukt",
             "load_legal_agreements": "Juridische overeenkomsten laden mislukt",
             "accept_legal_agreements": "Juridische overeenkomsten accepteren mislukt",
-            "load_warnings": "",
-            "acknowledge_warnings": ""
+            "load_warnings": "Accountwaarschuwingen laden mislukt",
+            "acknowledge_warnings": "Accountwaarschuwingen bevestigen mislukt"
         }
     },
     "errors": {
@@ -2199,19 +2200,19 @@
         "delete_confirm_message": "Hiermee wordt hij direct van je profiel verwijderd."
     },
     "common": {
-        "clear": "",
+        "clear": "Wissen",
         "back": "Terug",
         "cancel": "Annuleren",
         "save": "Opslaan",
         "edit": "Bewerken",
         "unknown_display_name": "Iemand",
-        "close": "",
-        "done": ""
+        "close": "Sluiten",
+        "done": "Klaar"
     },
     "grid": {
         "refresh": "Grid vernieuwen",
-        "name_or_id_placeholder": "",
-        "open_profile_id": ""
+        "name_or_id_placeholder": "Naam of profiel-ID…",
+        "open_profile_id": "Profiel {{id}} openen"
     },
     "test_reminder": {
         "title": "Tijd voor een check-up?",
@@ -2234,8 +2235,8 @@
             "description": "Grindr heeft dit account verbannen{{reason}}. Je kunt pas weer inloggen als de ban is opgeheven.",
             "copy_details": "Details kopiëren",
             "copy_details_success": "Details gekopieerd naar klembord",
-            "subscriptions_description": "",
-            "appeal": ""
+            "subscriptions_description": "Een ban zegt een Grindr-abonnement niet op. Als je er een hebt, zeg het op in de abonnementsinstellingen van je app store.",
+            "appeal": "Bezwaar maken tegen ban"
         },
         "age_verification": {
             "title": "Leeftijdsverificatie vereist",
@@ -2250,13 +2251,13 @@
             "device": "Apparaatban",
             "network": "Netwerkban",
             "underage": "Minderjarig",
-            "timed": ""
+            "timed": "Tijdelijke ban"
         },
         "details": {
             "reason": "Reden",
             "region": "Regio",
-            "decision_automated": "",
-            "decision_human": ""
+            "decision_automated": "Bij dit besluit zijn geautomatiseerde middelen gebruikt.",
+            "decision_human": "Een menselijke moderator heeft dit besluit genomen. Er zijn geen geautomatiseerde middelen gebruikt."
         },
         "timed_ban": {
             "title": "Tijdelijk verbannen",
@@ -2268,16 +2269,16 @@
             "accept_failed": "Kon de overeenkomst niet accepteren",
             "agreement_completed_title": "Helemaal klaar",
             "agreement_completed_description": "Je hebt de banovereenkomst van Grindr geaccepteerd. Je hoeft verder niets te doen.",
-            "agree_label": "",
-            "agreed_label": "",
-            "agree_hint": ""
+            "agree_label": "Richtlijnen lezen en ermee akkoord gaan",
+            "agreed_label": "Richtlijnen gelezen en akkoord",
+            "agree_hint": "Lees de richtlijnen hierboven en ga ermee akkoord om weer toegang tot je account te krijgen."
         },
         "device_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_sign_out": ""
+            "title": "Apparaat geblokkeerd",
+            "description": "Je kunt je account op dit moment niet op dit apparaat gebruiken.",
+            "card_title": "Vaak geen echte ban",
+            "card_text": "Grindr antwoordde met ACCOUNT_BANNED, wat het ook stuurt bij verzoeken die het niet vertrouwt, bijvoorbeeld vanwege de vingerafdruk van het apparaat.",
+            "fix_sign_out": "Uitloggen maakt een nieuwe apparaatidentiteit aan, wat het meestal oplost."
         },
         "regions": {
             "uk": "Verenigd Koninkrijk",
@@ -2285,184 +2286,184 @@
             "au": "Australië",
             "us": "Verenigde Staten"
         },
-        "read_guidelines": "",
-        "reason_label": "",
-        "learn_more": "",
+        "read_guidelines": "Communityrichtlijnen",
+        "reason_label": "Reden van ban",
+        "learn_more": "Meer informatie",
         "ban_reasons": {
             "blackmail": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Chantage, afpersing en directe bedreigingen",
+                "summary": "Grindr verbiedt chantage, afpersing en directe bedreigingen met geweld ten strengste. Dit gedrag brengt gebruikers in gevaar, schendt de richtlijnen en kan leiden tot een accountban.",
+                "details": "Chantage, afpersing en directe bedreigingen met geweld, inclusief manipulatie met persoonlijke afbeeldingen of informatie, zijn op Grindr strikt verboden. Dit gedrag brengt de veiligheid van de community in gevaar en gaat in tegen de richtlijnen."
             },
             "bot_activity": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Geautomatiseerde activiteit/bots",
+                "summary": "Grindr vindt echte connecties belangrijk. Gedrag zoals massaberichten sturen, veel profielen tegelijk aanmaken of tools gebruiken die acties van echte gebruikers nabootsen, is verboden.",
+                "details": "Dit account is gemarkeerd wegens schending van het beleid van Grindr over geautomatiseerde activiteit. Dit gedrag ondermijnt de veiligheid en echtheid van de community en gaat in tegen de richtlijnen. Als je denkt dat dit een vergissing is, kun je bezwaar maken in de officiële Grindr-app."
             },
             "bullying": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Gericht pesten en herhaald misbruik",
+                "summary": "Behandel anderen vriendelijk op Grindr. Pesten, intimidatie en bedreiging zijn verboden, omdat ze een vijandige omgeving creëren. Herhaald misbruik kan leiden tot verdere maatregelen tegen het account.",
+                "details": "Grindr zet zich in voor een veilige plek voor iedereen. Herhaald of gericht pesten schendt de richtlijnen en verstoort de community-ervaring. Neem even de tijd om de communityrichtlijnen door te nemen en zorg dat je toekomstige interacties respectvol en ondersteunend zijn. Verdere overtredingen kunnen leiden tot verdere maatregelen, waaronder een accountban."
             },
             "business_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Zakelijke werving",
+                "summary": "Grindr gebruiken om bedrijven, betaalde diensten of evenementen te promoten is niet toegestaan. Houd interacties persoonlijk en vrij van zakelijke doeleinden.",
+                "details": "Grindr is bedoeld voor persoonlijke connecties, niet om gebruikers te werven voor winstgerichte doelen zoals het promoten van bedrijven, betaalde diensten of evenementen. Zulke activiteiten leiden af van het doel van het platform en gaan in tegen de richtlijnen."
             },
             "casual_substances": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Terloopse vermelding van legale middelen",
+                "summary": "Legale middelen zoals cbd of wiet (waar legaal) mogen op Grindr genoemd worden. Overmatige promotie of focus op deze middelen kan er echter toe leiden dat het account door de community wordt gemeld en zelfs wordt geschorst.",
+                "details": "Profielen die om deze middelen draaien of ze overmatig promoten, kunnen de community-ervaring verstoren en door andere gebruikers worden gemeld. Grindr verbiedt drugsgerelateerde content of beelden die schadelijke praktijken kunnen bevorderen."
             },
             "consent_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Schending van toestemming",
+                "summary": "Toestemming is niet alleen sexy, het is verplicht – aanhoudende seksuele verzoeken, dwingend gedrag en elk ander gedrag dat toestemming negeert, zijn verboden op Grindr.",
+                "details": "Grindr moedigt gebruikers aan om in alle interacties duidelijk en expliciet toestemming te geven. Aanhoudende seksuele verzoeken, dwingend gedrag of acties die de grenzen van een andere gebruiker negeren, zijn verboden. Dit gedrag kan een onveilige en ongemakkelijke omgeving creëren en schendt de communityrichtlijnen en de principes van respect en veiligheid."
             },
             "drug_facilitation": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "Drugsbemiddeling",
+                "summary": "Anderen helpen aan illegale drugs te komen is niet toegestaan op Grindr. Verdere overtredingen kunnen leiden tot een accountban.",
+                "details": "Anderen in contact brengen met illegale drugs — aanbieden te delen wat je hebt, een ophaalmoment regelen of iemand in contact brengen met een bron — is niet toegestaan, ook niet als er niets wordt verkocht. Dit gaat in tegen de richtlijnen van Grindr, omdat Grindr om je welzijn geeft en streeft naar een veilige, respectvolle community.",
+                "summary_banned": "Anderen helpen aan illegale drugs te komen is niet toegestaan op Grindr. Dit account is na herhaalde overtredingen verbannen."
             },
             "drug_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Promotie of verheerlijking van drugs",
+                "summary": "Herhaalde pogingen om drugs te promoten zijn niet toegestaan op Grindr.",
+                "details": "Verwijzingen naar cannabis, tabak en alcohol zijn in bepaalde contexten toegestaan, maar Grindr staat geen profielen toe die om drugs draaien of drugs promoten, inclusief praten over of deelnemen aan het kopen of verkopen van drugs (van welke soort ook). Dit beleid geldt ook voor afbeeldingen en emoji's die om drugs vragen of drugsgebruik promoten."
             },
             "drug_seeking": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Drugs zoeken",
+                "summary": "Drugs zoeken op Grindr schendt de richtlijnen.",
+                "details": "Drugs zoeken, ook af en toe, in je profiel of chats is niet toegestaan. Dit gaat in tegen de richtlijnen van Grindr, omdat Grindr om je welzijn geeft en streeft naar een veilige, respectvolle community."
             },
             "occasional_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Af en toe om drugs vragen",
+                "summary": "Drugs zoeken op Grindr schendt de richtlijnen.",
+                "details": "Drugs zoeken, ook af en toe, in je profiel of chats is niet toegestaan. Dit gaat in tegen de richtlijnen van Grindr, omdat Grindr om je welzijn geeft en streeft naar een veilige, respectvolle community."
             },
             "frequent_drug_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Vaak om drugs vragen",
+                "summary": "Herhaalde pogingen om aan drugs te komen zijn niet toegestaan op Grindr.",
+                "details": "Grindr is een platform voor echte persoonlijke connecties. Herhaalde pogingen om direct of indirect aan drugs te komen, verstoren de community-ervaring en schenden de richtlijnen. Als dit gedrag doorgaat, kan het leiden tot een langere schorsing of zelfs een ban."
             },
             "fraudulent_promotion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Oplichting en frauduleuze promoties",
+                "summary": "Grindr verbiedt oplichting of praktijken die anderen uitbuiten of schaden ten strengste.",
+                "details": "Dit omvat frauduleuze praktijken of misleidend gedrag gericht op het uitbuiten van andere gebruikers. Grindr neemt de veiligheid van zijn community serieus en tolereert dit gedrag niet."
             },
             "general_advertising": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Algemene reclame en werving",
+                "summary": "Grindr is voor echte persoonlijke connecties, niet voor reclame voor producten, diensten of externe platforms. Promotionele content is niet toegestaan in profielen of berichten.",
+                "details": "Profielen of berichten gebruiken om producten of diensten te promoten of externe links te delen, gaat in tegen de richtlijnen en verstoort de ervaring voor anderen."
             },
             "hate_speech": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Haatzaaiende taal en aanstootgevende content",
+                "summary": "Haatzaaiende en discriminerende taal is verboden op Grindr. Herhaalde kwetsende interacties creëren een vijandige omgeving. Verdere overtredingen kunnen leiden tot verdere maatregelen, waaronder een accountban.",
+                "details": "Grindr zet zich in voor een inclusieve en respectvolle community. Haatzaaiende en discriminerende taal kan een vijandige en onveilige omgeving voor anderen creëren. Neem de communityrichtlijnen door en zorg dat je toekomstige interacties respect en inclusiviteit uitstralen."
             },
             "impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Imitatie en identiteitsmisbruik",
+                "summary": "Grindr verbiedt je voordoen als iemand anders of profielen maken die iemands identiteit onjuist weergeven. Dit gedrag schendt de richtlijnen en kan leiden tot een accountban.",
+                "details": "Dit omvat het gebruiken van de naam, foto's of persoonsgegevens van iemand anders. Imitatie ondermijnt vertrouwen, brengt de veiligheid in gevaar en schendt de richtlijnen."
             },
             "mild_insults": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Lichte beledigingen en respectloosheid",
+                "summary": "Sommige van je berichten zijn gemarkeerd als mogelijk respectloos. Wees vriendelijk op Grindr en zorg dat je interacties respectvol blijven, in lijn met de communityrichtlijnen.",
+                "details": "Grindr wil een plek bieden voor respectvolle en authentieke interacties. Opmerkingen die onaardig of respectloos kunnen overkomen, kunnen anderen negatief raken en gaan in tegen de communityrichtlijnen. Verdere overtredingen kunnen leiden tot maatregelen zoals een schorsing of ban."
             },
             "mild_solicitation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Lichte werving en terloopse aanbiedingen",
+                "summary": "Grindr is voor echte persoonlijke connecties. Financiële verzoeken kunnen grenzen vervagen en passen niet bij de richtlijnen.",
+                "details": "Grindr is voor persoonlijke connecties — niet voor het promoten van betaalde content of financiële afspraken."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "summary": "",
-                "details": "",
-                "summary_banned": ""
+                "title": "Intieme beelden zonder toestemming",
+                "summary": "Intieme foto's of video's van een ander zonder diens toestemming delen is niet toegestaan op Grindr. Verdere overtredingen kunnen leiden tot een accountban.",
+                "details": "Intieme foto's of video's van een ander mogen alleen met diens toestemming worden gedeeld — en toestemming om een beeld te maken of te ontvangen is geen toestemming om het te delen. Dit geldt ook voor bewerkte en door AI gegenereerde beelden.",
+                "summary_banned": "Intieme foto's of video's van een ander zonder diens toestemming delen is niet toegestaan op Grindr."
             },
             "offline_incident": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Ernstige offline incidenten",
+                "summary": "Dit account is verbannen na een melding van schadelijk gedrag. Veiligheid en respect zijn op Grindr niet onderhandelbaar.",
+                "details": "Grindr neemt deze maatregelen om de veiligheid van zijn community te beschermen en een respectvolle omgeving voor alle gebruikers te behouden."
             },
             "paid_sexual_services": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Betaalde seksuele diensten",
+                "summary": "Seksuele diensten aanbieden of vragen in ruil voor geld of een vergoeding is niet toegestaan op Grindr.",
+                "details": "Grindr is voor persoonlijke connecties, niet voor commerciële transacties. Seksuele diensten aanbieden of vragen in ruil voor een vergoeding schendt, ongeacht de omstandigheden, de richtlijnen."
             },
             "phishing": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Phishing, fraude en schadelijke links",
+                "summary": "Grindr verbiedt het delen van kwaadaardige links, phishingpogingen of schadelijke software ten strengste.",
+                "details": "Het delen van kwaadaardige links, phishingpogingen of schadelijke software kan anderen misleiden of hun veiligheid in gevaar brengen. Accounts die dit doen, kunnen worden verbannen om het platform en zijn gebruikers te beschermen."
             },
             "privacy_violation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Privacyschendingen en doxxing",
+                "summary": "Iemands persoonlijke informatie zonder toestemming delen is strikt verboden en brengt de veiligheid in gevaar.",
+                "details": "Privé- of persoonlijke informatie van iemand anders delen, zoals contactgegevens of identificerende informatie, zonder diens toestemming is een ernstige schending van de richtlijnen. Dit gedrag brengt anderen in gevaar en ondermijnt het vertrouwen binnen de community."
             },
             "profile_spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Profielspam en reclame",
+                "summary": "Grindr is voor echte connecties, niet voor het promoten van producten, diensten of externe platforms. Promotionele content is niet toegestaan in profielen of chats.",
+                "details": "Advertenties, donatielinks of promotie van evenementen in je profiel of chats delen is niet toegestaan en doet afbreuk aan de authentieke ervaring. Grindr is bedoeld voor echte interacties — niet om diensten te verkopen of evenementen te hypen."
             },
             "drug_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Verkoop en verspreiding van drugs",
+                "summary": "Grindr verbiedt elke activiteit rond de verkoop of verspreiding van drugs ten strengste. Accounts die dit doen, worden verbannen.",
+                "details": "Grindr staat geen profielen, chats of content toe die de verkoop, verspreiding of promotie van illegale middelen mogelijk maken. Dit beleid dient het welzijn van gebruikers en helpt een veilige, authentieke omgeving voor iedereen te behouden; overtredingen van deze aard worden zeer serieus genomen."
             },
             "sextortion": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Sextortion",
+                "summary": "Dreigen iemands intieme foto's of video's te delen is niet toegestaan op Grindr.",
+                "details": "Chantage, afpersing en directe bedreigingen met geweld, inclusief manipulatie met persoonlijke afbeeldingen of informatie, zijn strikt verboden. Dit gedrag brengt de veiligheid van de community in gevaar."
             },
             "sexual_content_sale": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Verkoop van seksueel expliciete content",
+                "summary": "Grindr is voor echte connecties, niet voor commerciële transacties rond seksuele content. Seksueel expliciete content (inclusief je eigen foto's of video's) verkopen of promoten is niet toegestaan op Grindr.",
+                "details": "Seksueel expliciet materiaal verkopen of promoten, inclusief foto's of video's, schendt de richtlijnen en verstoort de community-ervaring. Zorg dat je profiel en berichten gericht zijn op echte connecties binnen de community."
             },
             "spam": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Herhaalde of ongewenste berichten",
+                "summary": "Herhaalde berichten of overmatig nasturen geldt als spam. Verdere overtredingen kunnen leiden tot schorsing van het account.",
+                "details": "Te veel berichten in korte tijd sturen schendt de richtlijnen. Respecteer andere gebruikers altijd — lees profielen voor voorkeuren, deel je grenzen en respecteer die van anderen."
             },
             "transactional_service": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Transactionele diensten",
+                "summary": "Grindr verbiedt het aanbieden of vragen van transactionele diensten, zoals betaald gezelschap, ook als die niet seksueel van aard zijn.",
+                "details": "Dit gedrag leidt het platform af van zijn focus op persoonlijke, betekenisvolle connecties en schendt de richtlijnen. Zorg dat je interacties vrij blijven van commerciële bedoelingen."
             },
             "underage_endangerment": {
-                "title": "",
-                "summary": ""
+                "title": "Kinderbescherming en gevaarzetting",
+                "summary": "Dit account is verbannen na een melding van schadelijk gedrag. Veiligheid en respect zijn op Grindr niet onderhandelbaar."
             },
             "underage_impersonation": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Je voordoen als minderjarige",
+                "summary": "Grindr is alleen voor volwassenen – je moet minstens 18 jaar zijn (of ouder, in sommige regio's) om Grindr te gebruiken. Activiteit als minderjarige, ook in rollenspel, is verboden.",
+                "details": "Je voordoen als minderjarige, of het nu voor rollenspel is of om een andere reden, schendt het beleid van Grindr en kan leiden tot een accountban. Profielen die zich voordoen als andere personen, ongeacht de bedoeling, ondermijnen het vertrouwen binnen de community en zijn niet toegestaan."
             },
             "underage": {
-                "title": "",
-                "summary": "",
-                "details": ""
+                "title": "Toegang door minderjarigen",
+                "summary": "Grindr is alleen voor volwassenen – je moet minstens 18 jaar zijn (of ouder, in sommige regio's) om Grindr te gebruiken.",
+                "details": "Je moet aan deze leeftijdseis voldoen om de diensten te gebruiken, en Grindr neemt deze regel zeer serieus. Daarnaast is communiceren met minderjarigen of het delen van afbeeldingen waarop minderjarigen te zien zijn, ongeacht de context, een ernstige schending van het beleid van Grindr."
             }
         },
-        "reason_unknown": "",
-        "ends_in": "",
-        "appeal_link": "",
+        "reason_unknown": "Geen reden opgegeven",
+        "ends_in": "Eindigt over {{time}}",
+        "appeal_link": "Bezwaar maken",
         "network_ban": {
-            "title": "",
-            "description": "",
-            "card_title": "",
-            "card_text": "",
-            "fix_vpn": "",
-            "fix_switch": ""
+            "title": "Netwerk geblokkeerd",
+            "description": "Je kunt niet inloggen vanaf het netwerk waarop je nu zit.",
+            "card_title": "Verdacht netwerk",
+            "card_text": "Grindr markeert vpn's, proxy's en gedeelde IP-adressen op deze manier. Je account zelf is niet verbannen.",
+            "fix_vpn": "Zet je vpn of proxy uit.",
+            "fix_switch": "Wissel tussen wifi en mobiele data en log daarna opnieuw in."
         },
         "underage_ban": {
-            "title": "",
-            "description": ""
+            "title": "Minderjarig account",
+            "description": "Je kunt pas inloggen als de ban is opgeheven. Als je 18 of ouder bent, maak bezwaar om je leeftijd te bevestigen."
         },
-        "what_happened": "",
-        "code_chip": ""
+        "what_happened": "Wat er is gebeurd",
+        "code_chip": "Code {{code}}"
     },
     "sexualHealth": {
         "title": "Seksuele gezondheid",
@@ -2480,10 +2481,10 @@
             "unknown": "Nog niet bijgehouden"
         },
         "history": {
-            "subtitle_encounters_one": "",
-            "subtitle_encounters_other": "",
-            "subtitle_doses_one": "",
-            "subtitle_doses_other": "",
+            "subtitle_encounters_one": "{{count}} ontmoeting",
+            "subtitle_encounters_other": "{{count}} ontmoetingen",
+            "subtitle_doses_one": "{{count}} dosis",
+            "subtitle_doses_other": "{{count}} doses",
             "log_encounter": "Ontmoeting vastleggen",
             "open_chat": "Chat openen",
             "loading": "Geschiedenis laden…",
@@ -2515,8 +2516,8 @@
             "delete_confirm_action": "Verwijderen"
         },
         "encounter": {
-            "person": "",
-            "no_matches_hint": "",
+            "person": "Wie",
+            "no_matches_hint": "Niet in je chats? Voeg de persoon hieronder toe op naam.",
             "sheet_title": "Ontmoeting vastleggen",
             "edit_title": "Ontmoeting bewerken",
             "change_person": "Wijzigen",
@@ -2541,9 +2542,9 @@
             "delete_confirm_action": "Verwijderen"
         },
         "appointments": {
-            "subtitle_upcoming_one": "",
-            "subtitle_upcoming_other": "",
-            "subtitle_none_upcoming": "",
+            "subtitle_upcoming_one": "{{count}} gepland",
+            "subtitle_upcoming_other": "{{count}} gepland",
+            "subtitle_none_upcoming": "Geen geplande afspraken",
             "add": "Afspraak toevoegen",
             "add_title": "Afspraak toevoegen",
             "edit_title": "Afspraak bewerken",
@@ -2605,7 +2606,7 @@
         "info": {
             "sheet_title": "PrEP-instellingen",
             "settings_button": "PrEP-instellingen",
-            "scheme_section": "",
+            "scheme_section": "Doseerschema",
             "scheme_daily_label": "Dagelijks",
             "scheme_daily_tagline": "Eén pil, elke dag",
             "scheme_on_demand_label": "Op aanvraag (2-1-1)",
@@ -2623,7 +2624,7 @@
         "description": "Kies foto's om aan je profiel toe te voegen, of upload nieuwe.",
         "upload": "Foto uploaden",
         "empty": "Nog geen foto's",
-        "empty_hint": "",
+        "empty_hint": "Maak een foto of upload er een vanaf je apparaat om hem aan je profiel toe te voegen.",
         "retry": "Opnieuw proberen",
         "image_alt": "Geüploade foto",
         "delete_image": "Foto verwijderen",
@@ -2642,23 +2643,23 @@
         "category_saved_locations": "Opgeslagen locaties",
         "category_settings": "Instellingen",
         "category_sexual_health": "Seksuele gezondheid",
-        "progress_step": "",
-        "progress_preparing": "",
+        "progress_step": "Stap {{step}} van {{steps}} · {{rows}} items",
+        "progress_preparing": "Voorbereiden…",
         "export_no_categories": "Kies minstens één categorie om te exporteren.",
         "export_categories_title": "Wat wil je exporteren?",
         "export_confirm": "Exporteren",
         "import_categories_title": "Wat wil je herstellen?",
         "import_categories_desc": "Alleen categorieën die in dit bestand staan kunnen worden hersteld.",
         "import_confirm": "Herstellen",
-        "export_success_picker": "",
-        "export_destination_title": "",
-        "export_destination_downloads": "",
-        "export_destination_picker": "",
-        "export_destination_picker_hint": "",
-        "export_destination_downloads_hint": "",
-        "export_destination_picker_hint_desktop": "",
-        "export_destination_device": "",
-        "export_destination_device_hint_ios": ""
+        "export_success_picker": "Gegevens geëxporteerd naar de gekozen locatie.",
+        "export_destination_title": "Opslaan in",
+        "export_destination_downloads": "Downloads",
+        "export_destination_picker": "Locatie kiezen…",
+        "export_destination_picker_hint": "Kies een willekeurige map of cloudopslag, bijv. Google Drive (vereist de Drive-app).",
+        "export_destination_downloads_hint": "Opgeslagen in Downloads/FreeGrind op dit apparaat.",
+        "export_destination_picker_hint_desktop": "Kies een willekeurige map, bijv. een die wordt gesynchroniseerd door Google Drive voor desktop.",
+        "export_destination_device": "Dit apparaat",
+        "export_destination_device_hint_ios": "Opgeslagen in de Bestanden-app onder Op mijn iPhone/iPad → Free Grind."
     },
     "restore_offer": {
         "title": "Je gegevens herstellen?",
@@ -2773,11 +2774,11 @@
         "provider_gemini_tagline": "Begrijpt slang · gratis niveau",
         "provider_openai_tagline": "Begrijpt slang · betaald",
         "provider_claude_tagline": "Begrijpt slang · betaald",
-        "provider_section": "",
-        "key_badge_missing": "",
-        "key_badge_invalid": "",
-        "key_badge_valid": "",
-        "guide_paste_inline_desc": "",
+        "provider_section": "Aanbieder",
+        "key_badge_missing": "Niet ingesteld",
+        "key_badge_invalid": "Werkt niet",
+        "key_badge_valid": "Actief",
+        "guide_paste_inline_desc": "Plak de sleutel en tik op Opslaan. Hij wordt meteen gecontroleerd.",
         "api_section": "Aanbieder & API-sleutel"
     },
     "legal_agreements": {
@@ -2806,32 +2807,32 @@
         "open_github": "Openen op GitHub",
         "dismiss": "Sluiten",
         "get_version": "{{version}} downloaden",
-        "description_manual": "",
-        "description_outdated": "",
-        "installed_label": "",
-        "latest_label": "",
-        "released_ago": "",
-        "releases_ahead_one": "",
-        "releases_ahead_other": ""
+        "description_manual": "Er staat een nieuwe versie van de app klaar om te installeren.",
+        "description_outdated": "Deze versie krijgt geen over-the-air-updates meer. Installeer de nieuwste om nieuwe functies en oplossingen te blijven krijgen.",
+        "installed_label": "Geïnstalleerd",
+        "latest_label": "Nieuwste",
+        "released_ago": "Uitgebracht {{time}}",
+        "releases_ahead_one": "{{count}} release nieuwer",
+        "releases_ahead_other": "{{count}} releases nieuwer"
     },
     "ota_prompt": {
-        "title": "",
-        "description": "",
-        "failed": "",
-        "update_now": "",
-        "later": "",
-        "version": "",
-        "installed": "",
-        "new": "",
-        "built_in": "",
-        "newer_minutes_one": "",
-        "newer_minutes_other": "",
-        "newer_hours_one": "",
-        "newer_hours_other": "",
-        "newer_days_one": "",
-        "newer_days_other": "",
-        "auto_title": "",
-        "auto_desc": ""
+        "title": "Update beschikbaar",
+        "description": "Er staat een nieuwe versie van de app-interface klaar om te downloaden. Het duurt maar even en daarna herlaadt de app.",
+        "failed": "De update kon niet worden gedownload. Controleer je verbinding en probeer het opnieuw.",
+        "update_now": "Nu bijwerken",
+        "later": "Later",
+        "version": "Versie {{version}}",
+        "installed": "Geïnstalleerde build",
+        "new": "Nieuwe build",
+        "built_in": "Meegeleverd met de app",
+        "newer_minutes_one": "{{count}} minuut nieuwer",
+        "newer_minutes_other": "{{count}} minuten nieuwer",
+        "newer_hours_one": "{{count}} uur nieuwer",
+        "newer_hours_other": "{{count}} uur nieuwer",
+        "newer_days_one": "{{count}} dag nieuwer",
+        "newer_days_other": "{{count}} dagen nieuwer",
+        "auto_title": "Automatisch installeren",
+        "auto_desc": "Toekomstige frontend-updates installeren zonder te vragen."
     },
     "apk_update": {
         "errors": {
@@ -2848,199 +2849,199 @@
         }
     },
     "account_transfer": {
-        "unsupported": "",
-        "create_failed": "",
-        "copied": "",
-        "copy_failed": "",
-        "title": "",
-        "subtitle": "",
-        "warning_title": "",
-        "warning_desc": "",
-        "qr_alt": "",
-        "hides_in": "",
-        "copy": "",
-        "hide": "",
-        "show": "",
-        "howto_title": "",
-        "howto_desc": "",
-        "settings_desc": "",
-        "backup_title": "",
-        "backup_desc": ""
+        "unsupported": "Deze login kan niet naar een ander apparaat worden overgezet. Log in plaats daarvan in met e-mail en wachtwoord of met Google.",
+        "create_failed": "Kon geen inlogcode aanmaken.",
+        "copied": "Code gekopieerd",
+        "copy_failed": "Kon de code niet kopiëren.",
+        "title": "Inloggen op een ander apparaat",
+        "subtitle": "Log met dit account in op een ander apparaat zonder je wachtwoord te typen.",
+        "warning_title": "Deze code is je login",
+        "warning_desc": "Iedereen die hem scant of kopieert, kan de komende 10 minuten inloggen op je account. Toon hem alleen aan een apparaat van jezelf en stuur hem nooit naar iemand.",
+        "qr_alt": "Inlog-QR-code",
+        "hides_in": "Verdwijnt over {{time}}",
+        "copy": "Code kopiëren",
+        "hide": "Verbergen",
+        "show": "Inlogcode tonen",
+        "howto_title": "Op het andere apparaat",
+        "howto_desc": "Tik op het inlogscherm van Free Grind op \"Gebruik een QR-code\" en scan deze code. Op een computer kopieer je de code en plak je hem daar. Beide apparaten blijven ingelogd.",
+        "settings_desc": "Toon een QR-code om dit account ergens anders in te loggen",
+        "backup_title": "Neem je gegevens mee",
+        "backup_desc": "Chatgeschiedenis, albums, opgeslagen zinnen, opgeslagen locaties en instellingen staan alleen op dit apparaat. Exporteer ze onder Back-up en herstel en importeer het bestand op het nieuwe apparaat om daar ook alles te hebben."
     },
     "unsupported_version": {
-        "title": "",
-        "description": "",
-        "app_version": "",
-        "grindr_says": "",
-        "check": "",
-        "dismiss": "",
-        "no_update": "",
-        "check_failed": ""
+        "title": "Update vereist",
+        "description": "Grindr accepteert de appversie waarmee Free Grind zich identificeert niet meer. Werk Free Grind bij om het te blijven gebruiken — tot die tijd werken inloggen en de meeste functies niet.",
+        "app_version": "Appversie",
+        "grindr_says": "Grindr zegt",
+        "check": "Zoeken naar update",
+        "dismiss": "Niet nu",
+        "no_update": "Er is nog geen nieuwere versie. Kijk later nog eens.",
+        "check_failed": "Kon niet naar updates zoeken"
     },
     "account_warnings": {
-        "title": "",
-        "description": "",
-        "acknowledge": "",
-        "read_guidelines": "",
-        "acknowledge_failed": "",
-        "why": "",
+        "title": "Waarschuwing",
+        "description": "Je account heeft onze communityrichtlijnen geschonden. Als dit nog eens gebeurt, kun je worden verbannen.",
+        "acknowledge": "Ik begrijp het en ga akkoord",
+        "read_guidelines": "Lees onze richtlijnen",
+        "acknowledge_failed": "Kon de waarschuwingen niet bevestigen. Probeer het opnieuw.",
+        "why": "Waarom zie ik dit?",
         "types": {
             "harassment": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Intimidatie",
+                "content": "We moedigen vrije meningsuiting aan, maar niet als het anderen pest of intimideert. Wees vriendelijk op Grindr.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor intimidatie in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "We vragen je anderen op Grindr vriendelijk te behandelen. Pesten, intimidatie en bedreiging zijn verboden, omdat ze een vijandige omgeving creëren. Herhaald misbruik kan leiden tot verdere maatregelen tegen je account."
             },
             "commercial": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Commerciële activiteit",
+                "content": "Grindr is alleen voor persoonlijk gebruik. Je mag niet om geld vragen, adverteren of Grindr gebruiken om iets te kopen of te verkopen. Als dit nog eens gebeurt, kun je worden verbannen.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor commerciële activiteit in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Grindr is bedoeld voor persoonlijke connecties, niet om gebruikers te werven voor winstgerichte doelen zoals het promoten van bedrijven, betaalde diensten of evenementen. Zulke activiteiten leiden af van het doel van het platform en gaan in tegen onze richtlijnen. Zorg dat je interacties persoonlijk en niet-commercieel blijven."
             },
             "mild_insults": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Lichte beledigingen en respectloosheid",
+                "content": "Sommige van je berichten zijn gemarkeerd als mogelijk respectloos. We moedigen je aan om op Grindr jezelf te zijn en je vrij te uiten, maar zonder anderen negatief te raken. Wees vriendelijk op Grindr en zorg dat je interacties respectvol blijven, in lijn met onze communityrichtlijnen.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor lichte beledigingen en respectloosheid in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Grindr wil een plek bieden voor respectvolle en authentieke interacties. Opmerkingen die onaardig of respectloos kunnen overkomen, kunnen anderen negatief raken en gaan in tegen onze communityrichtlijnen. Let op hoe je woorden overkomen en help ons een gastvrije omgeving voor iedereen te behouden. Verdere overtredingen kunnen leiden tot maatregelen zoals een schorsing of ban."
             },
             "general_advertising": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Algemene reclame en werving",
+                "content": "Grindr is voor echte persoonlijke connecties, niet voor reclame voor producten, diensten of externe platforms. Promotionele content is niet toegestaan in profielen of berichten. Zorg dat je interacties echt blijven en in lijn met onze richtlijnen.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor algemene reclame en werving in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Grindr is bedoeld voor echte persoonlijke connecties en is geen plek om producten, diensten of externe links te promoten. Profielen of berichten gebruiken om producten of diensten te promoten of externe links te delen, gaat in tegen onze richtlijnen en verstoort de ervaring voor anderen. Verwijder alle promotionele content zodat Grindr een plek voor echte interacties blijft."
             },
             "unwanted_messaging": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Herhaalde of ongewenste berichten",
+                "content": "Rustig aan! Herhaalde berichten of overmatig nasturen geldt als spam. Doe dit niet meer, want verdere overtredingen kunnen leiden tot schorsing van het account.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor herhaalde of ongewenste berichten in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Doe het wat rustiger aan. Te veel berichten in korte tijd sturen schendt onze richtlijnen. Dit systeem helpt Grindr veilig en positief te houden voor iedereen. Als dit gedrag doorgaat, kan je account worden geschorst. Respecteer andere gebruikers altijd — lees profielen voor voorkeuren, deel je grenzen en respecteer die van anderen."
             },
             "drug_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Af en toe om drugs vragen",
+                "content": "Drugs zoeken op Grindr schendt onze richtlijnen. Vermijd dit om een veilige en respectvolle community te helpen behouden.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor af en toe om drugs vragen in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Drugs zoeken, ook af en toe, in je profiel of chats is niet toegestaan. Dit gaat in tegen de richtlijnen van Grindr, omdat we om je welzijn geven en streven naar een veilige, respectvolle community. Vermijd zulke vermeldingen voortaan."
             },
             "drug_promotion": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Promotie of verheerlijking van drugs",
+                "content": "We staan geen activiteiten toe die het gebruik van illegale drugs promoten. Als dit nog eens gebeurt, kan je account worden geschorst.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor promotie of verheerlijking van drugs in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Het welzijn van onze gebruikers ligt ons na aan het hart. Verwijzingen naar cannabis, tabak en alcohol zijn in bepaalde contexten toegestaan, maar we staan geen profielen toe die om drugs draaien of drugs promoten, inclusief praten over of deelnemen aan het kopen of verkopen van drugs (van welke soort ook). Dit beleid geldt ook voor afbeeldingen en emoji's die om drugs vragen of drugsgebruik promoten."
             },
             "non_illicit_substances": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Terloopse vermelding van legale middelen",
+                "content": "Legale middelen zoals cbd of wiet (waar legaal) mogen op Grindr genoemd worden. Overmatige promotie of focus op deze middelen kan er echter toe leiden dat je account door onze community wordt gemeld en zelfs wordt geschorst.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor terloopse vermeldingen van legale middelen en symbolen in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "We staan terloopse vermeldingen van legale middelen, zoals cbd of wiet (waar legaal), op Grindr toe. Profielen die om deze middelen draaien of ze overmatig promoten, kunnen echter de community-ervaring verstoren en door andere gebruikers worden gemeld. Het welzijn van onze community ligt ons na aan het hart en we verbieden drugsgerelateerde content of beelden die schadelijke praktijken kunnen bevorderen. Zorg dat je profiel aan onze richtlijnen voldoet om ons te helpen een veilig en respectvol platform voor iedereen te behouden."
             },
             "mild_solicitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Lichte werving en terloopse aanbiedingen",
+                "content": "Grindr is voor echte persoonlijke connecties. Financiële verzoeken kunnen grenzen vervagen en passen niet bij onze richtlijnen. Laten we interacties authentiek en respectvol houden.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor lichte werving en terloopse aanbiedingen in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Grindr is voor persoonlijke connecties — niet voor het promoten van betaalde content of financiële afspraken. Zorg dat je profiel en berichten aan onze richtlijnen voldoen, zodat Grindr een plek voor echte interacties blijft."
             },
             "drug_seeking": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Drugs zoeken",
+                "content": "Drugs zoeken op Grindr schendt onze richtlijnen. Vermijd dit om een veilige en respectvolle community te helpen behouden. Als dit nog eens gebeurt, kan je account worden geschorst.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor drugs zoeken in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Drugs zoeken, ook af en toe, in je profiel of chats is niet toegestaan. Dit gaat in tegen de richtlijnen van Grindr, omdat we om je welzijn geven en streven naar een veilige, respectvolle community. Vermijd zulke vermeldingen voortaan."
             },
             "drug_facilitation": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Drugsbemiddeling",
+                "content": "Anderen helpen aan illegale drugs te komen is niet toegestaan op Grindr. Als dit nog eens gebeurt, kan je account worden geschorst.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor drugsbemiddeling in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Anderen in contact brengen met illegale drugs — aanbieden te delen wat je hebt, een ophaalmoment regelen of iemand in contact brengen met een bron — is niet toegestaan, ook niet als er niets wordt verkocht. Dit gaat in tegen de richtlijnen van Grindr, omdat we om je welzijn geven en streven naar een veilige, respectvolle community. Vermijd dit voortaan."
             },
             "non_consensual_intimate_imagery": {
-                "title": "",
-                "content": "",
-                "reason": "",
-                "details": ""
+                "title": "Intieme beelden zonder toestemming",
+                "content": "Intieme foto's of video's van een ander zonder diens toestemming delen is niet toegestaan op Grindr. Als dit nog eens gebeurt, kan je account worden geschorst.",
+                "reason": "Je ziet deze waarschuwing omdat je bent gemarkeerd voor het delen van intieme beelden zonder toestemming in een recente interactie. Als ons moderatieteam meldingen over andere incidenten ontvangt, kan je account worden verbannen wegens schending van onze communityrichtlijnen.",
+                "details": "Intieme foto's of video's van een ander mogen alleen met diens toestemming worden gedeeld — en toestemming om een beeld te maken of te ontvangen is geen toestemming om het te delen. Dit geldt ook voor bewerkte en door AI gegenereerde beelden. Dit gaat in tegen de richtlijnen van Grindr, omdat de veiligheid en privacy van iedereen in onze community ons na aan het hart liggen. Vermijd dit voortaan."
             }
         }
     },
     "community_guidelines": {
-        "label": "",
+        "label": "Communityrichtlijn",
         "authentic": {
-            "title": "",
-            "text": ""
+            "title": "Wees authentiek",
+            "text": "Wees jezelf in de app, niet iemand anders. Profielen die zich voordoen als andere mensen, ook beroemdheden, worden verbannen. Content die je op Grindr plaatst, moet van jou zijn of door jou gemaakt, en je moet jezelf eerlijk presenteren. Jij bepaalt wat je over jezelf vertelt, maar de informatie die je deelt moet kloppen. Elke vorm van imitatie/catfishing is verboden en kan leiden tot een ban.\n\nNiet toegestaan:\n• Foto's van beroemdheden of publieke figuren van welke aard dan ook (acteurs, muzikanten, politici enz.)\n• Foto's van lookalikes waarbij onduidelijk kan zijn of het de lookalike of de echte beroemdheid is\n• Afbeeldingen die auteursrechtelijk beschermd zijn, watermerken hebben of waarvan we denken dat ze niet van jou zijn of niet door jou zijn gemaakt\n• Nietszeggende foto's (zoals effen zwarte vlakken)\n\nAls je profiel als nep wordt gemeld, kunnen we je vragen je identiteit te verifiëren om je profiel actief te houden."
         },
         "harassment": {
-            "title": "",
-            "text": ""
+            "title": "Intimidatie",
+            "text": "We willen dat je hier jezelf bent en je vrij uit, maar niet ten koste van een ander. We raden je sterk aan in je profiel te vertellen waar je wel van houdt, niet waar je niet van houdt. En het oude gezegde \"als je niets aardigs te zeggen hebt, zeg dan niets\" geldt hier net zo goed als bij je oma.\n\nWe verwachten ook dat je iemand met rust laat als die aangeeft met rust gelaten te willen worden. Dit is een basisregel. Ons meldsysteem misbruiken om wraak te nemen op iemand die je heeft geblokkeerd, of nieuwe accounts aanmaken om ongewenst contact voort te zetten, leidt tot een permanente ban."
         },
         "hate": {
-            "title": "",
-            "text": ""
+            "title": "Haat, geweld en aanstootgevende content",
+            "text": "Het spreekt eigenlijk vanzelf, maar we staan geen haatzaaiende taal of geweld van welke aard ook toe. Als we erachter komen dat je een andere gebruiker hebt mishandeld of ernstig hebt bedreigd, word je voor altijd verbannen. We kunnen ook content verwijderen die we te grafisch, aanstootgevend of ongevoelig en kwetsend vinden, zelfs als er geen kwade bedoeling achter zat.\n\nWe nemen meldingen van geweld, bedreigingen en aanranding zeer serieus. Dit geldt voor incidenten zowel op als buiten ons platform.\n\nWe kunnen content als haatzaaiend beschouwen (en strengere maatregelen nemen tegen een profiel) als die racisme, onverdraagzaamheid, geweld, haat, ontmenselijking of schade bevordert of goedkeurt tegen personen of groepen op basis van ras, etniciteit, handicap, leeftijd, nationaliteit, seksuele oriëntatie, geslacht, genderidentiteit, religie of uiterlijk.\n\nContent die we als grafisch, gewelddadig of aanstootgevend beschouwen, omvat onder meer:\n• Foto's van wapens en vuurwapens (echt of speelgoed), inclusief paintballgeweren\n• Foto's met bloed of gore, inclusief bijzonder realistische kostuums\n• Gewelddadige beelden, ook cartoons of illustraties\n• Bendetekens of beledigende handgebaren (bijv. de middelvinger)\n• Kink- of fetisjcontent die gewelddadig is of schade bevordert\n• Bedreigingen tegen personen of groepen, inclusief politieke figuren\n• Foto's of beschrijvingen van zelfbeschadiging of zelfdoding\n• Foto's van dode dieren, inclusief jachtfoto's\n• Grappen of memes die als kwetsend en ongevoelig kunnen worden ervaren"
         },
         "minors": {
-            "title": "",
-            "text": ""
+            "title": "Minderjarigen",
+            "text": "Grindr is ALLEEN voor volwassenen. Je moet minstens 18 zijn om de app te gebruiken (of ouder in bepaalde rechtsgebieden). We nemen deze leeftijdsgrens heel, heel serieus, en elke (vermoedelijke) overtreding leidt minimaal tot een ban en kan ertoe leiden dat we de bevoegde autoriteiten inschakelen.\n\nWe staan ook geen foto's toe van iemand onder de 18, in welke context dan ook. Dit geldt ook voor foto's waarop het gezicht van een minderjarige vervaagd is of waarop die op de achtergrond staat. Ons totaalverbod op activiteit met minderjarigen geldt ook voor communicatie: als een gebruiker communiceert met iemand van wie hij denkt dat die jonger is dan 18, is dat ook een schending van ons leeftijdsbeleid."
         },
         "obey_the_law": {
-            "title": "",
-            "text": ""
+            "title": "Houd je aan de wet",
+            "text": "Als iets offline illegaal is, raad eens: dan is het op Grindr ook illegaal! Ja, dat geldt ook voor drugs. Illegale content en afbeeldingen van illegale activiteiten worden verwijderd en, waar nodig, gemeld bij de bevoegde autoriteiten.\n\nWe staan terloopse vermeldingen van wiet, vrij verkrijgbare medicijnen en voorgeschreven medicijnen toe. Aanwijzingen voor misbruik of het aanmoedigen van anderen tot onverantwoord gebruik, en elk gesprek over kopen/verkopen, leiden echter tot een ban. We staan geen vermelding toe van niet-voorgeschreven drugs, behalve wiet, tenzij in de context van herstel van verslaving. Ook staan we geen profielen toe die vooral om drugs draaien."
         },
         "private_information": {
-            "title": "",
-            "text": ""
+            "title": "Privégegevens",
+            "text": "Grindr zal je nooit om persoonlijke gegevens vragen zoals je wachtwoord of creditcardgegevens. Andere gebruikers hoeven dat ook niet te weten. Voor de veiligheid verwijderen we gevoelige persoonsgegevens die openbaar worden getoond, zoals telefoonnummers en adressen, en kunnen we het profiel schorsen of verbannen.\n\nOngewenst vragen naar persoonlijke gegevens van een andere gebruiker, gebruikers aansporen externe links te bezoeken, of elke vorm van spam of oplichting leidt tot een ban.\n\nWe staan niet toe dat privégegevens ergens op het profiel worden geplaatst, zoals in foto's of profieltekst, of dat er rechtstreeks naar wordt gelinkt, bijvoorbeeld via een QR-code of link. Privégegevens omvatten:\n• Niet-openbare contactgegevens, zoals telefoonnummers, e-mailadressen, woon-/werkadres\n• BSN-nummers, paspoorten, wachtwoorden, financiële gegevens"
         }
     },
     "push_notifications": {
-        "someone": "",
-        "generic_message": "",
-        "open_chat": "",
-        "open_profile": "",
-        "taps_title": "",
-        "tap_notification_body": "",
-        "chat_image_notification_body": "",
-        "chat_expiring_image_notification_body": "",
-        "chat_gif_notification_body": "",
-        "chat_gaymoji_notification_body": "",
-        "chat_location_notification_body": "",
-        "chat_audio_notification_body": "",
-        "chat_video_notification_body": "",
-        "chat_album_notification_body": "",
-        "chat_album_content_reaction_notification_body": "",
-        "chat_message_reaction_notification_body": "",
-        "chat_message_reaction_no_name_notification_body": "",
-        "favorite_online_notification_title": "",
-        "favorite_online_notification_body": "",
-        "multiple_favorites_online_notification_title": "",
-        "multiple_favorites_online_notification_body": "",
-        "tapped_online_notification_title": "",
-        "tapped_online_notification_body": "",
-        "recommended_online_notification_title": "",
-        "recommended_online_notification_body": "",
-        "media_recipient_online_notification_title": "",
-        "media_recipient_online_notification_body": "",
-        "unread_chats_notification_title": "",
-        "unread_chats_notification_body": "",
-        "viewed_profile_notification_title": "",
-        "viewed_profile_notification_body": "",
-        "a_list_updates_title": "",
-        "a_list_updates_body_1": "",
-        "a_list_updates_body_2": "",
-        "a_list_updates_body_3": "",
-        "a_list_updates_body_4": "",
-        "boost_notification_title": "",
-        "boost_notification_body": "",
-        "super_boost_notification_title": "",
-        "super_boost_notification_body": "",
-        "mega_boost_notification_title": "",
-        "mega_boost_notification_body": "",
-        "trial_reminder_notification_title": "",
-        "trial_reminder_notification_body": "",
-        "spank_bank_favorite_update_title": "",
-        "spank_bank_batched_update_title": "",
-        "spank_bank_tap_to_see_body": "",
-        "spank_bank_v2_favorite_update_body": "",
-        "spank_bank_v2_batched_update_body": "",
-        "discover_new_rec_notification_title": "",
-        "discover_new_rec_notification_body": "",
-        "right_now_request_notification_body": "",
-        "right_now_request_approved_notification_body": "",
-        "coupon_auto_applied_title": "",
-        "coupon_auto_applied_body": ""
+        "someone": "Iemand",
+        "generic_message": "Heeft je een bericht gestuurd",
+        "open_chat": "Chat openen",
+        "open_profile": "Profiel openen",
+        "taps_title": "Taps",
+        "tap_notification_body": "Heeft je getapt",
+        "chat_image_notification_body": "Heeft je een foto gestuurd",
+        "chat_expiring_image_notification_body": "Heeft je een verlopende foto gestuurd",
+        "chat_gif_notification_body": "Heeft je een GIF gestuurd",
+        "chat_gaymoji_notification_body": "Heeft je een Gaymoji gestuurd",
+        "chat_location_notification_body": "Heeft je zijn locatie gestuurd",
+        "chat_audio_notification_body": "Heeft je een spraakbericht gestuurd",
+        "chat_video_notification_body": "Heeft je een video gestuurd",
+        "chat_album_notification_body": "Heeft zijn album gedeeld",
+        "chat_album_content_reaction_notification_body": "Vindt je albuminhoud leuk",
+        "chat_message_reaction_notification_body": "{{arg1}} heeft op je bericht gereageerd",
+        "chat_message_reaction_no_name_notification_body": "Heeft op je bericht gereageerd",
+        "favorite_online_notification_title": "Je favoriet is online…",
+        "favorite_online_notification_body": "Zeg hallo voordat hij offline gaat.",
+        "multiple_favorites_online_notification_title": "Je favorieten zijn er…",
+        "multiple_favorites_online_notification_body": "Nu online. Kies maar.",
+        "tapped_online_notification_title": "Je tap is net online gekomen…",
+        "tapped_online_notification_body": "Jij zette de eerste stap. Zeg nu hallo.",
+        "recommended_online_notification_title": "Jouw type is in de buurt.",
+        "recommended_online_notification_body": "Hij is nu online. Zeg hallo voordat het moment voorbij is…",
+        "media_recipient_online_notification_title": "De man naar wie je foto's stuurde…",
+        "media_recipient_online_notification_body": "Is nu online. Ga verder waar jullie gebleven waren.",
+        "unread_chats_notification_title": "Nieuwe chats wachten.",
+        "unread_chats_notification_body": "Kijk wie je een bericht stuurde. De bal ligt bij jou.",
+        "viewed_profile_notification_title": "Je krijgt weergaven…",
+        "viewed_profile_notification_body": "Zie wie je bekijkt. Je weergaven zijn 24 uur ontgrendeld.",
+        "a_list_updates_title": "A-List-updates",
+        "a_list_updates_body_1": "Je hebt een actieve A-List! {{arg1}} heeft een update. Bekijk wat je hebt gemist!",
+        "a_list_updates_body_2": "Je hebt een actieve A-List! {{arg1}} en {{arg2}} hebben updates. Bekijk wat je hebt gemist!",
+        "a_list_updates_body_3": "Je hebt een actieve A-List! {{arg1}}, {{arg2}} en {{arg3}} hebben updates. Bekijk wat je hebt gemist!",
+        "a_list_updates_body_4": "Je hebt een actieve A-List! {{arg1}}, {{arg2}} en {{arg3}} anderen hebben updates. Bekijk wat je hebt gemist!",
+        "boost_notification_title": "Boost voltooid ⚡",
+        "boost_notification_body": "Tik om je resultaten te zien",
+        "super_boost_notification_title": "Super Boost voltooid ⚡",
+        "super_boost_notification_body": "Tik om je resultaten te zien",
+        "mega_boost_notification_title": "Mega Boost voltooid ⚡",
+        "mega_boost_notification_body": "Tik om je resultaten te zien",
+        "trial_reminder_notification_title": "7 dagen gratis proberen",
+        "trial_reminder_notification_body": "Je proefperiode eindigt over 48 uur.",
+        "spank_bank_favorite_update_title": "Je favoriet heeft net zijn album bijgewerkt 👀",
+        "spank_bank_batched_update_title": "{{arg1}} mensen hebben hun albums bijgewerkt 👀",
+        "spank_bank_tap_to_see_body": "Tik om te bekijken",
+        "spank_bank_v2_favorite_update_body": "Je favoriet {{arg1}} heeft net zijn album bijgewerkt 👀",
+        "spank_bank_v2_batched_update_body": "{{arg1}} mensen hebben hun albums bijgewerkt",
+        "discover_new_rec_notification_title": "Nieuwe hottie in Discover",
+        "discover_new_rec_notification_body": "Alleen vandaag in je feed! Tik om te bekijken.",
+        "right_now_request_notification_body": "{{arg1}}-verzoek ontvangen",
+        "right_now_request_approved_notification_body": "{{arg1}}-verzoek geaccepteerd",
+        "coupon_auto_applied_title": "Gefeliciteerd",
+        "coupon_auto_applied_body": "Een gratis maand {{arg1}} is van jou"
     }
 }
