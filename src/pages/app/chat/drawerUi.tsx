@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, RefreshCw, Repeat, Video, X } from "lucide-react";
@@ -344,36 +344,57 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 	);
 }
 
-type DecodedImage = { width: number; height: number; ok: boolean };
-
-/** Loads and fully decodes `src` off-screen. Painting a large image that
- * hasn't been decoded yet can drop the whole peek layer for a frame on
- * Android, so the peek only mounts images that are already decoded. */
-function useDecodedImage(src: string | undefined): DecodedImage | null {
-	const [decoded, setDecoded] = useState<DecodedImage | null>(null);
+/** Loads and decodes `src` into an <img> element that the peek then mounts
+ * itself. Proxied album media is served `no-store` (signed URLs), so a fresh
+ * <img> with the same src would fetch it again and paint blank until then —
+ * the peek's flicker. `null` while loading; `ok: false` if it failed. */
+function useLoadedImage(src: string | undefined): { img: HTMLImageElement; ok: boolean } | null {
+	const [loaded, setLoaded] = useState<{ img: HTMLImageElement; ok: boolean } | null>(null);
 	useEffect(() => {
-		setDecoded(null);
+		setLoaded(null);
 		if (!src) return;
 		let cancelled = false;
 		const img = new Image();
+		img.alt = "";
+		img.draggable = false;
 		img.src = proxyMediaUrl(src);
 		img.decode().then(
-			() => { if (!cancelled) setDecoded({ width: img.naturalWidth, height: img.naturalHeight, ok: true }); },
-			() => { if (!cancelled) setDecoded({ width: 0, height: 0, ok: false }); },
+			() => { if (!cancelled) setLoaded({ img, ok: true }); },
+			() => { if (!cancelled) setLoaded({ img, ok: false }); },
 		);
 		return () => {
 			cancelled = true;
 		};
 	}, [src]);
-	return decoded;
+	return loaded;
+}
+
+/** Mounts an already-loaded <img> element (see useLoadedImage). */
+function MountedImage({ img, className, style, fadeIn = false }: { img: HTMLImageElement; className: string; style?: CSSProperties; fadeIn?: boolean }) {
+	const hostRef = useRef<HTMLSpanElement>(null);
+	useLayoutEffect(() => {
+		const host = hostRef.current;
+		if (!host) return;
+		host.appendChild(img);
+		if (fadeIn) img.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PREVIEW_ANIMATION_MS, easing: "ease-out" });
+		return () => {
+			img.remove();
+		};
+	}, [img, fadeIn]);
+	useLayoutEffect(() => {
+		img.className = className;
+		img.removeAttribute("style");
+		Object.assign(img.style, style ?? {});
+	}, [img, className, style]);
+	return <span ref={hostRef} className="contents" />;
 }
 
 /** A peek image. With a `placeholderSrc` (an already-loaded thumbnail) it opens
  * on that right away, scaled up to peek size, and fades the full file in on top
- * once it is decoded. `onReady` fires once there is something to show. */
+ * once it has loaded. `onReady` fires once there is something to show. */
 function DrawerPreviewImage({ media, onReady }: { media: DrawerPreviewMedia; onReady: () => void }) {
-	const placeholder = useDecodedImage(media.placeholderSrc);
-	const full = useDecodedImage(media.src);
+	const placeholder = useLoadedImage(media.placeholderSrc);
+	const full = useLoadedImage(media.src);
 	const isReady = media.placeholderSrc ? placeholder !== null : full !== null;
 
 	useEffect(() => {
@@ -381,33 +402,20 @@ function DrawerPreviewImage({ media, onReady }: { media: DrawerPreviewMedia; onR
 	}, [isReady, onReady]);
 
 	if (!media.placeholderSrc) {
-		return full?.ok ? <img src={proxyMediaUrl(media.src)} alt="" className="max-h-[80dvh] max-w-full object-contain" /> : null;
+		return full?.ok ? <MountedImage img={full.img} className="max-h-[80dvh] max-w-full object-contain" /> : null;
 	}
 	if (!placeholder) return null;
 	// The thumbnail is smaller than the peek: size the box from its aspect
 	// instead of its pixels so it fills the peek like the full file will.
-	const aspect = placeholder.ok && placeholder.height ? placeholder.width / placeholder.height : null;
+	const aspect = placeholder.ok && placeholder.img.naturalHeight ? placeholder.img.naturalWidth / placeholder.img.naturalHeight : null;
 	return (
 		<div className="relative">
-			<img
-				src={proxyMediaUrl(media.placeholderSrc)}
-				alt=""
+			<MountedImage
+				img={placeholder.img}
 				className="block max-h-[80dvh] max-w-full object-contain"
-				style={aspect ? { aspectRatio: aspect, width: `min(calc(100vw - 3rem), calc(80dvh * ${aspect}))` } : undefined}
+				style={aspect ? { aspectRatio: String(aspect), width: `min(calc(100vw - 3rem), calc(80dvh * ${aspect}))` } : undefined}
 			/>
-			{full?.ok ? (
-				<img
-					ref={(el) => {
-						if (el && !el.dataset.shown) {
-							el.dataset.shown = "1";
-							el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PREVIEW_ANIMATION_MS, easing: "ease-out" });
-						}
-					}}
-					src={proxyMediaUrl(media.src)}
-					alt=""
-					className="absolute inset-0 h-full w-full object-cover"
-				/>
-			) : null}
+			{full?.ok ? <MountedImage img={full.img} className="absolute inset-0 h-full w-full object-cover" fadeIn /> : null}
 		</div>
 	);
 }
