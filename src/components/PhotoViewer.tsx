@@ -939,9 +939,9 @@ export function PhotoViewer({
 								<ProfileImage src={albumHeader.avatarUrl} alt={albumHeader.name} />
 							</div>
 							<div className="min-w-0">
-								<p className="truncate text-lg font-semibold leading-tight text-white">{albumHeader.name}</p>
+								<p className="truncate text-base font-semibold leading-tight text-white">{albumHeader.name}</p>
 								{albumHeader.subtitle && (
-									<p className="truncate text-sm leading-tight text-white/70">{albumHeader.subtitle}</p>
+									<p className="truncate text-xs leading-tight text-white/70">{albumHeader.subtitle}</p>
 								)}
 							</div>
 						</div>
@@ -1047,12 +1047,13 @@ export function PhotoViewer({
 									>
 										<ProfileImage src={albumHeader.avatarUrl} alt={albumHeader.name} />
 									</div>
-									{/* leading-tight keeps the text block at the 40px avatar height, so the
-									    icons sit on the same line as without the album header. */}
+									{/* Same type sizes as the profile's floating header (name text-base,
+									    status line text-xs); leading-tight keeps the block within the 40px
+									    avatar height, so the icons sit on the same line as without it. */}
 									<div className="min-w-0">
-										<p className="truncate text-lg font-semibold leading-tight text-white">{albumHeader.name}</p>
+										<p className="truncate text-base font-semibold leading-tight text-white">{albumHeader.name}</p>
 										{albumHeader.subtitle && (
-											<p className="truncate text-sm leading-tight text-white/70">{albumHeader.subtitle}</p>
+											<p className="truncate text-xs leading-tight text-white/70">{albumHeader.subtitle}</p>
 										)}
 									</div>
 								</button>
