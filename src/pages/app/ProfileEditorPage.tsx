@@ -23,6 +23,8 @@ import {
 	useUpdateSpotifyFavorites,
 } from "../../hooks/queries/useProfileQueries";
 import type { SpotifyTrack } from "../../services/spotify";
+import { BannedTermsError } from "../../services/apiHelpers";
+import type { MySettings } from "../../types/api-functions";
 import { validateMediaHash } from "../../utils/media";
 import { sanitizeUploadFile } from "../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../utils/tags";
@@ -67,6 +69,7 @@ import {
 	normalizeTagList,
 	profileSchema,
 	profileToDraft,
+	unwrapOwnProfile,
 } from "./profile-editor/profileEditorUtils";
 
 // Grindr caps how many of each of these a profile can carry — enforced
@@ -249,10 +252,7 @@ export function ProfileEditorPage() {
 			// /v7/profiles/:id — that's a different read path used for viewing
 			// other people's profiles, and can lag behind writes made here.
 			const raw = await apiFunctions.getMyOwnProfile();
-			const rawProfileObject =
-				raw && typeof raw === "object" && Array.isArray((raw as { profiles?: unknown }).profiles)
-					? ((raw as { profiles: Record<string, any>[] }).profiles[0] ?? null)
-					: (raw as Record<string, any> | null);
+			const rawProfileObject = unwrapOwnProfile(raw);
 			const parsed = profileSchema.parse(rawProfileObject);
 			setProfile(parsed);
 			setRawProfile(rawProfileObject);
@@ -337,13 +337,21 @@ export function ProfileEditorPage() {
 	const spotifyTracks = spotifyDraft ?? savedSpotifyTracks ?? [];
 	const hasSpotifyChanges = spotifyDraft !== null && !sameTrackIds(spotifyDraft, savedSpotifyTracks ?? []);
 
-	// Right Now explicit images is an account setting (/v3/me/prefs/settings),
-	// not a profile field, but it's edited and saved along with the draft.
+	// Map / Right Now prefs are account settings (/v3/me/prefs/settings), not
+	// profile fields, but they're edited and saved along with the draft.
 	const { data: mySettings } = useMySettings();
-	const [viewRightNowNsfwDraft, setViewRightNowNsfwDraft] = useState<boolean | null>(null);
-	const viewRightNowNsfw = viewRightNowNsfwDraft ?? mySettings?.viewRightNowNsfw;
-	const hasSettingsChanges =
-		viewRightNowNsfwDraft !== null && mySettings !== undefined && viewRightNowNsfwDraft !== mySettings.viewRightNowNsfw;
+	const [settingsDraft, setSettingsDraft] = useState<Partial<MySettings>>({});
+	const settingsForEditor = mySettings ? { ...mySettings, ...settingsDraft } : undefined;
+	const changedSettings = useMemo(() => {
+		if (!mySettings) return {};
+		return Object.fromEntries(
+			Object.entries(settingsDraft).filter(([key, value]) => mySettings[key as keyof MySettings] !== value),
+		) as Partial<MySettings>;
+	}, [mySettings, settingsDraft]);
+	const hasSettingsChanges = Object.keys(changedSettings).length > 0;
+	const handleSettingsChange = useCallback((patch: Partial<MySettings>) => {
+		setSettingsDraft((current) => ({ ...current, ...patch }));
+	}, []);
 
 	const hasChanges = hasProfileChanges || hasSpotifyChanges || hasSettingsChanges;
 
@@ -393,6 +401,23 @@ export function ProfileEditorPage() {
 		return map;
 	}, [profile?.medias]);
 
+	// Text the server rejected for banned terms, with the terms it named. The
+	// error shows (and blocks saving) until that field's text is changed.
+	const [rejectedText, setRejectedText] = useState<{
+		displayName?: { value: string; terms: string[] };
+		aboutMe?: { value: string; terms: string[] };
+	}>({});
+	const bannedTermsMessage = useCallback(
+		(terms: string[]) =>
+			terms.length > 0
+				? t("profile_editor.errors.banned_terms", {
+						defaultValue: "Contains words that aren't allowed: {{terms}}",
+						terms: terms.join(", "),
+					})
+				: t("profile_editor.errors.banned_terms_unknown", { defaultValue: "Contains words that aren't allowed." }),
+		[t],
+	);
+
 	const displayNameError = useMemo(() => {
 		const value = draft.displayName.trim();
 		if (!value) {
@@ -403,16 +428,24 @@ export function ProfileEditorPage() {
 			return t("profile_editor.errors.display_name_length");
 		}
 
+		if (rejectedText.displayName && value === rejectedText.displayName.value) {
+			return bannedTermsMessage(rejectedText.displayName.terms);
+		}
+
 		return null;
-	}, [draft.displayName, t]);
+	}, [draft.displayName, rejectedText.displayName, bannedTermsMessage, t]);
 
 	const aboutMeError = useMemo(() => {
 		if (draft.aboutMe.length > 255) {
 			return t("profile_editor.errors.about_me_length");
 		}
 
+		if (rejectedText.aboutMe && draft.aboutMe.trim() === rejectedText.aboutMe.value) {
+			return bannedTermsMessage(rejectedText.aboutMe.terms);
+		}
+
 		return null;
-	}, [draft.aboutMe, t]);
+	}, [draft.aboutMe, rejectedText.aboutMe, bannedTermsMessage, t]);
 
 	const canSave = hasChanges && !isSaving && !displayNameError && !aboutMeError && !tagsError;
 
@@ -540,10 +573,10 @@ export function ProfileEditorPage() {
 				}
 			}
 
-			if (hasSettingsChanges && viewRightNowNsfwDraft !== null) {
-				await apiFunctions.updateMySettings({ viewRightNowNsfw: viewRightNowNsfwDraft });
-				queryClient.setQueryData(["my-settings"], { ...mySettings, viewRightNowNsfw: viewRightNowNsfwDraft });
-				setViewRightNowNsfwDraft(null);
+			if (hasSettingsChanges) {
+				await apiFunctions.updateMySettings(changedSettings);
+				queryClient.setQueryData(["my-settings"], { ...mySettings, ...changedSettings });
+				setSettingsDraft({});
 			}
 
 			if (hasSpotifyChanges && spotifyDraft) {
@@ -560,6 +593,13 @@ export function ProfileEditorPage() {
 
 			toast.success(t("profile_editor.toasts.updated"));
 		} catch (error) {
+			if (error instanceof BannedTermsError) {
+				const { displayName, aboutMe } = error.fields;
+				setRejectedText({
+					displayName: displayName ? { value: draft.displayName.trim(), terms: displayName } : undefined,
+					aboutMe: aboutMe ? { value: draft.aboutMe.trim(), terms: aboutMe } : undefined,
+				});
+			}
 			const message =
 				error instanceof Error
 					? error.message
@@ -878,7 +918,7 @@ export function ProfileEditorPage() {
 	const handleResetDraft = () => {
 		setDraft(savedDraft);
 		setSpotifyDraft(null);
-		setViewRightNowNsfwDraft(null);
+		setSettingsDraft({});
 	};
 
 	return (
@@ -939,8 +979,8 @@ export function ProfileEditorPage() {
 								lookingForOptions={lookingForOptions}
 								meetAtOptions={meetAtOptions}
 								nsfwOptions={nsfwOptions}
-								viewRightNowNsfw={viewRightNowNsfw}
-								onViewRightNowNsfwChange={setViewRightNowNsfwDraft}
+								settings={settingsForEditor}
+								onSettingsChange={handleSettingsChange}
 								genderOptions={genderOptions}
 								defaultGenderIds={defaultGenderIds}
 								pronounOptions={pronounOptions}

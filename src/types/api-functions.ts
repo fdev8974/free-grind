@@ -158,6 +158,10 @@ export interface ManagedGender {
 export interface MySettings {
 	/** Opt-in to explicit images in Right Now. */
 	viewRightNowNsfw: boolean;
+	/** Whether the profile appears on the map. */
+	showOnMap: boolean;
+	/** How far (meters) the map position is offset from the real one; null = server default. */
+	mapLocationFuzzRadius: number | null;
 }
 
 export interface ManagedPronoun {

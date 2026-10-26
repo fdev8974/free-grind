@@ -47,7 +47,7 @@ import { isLocateEnabled } from "../../utils/optionalFeatures";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile, useMyOwnProfile } from "../../hooks/queries/useProfileQueries";
 import { useQueryClient } from "@tanstack/react-query";
-import { getProfilePhotoHash } from "./profile-editor/profileEditorUtils";
+import { getProfilePhotoHash, unwrapOwnProfile } from "./profile-editor/profileEditorUtils";
 import {
 	getChatContactIndexForProfiles,
 	getLocalNicknamesForProfiles,
@@ -472,6 +472,9 @@ export function GridPage() {
 	// Mirrors the official app: the mode goes onto the profile
 	// (showDistance + approximateDistance), and approximateDistance is also
 	// written to the account settings. Rejects on failure so the sheet stays open.
+	// The profile write has to be the full PUT /v3.1/me/profile — PATCH /v4
+	// ignores approximateDistance — so the current profile is fetched fresh and
+	// sent back whole with just these two fields changed.
 	const handleSelectDistanceMode = useCallback(async (mode: DistanceMode) => {
 		const fields = {
 			showDistance: mode !== "hidden",
@@ -482,7 +485,9 @@ export function GridPage() {
 			current ? { ...current, ...fields } : current,
 		);
 		try {
-			await apiFunctions.updateMyProfile(fields);
+			const current = unwrapOwnProfile(await apiFunctions.getMyOwnProfile());
+			if (!current) throw new Error("Own profile unavailable");
+			await apiFunctions.replaceMyProfile({ ...current, ...fields });
 			await apiFunctions.updateMySettings({ approximateDistance: fields.approximateDistance });
 		} catch (error) {
 			queryClient.setQueryData(["my-own-profile"], previous);

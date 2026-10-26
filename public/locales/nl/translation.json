@@ -759,6 +759,19 @@
         "completion_title": "Profielvoltooiing",
         "completion_signals": "{{count}}/{{total}} profielkenmerken ingesteld",
         "sections": {
+            "map": {
+                "title": "",
+                "description": "",
+                "show_on_map": "",
+                "show_on_map_desc": "",
+                "location_randomizer": "",
+                "location_randomizer_desc": "",
+                "radius_default": "",
+                "radius_m": "",
+                "radius_ft": "",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": ""
+            },
             "pictures": {
                 "title": "Foto's",
                 "description": "Voeg foto's toe en orden ze",
@@ -839,8 +852,6 @@
                 "description": "Waar je voor openstaat en hoe",
                 "looking_for": "Op zoek naar",
                 "meet_at": "Afspreken bij",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "NSFW-foto's"
             },
             "identity": {
@@ -904,6 +915,8 @@
             "photo_added": "Foto aan profiel toegevoegd"
         },
         "errors": {
+            "banned_terms": "",
+            "banned_terms_unknown": "",
             "display_name_length": "Weergavenaam mag niet langer zijn dan 15 tekens.",
             "about_me_length": "Over mij moet korter zijn dan 255 tekens.",
             "max_selection": "Je kunt er maximaal {{count}} kiezen."
@@ -2095,6 +2108,7 @@
     },
     "api": {
         "errors": {
+            "profile_banned_terms": "",
             "load_views": "Weergaven laden mislukt",
             "load_taps": "Taps laden mislukt",
             "invalid_profile_id": "Ongeldig profiel-ID",

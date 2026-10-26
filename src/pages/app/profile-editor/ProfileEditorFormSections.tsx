@@ -7,6 +7,7 @@ import {
 	Camera,
 	Clock,
 	GripVertical,
+	Map as MapIcon,
 	Plus,
 	Ruler,
 	ShieldPlus,
@@ -38,6 +39,8 @@ import { type UnitsPreset } from "../../../utils/units";
 import { SheetChip, SheetMoreButton } from "../../../components/ui/sheet-section";
 import { LastTestedMonthPicker } from "../../../components/LastTestedMonthPicker";
 import { CategoryHeader, ChipGroup, ToggleRow } from "./ProfileEditorComponents";
+import { Slider } from "../../../components/ui/range-slider";
+import type { MySettings } from "../../../types/api-functions";
 import { TravelPlansSection } from "./TravelPlansSection";
 import { SpotifyFavoritesSection } from "./SpotifyFavoritesSection";
 import type { SpotifyTrack } from "../../../services/spotify";
@@ -170,6 +173,11 @@ export type ToggleMultiValueKey =
 	| "sexualHealth"
 	| "vaccines";
 
+// Location Randomizer range in the official app (26.21: "Less" … "More").
+const MAP_FUZZ_RADIUS_MIN = 50;
+const MAP_FUZZ_RADIUS_MAX = 1500;
+const MAP_FUZZ_RADIUS_STEP = 50;
+
 type ProfileEditorFormSectionsProps = {
 	draft: ProfileDraft;
 	unitsPreset: UnitsPreset;
@@ -200,9 +208,9 @@ type ProfileEditorFormSectionsProps = {
 	lookingForOptions: Option[];
 	meetAtOptions: Option[];
 	nsfwOptions: Option[];
-	/** Account setting; undefined until /v3/me/prefs/settings has loaded. */
-	viewRightNowNsfw: boolean | undefined;
-	onViewRightNowNsfwChange: (value: boolean) => void;
+	/** Account settings; undefined until /v3/me/prefs/settings has loaded. */
+	settings: MySettings | undefined;
+	onSettingsChange: (patch: Partial<MySettings>) => void;
 	genderOptions: Option[];
 	defaultGenderIds: number[];
 	pronounOptions: Option[];
@@ -241,8 +249,8 @@ export function ProfileEditorFormSections({
 	lookingForOptions,
 	meetAtOptions,
 	nsfwOptions,
-	viewRightNowNsfw,
-	onViewRightNowNsfwChange,
+	settings,
+	onSettingsChange,
 	genderOptions,
 	defaultGenderIds,
 	pronounOptions,
@@ -403,7 +411,7 @@ export function ProfileEditorFormSections({
 							className="input-field"
 							placeholder={t("profile_editor.sections.profile.display_name_placeholder")}
 						/>
-						<p className="mt-2 text-xs text-[var(--text-muted)] sm:text-sm">
+						<p className={`mt-2 text-xs sm:text-sm ${displayNameError ? "text-red-400" : "text-[var(--text-muted)]"}`}>
 							{displayNameError ??
 								t("profile_editor.sections.profile.char_count", {
 									count: draft.displayName.trim().length || 0,
@@ -707,18 +715,6 @@ export function ProfileEditorFormSections({
 							))}
 						</select>
 					</div>
-					{viewRightNowNsfw !== undefined && (
-						<ToggleRow
-							checked={viewRightNowNsfw}
-							onChange={onViewRightNowNsfwChange}
-							label={t("profile_editor.sections.expectations.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" })}
-							description={t("profile_editor.sections.expectations.view_right_now_nsfw_desc", {
-								defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
-							})}
-							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-							padding=""
-						/>
-					)}
 				</div>
 			</div>
 
@@ -914,6 +910,71 @@ export function ProfileEditorFormSections({
 				disabled={profileId == null}
 				onChange={onSpotifyChange}
 			/>
+
+			{/* Map & Right Now — account settings (/v3/me/prefs/settings), saved with the profile */}
+			{settings && (
+				<div className="native-card p-4 sm:p-5">
+					<CategoryHeader
+						title={t("profile_editor.sections.map.title", { defaultValue: "Map & Right Now" })}
+						description={t("profile_editor.sections.map.description", {
+							defaultValue: "Account settings for the map and Right Now.",
+						})}
+						icon={MapIcon}
+					/>
+					<div className="grid gap-4">
+						<ToggleRow
+							checked={settings.showOnMap}
+							onChange={(checked) => onSettingsChange({ showOnMap: checked })}
+							label={t("profile_editor.sections.map.show_on_map", { defaultValue: "Show Me on Map" })}
+							description={t("profile_editor.sections.map.show_on_map_desc", {
+								defaultValue: "Your profile appears on the map, always offset from your actual location.",
+							})}
+							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+							padding=""
+						/>
+						{settings.showOnMap && (
+							<div>
+								<Slider
+									min={MAP_FUZZ_RADIUS_MIN}
+									max={MAP_FUZZ_RADIUS_MAX}
+									step={MAP_FUZZ_RADIUS_STEP}
+									defaultValue={settings.mapLocationFuzzRadius ?? MAP_FUZZ_RADIUS_MIN}
+									label={t("profile_editor.sections.map.location_randomizer", { defaultValue: "Location Randomizer" })}
+									displayValue={
+										settings.mapLocationFuzzRadius == null
+											? t("profile_editor.sections.map.radius_default", { defaultValue: "Default" })
+											: isImperialHeight
+												? t("profile_editor.sections.map.radius_ft", {
+														defaultValue: "~{{value}} ft radius",
+														value: Math.round(settings.mapLocationFuzzRadius * 3.280839895),
+													})
+												: t("profile_editor.sections.map.radius_m", {
+														defaultValue: "~{{value}} m radius",
+														value: settings.mapLocationFuzzRadius,
+													})
+									}
+									onChange={(value) => onSettingsChange({ mapLocationFuzzRadius: value })}
+								/>
+								<p className="mt-1 text-xs text-[var(--text-muted)]">
+									{t("profile_editor.sections.map.location_randomizer_desc", {
+										defaultValue: "For your privacy, your location on the map is offset within this range and updates as you move.",
+									})}
+								</p>
+							</div>
+						)}
+						<ToggleRow
+							checked={settings.viewRightNowNsfw}
+							onChange={(checked) => onSettingsChange({ viewRightNowNsfw: checked })}
+							label={t("profile_editor.sections.map.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" })}
+							description={t("profile_editor.sections.map.view_right_now_nsfw_desc", {
+								defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
+							})}
+							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+							padding=""
+						/>
+					</div>
+				</div>
+			)}
 
 			{/* Other / Account Info */}
 			<div>

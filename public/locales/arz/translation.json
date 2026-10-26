@@ -787,6 +787,19 @@
         "completion_title": "إكمال البروفايل",
         "completion_signals": "{{count}}/{{total}} من بيانات البروفايل متظبطة",
         "sections": {
+            "map": {
+                "title": "",
+                "description": "",
+                "show_on_map": "",
+                "show_on_map_desc": "",
+                "location_randomizer": "",
+                "location_randomizer_desc": "",
+                "radius_default": "",
+                "radius_m": "",
+                "radius_ft": "",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": ""
+            },
             "pictures": {
                 "title": "الصور",
                 "description": "ارفع صورك ورتّبها",
@@ -867,8 +880,6 @@
                 "description": "ما إنت منفتح عليه وكيف",
                 "looking_for": "بدور على",
                 "meet_at": "نتقابل في",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "صور غير لائقة"
             },
             "identity": {
@@ -932,6 +943,8 @@
             "photo_added": "تمت إضافة صورة إلى البروفايل"
         },
         "errors": {
+            "banned_terms": "",
+            "banned_terms_unknown": "",
             "display_name_length": "لا يمكن أن يتجاوز اسم العرض 15 حرفًا.",
             "about_me_length": "يجب ألا يتجاوز قسم \"نبذة عني\" 255 حرفًا.",
             "max_selection": "يمكنك تحديد ما يصل إلى {{count}}."
@@ -2139,6 +2152,7 @@
     },
     "api": {
         "errors": {
+            "profile_banned_terms": "",
             "load_views": "فشل تحميل المشاهدات",
             "load_taps": "فشل تحميل التابات",
             "invalid_profile_id": "رقم بروفايل غلط",

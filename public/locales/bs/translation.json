@@ -767,6 +767,19 @@
         "completion_title": "Popunjenost profila",
         "completion_signals": "Postavljeno {{count}}/{{total}} stavki profila",
         "sections": {
+            "map": {
+                "title": "",
+                "description": "",
+                "show_on_map": "",
+                "show_on_map_desc": "",
+                "location_randomizer": "",
+                "location_randomizer_desc": "",
+                "radius_default": "",
+                "radius_m": "",
+                "radius_ft": "",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": ""
+            },
             "pictures": {
                 "title": "Slike",
                 "description": "Dodaj i rasporedi svoje fotografije",
@@ -847,8 +860,6 @@
                 "description": "Za šta si otvoren i kako",
                 "looking_for": "Tražim",
                 "meet_at": "Mjesto susreta",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "NSFW slike"
             },
             "identity": {
@@ -912,6 +923,8 @@
             "photo_added": "Fotografija dodana na profil"
         },
         "errors": {
+            "banned_terms": "",
+            "banned_terms_unknown": "",
             "display_name_length": "Prikazano ime ne može biti duže od 15 znakova.",
             "about_me_length": "Polje O meni mora imati manje od 255 znakova.",
             "max_selection": "Možeš odabrati najviše {{count}}."
@@ -2114,6 +2127,7 @@
     },
     "api": {
         "errors": {
+            "profile_banned_terms": "",
             "load_views": "Učitavanje pregleda nije uspjelo",
             "load_taps": "Učitavanje tapova nije uspjelo",
             "invalid_profile_id": "Neispravan ID profila",

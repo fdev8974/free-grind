@@ -8,7 +8,7 @@ import {
 	applySelfBlockAction,
 	markConversationDeleteHandled,
 } from "../../services/conversationArchive";
-import { profileSchema } from "../../pages/app/profile-editor/profileEditorUtils";
+import { profileSchema, unwrapOwnProfile } from "../../pages/app/profile-editor/profileEditorUtils";
 import { getSpotifyTracks, searchSpotifyTracks, type SpotifyTrack } from "../../services/spotify";
 
 // chat.v1.conversation.delete fires identically for "we blocked/unblocked
@@ -168,11 +168,7 @@ export function useMyOwnProfile(enabled: boolean = true) {
 		queryKey: ["my-own-profile"],
 		queryFn: async () => {
 			const raw = await api.getMyOwnProfile();
-			const rawProfileObject =
-				raw && typeof raw === "object" && Array.isArray((raw as { profiles?: unknown }).profiles)
-					? ((raw as { profiles: Record<string, unknown>[] }).profiles[0] ?? null)
-					: (raw as Record<string, unknown> | null);
-			return profileSchema.parse(rawProfileObject);
+			return profileSchema.parse(unwrapOwnProfile(raw));
 		},
 		enabled,
 		staleTime: 1000 * 60 * 5,

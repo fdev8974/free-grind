@@ -759,6 +759,19 @@
     "completion_title": "Profile Completion",
     "completion_signals": "{{count}}/{{total}} profile signals set",
     "sections": {
+      "map": {
+        "title": "Map & Right Now",
+        "description": "Account settings for the map and Right Now.",
+        "show_on_map": "Show Me on Map",
+        "show_on_map_desc": "Your profile appears on the map, always offset from your actual location.",
+        "location_randomizer": "Location Randomizer",
+        "location_randomizer_desc": "For your privacy, your location on the map is offset within this range and updates as you move.",
+        "radius_default": "Default",
+        "radius_m": "~{{value}} m radius",
+        "radius_ft": "~{{value}} ft radius",
+        "view_right_now_nsfw": "Explicit Images in Right Now",
+        "view_right_now_nsfw_desc": "Opt in to seeing explicit sexual and other adult content in Right Now."
+      },
       "pictures": {
         "title": "Pictures",
         "description": "Upload and arrange your photos",
@@ -839,8 +852,6 @@
         "description": "What you're open to and how",
         "looking_for": "Looking For",
         "meet_at": "Meet At",
-        "view_right_now_nsfw": "Explicit Images in Right Now",
-        "view_right_now_nsfw_desc": "Opt in to seeing explicit sexual and other adult content in Right Now.",
         "accept_nsfw": "NSFW pics"
       },
       "identity": {
@@ -904,6 +915,8 @@
       "photo_added": "Photo added to profile"
     },
     "errors": {
+      "banned_terms": "Contains words that aren't allowed: {{terms}}",
+      "banned_terms_unknown": "Contains words that aren't allowed.",
       "display_name_length": "Display name cannot exceed 15 characters.",
       "about_me_length": "About Me must stay under 255 characters.",
       "max_selection": "You can select up to {{count}}."
@@ -2095,6 +2108,7 @@
   },
   "api": {
     "errors": {
+      "profile_banned_terms": "Your profile contains words that aren't allowed. Nothing was saved.",
       "load_views": "Failed to load views",
       "load_taps": "Failed to load taps",
       "invalid_profile_id": "Invalid profile ID",

@@ -123,6 +123,17 @@ export function getProfilePhotoHash(
 	return null;
 }
 
+/**
+ * GET /v4/me/profile wraps the profile in a one-element `profiles` array;
+ * returns the bare profile object (also accepts an unwrapped one).
+ */
+export function unwrapOwnProfile(raw: unknown): Record<string, any> | null {
+	if (raw && typeof raw === "object" && Array.isArray((raw as { profiles?: unknown }).profiles)) {
+		return (raw as { profiles: Record<string, any>[] }).profiles[0] ?? null;
+	}
+	return (raw as Record<string, any> | null) ?? null;
+}
+
 export interface ProfileDraft {
 	displayName: string;
 	aboutMe: string;

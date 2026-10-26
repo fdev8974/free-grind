@@ -759,6 +759,19 @@
         "completion_title": "Profilvervollständigung",
         "completion_signals": "{{count}}/{{total}} Profilsignale gesetzt",
         "sections": {
+            "map": {
+                "title": "",
+                "description": "",
+                "show_on_map": "",
+                "show_on_map_desc": "",
+                "location_randomizer": "",
+                "location_randomizer_desc": "",
+                "radius_default": "",
+                "radius_m": "",
+                "radius_ft": "",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": ""
+            },
             "pictures": {
                 "title": "Bilder",
                 "description": "Lade Fotos hoch und sortiere sie",
@@ -839,8 +852,6 @@
                 "description": "Wofür du offen bist und wie",
                 "looking_for": "Ich suche",
                 "meet_at": "Treffen bei",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "NSFW-Bilder akzeptieren"
             },
             "identity": {
@@ -904,6 +915,8 @@
             "photo_added": "Foto zum Profil hinzugefügt"
         },
         "errors": {
+            "banned_terms": "",
+            "banned_terms_unknown": "",
             "display_name_length": "Der Anzeigename darf nicht länger als 15 Zeichen sein.",
             "about_me_length": "Über mich muss unter 255 Zeichen bleiben.",
             "max_selection": "Du kannst maximal {{count}} auswählen."
@@ -2095,6 +2108,7 @@
     },
     "api": {
         "errors": {
+            "profile_banned_terms": "",
             "load_views": "Ansichten konnten nicht geladen werden",
             "load_taps": "Taps konnten nicht geladen werden",
             "invalid_profile_id": "Ungültige Profil-ID",

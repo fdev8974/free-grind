@@ -767,6 +767,19 @@
         "completion_title": "Conclusão do perfil",
         "completion_signals": "Conjunto de sinais de perfil {{count}}/{{total}}",
         "sections": {
+            "map": {
+                "title": "",
+                "description": "",
+                "show_on_map": "",
+                "show_on_map_desc": "",
+                "location_randomizer": "",
+                "location_randomizer_desc": "",
+                "radius_default": "",
+                "radius_m": "",
+                "radius_ft": "",
+                "view_right_now_nsfw": "",
+                "view_right_now_nsfw_desc": ""
+            },
             "pictures": {
                 "title": "Fotos",
                 "description": "Adicione e organize suas fotos",
@@ -847,8 +860,6 @@
                 "description": "A que você está aberto(a) e como",
                 "looking_for": "Procurando por",
                 "meet_at": "Local do encontro",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": "",
                 "accept_nsfw": "Aceita fotos NSFW"
             },
             "identity": {
@@ -912,6 +923,8 @@
             "photo_added": "Foto adicionada ao perfil"
         },
         "errors": {
+            "banned_terms": "",
+            "banned_terms_unknown": "",
             "display_name_length": "O nome de exibição deve ter no máximo 15 caracteres.",
             "about_me_length": "A seção \"Sobre mim\" deve ter no máximo 255 caracteres.",
             "max_selection": "Você pode selecionar até {{count}}."
@@ -2114,6 +2127,7 @@
     },
     "api": {
         "errors": {
+            "profile_banned_terms": "",
             "load_views": "Falha ao carregar as visualizações",
             "load_taps": "Falha ao carregar os toques",
             "invalid_profile_id": "ID de perfil inválido",

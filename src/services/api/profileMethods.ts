@@ -19,7 +19,14 @@ import { travelPlansResponseSchema, type TravelPlan, type TravelPlanPayload } fr
 import { homeLocationSchema, type HomeLocation } from "../../types/home-location";
 import type { ProfileReportRequest } from "../../types/reports";
 import { invoke } from "@tauri-apps/api/core";
-import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "../apiHelpers";
+import {
+	ApiFunctionError,
+	assertSuccess,
+	BannedTermsError,
+	mediaUploadErrorToApiFunctionError,
+	parseBannedTerms,
+	parseJsonSafe,
+} from "../apiHelpers";
 import { awaitEntitlementGrant } from "../entitlementBypass";
 import { getIncognitoMode, isRecordProfileViewsEnabled } from "../../utils/privacy";
 import { appLog } from "../../utils/logger";
@@ -457,12 +464,14 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			const payload = (await parseJsonSafe(response)) as Record<string, unknown> | null;
 			return {
 				viewRightNowNsfw: payload?.viewRightNowNsfw === true,
+				showOnMap: payload?.showOnMap === true,
+				mapLocationFuzzRadius: typeof payload?.mapLocationFuzzRadius === "number" ? payload.mapLocationFuzzRadius : null,
 			};
 		},
 
 		// Fields left out stay untouched, so callers send only what changed —
 		// the official app's distance screen sends just `approximateDistance`.
-		async updateMySettings(settings: { approximateDistance?: boolean; viewRightNowNsfw?: boolean }): Promise<{ ok: true }> {
+		async updateMySettings(settings: Partial<MySettings> & { approximateDistance?: boolean }): Promise<{ ok: true }> {
 			const response = await fetchRest("/v3/me/prefs/settings", {
 				method: "PUT",
 				body: { settings },
@@ -479,7 +488,21 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 				method: "PUT",
 				body: payload,
 			});
-			await assertSuccess(response, t("api.errors.save_profile"));
+			try {
+				await assertSuccess(response, t("api.errors.save_profile"));
+			} catch (error) {
+				const banned = error instanceof ApiFunctionError && error.status === 400 ? parseBannedTerms(error.payload) : null;
+				if (banned) {
+					throw new BannedTermsError(
+						t("api.errors.profile_banned_terms", {
+							defaultValue: "Your profile contains words that aren't allowed. Nothing was saved.",
+						}),
+						(error as ApiFunctionError).payload,
+						banned,
+					);
+				}
+				throw error;
+			}
 			return { ok: true };
 		},
 
