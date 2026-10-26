@@ -470,6 +470,27 @@ export function NavBar() {
 		};
 	}, []);
 
+	// Floating bar: keep the same gap below it as on its sides, like iOS, and
+	// let it overlap the gesture-handle / home-indicator area. Only a tall
+	// inset (Android 3-button navigation) is kept clear, since the bar would
+	// cover the system buttons there.
+	const [systemNavInset, setSystemNavInset] = useState(0);
+	useLayoutEffect(() => {
+		const probe = document.createElement("div");
+		probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px)";
+		document.body.appendChild(probe);
+		const measure = () => {
+			const inset = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+			setSystemNavInset(inset > 40 ? inset : 0);
+		};
+		measure();
+		window.addEventListener("resize", measure);
+		return () => {
+			window.removeEventListener("resize", measure);
+			probe.remove();
+		};
+	}, []);
+
 	// Determine the grid column class safely based on exactly how many tabs remain
 	const gridColsClass = 
 		navItems.length === 2 ? "grid-cols-2" : 
@@ -485,8 +506,9 @@ export function NavBar() {
 				// While the account switcher is open, lift the bar (and the switcher
 				// inside it) above the pages' floating action buttons (z-[60]).
 				isAccountSwitcherOpen ? "z-[65]" : "z-50",
-				!fullWidth && "px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:px-4 md:pb-[calc(env(safe-area-inset-bottom,0px)+14px)]",
+				!fullWidth && "px-3 pb-[calc(var(--nav-system-inset)+0.75rem)] md:px-4 md:pb-[calc(var(--nav-system-inset)+1rem)]",
 			)}
+			style={{ "--nav-system-inset": `${systemNavInset}px` } as React.CSSProperties}
 		>
 			{/* Mobile app: full-width bar that extends under the system navigation
 			    bar (edge-to-edge), with the safe-area inset as inner padding.
@@ -496,7 +518,8 @@ export function NavBar() {
 					"relative",
 					fullWidth
 						? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
-						: "mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5",
+						: // Capsule shape; extra side padding keeps the outer tabs off the curve.
+							"mx-auto w-full max-w-4xl rounded-full border border-[var(--border)] px-3 py-1.5",
 				)}
 				style={{
 					backgroundColor: "rgba(22, 29, 39, 0.8)",
