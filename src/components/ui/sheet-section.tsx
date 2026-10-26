@@ -53,7 +53,9 @@ export function sheetChipClassName({
 		"shrink-0 rounded-xl font-semibold transition active:scale-95",
 		size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
 		active
-			? "bg-[color-mix(in_srgb,var(--chip-accent)_16%,var(--surface-2))] text-[var(--text)] ring-2 ring-inset ring-[var(--chip-accent)]"
+			? // A see-through accent tint, like the resting ink tint, so the active
+				// chip reads the same on sheets, cards and the desktop fs-card.
+				"bg-[color-mix(in_srgb,var(--chip-accent)_16%,transparent)] text-[var(--text)] ring-2 ring-inset ring-[var(--chip-accent)]"
 			: fill === "card"
 				? "native-card-fill text-[var(--text-muted)] hover:text-[var(--text)]"
 				: // A see-through text tint rather than a fixed surface color, so the
