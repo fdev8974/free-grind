@@ -134,7 +134,7 @@ export function GridProfilePage() {
 
 	const isDesktopLike = useDesktopBreakpoint();
 
-	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop: isDesktopLike });
+	const { handleTriangleProfile, locateLabelFor } = useLocateProfile();
 
 	const parsedParams = profileRouteParamsSchema.safeParse(params);
 	const profileId = parsedParams.success ? parsedParams.data.profileId : null;
@@ -621,7 +621,7 @@ export function GridProfilePage() {
 				isSnapshotProfile={isSnapshotProfile}
 				isChatLinkedProfile={Boolean(chatContactStatus?.hasChatted)}
 				isBlockingProfile={isBlockingProfile || isUnblockingProfile}
-				isLocatingProfile={isLocatingProfile}
+				locateLabel={locateLabelFor(profileId)}
 				onTapProfile={handleTapProfile}
 				isTappingProfile={isTappingProfile}
 				isTapBlocked={hasSentTapRecently}
@@ -637,8 +637,6 @@ export function GridProfilePage() {
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>
-
-			{locateSheet}
 
 			<ConfirmDialog
 				isOpen={pendingProfileConfirm !== null}

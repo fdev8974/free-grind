@@ -1257,7 +1257,7 @@ export function GridPage() {
 		toast.success(t("browse_page.toasts.tag_filter_applied", { tag }));
 	};
 
-	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop });
+	const { handleTriangleProfile, locateLabelFor } = useLocateProfile();
 	// Read on mount like ProfileDetailsModal does; toggled in Optional Features.
 	const [showLocate] = useState(isLocateEnabled);
 
@@ -1964,7 +1964,7 @@ export function GridPage() {
 					onHide={() => handleHideProfile(renderedTileMenu.card.profileId)}
 					onBlock={() => void handleBlockProfile(renderedTileMenu.card.profileId)}
 					onLocate={showLocate ? () => handleTriangleProfile(String(renderedTileMenu.card.profileId)) : undefined}
-					isLocating={isLocatingProfile}
+					locateLabel={locateLabelFor(renderedTileMenu.card.profileId)}
 				/>
 			)}
 
@@ -1987,7 +1987,7 @@ export function GridPage() {
 				isBlocked={activeProfileId ? blockedProfileIds.has(activeProfileId) : false}
 				isBlockedByOther={isActiveProfileBlockedByOther}
 				isBlockingProfile={isBlockingProfile || isUnblockingProfile}
-				isLocatingProfile={isLocatingProfile}
+				locateLabel={locateLabelFor(activeProfileId)}
 				onTapProfile={handleTapProfile}
 				isTappingProfile={Boolean(tappingProfileId && tappingProfileId === activeProfileId)}
 				isTapBlocked={hasSentTapRecently}
@@ -2003,8 +2003,6 @@ export function GridPage() {
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>
-
-			{locateSheet}
 
 			{(() => {
 				const nicknameCardProfileId = nicknamePromptCard?.profileId;

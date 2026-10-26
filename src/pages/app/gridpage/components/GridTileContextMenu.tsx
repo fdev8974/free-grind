@@ -23,7 +23,7 @@ type GridTileContextMenuProps = {
 	onBlock: () => void;
 	/** Only passed while the optional Locate feature is enabled. */
 	onLocate?: () => void;
-	isLocating?: boolean;
+	locateLabel?: string;
 };
 
 type TileAction = {
@@ -52,7 +52,7 @@ export function GridTileContextMenu({
 	onHide,
 	onBlock,
 	onLocate,
-	isLocating = false,
+	locateLabel,
 }: GridTileContextMenuProps) {
 	const { t } = useTranslation();
 
@@ -81,7 +81,7 @@ export function GridTileContextMenu({
 			? [{
 				key: "locate",
 				icon: <LocateFixedFilled className={isDesktop ? "h-4 w-4" : "h-3.5 w-3.5"} />,
-				label: isLocating ? t("profile_details.locating") : t("profile_details.locate"),
+				label: locateLabel ?? t("profile_details.locate"),
 				onClick: onLocate,
 			}]
 			: []),

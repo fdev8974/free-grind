@@ -1,27 +1,87 @@
-import { useRef, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useApiFunctions } from "../../../../hooks/useApiFunctions";
+import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { decodeGeohash, encodeGeohash } from "../../../../utils/geohash";
 import { appLog } from "../../../../utils/logger";
 import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
-import { LocateResultSheet, type LocateProgress, type LocateRoundResult } from "../components/LocateResultSheet";
+import { afterSheetClose } from "../../../../components/ui/action-sheet";
+import { LocateResultSheet, locatePercent, type LocateProgress, type LocateRoundResult } from "../components/LocateResultSheet";
 
-/**
- * Shared "Locate" (trilateration) flow for ProfileDetailsModal hosts —
- * GridPage and GridProfilePage both render `locateSheet` next to the modal.
- */
-export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
+// One "Locate" (trilateration) run at a time, app-wide: the state lives here
+// rather than in each page, so every menu (grid tile, profile, chat list)
+// shows the same run and a second one can't start from another page while
+// the server location is still being moved around. <LocateProfileHost /> is
+// mounted once in App.tsx and renders the confirm dialog and result sheet.
+
+type LocateState = {
+	/** Profile the current run is locating; null when nothing runs. */
+	runningProfileId: string | null;
+	/** Profile waiting in the confirm dialog. */
+	pendingProfileId: string | null;
+	progress: LocateProgress | null;
+	isSheetOpen: boolean;
+};
+
+let locateState: LocateState = { runningProfileId: null, pendingProfileId: null, progress: null, isSheetOpen: false };
+let locateCancelled = false;
+const listeners = new Set<() => void>();
+
+function setLocateState(patch: Partial<LocateState>) {
+	locateState = { ...locateState, ...patch };
+	listeners.forEach((listener) => listener());
+}
+
+function subscribeLocate(listener: () => void) {
+	listeners.add(listener);
+	return () => { listeners.delete(listener); };
+}
+
+const getLocateState = () => locateState;
+
+/** For the Locate entry points: start (via the confirm dialog) and per-profile menu labels. */
+export function useLocateProfile() {
+	const { t } = useTranslation();
+	const { geohash } = usePreferences();
+	const { runningProfileId, progress } = useSyncExternalStore(subscribeLocate, getLocateState);
+
+	const handleTriangleProfile = (targetProfileId: string) => {
+		if (locateState.runningProfileId) {
+			if (locateState.runningProfileId !== targetProfileId) {
+				toast(t("profile_details.location_finder_busy", {
+					defaultValue: "Locate is already running for another profile.",
+				}));
+			}
+			// Bring the running run's sheet back.
+			setLocateState({ isSheetOpen: true });
+			return;
+		}
+
+		if (!geohash) {
+			toast.error(t("browse_page.errors.location_required"));
+			return;
+		}
+
+		setLocateState({ pendingProfileId: targetProfileId });
+	};
+
+	/** "Locating… 45%" for the profile being located, "Locate" for any other. */
+	const locateLabelFor = (profileId: string | number | null | undefined) =>
+		runningProfileId !== null && profileId != null && String(profileId) === runningProfileId && progress
+			? `${t("profile_details.locating")} ${locatePercent(progress)}%`
+			: t("profile_details.locate");
+
+	return { locatingProfileId: runningProfileId, handleTriangleProfile, locateLabelFor };
+}
+
+export function LocateProfileHost() {
 	const { t } = useTranslation();
 	const apiFunctions = useApiFunctions();
 	const { geohash } = usePreferences();
-
-	const [isLocatingProfile, setIsLocatingProfile] = useState(false);
-	const [locateProgress, setLocateProgress] = useState<LocateProgress | null>(null);
-	const [isLocateSheetOpen, setIsLocateSheetOpen] = useState(false);
-	const locateCancelledRef = useRef(false);
-	const [pendingLocateProfileId, setPendingLocateProfileId] = useState<string | null>(null);
+	const isDesktop = useDesktopBreakpoint();
+	const { pendingProfileId, progress, isSheetOpen } = useSyncExternalStore(subscribeLocate, getLocateState);
 
     const solveTrilateration = (points: { lat: number, lon: number, dist: number }[]) => {
         // 1. Convert Lat/Lon to a simple XY grid (meters) relative to the first point
@@ -66,22 +126,8 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
         };
     };
 
-    const handleTriangleProfile = (targetProfileId: string) => {
-        if (isLocatingProfile) {
-            // A run is already in progress — just bring its sheet back.
-            setIsLocateSheetOpen(true);
-            return;
-        }
-
-        if (!geohash) {
-            toast.error(t("browse_page.errors.location_required"));
-            return;
-        }
-
-        setPendingLocateProfileId(targetProfileId);
-    };
-
     const runLocate = async (targetProfileId: string) => {
+        if (locateState.runningProfileId) return;
         if (!geohash) {
             toast.error(t("browse_page.errors.location_required"));
             return;
@@ -104,9 +150,8 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
             return;
         }
 
-        setIsLocatingProfile(true);
-        locateCancelledRef.current = false;
-        setLocateProgress({
+        locateCancelled = false;
+        setLocateState({ runningProfileId: targetProfileId, isSheetOpen: true, progress: {
             status: "measuring",
             isRestoring: false,
             initialDistance: null,
@@ -118,18 +163,17 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
             errorMeters: null,
             rounds: [],
             errorMessage: null,
-        });
-        setIsLocateSheetOpen(true);
+        } });
 
         const updateProgress = (patch: Partial<LocateProgress>) => {
-            setLocateProgress((prev) => (prev ? { ...prev, ...patch } : prev));
+            if (locateState.progress) setLocateState({ progress: { ...locateState.progress, ...patch } });
         };
 
         const waitMs = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
         class LocateCancelledError extends Error {}
         const throwIfCancelled = () => {
-            if (locateCancelledRef.current) throw new LocateCancelledError();
+            if (locateCancelled) throw new LocateCancelledError();
         };
 
         const putServerLocation = async (lat: number, lon: number, targetGeohash: string) => {
@@ -270,7 +314,7 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
 
             updateProgress({ status: "done", isRestoring: true });
             // Pop the sheet back up if the user dismissed it mid-run.
-            setIsLocateSheetOpen(true);
+            setLocateState({ isSheetOpen: true });
         } catch (error) {
             if (error instanceof LocateCancelledError) {
                 updateProgress({ status: "cancelled", isRestoring: true });
@@ -282,7 +326,7 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
                 });
             }
         } finally {
-            if (!locateCancelledRef.current) {
+            if (!locateCancelled) {
                 await waitMs(10000);
             }
             try {
@@ -292,14 +336,14 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
                 toast.error(t("browse_page.errors.location_read_failed"));
             }
             updateProgress({ isRestoring: false });
-            setIsLocatingProfile(false);
+            setLocateState({ runningProfileId: null });
         }
     };
 
-	const locateSheet = (
+	return (
 		<>
 			<ConfirmDialog
-				isOpen={pendingLocateProfileId !== null}
+				isOpen={pendingProfileId !== null}
 				title={t("profile_details.location_finder_confirm_title", { defaultValue: "Location finder" })}
 				message={t("profile_details.location_finder_confirm_message", {
 					defaultValue:
@@ -313,25 +357,25 @@ export function useLocateProfile({ isDesktop }: { isDesktop: boolean }) {
 				confirmTone="danger"
 				cancelLabel={t("entitlement_bypass.prompt_cancel", { defaultValue: "Cancel" })}
 				onConfirm={() => {
-					const targetProfileId = pendingLocateProfileId;
-					setPendingLocateProfileId(null);
-					if (targetProfileId) void runLocate(targetProfileId);
+					const targetProfileId = pendingProfileId;
+					setLocateState({ pendingProfileId: null });
+					// Let the confirm sheet pop its history entry first, or the
+					// locate sheet takes that back step as its own dismissal.
+					if (targetProfileId) afterSheetClose(() => void runLocate(targetProfileId));
 				}}
-				onCancel={() => setPendingLocateProfileId(null)}
+				onCancel={() => setLocateState({ pendingProfileId: null })}
 			/>
-			{locateProgress && isLocateSheetOpen ? (
+			{progress && isSheetOpen ? (
 				<LocateResultSheet
-					progress={locateProgress}
-					onClose={() => setIsLocateSheetOpen(false)}
+					progress={progress}
+					onClose={() => setLocateState({ isSheetOpen: false })}
 					onCancel={() => {
-						locateCancelledRef.current = true;
-						setLocateProgress((prev) => (prev ? { ...prev, status: "cancelled", isRestoring: true } : prev));
+						locateCancelled = true;
+						if (locateState.progress) setLocateState({ progress: { ...locateState.progress, status: "cancelled", isRestoring: true } });
 					}}
 					isDesktop={isDesktop}
 				/>
 			) : null}
 		</>
 	);
-
-	return { isLocatingProfile, handleTriangleProfile, locateSheet };
 }

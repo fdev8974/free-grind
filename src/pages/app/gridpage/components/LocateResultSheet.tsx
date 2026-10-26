@@ -44,6 +44,13 @@ type Props = {
 
 const POINTS_PER_ROUND = 3;
 
+/** Overall progress of a run, 0–100 — shared by the sheet and the "Locating…" menu labels. */
+export function locatePercent({ status, totalRounds, round, step }: LocateProgress): number {
+	const totalSteps = Math.max(1, totalRounds * POINTS_PER_ROUND);
+	const doneSteps = status === "done" ? totalSteps : round * POINTS_PER_ROUND + step;
+	return Math.min(100, Math.round((doneSteps / totalSteps) * 100));
+}
+
 export function LocateResultSheet({ progress, onClose, onCancel, isDesktop }: Props) {
 	const { t } = useTranslation();
 	const { status, isRestoring, lat, lon, errorMeters, totalRounds, round, step, rounds } = progress;
@@ -51,9 +58,7 @@ export function LocateResultSheet({ progress, onClose, onCancel, isDesktop }: Pr
 	const hasEstimate = rounds.some((r) => !r.failed);
 	const coords = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
 
-	const totalSteps = Math.max(1, totalRounds * POINTS_PER_ROUND);
-	const doneSteps = status === "done" ? totalSteps : round * POINTS_PER_ROUND + step;
-	const percent = Math.min(100, Math.round((doneSteps / totalSteps) * 100));
+	const percent = locatePercent(progress);
 
 	const statusText = (() => {
 		switch (status) {

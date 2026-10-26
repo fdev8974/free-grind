@@ -48,6 +48,7 @@ import { TokenExpiredGate } from "./components/TokenExpiredPrompt";
 import { AccountStatusGate } from "./components/AccountStatusPrompt";
 import { UnsupportedVersionGate } from "./components/UnsupportedVersionPrompt";
 import { EntitlementBypassPrompt } from "./components/EntitlementBypassPrompt";
+import { LocateProfileHost } from "./pages/app/gridpage/hooks/useLocateProfile";
 import { PushNotificationBridge } from "./components/PushNotificationBridge";
 import { ShareTargetBridge } from "./components/ShareTargetBridge";
 import { ChatRealtimeBridge } from "./components/ChatRealtimeBridge";
@@ -208,6 +209,7 @@ export default function App() {
 				<SinModeUnlockOverlay />
 				<RightNowStartedOverlay />
 				<EntitlementBypassPrompt />
+				<LocateProfileHost />
 				<SmoothScroll>
 					<OtaUpdateGate>
 					{showOnboarding ? (

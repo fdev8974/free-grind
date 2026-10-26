@@ -117,7 +117,8 @@ type ProfileDetailsModalProps = {
 	isSnapshotProfile?: boolean;
 	isChatLinkedProfile?: boolean;
 	isBlockingProfile?: boolean;
-	isLocatingProfile?: boolean;
+	/** Locate menu label ("Locating… 45%" while this profile is being located). */
+	locateLabel?: string;
 	onTapProfile?: (profileId: string, tapId?: number) => void;
 	isTappingProfile?: boolean;
 	isTapBlocked?: boolean;
@@ -468,7 +469,7 @@ export function ProfileDetailsModal({
 	isSnapshotProfile = false,
 	isChatLinkedProfile = false,
 	isBlockingProfile = false,
-	isLocatingProfile = false,
+	locateLabel,
 	onTapProfile,
 	isTappingProfile = false,
 	isTapBlocked = false,
@@ -2238,7 +2239,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
 										>
 											<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
-											{isLocatingProfile ? t("profile_details.locating") : t("profile_details.locate")}
+											{locateLabel ?? t("profile_details.locate")}
 										</button>
 										)}
 										{(onHideProfile || onUnhideProfile) && (
@@ -2737,7 +2738,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
 															className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50">
 															<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
-															{isLocatingProfile ? t("profile_details.locating") : t("profile_details.locate")}
+															{locateLabel ?? t("profile_details.locate")}
 														</button>
 														)}
 														{(onHideProfile || onUnhideProfile) && (

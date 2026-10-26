@@ -156,7 +156,7 @@ type ConversationActionHandlers = {
 	onDelete: () => void;
 	/** Only set while the optional Locate feature is enabled. */
 	onLocate?: () => void;
-	isLocating?: boolean;
+	locateLabel?: string;
 };
 
 // Shared by the desktop right-click menu and the mobile long-press sheet so
@@ -208,7 +208,7 @@ function buildConversationActions(
 		...(handlers.onLocate
 			? [{
 				key: "locate",
-				label: handlers.isLocating ? t("profile_details.locating") : t("profile_details.locate"),
+				label: handlers.locateLabel ?? t("profile_details.locate"),
 				icon: <LocateFixedFilled className="h-4 w-4" />,
 				onSelect: handlers.onLocate,
 			}]
@@ -272,7 +272,7 @@ function ConversationContextMenu({
 	onToggleReadReceipts,
 	onDelete,
 	onLocate,
-	isLocating,
+	locateLabel,
 }: {
 	visible?: boolean;
 	conversation: ConversationEntry;
@@ -287,7 +287,7 @@ function ConversationContextMenu({
 	onToggleReadReceipts?: () => void;
 	onDelete: () => void;
 	onLocate?: () => void;
-	isLocating?: boolean;
+	locateLabel?: string;
 }) {
 	const { t } = useTranslation();
 	const menuRef = useRef<HTMLDivElement | null>(null);
@@ -330,7 +330,7 @@ function ConversationContextMenu({
 		onToggleReadReceipts,
 		onDelete,
 		onLocate,
-		isLocating,
+		locateLabel,
 	});
 
 	// Portal to <body> — the list sits inside PullToRefreshContainer, which
@@ -818,11 +818,11 @@ export function ChatInboxPanel({
 					close();
 					handleTriangleProfile(String(otherProfileId));
 				},
-				isLocating: isLocatingProfile,
+				locateLabel: locateLabelFor(otherProfileId),
 			};
 		})(),
 	});
-	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop });
+	const { handleTriangleProfile, locateLabelFor } = useLocateProfile();
 	// Read on mount like ProfileDetailsModal does; toggled in Optional Features.
 	const [showLocate] = useState(isLocateEnabled);
 	const [deleteConfirmState, setDeleteConfirmState] = useState<{
@@ -1078,8 +1078,6 @@ export function ChatInboxPanel({
 					{...conversationActionHandlers(contextMenuPresence.rendered.conversation, contextMenuPresence.rendered.isArchived, () => setContextMenuState(null))}
 				/>
 			) : null}
-
-			{locateSheet ? createPortal(locateSheet, document.body) : null}
 
 			{actionSheetState ? (
 				<ConversationActionSheet
