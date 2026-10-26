@@ -47,8 +47,11 @@ if (typeof document !== "undefined") {
 				const moved = Math.round(Math.hypot(touch.clientX - touchStartInfo.x, touch.clientY - touchStartInfo.y));
 				extra = ` ${ms}ms moved:${moved}px`;
 			}
-		} else if (event.type === "click") {
-			extra = ` prevented:${event.defaultPrevented}`;
+		} else if (event.type === "click" && event instanceof MouseEvent) {
+			extra = ` at ${Math.round(event.clientX)},${Math.round(event.clientY)} prevented:${event.defaultPrevented}`;
+		}
+		if (event instanceof TouchEvent && event.type === "touchstart" && event.touches[0]) {
+			extra += ` at ${Math.round(event.touches[0].clientX)},${Math.round(event.touches[0].clientY)}`;
 		}
 		tapDebug(`raw ${event.type} -> ${describeTarget(event.target)}${extra}`);
 	};
@@ -65,7 +68,29 @@ if (typeof document !== "undefined") {
 	]) {
 		document.addEventListener(type, report, { capture: true, passive: true });
 	}
-	// Bubble-phase check: did anything along the way cancel the touchend? This
+	// Layout movement under the finger: scrolls (capture, scroll doesn't
+	// bubble) with position/height, and media reloading in the page.
+	document.addEventListener(
+		"scroll",
+		(event) => {
+			if (Date.now() > watchUntil) return;
+			const el = event.target;
+			if (!(el instanceof HTMLElement)) return;
+			tapDebug(`scroll ${describeTarget(el)} top:${Math.round(el.scrollTop)} h:${el.scrollHeight}`);
+		},
+		{ capture: true, passive: true },
+	);
+	document.addEventListener(
+		"load",
+		(event) => {
+			if (Date.now() > watchUntil) return;
+			const el = event.target;
+			if (!(el instanceof HTMLImageElement)) return;
+			tapDebug(`img load ${el.src.slice(0, 24)}… ${el.naturalWidth}x${el.naturalHeight}`);
+		},
+		{ capture: true },
+	);
+		// Bubble-phase check: did anything along the way cancel the touchend? This
 	// runs after every other listener has had its chance.
 	window.addEventListener("touchend", (event) => {
 		if (Date.now() > watchUntil) return;
