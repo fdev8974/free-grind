@@ -183,48 +183,13 @@ export function OtaUpdatePromptView({
 				? 100
 				: null;
 
-	// Started from Settings: only the download progress. The installing/done
-	// phases aren't reliable enough to show, so the bar just stays full until
-	// the reload. Buttons only come back if the download fails.
-	if (update.autoStart) {
-		return (
-			<FullscreenPrompt
-				icon={RefreshCcw}
-				title={t("ota_prompt.downloading_title", { defaultValue: "Downloading Update" })}
-				footer={
-					failed ? (
-						<>
-							<p className="mb-1 text-center text-xs leading-relaxed text-red-400">
-								{t("ota_prompt.failed", { defaultValue: "The update couldn't be downloaded. Check your connection and try again." })}
-							</p>
-							<button type="button" onClick={start} className={fullscreenPrimaryButtonClass}>
-								{t("update_prompt.try_again", { defaultValue: "Try again" })}
-							</button>
-							<button type="button" onClick={onLater} className={fullscreenSecondaryButtonClass}>
-								{t("ota_prompt.later", { defaultValue: "Later" })}
-							</button>
-						</>
-					) : null
-				}
-			>
-				{!failed && (
-					<div className="flex flex-col gap-2">
-						<div className="h-2 w-full overflow-hidden rounded-full ink-tint-10">
-							<div
-								className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-200 ${percent === null ? "w-1/3 animate-pulse" : ""}`}
-								style={percent === null ? undefined : { width: `${percent}%` }}
-							/>
-						</div>
-						<p className="text-center text-xs tabular-nums text-[var(--text-muted)]">
-							{percent === null
-								? t("update_prompt.downloading", { defaultValue: "Downloading…" })
-								: t("update_prompt.downloading_percent", { defaultValue: "Downloading… {{percent}}%", percent })}
-						</p>
-					</div>
-				)}
-			</FullscreenPrompt>
-		);
-	}
+	// Started from Settings: only the download progress is shown — the
+	// installing/done phases aren't reliable, so the bar just stays full until
+	// the reload. The auto-install toggle is left out (it's already on); the
+	// buttons stay in the layout but invisible, so the bar sits exactly where
+	// it does on the regular screen, and come back if the download fails.
+	const progressOnly = update.autoStart === true;
+	const hideButtons = progressOnly && !failed;
 
 	return (
 		<FullscreenPrompt
@@ -244,7 +209,7 @@ export function OtaUpdatePromptView({
 								/>
 							</div>
 							<p className="text-center text-xs text-[var(--text-muted)]">
-								{progress.phase === "downloading"
+								{progress.phase === "downloading" || progressOnly
 									? percent === null
 										? t("update_prompt.downloading", { defaultValue: "Downloading…" })
 										: t("update_prompt.downloading_percent", { defaultValue: "Downloading… {{percent}}%", percent })
@@ -259,7 +224,14 @@ export function OtaUpdatePromptView({
 							{t("ota_prompt.failed", { defaultValue: "The update couldn't be downloaded. Check your connection and try again." })}
 						</p>
 					)}
-					<button type="button" disabled={isBusy} onClick={start} className={fullscreenPrimaryButtonClass}>
+					<button
+						type="button"
+						disabled={isBusy}
+						onClick={start}
+						aria-hidden={hideButtons || undefined}
+						tabIndex={hideButtons ? -1 : undefined}
+						className={`${fullscreenPrimaryButtonClass} ${hideButtons ? "invisible" : ""}`}
+					>
 						{isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
 						{progress.phase === "downloading"
 							? t("update_prompt.downloading", { defaultValue: "Downloading…" })
@@ -269,7 +241,14 @@ export function OtaUpdatePromptView({
 									? t("update_prompt.try_again", { defaultValue: "Try again" })
 									: <>{t("ota_prompt.update_now", { defaultValue: "Update now" })}<Download className="h-4 w-4" /></>}
 					</button>
-					<button type="button" onClick={onLater} disabled={isBusy} className={fullscreenSecondaryButtonClass}>
+					<button
+						type="button"
+						onClick={onLater}
+						disabled={isBusy}
+						aria-hidden={hideButtons || undefined}
+						tabIndex={hideButtons ? -1 : undefined}
+						className={`${fullscreenSecondaryButtonClass} ${hideButtons ? "invisible" : ""}`}
+					>
 						{t("ota_prompt.later", { defaultValue: "Later" })}
 					</button>
 				</>
@@ -284,14 +263,14 @@ export function OtaUpdatePromptView({
 					}
 					to={bundleSide(t, i18n.language, t("ota_prompt.new", { defaultValue: "New build" }), update.version, versionChanged, installedVersion)}
 				/>
-				<ToggleRow
+				{!progressOnly && <ToggleRow
 					checked={autoUpdate}
 					onChange={setAutoUpdate}
 					icon={<Zap className="h-5 w-5" />}
 					iconClass="ink-tint-8 text-[var(--accent)]"
 					label={t("ota_prompt.auto_title", { defaultValue: "Install automatically" })}
 					description={t("ota_prompt.auto_desc", { defaultValue: "Install future frontend updates without asking." })}
-				/>
+				/>}
 			</div>
 		</FullscreenPrompt>
 	);

@@ -2824,7 +2824,6 @@
     "releases_ahead_other": "{{count}} releases newer"
   },
   "ota_prompt": {
-    "downloading_title": "Downloading Update",
     "title": "Update Available",
     "description": "A new version of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
     "failed": "The update couldn't be downloaded. Check your connection and try again.",

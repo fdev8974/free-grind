@@ -2826,7 +2826,6 @@
         "releases_ahead_other": "{{count}} Releases neuer"
     },
     "ota_prompt": {
-        "downloading_title": "",
         "title": "Update verfügbar",
         "description": "Eine neue Version der App-Oberfläche ist bereit zum Download. Das dauert nur einen Moment, danach lädt die App neu.",
         "failed": "Das Update konnte nicht heruntergeladen werden. Prüfe deine Verbindung und versuch es erneut.",

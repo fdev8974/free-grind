@@ -2876,7 +2876,6 @@
         "releases_ahead_few": "{{count}} izdaje novejša"
     },
     "ota_prompt": {
-        "downloading_title": "",
         "title": "Na voljo je posodobitev",
         "description": "Nova različica vmesnika aplikacije je pripravljena za prenos. Traja le trenutek, nato se aplikacija znova naloži.",
         "failed": "Posodobitve ni bilo mogoče prenesti. Preveri povezavo in poskusi znova.",

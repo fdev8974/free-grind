@@ -2851,7 +2851,6 @@
         "releases_ahead_many": "{{count}} versões mais novas"
     },
     "ota_prompt": {
-        "downloading_title": "",
         "title": "Atualização disponível",
         "description": "Uma nova versão da interface do app está pronta para transferir. Leva só um instante e o app recarrega depois.",
         "failed": "Não foi possível transferir a atualização. Verifique sua conexão e tente novamente.",
