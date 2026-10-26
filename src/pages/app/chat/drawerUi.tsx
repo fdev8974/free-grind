@@ -319,51 +319,70 @@ export function DrawerMediaPreview({ media }: { media: DrawerPreviewContent | nu
 	);
 }
 
+type DecodedImage = { width: number; height: number; ok: boolean };
+
+/** Loads and fully decodes `src` off-screen. Painting a large image that
+ * hasn't been decoded yet can drop the whole peek layer for a frame on
+ * Android, so the peek only mounts images that are already decoded. */
+function useDecodedImage(src: string | undefined): DecodedImage | null {
+	const [decoded, setDecoded] = useState<DecodedImage | null>(null);
+	useEffect(() => {
+		setDecoded(null);
+		if (!src) return;
+		let cancelled = false;
+		const img = new Image();
+		img.src = proxyMediaUrl(src);
+		img.decode().then(
+			() => { if (!cancelled) setDecoded({ width: img.naturalWidth, height: img.naturalHeight, ok: true }); },
+			() => { if (!cancelled) setDecoded({ width: 0, height: 0, ok: false }); },
+		);
+		return () => {
+			cancelled = true;
+		};
+	}, [src]);
+	return decoded;
+}
+
 /** A peek image. With a `placeholderSrc` (an already-loaded thumbnail) it opens
  * on that right away, scaled up to peek size, and fades the full file in on top
- * once it has loaded. `onReady` fires once there is something to show. */
+ * once it is decoded. `onReady` fires once there is something to show. */
 function DrawerPreviewImage({ media, onReady }: { media: DrawerPreviewMedia; onReady: () => void }) {
-	const [aspect, setAspect] = useState<number | null>(null);
-	const [isFullLoaded, setIsFullLoaded] = useState(false);
-	const handleFullLoaded = () => {
-		if (media.placeholderSrc) setIsFullLoaded(true);
-		else onReady();
-	};
-	const fullImg = (
-		<img
-			ref={(el) => {
-				if (el?.complete && el.naturalWidth) handleFullLoaded();
-			}}
-			src={proxyMediaUrl(media.src)}
-			alt=""
-			onLoad={handleFullLoaded}
-			onError={media.placeholderSrc ? undefined : onReady}
-			className={media.placeholderSrc ? "absolute inset-0 h-full w-full object-cover" : "max-h-[80dvh] max-w-full object-contain"}
-			style={media.placeholderSrc ? { opacity: isFullLoaded ? 1 : 0, transition: `opacity ${PREVIEW_ANIMATION_MS}ms ease-out` } : undefined}
-		/>
-	);
-	if (!media.placeholderSrc) return fullImg;
+	const placeholder = useDecodedImage(media.placeholderSrc);
+	const full = useDecodedImage(media.src);
+	const isReady = media.placeholderSrc ? placeholder !== null : full !== null;
 
-	const handlePlaceholder = (el: HTMLImageElement) => {
-		if (el.naturalWidth && el.naturalHeight) setAspect(el.naturalWidth / el.naturalHeight);
-		onReady();
-	};
+	useEffect(() => {
+		if (isReady) onReady();
+	}, [isReady, onReady]);
+
+	if (!media.placeholderSrc) {
+		return full?.ok ? <img src={proxyMediaUrl(media.src)} alt="" className="max-h-[80dvh] max-w-full object-contain" /> : null;
+	}
+	if (!placeholder) return null;
+	// The thumbnail is smaller than the peek: size the box from its aspect
+	// instead of its pixels so it fills the peek like the full file will.
+	const aspect = placeholder.ok && placeholder.height ? placeholder.width / placeholder.height : null;
 	return (
 		<div className="relative">
 			<img
-				ref={(el) => {
-					if (el?.complete && el.naturalWidth && aspect === null) handlePlaceholder(el);
-				}}
 				src={proxyMediaUrl(media.placeholderSrc)}
 				alt=""
-				onLoad={(event) => handlePlaceholder(event.currentTarget)}
-				onError={onReady}
-				// The thumbnail is smaller than the peek: size the box from its aspect
-				// instead of its pixels so it fills the peek like the full file will.
 				className="block max-h-[80dvh] max-w-full object-contain"
 				style={aspect ? { aspectRatio: aspect, width: `min(calc(100vw - 3rem), calc(80dvh * ${aspect}))` } : undefined}
 			/>
-			{fullImg}
+			{full?.ok ? (
+				<img
+					ref={(el) => {
+						if (el && !el.dataset.shown) {
+							el.dataset.shown = "1";
+							el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PREVIEW_ANIMATION_MS, easing: "ease-out" });
+						}
+					}}
+					src={proxyMediaUrl(media.src)}
+					alt=""
+					className="absolute inset-0 h-full w-full object-cover"
+				/>
+			) : null}
 		</div>
 	);
 }
