@@ -5,7 +5,7 @@ pre-commit:
   commands:
     clippy:
       glob: "*.rs"
-      run: cargo clippy --all-targets
+      run: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR cargo clippy --all-targets
     rust-test:
       glob: "*.rs"
-      run: cargo test --quiet
+      run: env -u GIT_DIR -u GIT_WORK_TREE -u GIT_INDEX_FILE -u GIT_COMMON_DIR cargo test --quiet

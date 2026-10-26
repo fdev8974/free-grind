@@ -23,7 +23,7 @@ This crate is a transport: it handles authentication, fingerprinting, connection
 
 ```toml
 [dependencies]
-grindr = "0.31"
+grindr = "0.32"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
 serde_json = "1"
 ```

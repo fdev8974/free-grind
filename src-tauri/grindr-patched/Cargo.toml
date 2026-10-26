@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.88"
 name = "grindr"
-version = "0.31.1+26.21.0.190550"
+version = "0.32.0+26.22.0.192710"
 build = false
 exclude = [
     ".forgejo",
@@ -72,7 +72,7 @@ version = "0.22"
 version = "1"
 
 [dependencies.ecdsa]
-version = "0.16"
+version = "0.17"
 features = ["der"]
 
 [dependencies.futures-util]
@@ -96,7 +96,7 @@ version = "1"
 version = "10"
 
 [dependencies.p256]
-version = "0.13"
+version = "0.14"
 features = [
     "ecdsa",
     "pkcs8",
@@ -104,10 +104,6 @@ features = [
 
 [dependencies.rand]
 version = "0.10"
-
-[dependencies.rand_core]
-version = "0.6"
-features = ["getrandom"]
 
 [dependencies.serde]
 version = "1"
@@ -117,10 +113,10 @@ features = ["derive"]
 version = "1"
 
 [dependencies.sha2]
-version = "0.10"
+version = "0.11"
 
 [dependencies.spki]
-version = "0.7"
+version = "0.8"
 features = ["alloc"]
 
 [dependencies.thiserror]
@@ -162,7 +158,7 @@ features = [
 version = "1"
 
 [dev-dependencies.sha2]
-version = "0.10"
+version = "0.11"
 
 [dev-dependencies.tokio]
 version = "1"

@@ -117,7 +117,7 @@ fn plain_headers_are_gzip_then_the_okhttp_ua() {
 
 	assert_eq!(header_names(&headers), &["accept-encoding", "user-agent"]);
 	assert_eq!(header_value(&headers, "accept-encoding"), Some("gzip"));
-	assert_eq!(header_value(&headers, "user-agent"), Some("okhttp/5.4.0"));
+	assert_eq!(header_value(&headers, "user-agent"), Some("okhttp/5.5.0"));
 }
 
 #[test]
@@ -126,7 +126,7 @@ fn a_ranged_plain_request_sends_the_range_before_the_ua() {
 
 	assert_eq!(header_names(&headers), &["range", "user-agent"]);
 	assert_eq!(header_value(&headers, "range"), Some("bytes=0-99"));
-	assert_eq!(header_value(&headers, "user-agent"), Some("okhttp/5.4.0"));
+	assert_eq!(header_value(&headers, "user-agent"), Some("okhttp/5.5.0"));
 }
 
 #[tokio::test]
@@ -143,7 +143,7 @@ async fn a_plain_fetch_goes_out_as_a_bare_okhttp_client() {
 
 	let recorded = testserver::requests_to(&format!("{MEDIA_PREFIX}7"));
 	let fetch = recorded.first().expect("the media request was made");
-	assert_eq!(fetch.header("user-agent"), Some("okhttp/5.4.0"));
+	assert_eq!(fetch.header("user-agent"), Some("okhttp/5.5.0"));
 	assert_eq!(fetch.header("accept-encoding"), Some("gzip"));
 	assert_eq!(fetch.header("accept"), None);
 	assert_eq!(fetch.header("authorization"), None);

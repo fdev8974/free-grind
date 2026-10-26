@@ -144,134 +144,136 @@ export function AssignmentsPage() {
 	const filtered = useMemo(() => searched.filter((a) => matchesType(a, typeFilter)), [searched, typeFilter]);
 
 	return (
-		<PullToRefreshContainer
-			className="app-screen"
-			onRefresh={() => refresh()}
-			isDisabled={isLoading}
-			refreshingLabel="Refreshing…"
-		>
-			<PageHeader
-				backTo="/settings"
-				title="Assignments & Feature Flags"
-				subtitle="What the server currently assigns to this account and device. Pull down to refresh."
-				actions={
-					<button
-						type="button"
-						onClick={() => copyText(JSON.stringify(filtered, null, 2), `Copied ${filtered.length} assignments`)}
-						disabled={filtered.length === 0}
-						className={HEADER_ICON_BUTTON_CLASS}
-						aria-label="Copy as JSON"
-						title="Copy shown assignments as JSON"
-					>
-						<Copy className="h-4 w-4" />
-					</button>
-				}
-			/>
+		<>
+			<PullToRefreshContainer
+				className="app-screen"
+				onRefresh={() => refresh()}
+				isDisabled={isLoading}
+				refreshingLabel="Refreshing…"
+			>
+				<PageHeader
+					backTo="/settings"
+					title="Assignments & Feature Flags"
+					subtitle="What the server currently assigns to this account and device. Pull down to refresh."
+					actions={
+						<button
+							type="button"
+							onClick={() => copyText(JSON.stringify(filtered, null, 2), `Copied ${filtered.length} assignments`)}
+							disabled={filtered.length === 0}
+							className={HEADER_ICON_BUTTON_CLASS}
+							aria-label="Copy as JSON"
+							title="Copy shown assignments as JSON"
+						>
+							<Copy className="h-4 w-4" />
+						</button>
+					}
+				/>
 
-			<div className="grid min-w-0 gap-5">
-				{/* Where the list comes from */}
-				<div className="native-card overflow-hidden">
-					<button
-						type="button"
-						onClick={() => setIsSourceSheetOpen(true)}
-						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
-					>
-						<div className="shrink-0 rounded-2xl bg-sky-500/15 p-2.5 text-sky-400">
-							<Database className="h-5 w-5" />
-						</div>
-						<div className="min-w-0 flex-1">
-							<p className="text-sm font-semibold leading-snug">Source</p>
-							<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-								{source.description}
-								{activeSource === "account" && !geohash ? " (no location set, sent without one)" : ""}
-							</p>
-						</div>
-						<span className="max-w-[40%] shrink-0 truncate text-sm font-medium text-[var(--text-muted)]">{source.label}</span>
-						<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-					</button>
-				</div>
-
-				<div className="grid min-w-0 gap-3">
-					<SheetSearchInput value={query} onChange={setQuery} placeholder="Search key or value" />
-					<div className="flex flex-wrap gap-2">
-						{TYPE_FILTERS.map((filter) => {
-							const count = searched.filter((a) => matchesType(a, filter.id)).length;
-							return (
-								<SheetChip key={filter.id} size="sm" active={typeFilter === filter.id} onClick={() => setTypeFilter(filter.id)}>
-									{filter.label} · {count}
-								</SheetChip>
-							);
-						})}
-					</div>
-				</div>
-
-				{isLoading && !sources ? (
-					<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
-						{Array.from({ length: 6 }).map((_, i) => (
-							<div key={i} className="flex items-center gap-3 px-4 py-3">
-								<div className="min-w-0 flex-1 space-y-1.5">
-									<div className="h-3.5 w-2/3 animate-pulse rounded-full ink-tint-10" />
-									<div className="h-3 w-16 animate-pulse rounded-full ink-tint-10" />
-								</div>
-								<div className="h-5 w-12 animate-pulse rounded-full ink-tint-10" />
+				<div className="grid min-w-0 gap-5">
+					{/* Where the list comes from */}
+					<div className="native-card overflow-hidden">
+						<button
+							type="button"
+							onClick={() => setIsSourceSheetOpen(true)}
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+						>
+							<div className="shrink-0 rounded-2xl bg-sky-500/15 p-2.5 text-sky-400">
+								<Database className="h-5 w-5" />
 							</div>
-						))}
+							<div className="min-w-0 flex-1">
+								<p className="text-sm font-semibold leading-snug">Source</p>
+								<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+									{source.description}
+									{activeSource === "account" && !geohash ? " (no location set, sent without one)" : ""}
+								</p>
+							</div>
+							<span className="max-w-[40%] shrink-0 truncate text-sm font-medium text-[var(--text-muted)]">{source.label}</span>
+							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+						</button>
 					</div>
-				) : current?.error && current.assignments.length === 0 ? (
-					<ErrorState title="Couldn't load assignments" description={current.error} onRetry={() => void refresh()} />
-				) : filtered.length === 0 ? (
-					<div className="native-card overflow-hidden px-4">
-						<DrawerEmptyState
-							icon={<FlagTriangleRight />}
-							fanned={false}
-							title="No assignments"
-							hint={current && current.assignments.length > 0
-								? "Nothing matches this search or filter."
-								: "The server returned none for this source."}
-						/>
-					</div>
-				) : (
-					<div className="min-w-0">
-						<div className="mb-2 flex items-center gap-2 px-1">
-							<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{source.label}</p>
-							<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
-								{filtered.length}
-							</span>
-						</div>
-						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
-							{filtered.map((a) => {
-								const withPayload = hasPayload(a.payload);
+
+					<div className="grid min-w-0 gap-3">
+						<SheetSearchInput value={query} onChange={setQuery} placeholder="Search key or value" />
+						<div className="flex flex-wrap gap-2">
+							{TYPE_FILTERS.map((filter) => {
+								const count = searched.filter((a) => matchesType(a, filter.id)).length;
 								return (
-									<button
-										key={a.key}
-										type="button"
-										disabled={!withPayload}
-										onClick={() => setOpenAssignment(a)}
-										className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition enabled:hover:bg-[var(--surface-2)]"
-									>
-										<div className="min-w-0 flex-1">
-											<p className="break-all font-mono text-[13px] font-semibold text-[var(--text)]">{a.key}</p>
-											<p className="mt-0.5 text-xs text-[var(--text-muted)]">
-												{typeLabel(a.type)}
-												{withPayload ? " · payload" : ""}
-											</p>
-										</div>
-										<span className={cn("max-w-[40%] shrink-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold", valueClass(a.value))}>
-											{a.value || "—"}
-										</span>
-										{withPayload && <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />}
-									</button>
+									<SheetChip key={filter.id} size="sm" active={typeFilter === filter.id} onClick={() => setTypeFilter(filter.id)}>
+										{filter.label} · {count}
+									</SheetChip>
 								);
 							})}
 						</div>
-						{current?.error ? (
-							<p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
-								Couldn't refresh, showing the last loaded list ({current.error}).
-							</p>
-						) : null}
 					</div>
-				)}
-			</div>
+
+					{isLoading && !sources ? (
+						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+							{Array.from({ length: 6 }).map((_, i) => (
+								<div key={i} className="flex items-center gap-3 px-4 py-3">
+									<div className="min-w-0 flex-1 space-y-1.5">
+										<div className="h-3.5 w-2/3 animate-pulse rounded-full ink-tint-10" />
+										<div className="h-3 w-16 animate-pulse rounded-full ink-tint-10" />
+									</div>
+									<div className="h-5 w-12 animate-pulse rounded-full ink-tint-10" />
+								</div>
+							))}
+						</div>
+					) : current?.error && current.assignments.length === 0 ? (
+						<ErrorState title="Couldn't load assignments" description={current.error} onRetry={() => void refresh()} />
+					) : filtered.length === 0 ? (
+						<div className="native-card overflow-hidden px-4">
+							<DrawerEmptyState
+								icon={<FlagTriangleRight />}
+								fanned={false}
+								title="No assignments"
+								hint={current && current.assignments.length > 0
+									? "Nothing matches this search or filter."
+									: "The server returned none for this source."}
+							/>
+						</div>
+					) : (
+						<div className="min-w-0">
+							<div className="mb-2 flex items-center gap-2 px-1">
+								<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{source.label}</p>
+								<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
+									{filtered.length}
+								</span>
+							</div>
+							<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+								{filtered.map((a) => {
+									const withPayload = hasPayload(a.payload);
+									return (
+										<button
+											key={a.key}
+											type="button"
+											disabled={!withPayload}
+											onClick={() => setOpenAssignment(a)}
+											className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition enabled:hover:bg-[var(--surface-2)]"
+										>
+											<div className="min-w-0 flex-1">
+												<p className="break-all font-mono text-[13px] font-semibold text-[var(--text)]">{a.key}</p>
+												<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+													{typeLabel(a.type)}
+													{withPayload ? " · payload" : ""}
+												</p>
+											</div>
+											<span className={cn("max-w-[40%] shrink-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold", valueClass(a.value))}>
+												{a.value || "—"}
+											</span>
+											{withPayload && <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />}
+										</button>
+									);
+								})}
+							</div>
+							{current?.error ? (
+								<p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
+									Couldn't refresh, showing the last loaded list ({current.error}).
+								</p>
+							) : null}
+						</div>
+					)}
+				</div>
+			</PullToRefreshContainer>
 
 			{isSourceSheetOpen && (
 				<SelectSheet<SourceId>
@@ -298,6 +300,6 @@ export function AssignmentsPage() {
 					isDesktop={isDesktop}
 				/>
 			)}
-		</PullToRefreshContainer>
+		</>
 	);
 }
