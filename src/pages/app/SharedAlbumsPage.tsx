@@ -900,7 +900,8 @@ export function SharedAlbumsPage() {
 			<PullToRefreshContainer
 				className="app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
 				contentClassName="flex flex-1 flex-col min-h-0"
-				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}
+				// TEMP peek-flicker experiment: hide the feed while the album sheet is open.
+				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)", visibility: viewer !== null && openAlbumAsBottomSheet ? "hidden" : undefined }}
 				onRefresh={handleRefresh}
 				isDisabled={isLoading || isRefreshing}
 				isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
