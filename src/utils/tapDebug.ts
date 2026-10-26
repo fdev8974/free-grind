@@ -30,18 +30,45 @@ export function watchRawTapsAfterClose() {
 	watchUntil = Date.now() + 8000;
 }
 
+let touchStartInfo: { t: number; x: number; y: number } | null = null;
+
 if (typeof document !== "undefined") {
 	const report = (event: Event) => {
 		if (Date.now() > watchUntil) return;
-		const extra =
-			event.type === "touchend" || event.type === "touchstart"
-				? ` cancelable:${event.cancelable}`
-				: event.type === "click"
-					? ` prevented:${event.defaultPrevented}`
-					: "";
+		let extra = "";
+		if (event instanceof TouchEvent && event.type === "touchstart") {
+			const touch = event.touches[0];
+			touchStartInfo = touch ? { t: performance.now(), x: touch.clientX, y: touch.clientY } : null;
+			extra = ` focus:${describeTarget(document.activeElement)}`;
+		} else if (event instanceof TouchEvent && event.type === "touchend") {
+			const touch = event.changedTouches[0];
+			if (touchStartInfo && touch) {
+				const ms = Math.round(performance.now() - touchStartInfo.t);
+				const moved = Math.round(Math.hypot(touch.clientX - touchStartInfo.x, touch.clientY - touchStartInfo.y));
+				extra = ` ${ms}ms moved:${moved}px`;
+			}
+		} else if (event.type === "click") {
+			extra = ` prevented:${event.defaultPrevented}`;
+		}
 		tapDebug(`raw ${event.type} -> ${describeTarget(event.target)}${extra}`);
 	};
-	for (const type of ["touchstart", "touchend", "touchcancel", "click"]) {
+	for (const type of [
+		"touchstart",
+		"touchend",
+		"touchcancel",
+		"pointerdown",
+		"pointerup",
+		"pointercancel",
+		"click",
+		"contextmenu",
+		"dragstart",
+	]) {
 		document.addEventListener(type, report, { capture: true, passive: true });
 	}
+	// Bubble-phase check: did anything along the way cancel the touchend? This
+	// runs after every other listener has had its chance.
+	window.addEventListener("touchend", (event) => {
+		if (Date.now() > watchUntil) return;
+		tapDebug(`touchend after handlers: defaultPrevented:${event.defaultPrevented}`);
+	});
 }
