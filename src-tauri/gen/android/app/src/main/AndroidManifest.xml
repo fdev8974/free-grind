@@ -37,7 +37,7 @@
             android:resource="@drawable/ic_notification_silhouette" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="free_grind_chat_notifications_v2" />
+            android:value="free_grind_chat_notifications_v3" />
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"

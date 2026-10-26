@@ -3,13 +3,11 @@ package dev.estopia.free_grind
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.media.AudioAttributes
 import android.net.Uri
 import android.os.Bundle
 import android.service.notification.StatusBarNotification
@@ -322,29 +320,15 @@ object NotificationPoster {
             return
         }
 
-        // _v2 suffix forces re-creation so the custom sound takes effect on existing installs.
         val channelId = if (isTap) AppDisguise.TAPS_CHANNEL_ID else AppDisguise.CHAT_CHANNEL_ID
-        val channelName = AppDisguise.channelName(context, isTap)
         val notificationId = notificationKey.hashCode()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val soundUri: Uri = Uri.parse(
-            "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.free_grind_message}"
+        val soundUri = AppDisguise.messageSoundUri(context)
+        notificationManager.createNotificationChannel(
+            AppDisguise.messageChannel(context, AppDisguise.currentDisguise(context), isTap)
         )
-        val audioAttributes = AudioAttributes.Builder()
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-            .build()
-        val channel = NotificationChannel(
-            channelId,
-            channelName,
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = if (isTap) "Notifications for incoming taps" else "Notifications for new chat messages"
-            setSound(soundUri, audioAttributes)
-        }
-        notificationManager.createNotificationChannel(channel)
         Log.d(
             "FCM",
             "Using notification channel=$channelId notificationId=$notificationId key=$notificationKey action=${if (isTap) "taps" else conversationId}",

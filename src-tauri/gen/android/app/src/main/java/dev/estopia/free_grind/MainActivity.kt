@@ -4,7 +4,6 @@ import android.Manifest
 import android.animation.Animator
 import android.animation.ObjectAnimator
 import android.app.Dialog
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
@@ -598,38 +597,10 @@ class MainActivity : TauriActivity() {
   }
 
   private fun ensureNotificationChannels() {
-    val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-
-    // Note: We use the "_v2" suffix to ensure custom sound and high importance
-    // settings are applied correctly even on devices that already had previous versions.
-    // Channel names come from the active AppDisguise identity — "Chat
-    // Messages"/"Taps" normally, something generic while a decoy is active
-    // (see AppDisguise.kt) so Android's own notification settings screen
-    // doesn't give the disguise away.
-    val chatChannel = NotificationChannel(
-      AppDisguise.CHAT_CHANNEL_ID,
-      AppDisguise.channelName(this, isTap = false),
-      NotificationManager.IMPORTANCE_HIGH
-    ).apply {
-      description = "Notifications for new chat messages"
-      enableLights(true)
-      enableVibration(true)
-      setShowBadge(true)
-    }
-
-    val tapsChannel = NotificationChannel(
-      AppDisguise.TAPS_CHANNEL_ID,
-      AppDisguise.channelName(this, isTap = true),
-      NotificationManager.IMPORTANCE_HIGH
-    ).apply {
-      description = "Notifications for incoming taps"
-      enableLights(true)
-      enableVibration(true)
-      setShowBadge(true)
-    }
-
-    notificationManager.createNotificationChannel(chatChannel)
-    notificationManager.createNotificationChannel(tapsChannel)
+    // Names follow the active AppDisguise identity ("Chat Messages"/"Taps"
+    // normally, something generic while a decoy is active) so Android's own
+    // notification settings screen doesn't give the disguise away.
+    AppDisguise.ensureMessageChannels(this)
   }
 
   private fun dispatchFcmTokenToWebview(token: String, attempt: Int) {
