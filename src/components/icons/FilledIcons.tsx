@@ -83,12 +83,13 @@ export function MapPinOffFilled(props: IconProps) {
 	);
 }
 
-// Dashed outline pin for distances that are only estimated.
-export function MapPinDashed(props: IconProps) {
+// Dashed outline pin with a tilde inside, for distances that are only
+// estimated ("approximately here").
+export function MapPinApproximate(props: IconProps) {
 	return (
 		<FilledSvg {...props}>
 			<path d={MAP_PIN_PATH} fill="none" strokeWidth={2.25} strokeDasharray="3 2.5" />
-			<circle cx="12" cy="10" r="2.25" stroke="none" />
+			<path d="M8.25 11c1.25-2 2.5-2 3.75-1s2.5 1 3.75-1" fill="none" strokeWidth={2.25} />
 		</FilledSvg>
 	);
 }
