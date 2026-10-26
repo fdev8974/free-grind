@@ -34,6 +34,7 @@ export const profileSchema = z.object({
 	age: z.number().nullable().optional(),
 	showAge: z.boolean().optional(),
 	showDistance: z.boolean().optional(),
+	approximateDistance: z.boolean().optional(),
 	height: z.number().nullable().optional(),
 	weight: z.number().nullable().optional(),
 	ethnicity: z.number().nullable().optional(),
@@ -128,6 +129,8 @@ export interface ProfileDraft {
 	profileTagsText: string;
 	showAge: boolean;
 	showDistance: boolean;
+	/** Rounded distance ("< 2 km away") instead of the exact one; only meaningful while showDistance is on. */
+	approximateDistance: boolean;
 	age: string;
 	height: string;
 	weight: string;
@@ -159,6 +162,7 @@ export const emptyDraft: ProfileDraft = {
 	profileTagsText: "",
 	showAge: true,
 	showDistance: true,
+	approximateDistance: false,
 	age: "",
 	height: "",
 	weight: "",
@@ -316,6 +320,7 @@ export function profileToDraft(
 		profileTagsText: (profile.profileTags ?? []).join(", "),
 		showAge: profile.showAge ?? true,
 		showDistance: profile.showDistance ?? true,
+		approximateDistance: profile.approximateDistance ?? false,
 		age: profile.age?.toString() ?? "",
 		// profile.height is returned by the GET endpoint in cm; the editor input
 		// is labeled (and saved) in cm, or total inches for uk/american presets.

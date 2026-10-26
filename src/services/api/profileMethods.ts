@@ -448,6 +448,18 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			return { ok: true };
 		},
 
+		// Account-level prefs (incognito, hideViewedMe, approximateDistance, …).
+		// Fields left out stay untouched, so callers send only what changed —
+		// the official app's distance screen sends just `approximateDistance`.
+		async updateMySettings(settings: { approximateDistance?: boolean }): Promise<{ ok: true }> {
+			const response = await fetchRest("/v3/me/prefs/settings", {
+				method: "PUT",
+				body: { settings },
+			});
+			await assertSuccess(response, t("api.errors.save_profile"));
+			return { ok: true };
+		},
+
 		// PATCH /v4/me/profile silently ignores explicit `null` values meant to
 		// clear a field (e.g. resetting bodyType/ethnicity to "not set"). Doing a
 		// full replace avoids that partial-merge behavior.

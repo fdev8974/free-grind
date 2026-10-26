@@ -456,6 +456,7 @@ export function ProfileEditorPage() {
 				addIfChanged("aboutMe", "aboutMe", (v) => v.trim() || null);
 				addIfChanged("showAge", "showAge");
 				addIfChanged("showDistance", "showDistance");
+				addIfChanged("approximateDistance", "approximateDistance");
 				addIfChanged("age", "age", parseNullableInteger);
 				addIfChanged("height", "height", (v) => parseNullableHeightToCm(v, unitsPreset));
 				addIfChanged("weight", "weight", (v) => parseNullableWeightToGrams(v, unitsPreset));
@@ -519,6 +520,12 @@ export function ProfileEditorPage() {
 					}
 
 					await apiFunctions.replaceMyProfile(mergedProfile);
+
+					// The official app writes the distance mode to the profile AND
+					// mirrors approximateDistance into the account settings.
+					if ("approximateDistance" in payload) {
+						await apiFunctions.updateMySettings({ approximateDistance: payload.approximateDistance });
+					}
 
 					setRawProfile(mergedProfile);
 					// Update local profile state immediately
