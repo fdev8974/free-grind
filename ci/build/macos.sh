@@ -8,8 +8,9 @@
 # Like ci/build/ios.sh, it builds in a copy of the checkout at a fixed path,
 # with fixed crate paths, since the build records absolute paths.
 # Output: out/macos/free-grind-v<version>-macos-universal.zip
-# No signing identity is configured; the app carries the ad-hoc signatures the
-# linker gives every arm64 binary.
+# Tauri signs the bundle ad-hoc (signingIdentity "-" in tauri.conf.json) with
+# src-tauri/Entitlements.plist, so macOS asks for microphone, camera and
+# location access.
 # No pipefail, as in ios.sh.
 set -eu
 
