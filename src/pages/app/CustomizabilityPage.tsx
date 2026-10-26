@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Languages, PanelBottom, Ruler, Type, Vibrate } from "lucide-react";
-import { ClockFilled, FlameFilled, ImagesFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
+import { ClockFilled, EyeFilled, FlameFilled, ImagesFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -95,6 +95,7 @@ export function CustomizabilityPage() {
 	const [floatingNav, setFloatingNav] = useState(() => window.localStorage.getItem(NAV_FLOATING_KEY) === "true");
 	const [showInterest, setShowInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
 	const [defaultInterestTab, setDefaultInterestTab] = useState(() => window.localStorage.getItem("fg-interest-default-tab") || "taps");
+	const [viewsLayout, setViewsLayout] = useState(() => window.localStorage.getItem("fg-interest-views-layout") === "list" ? "list" : "grid");
 	const schemeOptions: {
 		value: ColorScheme;
 		label: string;
@@ -507,7 +508,24 @@ export function CustomizabilityPage() {
 									{ value: "views", label: t("customizability.interest_show_views") },
 								]}
 							/>
-							{isMobilePlatform && (
+							<SelectRow
+								id="cust-views-display"
+								highlighted={highlightId === "cust-views-display"}
+								icon={<EyeFilled className="h-5 w-5" />}
+								iconClass="bg-blue-500/15 text-blue-400"
+								label={t("customizability.views_display")}
+								description={t("customizability.views_display_desc")}
+								value={viewsLayout}
+								onChange={(val) => {
+									setViewsLayout(val);
+									window.localStorage.setItem("fg-interest-views-layout", val);
+								}}
+								options={[
+									{ value: "grid", label: t("customizability.views_display_grid") },
+									{ value: "list", label: t("customizability.views_display_list") },
+								]}
+							/>
+							{isMobilePlatform && viewsLayout === "grid" && (
 								<SelectRow
 									id="cust-views-grid"
 									highlighted={highlightId === "cust-views-grid"}

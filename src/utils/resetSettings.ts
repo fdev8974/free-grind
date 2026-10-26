@@ -23,6 +23,7 @@ const RESETTABLE_LOCAL_STORAGE_KEYS = [
 	SHOW_LOCATE_KEY,
 	"fg-interest-default-tab",
 	"fg-interest-last-tab",
+	"fg-interest-views-layout",
 	SKIP_BLOCK_CONFIRM_KEY,
 	SKIP_DELETE_CONVERSATION_CONFIRM_KEY,
 	CHAT_NOTIFICATIONS_ENABLED_KEY,

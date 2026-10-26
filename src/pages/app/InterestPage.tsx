@@ -97,6 +97,8 @@ export function InterestPage() {
 	const fallbackTab: InterestTab = isValidTab(lastActiveTab) ? lastActiveTab : defaultSetting;
 	const tabParam = searchParams.get("tab");
 	const activeTab: InterestTab = isValidTab(tabParam) ? tabParam : fallbackTab;
+	// Views render as a tile grid by default; "list" shows them as rows like taps.
+	const isViewsGrid = activeTab === "views" && window.localStorage.getItem("fg-interest-views-layout") !== "list";
 
 	useEffect(() => {
 		window.localStorage.setItem("fg-interest-last-tab", activeTab);
@@ -355,8 +357,8 @@ export function InterestPage() {
 	const displayedItems = useMemo(
 		// The views grid is virtualized, so it takes the whole list at once;
 		// only the plain lists page through it.
-		() => (activeTab === "views" ? activeItems : activeItems.slice(0, limits[activeTab])),
-		[activeItems, limits, activeTab],
+		() => (isViewsGrid ? activeItems : activeItems.slice(0, limits[activeTab])),
+		[activeItems, limits, activeTab, isViewsGrid],
 	);
 
 	const hasMoreItems = activeItems.length > displayedItems.length;
@@ -646,7 +648,7 @@ export function InterestPage() {
 			>
 				<div className="mx-auto w-full max-w-4xl pb-[calc(env(safe-area-inset-bottom,0px)+120px)] px-0">
 					{(isLoading && (activeItems.length === 0 || isDemoLoading)) ? (
-						activeTab === "views" ? (
+						isViewsGrid ? (
 							<InterestViewsGridSkeleton />
 						) : <div>
 							{Array.from({ length: 8 }).map((_, i) => (
@@ -676,7 +678,7 @@ export function InterestPage() {
 
 							{activeItems.length > 0 && (
 								<div className="flex flex-col">
-									{activeTab === "views" ? (
+									{isViewsGrid ? (
 										<InterestViewsGrid
 											items={displayedItems}
 											browseCardsById={browseCardsById}
