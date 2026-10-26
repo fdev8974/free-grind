@@ -61,7 +61,7 @@ import {
 } from "../utils";
 import { ProfileDetailsContent } from "./ProfileDetailsContent";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
-import { PhotoViewer, type PhotoViewerMenuAction } from "../../../../components/PhotoViewer";
+import { PhotoViewer, type HeroRect, type PhotoViewerMenuAction } from "../../../../components/PhotoViewer";
 import { PhotoActionBar } from "../../../../components/PhotoActionBar";
 import { AlbumMediaSheet } from "../../../../components/AlbumMediaSheet";
 import { useProfileAlbumStatus } from "../../../../hooks/useProfileAlbumStatus";
@@ -1357,7 +1357,11 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	// state so the router still sees the same location underneath.
 	const photoViewerHistoryPushedRef = useRef(false);
 
-	const openPhotoViewer = (index: number) => {
+	// Where the opened photo sits on screen, so the viewer can fly it in from there.
+	const [photoViewerHeroRect, setPhotoViewerHeroRect] = useState<HeroRect | null>(null);
+
+	const openPhotoViewer = (index: number, heroRect?: HeroRect | null) => {
+		setPhotoViewerHeroRect(heroRect ?? null);
 		setSelectedPhotoIndex(index);
 		if (!photoViewerHistoryPushedRef.current) {
 			window.history.pushState({ ...(window.history.state as object | null), profilePhotoViewer: true }, "");
@@ -1441,6 +1445,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			renderFooter={renderPhotoFooter}
 			conversationId={photoViewerFolderKey}
 			menuActions={photoMenuActions}
+			heroRect={photoViewerHeroRect}
 		/>
 	);
 
@@ -1922,7 +1927,8 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			<>
 				<button
 					type="button"
-					onClick={() => openPhotoViewer(index)}
+					// The button covers the whole (object-cover) slide: its rect is the photo's visible area.
+					onClick={(e) => openPhotoViewer(index, e.currentTarget.getBoundingClientRect())}
 					className="absolute inset-0 z-10"
 					aria-label={t("profile_details.open_photo", { index: index + 1 })}
 				/>

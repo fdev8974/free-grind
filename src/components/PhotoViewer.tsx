@@ -48,7 +48,19 @@ export type PhotoViewerProps = {
 	contentWarning?: boolean;
 	/** The album's media are still loading: opens right away with the header and a spinner instead of nothing. */
 	isLoading?: boolean;
+	/** Screen rect of the (object-cover) picture the initial photo was opened from: the photo then
+	 * flies from there into place ("hero" open) instead of the default fade/zoom-in. */
+	heroRect?: HeroRect | null;
 };
+
+export type HeroRect = { left: number; top: number; width: number; height: number };
+
+/** measure: laid out but hidden, to find where the photo lands; from: drawn exactly over
+ * heroRect; to: animating into place; none: no hero (or finished). */
+type HeroPhase = "measure" | "from" | "to" | "none";
+
+const HERO_ANIMATION_MS = 320;
+const HERO_EASING = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 
 export type PhotoViewerMenuAction = {
 	key: string;
@@ -176,6 +188,7 @@ export function PhotoViewer({
 	albumHeader,
 	contentWarning,
 	isLoading = false,
+	heroRect,
 }: PhotoViewerProps) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
@@ -220,6 +233,10 @@ export function PhotoViewer({
 	const [isClosing, setIsClosing] = useState(false);
 	// False for the first painted frame after opening, so the fade/zoom-in can transition.
 	const [isEntered, setIsEntered] = useState(false);
+	const heroRectRef = useRef(heroRect);
+	heroRectRef.current = heroRect;
+	const [heroPhase, setHeroPhase] = useState<HeroPhase>(() => (isOpen && heroRect ? "measure" : "none"));
+	const [heroFromStyle, setHeroFromStyle] = useState<{ transform: string; clipPath: string } | null>(null);
 	const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const onCloseRef = useRef(onClose);
 	onCloseRef.current = onClose;
@@ -320,8 +337,77 @@ export function PhotoViewer({
 		setIsDismissDragging(false);
 		setIsClosing(false);
 		setIsEntered(false);
+		setHeroPhase(heroRectRef.current ? "measure" : "none");
+		setHeroFromStyle(null);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen]);
+
+	// Hero open: once the photo is laid out (hidden), map its drawn rect onto
+	// heroRect — scaled to cover it and clipped to it, like the object-cover
+	// source — then animate both back to identity.
+	useLayoutEffect(() => {
+		if (heroPhase !== "measure") return;
+		const el = mediaRef.current;
+		let cancelled = false;
+		const start = () => {
+			if (cancelled) return;
+			const hero = heroRectRef.current;
+			const content = el instanceof HTMLImageElement ? getObjectContainRect(el) : null;
+			if (!hero || !content || !hero.width || !hero.height) {
+				setHeroPhase("none");
+				return;
+			}
+			const scale = Math.max(hero.width / content.width, hero.height / content.height);
+			// transform-origin 0 0: screen = local * scale + translate.
+			const tx = hero.left + hero.width / 2 - (content.left + content.width / 2) * scale;
+			const ty = hero.top + hero.height / 2 - (content.top + content.height / 2) * scale;
+			const top = (hero.top - ty) / scale;
+			const left = (hero.left - tx) / scale;
+			const right = window.innerWidth - (hero.left + hero.width - tx) / scale;
+			const bottom = window.innerHeight - (hero.top + hero.height - ty) / scale;
+			setHeroFromStyle({
+				transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+				clipPath: `inset(${top}px ${right}px ${bottom}px ${left}px)`,
+			});
+			setHeroPhase("from");
+		};
+		if (el instanceof HTMLImageElement && !(el.complete && el.naturalWidth)) {
+			// Not decoded yet: wait briefly, otherwise open the normal way.
+			const fail = () => { if (!cancelled) setHeroPhase("none"); };
+			el.addEventListener("load", start, { once: true });
+			el.addEventListener("error", fail, { once: true });
+			const timer = setTimeout(fail, 250);
+			return () => {
+				cancelled = true;
+				clearTimeout(timer);
+				el.removeEventListener("load", start);
+				el.removeEventListener("error", fail);
+			};
+		}
+		start();
+		return () => { cancelled = true; };
+	}, [heroPhase]);
+
+	useEffect(() => {
+		if (heroPhase === "from") {
+			// Two frames so the start state is painted before transitioning.
+			let inner = 0;
+			const outer = requestAnimationFrame(() => {
+				inner = requestAnimationFrame(() => setHeroPhase("to"));
+			});
+			return () => {
+				cancelAnimationFrame(outer);
+				cancelAnimationFrame(inner);
+			};
+		}
+		if (heroPhase === "to") {
+			const timer = setTimeout(() => setHeroPhase("none"), HERO_ANIMATION_MS + 20);
+			return () => clearTimeout(timer);
+		}
+	}, [heroPhase]);
+	const isHeroActive = heroPhase !== "none";
+	// Backdrop and chrome stay hidden until the photo starts flying in.
+	const isHeroBeforeFlight = heroPhase === "measure" || heroPhase === "from";
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -885,7 +971,7 @@ export function PhotoViewer({
 	// permanently (showChrome still exists in state there, it's just never
 	// toggled since the click handler below only flips it off-desktop).
 	const dismissProgress = Math.min(1, Math.abs(dismissY) / (DISMISS_THRESHOLD_PX * 2.5));
-	const chromeVisible = (isDesktop || showChrome) && dismissY === 0 && !isClosing;
+	const chromeVisible = (isDesktop || showChrome) && dismissY === 0 && !isClosing && !isHeroBeforeFlight;
 	const chromeFadeClass = `transition-opacity duration-300 ${chromeVisible ? "opacity-100" : "pointer-events-none opacity-0"}`;
 
 	return createPortal(
@@ -893,9 +979,14 @@ export function PhotoViewer({
 			className="fixed inset-0 z-[80]"
 			onClick={closeAnimated}
 			style={{
-				backgroundColor: `rgba(0, 0, 0, ${1 - dismissProgress * 0.85})`,
-				opacity: isClosing || !isEntered ? 0 : 1,
-				transition: isDismissDragging ? "none" : "opacity 200ms ease-out, background-color 220ms ease-out",
+				backgroundColor: `rgba(0, 0, 0, ${isHeroBeforeFlight ? 0 : 1 - dismissProgress * 0.85})`,
+				// A hero open shows the photo at once; only the backdrop fades in.
+				opacity: isClosing || (!isEntered && !isHeroActive) ? 0 : 1,
+				transition: isDismissDragging
+					? "none"
+					: isHeroActive
+						? `opacity 200ms ease-out, background-color ${HERO_ANIMATION_MS}ms ease-out`
+						: "opacity 200ms ease-out, background-color 220ms ease-out",
 			}}
 		>
 			{isCurrentVideo && !(menuActions && menuActions.length > 0) && (
@@ -1154,12 +1245,25 @@ export function PhotoViewer({
 			<div
 				ref={trackContainerRef}
 				className="h-full w-full overflow-hidden"
-				style={{
-					transform: dismissY !== 0 || isClosing || !isEntered
-						? `translateY(${dismissY}px) scale(${(isClosing || !isEntered) && dismissY === 0 ? 0.94 : 1 - dismissProgress * 0.15})`
-						: undefined,
-					transition: isDismissDragging ? "none" : "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-				}}
+				style={
+					heroPhase === "measure"
+						? { visibility: "hidden" }
+						: heroPhase === "from" && heroFromStyle
+							? { transformOrigin: "0 0", ...heroFromStyle, transition: "none" }
+							: heroPhase === "to"
+								? {
+										transformOrigin: "0 0",
+										transform: "translate(0px, 0px) scale(1)",
+										clipPath: "inset(0px 0px 0px 0px)",
+										transition: `transform ${HERO_ANIMATION_MS}ms ${HERO_EASING}, clip-path ${HERO_ANIMATION_MS}ms ${HERO_EASING}`,
+									}
+								: {
+										transform: dismissY !== 0 || isClosing || !isEntered
+											? `translateY(${dismissY}px) scale(${(isClosing || !isEntered) && dismissY === 0 ? 0.94 : 1 - dismissProgress * 0.15})`
+											: undefined,
+										transition: isDismissDragging ? "none" : "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+									}
+				}
 				onClick={(e) => e.stopPropagation()}
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
