@@ -547,6 +547,16 @@
         "settings": "الإعدادات"
     },
     "browse_page": {
+        "share_distance": {
+            "title": "",
+            "description": "",
+            "precise": "",
+            "precise_desc": "",
+            "approximate": "",
+            "approximate_desc": "",
+            "hidden": "",
+            "hidden_desc": ""
+        },
         "title": "تصفح البروفايلات الشخصية",
         "subtitle": "اكتشف أشخاصًا بالقرب منك وانضم إلى الشات من الصفحة الرئيسية.",
         "sort": "نوع",
@@ -845,12 +855,6 @@
                 "show_tribes_desc": "اختار ما إذا كانت قبائلك مرئية للعامة.",
                 "show_distance": "مسافة المشاركة",
                 "show_distance_desc": "تحكم في مدى وضوح المسافة التي تقطعها للآخرين.",
-                "distance_precise": "",
-                "distance_approximate": "",
-                "distance_hidden_option": "",
-                "distance_precise_hint": "",
-                "distance_approximate_hint": "",
-                "distance_hidden_hint": "",
                 "relationship_status": "الحالة الاجتماعية",
                 "tribes": "القبائل",
                 "tribes_im_into": "القبائل التي أهتم بها",

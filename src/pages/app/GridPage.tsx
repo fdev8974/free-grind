@@ -1,7 +1,7 @@
 import { useAuth } from "../../contexts/useAuth";
 import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, UserSearch, ChevronRight } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { EyeFilled, EyeOffFilled, MapPinFilled, UserFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
+import { EyeOffFilled, LocateApproximateFilled, LocateFixedFilled, MapPinFilled, UserFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -37,7 +37,7 @@ import {
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FilterPill } from "../../components/ui/FilterPill";
-import { SelectSheet } from "../../components/ui/select-sheet";
+import { SelectSheet, type SelectSheetOption } from "../../components/ui/select-sheet";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { useGridTapStatus } from "./gridpage/hooks/useGridTapStatus";
@@ -97,6 +97,8 @@ function readStoredExploreLocation(userId: number | null | undefined): ExploreLo
 // only against already-loaded cards, so a narrow/rare name would otherwise
 // keep auto-pagination running indefinitely trying to find more matches.
 const NICKNAME_FILTER_MAX_PAGES = 7;
+
+type DistanceMode = "precise" | "approximate" | "hidden";
 
 // Overrides for the grid while a public Right Now session is live (see GridPage's root).
 const RIGHT_NOW_LIVE_VARS = {
@@ -216,7 +218,13 @@ export function GridPage() {
 
 	const profileImageHash = useMemo(() => getProfilePhotoHash(myProfile), [myProfile]);
 	const ownDisplayName = myProfile?.displayName ?? null;
-	const showDistance = myProfile?.showDistance ?? true;
+	// Same three modes as the official app's "Distance & Visibility" screen.
+	const distanceMode: DistanceMode = !(myProfile?.showDistance ?? true)
+		? "hidden"
+		: myProfile?.approximateDistance
+			? "approximate"
+			: "precise";
+	const DistanceModeIcon = distanceMode === "approximate" ? LocateApproximateFilled : LocateFixedFilled;
 
 	const genderOptions = useMemo(() => {
 		return managedGenders?.map((item) => ({
@@ -292,7 +300,7 @@ export function GridPage() {
 	const [favoriteNotes, setFavoriteNotes] = useState<Array<{ notes: string; phoneNumber: string; counterpartyId: string }>>([]);
 	const [isFetchingNotes, setIsFetchingNotes] = useState(false);
 	const [hasAttemptedFetchNotes, setHasAttemptedFetchNotes] = useState(false);
-	const [isTogglingDistance, setIsTogglingDistance] = useState(false);
+	const [isDistanceSheetOpen, setIsDistanceSheetOpen] = useState(false);
 
 	const isDesktop = useDesktopBreakpoint();
 	const [hasSeenGesturesIntro, setHasSeenGesturesIntro] = useState(hasSeenGridGesturesIntro);
@@ -461,24 +469,50 @@ export function GridPage() {
 		setSavedAccountDisplayName(String(userId), ownDisplayName);
 	}, [userId, myProfile, profileImageHash, ownDisplayName]);
 
-	const handleToggleDistance = useCallback(async () => {
-		if (isTogglingDistance) return;
-		const next = !showDistance;
+	// Mirrors the official app: the mode goes onto the profile
+	// (showDistance + approximateDistance), and approximateDistance is also
+	// written to the account settings. Rejects on failure so the sheet stays open.
+	const handleSelectDistanceMode = useCallback(async (mode: DistanceMode) => {
+		const fields = {
+			showDistance: mode !== "hidden",
+			approximateDistance: mode === "approximate",
+		};
+		const previous = queryClient.getQueryData<typeof myProfile>(["my-own-profile"]);
 		queryClient.setQueryData(["my-own-profile"], (current: typeof myProfile) =>
-			current ? { ...current, showDistance: next } : current,
+			current ? { ...current, ...fields } : current,
 		);
-		setIsTogglingDistance(true);
 		try {
-			await apiFunctions.updateMyProfile({ showDistance: next });
-		} catch {
-			queryClient.setQueryData(["my-own-profile"], (current: typeof myProfile) =>
-				current ? { ...current, showDistance: !next } : current,
-			);
+			await apiFunctions.updateMyProfile(fields);
+			await apiFunctions.updateMySettings({ approximateDistance: fields.approximateDistance });
+		} catch (error) {
+			queryClient.setQueryData(["my-own-profile"], previous);
 			toast.error(t("browse_page.errors.toggle_distance_failed", { defaultValue: "Could not update distance setting." }));
-		} finally {
-			setIsTogglingDistance(false);
+			throw error;
 		}
-	}, [apiFunctions, isTogglingDistance, showDistance, queryClient, t]);
+	}, [apiFunctions, queryClient, t]);
+
+	const distanceOptions = useMemo<SelectSheetOption<DistanceMode>[]>(() => [
+		{
+			value: "precise",
+			icon: LocateFixedFilled,
+			iconClassName: "accent-tint-15 text-[var(--accent)]",
+			label: t("browse_page.share_distance.precise", { defaultValue: "Precise" }),
+			description: t("browse_page.share_distance.precise_desc", { defaultValue: "Exact distance, e.g. \"250 m away\"." }),
+		},
+		{
+			value: "approximate",
+			icon: LocateApproximateFilled,
+			iconClassName: "bg-sky-500/15 text-sky-400",
+			label: t("browse_page.share_distance.approximate", { defaultValue: "Approximate" }),
+			description: t("browse_page.share_distance.approximate_desc", { defaultValue: "Rounded, e.g. \"< 5 km away\"." }),
+		},
+		{
+			value: "hidden",
+			icon: EyeOffFilled,
+			label: t("browse_page.share_distance.hidden", { defaultValue: "Hidden" }),
+			description: t("browse_page.share_distance.hidden_desc", { defaultValue: "No distance shown. Your position in others' grid still hints at roughly how far away you are." }),
+		},
+	], [t]);
 
 	const browseCacheKey = useMemo(() => {
 		if (!geohash) {
@@ -1573,20 +1607,19 @@ export function GridPage() {
 									<div className="mx-1 h-6 w-px bg-[var(--border)] opacity-40" />
 									<button
 										type="button"
-										onClick={(e) => { e.stopPropagation(); void handleToggleDistance(); }}
-										disabled={isTogglingDistance}
-										title={showDistance ? t("browse_page.distance_visible", { defaultValue: "Distance visible to others" }) : t("browse_page.distance_hidden", { defaultValue: "Distance hidden from others" })}
-										aria-label={showDistance ? t("browse_page.distance_visible", { defaultValue: "Distance visible to others" }) : t("browse_page.distance_hidden", { defaultValue: "Distance hidden from others" })}
-										className="group flex h-12 shrink-0 items-center justify-center pl-3 pr-4 transition active:scale-90 disabled:opacity-50"
+										onClick={(e) => { e.stopPropagation(); setIsDistanceSheetOpen(true); }}
+										title={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
+										aria-label={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
+										className="group flex h-12 shrink-0 items-center justify-center pl-3 pr-4 transition active:scale-90"
 									>
-										{showDistance
-											? <EyeFilled className={`h-4 w-4 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
-											: <EyeOffFilled
+										{distanceMode === "hidden"
+											? <EyeOffFilled
 													className={cn(
 														"h-4 w-4 transition-colors text-[var(--text-muted)]",
 														exploreLocation ? "group-hover:text-[var(--explore)]" : "group-hover:text-[var(--accent)]",
 													)}
 												/>
+											: <DistanceModeIcon className={`h-4 w-4 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
 										}
 									</button>
 								</div>
@@ -2058,6 +2091,21 @@ export function GridPage() {
 					onSelect={setSortBy}
 					onClose={() => setIsSortSheetOpen(false)}
 					isDesktop={isDesktop}
+					accentColor={exploreLocation ? "var(--explore)" : undefined}
+					accentContrast={exploreLocation ? "#fff" : undefined}
+				/>
+			)}
+
+			{isDistanceSheetOpen && (
+				<SelectSheet
+					title={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
+					description={t("browse_page.share_distance.description", { defaultValue: "Choose how your distance appears to others." })}
+					value={myProfile ? distanceMode : null}
+					options={distanceOptions}
+					onSelect={handleSelectDistanceMode}
+					onClose={() => setIsDistanceSheetOpen(false)}
+					isDesktop={isDesktop}
+					disabled={!myProfile}
 					accentColor={exploreLocation ? "var(--explore)" : undefined}
 					accentContrast={exploreLocation ? "#fff" : undefined}
 				/>

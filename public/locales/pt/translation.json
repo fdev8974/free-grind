@@ -529,6 +529,16 @@
         "settings": "Configurações"
     },
     "browse_page": {
+        "share_distance": {
+            "title": "",
+            "description": "",
+            "precise": "",
+            "precise_desc": "",
+            "approximate": "",
+            "approximate_desc": "",
+            "hidden": "",
+            "hidden_desc": ""
+        },
         "title": "Ver perfis",
         "subtitle": "Descubra pessoas perto de você e participe de conversas a partir do feed principal.",
         "sort": "Organizar",
@@ -825,12 +835,6 @@
                 "show_tribes_desc": "Escolha se suas tribos serão visíveis publicamente.",
                 "show_distance": "Partilhar Distância",
                 "show_distance_desc": "Controle se sua distância é visível para outros.",
-                "distance_precise": "",
-                "distance_approximate": "",
-                "distance_hidden_option": "",
-                "distance_precise_hint": "",
-                "distance_approximate_hint": "",
-                "distance_hidden_hint": "",
                 "relationship_status": "Estado civil",
                 "tribes": "Tribos",
                 "tribes_im_into": "Tribos que me atraem",

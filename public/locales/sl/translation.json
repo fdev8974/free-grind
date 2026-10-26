@@ -535,6 +535,16 @@
         "settings": "Nastavitve"
     },
     "browse_page": {
+        "share_distance": {
+            "title": "",
+            "description": "",
+            "precise": "",
+            "precise_desc": "",
+            "approximate": "",
+            "approximate_desc": "",
+            "hidden": "",
+            "hidden_desc": ""
+        },
         "title": "Brskaj po profilih",
         "subtitle": "Odkrij ljudi v bližini in začni klepet neposredno iz glavnega vira.",
         "sort": "Razvrsti",
@@ -833,12 +843,6 @@
                 "show_tribes_desc": "Izberi, ali so tvoja plemena javno vidna.",
                 "show_distance": "Deli razdaljo",
                 "show_distance_desc": "Določi, ali je tvoja razdalja vidna drugim.",
-                "distance_precise": "",
-                "distance_approximate": "",
-                "distance_hidden_option": "",
-                "distance_precise_hint": "",
-                "distance_approximate_hint": "",
-                "distance_hidden_hint": "",
                 "relationship_status": "Status zveze",
                 "tribes": "Plemena",
                 "tribes_im_into": "Plemena, ki so mi všeč",

@@ -474,50 +474,6 @@ export function ProfileEditorFormSections({
 					icon={Ruler}
 				/>
 				<div className="grid gap-4">
-					{/* Distance — Precise / Approximate / Hidden, same three modes as the
-					    official app (showDistance + approximateDistance on the profile) */}
-					<div>
-						<label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.states.show_distance")}
-						</label>
-						<p className="mb-2 text-xs text-[var(--text-muted)]">
-							{!draft.showDistance
-								? t("profile_editor.sections.states.distance_hidden_hint", { defaultValue: "No distance shown. Your position in others' grid still hints at roughly how far away you are." })
-								: draft.approximateDistance
-									? t("profile_editor.sections.states.distance_approximate_hint", { defaultValue: "Rounded distance, e.g. \"< 5 km away\"." })
-									: t("profile_editor.sections.states.distance_precise_hint", { defaultValue: "Exact distance, e.g. \"250 m away\"." })}
-						</p>
-						<div className="flex flex-wrap gap-2">
-							<SheetChip
-								active={draft.showDistance && !draft.approximateDistance}
-								onClick={() => {
-									onDraftChange("showDistance", true);
-									onDraftChange("approximateDistance", false);
-								}}
-							>
-								{t("profile_editor.sections.states.distance_precise", { defaultValue: "Precise" })}
-							</SheetChip>
-							<SheetChip
-								active={draft.showDistance && draft.approximateDistance}
-								onClick={() => {
-									onDraftChange("showDistance", true);
-									onDraftChange("approximateDistance", true);
-								}}
-							>
-								{t("profile_editor.sections.states.distance_approximate", { defaultValue: "Approximate" })}
-							</SheetChip>
-							<SheetChip
-								active={!draft.showDistance}
-								onClick={() => {
-									onDraftChange("showDistance", false);
-									onDraftChange("approximateDistance", false);
-								}}
-							>
-								{t("profile_editor.sections.states.distance_hidden_option", { defaultValue: "Hidden" })}
-							</SheetChip>
-						</div>
-					</div>
-
 					{/* Age toggle + field — separate plain rows, no shared box */}
 					<ToggleRow
 						checked={draft.showAge}

@@ -637,6 +637,18 @@ export function LocateFixedFilled(props: IconProps) {
 	);
 }
 
+// Counterpart of LocateFixedFilled for a rounded/approximate position: a
+// shaded area with a dashed edge instead of a crosshair on one point.
+export function LocateApproximateFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<circle cx="12" cy="12" r="9.5" fill="none" strokeDasharray="3.5 3" />
+			<circle cx="12" cy="12" r="6" stroke="none" fillOpacity={0.35} />
+			<circle cx="12" cy="12" r="2.5" stroke="none" />
+		</FilledSvg>
+	);
+}
+
 export function StickyNoteFilled(props: IconProps) {
 	const id = useMaskId();
 	return (

@@ -523,6 +523,16 @@
         "settings": "Einstellungen"
     },
     "browse_page": {
+        "share_distance": {
+            "title": "",
+            "description": "",
+            "precise": "",
+            "precise_desc": "",
+            "approximate": "",
+            "approximate_desc": "",
+            "hidden": "",
+            "hidden_desc": ""
+        },
         "title": "Profile durchsuchen",
         "subtitle": "Entdecke Leute in deiner Nähe und springe direkt aus dem Feed in Chats.",
         "sort": "Sortieren",
@@ -817,12 +827,6 @@
                 "show_tribes_desc": "Wähle, ob deine Tribes öffentlich sichtbar sind.",
                 "show_distance": "Entfernung teilen",
                 "show_distance_desc": "Lege fest, ob deine Entfernung für andere sichtbar ist.",
-                "distance_precise": "",
-                "distance_approximate": "",
-                "distance_hidden_option": "",
-                "distance_precise_hint": "",
-                "distance_approximate_hint": "",
-                "distance_hidden_hint": "",
                 "relationship_status": "Beziehungsstatus",
                 "tribes": "Tribes",
                 "tribes_im_into": "Tribes, die ich mag",

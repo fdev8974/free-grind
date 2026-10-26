@@ -128,9 +128,6 @@ export interface ProfileDraft {
 	aboutMe: string;
 	profileTagsText: string;
 	showAge: boolean;
-	showDistance: boolean;
-	/** Rounded distance ("< 2 km away") instead of the exact one; only meaningful while showDistance is on. */
-	approximateDistance: boolean;
 	age: string;
 	height: string;
 	weight: string;
@@ -161,8 +158,6 @@ export const emptyDraft: ProfileDraft = {
 	aboutMe: "",
 	profileTagsText: "",
 	showAge: true,
-	showDistance: true,
-	approximateDistance: false,
 	age: "",
 	height: "",
 	weight: "",
@@ -319,8 +314,6 @@ export function profileToDraft(
 		aboutMe: profile.aboutMe ?? "",
 		profileTagsText: (profile.profileTags ?? []).join(", "),
 		showAge: profile.showAge ?? true,
-		showDistance: profile.showDistance ?? true,
-		approximateDistance: profile.approximateDistance ?? false,
 		age: profile.age?.toString() ?? "",
 		// profile.height is returned by the GET endpoint in cm; the editor input
 		// is labeled (and saved) in cm, or total inches for uk/american presets.

@@ -530,6 +530,16 @@
         "settings": "Подешавања"
     },
     "browse_page": {
+        "share_distance": {
+            "title": "",
+            "description": "",
+            "precise": "",
+            "precise_desc": "",
+            "approximate": "",
+            "approximate_desc": "",
+            "hidden": "",
+            "hidden_desc": ""
+        },
         "title": "Преглед профила",
         "subtitle": "Откријте људе у близини и започните чет из главног фида.",
         "sort": "Сортирај",
@@ -828,12 +838,6 @@
                 "show_tribes_desc": "Изаберите да ли су ваша племена јавно видљива.",
                 "show_distance": "Дели удаљеност",
                 "show_distance_desc": "Одредите да ли је ваша удаљеност видљива другима.",
-                "distance_precise": "",
-                "distance_approximate": "",
-                "distance_hidden_option": "",
-                "distance_precise_hint": "",
-                "distance_approximate_hint": "",
-                "distance_hidden_hint": "",
                 "relationship_status": "Статус везе",
                 "tribes": "Племена",
                 "tribes_im_into": "Племена која ме привлаче",
