@@ -755,11 +755,11 @@ export function SettingsPage() {
 										: undefined;
 									const activeProfile = userId != null ? getSavedAccountProfile(String(userId)) : null;
 									return (
-										<div className="flex items-center gap-1">
+										<div className="flex items-center gap-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
 											<button
 												type="button"
 												onClick={() => navigate("/settings/profile-editor")}
-												className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+												className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left"
 											>
 												<Avatar
 													src={activeProfile?.photoHash ? getThumbImageUrl(activeProfile.photoHash, "75x75") : null}
@@ -803,12 +803,12 @@ export function SettingsPage() {
 										const isRemoving = removingProfileId === account.profileId;
 										const savedProfile = getSavedAccountProfile(account.profileId);
 										return (
-											<div key={account.profileId} className="flex items-center gap-1">
+											<div key={account.profileId} className="flex items-center gap-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
 												<button
 													type="button"
 													onClick={() => void handleSwitchAccount(account.profileId)}
 													disabled={isSwitching || isRemoving}
-													className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-not-allowed"
+													className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left disabled:cursor-not-allowed"
 												>
 													<div className="relative h-10 w-10 shrink-0">
 														<Avatar
