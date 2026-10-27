@@ -55,6 +55,8 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { useProfileSpotifyFavorites } from "../../../../hooks/queries/useProfileQueries";
 import { proxyMediaUrl } from "../../../../utils/mediaProxy";
 import { haptic } from "../../../../utils/haptics";
+import { PRIVACY_BLUR_CLASS, PRIVACY_BLUR_TRANSITION_CLASS, useProfilePhotoPrivacy } from "../../../../hooks/useProfilePhotoPrivacy";
+import { useBlurReveal } from "../../../../hooks/useBlurReveal";
 
 type LabelMap = Record<number, string>;
 
@@ -241,6 +243,18 @@ export function ProfileDetailsContent({
 		return proxyMediaUrl(resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url);
 	};
 	const { unitsPreset } = usePreferences();
+	// Safe-for-work mode shows the default-profile placeholder instead of the photos.
+	const photoPrivacy = useProfilePhotoPrivacy();
+	const visiblePhotoHashes = photoPrivacy === "hide" ? [] : activeProfilePhotoHashes;
+	// Blurred photos: the first tap unblurs one, the next opens it (like chat media).
+	const photoReveal = useBlurReveal(photoPrivacy === "blur");
+	const photoTapProps = (hash: string, index: number) => ({
+		onClick: () => {
+			if (photoReveal.revealOnTap(hash)) return;
+			openPhotoViewer(index);
+		},
+		...photoReveal.hoverProps(hash),
+	});
 	const { data: spotifyFavorites } = useProfileSpotifyFavorites(activeProfile.profileId, !isPreview);
 	const favoriteSongs = spotifyFavorites ?? [];
 	const hasChatHistory = Boolean(chatContactStatus?.hasChatted) || (chatContactStatus?.unreadCount ?? 0) > 0;
@@ -388,9 +402,9 @@ export function ProfileDetailsContent({
 					</span>
 				</div>
 			)}
-			{!hidePicturesSection && (activeProfilePhotoHashes.length > 0 || !isDesktopLike) && (
+			{!hidePicturesSection && (visiblePhotoHashes.length > 0 || !isDesktopLike) && (
 			<div>
-				{activeProfilePhotoHashes.length > 0 ? (
+				{visiblePhotoHashes.length > 0 ? (
 					<>
 						{showMobileCarousel && !isDesktopLike ? (
 							<>
@@ -399,35 +413,35 @@ export function ProfileDetailsContent({
 										ref={mobileCarouselRef}
 										className="relative h-[min(78dvh,calc(100vw*1.55))] overflow-hidden"
 									>
-										{activeProfilePhotoHashes.map((hash, index) => (
+										{visiblePhotoHashes.map((hash, index) => (
 											<div
 												key={hash}
 												style={{
 													transform: `translateY(calc(${(index - mobileCarouselPhotoIndex) * 100}% + var(--carousel-drag, 0px)))`,
 													transition: "var(--carousel-transition, transform 300ms ease-out)",
 												}}
-												className="absolute inset-0"
+												className="absolute inset-0 overflow-hidden"
 											>
 												<button
 													type="button"
-													onClick={() => openPhotoViewer(index)}
+													{...photoTapProps(hash, index)}
 													className="absolute inset-0 z-10"
 													aria-label={t("profile_details.open_photo", { index: index + 1 })}
 												/>
 												<img
 													src={photoSrc(hash, "1024x1024")}
 													alt={t("profile_details.photo_alt", { name: activeProfileName })}
-													className="h-full w-full object-cover"
+													className={`h-full w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${photoReveal.isBlurred(hash) ? PRIVACY_BLUR_CLASS : ""}`}
 												/>
 												{renderPhotoCreatedBadge(hash)}
 											</div>
 										))}
 										<div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-black/65 to-transparent" />
 									</div>
-									{activeProfilePhotoHashes.length > 1 && (
+									{visiblePhotoHashes.length > 1 && (
 										<div className="absolute right-3 inset-y-0 z-20 flex flex-col items-center justify-center">
 											<div className="flex flex-col items-center gap-1.5 rounded-full bg-black/30 px-[5px] py-[10px] backdrop-blur-sm">
-												{activeProfilePhotoHashes.map((hash, index) => (
+												{visiblePhotoHashes.map((hash, index) => (
 													<button
 														key={`${hash}-dot`}
 														type="button"
@@ -449,11 +463,11 @@ export function ProfileDetailsContent({
 								</div>
 
 								<div className="hidden grid-cols-3 gap-2 sm:grid sm:grid-cols-4 @3xl:grid-cols-6">
-									{activeProfilePhotoHashes.map((hash, index) => (
+									{visiblePhotoHashes.map((hash, index) => (
 										<button
 											type="button"
 											key={hash}
-											onClick={() => openPhotoViewer(index)}
+											{...photoTapProps(hash, index)}
 											className="overflow-hidden rounded-xl border border-[var(--border)]"
 											aria-label={t("profile_details.open_photo", { index: index + 1 })}
 										>
@@ -461,7 +475,7 @@ export function ProfileDetailsContent({
 												<img
 													src={photoSrc(hash, "320x320")}
 													alt={t("profile_details.photo_alt", { name: activeProfileName })}
-													className="aspect-square w-full object-cover"
+													className={`aspect-square w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${photoReveal.isBlurred(hash) ? PRIVACY_BLUR_CLASS : ""}`}
 												/>
 												{renderPhotoCreatedBadge(hash)}
 											</div>
@@ -471,11 +485,11 @@ export function ProfileDetailsContent({
 							</>
 						) : (
 							<div className="grid grid-cols-3 gap-2 sm:grid-cols-4 @3xl:grid-cols-6">
-								{activeProfilePhotoHashes.map((hash, index) => (
+								{visiblePhotoHashes.map((hash, index) => (
 									<button
 										type="button"
 										key={hash}
-										onClick={() => openPhotoViewer(index)}
+										{...photoTapProps(hash, index)}
 										className="overflow-hidden rounded-xl border border-[var(--border)]"
 										aria-label={t("profile_details.open_photo", { index: index + 1 })}
 									>
@@ -483,7 +497,7 @@ export function ProfileDetailsContent({
 											<img
 												src={photoSrc(hash, "320x320")}
 												alt={t("profile_details.photo_alt", { name: activeProfileName })}
-												className="aspect-square w-full object-cover"
+												className={`aspect-square w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${photoReveal.isBlurred(hash) ? PRIVACY_BLUR_CLASS : ""}`}
 											/>
 											{renderPhotoCreatedBadge(hash)}
 										</div>

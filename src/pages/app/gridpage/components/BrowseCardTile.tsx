@@ -57,7 +57,7 @@ export function BrowseCardTile({
 	hidePopular = false,
 }: BrowseCardTileProps) {
 	const { t } = useTranslation();
-	const { unitsPreset, showDebugInfo, blurGridProfilePictures, doubleTapTapType, doubleTapAction } = usePreferences();
+	const { unitsPreset, showDebugInfo, doubleTapTapType, doubleTapAction } = usePreferences();
 	const { ref, revealClass } = useRevealOnScroll();
 	const name = localNickname?.trim() || getDisplayName(card);
 	const nicknameRename = getNicknameRename(localNickname, card.displayName, seenDisplayName);
@@ -189,6 +189,8 @@ export function BrowseCardTile({
 				onContextMenu={handleContextMenu}
 				className={cn(
 					"no-touch-callout touch-manipulation surface-card-grid overflow-hidden text-left transition-transform w-full block relative",
+					// Hovering unblurs the photo (see PRIVACY_HOVER_REVEAL_CLASS); demo cards stay blurred.
+					!isDemoCard && "group/reveal",
 					!isDemoCard && "active:scale-95",
 					isDesktop
 						? "rounded-xl shadow-sm"
@@ -227,8 +229,10 @@ export function BrowseCardTile({
 					<ProfileImage
 						src={card.primaryImageUrl}
 						alt={t("browse_page.profile_photo_alt", { name })}
+						privacyScope="grid"
 						className={cn(
-							(isDemoCard || blurGridProfilePictures) && "blur-md scale-110"
+							// Demo cards stay blurred, also while hovered.
+							isDemoCard && "blur-md scale-110 hover:blur-md hover:scale-110"
 						)}
 					/>
 

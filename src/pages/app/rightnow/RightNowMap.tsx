@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "
 import { useTranslation } from "react-i18next";
 import type { RightNowFeedItem } from "../../../services/apiFunctions";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import { useMediaBlur, useProfilePhotoPrivacy, type ProfilePhotoPrivacy } from "../../../hooks/useProfilePhotoPrivacy";
 import { decodeGeohash } from "../../../utils/geohash";
 import { getThumbImageUrl, validateMediaHash } from "../../../utils/media";
 import { MAP_STYLE_DARK, applyRightNowMapTheme, relaxRoadZoomThresholds } from "../gridpage/components/mapStyles";
@@ -55,6 +56,23 @@ export function getRightNowAvatarUrl(item: RightNowFeedItem): string | null {
 		: null;
 }
 
+/** How marker photos are shown under the NSFW settings (see useProfilePhotoPrivacy). */
+type MarkerPhotoFilter = { profile: ProfilePhotoPrivacy; blurPostMedia: boolean };
+
+function photoFilterKey(filter: MarkerPhotoFilter): string {
+	return `${filter.profile}|${filter.blurPostMedia}`;
+}
+
+/** The marker photo after the NSFW settings: none in safe-for-work mode, blurred
+ * when profile photos are, or when it's the post's own photo and post media is. */
+function getMarkerPhoto(item: RightNowFeedItem, filter: MarkerPhotoFilter): { url: string; blur: boolean } | null {
+	if (filter.profile === "hide") return null;
+	const url = getRightNowAvatarUrl(item);
+	if (!url) return null;
+	const isPostPhoto = url !== getRightNowProfileImageUrl(item);
+	return { url, blur: filter.profile === "blur" || (isPostPhoto && filter.blurPostMedia) };
+}
+
 function isOnline(item: RightNowFeedItem): boolean {
 	return typeof item.onlineUntil === "number" && item.onlineUntil > Date.now();
 }
@@ -104,6 +122,7 @@ function buildMarkerElement(
 	item: RightNowFeedItem,
 	label: string,
 	popDelayMs: number,
+	photoFilter: MarkerPhotoFilter,
 	onClick: () => void,
 ): HTMLDivElement {
 	const el = document.createElement("div");
@@ -132,13 +151,13 @@ function buildMarkerElement(
 		"justify-content:center",
 		"overflow:hidden",
 	].join(";");
-	const imageUrl = getRightNowAvatarUrl(item);
-	if (imageUrl) {
+	const photo = getMarkerPhoto(item, photoFilter);
+	if (photo) {
 		const img = document.createElement("img");
-		img.src = proxyMediaUrl(imageUrl);
+		img.src = proxyMediaUrl(photo.url);
 		img.alt = "";
 		img.draggable = false;
-		img.style.cssText = "width:100%;height:100%;object-fit:cover;";
+		img.style.cssText = `width:100%;height:100%;object-fit:cover;${photo.blur ? "filter:blur(6px);transform:scale(1.1);" : ""}`;
 		avatar.appendChild(img);
 	} else {
 		avatar.innerHTML = USER_ICON_SVG;
@@ -203,7 +222,7 @@ function formatClusterCount(count: number): string {
 // A group of nearby posts, drawn like a profile marker: the newest member's
 // photo (dimmed) inside the usual ring, the member count in the middle and two
 // offset circles behind it hinting at the stack.
-function buildClusterElement(members: RightNowFeedItem[], onClick: () => void): HTMLDivElement {
+function buildClusterElement(members: RightNowFeedItem[], photoFilter: MarkerPhotoFilter, onClick: () => void): HTMLDivElement {
 	const el = document.createElement("div");
 	el.className = "rn-cluster";
 	el.style.cssText = `width:${MARKER_SIZE}px;height:${MARKER_SIZE}px;`;
@@ -220,12 +239,13 @@ function buildClusterElement(members: RightNowFeedItem[], onClick: () => void): 
 
 	const face = document.createElement("div");
 	face.className = "rn-cluster-face";
-	const imageUrl = members.map(getRightNowAvatarUrl).find((url): url is string => url != null);
-	if (imageUrl) {
+	const photo = members.map((member) => getMarkerPhoto(member, photoFilter)).find((p) => p != null);
+	if (photo) {
 		const img = document.createElement("img");
-		img.src = proxyMediaUrl(imageUrl);
+		img.src = proxyMediaUrl(photo.url);
 		img.alt = "";
 		img.draggable = false;
+		if (photo.blur) img.style.filter = "blur(6px) brightness(0.5) saturate(1.2)";
 		face.appendChild(img);
 	}
 	const count = document.createElement("span");
@@ -288,13 +308,20 @@ function buildRadarElement(label: string): HTMLDivElement {
 
 // Rebuilding a marker is only needed when something it renders changed (the
 // ring is updated in place, see updateMarkerRing).
-function markerSignature(item: RightNowMapItem, label: string): string {
-	return [item.lat, item.lon, getRightNowAvatarUrl(item) ?? "", item.hosting, isOnline(item), label].join("|");
+function markerSignature(item: RightNowMapItem, label: string, photoFilter: MarkerPhotoFilter): string {
+	const photo = getMarkerPhoto(item, photoFilter);
+	return [item.lat, item.lon, photo?.url ?? "", photo?.blur ?? false, item.hosting, isOnline(item), label].join("|");
 }
 
 export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset, recenterRef }: Props) {
 	const { t } = useTranslation();
 	const { geohash, unitsPreset } = usePreferences();
+	const { rightNow: blurRightNowMedia } = useMediaBlur();
+	const profilePhotoPrivacy = useProfilePhotoPrivacy();
+	// Read through a ref by syncMarkers/recluster; filterKey reruns them on change.
+	const photoFilterRef = useRef<MarkerPhotoFilter>({ profile: profilePhotoPrivacy, blurPostMedia: blurRightNowMedia });
+	photoFilterRef.current = { profile: profilePhotoPrivacy, blurPostMedia: blurRightNowMedia };
+	const filterKey = photoFilterKey(photoFilterRef.current);
 	// Name plate text per marker; read through a ref by syncMarkers.
 	const labelForRef = useRef<(item: RightNowFeedItem) => string>(() => "");
 	labelForRef.current = (item) => {
@@ -379,7 +406,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 			const key = getRightNowItemKey(item);
 			nextKeys.add(key);
 			const label = labelForRef.current(item);
-			const signature = markerSignature(item, label);
+			const signature = markerSignature(item, label, photoFilterRef.current);
 			const existing = markers.get(key);
 			if (existing && existing.signature === signature) {
 				existing.item = item;
@@ -388,7 +415,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 			existing?.marker.remove();
 			// Only brand-new markers pop in (staggered); rebuilt ones just swap.
 			const popDelay = existing ? 0 : Math.min(popIndex++ * POP_STAGGER_MS, POP_STAGGER_MAX_MS);
-			const element = buildMarkerElement(item, label, popDelay, () => onSelectKeyRef.current(key));
+			const element = buildMarkerElement(item, label, popDelay, photoFilterRef.current, () => onSelectKeyRef.current(key));
 			if (existing) element.querySelector<HTMLElement>(".rn-marker-pop")!.style.animation = "none";
 			const marker = new maplibregl.Marker({ element, anchor: "center" })
 				.setLngLat([item.lon, item.lat])
@@ -471,7 +498,8 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 		const clusters = clustersRef.current;
 		const nextClusterKeys = new Set<string>();
 		for (const group of groups) {
-			const clusterKey = [...group.keys].sort().join(",");
+			// The photo filter is part of the key so a settings change rebuilds the face.
+			const clusterKey = `${[...group.keys].sort().join(",")}|${photoFilterKey(photoFilterRef.current)}`;
 			nextClusterKeys.add(clusterKey);
 			const lng = group.items.reduce((sum, item) => sum + (item.lon ?? 0), 0) / group.items.length;
 			const lat = group.items.reduce((sum, item) => sum + (item.lat ?? 0), 0) / group.items.length;
@@ -480,7 +508,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 				existing.setLngLat([lng, lat]);
 				continue;
 			}
-			const element = buildClusterElement(group.items, () => {
+			const element = buildClusterElement(group.items, photoFilterRef.current, () => {
 				const bounds = new maplibregl.LngLatBounds();
 				for (const item of group.items) bounds.extend([item.lon, item.lat]);
 				map.fitBounds(bounds, {
@@ -685,7 +713,9 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 			fitToItems(fittedForRef.current === null ? 0 : 600);
 			fittedForRef.current = fitKey;
 		}
-	}, [items, fitKey, selectedKey, syncMarkers, applySelection, recluster, syncHotspots, fitToItems]);
+		// filterKey isn't read here: it reruns the syncs so marker photos follow the NSFW settings.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [items, fitKey, selectedKey, syncMarkers, applySelection, recluster, syncHotspots, fitToItems, filterKey]);
 
 	return (
 		<div className="relative h-full w-full">

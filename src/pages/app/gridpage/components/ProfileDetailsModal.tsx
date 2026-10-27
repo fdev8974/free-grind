@@ -41,6 +41,8 @@ import { proxyMediaUrl } from "../../../../utils/mediaProxy";
 import { resolveAvatarSrc } from "../../../../services/avatarStore";
 import { getForbiddenWords, setForbiddenWords } from "../../../../utils/autoblock";
 import { ProfileImage } from "../../../../components/ui/profile-image";
+import { useProfilePhotoPrivacy } from "../../../../hooks/useProfilePhotoPrivacy";
+import { useBlurReveal } from "../../../../hooks/useBlurReveal";
 import { PromptDialog } from "../../../../components/ui/prompt-dialog";
 import { ReportProfileDialog } from "../../../../components/ReportProfileDialog";
 import freegrindLogo from "../../../../images/freegrind-logo.webp";
@@ -1390,7 +1392,12 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	// Where the opened photo sits on screen, so the viewer can fly it in from there.
 	const [photoViewerHeroRect, setPhotoViewerHeroRect] = useState<HeroRect | null>(null);
 
+	// Safe-for-work mode: the slides show placeholders, so there's no photo to open.
+	const profilePhotoPrivacy = useProfilePhotoPrivacy();
+	// Blurred photos: the first tap unblurs a slide, the next opens it (like chat media).
+	const photoReveal = useBlurReveal(profilePhotoPrivacy === "blur");
 	const openPhotoViewer = (index: number, heroRect?: HeroRect | null) => {
+		if (profilePhotoPrivacy === "hide") return;
 		setPhotoViewerHeroRect(heroRect ?? null);
 		setSelectedPhotoIndex(index);
 		if (!photoViewerHistoryPushedRef.current) {
@@ -1978,14 +1985,19 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				<button
 					type="button"
 					// The button covers the whole (object-cover) slide: its rect is the photo's visible area.
-					onClick={(e) => openPhotoViewer(index, e.currentTarget.getBoundingClientRect())}
+					onClick={(e) => {
+						if (photoReveal.revealOnTap(hash)) return;
+						openPhotoViewer(index, e.currentTarget.getBoundingClientRect());
+					}}
+					{...photoReveal.hoverProps(hash)}
 					className="absolute inset-0 z-10"
 					aria-label={t("profile_details.open_photo", { index: index + 1 })}
 				/>
-				<img
-					src={proxyMediaUrl(getSlideImageUrl(hash))}
+				<ProfileImage
+					src={getSlideImageUrl(hash)}
 					alt={t("profile_details.photo_alt", { name: activeProfileName })}
 					className="h-full w-full object-cover"
+					revealed={!photoReveal.isBlurred(hash)}
 				/>
 			</>
 		);

@@ -601,7 +601,7 @@ function ChatConversationRow({
 						? { borderLeft: "2px solid var(--accent)", paddingLeft: "14px" }
 						: { paddingLeft: "16px" }),
 				}}
-				className="no-touch-callout relative flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pr-4 text-left transition"
+				className="group/reveal no-touch-callout relative flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pr-4 text-left transition"
 			>
 					<button
 						type="button"

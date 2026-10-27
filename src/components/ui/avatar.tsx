@@ -2,12 +2,15 @@ import type { HTMLAttributes, ImgHTMLAttributes } from "react";
 import { UserFilled } from "../icons/FilledIcons";
 import { cn } from "../../utils/cn";
 import { proxyMediaUrl } from "../../utils/mediaProxy";
+import { PRIVACY_BLUR_CLASS, PRIVACY_BLUR_TRANSITION_CLASS, PRIVACY_HOVER_REVEAL_CLASS, useProfilePhotoPrivacy, type ProfilePhotoPrivacyScope } from "../../hooks/useProfilePhotoPrivacy";
 
 interface AvatarProps extends HTMLAttributes<HTMLDivElement> {
 	src?: string | null;
 	alt?: string;
 	fallback?: string;
 	imageProps?: ImgHTMLAttributes<HTMLImageElement>;
+	/** Which NSFW settings apply (blur / safe-for-work placeholder); see useProfilePhotoPrivacy. */
+	privacyScope?: ProfilePhotoPrivacyScope;
 }
 
 export function Avatar({
@@ -16,9 +19,11 @@ export function Avatar({
 	fallback,
 	className,
 	imageProps,
+	privacyScope = "app",
 	...props
 }: AvatarProps) {
 	const initials = fallback?.trim().slice(0, 2).toUpperCase();
+	const privacy = useProfilePhotoPrivacy(privacyScope);
 
 	return (
 		<div
@@ -28,12 +33,12 @@ export function Avatar({
 			)}
 			{...props}
 		>
-			{src ? (
+			{src && privacy !== "hide" ? (
 				<img
 					src={proxyMediaUrl(src)}
 					alt={alt}
-					className="h-full w-full object-cover"
 					{...imageProps}
+					className={cn("h-full w-full object-cover", PRIVACY_BLUR_TRANSITION_CLASS, privacy === "blur" && `${PRIVACY_BLUR_CLASS} ${PRIVACY_HOVER_REVEAL_CLASS}`, imageProps?.className)}
 				/>
 			) : initials ? (
 				<span>{initials}</span>

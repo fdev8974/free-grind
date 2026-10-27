@@ -2,6 +2,8 @@ import { Images, Loader2, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { PRIVACY_BLUR_CLASS, PRIVACY_BLUR_TRANSITION_CLASS, useMediaBlur } from "../hooks/useProfilePhotoPrivacy";
+import { useBlurReveal } from "../hooks/useBlurReveal";
 import { getHeroRectFromElement, type HeroRect } from "./PhotoViewer";
 import {
 	DRAWER_TILE_CLASS,
@@ -43,6 +45,9 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
 	const { preview, bind, consumeClick } = useDrawerMediaPreview();
+	// Only the tiles: the hold-to-peek and the viewer show the real media on purpose.
+	const { album: blurAlbumMedia } = useMediaBlur();
+	const { isBlurred, revealOnTap, hoverProps } = useBlurReveal(blurAlbumMedia);
 
 	return (
 		<BottomSheet
@@ -97,14 +102,22 @@ export function AlbumMediaSheet({ albumName, content, onClose, onSelect, locked 
 						// or the full-res image over the tile's already-loaded thumbnail).
 						const peekSrc = item.url ?? src;
 						const peekPlaceholder = !isVideo && peekSrc !== src ? src : undefined;
+						const revealKey = String(item.contentId);
 						return (
 							<DrawerMediaTile
 								key={item.contentId}
 								src={src}
 								alt={t("shared_albums.content_alt", { index: idx + 1 })}
 								busy={item.processing}
-								onSelect={item.processing ? undefined : (tile) => onSelect(idx, getHeroRectFromElement(tile))}
-								previewProps={item.processing ? undefined : bind({ src: peekSrc, isVideo: isVideo && !!item.url, placeholderSrc: peekPlaceholder })}
+								mediaClassName={`${PRIVACY_BLUR_TRANSITION_CLASS} ${isBlurred(revealKey) ? PRIVACY_BLUR_CLASS : ""}`}
+								onSelect={item.processing ? undefined : (tile) => {
+									if (revealOnTap(revealKey)) return;
+									onSelect(idx, getHeroRectFromElement(tile));
+								}}
+								previewProps={item.processing ? undefined : {
+									...bind({ src: peekSrc, isVideo: isVideo && !!item.url, placeholderSrc: peekPlaceholder }),
+									...hoverProps(revealKey),
+								}}
 								consumePreviewClick={consumeClick}
 							>
 								{isVideo && !item.processing && (

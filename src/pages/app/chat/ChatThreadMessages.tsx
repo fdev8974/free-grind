@@ -15,7 +15,6 @@ import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
 import { loadSavedPhrases, saveSavedPhrases } from "../../../services/savedPhrases";
 import type { ConversationEntry, Message } from "../../../types/messages";
 import type { AlbumMediaCount, UiMessage } from "../../../types/chat-page";
-import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getMessageFallbackMediaKey } from "../../../services/mediaStore";
 import { useAlbumCache } from "../../../hooks/useAlbumCache";
@@ -30,6 +29,8 @@ import {
 } from "../../../services/albumStore";
 import { useAvatarCache } from "../../../hooks/useAvatarCache";
 import { getThumbImageUrl } from "../../../utils/media";
+import { ProfileImage } from "../../../components/ui/profile-image";
+import { PRIVACY_BLUR_TRANSITION_CLASS, useMediaBlur } from "../../../hooks/useProfilePhotoPrivacy";
 import { getForbiddenWords, setForbiddenWords } from "../../../utils/autoblock";
 import {
 	SKIP_LINK_OPEN_CONFIRM_KEY,
@@ -381,7 +382,7 @@ export function ChatThreadMessages({
 	useLocalMediaCache();
 	useAlbumCache();
 	useAvatarCache();
-	const { blurIncomingMedia } = usePreferences();
+	const { chat: blurIncomingMedia } = useMediaBlur();
 	const [revealedMediaMessageIds, setRevealedMediaMessageIds] = useState<Set<string>>(
 		() => new Set(),
 	);
@@ -1418,7 +1419,7 @@ export function ChatThreadMessages({
                         !revealedMediaMessageIds.has(message.messageId) &&
                         (!isDesktop || hoveredMediaMessageId !== message.messageId);
                     const mediaBlurClassName = shouldBlurIncomingMedia
-                        ? "blur-md transition"
+                        ? "blur-md"
                         : "";
                     const isActiveSearchMatch =
                         selectedThreadMessageMatches[activeThreadSearchIndex]
@@ -1674,7 +1675,7 @@ export function ChatThreadMessages({
                                             <img
                                                 src={proxyMediaUrl(imageUrl)}
                                                 alt={t("chat.thread.shared_alt")}
-                                                className={`${message.type === "Giphy" && hasReply ? "max-h-96 w-full object-cover" : isImageOnlyBubble ? "max-h-80 w-full object-cover" : "max-h-64 w-full object-cover"} ${mediaBlurClassName}`}
+                                                className={`${message.type === "Giphy" && hasReply ? "max-h-96 w-full object-cover" : isImageOnlyBubble ? "max-h-80 w-full object-cover" : "max-h-64 w-full object-cover"} ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`}
                                             />
                                             {isExpiringImage ? (
                                                 <MediaBadge icon={<Eye className="h-3.5 w-3.5" />} label={t("chat.attachments.view_once")} />
@@ -1949,7 +1950,7 @@ export function ChatThreadMessages({
                                                             const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
                                                             if (badge) badge.style.opacity = "1";
                                                         }}
-                                                        className={`w-full object-cover opacity-0 transition-opacity duration-200 ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"} ${mediaBlurClassName}`}
+                                                        className={`w-full object-cover opacity-0 ${PRIVACY_BLUR_TRANSITION_CLASS} ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"} ${mediaBlurClassName}`}
                                                     />
                                                     {isLimitedVideo && (
                                                         videoMaxViews === 1 ? (
@@ -2194,10 +2195,11 @@ export function ChatThreadMessages({
                                                 </div>
                                                 {photoUrl && (
                                                     <div className="relative w-14 shrink-0 self-stretch overflow-hidden">
-                                                        <img
-                                                            src={proxyMediaUrl(photoUrl)}
+                                                        <ProfileImage
+                                                            src={photoUrl}
                                                             alt=""
-                                                            className="absolute inset-0 h-full w-full object-cover object-top"
+                                                            className="absolute inset-0 object-top"
+                                                            iconClassName="h-5 w-5"
                                                         />
                                                     </div>
                                                 )}

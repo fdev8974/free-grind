@@ -1399,7 +1399,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							}
 						>
 							<div
-								className={`min-w-0 flex items-center gap-3 ${!isDesktop ? "pl-0" : ""}`}
+								className={`group/reveal min-w-0 flex items-center gap-3 ${!isDesktop ? "pl-0" : ""}`}
 							>
                                 {!isDesktop && (
                                     <button

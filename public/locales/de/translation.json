@@ -982,7 +982,15 @@
         "show_sensitive_content_warning": "Warnung vor sensiblen Inhalten",
         "show_sensitive_content_warning_desc": "Zeigt vor dem Öffnen eines Albums einen Warnbildschirm an, falls es sensible Inhalte enthalten könnte.",
         "blur_grid_profile_pictures": "Profilbilder im Grid unscharf machen",
-        "blur_grid_profile_pictures_desc": "Macht alle Profilbilder im Grid unscharf, praktisch zum diskreten Stöbern in der Öffentlichkeit."
+        "blur_grid_profile_pictures_desc": "Macht alle Profilbilder im Grid unscharf, praktisch zum diskreten Stöbern in der Öffentlichkeit.",
+        "safe_for_work_mode": "Safe-for-Work-Modus",
+        "safe_for_work_mode_desc": "Blendet alle Profilbilder in der App hinter einem Platzhalter aus und macht alle Medien unscharf (Chats, Alben, Right Now). Ersetzt die Unscharf-Optionen.",
+        "blur_profile_pictures": "Profilbilder überall unscharf machen",
+        "blur_profile_pictures_desc": "Macht Profilbilder in der ganzen App unscharf: Grid, Chats, Profile, Right Now und mehr. Im Profil ein Foto einmal antippen zum Anzeigen (am Desktop Hover).",
+        "blur_album_media": "Album-Vorschau unscharf",
+        "blur_album_media_desc": "Macht Fotos und Videos in der Album-Vorschau unscharf. Einmal antippen zum Anzeigen (am Desktop Hover).",
+        "blur_right_now_media": "Right-Now-Medien unscharf",
+        "blur_right_now_media_desc": "Macht Fotos in Right-Now-Posts unscharf, im Feed und auf der Karte. Einmal antippen zum Anzeigen (am Desktop Hover)."
     },
     "customizability": {
         "subtitle": "Personalisiere das Aussehen der App.",

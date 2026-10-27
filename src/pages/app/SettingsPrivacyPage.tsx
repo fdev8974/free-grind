@@ -5,7 +5,8 @@ import {
 	ImageOff,
 	ToggleRight,
 } from "lucide-react";
-import { CalculatorFilled, CloudSunFilled, EyeFilled, EyeOffFilled, GhostFilled, StickyNoteFilled, TriangleAlertFilled } from "../../components/icons/FilledIcons";
+import { CalculatorFilled, CloudSunFilled, EyeFilled, EyeOffFilled, GhostFilled, ImagesFilled, ShieldCheckFilled, StickyNoteFilled, TriangleAlertFilled, UserFilled } from "../../components/icons/FilledIcons";
+import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { SelectRow } from "../../components/ui/select-row";
@@ -38,7 +39,16 @@ const DISGUISE_OPTIONS: { id: AppDisguiseId; icon: typeof GhostFilled; iconClass
 export function SettingsPrivacyPage() {
 	const { t } = useTranslation();
 	const highlightId = useSettingsHighlight();
-	const { blurIncomingMedia, blurGridProfilePictures, showAlbumSensitiveContentWarning, setPreferences } = usePreferences();
+	const {
+		blurIncomingMedia,
+		blurGridProfilePictures,
+		blurProfilePictures,
+		hideProfilePictures,
+		blurAlbumMedia,
+		blurRightNowMedia,
+		showAlbumSensitiveContentWarning,
+		setPreferences,
+	} = usePreferences();
 
 	const [readReceiptsEnabled, setReadReceiptsEnabled] = useState(() => !getHideReadReceiptsGlobal());
 	const [showReadReceiptToggle, setShowReadReceiptToggle] = useState(() => getShowReadReceiptToggle());
@@ -156,25 +166,70 @@ export function SettingsPrivacyPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.nsfw_content")}</p>
 					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
-							id="privacy-blur-incoming-media"
-							highlighted={highlightId === "privacy-blur-incoming-media"}
-							icon={<ImageOff className="h-5 w-5" />}
-							iconClass="bg-sky-500/15 text-sky-400"
-							label={t("customizability.blur_incoming_media")}
-							description={t("customizability.blur_incoming_media_description")}
-							checked={blurIncomingMedia}
-							onChange={(checked) => void setPreferences({ blurIncomingMedia: checked })}
+							id="privacy-safe-for-work"
+							highlighted={highlightId === "privacy-safe-for-work"}
+							icon={<ShieldCheckFilled className="h-5 w-5" />}
+							iconClass="bg-emerald-500/15 text-emerald-400"
+							label={t("privacy.safe_for_work_mode")}
+							description={t("privacy.safe_for_work_mode_desc")}
+							checked={hideProfilePictures}
+							onChange={(checked) => void setPreferences({ hideProfilePictures: checked })}
 						/>
-						<ToggleRow
-							id="privacy-blur-grid-profile-pictures"
-							highlighted={highlightId === "privacy-blur-grid-profile-pictures"}
-							icon={<EyeOffFilled className="h-5 w-5" />}
-							iconClass="bg-sky-500/15 text-sky-400"
-							label={t("privacy.blur_grid_profile_pictures")}
-							description={t("privacy.blur_grid_profile_pictures_desc")}
-							checked={blurGridProfilePictures}
-							onChange={(checked) => void setPreferences({ blurGridProfilePictures: checked })}
-						/>
+						{/* Safe-for-work mode overrides these (photos hidden, all media blurred). */}
+						{!hideProfilePictures && (
+							<>
+								<ToggleRow
+									id="privacy-blur-incoming-media"
+									highlighted={highlightId === "privacy-blur-incoming-media"}
+									icon={<ImageOff className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("customizability.blur_incoming_media")}
+									description={t("customizability.blur_incoming_media_description")}
+									checked={blurIncomingMedia}
+									onChange={(checked) => void setPreferences({ blurIncomingMedia: checked })}
+								/>
+								<ToggleRow
+									id="privacy-blur-profile-pictures"
+									highlighted={highlightId === "privacy-blur-profile-pictures"}
+									icon={<UserFilled className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("privacy.blur_profile_pictures")}
+									description={t("privacy.blur_profile_pictures_desc")}
+									checked={blurProfilePictures}
+									onChange={(checked) => void setPreferences({ blurProfilePictures: checked })}
+								/>
+								<ToggleRow
+									id="privacy-blur-grid-profile-pictures"
+									highlighted={highlightId === "privacy-blur-grid-profile-pictures"}
+									icon={<EyeOffFilled className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("privacy.blur_grid_profile_pictures")}
+									description={t("privacy.blur_grid_profile_pictures_desc")}
+									checked={blurGridProfilePictures}
+									onChange={(checked) => void setPreferences({ blurGridProfilePictures: checked })}
+								/>
+								<ToggleRow
+									id="privacy-blur-album-media"
+									highlighted={highlightId === "privacy-blur-album-media"}
+									icon={<ImagesFilled className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("privacy.blur_album_media")}
+									description={t("privacy.blur_album_media_desc")}
+									checked={blurAlbumMedia}
+									onChange={(checked) => void setPreferences({ blurAlbumMedia: checked })}
+								/>
+								<ToggleRow
+									id="privacy-blur-right-now-media"
+									highlighted={highlightId === "privacy-blur-right-now-media"}
+									icon={<RightNowIcon className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("privacy.blur_right_now_media")}
+									description={t("privacy.blur_right_now_media_desc")}
+									checked={blurRightNowMedia}
+									onChange={(checked) => void setPreferences({ blurRightNowMedia: checked })}
+								/>
+							</>
+						)}
 						<ToggleRow
 							id="privacy-sensitive-warning"
 							highlighted={highlightId === "privacy-sensitive-warning"}

@@ -50,6 +50,8 @@ import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { RightNowMap, getRightNowAvatarUrl, getRightNowItemKey, getRightNowProfileImageUrl, hasMapPosition } from "./rightnow/RightNowMap";
 import { proxyMediaUrl } from "../../utils/mediaProxy";
 import { SHEET_ICON_BUTTON_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { PRIVACY_BLUR_CLASS, PRIVACY_BLUR_TRANSITION_CLASS, PRIVACY_HOVER_REVEAL_CLASS, useMediaBlur } from "../../hooks/useProfilePhotoPrivacy";
+import { useBlurReveal } from "../../hooks/useBlurReveal";
 
 type SortOption = RightNowSortOption;
 
@@ -105,6 +107,14 @@ function getItemDisplayImageUrl(item: RightNowFeedItem): string | null {
 	return getRightNowAvatarUrl(item);
 }
 
+/** The avatar shows the post's own photo when it has one — blurred like the rest of the post media then. */
+function useAvatarPostMediaClass(item: RightNowFeedItem, avatarUrl: string | null): string | undefined {
+	const { rightNow: blurRightNowMedia } = useMediaBlur();
+	return blurRightNowMedia && avatarUrl != null && avatarUrl !== getRightNowProfileImageUrl(item)
+		? `${PRIVACY_BLUR_CLASS} ${PRIVACY_HOVER_REVEAL_CLASS}`
+		: undefined;
+}
+
 function isItemOnline(item: RightNowFeedItem): boolean {
 	return typeof item.onlineUntil === "number" && item.onlineUntil > Date.now();
 }
@@ -117,10 +127,25 @@ function PostMediaGrid({
 	onOpenPhoto: (index: number) => void;
 }) {
 	const isDesktop = useDesktopBreakpoint();
+	const { rightNow: blurRightNowMedia } = useMediaBlur();
+	const { isBlurred, revealOnTap, hoverProps } = useBlurReveal(blurRightNowMedia);
 	if (!media || media.length === 0) return null;
 
 	const items = media.slice(0, 3);
 	const count = items.length;
+	const mediaClassName = (index: number) => cn(
+		"h-full w-full object-cover",
+		PRIVACY_BLUR_TRANSITION_CLASS,
+		isBlurred(String(index)) ? PRIVACY_BLUR_CLASS : "active:scale-105",
+	);
+	// A blurred photo is revealed by the first tap, like chat media.
+	const tileProps = (index: number) => ({
+		onClick: () => {
+			if (revealOnTap(String(index))) return;
+			onOpenPhoto(index);
+		},
+		...hoverProps(String(index)),
+	});
 
 	return (
 		<div
@@ -134,11 +159,11 @@ function PostMediaGrid({
 					<button
 						type="button"
 						className="h-full w-full overflow-hidden"
-						onClick={() => onOpenPhoto(0)}
+						{...tileProps(0)}
 					>
 						<img
 							src={proxyMediaUrl(items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? "")}
-							className="h-full w-full object-cover transition-transform active:scale-105"
+							className={mediaClassName(0)}
 							alt=""
 						/>
 					</button>
@@ -149,22 +174,22 @@ function PostMediaGrid({
 						<button
 							type="button"
 							className="flex-1 overflow-hidden"
-							onClick={() => onOpenPhoto(0)}
+							{...tileProps(0)}
 						>
 							<img
 								src={proxyMediaUrl(items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? "")}
-								className="h-full w-full object-cover transition-transform active:scale-105"
+								className={mediaClassName(0)}
 								alt=""
 							/>
 						</button>
 						<button
 							type="button"
 							className="flex-1 overflow-hidden"
-							onClick={() => onOpenPhoto(1)}
+							{...tileProps(1)}
 						>
 							<img
 								src={proxyMediaUrl(items[1].data?.thumbnailUrl ?? items[1].data?.fullImageUrl ?? "")}
-								className="h-full w-full object-cover transition-transform active:scale-105"
+								className={mediaClassName(1)}
 								alt=""
 							/>
 						</button>
@@ -176,11 +201,11 @@ function PostMediaGrid({
 						<button
 							type="button"
 							className="w-[60%] overflow-hidden"
-							onClick={() => onOpenPhoto(0)}
+							{...tileProps(0)}
 						>
 							<img
 								src={proxyMediaUrl(items[0].data?.thumbnailUrl ?? items[0].data?.fullImageUrl ?? "")}
-								className="h-full w-full object-cover transition-transform active:scale-105"
+								className={mediaClassName(0)}
 								alt=""
 							/>
 						</button>
@@ -188,22 +213,22 @@ function PostMediaGrid({
 							<button
 								type="button"
 								className="flex-1 overflow-hidden"
-								onClick={() => onOpenPhoto(1)}
+								{...tileProps(1)}
 							>
 								<img
 									src={proxyMediaUrl(items[1].data?.thumbnailUrl ?? items[1].data?.fullImageUrl ?? "")}
-									className="h-full w-full object-cover transition-transform active:scale-105"
+									className={mediaClassName(1)}
 									alt=""
 								/>
 							</button>
 							<button
 								type="button"
 								className="flex-1 overflow-hidden"
-								onClick={() => onOpenPhoto(2)}
+								{...tileProps(2)}
 							>
 								<img
 									src={proxyMediaUrl(items[2].data?.thumbnailUrl ?? items[2].data?.fullImageUrl ?? "")}
-									className="h-full w-full object-cover transition-transform active:scale-105"
+									className={mediaClassName(2)}
 									alt=""
 								/>
 							</button>
@@ -234,6 +259,7 @@ function RightNowRow({
 	const name = getItemName(item, t);
 	const isHosting = item.hosting;
 	const imageUrl = getItemDisplayImageUrl(item);
+	const avatarClassName = useAvatarPostMediaClass(item, imageUrl);
 
 	const timeAgo = formatRelativeTime(item.postedAt);
 	const distance =
@@ -253,7 +279,7 @@ function RightNowRow({
 		<div
 			ref={ref}
 			className={cn(
-				"flex items-center gap-4 pl-4 pr-4 py-3 border-b border-[var(--surface-2)]",
+				"group/reveal flex items-center gap-4 pl-4 pr-4 py-3 border-b border-[var(--surface-2)]",
 				revealClass,
 				className,
 			)}
@@ -264,7 +290,7 @@ function RightNowRow({
 				onClick={() => onSelect(item.profileId)}
 			>
 				<div className="h-15 w-15 rounded-full overflow-hidden drop-shadow-sm bg-[var(--surface-2)]">
-					<ProfileImage src={imageUrl} alt={name || ""} />
+					<ProfileImage src={imageUrl} alt={name || ""} className={avatarClassName} />
 				</div>
 				{isOnline ? (
 					<span className={`absolute circle-badge-br h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm z-10 ${isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
@@ -363,6 +389,8 @@ function RightNowMapCard({
 }) {
 	const { t } = useTranslation();
 	const { unitsPreset } = usePreferences();
+	const { rightNow: blurRightNowMedia } = useMediaBlur();
+	const heroReveal = useBlurReveal(blurRightNowMedia);
 	const name = getItemName(item, t);
 	const avatarUrl = getItemDisplayImageUrl(item);
 	const distance = item.distanceMeters != null ? formatDistance(item.distanceMeters, t, unitsPreset) : null;
@@ -384,6 +412,7 @@ function RightNowMapCard({
 	// profile photo so the two don't repeat.
 	const heroSrc = photos[0] ?? null;
 	const headerAvatarUrl = heroSrc ? getRightNowProfileImageUrl(item) ?? avatarUrl : avatarUrl;
+	const headerAvatarClassName = useAvatarPostMediaClass(item, headerAvatarUrl);
 
 	return (
 		<div className="relative mx-auto max-w-xl overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.55),0_8px_16px_-6px_rgba(0,0,0,0.35)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -405,10 +434,15 @@ function RightNowMapCard({
 			{heroSrc ? (
 				<button
 					type="button"
-					onClick={() => onOpenPhoto(photos, 0, item.profileId)}
+					onClick={() => {
+						// A blurred photo is revealed by the first tap, like chat media.
+						if (heroReveal.revealOnTap(heroSrc)) return;
+						onOpenPhoto(photos, 0, item.profileId);
+					}}
+					{...heroReveal.hoverProps(heroSrc)}
 					className="relative block h-40 w-full overflow-hidden"
 				>
-					<img src={proxyMediaUrl(heroSrc)} alt="" className="h-full w-full object-cover" draggable={false} />
+					<img src={proxyMediaUrl(heroSrc)} alt="" className={cn("h-full w-full object-cover", PRIVACY_BLUR_TRANSITION_CLASS, heroReveal.isBlurred(heroSrc) && PRIVACY_BLUR_CLASS)} draggable={false} />
 					{/* Fades the photo into the card */}
 					<div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[color-mix(in_srgb,var(--surface)_92%,transparent)]" />
 					{photos.length > 1 ? (
@@ -431,7 +465,7 @@ function RightNowMapCard({
 				<div className="flex items-end gap-3">
 					<button type="button" onClick={() => onSelect(item.profileId)} className="relative shrink-0">
 						<div className="h-14 w-14 overflow-hidden rounded-full border border-[var(--bg)] bg-[var(--surface-2)] shadow-lg">
-							<ProfileImage src={headerAvatarUrl} alt={name} />
+							<ProfileImage src={headerAvatarUrl} alt={name} className={headerAvatarClassName} />
 						</div>
 						{/* Session countdown ring, same as the map markers */}
 						{/* overflow-visible: an SVG clips to its box by default, which cut off the ring's glow. */}

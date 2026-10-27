@@ -982,7 +982,15 @@
     "show_sensitive_content_warning": "Sensitive Content Warning",
     "show_sensitive_content_warning_desc": "Show a warning screen before opening an album that could contain sensitive content.",
     "blur_grid_profile_pictures": "Blur Profile Pictures in Grid",
-    "blur_grid_profile_pictures_desc": "Blur everyone's profile picture on the Grid, useful for browsing discreetly in public."
+    "blur_grid_profile_pictures_desc": "Blur everyone's profile picture on the Grid, useful for browsing discreetly in public.",
+    "safe_for_work_mode": "Safe for Work Mode",
+    "safe_for_work_mode_desc": "Hide everyone's profile pictures across the app behind a placeholder and blur all media (chats, albums, Right Now). Replaces the individual blur options.",
+    "blur_profile_pictures": "Blur Profile Pictures Everywhere",
+    "blur_profile_pictures_desc": "Blur profile pictures across the app: Grid, chats, profiles, Right Now and more. On a profile, tap a photo once to reveal it (hover on desktop).",
+    "blur_album_media": "Blur Album Previews",
+    "blur_album_media_desc": "Blur the photos and videos in the album preview sheet. Tap once to reveal (hover on desktop).",
+    "blur_right_now_media": "Blur Right Now Media",
+    "blur_right_now_media_desc": "Blur photos attached to Right Now posts, in the feed and on the map. Tap once to reveal (hover on desktop)."
   },
   "customizability": {
     "subtitle": "Personalize the look and feel of the app.",

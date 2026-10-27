@@ -163,6 +163,10 @@ const preferencesSchema = z.object({
 	unitsPreset: z.enum(UNIT_PRESETS).default("world"),
 	blurIncomingMedia: z.boolean().default(false),
 	blurGridProfilePictures: z.boolean().default(false),
+	blurProfilePictures: z.boolean().default(false),
+	hideProfilePictures: z.boolean().default(false),
+	blurAlbumMedia: z.boolean().default(false),
+	blurRightNowMedia: z.boolean().default(false),
 	developerMode: z.boolean().default(false),
 	showDebugInfo: z.boolean().default(false),
 	testReminderDisabled: z.boolean().default(false),
@@ -220,6 +224,10 @@ type PreferencesAction =
 	| { type: "SET_UNITS_PRESET"; payload: UnitsPreset }
 	| { type: "SET_BLUR_INCOMING_MEDIA"; payload: boolean }
 	| { type: "SET_BLUR_GRID_PROFILE_PICTURES"; payload: boolean }
+	| { type: "SET_BLUR_PROFILE_PICTURES"; payload: boolean }
+	| { type: "SET_HIDE_PROFILE_PICTURES"; payload: boolean }
+	| { type: "SET_BLUR_ALBUM_MEDIA"; payload: boolean }
+	| { type: "SET_BLUR_RIGHT_NOW_MEDIA"; payload: boolean }
 	| { type: "SET_DEVELOPER_MODE"; payload: boolean }
 	| { type: "SET_SHOW_DEBUG_INFO"; payload: boolean }
 	| { type: "SET_TEST_REMINDER_DISABLED"; payload: boolean }
@@ -271,6 +279,14 @@ function preferencesReducer(
 			return { ...state, blurIncomingMedia: action.payload };
 		case "SET_BLUR_GRID_PROFILE_PICTURES":
 			return { ...state, blurGridProfilePictures: action.payload };
+		case "SET_BLUR_PROFILE_PICTURES":
+			return { ...state, blurProfilePictures: action.payload };
+		case "SET_HIDE_PROFILE_PICTURES":
+			return { ...state, hideProfilePictures: action.payload };
+		case "SET_BLUR_ALBUM_MEDIA":
+			return { ...state, blurAlbumMedia: action.payload };
+		case "SET_BLUR_RIGHT_NOW_MEDIA":
+			return { ...state, blurRightNowMedia: action.payload };
 		case "SET_DEVELOPER_MODE":
 			return { ...state, developerMode: action.payload };
 		case "SET_SHOW_DEBUG_INFO":
@@ -426,6 +442,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		unitsPreset: "world",
 		blurIncomingMedia: false,
 		blurGridProfilePictures: false,
+		blurProfilePictures: false,
+		hideProfilePictures: false,
+		blurAlbumMedia: false,
+		blurRightNowMedia: false,
 		developerMode: false,
 		showDebugInfo: false,
 		testReminderDisabled: false,
@@ -480,6 +500,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_UNITS_PRESET", payload: parsed.unitsPreset });
 					dispatch({ type: "SET_BLUR_INCOMING_MEDIA", payload: parsed.blurIncomingMedia });
 					dispatch({ type: "SET_BLUR_GRID_PROFILE_PICTURES", payload: parsed.blurGridProfilePictures });
+					dispatch({ type: "SET_BLUR_PROFILE_PICTURES", payload: parsed.blurProfilePictures });
+					dispatch({ type: "SET_HIDE_PROFILE_PICTURES", payload: parsed.hideProfilePictures });
+					dispatch({ type: "SET_BLUR_ALBUM_MEDIA", payload: parsed.blurAlbumMedia });
+					dispatch({ type: "SET_BLUR_RIGHT_NOW_MEDIA", payload: parsed.blurRightNowMedia });
 					dispatch({ type: "SET_DEVELOPER_MODE", payload: parsed.developerMode });
 					dispatch({ type: "SET_SHOW_DEBUG_INFO", payload: parsed.showDebugInfo });
 					dispatch({ type: "SET_TEST_REMINDER_DISABLED", payload: parsed.testReminderDisabled });
@@ -605,6 +629,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				unitsPreset: currentState.unitsPreset,
 				blurIncomingMedia: currentState.blurIncomingMedia,
 				blurGridProfilePictures: currentState.blurGridProfilePictures,
+				blurProfilePictures: currentState.blurProfilePictures,
+				hideProfilePictures: currentState.hideProfilePictures,
+				blurAlbumMedia: currentState.blurAlbumMedia,
+				blurRightNowMedia: currentState.blurRightNowMedia,
 				developerMode: currentState.developerMode,
 				showDebugInfo: currentState.showDebugInfo,
 				testReminderDisabled: currentState.testReminderDisabled,
@@ -668,6 +696,18 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.blurGridProfilePictures !== undefined) {
 				dispatch({ type: "SET_BLUR_GRID_PROFILE_PICTURES", payload: newValues.blurGridProfilePictures });
+			}
+			if (newValues.blurProfilePictures !== undefined) {
+				dispatch({ type: "SET_BLUR_PROFILE_PICTURES", payload: newValues.blurProfilePictures });
+			}
+			if (newValues.hideProfilePictures !== undefined) {
+				dispatch({ type: "SET_HIDE_PROFILE_PICTURES", payload: newValues.hideProfilePictures });
+			}
+			if (newValues.blurAlbumMedia !== undefined) {
+				dispatch({ type: "SET_BLUR_ALBUM_MEDIA", payload: newValues.blurAlbumMedia });
+			}
+			if (newValues.blurRightNowMedia !== undefined) {
+				dispatch({ type: "SET_BLUR_RIGHT_NOW_MEDIA", payload: newValues.blurRightNowMedia });
 			}
 			if (newValues.developerMode !== undefined) {
 				dispatch({ type: "SET_DEVELOPER_MODE", payload: newValues.developerMode });
@@ -815,6 +855,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					unitsPreset: preferences.unitsPreset,
 					blurIncomingMedia: preferences.blurIncomingMedia,
 					blurGridProfilePictures: preferences.blurGridProfilePictures,
+					blurProfilePictures: preferences.blurProfilePictures,
+					hideProfilePictures: preferences.hideProfilePictures,
+					blurAlbumMedia: preferences.blurAlbumMedia,
+					blurRightNowMedia: preferences.blurRightNowMedia,
 					developerMode: preferences.developerMode,
 					showDebugInfo: preferences.showDebugInfo,
 					testReminderDisabled: preferences.testReminderDisabled,
@@ -854,6 +898,10 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		unitsPreset: state.unitsPreset,
 		blurIncomingMedia: state.blurIncomingMedia,
 		blurGridProfilePictures: state.blurGridProfilePictures,
+		blurProfilePictures: state.blurProfilePictures,
+		hideProfilePictures: state.hideProfilePictures,
+		blurAlbumMedia: state.blurAlbumMedia,
+		blurRightNowMedia: state.blurRightNowMedia,
 		developerMode: state.developerMode,
 		showDebugInfo: state.showDebugInfo,
 		testReminderDisabled: state.testReminderDisabled,

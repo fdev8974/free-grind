@@ -10,6 +10,7 @@ import { formatDistance, isOnlineEndingSoon } from "../gridpage/utils";
 import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import { useProfilePhotoPrivacy } from "../../../hooks/useProfilePhotoPrivacy";
 import type { BrowseCard } from "../GridPage.types";
 
 export type InterestTabConfig = {
@@ -190,7 +191,7 @@ export const InterestRow = memo(function InterestRow({
 		<div
 			ref={ref}
 			className={cn(
-				"relative flex items-center gap-4 border-b border-[var(--surface-2)] pl-4 pr-4 py-3 transition-colors",
+				"group/reveal relative flex items-center gap-4 border-b border-[var(--surface-2)] pl-4 pr-4 py-3 transition-colors",
 				isLocked ? "opacity-75 grayscale-[0.3]" : "hover:bg-[var(--surface-2)]/40",
 				revealClass
 			)}
@@ -332,7 +333,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 	isDesktop?: boolean;
 }) {
 	const { t } = useTranslation();
-	const { blurGridProfilePictures } = usePreferences();
+	const photoPrivacy = useProfilePhotoPrivacy("grid");
 	const { ref, revealClass } = useRevealOnScroll();
 	const imageSrc = item.imageHash ? getThumbImageUrl(item.imageHash, "320x320") : null;
 
@@ -361,7 +362,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 				onClick={() => !isLocked && onOpenProfile(item.profileId)}
 				disabled={isLocked}
 				className={cn(
-					"no-touch-callout touch-manipulation surface-card-grid relative block w-full overflow-hidden text-left transition-transform",
+					"group/reveal no-touch-callout touch-manipulation surface-card-grid relative block w-full overflow-hidden text-left transition-transform",
 					!isLocked && "active:scale-95",
 					isRightNow ? "p-[2px]" : "p-0",
 					isDesktop ? "rounded-xl shadow-sm" : "rounded-[4px]",
@@ -380,8 +381,10 @@ export const InterestViewTile = memo(function InterestViewTile({
 						<ProfileImage
 							src={imageSrc}
 							alt={displayName ?? ""}
+							privacyScope="grid"
 							className={cn(
-								blurGridProfilePictures ? "blur-md scale-110" : isLocked && "blur-[3px] scale-105",
+								// Locked tiles keep their light blur, also while hovered.
+								isLocked && (photoPrivacy === "blur" ? "hover:blur-[3px] hover:scale-105 group-hover/reveal:blur-[3px] group-hover/reveal:scale-105" : "blur-[3px] scale-105"),
 							)}
 						/>
 
