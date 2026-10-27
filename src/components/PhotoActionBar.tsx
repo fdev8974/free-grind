@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Flame, Loader2 } from "lucide-react";
 import { SendHorizontalFilled } from "./icons/FilledIcons";
 import { useTranslation } from "react-i18next";
+import { TapFlyBurst, TAP_FLY_BURST_MS, createTapFlyBurst, type TapFlyBurstState } from "./TapFlyBurst";
+import { haptic } from "../utils/haptics";
 
 type PhotoActionBarProps = {
 	onSendText: (text: string) => void | Promise<void>;
@@ -22,6 +24,14 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 	const [text, setText] = useState("");
 	const [isSending, setIsSending] = useState(false);
 	const [isReacting, setIsReacting] = useState(false);
+	const [burst, setBurst] = useState<TapFlyBurstState | null>(null);
+	const reactButtonRef = useRef<HTMLButtonElement | null>(null);
+
+	useEffect(() => {
+		if (!burst) return;
+		const timer = setTimeout(() => setBurst(null), TAP_FLY_BURST_MS);
+		return () => clearTimeout(timer);
+	}, [burst]);
 
 	const handleSend = async () => {
 		const trimmed = text.trim();
@@ -37,6 +47,9 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 
 	const handleReact = async () => {
 		if (!onReact || isReacting) return;
+		// Same send effect as a profile tap: the flame flies up and bursts.
+		haptic(30, [15, 10, 25]);
+		setBurst(createTapFlyBurst(1, reactButtonRef.current));
 		setIsReacting(true);
 		try {
 			await onReact();
@@ -94,16 +107,19 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 				</div>
 				{onReact && (
 					<button
+						ref={reactButtonRef}
 						type="button"
 						onClick={() => void handleReact()}
 						disabled={isReacting}
 						aria-label={t("photo_viewer.react", { defaultValue: "React" })}
-						className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:text-white active:scale-90 disabled:opacity-50"
+						// bar-icon-btn: the same desktop hover circle as the profile footer's tap button.
+						className="bar-icon-btn inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:text-white active:scale-90 disabled:opacity-50"
 					>
 						{isReacting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Flame className="h-5 w-5" strokeWidth={1.8} />}
 					</button>
 				)}
 			</div>
+			{burst && <TapFlyBurst burst={burst} />}
 		</div>
 	);
 }

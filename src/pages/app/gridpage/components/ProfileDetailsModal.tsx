@@ -1,3 +1,4 @@
+import { TapFlyBurst, TAP_FLY_BURST_MS, createTapFlyBurst, tapEmoji, tapGlow, type TapFlyBurstState } from "../../../../components/TapFlyBurst";
 import { Album, Ban, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, Loader2, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
 import { BananaFilled, EyeFilled, HomeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
@@ -631,7 +632,7 @@ export function ProfileDetailsModal({
 	const [barTapPickerOpen, setBarTapPickerOpen] = useState(false);
 	const [barInputVisible, setBarInputVisible] = useState(true);
 	const [barTapHoverId, setBarTapHoverId] = useState<number | null>(null);
-	const [barTapFlyEmoji, setBarTapFlyEmoji] = useState<{ id: number; key: number; originDx: number; originDy: number; particles: { dx: number; dy: number; size: number; dur: number; delay: number; emoji?: string }[] } | null>(null);
+	const [barTapFlyEmoji, setBarTapFlyEmoji] = useState<TapFlyBurstState | null>(null);
 	const barTapLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const barTapStickyRef = useRef(false);
 	const barTapSkipUpRef = useRef(false);
@@ -867,35 +868,8 @@ export function ProfileDetailsModal({
 		</div>
 	) : null;
 
-	const barTapEmoji = (id: number) => id === 0 ? "👋" : id === 2 ? "😈" : "🔥";
-    const barTapParticleColor = (id: number) => id === 0 ? "rgba(234,179,8,0.9)" : id === 2 ? "rgba(168,85,247,0.9)" : "rgba(249,115,22,0.9)";
-const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179,8,0.95))" : id === 2 ? "drop-shadow(0 0 10px rgba(168,85,247,0.95))" : "drop-shadow(0 0 10px rgba(249,115,22,0.95))";
-	const makeParticles = (tapId?: number) => {
-		const dots = Array.from({ length: 28 }, (_, i) => {
-			const angle = (i / 28) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-			const dist = Math.random() * 280 + 160;
-			return {
-				dx: Math.cos(angle) * dist,
-				dy: Math.sin(angle) * dist,
-				size: Math.random() * 10 + 4,
-				dur: Math.random() * 0.45 + 0.4,
-				delay: Math.random() * 0.08 + 0.62,
-			};
-		});
-		const eggplants = tapId === 2 ? Array.from({ length: 6 }, (_, i) => {
-			const angle = (i / 6) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
-			const dist = Math.random() * 260 + 140;
-			return {
-				dx: Math.cos(angle) * dist,
-				dy: Math.sin(angle) * dist,
-				size: 24,
-				dur: Math.random() * 0.3 + 1.0,
-				delay: Math.random() * 0.1 + 0.64,
-				emoji: "🍆",
-			};
-		}) : [];
-		return [...dots, ...eggplants];
-	};
+	const barTapEmoji = tapEmoji;
+	const barTapGlow = tapGlow;
 
 	const isDesktopBar = variant !== "page";
 
@@ -944,10 +918,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		if (!onTapProfile || !messageProfileId || isTapBlocked) return;
 		haptic(30, [15, 10, 25]);
 		onTapProfile(String(messageProfileId), tapId);
-		const btnRect = barTapButtonRef.current?.getBoundingClientRect();
-		const originDx = btnRect ? btnRect.left + btnRect.width / 2 - window.innerWidth / 2 : window.innerWidth / 2 - 110;
-		const originDy = btnRect ? btnRect.top + btnRect.height / 2 - window.innerHeight / 2 : window.innerHeight / 2 - 80;
-		setBarTapFlyEmoji({ id: tapId, key: Date.now(), originDx, originDy, particles: makeParticles(tapId) });
+		setBarTapFlyEmoji(createTapFlyBurst(tapId, barTapButtonRef.current));
 		setBarTapPickerOpen(false);
 		setBarTapHoverId(null);
 		barTapStickyRef.current = false;
@@ -979,7 +950,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 
 	useEffect(() => {
 		if (!barTapFlyEmoji) return;
-		const timer = setTimeout(() => setBarTapFlyEmoji(null), 1400);
+		const timer = setTimeout(() => setBarTapFlyEmoji(null), TAP_FLY_BURST_MS);
 		return () => clearTimeout(timer);
 	}, [barTapFlyEmoji]);
 
@@ -2547,55 +2518,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					}}
 					onCancel={() => setBanNamePrompt(null)}
 				/>
-				{barTapFlyEmoji && (
-					<>
-						{barTapFlyEmoji.particles.map((p, i) => p.emoji ? (
-							<span
-								key={`p-${barTapFlyEmoji.key}-${i}`}
-								className="animate-emoji-particle-rise"
-								style={{
-									left: "50%",
-									top: "50%",
-									opacity: 0,
-									fontSize: `${p.size}px`,
-									lineHeight: 1,
-									filter: barTapGlow(barTapFlyEmoji.id),
-									zIndex: 202,
-									"--dx": `${p.dx}px`,
-									"--dy": `${p.dy}px`,
-									"--dur": `${p.dur}s`,
-									"--delay": `${p.delay}s`,
-								} as React.CSSProperties}
-							>{p.emoji}</span>
-						) : (
-							<div
-								key={`p-${barTapFlyEmoji.key}-${i}`}
-								className="animate-particle-rise"
-								style={{
-									left: "50%",
-									top: "50%",
-									opacity: 0,
-									width: `${p.size}px`,
-									height: `${p.size}px`,
-									background: barTapParticleColor(barTapFlyEmoji.id),
-									boxShadow: `0 0 ${p.size * 3}px ${p.size}px ${barTapParticleColor(barTapFlyEmoji.id)}`,
-									zIndex: 202,
-									"--dx": `${p.dx}px`,
-									"--dy": `${p.dy}px`,
-									"--dur": `${p.dur}s`,
-									"--delay": `${p.delay}s`,
-								} as React.CSSProperties}
-							/>
-						))}
-						<span
-							key={`emoji-${barTapFlyEmoji.key}`}
-							className="animate-tap-fly-center fixed pointer-events-none"
-							style={{ left: "50%", top: "50%", zIndex: 201, filter: barTapGlow(barTapFlyEmoji.id), "--tap-origin-dx": `${barTapFlyEmoji.originDx}px`, "--tap-origin-dy": `${barTapFlyEmoji.originDy}px` } as React.CSSProperties}
-						>
-							{barTapEmoji(barTapFlyEmoji.id)}
-						</span>
-					</>
-				)}
+				{barTapFlyEmoji && <TapFlyBurst burst={barTapFlyEmoji} />}
 				</div>
 			</div>
 		);
@@ -2893,44 +2816,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					)}
 				</div>
 			</div>
-			{barTapFlyEmoji && (
-				<>
-					{barTapFlyEmoji.particles.map((p, i) => p.emoji ? (
-						<span
-							key={`p-${barTapFlyEmoji.key}-${i}`}
-							className="animate-emoji-particle-rise"
-							style={{
-								left: "50%", top: "50%", opacity: 0,
-								fontSize: `${p.size}px`, lineHeight: 1,
-								filter: barTapGlow(barTapFlyEmoji.id), zIndex: 202,
-								"--dx": `${p.dx}px`, "--dy": `${p.dy}px`,
-								"--dur": `${p.dur}s`, "--delay": `${p.delay}s`,
-							} as React.CSSProperties}
-						>{p.emoji}</span>
-					) : (
-						<div
-							key={`p-${barTapFlyEmoji.key}-${i}`}
-							className="animate-particle-rise"
-							style={{
-								left: "50%", top: "50%", opacity: 0,
-								width: `${p.size}px`, height: `${p.size}px`,
-								background: barTapParticleColor(barTapFlyEmoji.id),
-								boxShadow: `0 0 ${p.size * 3}px ${p.size}px ${barTapParticleColor(barTapFlyEmoji.id)}`,
-								zIndex: 202,
-								"--dx": `${p.dx}px`, "--dy": `${p.dy}px`,
-								"--dur": `${p.dur}s`, "--delay": `${p.delay}s`,
-							} as React.CSSProperties}
-						/>
-					))}
-					<span
-						key={`emoji-${barTapFlyEmoji.key}`}
-						className="animate-tap-fly-center fixed pointer-events-none"
-						style={{ left: "50%", top: "50%", zIndex: 201, filter: barTapGlow(barTapFlyEmoji.id), "--tap-origin-dx": `${barTapFlyEmoji.originDx}px`, "--tap-origin-dy": `${barTapFlyEmoji.originDy}px` } as React.CSSProperties}
-					>
-						{barTapEmoji(barTapFlyEmoji.id)}
-					</span>
-				</>
-			)}
+			{barTapFlyEmoji && <TapFlyBurst burst={barTapFlyEmoji} />}
 			{photoViewerOverlay}
 			{albumViewerOverlay}
 			{encounterSheet}

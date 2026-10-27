@@ -112,7 +112,7 @@ import {
 import { loadChatFiltersDraft, saveChatFiltersDraft } from "./chat/chat-filters-storage";
 import { fetchAndStoreMedia, getCachedMediaUri, getDrawerMediaKey, getMessageFallbackMediaKey, hydrateMediaByMessageId, isSignedUrlExpired } from "../../services/mediaStore";
 import { captureAlbum, captureAlbumsForMessages, deleteLocalAlbum, getLocalAlbum } from "../../services/albumStore";
-import { saveAllAlbumMedia } from "../../utils/albumMedia";
+import { saveAllAlbumMedia, saveAllMedia } from "../../utils/albumMedia";
 import { formatDistance } from "./gridpage/utils";
 import { captureReplyPreviewsForMessages } from "../../services/replyMediaStore";
 import { useAvatarCache } from "../../hooks/useAvatarCache";
@@ -801,6 +801,11 @@ export function ChatPage() {
 	const [fullScreenMediaList, setFullScreenMediaList] = useState<ThreadMediaItem[]>([]);
 	const [fullScreenMediaIndex, setFullScreenMediaIndex] = useState(0);
 	const [fullScreenHeroRect, setFullScreenHeroRect] = useState<HeroRect | null>(null);
+	// Set while the viewer shows a profile's photos (openProfilePhotos) rather
+	// than chat media: adds the photo menu (save all) and, for the partner's
+	// photos, the reply bar.
+	const [fullScreenProfilePhotos, setFullScreenProfilePhotos] = useState<{ hashes: string[]; isPartnerProfile: boolean } | null>(null);
+	const [isSavingAllProfilePhotos, setIsSavingAllProfilePhotos] = useState(false);
 	const fullScreenImageUrl = fullScreenMediaList.length > 0 ? fullScreenMediaList[fullScreenMediaIndex]?.url ?? null : null;
 
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
@@ -5322,6 +5327,33 @@ export function ChatPage() {
 		[selectedConversation, service, t, targetProfileId, userId],
 	);
 
+	const sendProfilePhotoReply = useCallback(
+		async (imageHash: string, text: string) => {
+			if (!userId) return;
+			const targetProfileIdValue = selectedConversation
+				? (getOtherParticipant(selectedConversation, userId)?.profileId ?? null)
+				: targetProfileId;
+			if (!targetProfileIdValue) {
+				toast.error(t("chat.errors.missing_recipient"));
+				return;
+			}
+			try {
+				const sentMessage = await service.sendMessage({
+					type: "ProfilePhotoReply",
+					target: { type: "Direct", targetId: targetProfileIdValue },
+					body: { imageHash, photoContentReply: text },
+				});
+				if (selectedConversation) {
+					setThreadMessages((previous) => [...previous, sentMessage]);
+				}
+				toast.success(t("chat.toasts.photo_reply_sent", { defaultValue: "Reply sent" }));
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
+			}
+		},
+		[selectedConversation, service, t, targetProfileId, userId],
+	);
+
 	// loadDrawerMedia is declared further below but sendMediaAttachment needs
 	// to trigger a refresh after adding to the drawer — routed through a ref
 	// to avoid a forward reference to a not-yet-initialized const.
@@ -6222,6 +6254,34 @@ export function ChatPage() {
 		];
 	}, [albumViewer, isSavingAlbumAll, t, handleSaveAllAlbumMedia]);
 
+	const handleSaveAllProfilePhotos = useCallback(async () => {
+		if (!fullScreenProfilePhotos || isSavingAllProfilePhotos) return;
+		setIsSavingAllProfilePhotos(true);
+		try {
+			await saveAllMedia(
+				fullScreenProfilePhotos.hashes.map((hash) => ({ url: getProfileImageUrl(hash, "1024x1024"), type: "image" as const })),
+				// Same folder as saving from the partner's profile page.
+				fullScreenProfilePhotos.isPartnerProfile ? selectedConversationOtherProfileId ?? null : null,
+				t,
+			);
+		} finally {
+			setIsSavingAllProfilePhotos(false);
+		}
+	}, [fullScreenProfilePhotos, isSavingAllProfilePhotos, selectedConversationOtherProfileId, t]);
+
+	const profilePhotoMenuActions = useMemo<PhotoViewerMenuAction[] | undefined>(() => {
+		if (!fullScreenProfilePhotos) return undefined;
+		return [
+			{
+				key: "save-all",
+				label: t("profile_details.save_all"),
+				icon: Images,
+				onClick: () => void handleSaveAllProfilePhotos(),
+				disabled: isSavingAllProfilePhotos,
+			},
+		];
+	}, [fullScreenProfilePhotos, isSavingAllProfilePhotos, t, handleSaveAllProfilePhotos]);
+
 	const albumHeader = useMemo(() => {
 		if (!albumViewer) return undefined;
 		if (albumViewer.isOwn) {
@@ -6617,6 +6677,7 @@ export function ChatPage() {
 	) => {
 		// The tapped bubble's picture, so the viewer can fly it in from there.
 		setFullScreenHeroRect(heroRect ?? null);
+		setFullScreenProfilePhotos(null);
 		const tapped: ThreadMediaItem = { url: imageUrl, type: mediaType, meta: meta ?? undefined };
 		const conversationId = selectedConversation?.data.conversationId;
 		if (!conversationId || messageId == null || senderId == null) {
@@ -6664,6 +6725,27 @@ export function ChatPage() {
 
 	}, [selectedConversation, userId, threadMessages]);
 
+	// A profile photo reply opens on the replied-to photo with the rest of that
+	// profile's photos around it — the chat partner's, or our own when they
+	// replied to one of ours. A photo no longer on the profile still opens, first.
+	const openProfilePhotos = useCallback((
+		mediaHash: string,
+		isPartnerProfile: boolean,
+		heroRect?: HeroRect | null,
+	) => {
+		const profile = isPartnerProfile ? targetProfileDetail : myProfile;
+		const hashes = [
+			...(profile?.medias ?? []).map((media) => media.mediaHash),
+			profile?.profileImageMediaHash,
+		].filter((hash, i, all): hash is string =>
+			typeof hash === "string" && validateMediaHash(hash) && all.indexOf(hash) === i);
+		if (!hashes.includes(mediaHash)) hashes.unshift(mediaHash);
+		setFullScreenProfilePhotos({ hashes, isPartnerProfile });
+		setFullScreenHeroRect(heroRect ?? null);
+		setFullScreenMediaList(hashes.map((hash) => ({ url: getProfileImageUrl(hash, "1024x1024"), type: "image" })));
+		setFullScreenMediaIndex(hashes.indexOf(mediaHash));
+	}, [targetProfileDetail, myProfile]);
+
 	const closeFullScreenImage = useCallback(() => {
 		if (fullScreenMediaList.length === 0) {
 			return;
@@ -6671,6 +6753,7 @@ export function ChatPage() {
 
 		setFullScreenMediaList([]);
 		setFullScreenMediaIndex(0);
+		setFullScreenProfilePhotos(null);
 
 		if (imageViewerHistoryPushedRef.current) {
 			imageViewerHistoryPushedRef.current = false;
@@ -6696,6 +6779,7 @@ export function ChatPage() {
 			imageViewerHistoryPushedRef.current = false;
 			setFullScreenMediaList([]);
 			setFullScreenMediaIndex(0);
+			setFullScreenProfilePhotos(null);
 		};
 
 		window.addEventListener("popstate", handlePopState);
@@ -6827,6 +6911,7 @@ export function ChatPage() {
 			messageLongPressTriggeredRef={messageLongPressTriggeredRef}
 			openFullScreenImage={openFullScreenImage}
 			openAlbumViewerById={openAlbumViewerById}
+			openProfilePhotos={openProfilePhotos}
 			onJumpToMessage={setPendingMessageScrollId}
 			highlightedMessageId={highlightedMessageId}
 			selectedThreadMessageMatches={selectedThreadMessageMatches}
@@ -7025,6 +7110,12 @@ export function ChatPage() {
 				onIndexChange={setFullScreenMediaIndex}
 				conversationId={selectedConversation?.data.conversationId ?? null}
 				heroRect={fullScreenHeroRect}
+				menuActions={profilePhotoMenuActions}
+				renderFooter={fullScreenProfilePhotos?.isPartnerProfile ? (idx) => {
+					const hash = fullScreenProfilePhotos.hashes[idx];
+					if (!hash) return null;
+					return <PhotoActionBar onSendText={(text) => sendProfilePhotoReply(hash, text)} />;
+				} : undefined}
 				renderExtraInfo={(idx) => {
 					const meta = fullScreenMediaList[idx]?.meta;
 					const label = meta ? meta.createdAtLabel ?? (meta.timestamp ? formatDateTime24(meta.timestamp) : null) : null;

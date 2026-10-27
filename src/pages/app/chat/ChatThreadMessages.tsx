@@ -1,3 +1,4 @@
+import { MapPinFilled } from "../../../components/icons/FilledIcons";
 import { Album, Ban, Copy, Download, Eye, History, Hourglass, ImagePlay, Images, Languages, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { createPortal } from "react-dom";
@@ -28,7 +29,7 @@ import {
     isAlbumKnownRevoked,
 } from "../../../services/albumStore";
 import { useAvatarCache } from "../../../hooks/useAvatarCache";
-import { getThumbImageUrl } from "../../../utils/media";
+import { getProfileImageUrl, getThumbImageUrl } from "../../../utils/media";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { PRIVACY_BLUR_TRANSITION_CLASS, useMediaBlur } from "../../../hooks/useProfilePhotoPrivacy";
 import { getForbiddenWords, setForbiddenWords } from "../../../utils/autoblock";
@@ -90,6 +91,7 @@ type ChatThreadMessagesProps = {
 	messageLongPressTriggeredRef: { current: boolean };
 	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number, heroRect?: HeroRect | null) => void;
 	openAlbumViewerById: (albumId: number, isOwnAlbum?: boolean, targetContentId?: number) => void | Promise<void>;
+	openProfilePhotos: (mediaHash: string, isPartnerProfile: boolean, heroRect?: HeroRect | null) => void;
 	onJumpToMessage: (messageId: string) => void;
 	highlightedMessageId: string | null;
 	selectedThreadMessageMatches: Array<{ messageId: string }>;
@@ -356,6 +358,7 @@ export function ChatThreadMessages({
 	messageLongPressTriggeredRef,
 	openFullScreenImage,
 	openAlbumViewerById,
+	openProfilePhotos,
 	onJumpToMessage,
 	highlightedMessageId,
 	selectedThreadMessageMatches,
@@ -1343,6 +1346,9 @@ export function ChatThreadMessages({
                         ?? albumContentThumbUrl
                         ?? cachedReplyToMsgThumbUri
                         ?? replyToMsgThumbUrl;
+                    const replyLocation = replyToMsg
+                        ? getMessageLocation(replyToMsg)
+                        : message.replyToMessage ? getMessageLocation(message.replyToMessage as unknown as UiMessage) : null;
                     const replyAudioDuration = (() => {
                         if (!replyIsAudio) return null;
                         const embedded = message.replyToMessage as Record<string, unknown> | null | undefined;
@@ -1584,11 +1590,23 @@ export function ChatThreadMessages({
                                         }>
                                         <div
                                             onClick={(event) => {
+                                                // A reply to an album photo quotes that photo, not a chat
+                                                // message: open the album at it. The album belongs to the
+                                                // side that did not send the reply.
+                                                if (ownAlbumContentTarget) {
+                                                    event.stopPropagation();
+                                                    const target = ownAlbumContentTarget;
+                                                    const open = () => void openAlbumViewerById(target.albumId, !mine, target.contentId);
+                                                    if (isDesktop) { open(); return; }
+                                                    if (messageLongPressTriggeredRef.current) { messageLongPressTriggeredRef.current = false; return; }
+                                                    scheduleMobileTap(message, open);
+                                                    return;
+                                                }
                                                 if (!replyToMsgId) return;
                                                 event.stopPropagation();
                                                 onJumpToMessage(replyToMsgId);
                                             }}
-                                            className={`relative flex overflow-hidden text-xs ${replyToMsgId ? "cursor-pointer active:opacity-70" : ""} ${
+                                            className={`relative flex overflow-hidden text-xs ${replyToMsgId || ownAlbumContentTarget ? "cursor-pointer active:opacity-70" : ""} ${
                                             isMediaOnlyBubble && hasReply
                                                 ? `rounded-[6px] ${mine ? "bg-black/20" : "bg-black/[0.08]"}`
                                                 : isMediaOnlyBubble
@@ -1641,6 +1659,12 @@ export function ChatThreadMessages({
                                                         <Mic className="h-4 w-4" />
                                                         <span className="text-[10px] opacity-80">{replyAudioDuration ?? "0:00"}</span>
                                                     </div>
+                                                </div>
+                                            ) : replyLocation ? (
+                                                <div className="relative w-14 shrink-0 self-stretch overflow-hidden bg-[var(--surface-2)]">
+                                                    <MapLocationPreview lat={replyLocation.lat} lon={replyLocation.lon} zoom={14} marker={false} className="pointer-events-none absolute inset-0" />
+                                                    {/* A small pin with its tip on the centered spot (the map's own is too big here). */}
+                                                    <MapPinFilled className="pointer-events-none absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-[85%] text-[var(--accent)] drop-shadow" />
                                                 </div>
                                             ) : null}
                                         </div>
@@ -2199,8 +2223,24 @@ export function ChatThreadMessages({
                                         const body = message.body as Record<string, unknown> | null | undefined;
                                         const hash = typeof body?.imageHash === "string" ? body.imageHash : null;
                                         const photoUrl = cachedPhotoUri ?? (hash ? getThumbImageUrl(hash, "320x320") : null);
+                                        // Full size when the photo is still live; the cached thumb otherwise.
+                                        const fullPhotoUrl = hash ? getProfileImageUrl(hash, "1024x1024") : photoUrl;
                                         return (
-                                            <div className={`relative mb-2.5 mt-1 flex overflow-hidden rounded-[6px] text-xs ${mine ? "bg-black/20" : "bg-black/[0.08]"}`}>
+                                            <div
+                                                role={fullPhotoUrl ? "button" : undefined}
+                                                onClick={fullPhotoUrl ? (event) => {
+                                                    event.stopPropagation();
+                                                    const tile = event.currentTarget;
+                                                    // Our reply quotes their photo, theirs one of ours.
+                                                    const open = () => hash
+                                                        ? openProfilePhotos(hash, mine, getHeroRectFromElement(tile))
+                                                        : openFullScreenImage(fullPhotoUrl, undefined, "image", undefined, undefined, getHeroRectFromElement(tile));
+                                                    if (isDesktop) { open(); return; }
+                                                    if (messageLongPressTriggeredRef.current) { messageLongPressTriggeredRef.current = false; return; }
+                                                    scheduleMobileTap(message, open);
+                                                } : undefined}
+                                                className={`relative mb-2.5 mt-1 flex overflow-hidden rounded-[6px] text-xs ${fullPhotoUrl ? "cursor-pointer active:opacity-70" : ""} ${mine ? "bg-black/20" : "bg-black/[0.08]"}`}
+                                            >
                                                 <div className={`absolute left-0 top-0 h-full w-[3px] shrink-0 ${mine ? "bg-white/60" : "bg-[var(--accent)]/50"}`} />
                                                 <div className="min-w-0 flex-1 py-[13px] pl-[13px] pr-2.5">
                                                     <p className="mb-0.5 font-semibold opacity-60 truncate">{mine

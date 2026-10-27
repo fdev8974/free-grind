@@ -15,6 +15,7 @@ import {
 	ImagePlus,
 	Loader2,
 	Mic,
+	MapPin,
 	Square,
 	Plus,
 	Settings2,
@@ -77,7 +78,8 @@ import {
 	getMediaCaptureTarget,
 } from "./chatUtils";
 import { getCachedMediaUri } from "../../../services/mediaStore";
-import { isAlbumCachedLocally } from "../../../services/albumStore";
+import { getCachedAlbumCoverUri, isAlbumCachedLocally } from "../../../services/albumStore";
+import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { getThumbImageUrl } from "../../../utils/media";
 import { formatDistance } from "../gridpage/utils";
 import { ProfileImage } from "../../../components/ui/profile-image";
@@ -198,6 +200,7 @@ type ChatThreadPanelProps = {
 	messageLongPressTriggeredRef: { current: boolean };
 	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number, heroRect?: HeroRect | null) => void;
 	openAlbumViewerById: (albumId: number, isOwnAlbum?: boolean) => void | Promise<void>;
+	openProfilePhotos: (mediaHash: string, isPartnerProfile: boolean, heroRect?: HeroRect | null) => void;
 	onJumpToMessage: (messageId: string) => void;
 	highlightedMessageId: string | null;
 	selectedThreadMessageMatches: Array<{ messageId: string }>;
@@ -293,6 +296,15 @@ type ChatThreadPanelProps = {
 	) => void | Promise<void>;
 	isMergingConversation?: boolean;
 };
+
+/** Fill of the pending voice message pill (shown in place of the composer). */
+const PENDING_AUDIO_FILL_CLASS = "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]";
+
+/** The composer pill's fill; an attached reply preview shares it, so both read as one field. */
+function composerFillClass(isRecording: boolean, recordingMs: number): string {
+	if (!isRecording) return "bg-[var(--surface-2)]";
+	return recordingMs >= 50_000 ? "bg-red-500/15" : PENDING_AUDIO_FILL_CLASS;
+}
 
 
 function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction, largeButton }: { blob: Blob; durationMs: number; recordedBars: number[]; recordedFraction: number; largeButton?: boolean }) {
@@ -672,6 +684,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		messageLongPressTriggeredRef,
 		openFullScreenImage,
 		openAlbumViewerById,
+		openProfilePhotos,
 		onJumpToMessage,
 		highlightedMessageId,
 		selectedThreadMessageMatches,
@@ -2030,6 +2043,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						messageLongPressTriggeredRef={messageLongPressTriggeredRef}
 						openFullScreenImage={openFullScreenImage}
 						openAlbumViewerById={openAlbumViewerById}
+						openProfilePhotos={openProfilePhotos}
 						onJumpToMessage={onJumpToMessage}
 						highlightedMessageId={highlightedMessageId}
 						selectedThreadMessageMatches={selectedThreadMessageMatches}
@@ -2160,7 +2174,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							const rtm = replyTargetMessage;
 							const rtmBody = rtm.body as Record<string, unknown> | null | undefined;
 							const isAudioReply = rtm.type === "Audio" || rtm.chat1Type?.toLowerCase() === "audio";
-							const isImageReply = rtm.type === "Image" || rtm.type === "ExpiringImage" || rtm.chat1Type?.toLowerCase() === "image" || rtm.chat1Type?.toLowerCase() === "expiring_image";
+							const isImageReply = rtm.type === "Image" || rtm.type === "ExpiringImage" || rtm.type === "Giphy" || rtm.chat1Type?.toLowerCase() === "image" || rtm.chat1Type?.toLowerCase() === "expiring_image";
 							const isVideoReply = rtm.type === "Video" || rtm.type === "PrivateVideo" || rtm.type === "NonExpiringVideo"
 								|| rtm.chat1Type?.toLowerCase() === "video" || rtm.chat1Type?.toLowerCase() === "privatevideo" || rtm.chat1Type?.toLowerCase() === "nonexpiringvideo";
 							// Prefer the locally-cached copy over the live body URL — by the
@@ -2184,10 +2198,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								if (rtm.type === "AlbumContentReaction" || rtm.type === "AlbumContentReply") {
 									return typeof rtmBody?.previewUrl === "string" ? rtmBody.previewUrl : null;
 								}
-								const albumCover = getMessageAlbumCoverUrl(rtm);
+								const rtmAlbumId = getMessageAlbumId(rtm);
+								const albumCover = (rtmAlbumId != null ? getCachedAlbumCoverUri(rtmAlbumId) : null)
+									?? getMessageAlbumCoverUrl(rtm);
 								if (albumCover) return albumCover;
 								return null;
 							})();
+							const rtmLocation = getMessageLocation(rtm);
 							const audioDuration = (() => {
 								if (!isAudioReply) return null;
 								const rawMs = typeof rtmBody?.length === "number" ? rtmBody.length : null;
@@ -2195,73 +2212,86 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								const totalSec = Math.floor(rawMs / 1000);
 								return `${Math.floor(totalSec / 60)}:${(totalSec % 60).toString().padStart(2, "0")}`;
 							})();
+							// The composer field's top part: same fill, flat bottom edge joining
+							// the pill below, holding the quote as an inset card whose corners
+							// follow the pill's (25px - 4px inset). A pending voice message
+							// replaces the composer, so then it joins that pill instead.
 							return (
-								<div className="relative mb-2 overflow-hidden rounded-xl bg-[var(--surface-2)]">
-									<div className="absolute left-0 top-0 h-full w-[3px] bg-[var(--accent)]" />
-									<div className="flex items-center gap-2 py-[13px] pl-[13px] pr-2">
-										<div className="min-w-0 flex-1">
-											<p className="mb-0.5 truncate text-[11px] font-semibold text-[var(--accent)]">
-												{userId != null && Number(rtm.senderId) === Number(userId)
-													? t("chat.thread.replying_to_myself")
-													: t("chat.thread.replying_to_name", {
-														name: localNickname || selectedConversation?.data.name?.trim() || t("common.unknown_display_name"),
-													})
-												}
-											</p>
-											<p className="truncate text-xs text-[var(--text-muted)]">
-												{isAudioReply ? t("chat.thread.audio_label") : getMessagePreviewLabel(rtm, t)}
-											</p>
+								<div className={`rounded-t-[25px] p-1 pb-0 transition-colors ${
+									props.pendingAudioBlob ? PENDING_AUDIO_FILL_CLASS : composerFillClass(isRecording, recordingMs)
+								}`}>
+								<div className="flex items-center gap-2.5 rounded-[21px] bg-[color-mix(in_srgb,var(--text)_6%,transparent)] py-1.5 pl-1.5 pr-1">
+									{thumbUrl ? (
+										<img src={proxyMediaUrl(thumbUrl)} alt="" className="h-9 w-9 shrink-0 rounded-[15px] object-cover" />
+									) : videoUrl ? (
+										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-black">
+											<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
+												<Loader2 className="h-3.5 w-3.5 animate-spin text-white/60" />
+											</div>
+											<video
+												muted
+												preload="metadata"
+												src={proxyMediaUrl(videoUrl, { as: "video" })}
+												onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
+												onSeeked={(e) => {
+													const el = e.currentTarget;
+													el.style.opacity = "1";
+													const parent = el.parentElement;
+													const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");
+													if (spinner) spinner.style.display = "none";
+													const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
+													if (badge) badge.style.opacity = "1";
+												}}
+												className="h-full w-full object-cover opacity-0 transition-opacity duration-200"
+											/>
+											<div className="js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200">
+												<Play className="h-3.5 w-3.5 fill-white text-white drop-shadow" />
+											</div>
 										</div>
-										{thumbUrl ? (
-											<img src={proxyMediaUrl(thumbUrl)} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
-										) : videoUrl ? (
-											<div className="relative h-10 w-10 shrink-0 overflow-hidden rounded bg-black">
-												<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
-													<Loader2 className="h-3.5 w-3.5 animate-spin text-white/60" />
-												</div>
-												<video
-													muted
-													preload="metadata"
-													src={proxyMediaUrl(videoUrl, { as: "video" })}
-													onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-													onSeeked={(e) => {
-														const el = e.currentTarget;
-														el.style.opacity = "1";
-														const parent = el.parentElement;
-														const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");
-														if (spinner) spinner.style.display = "none";
-														const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
-														if (badge) badge.style.opacity = "1";
-													}}
-													className="h-full w-full object-cover opacity-0 transition-opacity duration-200"
-												/>
-												<div className="js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200">
-													<Play className="h-3.5 w-3.5 fill-white text-white drop-shadow" />
-												</div>
-											</div>
-										) : isAudioReply ? (
-											<div className="flex w-10 shrink-0 items-center justify-end py-0.5 text-[var(--text-muted)]">
-												<div className="flex flex-col items-center gap-1">
-													<Mic className="h-4 w-4" />
-													<span className="text-[10px]">{audioDuration ?? "0:00"}</span>
-												</div>
-											</div>
-										) : null}
-										<button
-											type="button"
-											onClick={clearReplyTarget}
-											className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:text-[var(--text)]"
-											aria-label={t("chat.actions.cancel")}
-										>
-											<X className="h-3.5 w-3.5" />
-										</button>
+									) : rtmLocation ? (
+										// No pin: the map's own is too tall for 36px.
+										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-[var(--surface-2)]">
+											<MapLocationPreview lat={rtmLocation.lat} lon={rtmLocation.lon} zoom={14} marker={false} className="pointer-events-none absolute inset-0" />
+										</div>
+									) : (
+										<div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--accent)]">
+											{isAudioReply ? <Mic className="h-4 w-4" />
+												: rtm.type === "Location" ? <MapPin className="h-4 w-4" />
+												: <Reply className="h-4 w-4" />}
+										</div>
+									)}
+									<div className="min-w-0 flex-1">
+										<p className="truncate text-xs font-semibold text-[var(--accent)]">
+											{userId != null && Number(rtm.senderId) === Number(userId)
+												? t("chat.thread.replying_to_myself")
+												: t("chat.thread.replying_to_name", {
+													name: localNickname || selectedConversation?.data.name?.trim() || t("common.unknown_display_name"),
+												})
+											}
+										</p>
+										<p className="truncate text-xs text-[var(--text-muted)]">
+											{isAudioReply
+												? `${t("chat.thread.audio_label")}${audioDuration ? ` · ${audioDuration}` : ""}`
+												: getMessagePreviewLabel(rtm, t)}
+										</p>
 									</div>
+									<button
+										type="button"
+										onClick={clearReplyTarget}
+										className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:ink-tint-8 hover:text-[var(--text)] active:scale-90"
+										aria-label={t("chat.actions.cancel")}
+									>
+										<X className="h-4 w-4" />
+									</button>
+								</div>
 								</div>
 							);
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]`}>
+							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 rounded-[25px] border border-transparent ${PENDING_AUDIO_FILL_CLASS} ${
+								selectedConversation && replyTargetMessage ? "rounded-t-none" : ""
+							}`}>
 								{/* No fixed height: like the composer it's border + py-1 + its h-10/h-8
 								    buttons, all in rem, so the two match even when the system font
 								    scale changes rem (a px height drifted from it). */}
@@ -2362,9 +2392,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						)}
 						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 rounded-[25px] border py-1 mb-2 transition-colors ${
 							// No outline, state is shown through the fill instead.
-							isRecording
-								? `pl-1 pr-1 border-transparent ${recordingMs >= 50_000 ? "bg-red-500/15" : "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]"}`
-								: "pl-3 pr-1 border-transparent bg-[var(--surface-2)]"
+							isRecording ? "pl-1 pr-1" : "pl-3 pr-1"
+						} border-transparent ${composerFillClass(isRecording, recordingMs)} ${
+							// A reply preview sits on top as the same field's first row.
+							selectedConversation && replyTargetMessage ? "rounded-t-none" : ""
 						}`}>
 							{isRecording ? (
 								<>
