@@ -64,6 +64,10 @@ export class AgoraCallSession {
 			this.handlers.onRemoteUserJoined?.(user);
 		});
 		this.client.on("user-published", async (user, mediaType) => {
+			// Publishing implies they joined — covers a missed or late
+			// user-joined, which would otherwise leave the caller ringing
+			// while the callee is already in the call.
+			this.handlers.onRemoteUserJoined?.(user);
 			await this.client.subscribe(user, mediaType);
 			if (mediaType === "video" && user.videoTrack) {
 				this.handlers.onRemoteVideoTrack(user.videoTrack);
@@ -87,12 +91,15 @@ export class AgoraCallSession {
 	// joining with a different/null uid fails with CAN_NOT_GET_GATEWAY_SERVER
 	// ("invalid token, authorized failed") even though the token itself and
 	// channel name are correct.
+	// Coerced because userId is a string at runtime after a fresh login
+	// (LoginResult.profileId) — Agora then joins it as a string "user
+	// account", which int-uid peers never see as user-joined.
 	async join(channelId: string, token: string, uid: number): Promise<void> {
 		if (!isWebRtcSupported()) {
 			throw new WebRtcUnsupportedError();
 		}
 		await this.client.setClientRole("host");
-		await this.client.join(AGORA_APP_ID, channelId, token, uid);
+		await this.client.join(AGORA_APP_ID, channelId, token, Number(uid));
 		[this.micTrack, this.camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
 		await this.client.publish([this.micTrack, this.camTrack]);
 	}
