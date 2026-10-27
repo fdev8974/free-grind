@@ -2289,8 +2289,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								}`}>
 								<div className="flex items-center gap-2.5 rounded-[21px] bg-[color-mix(in_srgb,var(--text)_6%,transparent)] py-1.5 pl-1.5 pr-1">
 									{thumbUrl ? (
-										// [clip-path] keeps the blur inside the rounded corners.
-										<img src={proxyMediaUrl(thumbUrl)} alt="" className={`h-9 w-9 shrink-0 rounded-[15px] object-cover [clip-path:inset(0_round_15px)]${blurReplyMedia ? " blur-md" : ""}`} />
+										// The wrapper clips the blur; clip-path on the img itself lets it bleed out.
+										<div className="h-9 w-9 shrink-0 overflow-hidden rounded-[15px] [clip-path:inset(0_round_15px)]">
+											<img src={proxyMediaUrl(thumbUrl)} alt="" className={`h-full w-full object-cover${blurReplyMedia ? " blur-md" : ""}`} />
+										</div>
 									) : videoUrl ? (
 										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-black">
 											<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">

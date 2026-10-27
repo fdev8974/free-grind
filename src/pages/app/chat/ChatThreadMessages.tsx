@@ -2084,11 +2084,18 @@ export function ChatThreadMessages({
                                                         // side did NOT send the reaction/reply message.
                                                         if (isDesktop) { void openAlbumViewerById(rxAlbumId, !mine, rxTarget?.contentId); return; }
                                                         if (messageLongPressTriggeredRef.current) { messageLongPressTriggeredRef.current = false; return; }
+                                                        if (shouldBlurIncomingMedia && rxPreviewUrl) {
+                                                            revealMediaMessage(message.messageId);
+                                                            lastTapRef.current = null;
+                                                            return;
+                                                        }
                                                         scheduleMobileTap(message, () => void openAlbumViewerById(rxAlbumId, !mine, rxTarget?.contentId));
                                                     }}
+                                                    onMouseEnter={() => handleMediaMouseEnter(message.messageId)}
+                                                    onMouseLeave={() => handleMediaMouseLeave(message.messageId)}
                                                 >
                                                     {rxPreviewUrl ? (
-                                                        <img src={proxyMediaUrl(rxPreviewUrl)} alt="" className="aspect-square w-full object-cover" />
+                                                        <img src={proxyMediaUrl(rxPreviewUrl)} alt="" className={`aspect-square w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`} />
                                                     ) : (
                                                         <div className="h-48 w-full bg-[var(--surface-2)]" />
                                                     )}
