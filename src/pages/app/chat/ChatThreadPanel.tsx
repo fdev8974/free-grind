@@ -183,6 +183,7 @@ type ChatThreadPanelProps = {
 	localNickname?: string | null;
 	onEditLocalNickname?: (profileId: number, defaultName: string) => void | Promise<void>;
 	getProfileReturnToChatPath: (profileId: number) => string;
+	openProfile: (profileId: number, returnTo: string, fromChat?: boolean) => void;
 	chatReturnTo: string | null;
 	isLoadingThread: boolean;
 	threadConversationId: string | null;
@@ -668,6 +669,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		localNickname = null,
 		onEditLocalNickname,
 		getProfileReturnToChatPath,
+		openProfile,
 		chatReturnTo,
 		isLoadingThread,
 		threadConversationId,
@@ -1324,13 +1326,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				// Avatar, name and status line all open the profile (like the album viewer's header).
 				const openHeaderProfile = () => {
 					if (profileId == null) return;
-					const returnTo = getProfileReturnToChatPath(profileId);
-					const nextParams = new URLSearchParams();
-					nextParams.set("returnTo", returnTo);
-					navigate(
-						`/profile/${profileId}?${nextParams.toString()}`,
-						{ state: { returnTo, fromChat: true } },
-					);
+					openProfile(profileId, getProfileReturnToChatPath(profileId), true);
 				};
 				const showUnblockButton = selectedConversation
 					? isArchived && isBlockedBySelf
@@ -1588,10 +1584,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												onClick={() => {
 													setIsHeaderActionsMenuOpen(false);
 													if (profileId == null) return;
-													const returnTo = getProfileReturnToChatPath(profileId);
-													const nextParams = new URLSearchParams();
-													nextParams.set("returnTo", returnTo);
-													navigate(`/profile/${profileId}?${nextParams.toString()}`, { state: { returnTo, fromChat: true } });
+													openProfile(profileId, getProfileReturnToChatPath(profileId), true);
 												}}
 												disabled={profileId == null}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { Routes, Route, Link, Navigate, useLocation, type Location } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import semver from "semver";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -183,6 +183,11 @@ export default function App() {
 	// tracking, entitlements fetch) doesn't all land in the same first commit
 	// as the initial route.
 	const renderPhase = useRenderPhase(5);
+	const location = useLocation();
+	// Set when a page opens a profile as a modal over itself (desktop chat):
+	// the routes keep rendering that page underneath so closing the profile
+	// doesn't unmount and reload it.
+	const backgroundLocation = (location.state as { backgroundLocation?: Location } | null)?.backgroundLocation;
 
 	useEffect(() => {
 		const handleReplay = () => setShowOnboarding(true);
@@ -244,7 +249,7 @@ export default function App() {
 							<HondurasRecoveryBridge />
 						</>
 					)}
-					<Routes>
+					<Routes location={backgroundLocation ?? location}>
 						<Route element={<RootLayout />}>
 							<Route path="/manager" element={<ManagerRoutePage />} />
 							{/* Auth Routes */}
@@ -342,6 +347,18 @@ export default function App() {
 							<Route path="*" element={<ErrorPage />} />
 						</Route>
 					</Routes>
+					{backgroundLocation && (
+						<Routes>
+							<Route
+								path="/profile/:profileId"
+								element={
+									<ProtectedRoute>
+										<GridProfilePage />
+									</ProtectedRoute>
+								}
+							/>
+						</Routes>
+					)}
 					</TestReminderGate></OutdatedVersionGate></TokenExpiredGate></AccountStatusGate></UnsupportedVersionGate>)}
 					</OtaUpdateGate>
 				</SmoothScroll>

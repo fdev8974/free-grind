@@ -4209,6 +4209,23 @@ export function ChatPage() {
 		[chatReturnTo, selectedConversationId],
 	);
 
+	const openProfile = useCallback(
+		(profileId: number, returnTo: string, fromChat?: boolean) => {
+			const nextParams = new URLSearchParams();
+			nextParams.set("returnTo", returnTo);
+			// On desktop the profile is a modal over the chat — keep the chat
+			// rendered underneath (see App.tsx) so closing it doesn't reload the page.
+			navigate(`/profile/${profileId}?${nextParams.toString()}`, {
+				state: {
+					returnTo,
+					...(fromChat ? { fromChat: true } : {}),
+					...(isDesktop ? { backgroundLocation: location } : {}),
+				},
+			});
+		},
+		[isDesktop, location, navigate],
+	);
+
 	useEffect(() => {
 		if (!targetProfileId) {
 			return;
@@ -4860,13 +4877,9 @@ export function ChatPage() {
 					await blockProfileFromChat(targetId as number);
 					await unblockProfileFromChat(targetId as number);
 					break;
-				case "open": {
-					const returnTo = getProfileReturnToChatPath(targetId as number);
-					const nextParams = new URLSearchParams();
-					nextParams.set("returnTo", returnTo);
-					navigate(`/profile/${targetId}?${nextParams.toString()}`, { state: { returnTo, fromChat: true } });
+				case "open":
+					openProfile(targetId as number, getProfileReturnToChatPath(targetId as number), true);
 					break;
-				}
 				case "chat":
 					if (!arg) {
 						toast.error(t("chat.slash_commands.errors.no_chat_id", { defaultValue: "Provide a chat ID" }));
@@ -4918,7 +4931,7 @@ export function ChatPage() {
 			blockProfileFromChat,
 			unblockProfileFromChat,
 			getProfileReturnToChatPath,
-			navigate,
+			openProfile,
 			openConversationById,
 			toggleMute,
 			togglePin,
@@ -6317,16 +6330,10 @@ export function ChatPage() {
 			isOnline: onlineMeta.isOnline,
 			isOnlineEndingSoon: onlineMeta.isEndingSoon,
 			onClick: otherParticipant?.profileId != null
-				? () => {
-					const profileId = otherParticipant.profileId;
-					const returnTo = getProfileReturnToChatPath(profileId);
-					const nextParams = new URLSearchParams();
-					nextParams.set("returnTo", returnTo);
-					navigate(`/profile/${profileId}?${nextParams.toString()}`, { state: { returnTo } });
-				}
+				? () => openProfile(otherParticipant.profileId, getProfileReturnToChatPath(otherParticipant.profileId))
 				: undefined,
 		};
-	}, [albumViewer, ownProfilePhotoUrl, myProfile, selectedConversation, userId, nowTimestamp, unitsPreset, t, getProfileReturnToChatPath, navigate]);
+	}, [albumViewer, ownProfilePhotoUrl, myProfile, selectedConversation, userId, nowTimestamp, unitsPreset, t, getProfileReturnToChatPath, openProfile]);
 
 	const toggleAlbumPicker = useCallback(async () => {
 		if (isAlbumPickerOpen) {
@@ -6836,12 +6843,7 @@ export function ChatPage() {
 			onLoadMoreInbox={handleLoadMoreInbox}
 			onSelectConversation={handleSelectConversation}
 			onOpenConversationById={openConversationById}
-			onViewProfile={(profileId) => {
-				const returnTo = "/chat";
-				const nextParams = new URLSearchParams();
-				nextParams.set("returnTo", returnTo);
-				navigate(`/profile/${profileId}?${nextParams.toString()}`, { state: { returnTo } });
-			}}
+			onViewProfile={(profileId) => openProfile(profileId, "/chat")}
 			typingConversationIds={typingConversationIds}
 			onTogglePinConversation={togglePinConversation}
 			onToggleMuteConversation={toggleMuteConversation}
@@ -6896,6 +6898,7 @@ export function ChatPage() {
 			}
 			onEditLocalNickname={editLocalNicknameFromChat}
 			getProfileReturnToChatPath={getProfileReturnToChatPath}
+			openProfile={openProfile}
 			chatReturnTo={chatReturnTo}
 			isLoadingThread={isLoadingThread}
 			threadConversationId={threadConversationId}

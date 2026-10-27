@@ -237,9 +237,12 @@ export function GridProfilePage() {
 	const isTappingProfile = tappingProfileId === profileId;
 
 	const locationState =
-		(location.state as { returnTo?: unknown; profileIds?: unknown; fromChat?: unknown } | null) ?? {};
+		(location.state as { returnTo?: unknown; profileIds?: unknown; fromChat?: unknown; backgroundLocation?: unknown } | null) ?? {};
 	// Opened from a chat thread, which sits directly below in history.
 	const openedFromChat = locationState.fromChat === true;
+	// Shown as a modal over the page that opened it (see App.tsx), which is
+	// also directly below in history.
+	const isOverBackground = locationState.backgroundLocation != null;
 	const returnToFromState =
 		typeof locationState.returnTo === "string" ? locationState.returnTo : null;
 	const profileIds: string[] = Array.isArray(locationState.profileIds)
@@ -591,7 +594,7 @@ export function GridProfilePage() {
 				variant={isDesktopLike ? "modal" : "page"}
 				isOpen
 				onClose={() => {
-					if (openedFromChat) {
+					if (openedFromChat || isOverBackground) {
 						navigateBackTo(navigate, safeReturnTo);
 					} else {
 						navigate(safeReturnTo, { replace: true });
