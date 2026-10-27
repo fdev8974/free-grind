@@ -1614,7 +1614,9 @@
       "prompt": "Set a local nickname for this profile. Leave blank to clear.",
       "saved": "Nickname saved",
       "cleared": "Nickname cleared",
-      "save_failed": "Failed to save nickname"
+      "save_failed": "Failed to save nickname",
+      "real_name": "Profile name: {{name}}",
+      "real_name_changed": "Renamed: {{previous}} → {{name}}"
     },
     "errors": {
       "load_albums": "Failed to load albums",

@@ -1,5 +1,6 @@
 import type { BrowseCard } from "../../GridPage.types";
-import { Flame, MessageCircle, Plane, Satellite, Star, Zap } from "lucide-react";
+import { Flame, MessageCircle, PencilLine, Plane, Satellite, Star, Zap } from "lucide-react";
+import { getNicknameRename, type SeenDisplayName } from "../../../../hooks/useNicknameNameChange";
 import { MapPinFilled, MapPinOffFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { useTranslation } from "react-i18next";
@@ -29,6 +30,8 @@ type BrowseCardTileProps = {
 	card: BrowseCard;
 	chatContactStatus?: ChatContactIndexRecord | null;
 	localNickname?: string;
+	/** Display name last seen behind the nickname; a mismatch marks a rename. */
+	seenDisplayName?: SeenDisplayName;
 	tapStatus?: GridTapStatus;
 	onSelectProfile: (profileId: string) => void;
 	/** Returns whether the tap was actually sent, which gates the fire animation. */
@@ -44,6 +47,7 @@ export function BrowseCardTile({
 	card,
 	chatContactStatus,
 	localNickname,
+	seenDisplayName,
 	tapStatus,
 	onSelectProfile,
 	onDoubleTapProfile,
@@ -56,6 +60,7 @@ export function BrowseCardTile({
 	const { unitsPreset, showDebugInfo, blurGridProfilePictures, doubleTapTapType, doubleTapAction } = usePreferences();
 	const { ref, revealClass } = useRevealOnScroll();
 	const name = localNickname?.trim() || getDisplayName(card);
+	const nicknameRename = getNicknameRename(localNickname, card.displayName, seenDisplayName);
 	const onlineStatus = getOnlineStatusMeta(card.lastOnline, card.onlineUntil);
 	// Online but about to expire (<= 5 minutes left) — show the indicator in amber instead of green.
 	const isOnlineEndingSoon = !!onlineStatus.isEndingSoon;
@@ -234,7 +239,10 @@ export function BrowseCardTile({
 					{/* Top Header: Name, Age & Status Cluster */}
 					<div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-2 text-white">
 						<div className="min-w-0 flex-1">
-							<p className="text-sm sm:text-base font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+							<p
+								className="text-sm sm:text-base font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
+								title={nicknameRename.realName ? t("chat.nicknames.real_name", { name: nicknameRename.realName }) : undefined}
+							>
 								{name}
 								{age && <span className="font-semibold text-white/90 ml-1"> {age}</span>}
 							</p>
@@ -244,6 +252,17 @@ export function BrowseCardTile({
 							"flex shrink-0 items-center",
 							onlineStatus.isOnline ? "gap-1" : "gap-0.5"
 						)}>
+							{nicknameRename.previousName && nicknameRename.realName && (
+								<span
+									className="inline-flex"
+									title={t("chat.nicknames.real_name_changed", { previous: nicknameRename.previousName, name: nicknameRename.realName })}
+								>
+									<PencilLine
+										className="h-4 w-4 text-[var(--accent)] drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]"
+										strokeWidth={2.5}
+									/>
+								</span>
+							)}
 							{(isRightNow || isPopular) && (
 								<div className="flex items-center gap-0.5">
 									{isPopular && (

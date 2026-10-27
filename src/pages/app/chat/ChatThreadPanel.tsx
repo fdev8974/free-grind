@@ -146,6 +146,8 @@ import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
 import { DrawerEmptyState, ExpiryToggleButton, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon, VideoExpiryButton } from "./drawerUi";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
+import { useNicknameNameChange } from "../../../hooks/useNicknameNameChange";
+import { NicknameMenuItemLabel, NicknameNameChangeBadge } from "../../../components/NicknameNameHint";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import type { HeroRect } from "../../../components/PhotoViewer";
 
@@ -744,6 +746,22 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		onSendGiphy,
 	} = props;
 	const headerMenuPresence = usePresence(isHeaderActionsMenuOpen);
+
+	const headerProfileId = selectedConversation
+		? getOtherParticipant(selectedConversation, userId)?.profileId ?? null
+		: targetProfileId;
+	// Only trust the live detail once it belongs to this chat — right after
+	// switching chats it can still hold the previous profile.
+	const liveHeaderDisplayName =
+		targetProfileDetail && headerProfileId != null && targetProfileDetail.profileId === String(headerProfileId)
+			? targetProfileDetail.displayName
+			: selectedConversation?.data.name;
+	const nicknameNameChange = useNicknameNameChange(headerProfileId, localNickname, liveHeaderDisplayName);
+	const { acknowledge: acknowledgeNicknameNameChange } = nicknameNameChange;
+	// Opening the menu shows the rename (in the nickname item), so it counts as seen.
+	useEffect(() => {
+		if (isHeaderActionsMenuOpen) acknowledgeNicknameNameChange();
+	}, [isHeaderActionsMenuOpen, acknowledgeNicknameNameChange]);
 
     const [savedPhrases, setSavedPhrases] = useState<string[]>([]);
 
@@ -1535,6 +1553,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									>
 										<EllipsisVertical className="h-4 w-4" />
 									</button>
+									{nicknameNameChange.hasUnseenChange && <NicknameNameChangeBadge />}
 									{headerMenuPresence.rendered ? (
 										<div
 											data-lenis-prevent
@@ -1683,13 +1702,18 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												onClick={() => {
 													setIsHeaderActionsMenuOpen(false);
 													if (profileId == null || !onEditLocalNickname) return;
-													void onEditLocalNickname(profileId, displayName);
+													// Their own name, so the prompt's placeholder shows it rather than the nickname.
+													void onEditLocalNickname(profileId, nicknameNameChange.realName || actualProfileName?.trim() || displayName);
 												}}
 												disabled={profileId == null || !onEditLocalNickname}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"
 											>
 												<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
-												{localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+												<NicknameMenuItemLabel
+													label={localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+													realName={nicknameNameChange.realName}
+													previousName={nicknameNameChange.previousName}
+												/>
 											</button>
 											{isArchived && onMergeConversation && (
 												<button

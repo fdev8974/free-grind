@@ -9,6 +9,7 @@ import { sendChatMediaBatch, UNLIMITED_VIEWS, type BatchSendResult } from "../se
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { usePreferences } from "../contexts/PreferencesContext";
 import { getLocalNicknamesForProfiles } from "../services/chatContactIndex";
+import { getNicknameRename } from "../hooks/useNicknameNameChange";
 import { resolveAvatarSrc } from "../services/avatarStore";
 import { useAvatarCache } from "../hooks/useAvatarCache";
 import {
@@ -27,6 +28,8 @@ type PickerChat = {
 	conversationId: string;
 	profileId: number | string;
 	name: string;
+	/** Their own display name when `name` is a nickname; also searchable. */
+	realName: string | null;
 	mediaHash: string | null;
 	entry: ConversationEntry;
 	favorite: boolean;
@@ -116,6 +119,7 @@ export function ShareChatPicker({
 							conversationId: c.conversationId,
 							profileId: other.profileId,
 							name: nickname || c.entry.data.name || t("common.unknown_display_name"),
+							realName: getNicknameRename(nickname, c.entry.data.name, null).realName,
 							mediaHash: other?.primaryMediaHash ?? null,
 							entry: c.entry,
 							favorite: Boolean(c.entry.data.favorite),
@@ -158,7 +162,9 @@ export function ShareChatPicker({
 		const needle = query.trim().toLowerCase();
 		return chats.filter(
 			(chat) =>
-				(!needle || chat.name.toLowerCase().includes(needle)) &&
+				(!needle ||
+					chat.name.toLowerCase().includes(needle) ||
+					Boolean(chat.realName?.toLowerCase().includes(needle))) &&
 				(!favoritesOnly || chat.favorite),
 		);
 	}, [chats, query, favoritesOnly]);
@@ -337,7 +343,12 @@ export function ShareChatPicker({
 									<div className="min-w-0 flex-1">
 										<div className="flex items-center justify-between gap-2">
 											<div className="flex min-w-0 items-center gap-1.5">
-												<p className="truncate text-sm font-semibold text-[var(--text)]">{chat.name}</p>
+												<p
+													className="truncate text-sm font-semibold text-[var(--text)]"
+													title={chat.realName ? t("chat.nicknames.real_name", { name: chat.realName }) : undefined}
+												>
+													{chat.name}
+												</p>
 												{chat.favorite ? (
 													<Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />
 												) : null}

@@ -77,6 +77,8 @@ import { findConversationByProfileId } from "../../../../services/chatDb";
 import { setLocalNicknameForProfile } from "../../../../services/chatContactIndex";
 import { haptic } from "../../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../../hooks/usePresence";
+import { useNicknameNameChange } from "../../../../hooks/useNicknameNameChange";
+import { NicknameMenuItemLabel, NicknameNameChangeBadge } from "../../../../components/NicknameNameHint";
 
 type OwnProfileData = { tags: string[] };
 const ownProfileDataCache = new Map<string, OwnProfileData>();
@@ -1748,6 +1750,17 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 	// empty value clears it.
 	const [isNicknamePromptOpen, setIsNicknamePromptOpen] = useState(false);
 	const [isSavingNickname, setIsSavingNickname] = useState(false);
+	// Snapshot profiles are stored copies, so their name may be outdated.
+	const nicknameNameChange = useNicknameNameChange(
+		isOwnProfile ? null : messageProfileId,
+		localNickname,
+		isSnapshotProfile ? null : actualProfileName,
+	);
+	const { acknowledge: acknowledgeNicknameNameChange } = nicknameNameChange;
+	// Opening the menu shows the rename (in the nickname item), so it counts as seen.
+	useEffect(() => {
+		if (isActionsMenuOpen) acknowledgeNicknameNameChange();
+	}, [isActionsMenuOpen, acknowledgeNicknameNameChange]);
 
 	const handleEditNickname = () => {
 		setIsActionsMenuOpen(false);
@@ -1780,9 +1793,14 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 				className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 			>
 				<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
-				{localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+				<NicknameMenuItemLabel
+					label={localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+					realName={nicknameNameChange.realName}
+					previousName={nicknameNameChange.previousName}
+				/>
 			</button>
 		) : null;
+	const nicknameNameChangeBadge = nicknameNameChange.hasUnseenChange ? <NicknameNameChangeBadge /> : null;
 
 	const encounterMenuItem = canLogEncounter ? (
 		<button
@@ -2228,6 +2246,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								>
 									<EllipsisVertical className="h-4 w-4" />
 								</button>
+								{nicknameNameChangeBadge}
 								{actionsMenuPresence.rendered && (
 									<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 										<div className="flex flex-col gap-1 px-2">
@@ -2730,6 +2749,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 													aria-label={t("profile_details.more_actions", { defaultValue: "More actions" })} aria-expanded={isActionsMenuOpen}>
 													<EllipsisVertical className="h-4 w-4" />
 												</button>
+												{nicknameNameChangeBadge}
 												{actionsMenuPresence.rendered && (
 													<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 														<div className="flex flex-col gap-1 px-2">

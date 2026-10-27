@@ -5,6 +5,7 @@ import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff } from "lucide-re
 import { SheetActionList } from "../../../../components/ui/action-sheet";
 import { menuTransitionStyle } from "../../../../hooks/usePresence";
 import { LocateFixedFilled } from "../../../../components/icons/FilledIcons";
+import type { NicknameRename } from "../../../../hooks/useNicknameNameChange";
 
 type GridTileContextMenuProps = {
 	/** Drives the desktop menu's enter/exit transition (see usePresence). */
@@ -15,6 +16,8 @@ type GridTileContextMenuProps = {
 	title: string;
 	isFavorite: boolean;
 	hasNickname: boolean;
+	/** Shown under the nickname action: their own display name, or the rename. */
+	nicknameRename?: NicknameRename;
 	onClose: () => void;
 	onMessage: () => void;
 	onToggleFavorite: () => void;
@@ -30,6 +33,7 @@ type TileAction = {
 	key: string;
 	icon: ReactNode;
 	label: string;
+	description?: string;
 	onClick: () => void;
 	danger?: boolean;
 };
@@ -45,6 +49,7 @@ export function GridTileContextMenu({
 	title,
 	isFavorite,
 	hasNickname,
+	nicknameRename,
 	onClose,
 	onMessage,
 	onToggleFavorite,
@@ -75,6 +80,11 @@ export function GridTileContextMenu({
 			key: "nickname",
 			icon: <PencilLine className={isDesktop ? "h-4 w-4" : "h-3.5 w-3.5"} />,
 			label: hasNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set"),
+			description: nicknameRename?.realName
+				? nicknameRename.previousName
+					? t("chat.nicknames.real_name_changed", { previous: nicknameRename.previousName, name: nicknameRename.realName })
+					: t("chat.nicknames.real_name", { name: nicknameRename.realName })
+				: undefined,
 			onClick: onEditNickname,
 		},
 		...(onLocate
@@ -110,6 +120,7 @@ export function GridTileContextMenu({
 					key: action.key,
 					icon: action.icon as ReactElement<{ className?: string }>,
 					label: action.label,
+					description: action.description,
 					tone: action.danger ? "danger" : "default",
 					onSelect: action.onClick,
 				}))}
@@ -192,7 +203,12 @@ function DesktopTileMenu({
 						}`}
 					>
 						{action.icon}
-						{action.label}
+						{action.description ? (
+							<span className="flex min-w-0 flex-col">
+								<span>{action.label}</span>
+								<span className="truncate text-xs text-[var(--text-muted)]">{action.description}</span>
+							</span>
+						) : action.label}
 					</button>
 				</Fragment>
 			))}

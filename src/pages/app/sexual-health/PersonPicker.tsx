@@ -7,6 +7,7 @@ import { SheetSearchInput, SheetSection, SheetTextInput } from "../../../compone
 import { DrawerEmptyState } from "../chat/drawerUi";
 import { listConversations } from "../../../services/chatDb";
 import { getLocalNicknamesForProfiles } from "../../../services/chatContactIndex";
+import { getNicknameRename } from "../../../hooks/useNicknameNameChange";
 import { resolveAvatarSrc } from "../../../services/avatarStore";
 import { getParticipantAvatarUrl } from "../chat/chatUtils";
 
@@ -21,6 +22,8 @@ interface PickerRow {
 	conversationId: string;
 	profileId: string;
 	name: string;
+	/** Their own display name when `name` is a nickname; also searchable. */
+	realName: string | null;
 	avatarSrc: string | null;
 }
 
@@ -59,7 +62,8 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 					nicknames[otherProfileId] ||
 					conversation.entry.data.name ||
 					t("common.unknown_display_name", { defaultValue: "Someone" });
-				return { conversationId: conversation.conversationId, profileId: otherProfileId, name, avatarSrc };
+				const { realName } = getNicknameRename(nicknames[otherProfileId], conversation.entry.data.name, null);
+				return { conversationId: conversation.conversationId, profileId: otherProfileId, name, realName, avatarSrc };
 			});
 			setRows(mapped);
 		})();
@@ -72,7 +76,9 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 		if (!rows) return [];
 		const q = query.trim().toLowerCase();
 		if (!q) return rows;
-		return rows.filter((row) => row.name.toLowerCase().includes(q));
+		return rows.filter(
+			(row) => row.name.toLowerCase().includes(q) || Boolean(row.realName?.toLowerCase().includes(q)),
+		);
 	}, [rows, query]);
 
 	// Free text: just a name, in the sheet's usual field and footer.
@@ -154,7 +160,12 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 							<div className="h-11 w-11 shrink-0 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 								<ProfileImage src={row.avatarSrc} alt={row.name} />
 							</div>
-							<span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text)]">{row.name}</span>
+							<span
+								className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text)]"
+								title={row.realName ? t("chat.nicknames.real_name", { name: row.realName }) : undefined}
+							>
+								{row.name}
+							</span>
 						</button>
 					))
 				)}

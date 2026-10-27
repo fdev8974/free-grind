@@ -1614,7 +1614,9 @@
             "prompt": "Lege einen lokalen Spitznamen für dieses Profil fest. Zum Löschen leer lassen.",
             "saved": "Spitzname gespeichert",
             "cleared": "Spitzname gelöscht",
-            "save_failed": "Speichern des Spitznamens fehlgeschlagen"
+            "save_failed": "Speichern des Spitznamens fehlgeschlagen",
+            "real_name": "Profilname: {{name}}",
+            "real_name_changed": "Umbenannt: {{previous}} → {{name}}"
         },
         "errors": {
             "load_albums": "Laden der Alben fehlgeschlagen",

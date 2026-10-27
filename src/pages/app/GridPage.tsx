@@ -72,6 +72,12 @@ import { SKIP_BLOCK_CONFIRM_KEY, isBlockConfirmSkipped } from "../../utils/block
 import * as chatDb from "../../services/chatDb";
 import { hideProfile as hideProfileLocally, unhideProfile as unhideProfileLocally, GRID_HIDE_STATE_EVENT, type GridHideStateChangeDetail } from "../../services/profileHide";
 import { usePresence } from "../../hooks/usePresence";
+import {
+	acknowledgeNicknameRename,
+	getNicknameRename,
+	useSeenDisplayNames,
+	type NicknameRename,
+} from "../../hooks/useNicknameNameChange";
 
 const EXPLORE_LOCATION_STORAGE_KEY = "grid_explore_location_v1";
 
@@ -1456,11 +1462,34 @@ export function GridPage() {
 		[apiFunctions, mutatingFavoriteProfileId, t],
 	);
 
-	const [tileContextMenu, setTileContextMenu] = useState<{ card: BrowseCard; x: number; y: number } | null>(null);
+	const seenDisplayNamesByProfileId = useSeenDisplayNames(
+		cards.map((card) => ({
+			profileId: card.profileId,
+			nickname: localNicknamesByProfileId[card.profileId],
+			displayName: card.displayName,
+		})),
+	);
+	// Read from the stable menu handler below without re-creating it (and
+	// re-rendering every tile) whenever a name map changes.
+	const nicknameMapsRef = useRef({ localNicknamesByProfileId, seenDisplayNamesByProfileId });
+	nicknameMapsRef.current = { localNicknamesByProfileId, seenDisplayNamesByProfileId };
+
+	const [tileContextMenu, setTileContextMenu] = useState<{ card: BrowseCard; x: number; y: number; rename: NicknameRename } | null>(null);
 	const tileMenuPresence = usePresence(tileContextMenu);
 	const renderedTileMenu = tileMenuPresence.rendered;
 	const handleOpenTileContextMenu = useCallback((card: BrowseCard, x: number, y: number) => {
-		setTileContextMenu({ card, x, y });
+		const maps = nicknameMapsRef.current;
+		const rename = getNicknameRename(
+			maps.localNicknamesByProfileId[card.profileId],
+			card.displayName,
+			maps.seenDisplayNamesByProfileId[card.profileId],
+		);
+		// The menu shows the rename, so it counts as seen; the menu keeps the
+		// captured `rename` while it's open.
+		if (rename.previousName && rename.realName) {
+			acknowledgeNicknameRename(card.profileId, rename.realName);
+		}
+		setTileContextMenu({ card, x, y, rename });
 	}, []);
 	const handleCloseTileContextMenu = useCallback(() => setTileContextMenu(null), []);
 
@@ -1960,6 +1989,7 @@ export function GridPage() {
 									: chatContactIndexByProfileId
 							}
 							localNicknamesByProfileId={localNicknamesByProfileId}
+							seenDisplayNamesByProfileId={seenDisplayNamesByProfileId}
 							tapStatusByProfileId={showGridTapStatus ? tapStatusByProfileId : undefined}
 							onSelectProfile={handleSelectProfile}
 							onDoubleTapProfile={handleDoubleTapProfile}
@@ -2006,6 +2036,7 @@ export function GridPage() {
 					}
 					isFavorite={renderedTileMenu.card.favorite === true}
 					hasNickname={Boolean(localNicknamesByProfileId[renderedTileMenu.card.profileId])}
+					nicknameRename={renderedTileMenu.rename}
 					onClose={handleCloseTileContextMenu}
 					onMessage={() => handleMessageProfile(renderedTileMenu.card.profileId)}
 					onToggleFavorite={() =>

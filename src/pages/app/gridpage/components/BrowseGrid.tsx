@@ -16,6 +16,7 @@ import {
 import { Button } from "../../../../components/ui/button";
 import { getAsyncState } from "../../../../hooks/useAsyncViewState";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
+import type { SeenDisplayName } from "../../../../hooks/useNicknameNameChange";
 
 // Min track width per mobile column setting; auto-fill then yields exactly
 // that many columns until the 250px cap kicks in on wide screens.
@@ -69,6 +70,8 @@ type BrowseGridProps = {
 	cards: BrowseCard[];
 	chatContactIndexByProfileId?: Record<string, ChatContactIndexRecord>;
 	localNicknamesByProfileId?: Record<string, string>;
+	/** Display names last seen behind a nickname, to flag renames on the tile. */
+	seenDisplayNamesByProfileId?: Record<string, SeenDisplayName>;
 	tapStatusByProfileId?: Record<string, GridTapStatus>;
 	onSelectProfile: (profileId: string) => void;
 	onDoubleTapProfile?: (profileId: string, tapId: number) => boolean;
@@ -101,6 +104,7 @@ export function BrowseGrid({
 	cards,
 	chatContactIndexByProfileId,
 	localNicknamesByProfileId,
+	seenDisplayNamesByProfileId,
 	tapStatusByProfileId,
 	onSelectProfile,
 	onDoubleTapProfile,
@@ -332,6 +336,7 @@ export function BrowseGrid({
 									card={card}
 									chatContactStatus={chatContactIndexByProfileId?.[card.profileId] ?? null}
 									localNickname={localNicknamesByProfileId?.[card.profileId]}
+									seenDisplayName={seenDisplayNamesByProfileId?.[card.profileId]}
 									tapStatus={tapStatusByProfileId?.[card.profileId]}
 									onSelectProfile={onSelectProfile}
 									onDoubleTapProfile={onDoubleTapProfile}

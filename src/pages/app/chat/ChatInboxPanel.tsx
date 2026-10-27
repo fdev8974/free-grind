@@ -1,4 +1,4 @@
-import { Archive, BellOff, Check, CheckCheck, EyeOff, Loader2, MessageCircle, Pin, Star, Trash2 } from "lucide-react";
+import { Archive, BellOff, Check, CheckCheck, EyeOff, Loader2, MessageCircle, PencilLine, Pin, Star, Trash2 } from "lucide-react";
 import { BellOffFilled, EyeOffFilled, HomeFilled, LocateFixedFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
@@ -38,6 +38,7 @@ import { useInboxSyncStatus } from "../../../hooks/useInboxSyncStatus";
 import { FEED_HEADER_OFFSET, FEED_MASK_GRADIENT_STOP } from "../../../config/design-config";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
+import { getNicknameRename, useSeenDisplayNames, type SeenDisplayName } from "../../../hooks/useNicknameNameChange";
 
 /** Footer bar below the chat list's scroll area (not inside it) — reads as
  * part of the list (same border/background as a conversation row) rather
@@ -125,6 +126,7 @@ type ChatConversationRowProps = {
 	conversation: ConversationEntry;
 	userId: number | null;
 	localNicknamesByProfileId: Record<string, string>;
+	seenDisplayNamesByProfileId: Record<string, SeenDisplayName>;
 	chatContactIndexByProfileId: Record<string, ChatContactIndexRecord>;
 	nowTimestamp: number;
 	isSelected: boolean;
@@ -370,6 +372,7 @@ function ChatConversationRow({
 	conversation,
 	userId,
 	localNicknamesByProfileId,
+	seenDisplayNamesByProfileId,
 	chatContactIndexByProfileId,
 	nowTimestamp,
 	isSelected,
@@ -548,6 +551,11 @@ function ChatConversationRow({
 	const otherProfileId = otherParticipant?.profileId ? String(otherParticipant.profileId) : null;
 	const localNickname = otherProfileId ? localNicknamesByProfileId[otherProfileId] : null;
 	const displayName = localNickname || conversation.data.name || t("common.unknown_display_name");
+	const nicknameRename = getNicknameRename(
+		localNickname,
+		conversation.data.name,
+		otherProfileId ? seenDisplayNamesByProfileId[otherProfileId] : null,
+	);
 	const otherParticipantOnlineMeta = getParticipantOnlineMeta(
 		otherParticipant?.lastOnline,
 		otherParticipant?.onlineUntil,
@@ -637,9 +645,17 @@ function ChatConversationRow({
 					<div className="min-w-0 flex-1">
 						<div className="flex items-center justify-between gap-2">
 							<div className="flex min-w-0 items-center gap-1.5">
-								<p className="truncate text-sm font-semibold text-[var(--text)]">
+								<p
+									className="truncate text-sm font-semibold text-[var(--text)]"
+									title={nicknameRename.realName ? t("chat.nicknames.real_name", { name: nicknameRename.realName }) : undefined}
+								>
 									{displayName}
 								</p>
+								{nicknameRename.previousName && nicknameRename.realName && (
+									<span title={t("chat.nicknames.real_name_changed", { previous: nicknameRename.previousName, name: nicknameRename.realName })}>
+										<PencilLine className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
+									</span>
+								)}
 								{conversation.data.muted && (
 									<span title={t("chat.muted")}>
 										<BellOffFilled className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
@@ -753,6 +769,14 @@ export function ChatInboxPanel({
 	const { t } = useTranslation();
 	useReadReceiptsChanged();
 	const apiFunctions = useApiFunctions();
+	const seenDisplayNamesByProfileId = useSeenDisplayNames(
+		filteredConversations.flatMap((conversation) => {
+			const profileId = getOtherParticipant(conversation, userId)?.profileId;
+			return profileId != null
+				? [{ profileId, nickname: localNicknamesByProfileId[String(profileId)], displayName: conversation.data.name }]
+				: [];
+		}),
+	);
 	// Read on mount, same as the thread header; toggled in Privacy settings.
 	const [showReadReceiptToggle] = useState(getShowReadReceiptToggle);
 	const lastScrollAtRef = useRef(0);
@@ -1030,6 +1054,7 @@ export function ChatInboxPanel({
 														conversation={conversation}
 														userId={userId}
 														localNicknamesByProfileId={localNicknamesByProfileId}
+														seenDisplayNamesByProfileId={seenDisplayNamesByProfileId}
 														chatContactIndexByProfileId={chatContactIndexByProfileId}
 														nowTimestamp={nowTimestamp}
 														isSelected={conversation.data.conversationId === selectedConversationId}

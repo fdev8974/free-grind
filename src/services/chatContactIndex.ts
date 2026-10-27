@@ -85,6 +85,21 @@ async function getDb(): Promise<Database> {
 				await db.execute(
 					"CREATE INDEX IF NOT EXISTS idx_chat_local_profile_meta_updated_at ON chat_local_profile_meta(updated_at DESC)",
 				);
+				// The profile's own display name as last acknowledged by the user,
+				// so a rename behind a nickname can be surfaced, plus the one before
+				// it so a view still showing the old name from a stale cache isn't
+				// reported as a rename back. Added after the table shipped, hence
+				// the guarded ALTERs.
+				const columns = await db.select<{ name: string }[]>(
+					"PRAGMA table_info(chat_local_profile_meta)",
+				);
+				for (const column of ["seen_display_name", "previous_seen_display_name"]) {
+					if (!columns.some((existing) => existing.name === column)) {
+						await db.execute(
+							`ALTER TABLE chat_local_profile_meta ADD COLUMN ${column} TEXT`,
+						);
+					}
+				}
 			});
 
 			return db;
@@ -424,6 +439,8 @@ export async function setLocalNicknameForProfile(
 			[normalizedProfileId, normalizedNickname, Date.now()],
 		);
 	});
+	// A new or removed nickname row starts or drops its seen name.
+	notifySeenDisplayNamesChanged();
 }
 
 export async function getLocalNicknamesForProfiles(
@@ -458,4 +475,104 @@ export async function getLocalNicknamesForProfiles(
 	}
 
 	return next;
+}
+
+export type SeenDisplayName = {
+	/** The display name the user last saw behind their nickname. */
+	name: string;
+	/** The one acknowledged before that, if any. */
+	previousName: string | null;
+};
+
+/** Seen display names for nicknamed profiles; profiles without one recorded are left out. */
+export async function getSeenDisplayNamesForProfiles(
+	profileIds: string[],
+): Promise<Record<string, SeenDisplayName>> {
+	const ids = profileIds.map((id) => id.trim()).filter(Boolean);
+	if (ids.length === 0) {
+		return {};
+	}
+
+	const db = await getDb();
+	const placeholders = ids.map((_, index) => `$${index + 1}`).join(", ");
+	const rows = await db.select<{
+		profile_id: string;
+		seen_display_name: string | null;
+		previous_seen_display_name: string | null;
+	}[]>(
+		`
+		SELECT profile_id, seen_display_name, previous_seen_display_name
+		FROM chat_local_profile_meta
+		WHERE profile_id IN (${placeholders}) AND seen_display_name IS NOT NULL
+		`,
+		ids,
+	);
+
+	const next: Record<string, SeenDisplayName> = {};
+	for (const row of rows) {
+		if (row.seen_display_name) {
+			next[row.profile_id] = {
+				name: row.seen_display_name,
+				previousName: row.previous_seen_display_name,
+			};
+		}
+	}
+	return next;
+}
+
+/**
+ * Records the profile's current display name as seen. No-op without a
+ * nickname row. `onlyIfUnset` only fills in a missing baseline, so a list
+ * that loads a fresh name can't silently swallow a rename.
+ */
+export async function setSeenDisplayNameForProfile(
+	profileId: string,
+	displayName: string,
+	{ onlyIfUnset = false }: { onlyIfUnset?: boolean } = {},
+): Promise<void> {
+	const normalizedProfileId = profileId.trim();
+	const normalizedName = displayName.trim();
+	if (!normalizedProfileId || !normalizedName) {
+		return;
+	}
+
+	const db = await getDb();
+	await executeWithLockRetry(db, "set-seen-display-name", async () => {
+		await db.execute(
+			onlyIfUnset
+				? "UPDATE chat_local_profile_meta SET seen_display_name = $2 WHERE profile_id = $1 AND seen_display_name IS NULL"
+				: `
+				UPDATE chat_local_profile_meta SET
+					previous_seen_display_name = CASE
+						WHEN seen_display_name IS NOT NULL AND seen_display_name != $2 THEN seen_display_name
+						ELSE previous_seen_display_name
+					END,
+					seen_display_name = $2
+				WHERE profile_id = $1
+				`,
+			[normalizedProfileId, normalizedName],
+		);
+	});
+	// Filling a baseline changes nothing on screen; notifying for it would
+	// just make every list reload once per profile.
+	if (!onlyIfUnset) {
+		notifySeenDisplayNamesChanged();
+	}
+}
+
+// Grid tiles, chat rows and headers each read the seen names; acknowledging a
+// rename in one place has to clear the marker everywhere else.
+const seenDisplayNameListeners = new Set<() => void>();
+
+export function subscribeSeenDisplayNames(listener: () => void): () => void {
+	seenDisplayNameListeners.add(listener);
+	return () => {
+		seenDisplayNameListeners.delete(listener);
+	};
+}
+
+function notifySeenDisplayNamesChanged(): void {
+	for (const listener of seenDisplayNameListeners) {
+		listener();
+	}
 }
