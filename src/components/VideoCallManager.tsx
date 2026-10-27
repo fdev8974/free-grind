@@ -298,11 +298,12 @@ export function VideoCallManager() {
 		// entirely — checking here first means we never even construct it, and
 		// everything that follows is safely inside the try/catch instead of a
 		// bare `new AgoraCallSession(...)` above it that could throw uncaught.
+		let session: AgoraCallSession | null = null;
 		try {
 			if (!isWebRtcSupported()) {
 				throw new WebRtcUnsupportedError();
 			}
-			const session = new AgoraCallSession({
+			session = new AgoraCallSession({
 				onRemoteVideoTrack: (track) => {
 					remoteVideoTrackRef.current = track;
 					if (remoteVideoRef.current) track.play(remoteVideoRef.current);
@@ -317,14 +318,21 @@ export function VideoCallManager() {
 					setRemoteCameraOff(muted);
 				},
 			});
-			await session.join(channelId, token, userIdRef.current);
+			// Set before joining so a call that ends mid-join (declined, hung
+			// up, failed publish) still has a session for endCall to leave —
+			// otherwise the camera opened by join() is never released.
 			sessionRef.current = session;
+			await session.join(channelId, token, userIdRef.current);
+			if (sessionRef.current !== session) return;
 			const localTrack = session.getLocalVideoTrack();
 			if (localTrack && localVideoRef.current) {
 				localTrack.play(localVideoRef.current);
 			}
 			if (!waitForRemoteJoin) setPhase("active");
 		} catch (error) {
+			// Already ended (and cleaned up) while joining — the failure is
+			// just the aborted join, not something to report.
+			if (session && sessionRef.current !== session) return;
 			appLog.warn("[video-call] failed to join Agora session", error);
 			toast.error(
 				error instanceof WebRtcUnsupportedError

@@ -53,6 +53,8 @@ export class AgoraCallSession {
 	private micTrack: IMicrophoneAudioTrack | null = null;
 	private camTrack: ICameraVideoTrack | null = null;
 	private facingMode: "user" | "environment" = "user";
+	// Set by leave(), which can run while join() is still opening the camera.
+	private left = false;
 
 	constructor(private readonly handlers: AgoraCallHandlers) {
 		// The real app calls setChannelProfile(1) (LIVE_BROADCASTING) rather than
@@ -100,7 +102,15 @@ export class AgoraCallSession {
 		}
 		await this.client.setClientRole("host");
 		await this.client.join(AGORA_APP_ID, channelId, token, Number(uid));
-		[this.micTrack, this.camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+		const [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
+		// The call ended while the camera was opening — leave() already ran and
+		// had nothing to close, so release the devices here instead.
+		if (this.left) {
+			micTrack.close();
+			camTrack.close();
+			return;
+		}
+		[this.micTrack, this.camTrack] = [micTrack, camTrack];
 		await this.client.publish([this.micTrack, this.camTrack]);
 	}
 
@@ -137,6 +147,7 @@ export class AgoraCallSession {
 	}
 
 	async leave(): Promise<void> {
+		this.left = true;
 		try {
 			this.micTrack?.close();
 			this.camTrack?.close();
