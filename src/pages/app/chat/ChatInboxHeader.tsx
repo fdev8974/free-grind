@@ -154,7 +154,7 @@ export function ChatInboxHeader({
 								<button
 									type="button"
 									onClick={() => navigate("/chat/albums")}
-									className="header-icon-btn -mr-1 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("chat.tabs.albums")}
 								>
 									<ImagesFilled className="h-5 w-5" />

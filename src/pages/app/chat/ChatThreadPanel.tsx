@@ -1387,7 +1387,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					<>
 						<div
 							ref={!isDesktop ? headerRef : undefined}
-							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-40 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)]"}` : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-[var(--border)]"}`}
+							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-40 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)]"}` : "-mx-3 -mt-3 mb-3 p-3 sm:-mx-4 sm:-mt-4 sm:p-4 border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? {
@@ -1458,7 +1458,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									</span>
 								</button>
 							</div>
-							<div className="flex items-center gap-2">
+							{/* Borderless glyph buttons, same as the inbox / settings page headers;
+							    toggled states carry their colour in the glyph instead of a chip. */}
+							<div className="flex shrink-0 items-center gap-0.5">
             {isDesktop && showBlockGroup && (
                 <>
                     <button
@@ -1469,16 +1471,16 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                         }}
                         disabled={isTogglingFavorite || profileId == null || !onToggleFavorite}
                         title={isFavorite ? t("chat.unfavorite") : t("chat.favorite")}
-                        className={`rounded-xl border p-2 transition disabled:opacity-60 ${
+                        className={`header-icon-btn rounded-xl p-2 transition disabled:opacity-60 ${
                             isFavorite
-                                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-110"
-                                : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                                ? "header-icon-btn--active text-[var(--accent)] hover:brightness-110"
+                                : "text-[var(--text-muted)] hover:text-[var(--text)]"
                         }`}
                     >
                         {isTogglingFavorite ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
-                            <Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                            <Star className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
                         )}
                     </button>
                     <button
@@ -1486,25 +1488,25 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                         disabled={isUpdatingConversationState || !selectedConversation}
                         onClick={togglePin}
                         title={selectedConversation?.data.pinned ? t("chat.unpin") : t("chat.pin")}
-                        className={`rounded-xl border p-2 transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                        className={`header-icon-btn rounded-xl p-2 transition disabled:opacity-40 disabled:cursor-not-allowed ${
                             selectedConversation?.data.pinned
-                                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-110"
-                                : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                                ? "header-icon-btn--active text-[var(--accent)] hover:brightness-110"
+                                : "text-[var(--text-muted)] hover:text-[var(--text)]"
                         }`}
                     >
-                        <Pin className="h-4 w-4" />
+                        <Pin className={`h-5 w-5 ${selectedConversation?.data.pinned ? "fill-current" : ""}`} />
                     </button>
                     <button
                         type="button"
                         onClick={requestBlockProfile}
                         disabled={isBlockingProfile || profileId == null || !onBlockProfile}
                         title={isBlockingProfile ? t("profile_details.block_in_progress") : t("profile_details.block")}
-                        className="rounded-xl border border-red-500/40 bg-red-500/10 p-2 text-red-300 transition hover:bg-red-500/20 disabled:opacity-60"
+                        className="header-icon-btn rounded-xl p-2 text-red-500/80 transition hover:text-red-500 disabled:opacity-60"
                     >
                         {isBlockingProfile ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
-                            <Ban className="h-4 w-4" />
+                            <Ban className="h-5 w-5" />
                         )}
                     </button>
                 </>
@@ -1516,12 +1518,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                     onClick={requestUnblockProfile}
                     disabled={isUnblockingProfile || profileId == null || !onUnblockProfile}
                     title={isUnblockingProfile ? t("profile_details.unblock_in_progress") : t("profile_details.unblock")}
-                    className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-2 text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-60"
+                    className="header-icon-btn rounded-xl p-2 text-emerald-500/80 transition hover:text-emerald-500 disabled:opacity-60"
                 >
                     {isUnblockingProfile ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                        <ShieldCheck className="h-4 w-4" />
+                        <ShieldCheck className="h-5 w-5" />
                     )}
                 </button>
             )}
@@ -1531,10 +1533,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										type="button"
 										onClick={onOpenMediaSheet}
 										disabled={!selectedConversation}
-										className="rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
+										className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
 										aria-label="Received media"
 									>
-										<ImagesFilled className="h-4 w-4" />
+										<ImagesFilled className="h-5 w-5" />
 									</button>
 								)}
 
@@ -1547,11 +1549,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										onClick={() =>
 											setIsHeaderActionsMenuOpen((current) => !current)
 										}
-										className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
+										className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 										aria-label="Open conversation actions"
 										aria-expanded={isHeaderActionsMenuOpen}
 									>
-										<EllipsisVertical className="h-4 w-4" />
+										<EllipsisVertical className="h-5 w-5" />
 									</button>
 									{nicknameNameChange.hasUnseenChange && <NicknameNameChangeBadge />}
 									{headerMenuPresence.rendered ? (

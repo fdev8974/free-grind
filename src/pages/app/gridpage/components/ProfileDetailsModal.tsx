@@ -242,7 +242,7 @@ function ProfileSwipePreviewPanel({
 						{headerSubtitle && <p className="text-xs leading-tight text-white/70">{headerSubtitle}</p>}
 					</div>
 					{/* Look-alikes of the header actions; the real ones appear once the profile loads. */}
-					<div className="flex shrink-0 items-center gap-1.5">
+					<div className="flex shrink-0 items-center gap-0.5">
 						<span className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] ${
 							preview.isFavorite
 								? "header-icon-btn--active border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
@@ -2085,7 +2085,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							onPointerCancel={() => { setBarTapPickerOpen(false); setBarTapHoverId(null); barTapStickyRef.current = false; if (barTapLongPressRef.current) clearTimeout(barTapLongPressRef.current); barInputTimerRef.current = setTimeout(() => setBarInputVisible(true), 210); }}
 							disabled={isTapDisabled}
 							aria-label={t("profile_details.tap", { defaultValue: "Tap" })}
-							className={`tap-btn-base relative inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-white/70" : isTapActive || barTapHoverId !== null ? "text-white" : "text-white/70"}`}
+							className={`tap-btn-base bar-icon-btn relative inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-white/70" : isTapActive || barTapHoverId !== null ? "text-white" : "text-white/70"}`}
 							style={isTapBlocked ? { filter: barTapGlow(tapVisualState.tapId) } : !barTapPickerOpen && barTapHoverId !== null ? { filter: barTapGlow(barTapHoverId) } : undefined}
 						>
 							{barTapPickerOpen
@@ -2106,7 +2106,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									else onMessageProfile?.(String(messageProfileId));
 								}}
 								aria-label={hasDraft ? t("chat.send") : t("profile_details.message")}
-								className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition hover:opacity-80 ${hasDraft ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "text-[var(--accent)]"}`}
+								className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition ${hasDraft ? "bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-80" : "bar-icon-btn text-[var(--accent)]"}`}
 							>
 								{hasDraft ? (
 									<SendHorizontalFilled className="h-5 w-5" />
@@ -2217,7 +2217,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 						</button>
 					)}
 					{messageProfileId && !isOwnProfile && (
-						<div className="flex shrink-0 items-center gap-1.5">
+						<div className="flex shrink-0 items-center gap-0.5">
 							{onToggleFavoriteProfile && !isProfileUnavailable && (
 								<button
 									type="button"
@@ -2726,38 +2726,38 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 					{!isModalSplit ? renderInlineLayout() : (
 						<>
 							{/* Solid split-mode header */}
-							<div className="flex shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 sm:px-5">
+							<div className="flex shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface-2)] p-3">
 								<div className="flex w-full items-center gap-3">
-									<button type="button" onClick={onClose} className="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" aria-label={t("profile_details.close_profile_details")}>
+									<button type="button" onClick={onClose} className="header-icon-btn header-icon-btn--back shrink-0 rounded-xl text-[var(--text-muted)] transition-colors hover:text-[var(--text)]" aria-label={t("profile_details.close_profile_details")}>
 										<ChevronLeft className="h-4 w-4" />
 									</button>
 									<div className="min-w-0 flex-1">
 										<p className="truncate text-base font-semibold">{activeProfileName}</p>
 									</div>
 									{isOwnProfile && (
-										<button type="button" onClick={() => navigate("/settings/profile-editor")} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] transition-colors" aria-label={t("profile_editor.edit_profile")}>
+										<button type="button" onClick={() => navigate("/settings/profile-editor")} className="header-icon-btn shrink-0 rounded-xl text-[var(--text-muted)] transition-colors hover:text-[var(--text)]" aria-label={t("profile_editor.edit_profile")}>
 											<Pencil className="h-4 w-4" />
 										</button>
 									)}
 									{messageProfileId && !isOwnProfile && (
-										<div className="flex shrink-0 items-center gap-1.5">
+										<div className="flex shrink-0 items-center gap-0.5">
 											{onToggleFavoriteProfile && !isProfileUnavailable && (
 												<button type="button" onClick={() => { haptic(10); void onToggleFavoriteProfile(String(messageProfileId), isFavorite); }} disabled={isTogglingFavorite}
-													className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-60 ${isFavorite ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]" : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]"}`}
+													className={`header-icon-btn shrink-0 rounded-xl transition-colors disabled:opacity-60 ${isFavorite ? "header-icon-btn--active" : "text-[var(--text-muted)] hover:text-[var(--text)]"}`}
 													aria-label={isFavorite ? t("chat.unfavorite") : t("chat.favorite")}>
 													<Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
 												</button>
 											)}
 											{(onBlockProfile || onUnblockProfile) && !isBlockedByOther && (isBlocked || !isSnapshotProfile) && (
 												<button type="button" onClick={() => isBlocked ? onUnblockProfile?.(String(messageProfileId)) : (messageProfileId && onBlockProfile?.(String(messageProfileId)))} disabled={isBlockingProfile}
-													className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-60 ${isBlocked ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400" : "border-red-500/40 bg-red-500/8 text-red-400 hover:border-red-500/70 hover:bg-red-500/15"}`}
+													className={`header-icon-btn shrink-0 rounded-xl transition-colors disabled:opacity-60 ${isBlocked ? "text-emerald-500" : "text-red-500"}`}
 													aria-label={isBlocked ? t("profile_details.unblock") : t("profile_details.block")}>
 													{isBlocked ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
 												</button>
 											)}
 											<div ref={actionsMenuRef} className="relative">
 												<button type="button" onClick={() => setIsActionsMenuOpen((v) => !v)}
-													className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)] transition-colors"
+													className="header-icon-btn shrink-0 rounded-xl text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
 													aria-label={t("profile_details.more_actions", { defaultValue: "More actions" })} aria-expanded={isActionsMenuOpen}>
 													<EllipsisVertical className="h-4 w-4" />
 												</button>

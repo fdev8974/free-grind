@@ -251,7 +251,7 @@ export const InterestRow = memo(function InterestRow({
 							</span>
 						)}
 					</div>
-					{/* Meta row styled like the Right Now list: time, then view count. */}
+					{/* Meta row styled like the Right Now list: time, then distance. */}
 					<div className="mt-0.5 flex items-center gap-3 text-xs font-medium text-[var(--text-muted)]">
 						<span className="flex min-w-0 items-center gap-1">
 							<ClockFilled className="h-3 w-3 shrink-0" />
@@ -263,17 +263,20 @@ export const InterestRow = memo(function InterestRow({
 								<span className="tabular-nums">{formatDistance(item.distanceMeters, t, unitsPreset)}</span>
 							</span>
 						)}
-						{mode === "views" && !isPrivate && (
-							<span className="flex shrink-0 items-center gap-1">
-								<EyeFilled className="h-3 w-3" />
-								<span className="tabular-nums">{item.viewCount || 1}</span>
-							</span>
-						)}
 					</div>
 				</button>
 			</div>
 
-			{/* Action Area (Taps or Sent Taps); views show their count in the meta row. */}
+			{/* Action Area: view count, or the tap emoji (Taps / Sent Taps). */}
+			{!isPrivate && mode === "views" && (
+				<div
+					className="flex h-12 min-w-12 shrink-0 items-center justify-end gap-1 text-sm font-bold text-[var(--text-muted)]"
+					title={t("interest_page.total_viewed_count")}
+				>
+					<EyeFilled className="h-4 w-4" />
+					<span className="tabular-nums">{item.viewCount || 1}</span>
+				</div>
+			)}
 			{!isPrivate && (mode === "taps" || mode === "sent") && (
 				<div className="shrink-0 flex items-center justify-end h-12 w-12">
 					<div className="relative flex h-12 w-12 items-center justify-center">

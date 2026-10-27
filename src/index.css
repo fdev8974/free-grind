@@ -651,6 +651,7 @@
 		-webkit-user-select: none;
 		transition:
 			border-color 0.2s ease,
+			background-color 0.15s ease,
 			transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 	}
 
@@ -1541,13 +1542,12 @@ dialog::backdrop {
 	backdrop-filter: blur(6px);
 }
 
-/* Header icon buttons: bordered "chips" on desktop, but bare, larger glyphs on
-   touch devices to match native mobile nav bars. Deliberately unlayered so it
-   wins over the Tailwind border/bg utilities the buttons carry for desktop.
-   `.touch-ui` is set on <html> by installTouchUiClass (useDesktopBreakpoint) —
-   a class rather than a pointer media query so Android with a mouse (WSA)
-   still counts as mobile. */
-.touch-ui .header-icon-btn {
+/* Header icon buttons: bare glyphs everywhere (native nav bar look), slightly
+   larger on touch devices. Deliberately unlayered so it wins over leftover
+   Tailwind border/bg utilities on the buttons. `.touch-ui` is set on <html> by
+   installTouchUiClass (useDesktopBreakpoint) — a class rather than a pointer
+   media query so Android with a mouse (WSA) still counts as mobile. */
+.header-icon-btn {
 	border-color: transparent !important;
 	background-color: transparent !important;
 	box-shadow: none !important;
@@ -1557,12 +1557,39 @@ dialog::backdrop {
 	--tw-backdrop-blur: blur(0) !important;
 }
 
+/* Always a 40px square (glyph + padding), the same height as the header
+   avatar row, so the hover box lines up with the header's own padding. */
+.header-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.625rem !important;
+}
+
+.touch-ui .header-icon-btn {
+	padding: 0.5rem !important;
+}
+
+/* One hover treatment for every header button (and the bare glyph buttons of
+   the profile's bottom bar) on desktop; a neutral translucent grey reads on
+   page headers and over profile photos alike. */
+:root:not(.touch-ui) .header-icon-btn:not(:disabled):hover,
+:root:not(.touch-ui) .bar-icon-btn:not(:disabled):hover {
+	background-color: rgb(128 128 128 / 0.16) !important;
+}
+
+.header-icon-btn > svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
 .touch-ui .header-icon-btn > svg {
 	width: 1.5rem;
 	height: 1.5rem;
 }
 
-/* Pull the back chevron toward the screen edge like a native back button. */
+/* Pull the back chevron toward the screen edge like a native back button.
+   Touch only — desktop shows a hover box, which must stay inside the padding. */
 .touch-ui .header-icon-btn--back {
 	margin-inline-start: -0.5rem;
 }
@@ -1574,7 +1601,7 @@ dialog::backdrop {
 }
 
 /* Toggled states (favorite) lose their filled chip, so carry it in the glyph. */
-.touch-ui .header-icon-btn--active {
+.header-icon-btn--active {
 	color: var(--accent) !important;
 }
 
