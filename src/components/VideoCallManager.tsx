@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Mic, MicOff, PhoneOff, SwitchCamera, Video, VideoOff } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
+import { usePreferences } from "../contexts/PreferencesContext";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import {
@@ -103,6 +104,7 @@ export function VideoCallManager() {
 	const apiFunctions = useApiFunctions();
 	const { t } = useTranslation();
 	const { data: ownProfile } = useMyOwnProfile(true);
+	const { startCallsWithCameraOn, defaultCallCamera } = usePreferences();
 	// Front/back camera switching only makes sense on phones — desktop
 	// webcams have no "environment"-facing device for setDevice() to find.
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
@@ -174,6 +176,16 @@ export function VideoCallManager() {
 	useEffect(() => {
 		userIdRef.current = userId;
 	}, [userId]);
+
+	const startCallsWithCameraOnRef = useRef(startCallsWithCameraOn);
+	useEffect(() => {
+		startCallsWithCameraOnRef.current = startCallsWithCameraOn;
+	}, [startCallsWithCameraOn]);
+
+	const defaultCallCameraRef = useRef(defaultCallCamera);
+	useEffect(() => {
+		defaultCallCameraRef.current = defaultCallCamera;
+	}, [defaultCallCamera]);
 
 	const sessionRef = useRef<AgoraCallSession | null>(null);
 	const closingRef = useRef(false);
@@ -303,9 +315,15 @@ export function VideoCallManager() {
 			if (!isWebRtcSupported()) {
 				throw new WebRtcUnsupportedError();
 			}
+			const withCamera = startCallsWithCameraOnRef.current;
+			setCameraOff(!withCamera);
+			// Their avatar until a video track actually arrives — they may have
+			// started with the camera off too, and then never publish one.
+			setRemoteCameraOff(true);
 			session = new AgoraCallSession({
 				onRemoteVideoTrack: (track) => {
 					remoteVideoTrackRef.current = track;
+					setRemoteCameraOff(false);
 					if (remoteVideoRef.current) track.play(remoteVideoRef.current);
 				},
 				onRemoteAudioTrack: () => {
@@ -317,12 +335,12 @@ export function VideoCallManager() {
 				onRemoteVideoMuteChanged: (muted) => {
 					setRemoteCameraOff(muted);
 				},
-			});
+			}, isAndroid() || isIos() ? defaultCallCameraRef.current : null);
 			// Set before joining so a call that ends mid-join (declined, hung
 			// up, failed publish) still has a session for endCall to leave —
 			// otherwise the camera opened by join() is never released.
 			sessionRef.current = session;
-			await session.join(channelId, token, userIdRef.current);
+			await session.join(channelId, token, userIdRef.current, withCamera);
 			if (sessionRef.current !== session) return;
 			const localTrack = session.getLocalVideoTrack();
 			if (localTrack && localVideoRef.current) {
@@ -546,12 +564,28 @@ export function VideoCallManager() {
 		});
 	}, []);
 
-	const handleToggleCamera = useCallback(() => {
-		setCameraOff((prev) => {
-			sessionRef.current?.setCameraMuted(!prev);
-			return !prev;
-		});
-	}, []);
+	// Async since turning the camera on for the first time opens it (see
+	// AgoraCallSession.setCameraMuted) — ignore taps until that's done.
+	const cameraToggleBusyRef = useRef(false);
+	const handleToggleCamera = useCallback(async () => {
+		const session = sessionRef.current;
+		if (!session || cameraToggleBusyRef.current) return;
+		cameraToggleBusyRef.current = true;
+		const nextOff = !cameraOff;
+		try {
+			await session.setCameraMuted(nextOff);
+			setCameraOff(nextOff);
+			const localTrack = session.getLocalVideoTrack();
+			if (!nextOff && localTrack && !localTrack.isPlaying && localVideoRef.current) {
+				localTrack.play(localVideoRef.current);
+			}
+		} catch (error) {
+			appLog.warn("[video-call] toggling camera failed", error);
+			toast.error(tRef.current("video_call.permission_denied"));
+		} finally {
+			cameraToggleBusyRef.current = false;
+		}
+	}, [cameraOff]);
 
 	const handleSwitchCamera = useCallback(async () => {
 		try {
@@ -737,7 +771,7 @@ export function VideoCallManager() {
 						</button>
 						<button
 							type="button"
-							onClick={handleToggleCamera}
+							onClick={() => void handleToggleCamera()}
 							aria-label={t(cameraOff ? "video_call.camera_on" : "video_call.camera_off")}
 							className={controlButtonClass}
 						>

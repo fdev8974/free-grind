@@ -46,6 +46,8 @@ import {
 	Vibrate,
 	MoveHorizontal,
 	CornerDownLeft,
+	Video,
+	SwitchCamera,
 	Puzzle,
 	Bot,
 	Bug,
@@ -386,6 +388,30 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			section: "Behavior",
 			icon: CornerDownLeft,
 			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
+			id: "behavior-start-calls-with-camera-on",
+			route: "/settings/behavior",
+			anchor: "behavior-start-calls-with-camera-on",
+			label: t("behavior.start_calls_with_camera_on", { defaultValue: "Start Calls with Camera On" }),
+			description: t("behavior.start_calls_with_camera_on_desc", {
+				defaultValue: "Your camera is turned on as soon as a video call connects. When off, calls start with your camera off and you turn it on yourself.",
+			}),
+			section: "Behavior",
+			icon: Video,
+			iconClass: "bg-emerald-500/15 text-emerald-400",
+		},
+		{
+			id: "behavior-default-call-camera",
+			route: "/settings/behavior",
+			anchor: "behavior-default-call-camera",
+			label: t("behavior.default_call_camera", { defaultValue: "Default Camera" }),
+			description: t("behavior.default_call_camera_desc", {
+				defaultValue: "The camera a video call starts with. You can still switch during the call.",
+			}),
+			section: "Behavior",
+			icon: SwitchCamera,
+			iconClass: "bg-emerald-500/15 text-emerald-400",
 		},
 		{
 			id: "behavior-default-expiring-photos",
@@ -840,7 +866,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		(entry) =>
 			(showSexualHealth || entry.id !== "nav-sexual-health") &&
 			// Bottom-nav style, grid layout and haptics options only exist in the mobile app.
-			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics"].includes(entry.id)) &&
+			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics", "behavior-default-call-camera"].includes(entry.id)) &&
 			// Enter always sends on desktop, so the toggle is mobile-only (matches the chat composer's isDesktop).
 			(!isDesktop || entry.id !== "behavior-mobile-enter-to-send"),
 	), [t, showSexualHealth, isMobilePlatform, isDesktop]);

@@ -1133,7 +1133,14 @@
         "chat_row_swipe_actions": "Wischaktionen in der Chatliste",
         "chat_row_swipe_actions_desc": "Wische einen Chat nach rechts, um ihn anzupinnen, oder nach links, um ihn zu löschen. Langes Drücken öffnet weiterhin alle Aktionen.",
         "mobile_enter_to_send": "Enter zum Senden auf dem Handy",
-        "mobile_enter_to_send_desc": "Die Enter-Taste auf der Handy-Tastatur sendet die Nachricht, statt eine neue Zeile zu beginnen."
+        "mobile_enter_to_send_desc": "Die Enter-Taste auf der Handy-Tastatur sendet die Nachricht, statt eine neue Zeile zu beginnen.",
+        "video_calls": "Videoanrufe",
+        "start_calls_with_camera_on": "Anrufe mit Kamera starten",
+        "start_calls_with_camera_on_desc": "Deine Kamera ist an, sobald ein Videoanruf verbunden ist. Wenn aus, starten Anrufe mit ausgeschalteter Kamera und du schaltest sie selbst ein.",
+        "default_call_camera": "Standardkamera",
+        "default_call_camera_desc": "Die Kamera, mit der ein Videoanruf startet. Im Anruf kannst du weiterhin wechseln.",
+        "call_camera_front": "Vorne",
+        "call_camera_back": "Hinten"
     },
     "notifications_page": {
         "subtitle": "Wähle, welche Benachrichtigungen du erhältst und ob sie bei geöffneter App angezeigt werden.",

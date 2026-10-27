@@ -190,6 +190,10 @@ const preferencesSchema = z.object({
 	chatRowSwipeActions: z.boolean().default(true),
 	// Enter sends a chat message on mobile too (desktop always does; Shift+Enter is a newline there).
 	mobileEnterToSend: z.boolean().default(false),
+	// Video calls start with the camera on; when off, it has to be turned on in the call.
+	startCallsWithCameraOn: z.boolean().default(true),
+	// Camera a video call opens first on phones (front "user" / back "environment").
+	defaultCallCamera: z.enum(["user", "environment"]).default("user"),
 	// Tap type sent by double tapping a grid tile; null disables the gesture.
 	doubleTapTapType: z.number().int().min(0).max(2).nullable().default(1),
 	// What the grid double tap does while enabled: send the tap above or open the chat.
@@ -249,6 +253,8 @@ type PreferencesAction =
 	| { type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT"; payload: boolean }
 	| { type: "SET_CHAT_ROW_SWIPE_ACTIONS"; payload: boolean }
 	| { type: "SET_MOBILE_ENTER_TO_SEND"; payload: boolean }
+	| { type: "SET_START_CALLS_WITH_CAMERA_ON"; payload: boolean }
+	| { type: "SET_DEFAULT_CALL_CAMERA"; payload: Preferences["defaultCallCamera"] }
 	| { type: "SET_DEFAULT_EXPIRING_PHOTOS"; payload: boolean }
 	| { type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE"; payload: Preferences["defaultAlbumExpirationType"] }
 	| { type: "SET_RIGHT_NOW_STATUS"; payload: { id: number | null; expiresAt: number | null } }
@@ -323,6 +329,10 @@ function preferencesReducer(
 			return { ...state, chatRowSwipeActions: action.payload };
 		case "SET_MOBILE_ENTER_TO_SEND":
 			return { ...state, mobileEnterToSend: action.payload };
+		case "SET_START_CALLS_WITH_CAMERA_ON":
+			return { ...state, startCallsWithCameraOn: action.payload };
+		case "SET_DEFAULT_CALL_CAMERA":
+			return { ...state, defaultCallCamera: action.payload };
 		case "SET_DOUBLE_TAP_TAP_TYPE":
 			return { ...state, doubleTapTapType: action.payload };
 		case "SET_DOUBLE_TAP_ACTION":
@@ -466,6 +476,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusRightNowText: true,
 		chatRowSwipeActions: true,
 		mobileEnterToSend: false,
+		startCallsWithCameraOn: true,
+		defaultCallCamera: "user",
 		doubleTapTapType: 1,
 		doubleTapAction: "tap",
 		showGridTapStatus: true,
@@ -520,6 +532,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: parsed.autoFocusRightNowText });
 					dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: parsed.chatRowSwipeActions });
 					dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: parsed.mobileEnterToSend });
+					dispatch({ type: "SET_START_CALLS_WITH_CAMERA_ON", payload: parsed.startCallsWithCameraOn });
+					dispatch({ type: "SET_DEFAULT_CALL_CAMERA", payload: parsed.defaultCallCamera });
 					dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: parsed.doubleTapTapType });
 					dispatch({ type: "SET_DOUBLE_TAP_ACTION", payload: parsed.doubleTapAction });
 					dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: parsed.showGridTapStatus });
@@ -650,6 +664,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				autoFocusRightNowText: currentState.autoFocusRightNowText,
 				chatRowSwipeActions: currentState.chatRowSwipeActions,
 				mobileEnterToSend: currentState.mobileEnterToSend,
+				startCallsWithCameraOn: currentState.startCallsWithCameraOn,
+				defaultCallCamera: currentState.defaultCallCamera,
 				doubleTapTapType: currentState.doubleTapTapType,
 				doubleTapAction: currentState.doubleTapAction,
 				showGridTapStatus: currentState.showGridTapStatus,
@@ -763,6 +779,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			if (newValues.mobileEnterToSend !== undefined) {
 				dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: newValues.mobileEnterToSend });
 			}
+			if (newValues.startCallsWithCameraOn !== undefined) {
+				dispatch({ type: "SET_START_CALLS_WITH_CAMERA_ON", payload: newValues.startCallsWithCameraOn });
+			}
+			if (newValues.defaultCallCamera !== undefined) {
+				dispatch({ type: "SET_DEFAULT_CALL_CAMERA", payload: newValues.defaultCallCamera });
+			}
 			if (newValues.doubleTapTapType !== undefined) {
 				dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: newValues.doubleTapTapType });
 			}
@@ -875,6 +897,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					autoFocusRightNowText: preferences.autoFocusRightNowText,
 					chatRowSwipeActions: preferences.chatRowSwipeActions,
 					mobileEnterToSend: preferences.mobileEnterToSend,
+					startCallsWithCameraOn: preferences.startCallsWithCameraOn,
+					defaultCallCamera: preferences.defaultCallCamera,
 					doubleTapTapType: preferences.doubleTapTapType,
 					doubleTapAction: preferences.doubleTapAction,
 					showGridTapStatus: preferences.showGridTapStatus,
@@ -922,6 +946,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusRightNowText: state.autoFocusRightNowText,
 		chatRowSwipeActions: state.chatRowSwipeActions,
 		mobileEnterToSend: state.mobileEnterToSend,
+		startCallsWithCameraOn: state.startCallsWithCameraOn,
+		defaultCallCamera: state.defaultCallCamera,
 		doubleTapTapType: state.doubleTapTapType,
 		doubleTapAction: state.doubleTapAction,
 		showGridTapStatus: state.showGridTapStatus,

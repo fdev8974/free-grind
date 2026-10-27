@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, CornerDownLeft, ExternalLink, MoveHorizontal } from "lucide-react";
+import { ArrowDownWideNarrow, Ban, CornerDownLeft, ExternalLink, MoveHorizontal, SwitchCamera, Video } from "lucide-react";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import { getTapEmoji, tapLabel } from "./interest/interestUtils";
+import { isAndroid, isIos } from "../../services/saveMedia";
 import {
 	SKIP_BLOCK_CONFIRM_KEY,
 	SKIP_DELETE_CONVERSATION_CONFIRM_KEY,
@@ -27,6 +28,9 @@ type DoubleTapChoice = "off" | "chat" | `tap-${DoubleTapTapType}`;
 // Wake Lock support varies by webview, not by platform: WebView2 (Windows)
 // and the Android/iOS system webviews support it, WebKitGTK (Linux desktop)
 // doesn't — so gate on the actual API instead of assuming desktop vs. mobile.
+// Desktop webcams have a single camera, so front/back only exists on phones.
+const isMobilePlatform = isAndroid() || isIos();
+
 const isKeepScreenOnSupported = typeof navigator !== "undefined" && "wakeLock" in navigator;
 
 export function BehaviorPage() {
@@ -45,6 +49,8 @@ export function BehaviorPage() {
 		doubleTapAction,
 		chatRowSwipeActions,
 		mobileEnterToSend,
+		startCallsWithCameraOn,
+		defaultCallCamera,
 		setPreferences,
 	} = usePreferences();
 	const doubleTapChoice: DoubleTapChoice =
@@ -140,6 +146,40 @@ export function BehaviorPage() {
 							})}
 							checked={mobileEnterToSend}
 							onChange={(checked) => void setPreferences({ mobileEnterToSend: checked })}
+						/>}
+					</div>
+				</div>
+
+				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.video_calls", { defaultValue: "Video Calls" })}</p>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<ToggleRow
+							id="behavior-start-calls-with-camera-on"
+							highlighted={highlightId === "behavior-start-calls-with-camera-on"}
+							icon={<Video className="h-5 w-5" />}
+							iconClass="bg-emerald-500/15 text-emerald-400"
+							label={t("behavior.start_calls_with_camera_on", { defaultValue: "Start Calls with Camera On" })}
+							description={t("behavior.start_calls_with_camera_on_desc", {
+								defaultValue: "Your camera is turned on as soon as a video call connects. When off, calls start with your camera off and you turn it on yourself.",
+							})}
+							checked={startCallsWithCameraOn}
+							onChange={(checked) => void setPreferences({ startCallsWithCameraOn: checked })}
+						/>
+						{isMobilePlatform && <SelectRow
+							id="behavior-default-call-camera"
+							highlighted={highlightId === "behavior-default-call-camera"}
+							icon={<SwitchCamera className="h-5 w-5" />}
+							iconClass="bg-emerald-500/15 text-emerald-400"
+							label={t("behavior.default_call_camera", { defaultValue: "Default Camera" })}
+							description={t("behavior.default_call_camera_desc", {
+								defaultValue: "The camera a video call starts with. You can still switch during the call.",
+							})}
+							value={defaultCallCamera}
+							onChange={(option) => void setPreferences({ defaultCallCamera: option })}
+							options={[
+								{ value: "user", label: t("behavior.call_camera_front", { defaultValue: "Front" }) },
+								{ value: "environment", label: t("behavior.call_camera_back", { defaultValue: "Back" }) },
+							]}
 						/>}
 					</div>
 				</div>
