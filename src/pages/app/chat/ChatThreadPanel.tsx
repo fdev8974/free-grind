@@ -80,6 +80,7 @@ import {
 import { getCachedMediaUri } from "../../../services/mediaStore";
 import { getCachedAlbumCoverUri, isAlbumCachedLocally } from "../../../services/albumStore";
 import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
+import { useMediaBlur } from "../../../hooks/useProfilePhotoPrivacy";
 import { getThumbImageUrl } from "../../../utils/media";
 import { formatDistance } from "../gridpage/utils";
 import { ProfileImage } from "../../../components/ui/profile-image";
@@ -379,6 +380,7 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 
 export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { t } = useTranslation();
+	const { chat: blurChatMedia } = useMediaBlur();
 	useAvatarCache();
     const apiFunctions = useApiFunctions();
 	const { unitsPreset, geohash, amoledMode, mobileEnterToSend } = usePreferences();
@@ -2205,6 +2207,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								return null;
 							})();
 							const rtmLocation = getMessageLocation(rtm);
+							// Same rule as the reply quote in the thread: chat media blur, GIFs don't.
+							const blurReplyMedia = blurChatMedia && rtm.type !== "Giphy";
 							const audioDuration = (() => {
 								if (!isAudioReply) return null;
 								const rawMs = typeof rtmBody?.length === "number" ? rtmBody.length : null;
@@ -2222,7 +2226,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								}`}>
 								<div className="flex items-center gap-2.5 rounded-[21px] bg-[color-mix(in_srgb,var(--text)_6%,transparent)] py-1.5 pl-1.5 pr-1">
 									{thumbUrl ? (
-										<img src={proxyMediaUrl(thumbUrl)} alt="" className="h-9 w-9 shrink-0 rounded-[15px] object-cover" />
+										// [clip-path] keeps the blur inside the rounded corners.
+										<img src={proxyMediaUrl(thumbUrl)} alt="" className={`h-9 w-9 shrink-0 rounded-[15px] object-cover [clip-path:inset(0_round_15px)]${blurReplyMedia ? " blur-md" : ""}`} />
 									) : videoUrl ? (
 										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-black">
 											<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -2242,7 +2247,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
 													if (badge) badge.style.opacity = "1";
 												}}
-												className="h-full w-full object-cover opacity-0 transition-opacity duration-200"
+												className={`h-full w-full object-cover opacity-0 transition-opacity duration-200 [clip-path:inset(0)]${blurReplyMedia ? " blur-md" : ""}`}
 											/>
 											<div className="js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200">
 												<Play className="h-3.5 w-3.5 fill-white text-white drop-shadow" />
