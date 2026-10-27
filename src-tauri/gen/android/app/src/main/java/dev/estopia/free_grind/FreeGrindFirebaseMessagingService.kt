@@ -253,9 +253,6 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
         messageText = messageText.trim().ifBlank { genericText }
 
         val action = if (isTap) "taps" else conversationId?.let { "chat:$it" }
-        // Which saved account this push is for (see PushAccounts); null for
-        // taps, whose payload doesn't tell.
-        val accountId = if (isTap) null else PushAccounts.recipientOf(this, conversationId, senderId)
 
         return JSONObject().apply {
             put("event", "received")
@@ -272,7 +269,6 @@ class FreeGrindFirebaseMessagingService : FirebaseMessagingService() {
             put("messageType", messageType ?: JSONObject.NULL)
             put("messageId", messageId ?: JSONObject.NULL)
             put("previewImageUrl", previewImageUrl ?: JSONObject.NULL)
-            put("accountId", accountId ?: JSONObject.NULL)
             put("rawData", JSONObject(data))
         }
     }

@@ -39,31 +39,10 @@ import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
 import { mintRecaptchaToken, RecaptchaError, type RecaptchaFailure } from "../services/recaptcha";
 import { restoreStrandedLocation } from "../services/entitlementBypass";
-import { syncPushAccountsToNative } from "../services/pushAccounts";
 
 const AUTH_USER_ID_STORAGE_KEY = "fg-user-id";
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
 const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
-// { key: "<token>::<sorted non-active profile ids>", at, ok } of the last
-// registration for the saved accounts that aren't active.
-const PUSH_TOKEN_SAVED_SYNCED_STORAGE_KEY = "fg-fcm-token-synced-saved";
-// Re-registered now and then even when nothing changed, in case Grindr
-// dropped one; a failed run is retried sooner.
-const SAVED_PUSH_SYNC_INTERVAL_MS = 24 * 60 * 60_000;
-const SAVED_PUSH_SYNC_RETRY_MS = 10 * 60_000;
-
-type SavedPushSyncMarker = { key: string; at: number; ok: boolean };
-
-function readSavedPushSyncMarker(): SavedPushSyncMarker | null {
-	try {
-		const parsed: unknown = JSON.parse(window.localStorage.getItem(PUSH_TOKEN_SAVED_SYNCED_STORAGE_KEY) ?? "null");
-		if (!parsed || typeof parsed !== "object") return null;
-		const { key, at, ok } = parsed as Partial<SavedPushSyncMarker>;
-		return typeof key === "string" && typeof at === "number" ? { key, at, ok: ok === true } : null;
-	} catch {
-		return null;
-	}
-}
 
 /** The FCM token Android handed over, cached or still waiting on window. */
 function cachedPushToken(): string | null {
@@ -186,12 +165,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const apiFunctions = useApiFunctions();
 	const queryClient = useQueryClient();
 	const [savedAccounts, setSavedAccounts] = useState<SavedAccountMeta[]>([]);
-	// Until the first list_saved_accounts answer, an empty savedAccounts
-	// means "unknown", not "none" — native must not be told there are none.
-	const [savedAccountsLoaded, setSavedAccountsLoaded] = useState(false);
-	const savedAccountsRef = useRef(savedAccounts);
-	savedAccountsRef.current = savedAccounts;
-	const savedPushSyncInFlightRef = useRef(false);
 	// undefined = not yet resolved once; distinguishes "app boot" (nothing to
 	// clear, just point the chat db at whatever account is already logged
 	// in) from an actual account change (switch/logout) afterwards.
@@ -208,7 +181,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		try {
 			const accounts = await callMethod("list_saved_accounts");
 			setSavedAccounts(accounts);
-			setSavedAccountsLoaded(true);
 		} catch (error) {
 			appLog.warn("[Auth] refreshSavedAccounts failed", asAppError(error) ?? error);
 		}
@@ -263,9 +235,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			} else {
 				appLog.info("[Auth] checkAuth: no active session");
 				dispatch({ type: "CLEAR_USER" });
-				// Saved accounts still get pushes while signed out, and opening
-				// one switches to it — native needs the list either way.
-				void refreshSavedAccounts();
 			}
 		} catch (error) {
 			const appError = asAppError(error);
@@ -598,12 +567,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	const removeSavedAccount = async (profileId: string) => {
 		try {
-			await callMethod("remove_saved_account", { profileId, pushToken: cachedPushToken() });
-			// Grindr may unregister the token device-wide rather than for that
-			// account alone, so the remaining ones register it again: the
-			// saved-account marker changes with the account list by itself,
-			// the active one's is dropped here.
-			window.localStorage.removeItem(PUSH_TOKEN_SYNCED_STORAGE_KEY);
+			await callMethod("remove_saved_account", { profileId });
 			setSavedAccounts((accounts) => accounts.filter((account) => account.profileId !== profileId));
 		} catch (error) {
 			const appError = asAppError(error);
@@ -813,57 +777,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		let cancelled = false;
 
-		// The token is also registered for every other saved account, so
-		// their pushes keep arriving while they aren't the active one (see
-		// PushNotificationBridge for opening those).
-		const syncSavedAccountsPushToken = (token: string) => {
-			if (savedPushSyncInFlightRef.current) {
-				return;
-			}
-			const activeId = String(state.userId);
-			const otherIds = savedAccountsRef.current
-				.map((account) => account.profileId)
-				.filter((profileId) => profileId !== activeId)
-				.sort();
-			if (otherIds.length === 0) {
-				return;
-			}
-
-			const key = `${token}::${otherIds.join(",")}`;
-			const marker = readSavedPushSyncMarker();
-			if (
-				marker?.key === key &&
-				Date.now() - marker.at < (marker.ok ? SAVED_PUSH_SYNC_INTERVAL_MS : SAVED_PUSH_SYNC_RETRY_MS)
-			) {
-				return;
-			}
-
-			savedPushSyncInFlightRef.current = true;
-			appLog.debug(`[PUSH_SYNC] Syncing push token to ${otherIds.length} saved account(s)`);
-			void callMethod("sync_push_token_for_saved_accounts", { token })
-				.then((synced) => {
-					const ok = otherIds.every((profileId) => synced.includes(profileId));
-					if (!ok) {
-						appLog.warn("[PUSH_SYNC] Push token sync failed for some saved accounts", {
-							failed: otherIds.filter((profileId) => !synced.includes(profileId)),
-						});
-					}
-					return ok;
-				})
-				.catch((error) => {
-					appLog.warn(
-						"[PUSH_SYNC] Failed to sync push token to saved accounts",
-						asAppError(error)?.prettyMessage || error,
-					);
-					return false;
-				})
-				.then((ok) => {
-					const next: SavedPushSyncMarker = { key, at: Date.now(), ok };
-					window.localStorage.setItem(PUSH_TOKEN_SAVED_SYNCED_STORAGE_KEY, JSON.stringify(next));
-					savedPushSyncInFlightRef.current = false;
-				});
-		};
-
 		const trySync = () => {
 			if (cancelled) {
 				return;
@@ -885,8 +798,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			if (!token && fallbackToken) {
 				window.localStorage.setItem(PUSH_TOKEN_STORAGE_KEY, fallbackToken);
 			}
-
-			syncSavedAccountsPushToken(effectiveToken);
 
 			// Keyed by token *and* account: the device's FCM token doesn't change
 			// when switching between saved accounts, but the backend association
@@ -920,15 +831,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			window.clearInterval(interval);
 		};
 	}, [callMethod, asAppError, state.userId, state.isLoading]);
-
-	// Native routes pushes by account (PushAccounts.kt): which one is active,
-	// and which are saved at all.
-	useEffect(() => {
-		if (state.isLoading || !savedAccountsLoaded) {
-			return;
-		}
-		syncPushAccountsToNative(state.userId != null ? String(state.userId) : null, savedAccounts);
-	}, [state.userId, state.isLoading, savedAccounts, savedAccountsLoaded]);
 
 	// Persist current user id so non-React services (e.g. hotswap) can re-register after updates.
 	useEffect(() => {

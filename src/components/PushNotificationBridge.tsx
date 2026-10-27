@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { listen } from "@tauri-apps/api/event";
-import { useAuth } from "../contexts/useAuth";
 import { appLog } from "../utils/logger";
 
 type NativePushNotificationDetail = {
@@ -16,9 +15,6 @@ type NativePushNotificationDetail = {
 	// FreeGrindFirebaseMessagingService.buildSystemPushPayload.
 	isSystem?: boolean;
 	growthType?: string | null;
-	// The saved account a chat push was sent to (native PushAccounts);
-	// absent when it can't be told, which means the active one.
-	accountId?: string | null;
 };
 
 declare global {
@@ -158,78 +154,9 @@ function getNotificationRoute(detail: NativePushNotificationDetail): string | nu
 	return null;
 }
 
-function getAccountId(detail: NativePushNotificationDetail): string | null {
-	return typeof detail.accountId === "string" && detail.accountId.trim() ? detail.accountId.trim() : null;
-}
-
 export function PushNotificationBridge() {
 	const navigate = useNavigate();
-	const { userId, isLoading, switchAccount } = useAuth();
 	const recentlyHandledKeysRef = useRef<Map<string, number>>(new Map());
-	// Live auth state for the listeners below, which are registered once.
-	const authRef = useRef({ userId, isLoading, switchAccount });
-	authRef.current = { userId, isLoading, switchAccount };
-	// An opened notification for another account that arrived while auth
-	// was still resolving (cold start from the notification): whether a
-	// switch is needed can only be told once it has.
-	const pendingAccountOpenRef = useRef<{ detail: NativePushNotificationDetail; route: string } | null>(null);
-
-	const openRoute = useCallback(
-		(route: string) => {
-			try {
-				// A notification for the conversation already reflected
-				// in the URL (e.g. a repeat click, or the user manually
-				// switched to a different conversation in-page without
-				// the URL changing — desktop selection never touches
-				// it) navigates to a path react-router treats as
-				// unchanged, so `useParams()` doesn't update and
-				// nothing reacts. The state nonce forces a fresh
-				// location on every click regardless of path equality.
-				navigate(route, { state: { notificationClickedAt: Date.now() } });
-			} catch (error) {
-				appLog.error(
-					"[PUSH_EVENT] Failed to navigate to notification route",
-					error,
-				);
-				navigate("/chat");
-			}
-		},
-		[navigate],
-	);
-
-	// Pushes arrive for every saved account: one for an account other than
-	// the active one switches to it before opening the chat.
-	const openForAccount = useCallback(
-		async (detail: NativePushNotificationDetail, route: string) => {
-			const accountId = getAccountId(detail);
-			const auth = authRef.current;
-			if (accountId && auth.isLoading) {
-				pendingAccountOpenRef.current = { detail, route };
-				return;
-			}
-			if (accountId && accountId !== String(auth.userId)) {
-				appLog.info("[PUSH_EVENT] Switching account for notification", { accountId });
-				try {
-					await auth.switchAccount(accountId);
-				} catch (error) {
-					// switchAccount already told the user; the chat belongs to
-					// an account we couldn't switch to, so don't open it.
-					appLog.warn("[PUSH_EVENT] Account switch for notification failed", error);
-					return;
-				}
-			}
-			openRoute(route);
-		},
-		[openRoute],
-	);
-
-	useEffect(() => {
-		if (isLoading) return;
-		const pending = pendingAccountOpenRef.current;
-		if (!pending) return;
-		pendingAccountOpenRef.current = null;
-		void openForAccount(pending.detail, pending.route);
-	}, [isLoading, openForAccount]);
 
 	useEffect(() => {
 		const markHandled = (detail: NativePushNotificationDetail): boolean => {
@@ -262,7 +189,23 @@ export function PushNotificationBridge() {
 			if (detail.event === "opened") {
 				const route = getNotificationRoute(detail);
 				if (route) {
-					void openForAccount(detail, route);
+					try {
+						// A notification for the conversation already reflected
+						// in the URL (e.g. a repeat click, or the user manually
+						// switched to a different conversation in-page without
+						// the URL changing — desktop selection never touches
+						// it) navigates to a path react-router treats as
+						// unchanged, so `useParams()` doesn't update and
+						// nothing reacts. The state nonce forces a fresh
+						// location on every click regardless of path equality.
+						navigate(route, { state: { notificationClickedAt: Date.now() } });
+					} catch (error) {
+						appLog.error(
+							"[PUSH_EVENT] Failed to navigate to notification route",
+							error,
+						);
+						navigate("/chat");
+					}
 				}
 			}
 		};
@@ -307,7 +250,7 @@ export function PushNotificationBridge() {
 			);
 			unlistenClicked?.();
 		};
-	}, [openForAccount]);
+	}, [navigate]);
 
 	return null;
 }

@@ -49,9 +49,6 @@ object NotificationPoster {
     private const val EXTRA_LINE_KEY = "dev.estopia.free_grind.extra.LINE_KEY"
     // Marks a line as the user's own inline reply (see NotificationReply.kt).
     private const val EXTRA_LINE_FROM_ME = "dev.estopia.free_grind.extra.LINE_FROM_ME"
-    // The receiving account's label (PushAccounts.label), kept so re-posts
-    // after an inline reply restore it as the sub text.
-    private const val EXTRA_ACCOUNT_LABEL = "dev.estopia.free_grind.extra.ACCOUNT_LABEL"
 
     // Messages kept in one conversation's notification (newest win).
     private const val CONVERSATION_LINES_MAX = 8
@@ -232,7 +229,7 @@ object NotificationPoster {
             val notification = NotificationCompat.Builder(context, posted.notification)
                 .setStyle(styleOf(style.user, peer, lines))
                 .setWhen(lines.last().timestamp)
-                .setSubText(note ?: posted.notification.extras.getString(EXTRA_ACCOUNT_LABEL))
+                .setSubText(note)
                 .setOnlyAlertOnce(true)
                 .build()
             notificationManager.notify(posted.tag, posted.id, notification)
@@ -340,22 +337,11 @@ object NotificationPoster {
             rawData = rawData,
         )
 
-        // Pushes arrive for every saved account (see PushAccounts). One that
-        // was removed since may still be registered — drop its pushes.
-        val accountId = normalizeNullableString(payload.optString("accountId"))
-        if (accountId != null && !PushAccounts.isSaved(context, accountId)) {
-            Log.d("FCM", "Suppressing notification (account $accountId no longer saved)")
-            return
-        }
-        val forOtherAccount = !PushAccounts.isActive(context, accountId)
-
         // FCM only covers the background (like open-grind's PushReceiver):
         // while the app is visible the realtime bridge notifies instead, so
-        // the two channels never deliver the same message twice. The bridge
-        // only listens for the active account, so other accounts' pushes
-        // still show.
+        // the two channels never deliver the same message twice.
         val fromRealtime = payload.optString("source") == "realtime"
-        if (!fromRealtime && MainActivity.inForeground && !forOtherAccount) {
+        if (!fromRealtime && MainActivity.inForeground) {
             Log.d("FCM", "Suppressing push notification (app visible, realtime bridge covers it)")
             return
         }
@@ -387,10 +373,10 @@ object NotificationPoster {
         // (taps tab for tap notifications; the matching conversation for chat
         // notifications). The frontend keeps MainActivity informed via the
         // FreeGrindBridge.setActiveRoute JS hook.
-        val suppress = when {
-            forOtherAccount -> false
-            isTap -> MainActivity.isOnTapsScreen()
-            else -> MainActivity.isOnConversation(conversationId)
+        val suppress = if (isTap) {
+            MainActivity.isOnTapsScreen()
+        } else {
+            MainActivity.isOnConversation(conversationId)
         }
         if (suppress) {
             Log.d("FCM", "Suppressing notification (user on matching screen)")
@@ -457,14 +443,10 @@ object NotificationPoster {
             .setImportant(true)
             .build()
 
-        val accountLabel = PushAccounts.label(context, accountId)
-
         val builder = NotificationCompat.Builder(context, channelId)
             // Status-bar icon: monochrome stencil with transparent background only.
             .setSmallIcon(AppDisguise.currentDisguise(context).notificationIconRes)
             .addPerson(sender)
-            // Which of the user's accounts this is for, once there are several.
-            .setSubText(accountLabel)
             // Keep the badge overlay neutral and avoid OEM color plates.
             .setColor(Color.TRANSPARENT)
             .setColorized(false)
@@ -481,18 +463,13 @@ object NotificationPoster {
                 // card-level one would make unsend drop the whole card.
                 if (isTap) putString(EXTRA_PUSH_NOTIFICATION_ID, normalizeNullableString(rawData?.optString("notificationId")))
                 putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
-                if (accountLabel != null) putString(EXTRA_ACCOUNT_LABEL, accountLabel)
             })
 
         // WhatsApp-style action buttons on chat notifications. Taps already
         // open the sender's profile and have no conversation to open.
         val senderId = normalizeNullableString(payload.optString("senderId"))
         if (!isTap && senderId != null) {
-            // Replies are sent as the active account, so another account's
-            // chat only gets the open actions (which switch accounts first).
-            if (conversationId != null && !forOtherAccount) {
-                builder.addAction(replyAction(context, notificationKey, conversationId, senderId, accountId))
-            }
+            if (conversationId != null) builder.addAction(replyAction(context, notificationKey, conversationId, senderId))
             builder
                 .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_CHAT), pendingIntent).build())
                 .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_PROFILE), openIntent("profile")).build())
@@ -521,20 +498,13 @@ object NotificationPoster {
 
     // Inline reply field (handled by NotificationReplyReceiver). The intent
     // must be mutable so System UI can attach the typed text, hence explicit.
-    private fun replyAction(
-        context: Context,
-        tag: String,
-        conversationId: String,
-        targetProfileId: String,
-        accountId: String?,
-    ): NotificationCompat.Action {
+    private fun replyAction(context: Context, tag: String, conversationId: String, targetProfileId: String): NotificationCompat.Action {
         val intent = Intent(context, NotificationReplyReceiver::class.java).apply {
             action = NotificationReply.ACTION_REPLY
             data = Uri.parse("freegrind-notification://reply/${Uri.encode(tag)}")
             putExtra(NotificationReply.EXTRA_NOTIFICATION_TAG, tag)
             putExtra(NotificationReply.EXTRA_CONVERSATION_ID, conversationId)
             putExtra(NotificationReply.EXTRA_TARGET_PROFILE_ID, targetProfileId)
-            if (accountId != null) putExtra(NotificationReply.EXTRA_ACCOUNT_ID, accountId)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context, tag.hashCode(), intent, PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,

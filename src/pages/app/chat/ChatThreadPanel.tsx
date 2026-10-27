@@ -2235,33 +2235,33 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 ${!isDesktop ? "rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]" : "rounded-xl border border-[var(--accent)] bg-[var(--surface-2)]"}`}>
+							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 rounded-[25px] border border-transparent bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]`}>
 								{/* No fixed height: like the composer it's border + py-1 + its h-10/h-8
 								    buttons, all in rem, so the two match even when the system font
 								    scale changes rem (a px height drifted from it). */}
 								<div className="flex-1 min-w-0">
-									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} largeButton={!isDesktop} />
+									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} largeButton />
 								</div>
 								{/* Same size as the composer's send button, so the two read as a pair. */}
 								<button
 									type="button"
 									onClick={() => { setRecordedWaveform([]); props.cancelAudio(); }}
 									disabled={props.isSendingAudio}
-									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full active:scale-90" : "h-8 w-8 rounded-lg"} items-center justify-center text-[var(--text-muted)] transition hover:text-red-500 active:text-red-500 disabled:opacity-40`}
+									className={`shrink-0 inline-flex h-10 w-10 rounded-full active:scale-90 items-center justify-center text-[var(--text-muted)] transition hover:text-red-500 active:text-red-500 disabled:opacity-40`}
 									aria-label={t("chat.actions.cancel")}
 								>
-									<Trash2 className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />
+									<Trash2 className={"h-5 w-5"} />
 								</button>
 								<button
 									type="button"
 									onClick={() => { setRecordedWaveform([]); void props.confirmAudio(); }}
 									disabled={props.isSendingAudio}
-									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] active:scale-90" : "h-8 w-8 rounded-lg text-[var(--accent)]"} items-center justify-center transition hover:opacity-80 disabled:opacity-60`}
+									className={`shrink-0 inline-flex h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] active:scale-90 items-center justify-center transition hover:opacity-80 disabled:opacity-60`}
 									aria-label={t("chat.attachments.send")}
 								>
 									{props.isSendingAudio
-										? <Loader2 className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-spin`} />
-										: <SendHorizontalFilled className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />}
+										? <Loader2 className={`h-5 w-5 animate-spin`} />
+										: <SendHorizontalFilled className={"h-5 w-5"} />}
 								</button>
 							</div>
 						) : null}
@@ -2269,11 +2269,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						{slashMatches.length > 0 && (
 							<div
 								onMouseDown={(event) => event.preventDefault()}
-								// Mobile: a frosted card floating above the pill composer (same
-								// material), instead of a tab fused onto the desktop input.
-								className={!isDesktop
-									? "absolute bottom-full left-0 right-0 z-40 mb-2 max-h-64 overflow-hidden rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] shadow-[0_-1px_4px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl"
-									: "absolute bottom-full left-0 right-0 max-h-64 overflow-hidden rounded-t-2xl border-x border-t border-[var(--accent)] bg-[var(--surface)] shadow-xl z-40"}>
+								// A frosted card floating above the pill composer (same material).
+								className="absolute bottom-full left-0 right-0 z-40 mb-2 max-h-64 overflow-hidden rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] shadow-[0_-1px_4px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl">
 								<div data-lenis-prevent className="max-h-64 overflow-y-auto p-1.5">
 								<div className="flex flex-col gap-1">
 									{slashMatches.map((command, index) => {
@@ -2287,12 +2284,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												onClick={() => selectSlashCommand(command)}
 												onMouseEnter={() => setSlashSelectedIndex(index)}
 												title={isDisabled ? t("chat.slash_commands.errors.no_conversation", { defaultValue: "Open a chat first" }) : undefined}
-												className={`w-full text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${!isDesktop ? "rounded-2xl active:scale-[0.98]" : "rounded-xl"} ${
+												className={`w-full text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 rounded-2xl active:scale-[0.98] ${
 													isSelected
 														? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-														: !isDesktop
-															? "active:ink-tint-8"
-															: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]"
+														: isDesktop
+															? "hover:ink-tint-8"
+															: "active:ink-tint-8"
 												}`}
 											>
 												<div className="flex items-center gap-1.5 text-sm font-semibold">
@@ -2335,38 +2332,28 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									})}
 								</div>
 								</div>
-								{isDesktop && (
-									<>
-										<div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-black/30 to-transparent" />
-										<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[var(--border)]" />
-									</>
-								)}
 							</div>
 						)}
-						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${!isDesktop ? "rounded-[25px]" : slashMatches.length > 0 ? "rounded-b-xl border-t-0" : "rounded-xl"} border py-1 mb-2 transition-colors ${
-							!isDesktop
-								// Mobile: no outline, state is shown through the fill instead.
-								? isRecording
-									? `pl-1 pr-1 border-transparent ${recordingMs >= 50_000 ? "bg-red-500/15" : "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]"}`
-									: "pl-3 pr-1 border-transparent bg-[var(--surface-2)]"
-								: isRecording
-									? `pl-1 pr-1 ${recordingMs >= 50_000 ? "border-red-500" : "border-[var(--accent)]"} bg-[var(--surface-2)]`
-									: "pl-3 pr-1 border-[var(--border)] bg-[var(--surface-2)] focus-within:border-[var(--accent)]"
+						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 rounded-[25px] border py-1 mb-2 transition-colors ${
+							// No outline, state is shown through the fill instead.
+							isRecording
+								? `pl-1 pr-1 border-transparent ${recordingMs >= 50_000 ? "bg-red-500/15" : "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]"}`
+								: "pl-3 pr-1 border-transparent bg-[var(--surface-2)]"
 						}`}>
 							{isRecording ? (
 								<>
 									<button
 										type="button"
 										onClick={cancelRecording}
-										className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center rounded-lg`}
+										className={`shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg`}
 										style={{ color: `color-mix(in srgb, var(--accent) ${Math.round((1 - dragProgress) * 100)}%, #ef4444)` }}
 										aria-label={t("chat.cancel_recording", { defaultValue: "Cancel" })}
 									>
-										<span className={`relative ${!isDesktop ? "h-5 w-5" : "h-4 w-4"}`}>
+										<span className={`relative h-5 w-5`}>
 											<span className="absolute inset-0" style={{ opacity: Math.max(0, 1 - dragProgress * 2) }}>
-											<MicFilled className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-pulse`} />
+											<MicFilled className={`h-5 w-5 animate-pulse`} />
 										</span>
-											<Trash2 className={`absolute inset-0 ${!isDesktop ? "h-5 w-5" : "h-4 w-4"} ${trashBounce ? "animate-trash-bounce" : ""}`} style={{ opacity: Math.max(0, (dragProgress - 0.3) / 0.7) }} />
+											<Trash2 className={`absolute inset-0 h-5 w-5 ${trashBounce ? "animate-trash-bounce" : ""}`} style={{ opacity: Math.max(0, (dragProgress - 0.3) / 0.7) }} />
 										</span>
 									</button>
 									<span className={`text-sm font-semibold tabular-nums shrink-0 ${recordingMs >= 50_000 ? "text-red-500 animate-pulse" : "text-[var(--accent)]"}`}>
@@ -2446,7 +2433,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											? t("chat.write_message")
 											: t("chat.new_conversation.write_first_message")
 									}
-									className={`flex-1 bg-transparent ${!isDesktop ? "py-2.5" : "py-1.5"} text-sm leading-5 text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60`}
+									className={`flex-1 bg-transparent py-2.5 text-sm leading-5 text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60`}
 									style={{ fieldSizing: "content", maxHeight: "115px" } as React.CSSProperties}
 								/>
 							)}
@@ -2455,10 +2442,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									key="stop"
 									type="button"
 									onClick={() => stopRecording()}
-									className={`shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center rounded-lg text-red-500 hover:opacity-80 transition`}
+									className={`shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg text-red-500 hover:opacity-80 transition`}
 									aria-label={t("chat.stop_recording", { defaultValue: "Stop recording" })}
 								>
-									<Square className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} fill-current`} />
+									<Square className={`h-5 w-5 fill-current`} />
 								</button>
 							) : isSendingDrawerMedia && draft.trim().length === 0 && !isSending ? (
 								// Drawer send in flight (its sheet is already closed): the send
@@ -2467,10 +2454,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									key="drawer-send"
 									type="button"
 									disabled
-									className={`relative shrink-0 inline-flex ${!isDesktop ? "h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "h-8 w-8 rounded-lg text-[var(--accent)]"} items-center justify-center`}
+									className={`relative shrink-0 inline-flex h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] items-center justify-center`}
 									aria-label={t("chat.sending")}
 								>
-									<Loader2 className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-spin`} />
+									<Loader2 className={`h-5 w-5 animate-spin`} />
 									{drawerSendProgress && drawerSendProgress.total > 1 ? (
 										<span className="absolute -right-1 -top-1 min-w-[1.25rem] rounded-full bg-[var(--surface)] px-1 text-center text-[10px] font-semibold leading-4 tabular-nums text-[var(--text)] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
 											{Math.min(drawerSendProgress.done + 1, drawerSendProgress.total)}/{drawerSendProgress.total}
@@ -2487,9 +2474,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									disabled={isSending || !!pendingLocationShare || draft.trim().length === 0}
 									// Mobile: the invisible ::after widens the tap target past the
 									// pill's edge, so a slightly-off tap still sends.
-									className={`shrink-0 inline-flex ${!isDesktop ? "relative h-10 w-10 after:absolute after:-inset-x-3 after:-inset-y-2 after:content-['']" : "h-8 w-8"} items-center justify-center transition hover:opacity-80 disabled:opacity-30 ${!isDesktop ? "rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]" : "rounded-lg text-[var(--accent)]"}`}
+									className={`shrink-0 inline-flex relative h-10 w-10 after:absolute after:-inset-x-3 after:-inset-y-2 after:content-[''] items-center justify-center transition hover:opacity-80 disabled:opacity-30 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]`}
 								>
-									{isSending ? <Loader2 className={`${!isDesktop ? "h-5 w-5" : "h-4 w-4"} animate-spin`} /> : <SendHorizontalFilled className={!isDesktop ? "h-5 w-5" : "h-4 w-4"} />}
+									{isSending ? <Loader2 className={`h-5 w-5 animate-spin`} /> : <SendHorizontalFilled className={"h-5 w-5"} />}
 								</button>
 							) : (
 								<button
@@ -2527,7 +2514,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									} : undefined}
 									onPointerUp={!isDesktop ? () => { isCapturingRef.current = false; setRecordDragX(0); if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; } setShowRecordCircle(false); stopRecording(true); } : undefined}
 									onPointerCancel={!isDesktop ? () => { isCapturingRef.current = false; setRecordDragX(0); if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; } setShowRecordCircle(false); cancelRecording(); } : undefined}
-									className={`relative shrink-0 inline-flex ${!isDesktop ? "h-10 w-10" : "h-8 w-8"} items-center justify-center rounded-lg transition select-none touch-none ${isRecording ? "text-red-500" : "text-[var(--accent)] hover:opacity-80"}`}
+									className={`relative shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg transition select-none touch-none ${isRecording ? "text-red-500" : "text-[var(--accent)] hover:opacity-80"}`}
 									style={showRecordCircle ? {
 										transform: `translateX(${recordDragX}px)`,
 										transition: recordDragX === 0 ? "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)" : "none",

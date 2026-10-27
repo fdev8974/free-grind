@@ -21,9 +21,6 @@ type NotificationReply = {
 	id?: string;
 	conversationId?: string;
 	targetProfileId?: string;
-	// The account the chat belongs to; null for one posted before
-	// multi-account push or that native couldn't attribute.
-	accountId?: string | null;
 	text?: string;
 	notificationTag?: string;
 	createdAt?: number;
@@ -56,8 +53,6 @@ export function NotificationReplyBridge() {
 	const apiFunctions = useApiFunctions();
 	const apiFunctionsRef = useRef(apiFunctions);
 	apiFunctionsRef.current = apiFunctions;
-	const userIdRef = useRef(userId);
-	userIdRef.current = userId;
 	// Native may dispatch the same reply twice (receiver + next WebView start).
 	const handledIds = useRef(new Set<string>());
 
@@ -70,15 +65,6 @@ export function NotificationReplyBridge() {
 		const send = async (reply: NotificationReply) => {
 			const text = reply.text?.trim();
 			if (!reply.conversationId || !reply.targetProfileId || !text) {
-				reportResult(reply, false);
-				return;
-			}
-			// Sending goes out as the active account: a reply typed into
-			// another account's chat (the account was switched since the
-			// notification was posted) would reach the person from the wrong
-			// profile.
-			if (reply.accountId && reply.accountId !== String(userIdRef.current)) {
-				appLog.warn("[notification-reply] Dropping reply for an account that isn't active", reply.id);
 				reportResult(reply, false);
 				return;
 			}

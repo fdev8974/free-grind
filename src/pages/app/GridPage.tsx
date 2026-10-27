@@ -28,7 +28,6 @@ import {
 	setCachedProfileDetail,
 } from "./gridpage/cache";
 import { setSavedAccountDisplayName, setSavedAccountPhotoHash } from "../../services/savedAccountProfiles";
-import { refreshPushAccountLabels } from "../../services/pushAccounts";
 import {
 	type BrowseSortOption,
 	getCachedBrowseFiltersDraft,
@@ -468,7 +467,6 @@ export function GridPage() {
 		if (!userId || !myProfile) return;
 		setSavedAccountPhotoHash(String(userId), profileImageHash);
 		setSavedAccountDisplayName(String(userId), ownDisplayName);
-		refreshPushAccountLabels();
 	}, [userId, myProfile, profileImageHash, ownDisplayName]);
 
 	// Mirrors the official app: the mode goes onto the profile

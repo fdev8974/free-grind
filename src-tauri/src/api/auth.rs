@@ -704,26 +704,6 @@ impl AuthStorage {
         Self::write_account_index(&index)
     }
 
-    /// Rewrites an already saved account's session, e.g. after a background
-    /// refresh, without touching the switcher index: unlike `save_account`,
-    /// it doesn't bump `last_used_at` or re-add a removed account.
-    pub fn update_saved_session(session: &grindr::Session, device: &grindr::DeviceInfo) -> Result<(), AppError> {
-        let Some(profile_id) = session.credentials.profile_id.as_deref() else {
-            return Ok(());
-        };
-        let slot = account_slot(profile_id);
-        if get_slot_bytes(&slot)?.is_none() {
-            return Ok(());
-        }
-        let saved = SavedAccount {
-            session: StoredSession::from(session),
-            device: device.clone(),
-        };
-        let bytes =
-            rmp_serde::encode::to_vec_named(&saved).map_err(|e| AppError::Auth(e.to_string()))?;
-        set_slot_bytes(&slot, &bytes)
-    }
-
     pub fn get_account(profile_id: &str) -> Result<Option<(grindr::Session, grindr::DeviceInfo)>, AppError> {
         Ok(get_slot_bytes(&account_slot(profile_id))?.and_then(|bytes| decode_account(&bytes)))
     }
@@ -1304,33 +1284,8 @@ pub async fn switch_account(app: tauri::AppHandle, profile_id: String) -> Result
     Ok(result)
 }
 
-/// With `push_token`, first stops Grindr pushing to this device for the
-/// account (best effort — removal goes ahead either way), so a removed
-/// account's notifications stop instead of being dropped one by one.
 #[tauri::command]
-pub async fn remove_saved_account(
-    state: tauri::State<'_, AppState>,
-    profile_id: String,
-    push_token: Option<String>,
-) -> Result<(), AppError> {
-    if let Some(token) = push_token.as_deref().map(str::trim).filter(|t| !t.is_empty()) {
-        let active_client = state
-            .client()
-            .ok()
-            .filter(|client| session_profile_id(client).as_deref() == Some(profile_id.as_str()));
-        let result = match active_client {
-            Some(client) => unregister_push_token(&client, token).await,
-            None => {
-                with_saved_account_client(&profile_id, |client| async move {
-                    unregister_push_token(&client, token).await
-                })
-                .await
-            }
-        };
-        if let Err(e) = result {
-            eprintln!("[push] failed to unregister push token for {profile_id}: {e}");
-        }
-    }
+pub async fn remove_saved_account(profile_id: String) -> Result<(), AppError> {
     AuthStorage::remove_saved_account(&profile_id)
 }
 
@@ -1511,7 +1466,8 @@ pub async fn websocket_token(state: tauri::State<'_, AppState>) -> Result<Option
         .map(|token| token.session_id.clone()))
 }
 
-fn trimmed_push_token(token: &str) -> Result<&str, AppError> {
+#[tauri::command]
+pub async fn sync_push_token(state: tauri::State<'_, AppState>, token: String) -> Result<(), AppError> {
     let trimmed = token.trim();
     if trimmed.is_empty() {
         return Err(AppError::Api {
@@ -1519,17 +1475,18 @@ fn trimmed_push_token(token: &str) -> Result<&str, AppError> {
             message: "Push token is empty".to_owned(),
         });
     }
-    Ok(trimmed)
-}
 
-async fn push_token_request(
-    client: &grindr::GrindrClient,
-    request: grindr::RequestBuilder,
-) -> Result<(), AppError> {
-    let response = request
+    let identifier = trimmed.split(':').next().unwrap_or(trimmed);
+    let client = state.client()?;
+    let response = client
+        .request(grindr::Method::POST, "/v3/gcm-push-tokens")
+        .json(&serde_json::json!({
+            "vendorProvidedIdentifier": identifier,
+            "token": trimmed,
+        }))
         .send()
         .await
-        .map_err(|e| AppError::from_client_error(e, client))?;
+        .map_err(|e| AppError::from_client_error(e, &client))?;
 
     if (200..300).contains(&response.status) {
         Ok(())
@@ -1539,85 +1496,6 @@ async fn push_token_request(
             &response.body,
         )))
     }
-}
-
-async fn register_push_token(client: &grindr::GrindrClient, token: &str) -> Result<(), AppError> {
-    let identifier = token.split(':').next().unwrap_or(token);
-    let request = client
-        .request(grindr::Method::POST, "/v3/gcm-push-tokens")
-        .json(&serde_json::json!({
-            "vendorProvidedIdentifier": identifier,
-            "token": token,
-        }));
-    push_token_request(client, request).await
-}
-
-async fn unregister_push_token(client: &grindr::GrindrClient, token: &str) -> Result<(), AppError> {
-    // `push-tokens`, not the `gcm-push-tokens` it was registered with.
-    let request = client.request(grindr::Method::DELETE, &format!("/v3/push-tokens/{token}"));
-    push_token_request(client, request).await
-}
-
-/// Runs `call` with a throwaway client for a saved account other than the
-/// active one: no websocket, no persistence tasks. Its session refreshes on
-/// first use, and that refresh is written back to the account's saved slot
-/// so switching to it later doesn't start from the stale token.
-async fn with_saved_account_client<T, F, Fut>(profile_id: &str, call: F) -> Result<T, AppError>
-where
-    F: FnOnce(grindr::GrindrClient) -> Fut,
-    Fut: std::future::Future<Output = Result<T, AppError>>,
-{
-    let (session, device) = AuthStorage::get_account(profile_id)?
-        .ok_or_else(|| AppError::Auth("No saved session for this account".to_owned()))?;
-    let client = super::client::build_client(Some(device.clone()), Some(session))?;
-    let result = call(client.clone()).await;
-
-    let refreshed = client.session_receiver().borrow().clone();
-    if let Some(session) = refreshed {
-        if let Err(e) = AuthStorage::update_saved_session(&session, &device) {
-            eprintln!("[push] failed to keep refreshed session for {profile_id}: {e}");
-        }
-    }
-    // Local state only, no server call.
-    client.sign_out().await;
-    result
-}
-
-#[tauri::command]
-pub async fn sync_push_token(state: tauri::State<'_, AppState>, token: String) -> Result<(), AppError> {
-    let token = trimmed_push_token(&token)?;
-    let client = state.client()?;
-    register_push_token(&client, token).await
-}
-
-/// Registers the device's push token for every saved account except the
-/// active one (`sync_push_token` covers that), so pushes keep arriving for
-/// accounts the user isn't currently switched to — also after FCM rotates
-/// the token. Returns the profile ids it succeeded for; a failing account is
-/// skipped rather than failing the rest.
-#[tauri::command]
-pub async fn sync_push_token_for_saved_accounts(
-    state: tauri::State<'_, AppState>,
-    token: String,
-) -> Result<Vec<String>, AppError> {
-    let token = trimmed_push_token(&token)?;
-    let active = state.client().ok().and_then(|client| session_profile_id(&client));
-
-    let mut synced = Vec::new();
-    for account in AuthStorage::list_saved_accounts()? {
-        if active.as_deref() == Some(account.profile_id.as_str()) {
-            continue;
-        }
-        let result = with_saved_account_client(&account.profile_id, |client| async move {
-            register_push_token(&client, token).await
-        })
-        .await;
-        match result {
-            Ok(()) => synced.push(account.profile_id),
-            Err(e) => eprintln!("[push] failed to register push token for {}: {e}", account.profile_id),
-        }
-    }
-    Ok(synced)
 }
 
 #[cfg(test)]

@@ -12,7 +12,6 @@ import { useApi } from "../../hooks/useApi";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { saveTextFile } from "../../services/saveTextFile";
 import { isAndroid, isIos } from "../../services/saveMedia";
-import { getSavedAccountProfile } from "../../services/savedAccountProfiles";
 import {
 	clearPushEventLog,
 	expandJsonStrings,
@@ -30,7 +29,6 @@ import { CodeBlock, HEADER_ICON_BUTTON_CLASS, copyText, formatTimestamp } from "
 // Same keys as AuthContext's push token sync.
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
 const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
-const PUSH_TOKEN_SAVED_SYNCED_STORAGE_KEY = "fg-fcm-token-synced-saved";
 
 type EntryKind = "chat" | "tap" | "system" | "token";
 type Filter = "all" | EntryKind | "opened";
@@ -63,12 +61,6 @@ function entryTitle(entry: PushLogEntry): string {
 function entryBody(entry: PushLogEntry): string | null {
 	if (entry.kind === "token") return field(entry.payload, "token");
 	return field(entry.payload, "bodyText");
-}
-
-function accountLabel(accountId: string | null): string | null {
-	if (!accountId) return null;
-	const name = getSavedAccountProfile(accountId).displayName;
-	return name ? `${name} (${accountId})` : accountId;
 }
 
 /** Readable in light and dark: tinted fill, 500-ish text. */
@@ -108,7 +100,6 @@ function EntryDetailSheet({ entry, onClose, isDesktop }: { entry: PushLogEntry; 
 		["Sender", field(payload, "senderName") ?? field(payload, "systemTitle")],
 		["Sender ID", field(payload, "senderId")],
 		["Conversation", field(payload, "conversationId")],
-		["Account", accountLabel(field(payload, "accountId"))],
 		["Message type", field(payload, "messageType")],
 		["Growth type", field(payload, "growthType")],
 		["Action", field(payload, "action")],
@@ -225,20 +216,6 @@ function readCurrentToken(): string | null {
 	return typeof win.__FG_FCM_TOKEN === "string" ? win.__FG_FCM_TOKEN : null;
 }
 
-/** AuthContext's last registration for the saved accounts that aren't active. */
-function readSavedAccountsSync(): { count: number; at: number; ok: boolean } | null {
-	try {
-		const parsed = JSON.parse(window.localStorage.getItem(PUSH_TOKEN_SAVED_SYNCED_STORAGE_KEY) ?? "null") as
-			| { key?: unknown; at?: unknown; ok?: unknown }
-			| null;
-		if (!parsed || typeof parsed.key !== "string" || typeof parsed.at !== "number") return null;
-		const ids = parsed.key.split("::")[1] ?? "";
-		return { count: ids ? ids.split(",").length : 0, at: parsed.at, ok: parsed.ok === true };
-	} catch {
-		return null;
-	}
-}
-
 export function PushInspectorPage() {
 	const isDesktop = useDesktopBreakpoint();
 	const { userId } = useAuth();
@@ -268,7 +245,6 @@ export function PushInspectorPage() {
 	// Marker is `${token}::${userId}` (see AuthContext): the token is shared
 	// across saved accounts, but registration is per account.
 	const isSynced = token != null && syncedMarker === `${token}::${userId}`;
-	const savedSync = readSavedAccountsSync();
 
 	const syncToken = async (tokenToSync: string): Promise<boolean> => {
 		setIsSyncing(true);
@@ -381,12 +357,6 @@ export function PushInspectorPage() {
 									</button>
 								</div>
 							)}
-							{savedSync && savedSync.count > 0 && (
-								<p className="mt-2 text-xs leading-snug text-[var(--text-muted)]">
-									{savedSync.ok ? "Also registered" : "Registration failed"} for {savedSync.count} other saved account
-									{savedSync.count === 1 ? "" : "s"} · {new Date(savedSync.at).toLocaleString()}
-								</p>
-							)}
 						</div>
 					</div>
 					<button
@@ -454,7 +424,6 @@ export function PushInspectorPage() {
 							{filtered.map((entry) => {
 								const event = entryEvent(entry);
 								const body = entryBody(entry);
-								const account = field(entry.payload, "accountId");
 								return (
 									<button
 										key={entry.id}
@@ -470,7 +439,6 @@ export function PushInspectorPage() {
 											)}
 											<p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
 												{formatTimestamp(entry.at)} · {entryKind(entry)}
-												{account ? ` · account ${getSavedAccountProfile(account).displayName ?? account}` : ""}
 											</p>
 										</div>
 										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
