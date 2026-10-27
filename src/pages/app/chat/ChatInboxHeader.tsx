@@ -176,8 +176,11 @@ export function ChatInboxHeader({
 
 					{/* Row 2: filter pills */}
 					{!isSearchOpen && (
-						<div className="-mx-[var(--app-px)] overflow-x-auto pb-4 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-							<div className="flex min-w-max items-center gap-2 px-[var(--app-px)]">
+						{/* The scroller clips the pills' shadow-2xl; pb-16/-mb-12 gives it room without
+						    changing layout, and pointer-events stay on the row so the extra strip
+						    doesn't swallow taps on the list below. */}
+						<div className="pointer-events-none -mx-[var(--app-px)] -mb-12 overflow-x-auto pb-16 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+							<div className="pointer-events-auto flex min-w-max items-center gap-2 px-[var(--app-px)]">
 								<button
 									type="button"
 									onClick={() => {

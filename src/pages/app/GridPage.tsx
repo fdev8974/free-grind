@@ -1775,9 +1775,10 @@ export function GridPage() {
 							<div
 								ref={chipRowFade.ref}
 								onScroll={chipRowFade.onScroll}
-								className="-mx-[var(--app-px)] overflow-x-auto pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+								// Extra bottom room (cancelled by -mb) so the scroller doesn't clip the pills' shadow.
+								className="pointer-events-none -mx-[var(--app-px)] -mb-15 overflow-x-auto pb-16 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
 							>
-								<div className="flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">
+								<div className="pointer-events-auto flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">
 									<button
 										type="button"
 										onClick={() => setIsSortSheetOpen(true)}
