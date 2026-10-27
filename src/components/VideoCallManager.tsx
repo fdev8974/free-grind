@@ -29,6 +29,7 @@ import {
 	type VideoCallIncomingDetail,
 	type VideoCallEndedDetail,
 } from "./ChatRealtimeBridge";
+import type { IRemoteVideoTrack } from "agora-rtc-sdk-ng";
 import { AgoraCallSession, WebRtcUnsupportedError, isWebRtcSupported } from "../services/agoraCall";
 import { getProfileImageUrl } from "../utils/media";
 import { appLog } from "../utils/logger";
@@ -178,6 +179,11 @@ export function VideoCallManager() {
 	const closingRef = useRef(false);
 	const localVideoRef = useRef<HTMLDivElement | null>(null);
 	const remoteVideoRef = useRef<HTMLDivElement | null>(null);
+	// The remote track can arrive before the "active" layout (and so
+	// remoteVideoRef's div) exists — e.g. on the callee side, the caller is
+	// already publishing when we join — so it's kept here and attached once
+	// the tiles mount.
+	const remoteVideoTrackRef = useRef<IRemoteVideoTrack | null>(null);
 
 	// Agora token keep-alive — the initial token is only valid for maxSeconds
 	// (60s in the documented example), so a long call needs it periodically
@@ -247,6 +253,7 @@ export function VideoCallManager() {
 		try {
 			await sessionRef.current?.leave();
 			sessionRef.current = null;
+			remoteVideoTrackRef.current = null;
 			const channelId = callInfoRef.current?.channelId;
 			if (channelId) {
 				await apiFunctionsRef.current.leaveVideoCall(channelId).catch(() => {});
@@ -297,6 +304,7 @@ export function VideoCallManager() {
 			}
 			const session = new AgoraCallSession({
 				onRemoteVideoTrack: (track) => {
+					remoteVideoTrackRef.current = track;
 					if (remoteVideoRef.current) track.play(remoteVideoRef.current);
 				},
 				onRemoteAudioTrack: () => {
@@ -326,6 +334,21 @@ export function VideoCallManager() {
 			await endCallRef.current();
 		}
 	}, []);
+
+	// The video tiles only render once phase is "active", but join() runs
+	// while still on the ringing screen — so any track that was ready before
+	// the tiles mounted gets attached here instead.
+	useEffect(() => {
+		if (phase !== "active") return;
+		const localTrack = sessionRef.current?.getLocalVideoTrack();
+		if (localTrack && !localTrack.isPlaying && localVideoRef.current) {
+			localTrack.play(localVideoRef.current);
+		}
+		const remoteTrack = remoteVideoTrackRef.current;
+		if (remoteTrack && !remoteTrack.isPlaying && remoteVideoRef.current) {
+			remoteTrack.play(remoteVideoRef.current);
+		}
+	}, [phase]);
 
 	// Outgoing call, triggered from ChatThreadPanel's header menu.
 	const handleStartOutgoing = useCallback(

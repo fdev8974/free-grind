@@ -295,7 +295,13 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		try {
 			const bridge = getAndroidBridge();
 			if (bridge?.checkMicrophonePermission) {
-				navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
+				// Only here to trigger the WebView's permission prompt — stop the
+				// stream right away, otherwise it keeps the mic open for the rest
+				// of the session.
+				navigator.mediaDevices
+					.getUserMedia({ audio: true })
+					.then((stream) => stream.getTracks().forEach((t) => t.stop()))
+					.catch(() => {});
 				const granted = await pollBridgePermission(() => bridge.checkMicrophonePermission!());
 				setMicrophoneStatus(granted ? "granted" : "denied");
 				setMicrophoneDetail(null);
@@ -320,7 +326,12 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		try {
 			const bridge = getAndroidBridge();
 			if (bridge?.checkCameraPermission) {
-				navigator.mediaDevices.getUserMedia({ video: true }).catch(() => {});
+				// Same as the mic above: a leftover stream would keep the camera
+				// busy, and Android then fails the video call's own capture.
+				navigator.mediaDevices
+					.getUserMedia({ video: true })
+					.then((stream) => stream.getTracks().forEach((t) => t.stop()))
+					.catch(() => {});
 				const granted = await pollBridgePermission(() => bridge.checkCameraPermission!());
 				setCameraStatus(granted ? "granted" : "denied");
 				setCameraDetail(null);
