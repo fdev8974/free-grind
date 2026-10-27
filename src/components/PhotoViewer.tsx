@@ -1128,14 +1128,15 @@ export function PhotoViewer({
 								<EllipsisVertical className="h-4 w-4" />
 							</button>
 							{menuPresence.rendered && (
-								<div data-lenis-prevent style={menuTransitionStyle(menuPresence.visible)} className="absolute right-0 top-[calc(100%+0.25rem)] max-h-[calc(100dvh-8rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-xl border border-white/15 bg-black/90 py-1.5 shadow-xl backdrop-blur-md">
+								<div data-lenis-prevent style={menuTransitionStyle(menuPresence.visible)} className="absolute right-0 top-[calc(100%+0.25rem)] max-h-[calc(100dvh-8rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-black/90 py-2 shadow-xl backdrop-blur-md">
+									<div className="flex flex-col gap-1 px-2">
 									<button
 										type="button"
 										onClick={() => { setIsMenuOpen(false); void handleSave(); }}
 										disabled={isSaving}
-										className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
+										className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
 									>
-										<Download className="h-4 w-4 opacity-80" />
+										<Download className="mr-2 h-4 w-4 opacity-70" />
 										{t("profile_details.save")}
 									</button>
 									{menuActions.map((action) => (
@@ -1144,12 +1145,13 @@ export function PhotoViewer({
 											type="button"
 											onClick={() => { setIsMenuOpen(false); void action.onClick(); }}
 											disabled={action.disabled}
-											className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
+											className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
 										>
-											<action.icon className="h-4 w-4 opacity-80" />
+											<action.icon className="mr-2 h-4 w-4 opacity-70" />
 											{action.label}
 										</button>
 									))}
+									</div>
 								</div>
 							)}
 						</div>

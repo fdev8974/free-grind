@@ -17,6 +17,7 @@ import {
 	Film,
 	Ghost,
 	Hand,
+	Heart,
 	History,
 	Images,
 	Inbox,
@@ -65,7 +66,8 @@ export interface AnnouncementItem {
 
 export interface VersionAnnouncement {
 	version: string;
-	headline: string;
+	/** Optional line under the fixed "What's new" title, e.g. a motto for the release. */
+	tagline?: string;
 	items: AnnouncementItem[];
 }
 
@@ -75,7 +77,6 @@ export interface VersionAnnouncement {
 export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 	{
 		version: "0.5.3",
-		headline: "What's new in Free Grind",
 		items: [
 			{
 				icon: Database,
@@ -166,7 +167,6 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 	},
 	{
 		version: "0.5.4",
-		headline: "What's new in Free Grind",
 		items: [
 			{
 				icon: Ghost,
@@ -212,12 +212,12 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 	},
 	{
 		version: "1.0.0",
-		headline: "THE NEXT BIG THING... in purple.",
+		tagline: "THE NEXT BIG THING... in purple.",
 		items: [
 			{
 				icon: UserPlus,
 				title: "Create Accounts",
-				description: "Sign up for a brand-new Grindr account right inside Free Grind with your email and password. Available on Android with the Free Grind reCAPTCHA helper.",
+				description: "Sign up for a brand-new Grindr account right inside Free Grind with your email and password. Available on Android.",
 			},
 			{
 				icon: Languages,
@@ -232,7 +232,7 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 			{
 				icon: KeyRound,
 				title: "Sign In with Google",
-				description: "Accounts created with Google can now sign in. On Android, tap \"Sign in with the Google app\" for a one-tap login, or paste a token from the browser extension (made by Open-Grind).",
+				description: "Accounts created with Google can now sign in right in Free Grind: with one tap through the Google app on Android, or in a Google sign-in window everywhere else.",
 			},
 			{
 				icon: LogIn,
@@ -242,7 +242,7 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 			{
 				icon: BellRing,
 				title: "Better Notifications",
-				description: "Every message now shows up in the notification, grouped per chat, with buttons to jump straight into the chat or the profile.",
+				description: "Every message now shows up in the notification, grouped per chat, with buttons to jump straight into the chat or the profile. On Android, you can also reply right from the notification.",
 			},
 			{
 				icon: Share,
@@ -338,6 +338,11 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 				icon: Wrench,
 				title: "Fixes & Polish",
 				description: "A fresh glassy look with smoother animations, a redesigned sign-in and onboarding, Serbian (Cyrillic) translation, and lots of smaller fixes throughout.",
+			},
+			{
+				icon: Heart,
+				title: "Thank You, Open Grind",
+				description: "Free Grind started as a fork of Open Grind and still builds on their work, like their Grindr API documentation.",
 			},
 		],
 	},

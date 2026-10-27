@@ -3092,5 +3092,20 @@
         "right_now_request_approved_notification_body": "{{arg1}}-Anfrage angenommen",
         "coupon_auto_applied_title": "Glückwunsch",
         "coupon_auto_applied_body": "Ein Gratismonat {{arg1}} gehört dir"
+    },
+    "version_announcement": {
+        "title": "Neu in Free Grind",
+        "version": "Version {{version}}",
+        "continue": "Weiter",
+        "skip": "Überspringen",
+        "got_it": "Verstanden",
+        "test_build_title": "Testversion",
+        "test_build_desc": "Das ist eine Testversion vor dem finalen Release, es kann also noch hier und da haken. Fehler, die jetzt gemeldet werden, sind behoben, bevor alle das Update bekommen.",
+        "prerelease": {
+            "alpha": "Alpha",
+            "beta": "Beta",
+            "rc": "Release Candidate",
+            "other": "Vorabversion"
+        }
     }
 }

@@ -19,7 +19,7 @@ const TONE_HOVER_CLASS = {
 } as const;
 
 /**
- * Soft accent pill on the right of a settings row ("Check Now", "Sync", …).
+ * Soft accent pill on the right of a settings row ("Sync", "Delete all", …).
  * Without `onClick` it's a plain label, for rows that are themselves the button.
  */
 export function RowActionPill({

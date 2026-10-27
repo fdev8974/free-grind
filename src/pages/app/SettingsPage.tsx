@@ -55,7 +55,6 @@ import {
 	getContributorHandle,
 	type HotswapChannel,
 } from "../../services/hotswap";
-import { RowActionPill } from "../../components/ui/row-action-pill";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { hasDemoProfileImages, isDemoProfileImagesEnabled, setDemoProfileImagesEnabled } from "../../utils/demoProfileImages";
 import { UpdateChannelSheet } from "./UpdateChannelSheet";
@@ -593,7 +592,7 @@ export function SettingsPage() {
 			<div className="app-shell z-[300]">
 				<VersionAnnouncement
 					announcement={LATEST_ANNOUNCEMENT}
-					buttonLabel="Close"
+					buttonLabel={t("common.close", { defaultValue: "Close" })}
 					onClose={() => setPreviewAnnouncement(false)}
 				/>
 			</div>
@@ -1033,7 +1032,7 @@ export function SettingsPage() {
 						<div className="min-w-0">
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
 							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
-								{/* The whole row checks; the pill on the right is the visible affordance. */}
+								{/* The whole row checks; a spinner replaces the chevron while it runs. */}
 								<button
 									type="button"
 									onClick={() => void handleCheckUpdates()}
@@ -1068,9 +1067,11 @@ export function SettingsPage() {
 											</p>
 										</div>
 									</div>
-									<RowActionPill loading={isCheckingUpdates} loadingLabel={false}>
-										{t("settings.check_now")}
-									</RowActionPill>
+									{isCheckingUpdates ? (
+										<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-muted)]" />
+									) : (
+										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+									)}
 								</button>
 
 								<ToggleRow
@@ -1281,7 +1282,7 @@ export function SettingsPage() {
 							icon: MegaphoneFilled,
 							label: "Version Announcement",
 							description: LATEST_ANNOUNCEMENT
-								? `"${LATEST_ANNOUNCEMENT.headline}" (v${LATEST_ANNOUNCEMENT.version}).`
+								? LATEST_ANNOUNCEMENT.tagline ? `"${LATEST_ANNOUNCEMENT.tagline}" (v${LATEST_ANNOUNCEMENT.version}).` : `v${LATEST_ANNOUNCEMENT.version}.`
 								: "No version announcement configured yet.",
 							disabled: !LATEST_ANNOUNCEMENT,
 							onSelect: () => afterSheetClose(() => setPreviewAnnouncement(true)),

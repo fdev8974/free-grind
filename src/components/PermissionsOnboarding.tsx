@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, Camera, Check, ChevronRight, Loader2, MapPin, Mic, Monitor, Moon, RefreshCcw, Sun, X } from "lucide-react";
+import { AlertTriangle, Bell, Camera, Check, ChevronRight, ExternalLink, Loader2, MapPin, Mic, Monitor, Moon, RefreshCcw, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	isPermissionGranted,
@@ -13,6 +13,8 @@ import { isTauriRuntime } from "../services/tauriWebSocket";
 import { getCurrentLocation } from "../services/currentLocation";
 import { appLog } from "../utils/logger";
 import { markOnboardingComplete } from "../utils/onboardingStorage";
+import { useHorizontalSwipe } from "../hooks/useHorizontalSwipe";
+import { GITHUB_OTA_SIGNING_URL, openExternalUrl } from "../utils/githubIssues";
 import { isHotswapAvailable, setHotswapAutoUpdateEnabled } from "../services/hotswap";
 import { usePreferences, ACCENT_PRESETS } from "../contexts/PreferencesContext";
 import type { ColorScheme } from "../contexts/PreferencesContext";
@@ -157,6 +159,8 @@ function StatusBadge({ status, isRequesting }: { status: PermissionStatus; isReq
 export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }) {
 	const { colorScheme, amoledMode, accentColor, setPreferences } = usePreferences();
 	const [step, setStep] = useState<Step>("loading");
+	// Which side the current step slides in from: 1 = forward, -1 = back.
+	const [direction, setDirection] = useState<1 | -1>(1);
 
 	const [notificationStatus, setNotificationStatus] = useState<PermissionStatus>("idle");
 	const [locationStatus, setLocationStatus] = useState<PermissionStatus>("idle");
@@ -164,6 +168,8 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	const [microphoneDetail, setMicrophoneDetail] = useState<string | null>(null);
 	const [cameraStatus, setCameraStatus] = useState<PermissionStatus>("idle");
 	const [cameraDetail, setCameraDetail] = useState<string | null>(null);
+	// Not a permission, but shown the same way: granted = auto-update on.
+	const [updatesStatus, setUpdatesStatus] = useState<PermissionStatus>("idle");
 
 	const [isRequesting, setIsRequesting] = useState(false);
 
@@ -225,12 +231,32 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		})();
 	}, [step]);
 
+	const stepIdx = STEP_ORDER.indexOf(step);
+
 	const advance = () => {
-		const idx = STEP_ORDER.indexOf(step);
-		if (idx !== -1 && idx < STEP_ORDER.length - 1) {
-			setStep(STEP_ORDER[idx + 1]);
+		if (stepIdx !== -1 && stepIdx < STEP_ORDER.length - 1) {
+			setDirection(1);
+			setStep(STEP_ORDER[stepIdx + 1]);
 		}
 	};
+
+	const back = () => {
+		if (stepIdx > 0) {
+			setDirection(-1);
+			setStep(STEP_ORDER[stepIdx - 1]);
+		}
+	};
+
+	// Swiping forward is the same as the step's Continue/Skip, so it's left out
+	// where the step still needs an explicit choice (updates) or finishes (scam).
+	const canSwipeNext = !isRequesting
+		&& (step === "welcome" || step === "theme" || step === "accent" || (PERM_STEPS as readonly Step[]).includes(step)
+			|| (step === "updates" && updatesStatus !== "idle"));
+	const swipe = useHorizontalSwipe({
+		onNext: canSwipeNext ? advance : undefined,
+		onPrev: !isRequesting && stepIdx > 0 ? back : undefined,
+	});
+	const pageClass = direction > 0 ? "animate-step-in-next" : "animate-step-in-prev";
 
 	const requestNotifications = async () => {
 		if (!isTauriRuntime()) { setNotificationStatus("granted"); return; }
@@ -363,9 +389,9 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	if (step === "welcome") {
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<div
-						className="flex flex-1 flex-col items-center justify-center px-8 text-center"
+						key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}
 						style={{
 							paddingTop: "max(48px, env(safe-area-inset-top))",
 							paddingBottom: "max(48px, calc(env(safe-area-inset-bottom) + 80px))",
@@ -407,10 +433,10 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		];
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<TopDots current="theme" />
 
-					<div className="flex flex-1 flex-col justify-center px-6">
+					<div key={step} className={`flex flex-1 flex-col justify-center px-6 ${pageClass}`}>
 						<div className="mb-7 text-center">
 							<h2 className="text-xl font-bold text-[var(--text)]">Choose Your Theme</h2>
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
@@ -476,10 +502,10 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	if (step === "accent") {
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<TopDots current="accent" />
 
-					<div className="flex flex-1 flex-col justify-center px-6">
+					<div key={step} className={`flex flex-1 flex-col justify-center px-6 ${pageClass}`}>
 						<div className="mb-7 text-center">
 							<h2 className="text-xl font-bold text-[var(--text)]">Pick Your Color</h2>
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
@@ -533,22 +559,41 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	if (step === "updates") {
 		const choose = (enabled: boolean) => {
 			setHotswapAutoUpdateEnabled(enabled);
-			advance();
+			setUpdatesStatus(enabled ? "granted" : "denied");
 		};
+		const settled = updatesStatus !== "idle";
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<TopDots current="updates" />
 
-					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-						<div className={`mb-6 ${fullscreenIconTileClass}`}>
-							<RefreshCcw className="h-9 w-9" />
+					<div key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}>
+						<div className="relative mb-6">
+							<div className={fullscreenIconTileClass}>
+								<RefreshCcw className="h-9 w-9" />
+							</div>
+							<div className="absolute -right-2 -top-2">
+								<StatusBadge status={updatesStatus} />
+							</div>
 						</div>
 						<h2 className="text-xl font-bold text-[var(--text)]">Automatic Updates</h2>
-						<div className="flex h-24 flex-col items-center overflow-hidden">
+						<div className="flex min-h-24 flex-col items-center">
 							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-								Automatically downloads the newest app interface from GitHub Actions and reloads as soon as it's available. When off, you'll be asked before each update.
+								Automatically downloads the newest app interface built by GitHub Actions and reloads as soon as it's available. Only updates signed with our key are installed. When off, you'll be asked before each update.
 							</p>
+							<button
+								type="button"
+								onClick={() => void openExternalUrl(GITHUB_OTA_SIGNING_URL)}
+								className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline"
+							>
+								More about that
+								<ExternalLink className="h-3 w-3" />
+							</button>
+							{updatesStatus === "denied" && (
+								<p className="mt-2 text-xs text-[var(--text-muted)]">
+									You can turn this on in Settings later.
+								</p>
+							)}
 						</div>
 					</div>
 
@@ -556,21 +601,33 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
 						style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
 					>
-						<button
-							type="button"
-							onClick={() => choose(true)}
-							className={fullscreenPrimaryButtonClass}
-						>
-							Turn On
-							<ChevronRight className="h-4 w-4" />
-						</button>
-						<button
-							type="button"
-							onClick={() => choose(false)}
-							className={fullscreenSecondaryButtonClass}
-						>
-							Ask me each time
-						</button>
+						{settled ? (
+							<button
+								type="button"
+								onClick={advance}
+								className={fullscreenPrimaryButtonClass}
+							>
+								Continue
+								<ChevronRight className="h-4 w-4" />
+							</button>
+						) : (
+							<>
+								<button
+									type="button"
+									onClick={() => choose(true)}
+									className={fullscreenPrimaryButtonClass}
+								>
+									Turn On
+								</button>
+								<button
+									type="button"
+									onClick={() => choose(false)}
+									className={fullscreenSecondaryButtonClass}
+								>
+									Ask me each time
+								</button>
+							</>
+						)}
 					</div>
 				</div>
 			</div>
@@ -581,15 +638,15 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	if (step === "scam") {
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<TopDots current="scam" />
 
-					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+					<div key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}>
 						<div className="mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xl shadow-amber-500/25">
 							<AlertTriangle className="h-9 w-9" />
 						</div>
 						<h2 className="text-xl font-bold text-[var(--text)]">Caution</h2>
-						<div className="flex h-24 flex-col items-center overflow-hidden">
+						<div className="flex min-h-24 flex-col items-center">
 							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 								Free Grind is free — and always will be. If someone sold you access or is asking you to pay, it's a scam. Don't pay, and report it.
 							</p>
@@ -656,10 +713,10 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 
 	return (
 		<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-			<div className="fs-card-inner fs-card-lg flex flex-col">
+			<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 				<TopDots current={step} />
 
-				<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+				<div key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}>
 					<div className="relative mb-6">
 						<div className={fullscreenIconTileClass}>
 							<Icon className="h-9 w-9" />
@@ -670,7 +727,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 					</div>
 
 					<h2 className="text-xl font-bold text-[var(--text)]">{cfg.title}</h2>
-					<div className="flex h-24 flex-col items-center overflow-hidden">
+					<div className="flex min-h-24 flex-col items-center">
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 							{cfg.description}
 						</p>

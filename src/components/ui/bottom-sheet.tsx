@@ -109,8 +109,11 @@ function sheetBgColor(bgClass: string): string {
 	return match ? match[1].replace(/_/g, " ") : "var(--surface)";
 }
 
+// The press scale is gentler than on the compact footer controls (0.96):
+// these pills are flex-1 and often full width, and a scale shrinks a wide
+// button by many more pixels than a narrow one.
 const SHEET_BUTTON_BASE =
-	"inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-[transform,filter,background-color,color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50";
+	"inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-full px-5 text-[15px] font-semibold transition-[transform,filter,background-color,color] duration-150 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50";
 
 const SHEET_BUTTON_VARIANTS = {
 	/** Filled with the accent. Callers may recolor it via `style` (backgroundColor/color). */

@@ -1,9 +1,12 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FlaskConical } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import semver from "semver";
 import type { VersionAnnouncement as VersionAnnouncementData } from "../data/versionAnnouncements";
+import { useHorizontalSwipe } from "../hooks/useHorizontalSwipe";
 import logo from "../images/freegrind-logo.webp";
-import { fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
+import { fullscreenCardClass, fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 
 function Dots({ total, current }: { total: number; current: number }) {
 	if (total <= 1) {
@@ -31,24 +34,25 @@ function Dots({ total, current }: { total: number; current: number }) {
 	);
 }
 
-const PRERELEASE_LABELS: Record<string, string> = {
-	alpha: "Alpha",
-	beta: "Beta",
-	rc: "Release Candidate",
-};
-
-/** `1.0.0-beta.2` → "Beta", `1.0.0-rc.1` → "Release Candidate"; null for releases. */
-function getPrereleaseLabel(version: string): string | null {
-	const tag = semver.prerelease(version)?.[0];
+/** `1.0.0-beta.2` → "Beta 2", `1.0.0-rc.1` → "Release Candidate 1"; null for releases. */
+function getPrereleaseLabel(version: string, t: TFunction): string | null {
+	const [tag, number] = semver.prerelease(version) ?? [];
 	if (tag === undefined) return null;
-	return (typeof tag === "string" && PRERELEASE_LABELS[tag.toLowerCase()]) || "Pre-release";
+	const labels: Record<string, string> = {
+		alpha: t("version_announcement.prerelease.alpha", { defaultValue: "Alpha" }),
+		beta: t("version_announcement.prerelease.beta", { defaultValue: "Beta" }),
+		rc: t("version_announcement.prerelease.rc", { defaultValue: "Release Candidate" }),
+	};
+	const label = (typeof tag === "string" && labels[tag.toLowerCase()])
+		|| t("version_announcement.prerelease.other", { defaultValue: "Pre-release" });
+	return typeof number === "number" ? `${label} ${number}` : label;
 }
 
 export function VersionAnnouncement({
 	announcement,
 	appVersion,
 	onClose,
-	buttonLabel = "Got it",
+	buttonLabel,
 }: {
 	announcement: VersionAnnouncementData;
 	/** Running app version; may be a pre-release of `announcement.version`. */
@@ -56,20 +60,30 @@ export function VersionAnnouncement({
 	onClose: () => void;
 	buttonLabel?: string;
 }) {
+	const { t } = useTranslation();
 	const displayVersion = appVersion ?? announcement.version;
-	const prereleaseLabel = getPrereleaseLabel(displayVersion);
+	const prereleaseLabel = getPrereleaseLabel(displayVersion, t);
+	// The pre-release tag is shown as its label, so only the base version goes here.
+	const baseVersion = semver.coerce(displayVersion)?.version ?? displayVersion;
 	// -1 = intro page (headline/version), 0..items.length-1 = one item per page
 	const [step, setStep] = useState(-1);
+	// Which side the current page slides in from: 1 = forward, -1 = back.
+	const [direction, setDirection] = useState<1 | -1>(1);
 
 	const items = announcement.items;
 	const isIntro = step === -1;
 	const isLastItem = step === items.length - 1;
 	const item = isIntro ? null : items[step];
 
+	const goTo = (next: number) => {
+		setDirection(next > step ? 1 : -1);
+		setStep(next);
+	};
+
 	const handleAdvance = () => {
 		if (isIntro) {
 			if (items.length > 0) {
-				setStep(0);
+				goTo(0);
 			} else {
 				onClose();
 			}
@@ -79,48 +93,78 @@ export function VersionAnnouncement({
 			onClose();
 			return;
 		}
-		setStep((s) => s + 1);
+		goTo(step + 1);
 	};
+
+	// Swiping only pages; closing stays a deliberate button tap.
+	const swipe = useHorizontalSwipe({
+		onNext: step < items.length - 1 ? () => goTo(step + 1) : undefined,
+		onPrev: step > -1 ? () => goTo(step - 1) : undefined,
+	});
 
 	const isFinalPage = isIntro ? items.length === 0 : isLastItem;
 	const Icon = item?.icon;
+	const pageClass = direction > 0 ? "animate-step-in-next" : "animate-step-in-prev";
 
 	return (
 		<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-			<div className="fs-card-inner fs-card-lg flex flex-col">
+			<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 				{!isIntro && <Dots total={items.length} current={step} />}
 
 				{isIntro ? (
 					<div
-						className="flex flex-1 flex-col items-center justify-center px-8 text-center"
+						key="intro"
+						className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}
 						style={{
 							paddingTop: "max(48px, env(safe-area-inset-top))",
 							paddingBottom: "max(48px, calc(env(safe-area-inset-bottom) + 80px))",
 						}}
 					>
 						<img src={logo} alt="" className="mb-6 h-16 w-16 rounded-2xl object-cover" />
-						{prereleaseLabel && (
-							<span className="mb-3 rounded-full accent-tint-15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
-								{prereleaseLabel}
-							</span>
+						<h1 className="text-2xl font-bold text-[var(--text)]">
+							{t("version_announcement.title", { defaultValue: "What's new in Free Grind" })}
+						</h1>
+						{announcement.tagline && (
+							<p className="mt-1.5 max-w-xs text-base font-semibold text-[var(--accent)]">{announcement.tagline}</p>
 						)}
-						<h1 className="text-2xl font-bold text-[var(--text)]">{announcement.headline}</h1>
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
-							Version {displayVersion}
+							{t("version_announcement.version", { version: baseVersion, defaultValue: "Version {{version}}" })}
+							{prereleaseLabel && (
+								<>
+									{" · "}
+									<span className="font-semibold text-[var(--accent)]">{prereleaseLabel}</span>
+								</>
+							)}
 						</p>
 						{prereleaseLabel && (
-							<p className="mt-3 max-w-xs text-xs leading-relaxed text-[var(--text-muted)]">
-								This is a test build ahead of the final release, so expect some rough edges. Bugs reported now are fixed before everyone gets it.
-							</p>
+							<div className={`${fullscreenCardClass} mt-8 w-full max-w-sm overflow-hidden text-left`}>
+								<div className="flex items-start gap-3 px-4 py-3.5">
+									<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--accent)]">
+										<FlaskConical className="h-5 w-5" />
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="text-sm font-semibold leading-snug text-[var(--text)]">
+											{t("version_announcement.test_build_title", { defaultValue: "Test build" })}
+										</p>
+										<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
+											{t("version_announcement.test_build_desc", {
+												defaultValue: "This is a test build ahead of the final release, so expect some rough edges. Bugs reported now are fixed before everyone gets it.",
+											})}
+										</p>
+									</div>
+								</div>
+							</div>
 						)}
 					</div>
 				) : (
-					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+					<div key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}>
 						<div className={`mb-6 ${fullscreenIconTileClass}`}>
 							{Icon && <Icon className="h-9 w-9" />}
 						</div>
 						<h2 className="text-xl font-bold text-[var(--text)]">{item?.title}</h2>
-						<div className="flex h-24 flex-col items-center overflow-hidden">
+						{/* min-h keeps the title in place for short descriptions without
+						    cutting off long ones (or long translations). */}
+						<div className="flex min-h-24 flex-col items-center">
 							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 								{item?.description}
 							</p>
@@ -137,7 +181,9 @@ export function VersionAnnouncement({
 						onClick={handleAdvance}
 						className={fullscreenPrimaryButtonClass}
 					>
-						{!isIntro && isLastItem ? buttonLabel : "Continue"}
+						{!isIntro && isLastItem
+							? buttonLabel ?? t("version_announcement.got_it", { defaultValue: "Got it" })
+							: t("version_announcement.continue", { defaultValue: "Continue" })}
 						<ChevronRight className="h-4 w-4" />
 					</button>
 					{!isFinalPage && (
@@ -146,7 +192,7 @@ export function VersionAnnouncement({
 							onClick={onClose}
 							className={fullscreenSecondaryButtonClass}
 						>
-							Skip
+							{t("version_announcement.skip", { defaultValue: "Skip" })}
 						</button>
 					)}
 				</div>

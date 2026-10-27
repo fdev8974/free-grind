@@ -1797,7 +1797,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			<button
 				type="button"
 				onClick={handleEditNickname}
-				className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 			>
 				<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
 				<NicknameMenuItemLabel
@@ -1813,7 +1813,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 		<button
 			type="button"
 			onClick={() => void handleLogEncounter()}
-			className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+			className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 		>
 			<BananaFilled className="mr-2 h-4 w-4 opacity-70" />
 			{t("chat.log_encounter", { defaultValue: "We just hooked up" })}
@@ -1831,7 +1831,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 			<button
 				type="button"
 				onClick={() => { setIsActionsMenuOpen(false); setIsReportDialogOpen(true); }}
-				className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-red-400 transition hover:bg-[var(--surface-2)]"
+				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-[var(--surface-2)]"
 			>
 				<Flag className="mr-2 h-4 w-4 fill-current opacity-70" />
 				{t("profile_details.report.menu_item")}
@@ -2085,7 +2085,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 							onPointerCancel={() => { setBarTapPickerOpen(false); setBarTapHoverId(null); barTapStickyRef.current = false; if (barTapLongPressRef.current) clearTimeout(barTapLongPressRef.current); barInputTimerRef.current = setTimeout(() => setBarInputVisible(true), 210); }}
 							disabled={isTapDisabled}
 							aria-label={t("profile_details.tap", { defaultValue: "Tap" })}
-							className={`tap-btn-base bar-icon-btn relative inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none bg-transparent text-2xl leading-none transition-all touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-white/70" : isTapActive || barTapHoverId !== null ? "text-white" : "text-white/70"}`}
+							className={`tap-btn-base bar-icon-btn relative inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-none bg-transparent text-2xl leading-none transition-all active:scale-90 touch-none select-none ${isTappingProfile ? "opacity-40" : ""} ${barTapPickerOpen ? "text-white/70" : isTapActive || barTapHoverId !== null ? "text-white" : "text-white/70"}`}
 							style={isTapBlocked ? { filter: barTapGlow(tapVisualState.tapId) } : !barTapPickerOpen && barTapHoverId !== null ? { filter: barTapGlow(barTapHoverId) } : undefined}
 						>
 							{barTapPickerOpen
@@ -2106,7 +2106,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 									else onMessageProfile?.(String(messageProfileId));
 								}}
 								aria-label={hasDraft ? t("chat.send") : t("profile_details.message")}
-								className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition ${hasDraft ? "bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-80" : "bar-icon-btn text-[var(--accent)]"}`}
+								className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition active:scale-90 ${hasDraft ? "bg-[var(--accent)] text-[var(--accent-contrast)] hover:opacity-80" : "bar-icon-btn text-[var(--accent)]"}`}
 							>
 								{hasDraft ? (
 									<SendHorizontalFilled className="h-5 w-5" />
@@ -2260,14 +2260,14 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 								</button>
 								{nicknameNameChangeBadge}
 								{actionsMenuPresence.rendered && (
-									<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+									<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 										<div className="flex flex-col gap-1 px-2">
 										{showLocate && (
 										<button
 											type="button"
 											disabled={isTriangleDisabled}
 											onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
-											className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+											className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
 										>
 											<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
 											{locateLabel ?? t("profile_details.locate")}
@@ -2278,7 +2278,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											type="button"
 											disabled={isProfileUnavailable}
 											onClick={() => { setIsActionsMenuOpen(false); if (!messageProfileId || isProfileUnavailable) return; isHidden ? onUnhideProfile?.(String(messageProfileId)) : onHideProfile?.(String(messageProfileId)); }}
-											className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+											className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
 										>
 											{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 											{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
@@ -2294,7 +2294,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											<button
 												type="button"
 												onClick={handleBanBioPhrase}
-												className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
 												<span className="flex flex-col">
@@ -2307,7 +2307,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 											<button
 												type="button"
 												onClick={handleBanProfileName}
-												className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
 												<span className="flex flex-col">
@@ -2763,12 +2763,12 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 												</button>
 												{nicknameNameChangeBadge}
 												{actionsMenuPresence.rendered && (
-													<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-1 overflow-y-auto overscroll-contain rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+													<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
 														<div className="flex flex-col gap-1 px-2">
 														{showLocate && (
 														<button type="button" disabled={isTriangleDisabled}
 															onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
-															className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50">
+															className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50">
 															<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
 															{locateLabel ?? t("profile_details.locate")}
 														</button>
@@ -2778,7 +2778,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															type="button"
 															disabled={isProfileUnavailable}
 															onClick={() => { setIsActionsMenuOpen(false); if (!messageProfileId || isProfileUnavailable) return; isHidden ? onUnhideProfile?.(String(messageProfileId)) : onHideProfile?.(String(messageProfileId)); }}
-															className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+															className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
 														>
 															{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 															{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
@@ -2794,7 +2794,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															<button
 																type="button"
 																onClick={handleBanBioPhrase}
-																className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
 																<span className="flex flex-col">
@@ -2807,7 +2807,7 @@ const barTapGlow = (id: number) => id === 0 ? "drop-shadow(0 0 10px rgba(234,179
 															<button
 																type="button"
 																onClick={handleBanProfileName}
-																className="flex items-center rounded-lg px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
 																<span className="flex flex-col">

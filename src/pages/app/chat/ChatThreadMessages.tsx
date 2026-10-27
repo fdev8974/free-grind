@@ -1320,7 +1320,22 @@ export function ChatThreadMessages({
                         if ((t === "AlbumContentReaction" || t === "AlbumContentReply") && typeof b?.previewUrl === "string") return b.previewUrl;
                         return null;
                     })();
-                    const replyThumbUrl = replyImageUrl
+                    const isAlbumType = (type: string | undefined) =>
+                        type === "Album" || type === "ExpiringAlbum" || type === "ExpiringAlbumV2";
+                    const replyIsAlbum = isAlbumType(replyPreviewRaw?.type)
+                        || isAlbumType(replyToMsgRef?.type) || isAlbumType(replyToMsg?.type);
+                    // A replied-to album shows its cover, resolved like the album
+                    // bubble's own (cached cover first, then the body's cover URL).
+                    const replyAlbumCoverUrl = (() => {
+                        if (!replyIsAlbum) return null;
+                        const src = replyToMsg ?? (message.replyToMessage as unknown as UiMessage | null | undefined);
+                        if (!src) return null;
+                        const replyAlbumId = getMessageAlbumId(src);
+                        return (replyAlbumId != null ? getCachedAlbumCoverUri(replyAlbumId) : null)
+                            ?? getMessageAlbumCoverUrl(src);
+                    })();
+                    const replyThumbUrl = replyAlbumCoverUrl
+                        ?? replyImageUrl
                         ?? cachedReplyHashUri
                         ?? (replyImageHash ? getThumbImageUrl(replyImageHash, "320x320") : null)
                         ?? replyPreviewUrl
@@ -1356,6 +1371,8 @@ export function ChatThreadMessages({
                             ? t("chat.thread.album_image")
                             : replyTargetType === "AlbumContentReaction"
                                 ? t("chat.thread.reacted_to_image")
+                                : replyIsAlbum
+                                    ? t("chat.preview.shared_album")
                                 : replyIsAudio
                                     ? t("chat.thread.audio_label")
                                     : replyTargetType === "Location"

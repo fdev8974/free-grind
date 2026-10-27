@@ -29,6 +29,10 @@
 	--animate-fade-in: fade-in 0.4s ease-out forwards;
 	--animate-fade-in-subtle: fade-in-subtle 0.4s ease-out both;
 	--animate-reveal-row: reveal-row 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+	/* Paged fullscreen flows (onboarding, what's new): the new page slides in
+	   from the side it's coming from. */
+	--animate-step-in-next: step-in-next 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+	--animate-step-in-prev: step-in-prev 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 	--animate-progress-indeterminate: progress-indeterminate 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 
 	/* Jump-to-message highlight (chat reply-quote tap) */
@@ -120,6 +124,14 @@
 	@keyframes fade-in {
 		from { opacity: 0; }
 		to { opacity: 1; }
+	}
+	@keyframes step-in-next {
+		from { opacity: 0; transform: translateX(32px); }
+		to { opacity: 1; transform: none; }
+	}
+	@keyframes step-in-prev {
+		from { opacity: 0; transform: translateX(-32px); }
+		to { opacity: 1; transform: none; }
 	}
 	@keyframes fade-in-subtle {
 		from { opacity: 0; }
@@ -1570,6 +1582,19 @@ dialog::backdrop {
 	padding: 0.5rem !important;
 }
 
+/* Press feedback for every header button, whatever transition utility the
+   button itself carries (some only had transition-colors, so no scale).
+   Round like the app's other icon buttons, so the hover box is a circle. */
+.header-icon-btn {
+	border-radius: 9999px !important;
+	transition-property: color, background-color, border-color, opacity, scale, transform;
+	transition-duration: 150ms;
+}
+
+.header-icon-btn:not(:disabled):active {
+	scale: 0.9;
+}
+
 /* One hover treatment for every header button (and the bare glyph buttons of
    the profile's bottom bar) on desktop; a neutral translucent grey reads on
    page headers and over profile photos alike. */
@@ -1643,6 +1668,8 @@ dialog::backdrop {
 @media (prefers-reduced-motion: reduce) {
   .tile-flame-ember { display: none; }
   .animate-hourglass-rotate { animation: none; }
+  .animate-step-in-next,
+  .animate-step-in-prev { animation: fade-in 0.2s ease-out both; }
 }
 
 /* Glow on the "taken on Grindr" logo; global so drawer tiles get it on every page. */
