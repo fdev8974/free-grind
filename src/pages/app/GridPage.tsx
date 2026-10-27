@@ -1618,6 +1618,7 @@ export function GridPage() {
 										<div
 											className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
 											style={{
+												color: "var(--accent-contrast)",
 												backgroundColor: exploreLocation ? "var(--explore)" : "var(--accent)",
 												boxShadow: `0 1px 8px 0 color-mix(in srgb, ${exploreLocation ? "var(--explore)" : "var(--accent)"} 30%, transparent)`,
 											}}
