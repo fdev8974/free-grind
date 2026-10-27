@@ -2172,6 +2172,76 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						)}
 						{/* -------------------------- */}
 
+						<div className="relative">
+						{slashMatches.length > 0 && (
+							<div
+								onMouseDown={(event) => event.preventDefault()}
+								// A frosted card floating above the pill composer (same material),
+								// anchored above the reply preview too so it never covers it.
+								className="absolute bottom-full left-0 right-0 z-40 mb-2 max-h-64 overflow-hidden rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] shadow-[0_-1px_4px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+								<div data-lenis-prevent className="max-h-64 overflow-y-auto p-1.5">
+								<div className="flex flex-col gap-1">
+									{slashMatches.map((command, index) => {
+										const isSelected = index === slashSelectedIndex;
+										const isDisabled = command.requiresConversation && !selectedConversation;
+										return (
+											<button
+												key={command.name}
+												type="button"
+												disabled={isDisabled}
+												onClick={() => selectSlashCommand(command)}
+												onMouseEnter={() => setSlashSelectedIndex(index)}
+												title={isDisabled ? t("chat.slash_commands.errors.no_conversation", { defaultValue: "Open a chat first" }) : undefined}
+												className={`w-full text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 rounded-2xl active:scale-[0.98] ${
+													isSelected
+														? "bg-[var(--accent)] text-[var(--accent-contrast)]"
+														: isDesktop
+															? "hover:ink-tint-8"
+															: "active:ink-tint-8"
+												}`}
+											>
+												<div className="flex items-center gap-1.5 text-sm font-semibold">
+													/{command.name}
+													{command.argHint && (
+														<span
+															className={`inline-flex items-center leading-none rounded-md px-1.5 py-1 text-[10px] font-normal ${
+																isSelected
+																	? "bg-black/15 text-[var(--accent-contrast)]"
+																	: "ink-tint-8 text-[var(--text-muted)]"
+															}`}
+														>
+															{command.argHint}
+														</span>
+													)}
+													{command.aliases && command.aliases.length > 0 && (
+														<span className="flex items-center gap-1">
+															{command.aliases.map((alias) => (
+																<span
+																	key={alias}
+																	className={`inline-flex items-center leading-none rounded-full px-1.5 py-1 text-[10px] font-medium ${
+																		isSelected
+																			? "bg-black/15 text-[var(--accent-contrast)]"
+																			: "ink-tint-8 text-[var(--text-muted)]"
+																	}`}
+																>
+																	/{alias}
+																</span>
+															))}
+														</span>
+													)}
+												</div>
+												<div
+													className={`mt-0.5 text-xs ${isSelected ? "opacity-90" : "text-[var(--text-muted)]"}`}
+												>
+													{t(command.descriptionKey, { defaultValue: command.defaultDescription })}
+												</div>
+											</button>
+										);
+									})}
+								</div>
+								</div>
+							</div>
+						)}
                         {selectedConversation && replyTargetMessage ? (() => {
 							const rtm = replyTargetMessage;
 							const rtmBody = rtm.body as Record<string, unknown> | null | undefined;
@@ -2326,75 +2396,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								</button>
 							</div>
 						) : null}
-						<div className="relative">
-						{slashMatches.length > 0 && (
-							<div
-								onMouseDown={(event) => event.preventDefault()}
-								// A frosted card floating above the pill composer (same material).
-								className="absolute bottom-full left-0 right-0 z-40 mb-2 max-h-64 overflow-hidden rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] shadow-[0_-1px_4px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-								<div data-lenis-prevent className="max-h-64 overflow-y-auto p-1.5">
-								<div className="flex flex-col gap-1">
-									{slashMatches.map((command, index) => {
-										const isSelected = index === slashSelectedIndex;
-										const isDisabled = command.requiresConversation && !selectedConversation;
-										return (
-											<button
-												key={command.name}
-												type="button"
-												disabled={isDisabled}
-												onClick={() => selectSlashCommand(command)}
-												onMouseEnter={() => setSlashSelectedIndex(index)}
-												title={isDisabled ? t("chat.slash_commands.errors.no_conversation", { defaultValue: "Open a chat first" }) : undefined}
-												className={`w-full text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 rounded-2xl active:scale-[0.98] ${
-													isSelected
-														? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-														: isDesktop
-															? "hover:ink-tint-8"
-															: "active:ink-tint-8"
-												}`}
-											>
-												<div className="flex items-center gap-1.5 text-sm font-semibold">
-													/{command.name}
-													{command.argHint && (
-														<span
-															className={`inline-flex items-center leading-none rounded-md px-1.5 py-1 text-[10px] font-normal ${
-																isSelected
-																	? "bg-black/15 text-[var(--accent-contrast)]"
-																	: "ink-tint-8 text-[var(--text-muted)]"
-															}`}
-														>
-															{command.argHint}
-														</span>
-													)}
-													{command.aliases && command.aliases.length > 0 && (
-														<span className="flex items-center gap-1">
-															{command.aliases.map((alias) => (
-																<span
-																	key={alias}
-																	className={`inline-flex items-center leading-none rounded-full px-1.5 py-1 text-[10px] font-medium ${
-																		isSelected
-																			? "bg-black/15 text-[var(--accent-contrast)]"
-																			: "ink-tint-8 text-[var(--text-muted)]"
-																	}`}
-																>
-																	/{alias}
-																</span>
-															))}
-														</span>
-													)}
-												</div>
-												<div
-													className={`mt-0.5 text-xs ${isSelected ? "opacity-90" : "text-[var(--text-muted)]"}`}
-												>
-													{t(command.descriptionKey, { defaultValue: command.defaultDescription })}
-												</div>
-											</button>
-										);
-									})}
-								</div>
-								</div>
-							</div>
-						)}
 						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 rounded-[25px] border py-1 mb-2 transition-colors ${
 							// No outline, state is shown through the fill instead.
 							isRecording ? "pl-1 pr-1" : "pl-3 pr-1"
