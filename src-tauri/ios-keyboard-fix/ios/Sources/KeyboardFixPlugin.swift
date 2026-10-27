@@ -69,6 +69,11 @@ class KeyboardFixPlugin: Plugin {
         webview.scrollView.showsVerticalScrollIndicator = false
         webview.scrollView.showsHorizontalScrollIndicator = false
 
+        // Edge swipe to go back, like native iOS apps. Tauri doesn't expose
+        // this, so it stays off by default; BrowserRouter's pushState entries
+        // are in WKWebView's back-forward list, so the gesture pops them.
+        webview.allowsBackForwardNavigationGestures = true
+
         keyboardObserver = NotificationCenter.default.addObserver(
             forName: UIResponder.keyboardWillShowNotification,
             object: nil,
