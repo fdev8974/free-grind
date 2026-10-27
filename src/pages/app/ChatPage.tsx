@@ -57,6 +57,7 @@ import {
 import { PhotoViewer, type HeroRect, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
 import { AlbumMediaSheet } from "../../components/AlbumMediaSheet";
 import { PhotoActionBar } from "../../components/PhotoActionBar";
+import { markAlbumContentReacted, useAlbumContentReactions } from "../../services/albumReactionStore";
 import {
 	messageSchema,
 	type ConversationEntry,
@@ -788,6 +789,7 @@ export function ChatPage() {
 		albumName: string;
 	} | null>(null);
 	const [albumViewer, setAlbumViewer] = useState<AlbumViewerState | null>(null);
+	const hasReactedToAlbumContent = useAlbumContentReactions(userId, albumViewer !== null);
 	const [albumViewerMediaIndex, setAlbumViewerMediaIndex] = useState<
 		number | null
 	>(null);
@@ -5292,6 +5294,7 @@ export function ChatPage() {
 				if (selectedConversation) {
 					setThreadMessages((previous) => [...previous, sentMessage]);
 				}
+				markAlbumContentReacted(albumId, albumContentId);
 				toast.success(t("chat.toasts.album_reaction_sent", { defaultValue: "Reaction sent" }));
 			} catch (error) {
 				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
@@ -7097,6 +7100,7 @@ export function ChatPage() {
 								sendAlbumContentReply(albumViewer.albumId, item.contentId, item.contentType, text)
 							}
 							onReact={() => sendAlbumContentReaction(albumViewer.albumId, item.contentId)}
+							reacted={hasReactedToAlbumContent(albumViewer.albumId, item.contentId)}
 						/>
 					);
 				}}

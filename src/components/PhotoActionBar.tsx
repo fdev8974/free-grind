@@ -9,6 +9,8 @@ type PhotoActionBarProps = {
 	onSendText: (text: string) => void | Promise<void>;
 	/** Omit to hide the reaction button entirely (e.g. profile photo replies, which have no reaction). */
 	onReact?: () => void | Promise<void>;
+	/** Already 🔥-reacted to this photo: shows the reaction as sent and blocks a duplicate, like a sent profile tap. */
+	reacted?: boolean;
 	placeholder?: string;
 };
 
@@ -19,7 +21,7 @@ type PhotoActionBarProps = {
  * since album-photo reactions only ever imply 🔥). Built like the chat
  * composer: a floating pill with the send button inside, the reaction beside it.
  */
-export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoActionBarProps) {
+export function PhotoActionBar({ onSendText, onReact, reacted = false, placeholder }: PhotoActionBarProps) {
 	const { t } = useTranslation();
 	const [text, setText] = useState("");
 	const [isSending, setIsSending] = useState(false);
@@ -46,7 +48,7 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 	};
 
 	const handleReact = async () => {
-		if (!onReact || isReacting) return;
+		if (!onReact || isReacting || reacted) return;
 		// Same send effect as a profile tap: the flame flies up and bursts.
 		haptic(30, [15, 10, 25]);
 		setBurst(createTapFlyBurst(1, reactButtonRef.current));
@@ -110,12 +112,18 @@ export function PhotoActionBar({ onSendText, onReact, placeholder }: PhotoAction
 						ref={reactButtonRef}
 						type="button"
 						onClick={() => void handleReact()}
-						disabled={isReacting}
-						aria-label={t("photo_viewer.react", { defaultValue: "React" })}
+						disabled={isReacting || reacted}
+						aria-label={
+							reacted
+								? t("photo_viewer.reacted", { defaultValue: "Reaction sent" })
+								: t("photo_viewer.react", { defaultValue: "React" })
+						}
+						aria-pressed={reacted}
 						// bar-icon-btn: the same desktop hover circle as the profile footer's tap button.
-						className="bar-icon-btn inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:text-white active:scale-90 disabled:opacity-50"
+						className={`bar-icon-btn inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl leading-none transition active:scale-90 ${reacted ? "text-white" : "text-white/70 hover:text-white disabled:opacity-50"}`}
 					>
-						{isReacting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Flame className="h-5 w-5" strokeWidth={1.8} />}
+						{/* Sent: the 🔥 emoji, as the profile footer shows a sent tap. */}
+						{isReacting ? <Loader2 className="h-5 w-5 animate-spin" /> : reacted ? "🔥" : <Flame className="h-5 w-5" strokeWidth={1.8} />}
 					</button>
 				)}
 			</div>

@@ -68,6 +68,7 @@ import { ProfileDetailsContent } from "./ProfileDetailsContent";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { PhotoViewer, type HeroRect, type PhotoViewerMenuAction } from "../../../../components/PhotoViewer";
 import { PhotoActionBar } from "../../../../components/PhotoActionBar";
+import { markAlbumContentReacted, useAlbumContentReactions } from "../../../../services/albumReactionStore";
 import { AlbumMediaSheet } from "../../../../components/AlbumMediaSheet";
 import { useProfileAlbumStatus } from "../../../../hooks/useProfileAlbumStatus";
 import { captureAlbum, getLocalAlbum } from "../../../../services/albumStore";
@@ -1462,6 +1463,7 @@ export function ProfileDetailsModal({
 	// fall back to whatever's already cached locally if the live fetch fails,
 	// and eagerly capture it so it survives the share later expiring.
 	const [albumViewer, setAlbumViewer] = useState<AlbumViewer | null>(null);
+	const hasReactedToAlbumContent = useAlbumContentReactions(userId, albumViewer !== null);
 	const [albumViewerIndex, setAlbumViewerIndex] = useState(0);
 	const [isOpeningAlbum, setIsOpeningAlbum] = useState(false);
 	const [isSavingAllAlbumMedia, setIsSavingAllAlbumMedia] = useState(false);
@@ -1580,6 +1582,7 @@ export function ProfileDetailsModal({
 					target: { type: "Direct", targetId: targetProfileId },
 					body: { albumId, albumContentId },
 				});
+				markAlbumContentReacted(albumId, albumContentId);
 				toast.success(t("chat.toasts.album_reaction_sent", { defaultValue: "Reaction sent" }));
 			} catch (error) {
 				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
@@ -1879,6 +1882,7 @@ export function ProfileDetailsModal({
 							sendAlbumContentReply(albumViewer.albumId, item.contentId, item.contentType, targetProfileId, text)
 						}
 						onReact={() => sendAlbumContentReaction(albumViewer.albumId, item.contentId, targetProfileId)}
+						reacted={hasReactedToAlbumContent(albumViewer.albumId, item.contentId)}
 					/>
 				);
 			}}

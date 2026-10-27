@@ -1817,6 +1817,32 @@ export async function searchMessages(
 	return results;
 }
 
+/**
+ * Every `${albumId}:${albumContentId}` this account has 🔥-reacted to — read
+ * from its own persisted AlbumContentReaction messages, so the album viewer
+ * can show the reaction as already sent, the way a profile shows a sent tap.
+ */
+export async function listSentAlbumContentReactionKeys(senderId: number): Promise<string[]> {
+	const db = await getDb();
+	const rows = await db.select<{ body_json: string | null }[]>(
+		"SELECT body_json FROM messages WHERE type = 'AlbumContentReaction' AND sender_id = $1 AND unsent = 0",
+		[senderId],
+	);
+	const keys: string[] = [];
+	for (const row of rows) {
+		if (!row.body_json) continue;
+		try {
+			const body = JSON.parse(row.body_json) as { albumId?: unknown; albumContentId?: unknown } | null;
+			if (typeof body?.albumId === "number" && typeof body.albumContentId === "number") {
+				keys.push(`${body.albumId}:${body.albumContentId}`);
+			}
+		} catch {
+			// Malformed body — nothing to key it by.
+		}
+	}
+	return keys;
+}
+
 export async function setMessageLocalHistory(
 	messageId: string,
 	localHistory: boolean,

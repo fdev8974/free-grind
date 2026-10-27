@@ -31,6 +31,7 @@ import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { PhotoViewer, type HeroRect, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
 import { AlbumMediaSheet } from "../../components/AlbumMediaSheet";
 import { PhotoActionBar } from "../../components/PhotoActionBar";
+import { markAlbumContentReacted, useAlbumContentReactions } from "../../services/albumReactionStore";
 import { useRevealOnScroll } from "../../hooks/useRevealOnScroll";
 import { saveAllAlbumMedia } from "../../utils/albumMedia";
 import { proxyMediaUrl } from "../../utils/mediaProxy";
@@ -174,6 +175,7 @@ export function SharedAlbumsPage() {
 	// The album an open is in flight for; cleared when the viewer closes.
 	const pendingOpenAlbumIdRef = useRef<AlbumViewer["albumId"] | null>(null);
 	const [viewer, setViewer] = useState<AlbumViewer | null>(null);
+	const hasReactedToAlbumContent = useAlbumContentReactions(userId, viewer !== null);
 	const [viewerIndex, setViewerIndex] = useState(0);
 	const [isContentSheetOpen, setIsContentSheetOpen] = useState(false);
 	const [isSavingAll, setIsSavingAll] = useState(false);
@@ -752,6 +754,7 @@ export function SharedAlbumsPage() {
 					target: { type: "Direct", targetId: targetProfileId },
 					body: { albumId, albumContentId },
 				});
+				markAlbumContentReacted(albumId, albumContentId);
 				toast.success(t("chat.toasts.album_reaction_sent", { defaultValue: "Reaction sent" }));
 			} catch (error) {
 				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
@@ -1119,6 +1122,7 @@ export function SharedAlbumsPage() {
 									sendAlbumContentReply(viewer.albumId, item.contentId, item.contentType, viewer.profileId, text)
 								}
 								onReact={() => sendAlbumContentReaction(viewer.albumId, item.contentId, viewer.profileId)}
+								reacted={hasReactedToAlbumContent(viewer.albumId, item.contentId)}
 							/>
 						);
 					}}
