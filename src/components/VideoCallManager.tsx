@@ -340,13 +340,17 @@ export function VideoCallManager() {
 	// the tiles mounted gets attached here instead.
 	useEffect(() => {
 		if (phase !== "active") return;
-		const localTrack = sessionRef.current?.getLocalVideoTrack();
-		if (localTrack && !localTrack.isPlaying && localVideoRef.current) {
-			localTrack.play(localVideoRef.current);
-		}
-		const remoteTrack = remoteVideoTrackRef.current;
-		if (remoteTrack && !remoteTrack.isPlaying && remoteVideoRef.current) {
-			remoteTrack.play(remoteVideoRef.current);
+		try {
+			const localTrack = sessionRef.current?.getLocalVideoTrack();
+			if (localTrack && !localTrack.isPlaying && localVideoRef.current) {
+				localTrack.play(localVideoRef.current);
+			}
+			const remoteTrack = remoteVideoTrackRef.current;
+			if (remoteTrack && !remoteTrack.isPlaying && remoteVideoRef.current) {
+				remoteTrack.play(remoteVideoRef.current);
+			}
+		} catch (error) {
+			appLog.warn("[video-call] failed to attach video tracks", error);
 		}
 	}, [phase]);
 
