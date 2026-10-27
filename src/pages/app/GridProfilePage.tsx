@@ -9,13 +9,15 @@ import { useTranslation } from "react-i18next";
 import z from "zod";
 import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile } from "../../hooks/queries/useProfileQueries";
-import { validateMediaHash } from "../../utils/media";
-import { ProfileDetailsModal } from "./gridpage/components/ProfileDetailsModal";
+import { extractMediaHashFromUrl, getProfileImageUrl, validateMediaHash } from "../../utils/media";
+import { ProfileDetailsModal, type ProfileSwipePreview } from "./gridpage/components/ProfileDetailsModal";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
 import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
 import { loadBrowseFiltersDraft } from "./browse-filters-storage";
 import {
+	getAllCachedBrowseCardsById,
 	getCachedProfileDetail,
 	removeProfileFromBrowseCache,
 	setCachedProfileDetail,
@@ -41,6 +43,7 @@ import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
 import { classifyProfileAccess } from "../../utils/profileAccessStatus";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { SKIP_BLOCK_CONFIRM_KEY, isBlockConfirmSkipped } from "../../utils/blockConfirm";
+import { navigateBackTo } from "../../utils/navigateBack";
 
 const profileRouteParamsSchema = z.object({
 	profileId: z.string().min(1),
@@ -129,17 +132,9 @@ export function GridProfilePage() {
 	const [isHidden, setIsHidden] = useState(false);
 	const [isBlockedByOther, setIsBlockedByOther] = useState(false);
 
-	const [isDesktopLike, setIsDesktopLike] = useState(() =>
-		window.matchMedia("(hover: hover) and (pointer: fine)").matches
-	);
-	useEffect(() => {
-		const query = window.matchMedia("(hover: hover) and (pointer: fine)");
-		const update = () => setIsDesktopLike(query.matches);
-		query.addEventListener("change", update);
-		return () => query.removeEventListener("change", update);
-	}, []);
+	const isDesktopLike = useDesktopBreakpoint();
 
-	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop: isDesktopLike });
+	const { handleTriangleProfile, locateLabelFor } = useLocateProfile();
 
 	const parsedParams = profileRouteParamsSchema.safeParse(params);
 	const profileId = parsedParams.success ? parsedParams.data.profileId : null;
@@ -241,7 +236,10 @@ export function GridProfilePage() {
 
 	const isTappingProfile = tappingProfileId === profileId;
 
-	const locationState = (location.state as { returnTo?: unknown; profileIds?: unknown } | null) ?? {};
+	const locationState =
+		(location.state as { returnTo?: unknown; profileIds?: unknown; fromChat?: unknown } | null) ?? {};
+	// Opened from a chat thread, which sits directly below in history.
+	const openedFromChat = locationState.fromChat === true;
 	const returnToFromState =
 		typeof locationState.returnTo === "string" ? locationState.returnTo : null;
 	const profileIds: string[] = Array.isArray(locationState.profileIds)
@@ -259,6 +257,41 @@ export function GridProfilePage() {
 	const currentIndex = profileId ? profileIds.indexOf(profileId) : -1;
 	const prevProfileId = currentIndex > 0 ? profileIds[currentIndex - 1] : null;
 	const nextProfileId = currentIndex >= 0 && currentIndex < profileIds.length - 1 ? profileIds[currentIndex + 1] : null;
+
+	// Photo, name and status of the neighbouring profiles, from whatever the grid or an
+	// earlier visit already cached — shown beside the page while swiping.
+	const [prevProfilePreview, nextProfilePreview] = useMemo(() => {
+		if (!prevProfileId && !nextProfileId) return [null, null];
+		const cards = getAllCachedBrowseCardsById();
+		const toPreview = (id: string | null): ProfileSwipePreview | null => {
+			if (!id) return null;
+			const detail = getCachedProfileDetail(id);
+			const card = cards.get(id);
+			const hash =
+				detail?.medias.map((item) => item.mediaHash ?? "").find((h) => validateMediaHash(h)) ??
+				detail?.profileImageMediaHash ??
+				(card?.primaryImageUrl ? extractMediaHashFromUrl(card.primaryImageUrl) : null);
+			// Same signal as the profile itself (an active post); the grid only knows hosting or not.
+			const hasRightNowPost = typeof detail?.rightNowPosted === "number" && detail.rightNowPosted > 0;
+			const rightNowState = hasRightNowPost ? detail?.rightNow : card?.rightNow;
+			const rightNow =
+				rightNowState === "HOSTING" ? "hosting"
+				: hasRightNowPost || rightNowState === "NOT_HOSTING" ? "active"
+				: null;
+			return {
+				imageUrl: hash ? getProfileImageUrl(hash, "1024x1024") : (card?.primaryImageUrl ?? null),
+				name: detail?.displayName ?? card?.displayName ?? null,
+				age: detail?.age ?? card?.age ?? null,
+				distance: detail?.distance ?? card?.distanceMeters ?? null,
+				lastSeen: detail?.seen ?? card?.lastOnline ?? null,
+				onlineUntil: detail?.onlineUntil ?? card?.onlineUntil ?? null,
+				isFavorite: detail?.isFavorite ?? card?.favorite ?? false,
+				rightNow,
+				detail,
+			};
+		};
+		return [toPreview(prevProfileId), toPreview(nextProfileId)];
+	}, [prevProfileId, nextProfileId]);
 
 	const handlePrevProfile = prevProfileId
 		? () => navigate(`/profile/${prevProfileId}`, { replace: true, state: { returnTo: safeReturnTo, profileIds } })
@@ -389,9 +422,16 @@ export function GridProfilePage() {
 	}, [activeProfile]);
 
 	const handleMessageProfile = (targetProfileId: string) => {
+		if (openedFromChat) {
+			navigateBackTo(navigate, safeReturnTo);
+			return;
+		}
+		// Back from the chat should land on this profile again.
+		const profileParams = new URLSearchParams();
+		profileParams.set("returnTo", safeReturnTo);
 		const nextParams = new URLSearchParams();
 		nextParams.set("targetProfileId", targetProfileId);
-		nextParams.set("returnTo", safeReturnTo);
+		nextParams.set("returnTo", `${location.pathname}?${profileParams.toString()}`);
 		navigate(`/chat?${nextParams.toString()}`);
 	};
 
@@ -551,10 +591,16 @@ export function GridProfilePage() {
 				variant={isDesktopLike ? "modal" : "page"}
 				isOpen
 				onClose={() => {
-					navigate(safeReturnTo, { replace: true });
+					if (openedFromChat) {
+						navigateBackTo(navigate, safeReturnTo);
+					} else {
+						navigate(safeReturnTo, { replace: true });
+					}
 				}}
 				onPrevProfile={handlePrevProfile}
 				onNextProfile={handleNextProfile}
+				prevProfilePreview={prevProfilePreview}
+				nextProfilePreview={nextProfilePreview}
 				onMessageProfile={handleMessageProfile}
 				onTagClick={handleTagClick}
 				onSendQuickMessage={handleSendQuickMessage}
@@ -575,7 +621,7 @@ export function GridProfilePage() {
 				isSnapshotProfile={isSnapshotProfile}
 				isChatLinkedProfile={Boolean(chatContactStatus?.hasChatted)}
 				isBlockingProfile={isBlockingProfile || isUnblockingProfile}
-				isLocatingProfile={isLocatingProfile}
+				locateLabel={locateLabelFor(profileId)}
 				onTapProfile={handleTapProfile}
 				isTappingProfile={isTappingProfile}
 				isTapBlocked={hasSentTapRecently}
@@ -591,8 +637,6 @@ export function GridProfilePage() {
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>
-
-			{locateSheet}
 
 			<ConfirmDialog
 				isOpen={pendingProfileConfirm !== null}

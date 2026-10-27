@@ -1,0 +1,16 @@
+#!/bin/sh
+# makensis wrapper for ci/build/windows.sh. NSIS stores every installed file's
+# mtime unless SetDateSave is off, and tauri's installer template leaves it on
+# and restages its sources on each build, so set them to the commit time first.
+for arg in "$@"; do
+	case "$arg" in
+	*.nsi)
+		grep -oE '"/[^"]+"' "$arg" | tr -d '"' | sort -u | while IFS= read -r source; do
+			if [ -e "$source" ]; then
+				find "$source" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
+			fi
+		done
+		;;
+	esac
+done
+exec /opt/nsis/Bin/makensis "$@"

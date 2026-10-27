@@ -1,41 +1,15 @@
-import { ArrowUpDown, Eye, MapPin, Zap, type LucideIcon } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Slider } from "../../../components/ui/range-slider";
+import { SheetCard, SheetChip, SheetSection } from "../../../components/ui/sheet-section";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { formatDistanceForUnits } from "../../../utils/units";
-import { getSexualPositionOptions } from "../profile-option-builders";
+import { getSexualPositionOptions, SEXUAL_POSITION_ICONS } from "../profile-option-builders";
 import type { InboxFilterKey, InboxVisibilityFilter } from "../../../types/chat-page";
 import type { ChatFiltersDraft } from "../chat/chatUtils";
 
-const cardStyle: React.CSSProperties = {
-	backgroundColor: "color-mix(in srgb, var(--accent), transparent 96%)",
-	border: "1px solid color-mix(in srgb, var(--accent), transparent 88%)",
-};
-
-/** Mirrors BrowseFiltersOverlay's renderSectionHeader so both filter overlays read as one system. */
-function SectionHeader({ title, icon: Icon, valueBadge }: { title: string; icon?: LucideIcon; valueBadge?: string }) {
-	return (
-		<div className="mb-3 flex items-center justify-between gap-2.5">
-			<div className="flex items-center gap-2.5">
-				{Icon && <Icon className="h-4 w-4 shrink-0" style={{ color: "var(--accent)" }} />}
-				<p className="text-sm font-bold tracking-tight text-[var(--text)]">{title}</p>
-			</div>
-			{valueBadge && (
-				<span
-					className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-sm text-[var(--text)]"
-					style={{ backgroundColor: "color-mix(in srgb, var(--accent), transparent 85%)" }}
-				>
-					{valueBadge}
-				</span>
-			)}
-		</div>
-	);
-}
-
-/** One "Pinned"/"Archived"/"Hidden" row: a label plus a 3-way chip group
- * (Show all/Hide/Only) — same chip styling as the other filter sections so
- * these read as part of the same system instead of a bolted-on control. */
+/** One "Pinned"/"Archived"/"Hidden" row: label on the left, a 3-way chip
+ * group (Show all/Hide/Only) on the right — a list row inside a SheetCard. */
 function VisibilityFilterRow({
 	label,
 	value,
@@ -51,28 +25,15 @@ function VisibilityFilterRow({
 		{ value: "hide", label: t("chat.filter.state_hide", { defaultValue: "Hide" }) },
 		{ value: "only", label: t("chat.filter.state_only", { defaultValue: "Only" }) },
 	];
-
 	return (
-		<div className="flex flex-wrap items-center justify-between gap-2">
+		<div className="flex flex-wrap items-center justify-between gap-2 py-2.5">
 			<span className="text-sm font-semibold text-[var(--text)]">{label}</span>
-			<div className="flex flex-wrap gap-1.5">
-				{options.map((option) => {
-					const active = value === option.value;
-					return (
-						<button
-							key={option.value}
-							type="button"
-							onClick={() => onChange(option.value)}
-							className={`rounded-full border px-3 py-1 text-xs font-semibold transition active:scale-95 ${
-								active
-									? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm shadow-[var(--accent)]/30"
-									: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)]/60 hover:text-[var(--text)]"
-							}`}
-						>
-							{option.label}
-						</button>
-					);
-				})}
+			<div className="flex gap-1.5">
+				{options.map((option) => (
+					<SheetChip key={option.value} active={value === option.value} onClick={() => onChange(option.value)} size="sm" onCard>
+						{option.label}
+					</SheetChip>
+				))}
 			</div>
 		</div>
 	);
@@ -132,99 +93,80 @@ export function ChatFiltersPanel({ isDesktop: _isDesktop, draft, onChangeDraft, 
 		});
 
 	return (
-		<div className="space-y-3 px-[var(--app-px)] py-4" data-lenis-prevent>
-			{/* Quick filters */}
-			<section className="rounded-2xl p-4" style={cardStyle}>
-				<SectionHeader title={t("browse_filters.quick_filters")} icon={Zap} />
+		<div className="space-y-5 px-4 pb-2">
+			<SheetSection title={t("browse_filters.quick_filters")}>
 				<div className="flex flex-wrap gap-2">
-					{inboxFilterOptions.map((filter) => {
-						const active = draft[filter.key];
-						return (
-							<button
-								key={filter.key}
-								type="button"
-								onClick={() => toggle(filter.key)}
-								className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold transition active:scale-95 ${
-									active
-										? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm shadow-[var(--accent)]/30"
-										: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)]/60 hover:text-[var(--text)]"
-								}`}
-							>
-								{filter.label}
-							</button>
-						);
-					})}
+					{inboxFilterOptions.map((filter) => (
+						<SheetChip key={filter.key} active={Boolean(draft[filter.key])} onClick={() => toggle(filter.key)}>
+							{filter.label}
+						</SheetChip>
+					))}
 				</div>
-			</section>
+			</SheetSection>
 
 			{/* Pinned/Archived/Hidden visibility */}
-			<section className="space-y-3 rounded-2xl p-4" style={cardStyle}>
-				<SectionHeader title={t("chat_filters.visibility", { defaultValue: "Visibility" })} icon={Eye} />
-				<VisibilityFilterRow
-					label={t("chat.pinned")}
-					value={draft.pinnedFilter}
-					onChange={(pinnedFilter) => onChangeDraft({ ...draft, pinnedFilter })}
-				/>
-				{archivedCount > 0 && (
+			<SheetSection title={t("chat_filters.visibility", { defaultValue: "Visibility" })}>
+				<SheetCard className="divide-y divide-[var(--border)] py-1">
 					<VisibilityFilterRow
-						label={t("chat.archived.filter_label", { defaultValue: "Archived" })}
-						value={draft.archivedFilter}
-						onChange={(archivedFilter) => onChangeDraft({ ...draft, archivedFilter })}
+						label={t("chat.pinned")}
+						value={draft.pinnedFilter}
+						onChange={(pinnedFilter) => onChangeDraft({ ...draft, pinnedFilter })}
 					/>
-				)}
-				{hiddenCount > 0 && (
-					<VisibilityFilterRow
-						label={t("chat.hidden.filter_label", { defaultValue: "Hidden" })}
-						value={draft.hiddenFilter}
-						onChange={(hiddenFilter) => onChangeDraft({ ...draft, hiddenFilter })}
+					{archivedCount > 0 && (
+						<VisibilityFilterRow
+							label={t("chat.archived.filter_label", { defaultValue: "Archived" })}
+							value={draft.archivedFilter}
+							onChange={(archivedFilter) => onChangeDraft({ ...draft, archivedFilter })}
+						/>
+					)}
+					{hiddenCount > 0 && (
+						<VisibilityFilterRow
+							label={t("chat.hidden.filter_label", { defaultValue: "Hidden" })}
+							value={draft.hiddenFilter}
+							onChange={(hiddenFilter) => onChangeDraft({ ...draft, hiddenFilter })}
+						/>
+					)}
+				</SheetCard>
+			</SheetSection>
+
+			<SheetSection title={t("chat_filters.max_distance")} value={distanceDisplay}>
+				<div className="px-1">
+					<Slider
+						label={t("chat_filters.max_distance")}
+						min={0}
+						max={distanceSteps.length - 1}
+						defaultValue={displayDistanceIndex}
+						displayValue={distanceDisplay}
+						activeColor="var(--accent)"
+						hideHeader
+						onChange={(index) => {
+							const meters = distanceSteps[index];
+							onChangeDraft({
+								...draft,
+								distanceMeters: index === distanceSteps.length - 1 ? "" : String(meters),
+							});
+						}}
 					/>
-				)}
-			</section>
+				</div>
+			</SheetSection>
 
-			{/* Distance slider */}
-			<section className="rounded-2xl p-4" style={cardStyle}>
-				<SectionHeader title={t("chat_filters.max_distance")} icon={MapPin} valueBadge={distanceDisplay} />
-				<Slider
-					label={t("chat_filters.max_distance")}
-					min={0}
-					max={distanceSteps.length - 1}
-					defaultValue={displayDistanceIndex}
-					displayValue={distanceDisplay}
-					activeColor="var(--accent)"
-					hideHeader
-					onChange={(index) => {
-						const meters = distanceSteps[index];
-						onChangeDraft({
-							...draft,
-							distanceMeters: index === distanceSteps.length - 1 ? "" : String(meters),
-						});
-					}}
-				/>
-			</section>
-
-			{/* Position filters */}
-			<section className="rounded-2xl p-4" style={cardStyle}>
-				<SectionHeader title={t("profile_editor.sections.states.position")} icon={ArrowUpDown} />
+			<SheetSection title={t("profile_editor.sections.states.position")}>
 				<div className="flex flex-wrap gap-2">
 					{positionFilterOptions.map(({ value: positionId, label }) => {
-						const active = draft.positions.includes(positionId);
+						const Icon = SEXUAL_POSITION_ICONS[positionId];
 						return (
-							<button
-								key={positionId}
-								type="button"
-								onClick={() => togglePosition(positionId)}
-								className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold transition active:scale-95 ${
-									active
-										? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm shadow-[var(--accent)]/30"
-										: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)]/60 hover:text-[var(--text)]"
-								}`}
-							>
-								{label}
-							</button>
+							<SheetChip key={positionId} active={draft.positions.includes(positionId)} onClick={() => togglePosition(positionId)}>
+								{Icon ? (
+									<span className="inline-flex items-center gap-1.5">
+										<Icon className="h-3.5 w-3.5 shrink-0" />
+										{label}
+									</span>
+								) : label}
+							</SheetChip>
 						);
 					})}
 				</div>
-			</section>
+			</SheetSection>
 		</div>
 	);
 }

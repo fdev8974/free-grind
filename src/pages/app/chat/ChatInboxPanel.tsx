@@ -1,10 +1,16 @@
-import { Archive, BellOff, CheckCheck, Eye, EyeOff, Home, Loader2, MessageCircle, Pin, PinOff, Star, Trash2, Zap } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { Archive, BellOff, Check, CheckCheck, EyeOff, Loader2, MessageCircle, PencilLine, Pin, Star, Trash2 } from "lucide-react";
+import { BellOffFilled, EyeOffFilled, HomeFilled, LocateFixedFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
+import { RightNowIcon } from "../../../components/icons/RightNowIcon";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChatSearchPanel } from "./ChatSearchPanel";
 import { ChatInboxHeader, type ChatInboxHeaderProps } from "./ChatInboxHeader";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
+import { SheetActionList, afterSheetClose } from "../../../components/ui/action-sheet";
+import { useLocateProfile } from "../gridpage/hooks/useLocateProfile";
+import { isLocateEnabled } from "../../../utils/optionalFeatures";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { ProfileImage } from "../../../components/ui/profile-image";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -18,7 +24,9 @@ import {
 	getParticipantOnlineMeta,
 	getPreviewText,
 } from "../chat/chatUtils";
-import { isReadReceiptsHidden, isReadReceiptsOverridden, useReadReceiptsChanged } from "../../../utils/privacy";
+import toast from "react-hot-toast";
+import { getShowReadReceiptToggle, isReadReceiptsHidden, isReadReceiptsOverridden, toggleReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
+import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import {
 	SKIP_DELETE_CONVERSATION_CONFIRM_KEY,
 	isDeleteConversationConfirmSkipped,
@@ -28,6 +36,9 @@ import { useAvatarCache } from "../../../hooks/useAvatarCache";
 import { resolveAvatarSrc } from "../../../services/avatarStore";
 import { useInboxSyncStatus } from "../../../hooks/useInboxSyncStatus";
 import { FEED_HEADER_OFFSET, FEED_MASK_GRADIENT_STOP } from "../../../config/design-config";
+import { haptic } from "../../../utils/haptics";
+import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
+import { getNicknameRename, useSeenDisplayNames, type SeenDisplayName } from "../../../hooks/useNicknameNameChange";
 
 /** Footer bar below the chat list's scroll area (not inside it) — reads as
  * part of the list (same border/background as a conversation row) rather
@@ -103,6 +114,7 @@ type ChatInboxPanelProps = ChatInboxHeaderProps & {
 	onViewProfile: (profileId: number) => void;
 	typingConversationIds?: Set<string>;
 	onTogglePinConversation: (conversationId: string, isPinned: boolean) => void | Promise<void>;
+	onToggleMuteConversation: (conversationId: string, isMuted: boolean) => void | Promise<void>;
 	hiddenConversationIds: Set<string>;
 	onToggleHideConversation: (conversationId: string, isHidden: boolean) => void;
 	onDeleteConversation: (conversationId: string) => void | Promise<void>;
@@ -114,6 +126,7 @@ type ChatConversationRowProps = {
 	conversation: ConversationEntry;
 	userId: number | null;
 	localNicknamesByProfileId: Record<string, string>;
+	seenDisplayNamesByProfileId: Record<string, SeenDisplayName>;
 	chatContactIndexByProfileId: Record<string, ChatContactIndexRecord>;
 	nowTimestamp: number;
 	isSelected: boolean;
@@ -123,14 +136,132 @@ type ChatConversationRowProps = {
 	onSelectConversation: (c: ConversationEntry) => void;
 	onViewProfile: (profileId: number) => void;
 	onOpenContextMenu: (conversation: ConversationEntry, isArchived: boolean, x: number, y: number) => void;
+	onOpenActionSheet: (conversation: ConversationEntry, isArchived: boolean, title: string) => void;
 	onSwipePin: (conversation: ConversationEntry) => void;
 	onSwipeDeleteRequest: (conversation: ConversationEntry, isArchived: boolean) => void;
 };
+
+type ConversationAction = {
+	key: string;
+	label: string;
+	icon: ReactNode;
+	onSelect: () => void;
+	destructive?: boolean;
+};
+
+type ConversationActionHandlers = {
+	onTogglePin: () => void;
+	onToggleMute: () => void;
+	onToggleHide: () => void;
+	/** Only set while the per-chat read-receipts toggle is enabled in Privacy settings. */
+	onToggleReadReceipts?: () => void;
+	onDelete: () => void;
+	/** Only set while the optional Locate feature is enabled. */
+	onLocate?: () => void;
+	locateLabel?: string;
+};
+
+// Shared by the desktop right-click menu and the mobile long-press sheet so
+// both always offer the same actions. Toggle icons stay the same glyph and
+// only fill in while their state is active.
+function buildConversationActions(
+	t: TFunction,
+	conversation: ConversationEntry,
+	isArchived: boolean,
+	isHidden: boolean,
+	handlers: ConversationActionHandlers,
+): ConversationAction[] {
+	const isPinned = conversation.data.pinned;
+	const isMuted = conversation.data.muted;
+	return [
+		...(!isArchived
+			? [{
+				key: "pin",
+				label: isPinned ? t("chat.unpin") : t("chat.pin"),
+				icon: <Pin className={`h-4 w-4 ${isPinned ? "fill-current" : ""}`} />,
+				onSelect: handlers.onTogglePin,
+			}]
+			: []),
+		{
+			key: "mute",
+			label: isMuted ? t("chat.unmute") : t("chat.mute"),
+			icon: isMuted ? <BellOffFilled className="h-4 w-4" /> : <BellOff className="h-4 w-4" />,
+			onSelect: handlers.onToggleMute,
+		},
+		{
+			key: "hide",
+			label: isHidden
+				? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
+				: t("chat.hide_conversation", { defaultValue: "Hide chat" }),
+			icon: isHidden ? <EyeOffFilled className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />,
+			onSelect: handlers.onToggleHide,
+		},
+		...(handlers.onToggleReadReceipts && !isArchived
+			? (() => {
+				const hidden = isReadReceiptsHidden(conversation.data.conversationId);
+				return [{
+					key: "read-receipts",
+					label: `${t("chat.read_receipts_label")}: ${hidden ? t("chat.read_receipts_off") : t("chat.read_receipts_on")}`,
+					icon: hidden ? <Check className="h-4 w-4" /> : <CheckCheck className="h-4 w-4" />,
+					onSelect: handlers.onToggleReadReceipts,
+				}];
+			})()
+			: []),
+		...(handlers.onLocate
+			? [{
+				key: "locate",
+				label: handlers.locateLabel ?? t("profile_details.locate"),
+				icon: <LocateFixedFilled className="h-4 w-4" />,
+				onSelect: handlers.onLocate,
+			}]
+			: []),
+		{
+			key: "delete",
+			label: t("chat.delete_conversation"),
+			icon: <Trash2Filled className="h-4 w-4" />,
+			onSelect: handlers.onDelete,
+			destructive: true,
+		},
+	];
+}
+
+function ConversationActionSheet({
+	title,
+	actions,
+	onClose,
+}: {
+	title: string;
+	actions: ConversationAction[];
+	onClose: () => void;
+}) {
+	// Portal to <body> for the same reason as ConversationContextMenu: inside
+	// PullToRefreshContainer's transformed wrapper the fixed sheet gets trapped
+	// in its stacking context and ends up under the bottom nav.
+	return createPortal(
+		<SheetActionList
+			title={title}
+			isDesktop={false}
+			onClose={onClose}
+			actions={actions.map((action) => ({
+				key: action.key,
+				icon: action.icon as ReactElement<{ className?: string }>,
+				label: action.label,
+				tone: action.destructive ? "danger" : "default",
+				// Run it once the sheet has finished closing — it pops its own history
+				// entry on close, which would otherwise race anything the action opens
+				// (e.g. the delete confirmation).
+				onSelect: () => afterSheetClose(action.onSelect),
+			}))}
+		/>,
+		document.body,
+	);
+}
 
 // Pinning is a server-side flag on a live conversation — it doesn't make
 // sense (and the API has nothing to target) once we've locally archived a
 // conversation the server can no longer produce.
 function ConversationContextMenu({
+	visible = true,
 	conversation,
 	isArchived,
 	isHidden,
@@ -138,9 +269,14 @@ function ConversationContextMenu({
 	y,
 	onClose,
 	onTogglePin,
+	onToggleMute,
 	onToggleHide,
+	onToggleReadReceipts,
 	onDelete,
+	onLocate,
+	locateLabel,
 }: {
+	visible?: boolean;
 	conversation: ConversationEntry;
 	isArchived: boolean;
 	isHidden: boolean;
@@ -148,8 +284,12 @@ function ConversationContextMenu({
 	y: number;
 	onClose: () => void;
 	onTogglePin: () => void;
+	onToggleMute: () => void;
 	onToggleHide: () => void;
+	onToggleReadReceipts?: () => void;
 	onDelete: () => void;
+	onLocate?: () => void;
+	locateLabel?: string;
 }) {
 	const { t } = useTranslation();
 	const menuRef = useRef<HTMLDivElement | null>(null);
@@ -185,7 +325,15 @@ function ConversationContextMenu({
 		};
 	}, [onClose]);
 
-	const isPinned = conversation.data.pinned;
+	const actions = buildConversationActions(t, conversation, isArchived, isHidden, {
+		onTogglePin,
+		onToggleMute,
+		onToggleHide,
+		onToggleReadReceipts,
+		onDelete,
+		onLocate,
+		locateLabel,
+	});
 
 	// Portal to <body> — the list sits inside PullToRefreshContainer, which
 	// applies a `transform` to its content wrapper (even at rest, translateY(0)
@@ -195,38 +343,26 @@ function ConversationContextMenu({
 	return createPortal(
 		<div
 			ref={menuRef}
-			style={{ top: position.top, left: position.left }}
+			style={{ top: position.top, left: position.left, ...menuTransitionStyle(visible, "top left") }}
 			className="fixed z-[70] flex min-w-[190px] flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl"
 		>
-			{!isArchived && (
-				<button
-					type="button"
-					onClick={onTogglePin}
-					className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
-				>
-					{isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-					{isPinned ? t("chat.unpin") : t("chat.pin")}
-				</button>
-			)}
-			<button
-				type="button"
-				onClick={onToggleHide}
-				className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
-			>
-				{isHidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-				{isHidden
-					? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
-					: t("chat.hide_conversation", { defaultValue: "Hide chat" })}
-			</button>
-			<div className="-mx-2 mt-1 border-t border-[var(--border)] pt-1" />
-			<button
-				type="button"
-				onClick={onDelete}
-				className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm text-red-500 transition hover:bg-red-500/10"
-			>
-				<Trash2 className="h-4 w-4" />
-				{t("chat.delete_conversation")}
-			</button>
+			{actions.map((action) => (
+				<Fragment key={action.key}>
+					{action.destructive && <div className="-mx-2 mt-1 border-t border-[var(--border)] pt-1" />}
+					<button
+						type="button"
+						onClick={action.onSelect}
+						className={`flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm transition ${
+							action.destructive
+								? "text-red-500 hover:bg-red-500/10"
+								: "text-[var(--text)] hover:bg-[var(--surface-2)]"
+						}`}
+					>
+						{action.icon}
+						{action.label}
+					</button>
+				</Fragment>
+			))}
 		</div>,
 		document.body,
 	);
@@ -236,6 +372,7 @@ function ChatConversationRow({
 	conversation,
 	userId,
 	localNicknamesByProfileId,
+	seenDisplayNamesByProfileId,
 	chatContactIndexByProfileId,
 	nowTimestamp,
 	isSelected,
@@ -245,11 +382,12 @@ function ChatConversationRow({
 	onSelectConversation,
 	onViewProfile,
 	onOpenContextMenu,
+	onOpenActionSheet,
 	onSwipePin,
 	onSwipeDeleteRequest,
 }: ChatConversationRowProps) {
 	const { t } = useTranslation();
-	const { showDebugInfo } = usePreferences();
+	const { showDebugInfo, chatRowSwipeActions } = usePreferences();
 	const { ref, revealClass } = useRevealOnScroll();
 	useAvatarCache();
 
@@ -264,10 +402,19 @@ function ChatConversationRow({
 		lock: "pending" | "horizontal" | "vertical";
 	} | null>(null);
 	const suppressClickRef = useRef(false);
+	const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const cancelLongPress = () => {
+		if (longPressTimerRef.current) {
+			clearTimeout(longPressTimerRef.current);
+			longPressTimerRef.current = null;
+		}
+	};
+	useEffect(() => cancelLongPress, []);
 
 	const SWIPE_THRESHOLD = 60;
 	const SWIPE_MAX_DRAG = 96;
 	const DIRECTION_LOCK_DISTANCE = 8;
+	const LONG_PRESS_MS = 450;
 
 	const resetSwipeVisual = () => {
 		const content = contentRef.current;
@@ -291,6 +438,16 @@ function ChatConversationRow({
 		}
 		const touch = event.touches[0];
 		swipeStateRef.current = { startX: touch.clientX, startY: touch.clientY, dx: 0, armed: false, lock: "pending" };
+		cancelLongPress();
+		longPressTimerRef.current = setTimeout(() => {
+			longPressTimerRef.current = null;
+			// Holding still: end the gesture here so the release neither swipes
+			// nor opens the chat.
+			swipeStateRef.current = null;
+			suppressClickRef.current = true;
+			haptic(30);
+			onOpenActionSheet(conversation, isArchived, displayName);
+		}, LONG_PRESS_MS);
 	};
 
 	const handleTouchMove = (event: React.TouchEvent) => {
@@ -304,6 +461,13 @@ function ChatConversationRow({
 
 		if (state.lock === "pending") {
 			if (Math.max(Math.abs(rawDx), Math.abs(rawDy)) < DIRECTION_LOCK_DISTANCE) return;
+			cancelLongPress();
+			// With swipe actions off, any movement just ends the gesture (it was
+			// only being tracked for the long press).
+			if (!chatRowSwipeActions) {
+				swipeStateRef.current = null;
+				return;
+			}
 			// Whichever axis moved further decides the gesture — once it's a
 			// vertical scroll we stop touching the row entirely so scrolling
 			// the list can never leave a swipe "armed" for the next touchend.
@@ -338,13 +502,13 @@ function ChatConversationRow({
 		if (isArmed !== state.armed) {
 			state.armed = isArmed;
 			if (isArmed) {
-				(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge
-					?.vibrate?.(15) ?? navigator.vibrate?.(15);
+				haptic(15);
 			}
 		}
 	};
 
 	const handleTouchEnd = () => {
+		cancelLongPress();
 		const state = swipeStateRef.current;
 		swipeStateRef.current = null;
 		if (!state) return;
@@ -363,6 +527,7 @@ function ChatConversationRow({
 	};
 
 	const handleTouchCancel = () => {
+		cancelLongPress();
 		swipeStateRef.current = null;
 		resetSwipeVisual();
 	};
@@ -376,8 +541,9 @@ function ChatConversationRow({
 	};
 
 	const handleContextMenu = (event: React.MouseEvent) => {
-		if (!isDesktop) return;
 		event.preventDefault();
+		// Touch devices fire contextmenu on long press too; the sheet handles that.
+		if (!isDesktop) return;
 		onOpenContextMenu(conversation, isArchived, event.clientX, event.clientY);
 	};
 
@@ -385,6 +551,11 @@ function ChatConversationRow({
 	const otherProfileId = otherParticipant?.profileId ? String(otherParticipant.profileId) : null;
 	const localNickname = otherProfileId ? localNicknamesByProfileId[otherProfileId] : null;
 	const displayName = localNickname || conversation.data.name || t("common.unknown_display_name");
+	const nicknameRename = getNicknameRename(
+		localNickname,
+		conversation.data.name,
+		otherProfileId ? seenDisplayNamesByProfileId[otherProfileId] : null,
+	);
 	const otherParticipantOnlineMeta = getParticipantOnlineMeta(
 		otherParticipant?.lastOnline,
 		otherParticipant?.onlineUntil,
@@ -430,7 +601,7 @@ function ChatConversationRow({
 						? { borderLeft: "2px solid var(--accent)", paddingLeft: "14px" }
 						: { paddingLeft: "16px" }),
 				}}
-				className="no-touch-callout relative flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pr-4 text-left transition"
+				className="group/reveal no-touch-callout relative flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pr-4 text-left transition"
 			>
 					<button
 						type="button"
@@ -442,7 +613,7 @@ function ChatConversationRow({
 						}}
 						className="relative shrink-0 disabled:cursor-default disabled:opacity-80"
 					>
-						<div className="h-14 w-14 squircle bg-[var(--surface-2)] drop-shadow-sm">
+						<div className="h-15 w-15 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 							<ProfileImage
 								src={resolveAvatarSrc(
 									otherParticipant?.primaryMediaHash,
@@ -455,17 +626,17 @@ function ChatConversationRow({
 						{isArchived ? (
 							<span
 								title={t("chat.archived.badge", { defaultValue: "Archived" })}
-								className="absolute -bottom-0.5 -right-0.5 z-10 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-[var(--bg)] bg-[var(--surface-2)] shadow-sm"
+								className="absolute circle-badge-br z-10 flex h-4 w-4 items-center justify-center rounded-full border-[1.5px] border-[var(--bg)] bg-[var(--surface-2)] shadow-sm"
 							>
 								<Archive className="h-2.5 w-2.5 text-[var(--text-muted)]" />
 							</span>
 						) : (
 							isOtherParticipantOnline && (
-								<span className="absolute -bottom-0.5 -right-0.5 z-10 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] bg-green-500 shadow-sm" />
+								<span className={`absolute circle-badge-br z-10 h-3 w-3 rounded-full border-[1.5px] border-[var(--bg)] shadow-sm ${otherParticipantOnlineMeta.isEndingSoon ? "bg-amber-500" : "bg-green-500"}`} />
 							)
 						)}
 						{conversation.data.pinned ? (
-							<div className="absolute -top-1 -right-1 rounded-full bg-black/40 p-0.5 text-white backdrop-blur-sm">
+							<div className="absolute circle-badge-tr rounded-full bg-black/40 p-0.5 text-white backdrop-blur-sm">
 								<Pin className="h-2.5 w-2.5 fill-current" />
 							</div>
 						) : null}
@@ -474,12 +645,20 @@ function ChatConversationRow({
 					<div className="min-w-0 flex-1">
 						<div className="flex items-center justify-between gap-2">
 							<div className="flex min-w-0 items-center gap-1.5">
-								<p className="truncate text-sm font-semibold text-[var(--text)]">
+								<p
+									className="truncate text-sm font-semibold text-[var(--text)]"
+									title={nicknameRename.realName ? t("chat.nicknames.real_name", { name: nicknameRename.realName }) : undefined}
+								>
 									{displayName}
 								</p>
+								{nicknameRename.previousName && nicknameRename.realName && (
+									<span title={t("chat.nicknames.real_name_changed", { previous: nicknameRename.previousName, name: nicknameRename.realName })}>
+										<PencilLine className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
+									</span>
+								)}
 								{conversation.data.muted && (
 									<span title={t("chat.muted")}>
-										<BellOff className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+										<BellOffFilled className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
 									</span>
 								)}
 								{conversation.data.favorite && (
@@ -489,12 +668,12 @@ function ChatConversationRow({
 								)}
 								{conversation.data.rightNow === "HOSTING" && (
 									<span title={t("right_now.hosting")}>
-										<Home className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
+										<HomeFilled className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 									</span>
 								)}
 								{conversation.data.rightNow === "NOT_HOSTING" && (
 									<span title={t("right_now.not_hosting", { defaultValue: "Right Now" })}>
-										<Zap className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
+										<RightNowIcon className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 									</span>
 								)}
 								{readReceiptsOverridden && (readReceiptsHidden ? (
@@ -580,6 +759,7 @@ export function ChatInboxPanel({
 	needsReplyOnly,
 	typingConversationIds,
 	onTogglePinConversation,
+	onToggleMuteConversation,
 	hiddenConversationIds,
 	onToggleHideConversation,
 	onDeleteConversation,
@@ -588,6 +768,17 @@ export function ChatInboxPanel({
 }: ChatInboxPanelProps) {
 	const { t } = useTranslation();
 	useReadReceiptsChanged();
+	const apiFunctions = useApiFunctions();
+	const seenDisplayNamesByProfileId = useSeenDisplayNames(
+		filteredConversations.flatMap((conversation) => {
+			const profileId = getOtherParticipant(conversation, userId)?.profileId;
+			return profileId != null
+				? [{ profileId, nickname: localNicknamesByProfileId[String(profileId)], displayName: conversation.data.name }]
+				: [];
+		}),
+	);
+	// Read on mount, same as the thread header; toggled in Privacy settings.
+	const [showReadReceiptToggle] = useState(getShowReadReceiptToggle);
 	const lastScrollAtRef = useRef(0);
 	const lastRequestedPageRef = useRef<number | null>(null);
 	const [contextMenuState, setContextMenuState] = useState<{
@@ -596,6 +787,68 @@ export function ChatInboxPanel({
 		x: number;
 		y: number;
 	} | null>(null);
+	const contextMenuPresence = usePresence(contextMenuState);
+	const [actionSheetState, setActionSheetState] = useState<{
+		conversation: ConversationEntry;
+		isArchived: boolean;
+		title: string;
+	} | null>(null);
+
+	const conversationActionHandlers = (
+		conversation: ConversationEntry,
+		isArchived: boolean,
+		close: () => void,
+	): ConversationActionHandlers => ({
+		onTogglePin: () => {
+			close();
+			void onTogglePinConversation(conversation.data.conversationId, conversation.data.pinned);
+		},
+		onToggleMute: () => {
+			close();
+			void onToggleMuteConversation(conversation.data.conversationId, conversation.data.muted);
+		},
+		onToggleHide: () => {
+			close();
+			onToggleHideConversation(
+				conversation.data.conversationId,
+				hiddenConversationIds.has(conversation.data.conversationId),
+			);
+		},
+		...(showReadReceiptToggle
+			? {
+				onToggleReadReceipts: () => {
+					close();
+					const conversationId = conversation.data.conversationId;
+					const nowHidden = toggleReadReceiptsHidden(conversationId);
+					// Same as the thread header toggle: once receipts are back on, tell the
+					// server we've read what's already there.
+					const lastMessageId = conversation.data.preview?.messageId;
+					if (!nowHidden && lastMessageId) {
+						apiFunctions.markRead(conversationId, lastMessageId).catch(() => {});
+					}
+					toast.success(nowHidden ? "Read receipts turned off for this chat." : "Read receipts turned on for this chat.");
+				},
+			}
+			: {}),
+		onDelete: () => {
+			close();
+			requestDeleteConversation(conversation, isArchived);
+		},
+		...(() => {
+			const otherProfileId = getOtherParticipant(conversation, userId)?.profileId;
+			if (!showLocate || !otherProfileId) return {};
+			return {
+				onLocate: () => {
+					close();
+					handleTriangleProfile(String(otherProfileId));
+				},
+				locateLabel: locateLabelFor(otherProfileId),
+			};
+		})(),
+	});
+	const { handleTriangleProfile, locateLabelFor } = useLocateProfile();
+	// Read on mount like ProfileDetailsModal does; toggled in Optional Features.
+	const [showLocate] = useState(isLocateEnabled);
 	const [deleteConfirmState, setDeleteConfirmState] = useState<{
 		conversation: ConversationEntry;
 		isArchived: boolean;
@@ -643,7 +896,7 @@ export function ChatInboxPanel({
 	const rowVirtualizer = useVirtualizer({
 		count: filteredConversations.length,
 		getScrollElement: () => inboxListRef.current,
-		estimateSize: () => 78,
+		estimateSize: () => 82,
 		overscan: 8,
 		getItemKey: (index) => filteredConversations[index]?.data.conversationId ?? index,
 	});
@@ -672,7 +925,7 @@ export function ChatInboxPanel({
 	return (
 		<PullToRefreshContainer
 			className={`flex min-h-0 flex-col overflow-hidden ${
-				isDesktop ? "surface-card h-full" : "h-dvh p-0"
+				isDesktop ? "native-card h-full" : "h-dvh p-0"
 			}`}
 			contentClassName="flex flex-1 flex-col min-h-0"
 			style={
@@ -734,12 +987,12 @@ export function ChatInboxPanel({
 							WebkitMaskImage: `linear-gradient(to bottom, transparent, black ${FEED_MASK_GRADIENT_STOP})`,
 						} : undefined}
 					>
-						<div className={!isDesktop ? "pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px)+16px)]" : ""}>
+						<div className={!isDesktop ? "pb-[calc(env(safe-area-inset-bottom,0px)+120px)]" : ""}>
 							{isLoadingInbox ? (
 								<div className="flex flex-col">
 									{Array.from({ length: 12 }).map((_, i) => (
 										<div key={i} className="flex items-center gap-4 border-b border-[var(--surface-2)] py-3 px-4">
-											<div className="h-14 w-14 shrink-0 squircle animate-pulse bg-[var(--surface-2)]" />
+											<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]" />
 											<div className="flex flex-1 flex-col gap-2">
 												<div className="flex items-center justify-between gap-3">
 													<div className="h-3 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
@@ -801,6 +1054,7 @@ export function ChatInboxPanel({
 														conversation={conversation}
 														userId={userId}
 														localNicknamesByProfileId={localNicknamesByProfileId}
+														seenDisplayNamesByProfileId={seenDisplayNamesByProfileId}
 														chatContactIndexByProfileId={chatContactIndexByProfileId}
 														nowTimestamp={nowTimestamp}
 														isSelected={conversation.data.conversationId === selectedConversationId}
@@ -809,6 +1063,9 @@ export function ChatInboxPanel({
 														isDesktop={isDesktop}
 														onSelectConversation={onSelectConversation}
 														onViewProfile={onViewProfile}
+														onOpenActionSheet={(c, isArchived, title) =>
+															setActionSheetState({ conversation: c, isArchived, title })
+														}
 														onOpenContextMenu={(c, isArchived, x, y) =>
 															setContextMenuState({ conversation: c, isArchived, x, y })
 														}
@@ -834,31 +1091,31 @@ export function ChatInboxPanel({
 
 			{isDesktop && !isSearchOpen && <ChatSyncFooterRow userId={userId} />}
 
-			{contextMenuState ? (
+			{contextMenuPresence.rendered ? (
 				<ConversationContextMenu
-					conversation={contextMenuState.conversation}
-					isArchived={contextMenuState.isArchived}
-					isHidden={hiddenConversationIds.has(contextMenuState.conversation.data.conversationId)}
-					x={contextMenuState.x}
-					y={contextMenuState.y}
+					visible={contextMenuPresence.visible}
+					conversation={contextMenuPresence.rendered.conversation}
+					isArchived={contextMenuPresence.rendered.isArchived}
+					isHidden={hiddenConversationIds.has(contextMenuPresence.rendered.conversation.data.conversationId)}
+					x={contextMenuPresence.rendered.x}
+					y={contextMenuPresence.rendered.y}
 					onClose={() => setContextMenuState(null)}
-					onTogglePin={() => {
-						const { conversation } = contextMenuState;
-						setContextMenuState(null);
-						void onTogglePinConversation(conversation.data.conversationId, conversation.data.pinned);
-					}}
-					onToggleHide={() => {
-						const { conversation } = contextMenuState;
-						setContextMenuState(null);
-						onToggleHideConversation(
-							conversation.data.conversationId,
-							hiddenConversationIds.has(conversation.data.conversationId),
-						);
-					}}
-					onDelete={() => {
-						setContextMenuState(null);
-						requestDeleteConversation(contextMenuState.conversation, contextMenuState.isArchived);
-					}}
+					{...conversationActionHandlers(contextMenuPresence.rendered.conversation, contextMenuPresence.rendered.isArchived, () => setContextMenuState(null))}
+				/>
+			) : null}
+
+			{actionSheetState ? (
+				<ConversationActionSheet
+					title={actionSheetState.title}
+					actions={buildConversationActions(
+						t,
+						actionSheetState.conversation,
+						actionSheetState.isArchived,
+						hiddenConversationIds.has(actionSheetState.conversation.data.conversationId),
+						// The sheet closes itself before running the action.
+						conversationActionHandlers(actionSheetState.conversation, actionSheetState.isArchived, () => {}),
+					)}
+					onClose={() => setActionSheetState(null)}
 				/>
 			) : null}
 

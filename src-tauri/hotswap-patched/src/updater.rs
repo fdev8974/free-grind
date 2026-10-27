@@ -143,6 +143,8 @@ pub(crate) struct DownloadOptions<'a> {
     /// The channel this download was requested under. Persisted into the
     /// version's metadata so future checks can detect channel switches.
     pub channel: Option<String>,
+    /// Running binary version, persisted as `installed_with_binary`.
+    pub binary_version: &'a str,
     pub pubkey: &'a str,
     pub base_dir: &'a Path,
     pub max_bundle_size: u64,
@@ -257,6 +259,7 @@ pub(crate) async fn download_and_extract<R: Runtime>(
             confirmed: false,
             unconfirmed_launch_count: 0,
             channel: opts.channel.clone(),
+            installed_with_binary: Some(opts.binary_version.to_string()),
         },
     )?;
 
@@ -660,7 +663,11 @@ pub(crate) fn check_compatibility(
         return None;
     }
 
-    if cache_policy.should_discard(&current, &meta, None) {
+    let installed_with = meta
+        .installed_with_binary
+        .as_deref()
+        .and_then(|v| Version::parse(v).ok());
+    if cache_policy.should_discard(&current, &meta, installed_with.as_ref()) {
         log::info!(
             "[hotswap] Binary cache policy discards cached v{} (binary={}, min={}).",
             meta.version,
@@ -876,6 +883,7 @@ mod tests {
                 confirmed,
                 unconfirmed_launch_count: 0,
                 channel: None,
+                installed_with_binary: None,
             },
         )
         .unwrap();
@@ -972,6 +980,7 @@ mod tests {
                 confirmed: false,
                 unconfirmed_launch_count: 0,
                 channel: None,
+                installed_with_binary: None,
             },
         )
         .unwrap();

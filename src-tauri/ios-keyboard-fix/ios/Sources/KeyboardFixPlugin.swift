@@ -62,6 +62,18 @@ class KeyboardFixPlugin: Plugin {
     @objc public override func load(webview: WKWebView) {
         patchedWebView = webview
 
+        // Not keyboard related, but this is the app's WKWebView setup: the
+        // page's own scrolling shows UIKit's scroll indicators, which CSS
+        // can't hide (index.css only covers inner scroll containers). Native
+        // apps show none, so neither does the app — same as on Android.
+        webview.scrollView.showsVerticalScrollIndicator = false
+        webview.scrollView.showsHorizontalScrollIndicator = false
+
+        // Edge swipe to go back, like native iOS apps. Tauri doesn't expose
+        // this, so it stays off by default; BrowserRouter's pushState entries
+        // are in WKWebView's back-forward list, so the gesture pops them.
+        webview.allowsBackForwardNavigationGestures = true
+
         keyboardObserver = NotificationCenter.default.addObserver(
             forName: UIResponder.keyboardWillShowNotification,
             object: nil,

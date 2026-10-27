@@ -1,47 +1,42 @@
 import { useNavigate } from "react-router-dom";
+import { useLogoutToNextAccount } from "../../hooks/useLogoutToNextAccount";
+import { getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
+import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
+import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import {
-	AlertCircle,
-	Bell,
-	Bug,
-	CheckCircle2,
-	ChevronLeft,
-	ChevronRight,
-	ClipboardList,
 	DatabaseBackup,
+	AlertCircle,
+	CheckCircle2,
+	ChevronRight,
 	Download,
-	EyeOff,
 	GitBranch,
-	HeartPulse,
-	HelpCircle,
-	Images,
+	Globe,
 	Languages,
-	Info,
 	Loader2,
 	LogOut,
-	Megaphone,
-	MessageSquareWarning,
 	History,
-	Palette,
-	Plus,
 	Radar,
 	RotateCcw,
 	RefreshCcw,
 	Search,
-	Shield,
-	SlidersHorizontal,
 	Terminal,
-    Workflow,
-	UserPlus,
-	UserX,
 	X,
+	ScrollText,
+	Share2,
+	QrCode,
+	Ban,
+	Clock,
+	Pointer,
 } from "lucide-react";
-import { useState, useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
+import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
+import { useState, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { appLog } from "../../utils/logger";
 import { useAuth } from "../../contexts/useAuth";
-import { useApi } from "../../hooks/useApi";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useInboxSyncStatus } from "../../hooks/useInboxSyncStatus";
 import type { InboxSyncStatus } from "../../services/inboxSync";
@@ -50,19 +45,33 @@ import {
 	getCurrentHotswapChannel,
 	getHotswapChannels,
 	getHotswapChannelLabel,
-	installHotswapUpdate,
 	isHotswapAvailable,
+	isHotswapAutoUpdateEnabled,
+	setHotswapAutoUpdateEnabled,
+	subscribeHotswapAutoUpdate,
+	showHotswapUpdatePrompt,
 	setHotswapChannel,
 	isContributorChannel,
 	getContributorHandle,
 	type HotswapChannel,
 } from "../../services/hotswap";
-import { Button } from "../../components/ui/button";
+import { ToggleRow } from "../../components/ui/toggle-row";
+import { hasDemoProfileImages, isDemoProfileImagesEnabled, setDemoProfileImagesEnabled } from "../../utils/demoProfileImages";
+import { UpdateChannelSheet } from "./UpdateChannelSheet";
+import { FingerprintCheckSheet } from "./settings-dev/DiagnosticsSheets";
+import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
+import { ControlledBottomSheet } from "../../components/ui/controlled-sheet";
+import { SHEET_FIELD_CLASS } from "../../components/ui/sheet-section";
+import { cn } from "../../utils/cn";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
 import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
-import { OutdatedVersionPromptView } from "../../components/OutdatedVersionPrompt";
+import { OutdatedVersionPromptView, fetchLatestRelease, isOlderVersion, type ReleaseInfo } from "../../components/OutdatedVersionPrompt";
+import { AccountStatusPromptView } from "../../components/AccountStatusPrompt";
+import type { AccountStatus } from "../../contexts/auth-context";
+import { areUpdateChecksEnabled, setUpdateChecksEnabled, subscribeUpdateChecks } from "../../services/updateChecks";
 import { Avatar } from "../../components/ui/avatar";
 import { getThumbImageUrl } from "../../utils/media";
 import { getSavedAccountProfile, removeSavedAccountProfile } from "../../services/savedAccountProfiles";
@@ -70,17 +79,58 @@ import { isAndroid } from "../../services/saveMedia";
 import { useSettingsSearchIndex } from "../../data/settingsSearchIndex";
 import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
 import { replayOnboarding } from "../../utils/onboardingStorage";
+import { resetGridGesturesIntro } from "./gridpage/components/GridGesturesIntro";
+import { replayRestoreOffer } from "../../utils/restoreOfferStorage";
+import { showLegalAgreementsPrompt } from "../../utils/legalAgreementsDebug";
+import { showAccountWarningsPrompt } from "../../utils/accountWarningsDebug";
+import { showSharePickerDebug } from "../../utils/sharePickerDebug";
 import { GITHUB_ISSUES_URL, GITHUB_NEW_ISSUE_URL, openExternalUrl } from "../../utils/githubIssues";
+import { SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 
-const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
-const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
 // Always previews whichever entry was added/edited most recently, regardless
 // of whether it matches the app's current running version yet.
 const LATEST_ANNOUNCEMENT = VERSION_ANNOUNCEMENTS[VERSION_ANNOUNCEMENTS.length - 1] ?? null;
 const PREVIEW_RELEASE_INFO = {
 	latestVersion: "9.9.9",
 	releasesUrl: "https://github.com/fdev8974/free-grind/releases",
+	releases: [
+		{ version: "9.9.9", publishedAt: new Date(Date.now() - 2 * 86_400_000).toISOString() },
+		{ version: "9.9.8", publishedAt: new Date(Date.now() - 12 * 86_400_000).toISOString() },
+		{ version: import.meta.env.VITE_APP_VERSION, publishedAt: new Date(Date.now() - 30 * 86_400_000).toISOString() },
+	],
 };
+const PREVIEW_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "profile", code: 27, message: "Profile is banned", subReason: "DRUG_SALES", automated: true },
+};
+const PREVIEW_DEVICE_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "device", code: 28, message: "Account banned" },
+};
+const PREVIEW_NETWORK_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "network", code: 31, message: "Suspicious network" },
+};
+const PREVIEW_UNDERAGE_BAN_STATUS: AccountStatus = {
+	kind: "banned",
+	info: { kind: "underage", code: 35, message: "Underage", subReason: "UNDERAGE_ACCESS", automated: false },
+};
+// Built on selection so the expiry is relative to now: still running, or
+// already over with the ban agreement waiting to be accepted.
+function previewTimedBanStatus(expired: boolean): AccountStatus {
+	return {
+		kind: "restriction",
+		restriction: {
+			kind: "timedBan",
+			// BOT_ACTIVITY is one of the timed bans that offer an appeal.
+			reason: expired ? null : "HARASSMENT",
+			subReason: expired ? "BOT_ACTIVITY" : "MILD_INSULTS",
+			automated: true,
+			expiresAt: Math.floor(Date.now() / 1000) + (expired ? -60 * 60 : 2 * 24 * 60 * 60),
+			agreementCompleted: expired ? false : null,
+		},
+	};
+}
 
 function getErrorMessage(error: unknown, fallback: string): string {
 	if (error instanceof Error && error.message) {
@@ -210,57 +260,31 @@ function ContributorChannelDialog({
 	onCancel: () => void;
 	isProcessing: boolean;
 }) {
-	const dialogRef = useRef<HTMLDialogElement | null>(null);
+	const isDesktop = useDesktopBreakpoint();
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		if (isOpen) {
-			if (!dialog.open) {
-				try {
-					dialog.showModal();
-				} catch {
-					dialog.show();
-				}
-				requestAnimationFrame(() => inputRef.current?.focus());
-			}
-		} else if (dialog.open) {
-			dialog.close();
-		}
+		if (!isOpen) return;
+		// Once the sheet (mounted on the next render) is in the DOM.
+		const timer = setTimeout(() => inputRef.current?.focus(), 50);
+		return () => clearTimeout(timer);
 	}, [isOpen]);
 
-	useEffect(() => {
-		return () => {
-			const dialog = dialogRef.current;
-			if (dialog?.open) {
-				dialog.close();
-			}
-		};
-	}, []);
-
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		const handleCancel = (event: Event) => {
-			event.preventDefault();
-			if (!isProcessing) onCancel();
-		};
-		dialog.addEventListener("cancel", handleCancel);
-		return () => dialog.removeEventListener("cancel", handleCancel);
-	}, [isProcessing, onCancel]);
-
 	return (
-		<dialog
-			ref={dialogRef}
-			className="fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
-			onClick={(event) => {
-				if (event.target === dialogRef.current && !isProcessing) onCancel();
-			}}
+		<ControlledBottomSheet
+			isOpen={isOpen}
+			onDismiss={onCancel}
+			isDesktop={isDesktop}
+			isProcessing={isProcessing}
+			bg={NATIVE_SHEET_BG}
+			panelClassName="max-h-[92dvh] px-4"
 		>
-			<div className="p-4">
-				<p className="text-sm font-semibold text-[var(--text)]">Contributor Channel</p>
-				<p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">Contributor Channel</h3>
+				<SheetCloseButton disabled={isProcessing} />
+			</div>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<p className="mb-3 px-1 text-sm leading-relaxed text-[var(--text-muted)]">
 					Receive experimental builds from a community contributor's channel. Use at your own risk.
 				</p>
 				<input
@@ -274,38 +298,35 @@ function ContributorChannelDialog({
 					placeholder="contributor-handle"
 					maxLength={32}
 					disabled={isProcessing}
-					className="input-field mt-4 w-full font-mono text-sm disabled:opacity-60"
+					enterKeyHint="go"
+					className={cn(SHEET_FIELD_CLASS, "h-11 px-4 font-mono disabled:opacity-60")}
 				/>
-				<div className="mt-6 flex gap-2">
-					<button
-						type="button"
-						onClick={onCancel}
-						disabled={isProcessing}
-						className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
-					>
-						Cancel
-					</button>
-					<button
-						type="button"
-						onClick={onSubmit}
-						disabled={isProcessing || !value}
-						className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-					>
-						{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-						<span>Activate</span>
-					</button>
-				</div>
 			</div>
-		</dialog>
+			<div className={SHEET_FOOTER_CLASS}>
+				<SheetClose disabled={isProcessing} className={sheetButtonClass("secondary")}>
+					Cancel
+				</SheetClose>
+				<button
+					type="button"
+					onClick={onSubmit}
+					disabled={isProcessing || !value}
+					className={sheetButtonClass()}
+				>
+					{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+					<span>Activate</span>
+				</button>
+			</div>
+		</ControlledBottomSheet>
 	);
 }
 
 export function SettingsPage() {
 	const { t } = useTranslation();
-	const { userId, logout, savedAccounts, switchAccount, removeSavedAccount } = useAuth();
+	const { userId, savedAccounts, switchAccount, removeSavedAccount } = useAuth();
 	const inboxSyncStatus = useInboxSyncStatus(userId);
 	const inboxSyncDisplay = describeInboxSyncStatus(inboxSyncStatus, t);
 	const [searchQuery, setSearchQuery] = useState("");
+	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const settingsSearchIndex = useSettingsSearchIndex();
 	const searchResults = useMemo(() => {
 		const query = searchQuery.trim().toLowerCase();
@@ -324,82 +345,50 @@ export function SettingsPage() {
 	// confirmation) even though only the active one is a "real" logout.
 	const [logoutConfirmTarget, setLogoutConfirmTarget] = useState<"active" | string | null>(null);
 	const navigate = useNavigate();
-	const { callMethod, asAppError } = useApi();
+	const logoutToNextAccount = useLogoutToNextAccount();
 	const { developerMode, showDebugInfo, setPreferences } = usePreferences();
 	const [previewAnnouncement, setPreviewAnnouncement] = useState(false);
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
+	const [previewAccountStatus, setPreviewAccountStatus] = useState<AccountStatus>(null);
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+	// App release found by a manual check — shown as the APK update prompt.
+	const [appUpdateRelease, setAppUpdateRelease] = useState<ReleaseInfo | null>(null);
+	const updateChecksEnabled = useSyncExternalStore(subscribeUpdateChecks, areUpdateChecksEnabled);
 	const [isSwitchingChannel, setIsSwitchingChannel] = useState(false);
+	const hotswapAutoUpdate = useSyncExternalStore(subscribeHotswapAutoUpdate, isHotswapAutoUpdateEnabled);
 	const fingerprintCheck = useFingerprintCheck();
-	const [isSyncingFcm, setIsSyncingFcm] = useState(false);
-	const [fcmToken, setFcmToken] = useState<string | null>(() => {
-		const stored = window.localStorage.getItem(PUSH_TOKEN_STORAGE_KEY);
-		if (stored) return stored;
-		const win = window as Window & { __FG_FCM_TOKEN?: string };
-		return typeof win.__FG_FCM_TOKEN === "string" ? win.__FG_FCM_TOKEN : null;
-	});
-	const [fcmSyncedToken, setFcmSyncedToken] = useState<string | null>(() => window.localStorage.getItem(PUSH_TOKEN_SYNCED_STORAGE_KEY));
-	const [fcmEventLog, setFcmEventLog] = useState<{ time: string; token: string }[]>([]);
-	const [manualToken, setManualToken] = useState("");
-	const fcmLogRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		const onFcmToken = (event: Event) => {
-			const token = (event as CustomEvent<{ token: string }>).detail?.token;
-			if (typeof token !== "string") return;
-			setFcmToken(token);
-			setFcmSyncedToken(window.localStorage.getItem(PUSH_TOKEN_SYNCED_STORAGE_KEY));
-			const time = new Date().toLocaleTimeString();
-			setFcmEventLog((prev) => [...prev, { time, token }]);
-			setTimeout(() => {
-				fcmLogRef.current?.scrollTo({ top: fcmLogRef.current.scrollHeight, behavior: "smooth" });
-			}, 50);
-		};
-		window.addEventListener("fg:fcm-token", onFcmToken as EventListener);
-		return () => window.removeEventListener("fg:fcm-token", onFcmToken as EventListener);
-	}, []);
+	const [isFingerprintSheetOpen, setIsFingerprintSheetOpen] = useState(false);
+	const [isPreviewsSheetOpen, setIsPreviewsSheetOpen] = useState(false);
+	const [isChannelSheetOpen, setIsChannelSheetOpen] = useState(false);
+	const isDesktop = useDesktopBreakpoint();
 	const [updateChannel, setUpdateChannel] =
 		useState<HotswapChannel>(getCurrentHotswapChannel());
 	const visibleChannels = getHotswapChannels();
+	const frontendVersion = import.meta.env.VITE_APP_VERSION;
+	const commitHash: string = import.meta.env.VITE_COMMIT_HASH ?? "";
+	// The installed app (APK / desktop binary) can lag behind the frontend when an
+	// OTA bundle was applied on top of it, so show both when they differ.
+	const [nativeVersion, setNativeVersion] = useState<string | null>(null);
+	// Commit of the app binary itself (the frontend's can differ after an OTA
+	// update); null on builds from before the command existed.
+	const [nativeCommitHash, setNativeCommitHash] = useState<string | null>(null);
+	useEffect(() => {
+		if (!isHotswapAvailable()) return;
+		void getVersion()
+			.then(setNativeVersion)
+			.catch(() => {});
+		void invoke<string | null>("app_commit_hash")
+			.then(setNativeCommitHash)
+			.catch(() => {});
+	}, []);
 	const [contributorCodeInput, setContributorCodeInput] = useState("");
 	const [isActivatingContributor, setIsActivatingContributor] = useState(false);
 	const [isContributorDialogOpen, setIsContributorDialogOpen] = useState(false);
 
-	const handleForceSyncFcm = useCallback(async (overrideToken?: string) => {
-		const tokenToSync = overrideToken ?? fcmToken;
-		if (!tokenToSync) {
-			toast.error("No FCM token to sync.");
-			return;
-		}
-		setIsSyncingFcm(true);
-		try {
-			await callMethod("sync_push_token", { token: tokenToSync });
-			// Marker must match AuthContext's `${token}::${userId}` format — the same
-			// FCM token is shared across saved accounts, but sync is per-account.
-			const syncMarker = `${tokenToSync}::${userId}`;
-			window.localStorage.setItem(PUSH_TOKEN_SYNCED_STORAGE_KEY, syncMarker);
-			setFcmSyncedToken(syncMarker);
-			toast.success("FCM token synced to Grindr.");
-		} catch (error) {
-			const appError = asAppError(error);
-			toast.error(appError?.prettyMessage ?? (error instanceof Error ? error.message : "Sync failed"));
-		} finally {
-			setIsSyncingFcm(false);
-		}
-	}, [fcmToken, userId, callMethod, asAppError]);
-
 	const handleLogout = async () => {
 		setIsLoggingOut(true);
-		const loggedOutProfileId = userId != null ? String(userId) : null;
 		try {
-			await logout();
-			const nextAccount = savedAccounts.find((account) => account.profileId !== loggedOutProfileId);
-			if (nextAccount) {
-				await switchAccount(nextAccount.profileId);
-				navigate("/");
-			} else {
-				navigate("/auth/sign-in");
-			}
+			await logoutToNextAccount();
 		} catch (error) {
 			const message = getErrorMessage(error, "Failed to log out.");
 			toast.error(message);
@@ -436,31 +425,53 @@ export function SettingsPage() {
 		}
 	};
 
+	// Checks the app release first, then the frontend OTA bundle (native app only).
 	const handleCheckUpdates = async () => {
-		if (!isHotswapAvailable()) {
-			toast.error(t("settings.ota_available_only_tauri"));
-			return;
-		}
-
 		setIsCheckingUpdates(true);
 		try {
-			const result = await checkForHotswapUpdate();
-			if (result.requiresBinaryUpdate) {
+			// A failed release lookup doesn't block the frontend check; it's only
+			// reported when nothing else turned up.
+			let appCheckError: unknown = null;
+			const appRelease = await fetchLatestRelease(
+				new AbortController().signal,
+				getCurrentHotswapChannel() !== "main",
+			).catch((error: unknown) => {
+				appCheckError = error;
+				return null;
+			});
+			const frontend = isHotswapAvailable() ? await checkForHotswapUpdate() : null;
+
+			const installedAppVersion = nativeVersion ?? frontendVersion;
+			const appUpdate =
+				appRelease && isOlderVersion(installedAppVersion, appRelease.latestVersion) ? appRelease : null;
+			const frontendUpdate = frontend && frontend.available && !frontend.requiresBinaryUpdate ? frontend : null;
+
+			if (frontend?.requiresBinaryUpdate && !appUpdate) {
 				toast.error(
-					result.notes ??
+					frontend.notes ??
 						"This build is no longer compatible. Please download and install the latest APK.",
 				);
 				return;
 			}
 
-			if (!result.available) {
+			if (!appUpdate && !frontendUpdate) {
+				if (appCheckError) throw appCheckError;
 				toast.success(t("settings.latest_version"));
 				return;
 			}
 
-			await installHotswapUpdate();
-			toast.success(t("settings.update_installed"));
-			window.location.reload();
+			// Both found: the OTA prompt overlays everything first; the APK prompt
+			// is still here once it's dismissed with "Later".
+			if (appUpdate) setAppUpdateRelease(appUpdate);
+			if (frontendUpdate) {
+				// With auto-install on, the prompt starts the download itself and
+				// shows its progress until the reload.
+				showHotswapUpdatePrompt({
+					version: frontendUpdate.version,
+					notes: frontendUpdate.notes,
+					autoStart: hotswapAutoUpdate,
+				});
+			}
 		} catch (error) {
 			const msg = getErrorMessage(error, t("settings.failed_update_check"));
 			if (import.meta.env.DEV) {
@@ -489,9 +500,7 @@ export function SettingsPage() {
 
 			const result = await checkForHotswapUpdate();
 			if (!result.requiresBinaryUpdate && result.available) {
-				await installHotswapUpdate();
-				toast.success(t("settings.switched_and_updated", { channel: getHotswapChannelLabel(channel) }));
-				window.location.reload();
+				showHotswapUpdatePrompt({ version: result.version, notes: result.notes, autoStart: true });
 				return;
 			}
 
@@ -536,9 +545,7 @@ export function SettingsPage() {
 				toast.error(result.notes ?? "Binary update required.");
 				return;
 			}
-			await installHotswapUpdate();
-			toast.success(`Switched to ${handle}'s channel and updated!`);
-			window.location.reload();
+			showHotswapUpdatePrompt({ version: result.version, notes: result.notes, autoStart: true });
 		} catch (error) {
 			if (import.meta.env.DEV) {
 				appLog.error("Contributor channel switch failed:", error);
@@ -585,8 +592,33 @@ export function SettingsPage() {
 			<div className="app-shell z-[300]">
 				<VersionAnnouncement
 					announcement={LATEST_ANNOUNCEMENT}
-					buttonLabel="Close"
+					buttonLabel={t("common.close", { defaultValue: "Close" })}
 					onClose={() => setPreviewAnnouncement(false)}
+				/>
+			</div>
+		);
+	}
+
+	if (appUpdateRelease) {
+		return (
+			<div className="app-shell z-[110]">
+				<OutdatedVersionPromptView
+					appVersion={nativeVersion ?? frontendVersion}
+					releaseInfo={appUpdateRelease}
+					onDismiss={() => setAppUpdateRelease(null)}
+					manual
+				/>
+			</div>
+		);
+	}
+
+	if (previewAccountStatus) {
+		return (
+			<div className="app-shell z-[110]">
+				<AccountStatusPromptView
+					status={previewAccountStatus}
+					onSignOut={() => setPreviewAccountStatus(null)}
+					onAcceptBanAgreement={async () => setPreviewAccountStatus(null)}
 				/>
 			</div>
 		);
@@ -605,659 +637,579 @@ export function SettingsPage() {
 	}
 
 	return (
-		<section className="app-screen">
-			<header className="mb-7">
-				<button
-					type="button"
-					onClick={() => navigate("/", { replace: true })}
-					className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-					aria-label={t("settings.back_to_browse")}
-				>
-					<ChevronLeft className="h-4 w-4" />
-					Browse
-				</button>
-				<div className="flex items-center gap-2">
-					<h1 className="app-title">{t("settings.title")}</h1>
-					{developerMode ? (
-						<span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-contrast)]">
-							Developer Mode
-						</span>
-					) : null}
+		<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
+			{/* Main-page header, same structure as Inbox / Interest: a fixed header with the
+			    accent glow over its own scroll container. Reached from the bottom nav, so no back button. */}
+			<header className="relative z-20 flex shrink-0 flex-col pb-3 pointer-events-none">
+				<PageHeaderBackground color="var(--accent)" />
+				<div className="pointer-events-auto mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--app-px)]">
+					<div className="flex items-center justify-between gap-2">
+						<div className="min-w-0">
+							<h1 className="app-title">{t("settings.title")}</h1>
+							{/* Caption under the title, styled like the inbox's sync caption. */}
+							{developerMode ? (
+								<p className="mt-0.5 text-[11px] font-medium text-[var(--accent-readable)]">Developer Mode</p>
+							) : null}
+						</div>
+						<div className="-my-2 flex shrink-0 items-center gap-0.5">
+							<button
+								type="button"
+								onClick={() => {
+									if (isSearchOpen) setSearchQuery("");
+									setIsSearchOpen(!isSearchOpen);
+								}}
+								className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+								aria-label={isSearchOpen ? t("common.close", { defaultValue: "Close" }) : t("settings.search_placeholder")}
+							>
+								{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+							</button>
+						</div>
+					</div>
+					{isSearchOpen && (
+						<div className="settings-search-bar flex items-center gap-2.5 px-4 py-0.5">
+							<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+							<input
+								type="search"
+								autoFocus
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								onKeyDown={(e) => {
+									if (e.key === "Escape") {
+										setSearchQuery("");
+										setIsSearchOpen(false);
+									}
+								}}
+								placeholder={t("settings.search_placeholder")}
+								className="h-11 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
+							/>
+							{searchQuery ? (
+								<button
+									type="button"
+									onClick={() => setSearchQuery("")}
+									className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+									aria-label={t("common.clear", { defaultValue: "Clear" })}
+								>
+									<X className="h-4 w-4" />
+								</button>
+							) : null}
+						</div>
+					)}
 				</div>
-				<p className="app-subtitle mt-1">{t("settings.subtitle")}</p>
 			</header>
 
-			<div className="settings-search-bar mb-6 flex items-center gap-2.5 px-4 py-0.5">
-				<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-				<input
-					type="search"
-					value={searchQuery}
-					onChange={(e) => setSearchQuery(e.target.value)}
-					placeholder={t("settings.search_placeholder")}
-					className="h-11 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
-				/>
-				{searchQuery ? (
-					<button
-						type="button"
-						onClick={() => setSearchQuery("")}
-						className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-						aria-label={t("common.clear", { defaultValue: "Clear" })}
-					>
-						<X className="h-4 w-4" />
-					</button>
-				) : null}
-			</div>
-
-			{searchQuery.trim() ? (
-				<div className="grid gap-6">
-					{searchResults.length === 0 ? (
-						<p className="px-1 text-sm text-[var(--text-muted)]">
-							{t("settings.search_no_results", { query: searchQuery.trim() })}
-						</p>
+			{/* Same scroll container as Interest / Right Now: fades content out under the header. */}
+			<FeedScrollContainer>
+				<div className="mx-auto w-full max-w-[var(--content-max)] px-[var(--app-px)] pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px))]">
+					{searchQuery.trim() ? (
+						<div className="grid gap-6">
+							{searchResults.length === 0 ? (
+								<p className="px-1 text-sm text-[var(--text-muted)]">
+									{t("settings.search_no_results", { query: searchQuery.trim() })}
+								</p>
+							) : (
+								<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+									{searchResults.map((entry) => (
+										<button
+											key={entry.id}
+											type="button"
+											onClick={() => {
+												if (entry.externalUrl) {
+													void openExternalUrl(entry.externalUrl);
+													return;
+												}
+												navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route);
+											}}
+											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+										>
+											<div className={`rounded-2xl p-2.5 shrink-0 ${entry.iconClass}`}>
+												<entry.icon className="h-5 w-5" />
+											</div>
+											<div className="min-w-0 flex-1">
+												<p className="text-sm font-semibold leading-snug">{entry.label}</p>
+												<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5 truncate">
+													{entry.section}{entry.description ? ` — ${entry.description}` : ""}
+												</p>
+											</div>
+											<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+										</button>
+									))}
+								</div>
+							)}
+						</div>
 					) : (
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-							{searchResults.map((entry) => (
+					<div className="grid gap-6">
+
+						{/* Profile — the active profile is the primary focus (tap it to edit
+						    your profile), with the account switcher folded in below it for
+						    the other saved accounts you can tap between without
+						    re-entering a password. Each saved account keeps its own chat
+						    history and caches fully separate (see chatDb.ts/cache.ts), so
+						    switching never shows a leftover account's data. */}
+						<div className="min-w-0">
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Profile</p>
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								{(() => {
+									const activeAccount = userId != null
+										? savedAccounts.find((account) => String(userId) === account.profileId)
+										: undefined;
+									const activeProfile = userId != null ? getSavedAccountProfile(String(userId)) : null;
+									return (
+										<div className="flex items-center gap-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
+											<button
+												type="button"
+												onClick={() => navigate("/settings/profile-editor")}
+												className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left"
+											>
+												<Avatar
+													src={activeProfile?.photoHash ? getThumbImageUrl(activeProfile.photoHash, "75x75") : null}
+													alt=""
+													className="h-10 w-10 shrink-0 rounded-2xl border-0 bg-slate-500/15 text-slate-400"
+												/>
+												<div className="min-w-0 flex-1">
+													<p className="truncate text-sm font-semibold leading-snug">
+														{activeProfile?.displayName || activeAccount?.email || t("settings.profile_editor")}
+													</p>
+													<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+														{t("settings.profile_editor_desc")}
+													</p>
+												</div>
+											</button>
+											<button
+												type="button"
+												onClick={() => navigate("/settings/transfer-account")}
+												aria-label={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
+												title={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
+												className="shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition hover:ink-tint-10 hover:text-[var(--text)]"
+											>
+												<QrCode className="h-4 w-4" />
+											</button>
+											<button
+												type="button"
+												onClick={() => setLogoutConfirmTarget("active")}
+												aria-label={t("settings.logout")}
+												className="mr-2 shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500"
+											>
+												<LogOut className="h-4 w-4" />
+											</button>
+										</div>
+									);
+								})()}
+
+								{savedAccounts
+									.filter((account) => !(userId != null && String(userId) === account.profileId))
+									.map((account) => {
+										const isSwitching = switchingProfileId === account.profileId;
+										const isRemoving = removingProfileId === account.profileId;
+										const savedProfile = getSavedAccountProfile(account.profileId);
+										return (
+											<div key={account.profileId} className="flex items-center gap-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
+												<button
+													type="button"
+													onClick={() => void handleSwitchAccount(account.profileId)}
+													disabled={isSwitching || isRemoving}
+													className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left disabled:cursor-not-allowed"
+												>
+													<div className="relative h-10 w-10 shrink-0">
+														<Avatar
+															src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
+															alt=""
+															className="h-full w-full rounded-2xl border-0 bg-slate-500/15 text-slate-400"
+														/>
+														{isSwitching && (
+															<div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[var(--surface)]/80">
+																<Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
+															</div>
+														)}
+													</div>
+													<div className="min-w-0 flex-1">
+														<p className="truncate text-sm font-semibold leading-snug">
+															{savedProfile.displayName || account.email || account.profileId}
+														</p>
+														<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+															{t("settings.account_tap_to_switch", { defaultValue: "Tap to switch" })}
+														</p>
+													</div>
+												</button>
+												<button
+													type="button"
+													onClick={() => setLogoutConfirmTarget(account.profileId)}
+													disabled={isSwitching || isRemoving}
+													aria-label={t("settings.logout")}
+													className="mr-2 shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500 disabled:opacity-60"
+												>
+													{isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+												</button>
+											</div>
+										);
+									})}
 								<button
-									key={entry.id}
 									type="button"
-									onClick={() => {
-										if (entry.externalUrl) {
-											void openExternalUrl(entry.externalUrl);
-											return;
-										}
-										navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route);
-									}}
+									onClick={() => navigate("/auth/sign-in?mode=add-profile")}
 									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
 								>
-									<div className={`rounded-2xl p-2.5 shrink-0 ${entry.iconClass}`}>
-										<entry.icon className="h-5 w-5" />
+									<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5 shrink-0">
+										<UserPlusFilled className="h-5 w-5" />
 									</div>
 									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">{entry.label}</p>
-										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5 truncate">
-											{entry.section}{entry.description ? ` — ${entry.description}` : ""}
+										<p className="text-sm font-semibold leading-snug">
+											{t("settings.add_account", { defaultValue: "Add account" })}
+										</p>
+										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+											{t("settings.add_account_desc", { defaultValue: "Sign in with another account" })}
 										</p>
 									</div>
 									<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 								</button>
-							))}
+							</div>
 						</div>
-					)}
-				</div>
-			) : (
-			<div className="grid gap-6">
 
-				{/* Profile — the active profile is the primary focus (tap it to edit
-				    your profile), with the account switcher folded in below it for
-				    the other saved accounts you can tap between without
-				    re-entering a password. Each saved account keeps its own chat
-				    history and caches fully separate (see chatDb.ts/cache.ts), so
-				    switching never shows a leftover account's data. */}
-				<div className="min-w-0">
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Profile</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{(() => {
-							const activeAccount = userId != null
-								? savedAccounts.find((account) => String(userId) === account.profileId)
-								: undefined;
-							const activeProfile = userId != null ? getSavedAccountProfile(String(userId)) : null;
-							return (
-								<div className="flex items-center gap-1">
-									<button
-										type="button"
-										onClick={() => navigate("/settings/profile-editor")}
-										className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-									>
-										<Avatar
-											src={activeProfile?.photoHash ? getThumbImageUrl(activeProfile.photoHash, "75x75") : null}
-											alt=""
-											className="h-10 w-10 shrink-0 rounded-2xl border-0"
-										/>
-										<div className="min-w-0 flex-1">
-											<p className="truncate text-sm font-semibold leading-snug">
-												{activeProfile?.displayName || activeAccount?.email || t("settings.profile_editor")}
-											</p>
-											<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-												{t("settings.profile_editor_desc")}
-											</p>
+						{/* Chat */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Chat</p>
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								<div className="flex items-center gap-3 px-4 py-3.5">
+									<div className="relative shrink-0">
+										<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
+											<DatabaseBackup className="h-5 w-5" />
 										</div>
-									</button>
-									<button
-										type="button"
-										onClick={() => setLogoutConfirmTarget("active")}
-										aria-label={t("settings.logout")}
-										className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
-									>
-										<LogOut className="h-4 w-4" />
-									</button>
-								</div>
-							);
-						})()}
-
-						{savedAccounts
-							.filter((account) => !(userId != null && String(userId) === account.profileId))
-							.map((account) => {
-								const isSwitching = switchingProfileId === account.profileId;
-								const isRemoving = removingProfileId === account.profileId;
-								const savedProfile = getSavedAccountProfile(account.profileId);
-								return (
-									<div key={account.profileId} className="flex items-center gap-1">
-										<button
-											type="button"
-											onClick={() => void handleSwitchAccount(account.profileId)}
-											disabled={isSwitching || isRemoving}
-											className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-not-allowed"
-										>
-											<div className="relative h-10 w-10 shrink-0">
-												<Avatar
-													src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
-													alt=""
-													className="h-full w-full rounded-2xl border-0"
-												/>
-												{isSwitching && (
-													<div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-[var(--surface)]/80">
-														<Loader2 className="h-5 w-5 animate-spin text-[var(--accent)]" />
-													</div>
-												)}
-											</div>
-											<div className="min-w-0 flex-1">
-												<p className="truncate text-sm font-semibold leading-snug">
-													{savedProfile.displayName || account.email || account.profileId}
-												</p>
-												<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-													{t("settings.account_tap_to_switch", { defaultValue: "Tap to switch" })}
-												</p>
-											</div>
-										</button>
-										<button
-											type="button"
-											onClick={() => setLogoutConfirmTarget(account.profileId)}
-											disabled={isSwitching || isRemoving}
-											aria-label={t("settings.logout")}
-											className="mr-2 shrink-0 rounded-xl p-2.5 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
-										>
-											{isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-										</button>
-									</div>
-								);
-							})}
-						<button
-							type="button"
-							onClick={() => navigate("/auth/sign-in?mode=add-profile")}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
-						>
-							<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-								<UserPlus className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold leading-snug">
-									{t("settings.add_account", { defaultValue: "Add account" })}
-								</p>
-								<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-									{t("settings.add_account_desc", { defaultValue: "Sign in with another account" })}
-								</p>
-							</div>
-							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-						</button>
-					</div>
-				</div>
-
-				{/* Chat */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Chat</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						<div className="flex items-center gap-3 px-4 py-3.5">
-							<div className="relative shrink-0">
-								<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-									<DatabaseBackup className="h-5 w-5" />
-								</div>
-								<div
-									className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)] ${inboxSyncDisplay.badgeClass}`}
-									style={inboxSyncDisplay.badgeStyle}
-								>
-									{inboxSyncDisplay.badgeIcon}
-								</div>
-							</div>
-							<div className="min-w-0 flex-1">
-								<div className="flex items-center justify-between gap-2">
-									<p className="text-sm font-semibold leading-snug">{inboxSyncDisplay.title}</p>
-									{inboxSyncDisplay.progressPercent != null && (
-										<p className="shrink-0 text-xs font-semibold tabular-nums text-[var(--accent)]">
-											{inboxSyncDisplay.progressPercent}%
-										</p>
-									)}
-								</div>
-								<p className="mt-0.5 text-xs leading-snug tabular-nums text-[var(--text-muted)]">
-									{inboxSyncDisplay.description}
-								</p>
-								{inboxSyncDisplay.active && (
-									<div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
 										<div
-											className={
-												inboxSyncDisplay.progressPercent == null
-													? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
-													: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
-											}
-											style={
-												inboxSyncDisplay.progressPercent != null
-													? { width: `${inboxSyncDisplay.progressPercent}%` }
-													: undefined
-											}
-										/>
+											className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)] ${inboxSyncDisplay.badgeClass}`}
+											style={inboxSyncDisplay.badgeStyle}
+										>
+											{inboxSyncDisplay.badgeIcon}
+										</div>
 									</div>
+									<div className="min-w-0 flex-1">
+										<div className="flex items-center justify-between gap-2">
+											<p className="text-sm font-semibold leading-snug">{inboxSyncDisplay.title}</p>
+											{inboxSyncDisplay.progressPercent != null && (
+												<p className="shrink-0 text-xs font-semibold tabular-nums text-[var(--accent)]">
+													{inboxSyncDisplay.progressPercent}%
+												</p>
+											)}
+										</div>
+										<p className="mt-0.5 text-xs leading-snug tabular-nums text-[var(--text-muted)]">
+											{inboxSyncDisplay.description}
+										</p>
+										{inboxSyncDisplay.active && (
+											<div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
+												<div
+													className={
+														inboxSyncDisplay.progressPercent == null
+															? "h-full w-2/5 animate-progress-indeterminate rounded-full bg-[var(--accent)]"
+															: "h-full rounded-full bg-[var(--accent)] transition-all duration-300"
+													}
+													style={
+														inboxSyncDisplay.progressPercent != null
+															? { width: `${inboxSyncDisplay.progressPercent}%` }
+															: undefined
+													}
+												/>
+											</div>
+										)}
+									</div>
+								</div>
+								{navRow(
+									() => navigate("/settings/translation"),
+									<Languages className="h-5 w-5" />,
+									"bg-cyan-500/15 text-cyan-400",
+									t("settings.translation", { defaultValue: "Translation" }),
+									t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." }),
 								)}
 							</div>
 						</div>
-						{navRow(
-							() => navigate("/settings/albums"),
-							<Images className="h-5 w-5" />,
-							"bg-pink-500/15 text-pink-400",
-							t("settings.my_albums"),
-							t("settings.my_albums_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/translation"),
-							<Languages className="h-5 w-5" />,
-							"bg-cyan-500/15 text-cyan-400",
-							t("settings.translation", { defaultValue: "Translation" }),
-							t("settings.translation_desc", { defaultValue: "Translate chat messages into your app language, one at a time or automatically per chat." }),
-						)}
-					</div>
-				</div>
 
-				{/* Safety */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Safety</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/blocked"),
-							<UserX className="h-5 w-5" />,
-							"bg-red-500/15 text-red-400",
-							t("settings.blocked_accounts"),
-							t("settings.blocked_accounts_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/hidden"),
-							<EyeOff className="h-5 w-5" />,
-							"bg-slate-500/15 text-slate-400",
-							t("settings.hidden_profiles", { defaultValue: "Hidden Profiles" }),
-							t("settings.hidden_profiles_desc", {
-								defaultValue: "See who you hid from the grid and unhide them anytime.",
-							}),
-						)}
-						{navRow(
-							() => navigate("/settings/block-history"),
-							<History className="h-5 w-5" />,
-							"bg-orange-500/15 text-orange-400",
-							t("settings.block_history", { defaultValue: "Block Activity" }),
-							t("settings.block_history_desc", {
-								defaultValue: "See who has blocked or unblocked you, and when.",
-							}),
-						)}
-						{navRow(
-							() => navigate("/settings/privacy"),
-							<Shield className="h-5 w-5" />,
-							"bg-sky-500/15 text-sky-400",
-							t("settings.privacy"),
-							t("settings.privacy_desc"),
-						)}
-						{isSexualHealthEnabled() &&
-							navRow(
-								() => navigate("/settings/sexual-health"),
-								<HeartPulse className="h-5 w-5" />,
-								"bg-rose-500/15 text-rose-400",
-								t("settings.sexual_health", { defaultValue: "Sexual Health" }),
-								t("settings.sexual_health_desc", {
-									defaultValue: "Track PrEP doses, encounters, tests and appointments.",
-								}),
-							)}
-					</div>
-				</div>
-
-				{/* Customizability */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Customizability</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/customizability"),
-							<Palette className="h-5 w-5" />,
-							"bg-violet-500/15 text-violet-400",
-							t("settings.customizability"),
-							t("settings.customizability_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/behavior"),
-							<SlidersHorizontal className="h-5 w-5" />,
-							"bg-slate-500/15 text-slate-400",
-							t("settings.behavior"),
-							t("settings.behavior_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/notifications"),
-							<Bell className="h-5 w-5" />,
-							"bg-blue-500/15 text-blue-400",
-							t("settings.notifications"),
-							t("settings.notifications_desc"),
-						)}
-						{navRow(
-							() => navigate("/settings/automation"),
-							<Workflow className="h-5 w-5" />,
-							"bg-amber-500/15 text-amber-400",
-							t("settings.automation"),
-							t("settings.automation_desc"),
-						)}
-					</div>
-				</div>
-
-				{/* Backup & Restore */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-						{t("settings.data_section", { defaultValue: "Backup & Restore" })}
-					</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/data"),
-							<DatabaseBackup className="h-5 w-5" />,
-							"bg-teal-500/15 text-teal-400",
-							t("settings.data", { defaultValue: "Backup & Restore" }),
-							t("settings.data_desc", { defaultValue: "Downloaded media storage, and back up/restore your entire account" }),
-						)}
-					</div>
-				</div>
-
-				{/* Updates */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
-					<div className="surface-card overflow-hidden">
-						<div className="flex items-start gap-3 px-4 py-3.5">
-							<div className="relative shrink-0">
-								<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
-									<RefreshCcw className={`h-5 w-5 ${isCheckingUpdates || isSwitchingChannel ? "animate-spin" : ""}`} />
-								</div>
-								{isContributorChannel(updateChannel) && (
-									<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] ring-2 ring-[var(--surface)]">
-										<GitBranch className="h-3 w-3" />
-									</div>
+						{/* Safety */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Safety</p>
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/blocked"),
+									<UserXFilled className="h-5 w-5" />,
+									"bg-red-500/15 text-red-400",
+									t("settings.blocked_accounts"),
+									t("settings.blocked_accounts_desc"),
 								)}
+								{navRow(
+									() => navigate("/settings/hidden"),
+									<EyeOffFilled className="h-5 w-5" />,
+									"bg-slate-500/15 text-slate-400",
+									t("settings.hidden_profiles", { defaultValue: "Hidden Profiles" }),
+									t("settings.hidden_profiles_desc", {
+										defaultValue: "See who you hid from the grid and unhide them anytime.",
+									}),
+								)}
+								{navRow(
+									() => navigate("/settings/block-history"),
+									<History className="h-5 w-5" />,
+									"bg-orange-500/15 text-orange-400",
+									t("settings.block_history", { defaultValue: "Block Activity" }),
+									t("settings.block_history_desc", {
+										defaultValue: "See who has blocked or unblocked you, and when.",
+									}),
+								)}
+								{navRow(
+									() => navigate("/settings/privacy"),
+									<ShieldFilled className="h-5 w-5" />,
+									"bg-sky-500/15 text-sky-400",
+									t("settings.privacy"),
+									t("settings.privacy_desc"),
+								)}
+								{isSexualHealthEnabled() &&
+									navRow(
+										() => navigate("/settings/sexual-health"),
+										<HeartPulseFilled className="h-5 w-5" />,
+										"bg-rose-500/15 text-rose-400",
+										t("settings.sexual_health", { defaultValue: "Sexual Health" }),
+										t("settings.sexual_health_desc", {
+											defaultValue: "Track PrEP doses, encounters, tests and appointments.",
+										}),
+									)}
 							</div>
-							<div className="min-w-0 flex-1">
-								<div className="grid grid-cols-[1fr_auto] gap-x-3">
-									<p className="text-sm font-semibold leading-snug">{t("settings.check_updates")}</p>
-									<div className="row-span-2 flex items-start">
-										<Button type="button" onClick={() => void handleCheckUpdates()} disabled={isCheckingUpdates || isSwitchingChannel}>
-											{t("settings.check_now")}
-										</Button>
-									</div>
-									<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("settings.check_updates_desc")}</p>
-								</div>
-								{visibleChannels.length > 0 && (
-									<div className="mt-3 flex flex-wrap items-center gap-1">
-										{visibleChannels.map((channel) => (
-											<button
-												key={channel}
-												type="button"
-												disabled={isSwitchingChannel || isCheckingUpdates}
-												onClick={() => void handleSwitchUpdateChannel(channel)}
-												className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition ${
-													channel === updateChannel
-														? "border-[var(--accent)] bg-[var(--accent)] text-black"
-														: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] hover:border-[var(--accent)]/50"
-												}`}
-											>
-												{getHotswapChannelLabel(channel)}
-											</button>
-										))}
-										{isContributorChannel(updateChannel) ? (
-											<span className="rounded-full border border-[var(--accent)] bg-[var(--accent)] px-2.5 py-0.5 text-xs font-semibold text-black">
-												{getContributorHandle(updateChannel)}
-											</span>
-										) : developerMode ? (
-											<button
-												type="button"
-												onClick={() => setIsContributorDialogOpen(true)}
-												disabled={isSwitchingChannel || isCheckingUpdates}
-												aria-label="Add contributor channel"
-												title="Add contributor channel"
-												className="flex h-[22px] w-[22px] items-center justify-center rounded-full border border-dashed border-[var(--border)] text-[var(--text-muted)] transition hover:border-[var(--accent)]/50 hover:text-[var(--accent)] disabled:opacity-50"
-											>
-												<Plus className="h-3 w-3" />
-											</button>
-										) : null}
-									</div>
+						</div>
+
+						{/* Customizability */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Customizability</p>
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/customizability"),
+									<PaletteFilled className="h-5 w-5" />,
+									"bg-violet-500/15 text-violet-400",
+									t("settings.customizability"),
+									t("settings.customizability_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/behavior"),
+									<PhosphorSlidersHorizontal weight="fill" className="h-5 w-5" />,
+									"bg-slate-500/15 text-slate-400",
+									t("settings.behavior"),
+									t("settings.behavior_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/optional-features"),
+									<PuzzleFilled className="h-5 w-5" />,
+									"bg-emerald-500/15 text-emerald-400",
+									t("customizability.optional_features", { defaultValue: "Optional Features" }),
+									t("customizability.optional_features_desc", {
+										defaultValue: "Turn extra features on or off to keep the app as simple as you like.",
+									}),
+								)}
+								{navRow(
+									() => navigate("/settings/notifications"),
+									<BellFilled className="h-5 w-5" />,
+									"bg-blue-500/15 text-blue-400",
+									t("settings.notifications"),
+									t("settings.notifications_desc"),
+								)}
+								{navRow(
+									() => navigate("/settings/automation"),
+									<BotFilled className="h-5 w-5" />,
+									"bg-amber-500/15 text-amber-400",
+									t("settings.automation"),
+									t("settings.automation_desc"),
 								)}
 							</div>
 						</div>
-					</div>
-				</div>
 
-				{/* Dev tools */}
-				{developerMode ? (
-					<div>
-						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Developer</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-							<div className="flex w-full items-center gap-3 px-4 py-3.5">
-								<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-									<Bug className="h-5 w-5" />
-								</div>
-								<div className="min-w-0 flex-1">
-									<p className="text-sm font-semibold leading-snug">Show Debug Overlays</p>
-									<p className="text-xs text-[var(--text-muted)] mt-0.5">Displays source (cache/network) info in the grid.</p>
-								</div>
+						{/* Backup & Restore */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+								{t("settings.data_section", { defaultValue: "Backup & Restore" })}
+							</p>
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/data"),
+									<ArchiveRestoreFilled className="h-5 w-5" />,
+									"bg-teal-500/15 text-teal-400",
+									t("settings.data", { defaultValue: "Backup & Restore" }),
+									t("settings.data_desc", { defaultValue: "Downloaded media storage, and back up/restore your entire account" }),
+								)}
+							</div>
+						</div>
+
+						{/* Updates — same row pattern as the rest of the settings list. */}
+						<div className="min-w-0">
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								{/* The whole row checks; a spinner replaces the chevron while it runs. */}
 								<button
 									type="button"
-									onClick={() => void setPreferences({ showDebugInfo: !showDebugInfo })}
-									className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${showDebugInfo ? "bg-[var(--accent)]" : "bg-[var(--surface-2)]"}`}
+									onClick={() => void handleCheckUpdates()}
+									disabled={isCheckingUpdates || isSwitchingChannel}
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default disabled:hover:bg-transparent"
 								>
-									<span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${showDebugInfo ? "translate-x-5" : "translate-x-0"}`} />
-								</button>
-							</div>
-							{navRow(
-								() => navigate("/settings/api-inspector"),
-								<Terminal className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								t("settings.api_inspector"),
-								t("settings.api_inspector_desc"),
-							)}
-							{navRow(
-								replayOnboarding,
-								<RotateCcw className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Replay Onboarding",
-								"Shows the first-launch setup flow again.",
-							)}
-							{isAndroid() && (
-							<div className="p-4 sm:p-5">
-								<div className="flex items-start gap-3">
-									<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 shrink-0 text-[var(--text-muted)]">
-										<Bell className="h-5 w-5" />
-									</div>
-									<div className="grid gap-3 min-w-0 flex-1">
-										<div className="flex items-center gap-2 flex-wrap">
-											<p className="text-sm font-semibold">Push Token (FCM)</p>
-											{fcmToken && (() => {
-												// Sync marker is `${token}::${userId}` (see AuthContext) since the
-												// device token is shared across saved accounts but sync is per-account.
-												const isSynced = fcmSyncedToken === `${fcmToken}::${userId}`;
-												return (
-													<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${isSynced ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-														{isSynced ? "✓ Synced" : "⚠ Not synced"}
-													</span>
-												);
-											})()}
-										</div>
-										{fcmToken ? (
-											<div className="grid gap-2">
-												<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-													<p className="text-xs text-[var(--text-muted)] mb-1">Token (tap to select)</p>
-													<p className="break-all font-mono text-xs select-all">{fcmToken}</p>
-												</div>
-												<Button type="button" size="sm" disabled={isSyncingFcm} onClick={() => void handleForceSyncFcm()} className="w-full justify-center">
-													{isSyncingFcm ? "Syncing..." : "Force re-sync"}
-												</Button>
-                                            </div>
-										) : (
-											<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
-												<p className="font-medium mb-0.5">No token received yet</p>
-												<p className="text-xs opacity-80">Android delivers the FCM token via the <code>fg:fcm-token</code> event after Firebase initialises on launch.</p>
-											</div>
-										)}
-										<div>
-											<p className="text-xs font-medium text-[var(--text-muted)] mb-1">
-												Live event log {fcmEventLog.length > 0 ? `(${fcmEventLog.length} received this session)` : "(waiting…)"}
-											</p>
-											<div ref={fcmLogRef} className="rounded-lg bg-[var(--surface-2)] px-3 py-2 max-h-32 overflow-y-auto">
-												{fcmEventLog.length === 0 ? (
-													<p className="font-mono text-xs text-[var(--text-muted)] italic">No fg:fcm-token events fired since this page opened</p>
-												) : (
-													fcmEventLog.map((entry, i) => (
-														<p key={i} className="font-mono text-xs break-all">
-															<span className="text-[var(--text-muted)]">[{entry.time}] </span>
-															{entry.token.slice(0, 20)}…{entry.token.slice(-8)}
-														</p>
-													))
-												)}
-											</div>
-										</div>
-										<div className="grid gap-1.5">
-											<p className="text-xs font-medium text-[var(--text-muted)]">Manual token (paste to force-sync)</p>
-											<div className="flex gap-2">
-												<input
-													type="text"
-													value={manualToken}
-													onChange={(e) => setManualToken(e.target.value)}
-													placeholder="Paste FCM token here…"
-													className="input-field min-w-0 flex-1 font-mono text-xs"
-												/>
-												<Button type="button" size="sm" disabled={isSyncingFcm || !manualToken.trim()} onClick={() => void handleForceSyncFcm(manualToken.trim())}>
-													Sync
-												</Button>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-							)}
-							<div className="p-4 sm:p-5">
-								<div className="flex items-start gap-3">
 									<div className="relative shrink-0">
-										<div className="rounded-2xl bg-[var(--surface-2)] p-2.5 text-[var(--text-muted)]">
-											<Radar className="h-5 w-5" />
+										<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
+											<RefreshCcw className="h-5 w-5" />
 										</div>
-										{fingerprintCheck.loading ? (
-											<div
-												className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full ring-2 ring-[var(--surface)]"
-												style={{ backgroundColor: "var(--accent)", color: "var(--accent-contrast)" }}
-											>
-												<Loader2 className="h-3 w-3 animate-spin" />
-											</div>
-										) : fingerprintCheck.ok ? (
-											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-[var(--surface)]">
-												<CheckCircle2 className="h-3 w-3" />
-											</div>
-										) : fingerprintCheck.result || fingerprintCheck.error ? (
-											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white ring-2 ring-[var(--surface)]">
-												<AlertCircle className="h-3 w-3" />
-											</div>
-										) : (
-											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)] ring-2 ring-[var(--surface)]">
-												<HelpCircle className="h-3 w-3" />
+										{isContributorChannel(updateChannel) && (
+											<div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] ring-2 ring-[var(--surface)]">
+												<GitBranch className="h-3 w-3" />
 											</div>
 										)}
 									</div>
-									<div className="grid gap-3 min-w-0 flex-1">
-										<div className="grid grid-cols-[1fr_auto] gap-x-3">
-											<p className="text-sm font-semibold leading-snug">Fingerprint Check</p>
-											<div className="row-span-2 flex items-start">
-												<Button type="button" disabled={fingerprintCheck.loading} onClick={() => void fingerprintCheck.checkFingerprint()}>
-													Check
-												</Button>
-											</div>
-											<p className="mt-0.5 text-xs text-[var(--text-muted)]">Verify your HTTP/TLS fingerprint matches OkHttp configuration.</p>
+									<div className="min-w-0 flex-1">
+										<p className="text-sm font-semibold leading-snug">
+											{t("settings.check_updates")}
+										</p>
+										{/* One line each (wrapping rather than cutting off), each with its own commit. */}
+										<div className="mt-0.5 space-y-px text-xs leading-snug text-[var(--text-muted)]">
+											{nativeVersion && (
+												<p className="break-words">
+													{t("settings.app_version", { defaultValue: "App {{version}}", version: nativeVersion })}
+													{nativeCommitHash && <span className="opacity-60"> · {nativeCommitHash}</span>}
+												</p>
+											)}
+											<p className="break-words">
+												{t("settings.frontend_version", { defaultValue: "Frontend {{version}}", version: frontendVersion })}
+												{commitHash && <span className="opacity-60"> · {commitHash}</span>}
+											</p>
 										</div>
-										{fingerprintCheck.result && (
-											<div className="grid gap-2">
-												<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-													<div className="mb-1 flex items-center justify-between gap-2">
-														<p className="text-xs text-[var(--text-muted)]">JA3 Hash</p>
-														<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.ja3_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-															{fingerprintCheck.result.ja3_match ? "✓ Match" : "✗ Mismatch"}
-														</span>
-													</div>
-													<p className="break-all font-mono text-xs">{fingerprintCheck.result.ja3_hash}</p>
-												</div>
-												<div className="rounded-lg bg-[var(--surface-2)] px-3 py-2">
-													<div className="mb-1 flex items-center justify-between gap-2">
-														<p className="text-xs text-[var(--text-muted)]">Akamai Fingerprint</p>
-														<span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${fingerprintCheck.result.akamai_match ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"}`}>
-															{fingerprintCheck.result.akamai_match ? "✓ Match" : "✗ Mismatch"}
-														</span>
-													</div>
-													<p className="break-all font-mono text-xs">{fingerprintCheck.result.akamai_fingerprint}</p>
-												</div>
-												<p className="text-xs text-[var(--text-muted)]">HTTP Version <span className="font-mono text-[var(--text)]">{fingerprintCheck.result.http_version}</span></p>
-											</div>
-										)}
-										{fingerprintCheck.error && (
-											<div className="rounded-lg bg-yellow-500/10 border border-yellow-500/30 px-3 py-2 text-sm text-yellow-400">
-												<p className="font-medium mb-0.5">Fingerprint check failed</p>
-												<p className="text-xs opacity-80">{fingerprintCheck.error}</p>
-											</div>
-										)}
 									</div>
+									{isCheckingUpdates ? (
+										<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-muted)]" />
+									) : (
+										<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+									)}
+								</button>
+
+								<ToggleRow
+									checked={updateChecksEnabled}
+									onChange={setUpdateChecksEnabled}
+									icon={<Globe className="h-5 w-5" />}
+									iconClass="bg-amber-500/15 text-amber-400"
+									label={t("settings.update_checks", { defaultValue: "Check Automatically" })}
+									description={t("settings.update_checks_desc", {
+										defaultValue: "Looks for new app and frontend versions on GitHub at every app start. When off, no request is sent to GitHub unless you check manually above.",
+									})}
+								/>
+								{updateChecksEnabled && (
+									<ToggleRow
+										checked={hotswapAutoUpdate}
+										onChange={setHotswapAutoUpdateEnabled}
+										icon={<ZapFilled className="h-5 w-5" />}
+										iconClass="bg-sky-500/15 text-sky-400"
+										label={t("settings.auto_update", { defaultValue: "Install Automatically" })}
+										description={t("settings.auto_update_desc", {
+											defaultValue: "Installs new frontend versions (OTA) from GitHub Actions right away and reloads the app. When off, you'll be asked first.",
+										})}
+									/>
+								)}
+
+								{visibleChannels.length > 0 &&
+									navRow(
+										() => setIsChannelSheetOpen(true),
+										<GitBranch className="h-5 w-5" />,
+										"bg-violet-500/15 text-violet-400",
+										t("settings.update_channel", { defaultValue: "Update Channel" }),
+										t("settings.update_channel_desc", { defaultValue: "Which release track this app gets updates from." }),
+										<span className="flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--text-muted)]">
+											{isContributorChannel(updateChannel)
+												? getContributorHandle(updateChannel)
+												: getHotswapChannelLabel(updateChannel)}
+											<ChevronRight className="h-4 w-4 opacity-50" />
+										</span>,
+										// Only while switching: a running check shows as the spinner in the Check Now pill alone.
+										isSwitchingChannel,
+									)}
+							</div>
+						</div>
+
+						{/* Dev tools */}
+						{developerMode ? (
+							<div>
+								<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Developer</p>
+								<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+									<ToggleRow
+										checked={showDebugInfo}
+										onChange={(checked) => void setPreferences({ showDebugInfo: checked })}
+										icon={<BugFilled className="h-5 w-5" />}
+										iconClass="bg-slate-500/15 text-slate-400"
+										label="Show Debug Overlays"
+										description="Displays source (cache/network) info in the grid."
+									/>
+									{hasDemoProfileImages() && (
+										<ToggleRow
+											checked={isDemoProfileImagesEnabled()}
+											onChange={setDemoProfileImagesEnabled}
+											icon={<ImagesFilled className="h-5 w-5" />}
+											iconClass="bg-slate-500/15 text-slate-400"
+											label="Demo Profile Pictures"
+											description="Replaces every profile photo with a bundled demo picture, for screenshots. Reloads the app."
+										/>
+									)}
+									{navRow(
+										() => navigate("/settings/api-inspector"),
+										<Terminal className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										t("settings.api_inspector"),
+										t("settings.api_inspector_desc"),
+									)}
+									{navRow(
+										() => navigate("/settings/assignments"),
+										<FlaskConicalFilled className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										"Assignments & Feature Flags",
+										"Server-side flags and A/B experiments assigned to this account.",
+									)}
+									{isAndroid() && navRow(
+										() => navigate("/settings/push-inspector"),
+										<BellFilled className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										"Push Inspector (FCM)",
+										"Every push and notification tap with its full payload, plus the device push token.",
+									)}
+									{navRow(
+										() => setIsFingerprintSheetOpen(true),
+										<Radar className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										"Fingerprint Check",
+										"Verify your HTTP/TLS fingerprint matches OkHttp.",
+									)}
+									{navRow(
+										() => setIsPreviewsSheetOpen(true),
+										<EyeFilled className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										"UI Previews",
+										"Open onboarding, prompts and other one-off screens on demand.",
+									)}
 								</div>
 							</div>
-							{navRow(
-								() => setPreviewAnnouncement(true),
-								<Megaphone className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Preview Version Announcement",
-								LATEST_ANNOUNCEMENT
-									? `View the "${LATEST_ANNOUNCEMENT.headline}" screen (v${LATEST_ANNOUNCEMENT.version}).`
-									: "No version announcement configured yet.",
-								undefined,
-								!LATEST_ANNOUNCEMENT,
-							)}
-							{navRow(
-								() => setPreviewOutdatedPrompt(true),
-								<Download className="h-5 w-5" />,
-								"bg-[var(--surface-2)] text-[var(--text-muted)]",
-								"Preview Outdated Update Prompt",
-								"View the \"Update Available\" screen shown when the app is out of date.",
-							)}
+						) : null}
+
+						{/* About */}
+						<div>
+							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">About</p>
+							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								{navRow(
+									() => navigate("/settings/about"),
+									<InfoFilled className="h-5 w-5" />,
+									"bg-slate-500/15 text-slate-400",
+									t("settings.about"),
+									t("settings.about_desc"),
+								)}
+								{navRow(
+									() => void openExternalUrl(GITHUB_ISSUES_URL),
+									<ClipboardListFilled className="h-5 w-5" />,
+									"bg-orange-500/15 text-orange-400",
+									t("settings.issue_board"),
+									t("settings.issue_board_desc"),
+								)}
+								{navRow(
+									() => void openExternalUrl(GITHUB_NEW_ISSUE_URL),
+									<BugFilled className="h-5 w-5" />,
+									"bg-rose-500/15 text-rose-400",
+									t("settings.report_issue"),
+									t("settings.report_issue_desc"),
+								)}
+							</div>
 						</div>
-					</div>
-				) : null}
 
-				{/* About */}
-				<div>
-					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">About</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						{navRow(
-							() => navigate("/settings/about"),
-							<Info className="h-5 w-5" />,
-							"bg-slate-500/15 text-slate-400",
-							t("settings.about"),
-							t("settings.about_desc"),
-						)}
-						{navRow(
-							() => void openExternalUrl(GITHUB_ISSUES_URL),
-							<ClipboardList className="h-5 w-5" />,
-							"bg-orange-500/15 text-orange-400",
-							t("settings.issue_board"),
-							t("settings.issue_board_desc"),
-						)}
-						{navRow(
-							() => void openExternalUrl(GITHUB_NEW_ISSUE_URL),
-							<MessageSquareWarning className="h-5 w-5" />,
-							"bg-rose-500/15 text-rose-400",
-							t("settings.report_issue"),
-							t("settings.report_issue_desc"),
-						)}
 					</div>
+					)}
 				</div>
-
-			</div>
-			)}
+			</FeedScrollContainer>
 
 			<ConfirmDialog
 				isOpen={logoutConfirmTarget != null}
@@ -1282,6 +1234,81 @@ export function SettingsPage() {
 				}}
 				onCancel={() => setLogoutConfirmTarget(null)}
 			/>
+
+			{isChannelSheetOpen && (
+				<UpdateChannelSheet
+					channels={visibleChannels}
+					current={updateChannel}
+					canAddContributor={developerMode}
+					disabled={isSwitchingChannel || isCheckingUpdates}
+					isDesktop={isDesktop}
+					onSelect={(channel) => void handleSwitchUpdateChannel(channel)}
+					onAddContributor={() => setIsContributorDialogOpen(true)}
+					onClose={() => setIsChannelSheetOpen(false)}
+				/>
+			)}
+
+			{isPreviewsSheetOpen && (
+				<SheetActionList
+					title="UI Previews"
+					onClose={() => setIsPreviewsSheetOpen(false)}
+					isDesktop={isDesktop}
+					expandable
+					// Each preview opens after this sheet has closed (and popped its history entry).
+					actions={[
+						{ key: "onboarding", icon: RotateCcw, label: "Replay Onboarding", description: "The first-launch setup flow.", onSelect: () => afterSheetClose(replayOnboarding) },
+						{
+							key: "grid-gestures",
+							icon: Pointer,
+							label: "Grid Gestures Intro",
+							description: "The one-time tile gestures intro, shown on the grid once profiles load.",
+							onSelect: () => afterSheetClose(() => {
+								resetGridGesturesIntro();
+								navigate("/");
+							}),
+						},
+						{ key: "restore", icon: FileUpFilled, label: "Restore Offer", description: "The first-login backup restore dialog.", onSelect: () => afterSheetClose(replayRestoreOffer) },
+						{ key: "legal", icon: ScrollText, label: "Legal Agreements", description: "Terms of Service / Privacy Policy, even if already accepted.", onSelect: () => afterSheetClose(showLegalAgreementsPrompt) },
+						{ key: "ban", icon: Ban, label: "Ban Screen", description: "A permanent profile ban (DRUG_SALES) with its explanation.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_BAN_STATUS)) },
+						{ key: "device-ban", icon: Ban, label: "Device Ban Screen", description: "Code 28, often a refused fingerprint rather than a real ban.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_DEVICE_BAN_STATUS)) },
+						{ key: "network-ban", icon: Globe, label: "Network Ban Screen", description: "Code 31 (SUSPICIOUS_NETWORK), e.g. a VPN.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_NETWORK_BAN_STATUS)) },
+						{ key: "underage-ban", icon: Ban, label: "Underage Ban Screen", description: "Code 35, banned as under 18 by a moderator.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_UNDERAGE_BAN_STATUS)) },
+						{ key: "timed-ban", icon: Clock, label: "Timed Ban Screen", description: "A temporary ban (MILD_INSULTS) that ends in two days.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(false))) },
+						{ key: "timed-ban-expired", icon: ScrollText, label: "Ban Agreement Screen", description: "An expired temporary ban (BOT_ACTIVITY, appealable) waiting for its ban agreement.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(true))) },
+						{ key: "warnings", icon: TriangleAlertFilled, label: "Account Warnings", description: "The community-guidelines warnings prompt with sample warnings.", onSelect: () => afterSheetClose(showAccountWarningsPrompt) },
+						{ key: "share", icon: Share2, label: "Share Picker", description: "The \"Send to…\" chat picker with sample images.", onSelect: () => afterSheetClose(() => void showSharePickerDebug()) },
+						{
+							key: "announcement",
+							icon: MegaphoneFilled,
+							label: "Version Announcement",
+							description: LATEST_ANNOUNCEMENT
+								? LATEST_ANNOUNCEMENT.tagline ? `"${LATEST_ANNOUNCEMENT.tagline}" (v${LATEST_ANNOUNCEMENT.version}).` : `v${LATEST_ANNOUNCEMENT.version}.`
+								: "No version announcement configured yet.",
+							disabled: !LATEST_ANNOUNCEMENT,
+							onSelect: () => afterSheetClose(() => setPreviewAnnouncement(true)),
+						},
+						{ key: "outdated", icon: Download, label: "Outdated Update Prompt", description: "The \"Update Available\" screen for outdated apps.", onSelect: () => afterSheetClose(() => setPreviewOutdatedPrompt(true)) },
+						{
+							key: "ota",
+							icon: RefreshCcw,
+							label: "OTA Update Prompt",
+							description: "The frontend \"Update Available\" screen, with a simulated download.",
+							onSelect: () =>
+								afterSheetClose(() =>
+									showHotswapUpdatePrompt({
+										version: `${frontendVersion}-ota.${getCurrentHotswapChannel()}.${Math.floor(Date.now() / 1000)}`,
+										notes: null,
+										preview: true,
+									}),
+								),
+						},
+					]}
+				/>
+			)}
+
+			{isFingerprintSheetOpen && (
+				<FingerprintCheckSheet check={fingerprintCheck} onClose={() => setIsFingerprintSheetOpen(false)} />
+			)}
 
 			<ContributorChannelDialog
 				isOpen={isContributorDialogOpen}

@@ -17,14 +17,11 @@ export interface RealtimeEnvelope {
 }
 
 export interface ChatRealtimeManagerOptions {
-	url: string;
-	getToken?: () => Promise<string | null> | string | null;
 	onEvent: (event: RealtimeEnvelope) => void;
 	onStatusChange?: (status: RealtimeStatus) => void;
-	onRawMessage?: (raw: unknown) => void;
+	/** The socket came back after a drop; events in the gap were missed. */
+	onReconnect?: () => void;
+	/** The Rust bridge fell behind and discarded events. */
+	onEventsDropped?: () => void;
 	onParseError?: (raw: unknown, error: unknown) => void;
-	heartbeatMs?: number;
-	maxSilenceMs?: number;
-	maxBackoffMs?: number;
-	buildSocket?: (url: string) => WebSocket;
 }

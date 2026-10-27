@@ -4,7 +4,8 @@
 
 - [x] Authentication
   - [x] Password-based
-  - [ ] Sign-in with Google
+  - [x] Sign-in with Google
+  - [x] Sign-in with Facebook
 - [x] Geo service
   - [x] Location self-reporting
   - [x] Manual location picker (map + search)
@@ -31,13 +32,13 @@
   - [x] Message search (local)
   - [x] Replies (UI)
   - [ ] Reports
-- [ ] Profiles
+- [x] Profiles
   - [x] Fetching & viewing
   - [x] Full profile detail modal (stats, health, tribes, tags, photos)
   - [x] Favoriting/unfavoriting
   - [x] Blocking/unblocking
   - [x] Taps
-  - [ ] Reports
+  - [x] Reports
 - [x] Video Calls
 - [x] Grid
   - [x] Cascade profile grid

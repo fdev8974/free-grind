@@ -8,10 +8,82 @@
 			content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
 		/>
 		<title>Free Grind</title>
+		<style>
+			#webview-too-old {
+				display: none;
+			}
+			.webview-unsupported #webview-too-old {
+				display: flex;
+				position: fixed;
+				inset: 0;
+				z-index: 2147483647;
+				align-items: center;
+				justify-content: center;
+				padding: 24px;
+				overflow-y: auto;
+				background: #0b0b0d;
+				color: #eee;
+				font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+				text-align: center;
+			}
+			#webview-too-old .wv-inner {
+				max-width: 30rem;
+			}
+			#webview-too-old h1 {
+				margin: 0 0 12px;
+				font-size: 22px;
+			}
+			#webview-too-old p {
+				margin: 0 0 10px;
+				color: #b5b5bd;
+			}
+			#webview-too-old code {
+				color: #eee;
+			}
+			#webview-too-old .wv-found {
+				color: #f5a524;
+			}
+			#webview-too-old .wv-plat {
+				display: none;
+			}
+			#webview-too-old button {
+				margin-top: 14px;
+				padding: 10px 18px;
+				border: 1px solid #3a3a42;
+				border-radius: 12px;
+				background: transparent;
+				color: #b5b5bd;
+				font: inherit;
+				cursor: pointer;
+			}
+		</style>
+		<script src="/webview-check.js"></script>
 	</head>
 
 	<body>
 		<div id="app"></div>
+		<div id="webview-too-old">
+			<div class="wv-inner">
+				<h1>Your system WebView is too old</h1>
+				<p>Free Grind needs a newer browser engine to display correctly.</p>
+				<p class="wv-found" id="wv-found"></p>
+				<p class="wv-plat" data-platform="linux">
+					Update <code>webkit2gtk</code> (2.42 or newer) via your distribution.
+				</p>
+				<p class="wv-plat" data-platform="macos">
+					Install the latest updates from Software Update (Safari 16.4 or newer).
+				</p>
+				<p class="wv-plat" data-platform="windows">
+					Update the Microsoft Edge WebView2 Runtime (111 or newer).
+				</p>
+				<p class="wv-plat" data-platform="android">
+					Update Android System WebView (or Chrome) from the Play Store (111 or newer).
+				</p>
+				<p class="wv-plat" data-platform="ios">Update to iOS 16.4 or newer.</p>
+				<button type="button" id="wv-continue">Continue anyway</button>
+			</div>
+		</div>
+		<script src="/webview-notice.js"></script>
 		<script type="module" src="/src/main.tsx"></script>
 	</body>
 </html>

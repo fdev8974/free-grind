@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DrawerEmptyState } from "../chat/drawerUi";
 
 interface SexualHealthEmptyStateProps {
 	icon: ReactNode;
@@ -6,17 +7,12 @@ interface SexualHealthEmptyStateProps {
 	description?: string;
 }
 
-// Matches the Saved Phrases empty state (ChatThreadPanel.tsx):
-// rounded-2xl icon tile (not a circle), same spacing/type scale — centered
-// in the available scroll area rather than just padded at the top.
+// The app's usual empty state (accent circle with a soft glow), centered in
+// the tab's scroll area rather than just padded at the top.
 export function SexualHealthEmptyState({ icon, title, description }: SexualHealthEmptyStateProps) {
 	return (
-		<div className="flex min-h-[60dvh] flex-col items-center justify-center gap-2.5 px-[var(--app-px)] text-center text-[var(--text-muted)]">
-			<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
-				{icon}
-			</div>
-			<p className="text-sm font-medium text-[var(--text)]">{title}</p>
-			{description ? <p className="max-w-xs text-xs opacity-60">{description}</p> : null}
+		<div className="flex min-h-[60dvh] flex-col justify-center px-[var(--app-px)]">
+			<DrawerEmptyState icon={icon} fanned={false} title={title} hint={description ?? ""} />
 		</div>
 	);
 }

@@ -1,0 +1,486 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - development
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  # main releases on every push. development only releases when a push changes
+  # the version to a pre-release (`bun run set-version beta`) AND native code
+  # changed since the last binary. Frontend-only versions reach every installed
+  # app over OTA (ota-branches.yml), so a new APK would add nothing.
+  check:
+    runs-on: ubuntu-24.04
+    outputs:
+      should_release: ${{ steps.decide.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether to release
+        id: decide
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          version=$(jq -r '.version' package.json)
+          if [[ "$GITHUB_EVENT_NAME" != "push" || "$GITHUB_REF_NAME" == "main" ]]; then
+            should_release=true
+          elif [[ "$version" != *-* ]]; then
+            echo "$version is not a pre-release, skipping"
+            should_release=false
+          else
+            # A new branch has no previous commit (all zeros): treat as changed.
+            previous=$(git show "$BEFORE:package.json" 2>/dev/null | jq -r '.version' || true)
+            if [[ "$previous" == "$version" ]]; then
+              echo "Version unchanged ($version), skipping"
+              should_release=false
+            else
+              echo "Version changed ${previous:-none} -> $version"
+              # Same rule as the OTA manifest: if the oldest compatible binary is
+              # older than this version, existing apps get it over OTA.
+              min_binary=$(node scripts/min-binary-version.mjs)
+              if [[ "$min_binary" == "$version" ]]; then
+                echo "Native code changed since the last binary, releasing"
+                should_release=true
+              else
+                echo "Frontend-only since $min_binary, OTA covers it, skipping the APK release"
+                should_release=false
+              fi
+            fi
+          fi
+          echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
+
+  create-release:
+    needs: check
+    if: needs.check.outputs.should_release == 'true'
+    runs-on: ubuntu-24.04
+    outputs:
+      release_id: ${{ steps.create-release.outputs.release_id }}
+      tag_name: ${{ steps.vars.outputs.tag_name }}
+      release_name: ${{ steps.vars.outputs.release_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Derive release metadata
+        id: vars
+        run: |
+          echo "package_version=$(jq -r '.version' package.json)" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "tag_name=${GITHUB_REF_NAME//\//-}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          # Versions like 1.0.0-beta.0 become GitHub pre-releases. The in-app
+          # update prompt only offers those on non-stable update channels.
+          if [[ "$(jq -r '.version' package.json)" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "release_name=Free Grind v$(jq -r '.version' package.json) (${GITHUB_SHA::7})" >> "$GITHUB_OUTPUT"
+
+      - name: Create draft release
+        id: create-release
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ steps.vars.outputs.tag_name }}',
+              // Without this the tag lands on the default branch's HEAD, which
+              // is wrong for manual runs from another branch (e.g. development).
+              target_commitish: context.sha,
+              name: '${{ steps.vars.outputs.release_name }}',
+              body: [
+                'Automated release generated from `${{ github.ref_name }}`.',
+                '',
+                `Commit: ${context.sha}`,
+                '',
+                'Every download here and the OTA frontend bundle are reproducible: ' +
+                  'two independent builds produced identical bytes before this release was published. ' +
+                  `To check them yourself, see [REPRODUCIBILITY.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${context.sha}/REPRODUCIBILITY.md) ` +
+                  'and the SHA256SUMS and BUILDINFO.txt assets.'
+              ].join('\n'),
+              draft: true,
+              prerelease: ${{ steps.vars.outputs.prerelease }},
+              generate_release_notes: true
+            });
+            core.setOutput('release_id', String(data.id));
+
+  publish-ota:
+    needs: [create-release, verify]
+    # Pushes to other branches already publish their OTA via ota-branches.yml;
+    # a second deploy of the same commit would just race it.
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # History lets publish-ota.mjs find the oldest compatible binary.
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Download the verified frontend bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: verified-frontend
+          path: verified/frontend
+
+      - name: Sign and publish the OTA bundle to surge.sh
+        id: ota-upload
+        env:
+          OTA_BUNDLE: verified/frontend/frontend.tar.gz
+          HOTSWAP_PRIVATE_KEY: ${{ secrets.HOTSWAP_PRIVATE_KEY }}
+          HOTSWAP_PRIVATE_KEY_PASSWORD: ${{ secrets.HOTSWAP_PRIVATE_KEY_PASSWORD }}
+          SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
+          SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
+          OTA_NOTES: Automated OTA upload for ${{ github.sha }}
+        run: bun run scripts/publish-ota.mjs --channel main
+
+      - name: Upload OTA artifacts to GitHub release
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+          OTA_VERSION: ${{ steps.ota-upload.outputs.ota_version }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const files = [
+              {
+                path: 'frontend.tar.gz',
+                name: `frontend-${process.env.OTA_VERSION}.tar.gz`,
+                contentType: 'application/gzip'
+              },
+              {
+                path: 'frontend.tar.gz.sig',
+                name: `frontend-${process.env.OTA_VERSION}.tar.gz.sig`,
+                contentType: 'text/plain'
+              }
+            ];
+
+            for (const file of files) {
+              const data = fs.readFileSync(file.path);
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: Number(process.env.RELEASE_ID),
+                name: file.name,
+                data,
+                headers: {
+                  'content-type': file.contentType,
+                  'content-length': data.length
+                }
+              });
+            }
+
+  # Linux packages, the Android APK and the OTA frontend bundle are built twice,
+  # on separate runners, inside the pinned container (ci/build). `verify` only
+  # lets them through when both builds are byte-identical; signing comes after.
+  # Anyone can rebuild them the same way, see REPRODUCIBILITY.md.
+  reproducible-build:
+    needs: create-release
+    strategy:
+      fail-fast: true
+      matrix:
+        artifact: [linux, android, windows, frontend]
+        builder: [1, 2]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # src-tauri/vendor/freegrind-google-oauth-webextension is compiled in
+          submodules: true
+          persist-credentials: false
+
+      - name: Free disk space
+        if: matrix.artifact != 'frontend'
+        # The Android SDK in the container and a release target dir don't fit
+        # next to the runner's preinstalled toolchains, which the build doesn't use.
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Build in the pinned container
+        env:
+          # Default update channel baked into the frontend: builds from main ship
+          # on Stable, every other branch (beta builds) on Development.
+          FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
+          FG_CONTAINER_ENGINE: docker
+        run: sh ci/build/run.sh "${{ matrix.artifact }}"
+
+      - name: Upload build output
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: build-${{ matrix.artifact }}-${{ matrix.builder }}
+          path: out/${{ matrix.artifact }}
+          retention-days: 3
+          if-no-files-found: error
+
+  verify:
+    needs: [reproducible-build, build-ios-1, build-ios-2, build-macos-1, build-macos-2]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download both builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: build-*
+          path: builds
+
+      - name: Download both iOS builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ios-build-*
+          path: builds
+
+      - name: Download both macOS builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: macos-build-*
+          path: builds
+
+      - name: Compare the builds
+        run: |
+          for artifact in linux android windows frontend; do
+            sh ci/compare.sh "verified/$artifact" "builds/build-$artifact-1" "builds/build-$artifact-2"
+          done
+          sh ci/compare.sh verified/ios builds/ios-build-1 builds/ios-build-2
+          sh ci/compare.sh verified/macos builds/macos-build-1 builds/macos-build-2
+
+      - name: Upload verified Linux packages
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-linux
+          path: verified/linux
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified unsigned APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-android
+          path: verified/android
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified Windows installer and exe
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-windows
+          path: verified/windows
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified iOS IPA
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-ios
+          path: verified/ios
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified macOS zip
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-macos
+          path: verified/macos
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload verified frontend bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: verified-frontend
+          path: verified/frontend
+          retention-days: 3
+          if-no-files-found: error
+
+  publish-verified:
+    needs: [create-release, verify]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download verified builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: verified-*
+          path: verified
+
+      - name: Setup Java
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: platform-tools
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install frontend dependencies
+        # For `tauri signer`, which signs SHA256SUMS below.
+        run: bun install --frozen-lockfile
+
+      - name: Install apksigner, apksigcopier and minisign
+        run: |
+          sdkmanager --install "build-tools;36.0.0"
+          sudo apt-get update
+          sudo apt-get install -y apksigcopier minisign
+
+      - name: Sign the APK
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          version=$(jq -r '.version' package.json)
+          unsigned="verified/verified-android/free-grind-v$version-android-arm64-unsigned.apk"
+          mkdir -p release
+          # The in-app updater looks for exactly this name.
+          signed="release/free-grind-v$version.apk"
+          keystore="$RUNNER_TEMP/release.jks"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$keystore"
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          # Same key and schemes (v2 only, minSdk 26, no v4 .idsig) the Gradle signing
+          # config in build.gradle.kts produced; --alignment-preserved keeps
+          # every zip entry as built, so only the signing block is added.
+          "$apksigner" sign --ks "$keystore" --ks-key-alias opengrind \
+            --ks-pass pass:opengrind --key-pass pass:opengrind \
+            --v1-signing-enabled false --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false \
+            --alignment-preserved --out "$signed" "$unsigned"
+          rm -f "$keystore"
+          "$apksigner" verify --print-certs "$signed"
+          # What REPRODUCIBILITY.md tells users to run: the signature copied
+          # onto the reproducible build must give back the published APK.
+          apksigcopier copy "$signed" "$unsigned" "$RUNNER_TEMP/check.apk"
+          cmp "$RUNNER_TEMP/check.apk" "$signed"
+
+      - name: Write checksums and build info
+        env:
+          FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
+        run: |
+          cp verified/verified-linux/* release/
+          cp verified/verified-ios/*.ipa release/
+          cp verified/verified-macos/*.zip release/
+          version=$(jq -r '.version' package.json)
+          cp "verified/verified-windows/free-grind-v$version-windows-x64-setup.exe" release/
+          # The app picks its runtime mode from its file name (manager vs
+          # client/child), so the one portable exe ships under three names.
+          for role in manager client child; do
+            cp "verified/verified-windows/free-grind-v$version-windows-x64.exe" "release/free-grind-$role-v$version-windows-x64.exe"
+          done
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "FG_CHANNEL: $FG_CHANNEL"
+            echo "SOURCE_DATE_EPOCH: $(git log -1 --pretty=%ct)"
+            echo
+            echo "Rebuild the reproducible files with:"
+            echo "  git checkout $GITHUB_SHA && git submodule update --init"
+            echo "  FG_CHANNEL=$FG_CHANNEL sh ci/build/run.sh <linux|android|windows|frontend>"
+            echo "  FG_CHANNEL=$FG_CHANNEL bash ci/build/<ios|macos>.sh   # on macOS with Xcode 26.6"
+            echo "See REPRODUCIBILITY.md for comparing them with this release."
+          } > release/BUILDINFO.txt
+          # Every file two builders agreed on, under its build output name, plus
+          # the signed APK (an unsigned build with the release signature added).
+          (cd verified && find . -type f | LC_ALL=C sort | xargs -d '\n' sha256sum | sed 's|  \./verified-[a-z]*/|  |') > release/SHA256SUMS
+          (cd release && sha256sum free-grind-v*.apk) >> release/SHA256SUMS
+          cat release/SHA256SUMS
+
+      - name: Sign the checksums
+        env:
+          HOTSWAP_PRIVATE_KEY: ${{ secrets.HOTSWAP_PRIVATE_KEY }}
+          HOTSWAP_PRIVATE_KEY_PASSWORD: ${{ secrets.HOTSWAP_PRIVATE_KEY_PASSWORD }}
+        run: |
+          # The OTA signing key (KEYS.md): tauri signer writes a base64-wrapped
+          # minisign signature; publish it as a plain .minisig instead.
+          bunx tauri signer sign release/SHA256SUMS -k "$HOTSWAP_PRIVATE_KEY" -p "$HOTSWAP_PRIVATE_KEY_PASSWORD"
+          base64 -d release/SHA256SUMS.sig > release/SHA256SUMS.minisig
+          rm release/SHA256SUMS.sig
+          # What KEYS.md tells users to run, against the key every app trusts.
+          minisign -Vm release/SHA256SUMS -x release/SHA256SUMS.minisig \
+            -P "$(jq -r '.plugins.hotswap.pubkey' src-tauri/tauri.conf.json)"
+
+      - name: Upload to release
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          RELEASE_ID: ${{ needs.create-release.outputs.release_id }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const types = {
+              '.apk': 'application/vnd.android.package-archive',
+              '.deb': 'application/vnd.debian.binary-package',
+              '.rpm': 'application/x-rpm',
+              '.AppImage': 'application/vnd.appimage',
+              '.exe': 'application/vnd.microsoft.portable-executable',
+              '.ipa': 'application/octet-stream',
+              '.zip': 'application/zip',
+            };
+            for (const name of fs.readdirSync('release')) {
+              const data = fs.readFileSync(path.join('release', name));
+              await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: Number(process.env.RELEASE_ID),
+                name,
+                data,
+                headers: {
+                  'content-type': types[path.extname(name)] ?? 'text/plain',
+                  'content-length': data.length,
+                },
+              });
+              console.log(`✓ Uploaded ${name}`);
+            }
+
+  # The IPA, also built twice; `verify` compares the two like the others.
+  build-ios-1:
+    needs: create-release
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      artifact_name: ios-build-1
+
+  build-ios-2:
+    needs: create-release
+    uses: ./.github/workflows/build-ios.yml
+    with:
+      artifact_name: ios-build-2
+
+  # The macOS app, as a zip, also built twice.
+  build-macos-1:
+    needs: create-release
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      artifact_name: macos-build-1
+
+  build-macos-2:
+    needs: create-release
+    uses: ./.github/workflows/build-macos.yml
+    with:
+      artifact_name: macos-build-2

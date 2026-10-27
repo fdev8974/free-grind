@@ -1,12 +1,18 @@
 {
 	"$schema": "../gen/schemas/desktop-schema.json",
 	"identifier": "ios-features",
-	"description": "Capabilities specific to iOS (ios-photos plugin is only compiled in for iOS)",
+	"description": "Capabilities specific to iOS (ios-photos and dialog plugins are only compiled in for iOS among mobile targets)",
 	"platforms": ["iOS"],
 	"windows": ["main"],
 	"permissions": [
+		"barcode-scanner:default",
 		"ios-photos:default",
 		"ios-app-disguise:default",
+		"dialog:allow-save",
+		{
+			"identifier": "fs:allow-remove",
+			"allow": [{ "path": "$DOCUMENT/free-grind-data-*.zip" }]
+		},
 		{
 			"identifier": "fs:allow-mkdir",
 			"allow": [{ "path": "$DOCUMENT/FreeGrind" }]

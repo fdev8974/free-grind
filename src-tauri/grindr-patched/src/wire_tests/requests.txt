@@ -1,0 +1,170 @@
+GET /public/v1/assignments
+	requireanondeviceinfo: true
+	l-time-zone: <varies>
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	accept-encoding: gzip
+	host: <varies>
+	body:
+POST /v8/sessions
+	requirerealdeviceinfo: true
+	l-time-zone: <varies>
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	content-type: application/json; charset=utf-8
+	content-length: 61
+	accept-encoding: gzip
+	host: <varies>
+	body: {"email":"a@b.c","geohash":null,"password":"pw","token":null}
+GET /accepting
+	l-time-zone: <varies>
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	accept-encoding: gzip
+	host: <varies>
+	body:
+POST /accepting
+	l-time-zone: <varies>
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	content-type: application/json; charset=utf-8
+	content-length: 24
+	accept-encoding: gzip
+	host: <varies>
+	body: {"alpha":[2,3],"zeta":1}
+GET /accepting
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	accept-encoding: gzip
+	host: <varies>
+	body:
+PUT /accepting
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	content-type: application/json; charset=utf-8
+	content-length: 24
+	accept-encoding: gzip
+	host: <varies>
+	body: {"alpha":[2,3],"zeta":1}
+POST /accepting
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	content-type: image/jpeg
+	content-length: 5
+	accept-encoding: gzip
+	host: <varies>
+	body: bytes
+POST /v1/verification/device-keys/challenge
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	accept-encoding: gzip
+	host: <varies>
+	body:
+POST /v1/verification/device-keys
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	content-type: application/json; charset=utf-8
+	content-length: <varies>
+	accept-encoding: gzip
+	host: <varies>
+	body: <varies>
+POST /accepting
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	accept-encoding: gzip
+	x-key-id: <varies>
+	x-sig: <varies>
+	x-timestamp: <varies>
+	x-nonce: <varies>
+	content-type: image/jpeg
+	host: <varies>
+	content-length: 6
+	body: signed
+POST /v8/sessions
+	requirerealdeviceinfo: true
+	l-time-zone: <varies>
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	content-type: application/json; charset=utf-8
+	content-length: 61
+	accept-encoding: gzip
+	host: <varies>
+	body: {"email":"a@b.c","geohash":null,"password":"pw","token":null}
+POST /v1/verification/device-keys/challenge
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	accept-encoding: gzip
+	host: <varies>
+	body:
+POST /v2/verification/device-keys
+	authorization: <varies>
+	l-time-zone: <varies>
+	l-grindr-roles: [FREE]
+	l-device-info: <varies>
+	accept: application/json
+	user-agent: <varies>
+	l-locale: en_US
+	accept-language: en-US
+	x-grindr-captcha-token: captcha-xyz
+	content-type: application/json; charset=utf-8
+	content-length: <varies>
+	accept-encoding: gzip
+	host: <varies>
+	body: <varies>

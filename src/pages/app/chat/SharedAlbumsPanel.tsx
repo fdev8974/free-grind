@@ -2,6 +2,7 @@ import { Album, Images, MessageCircle, RefreshCw, UserRound } from "lucide-react
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
 import { useAuth } from "../../../contexts/useAuth";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
@@ -18,6 +19,7 @@ import { getAllAlbums, getConversation } from "../../../services/chatDb";
 import { cacheAlbumFromSharedPage, captureAlbum, getCachedAlbumCoverUri, getLocalAlbum } from "../../../services/albumStore";
 import { toDataUri } from "../../../services/mediaStore";
 import { saveAllAlbumMedia } from "../../../utils/albumMedia";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 function getCounterparty(
 	entry: ConversationEntry,
@@ -50,14 +52,15 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 	const [error, setError] = useState<string | null>(null);
 	const [items, setItems] = useState<SharedAlbumItem[]>([]);
 	const [isOpeningAlbum, setIsOpeningAlbum] = useState(false);
-	const [openAlbumError, setOpenAlbumError] = useState<string | null>(null);
+	// The album an open is in flight for; cleared when the viewer closes.
+	const pendingOpenAlbumIdRef = useRef<AlbumViewer["albumId"] | null>(null);
 	const [viewer, setViewer] = useState<AlbumViewer | null>(null);
 	const [viewerIndex, setViewerIndex] = useState(0);
 	const [isSavingAll, setIsSavingAll] = useState(false);
 
 	const viewerHistoryPushedRef = useRef(false);
 
-	const minmaxValue = mobileGridColumns === "2" ? "130px" : "100px";
+	const minmaxValue = mobileGridColumns === "2" ? "130px" : mobileGridColumns === "4" ? "80px" : "100px";
 
 	const loadSharedAlbums = useCallback(async () => {
 		setError(null);
@@ -303,43 +306,76 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 		void loadSharedAlbums();
 	};
 
+	const closeViewerState = useCallback(() => {
+		// Closed while still loading: the pending open is dropped.
+		pendingOpenAlbumIdRef.current = null;
+		setIsOpeningAlbum(false);
+		setViewer(null);
+		setViewerIndex(0);
+		viewerHistoryPushedRef.current = false;
+	}, []);
+
+	const closeViewer = useCallback(() => {
+		if (viewerHistoryPushedRef.current) { window.history.back(); return; }
+		closeViewerState();
+	}, [closeViewerState]);
+
 	const openViewer = useCallback(
 		async (item: SharedAlbumItem) => {
 			if (isOpeningAlbum) return;
-			setOpenAlbumError(null);
+			const albumId = item.album.albumId;
+			const meta = {
+				albumId,
+				albumName: item.album.albumName ?? null,
+				profileId: item.profileId,
+				profileName: item.profileName,
+				profileMediaHash: item.profileMediaHash,
+				onlineUntil: item.onlineUntil,
+				distanceMetres: item.distanceMetres,
+				conversationId: item.conversationId,
+			};
+			// Open right away with what the tile knows; the viewer shows its own
+			// loading state until the content arrives.
+			pendingOpenAlbumIdRef.current = albumId;
 			setIsOpeningAlbum(true);
+			setViewer({ ...meta, content: [] });
+			setViewerIndex(0);
+			if (!viewerHistoryPushedRef.current) {
+				window.history.pushState({ sharedAlbumsOverlay: "viewer" }, "");
+				viewerHistoryPushedRef.current = true;
+			}
+			// Ignored once the viewer was closed meanwhile.
+			const isStillOpening = () => pendingOpenAlbumIdRef.current === albumId;
+			const failOpen = (message: string) => {
+				if (!isStillOpening()) return;
+				closeViewer();
+				toast.error(message);
+			};
 			try {
 				if (item.localOnly) {
-					const local = await getLocalAlbum(item.album.albumId);
+					const local = await getLocalAlbum(albumId);
 					if (!local || local.content.length === 0) {
-						setOpenAlbumError(t("shared_albums.error_open_fallback"));
+						failOpen(t("shared_albums.error_open_fallback"));
 						return;
 					}
-					setViewer({
-						albumId: local.albumId,
-						albumName: local.albumName ?? item.album.albumName ?? null,
-						profileId: item.profileId,
-						profileName: item.profileName,
-						profileMediaHash: item.profileMediaHash,
-						onlineUntil: item.onlineUntil,
-						distanceMetres: item.distanceMetres,
-						conversationId: item.conversationId,
-						content: local.content,
-					});
+					if (isStillOpening()) {
+						setViewer({ ...meta, albumId: local.albumId, albumName: local.albumName ?? meta.albumName, content: local.content });
+					}
 				} else {
-					await apiFunctions.openSharedAlbum({ albumId: item.album.albumId });
-					const details = await apiFunctions.getAlbum(item.album.albumId);
-					setViewer({
-						albumId: details.albumId,
-						albumName: details.albumName,
-						profileId: item.profileId,
-						profileName: item.profileName,
-						profileMediaHash: item.profileMediaHash,
-						onlineUntil: item.onlineUntil,
-						distanceMetres: item.distanceMetres,
-						conversationId: item.conversationId,
-						content: details.content,
-					});
+					await apiFunctions.openSharedAlbum({ albumId });
+					const details = await apiFunctions.getAlbum(albumId);
+					// Nothing to show: the viewer would just flash open and vanish,
+					// so close it and say why instead.
+					if (details.content.length === 0) {
+						if (isStillOpening()) {
+							closeViewer();
+							toast(t("shared_albums.empty_album_title"));
+						}
+						return;
+					}
+					if (isStillOpening()) {
+						setViewer({ ...meta, albumId: details.albumId, albumName: details.albumName, content: details.content });
+					}
 
 					// Fully cache every content item's bytes, same as albums
 					// shared in a chat thread — so it survives the share expiring.
@@ -354,18 +390,16 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 						isViewable: true,
 					});
 				}
-				setViewerIndex(0);
-				if (!viewerHistoryPushedRef.current) {
-					window.history.pushState({ sharedAlbumsOverlay: "viewer" }, "");
-					viewerHistoryPushedRef.current = true;
-				}
 			} catch (e) {
-				setOpenAlbumError(e instanceof Error ? e.message : t("shared_albums.error_open_fallback"));
+				failOpen(e instanceof Error ? e.message : t("shared_albums.error_open_fallback"));
 			} finally {
-				setIsOpeningAlbum(false);
+				if (isStillOpening()) {
+					pendingOpenAlbumIdRef.current = null;
+					setIsOpeningAlbum(false);
+				}
 			}
 		},
-		[apiFunctions, isOpeningAlbum, t],
+		[apiFunctions, isOpeningAlbum, t, closeViewer],
 	);
 
 	const handleMessageProfile = useCallback(
@@ -389,17 +423,6 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 			type: item.contentType?.startsWith("video/") ? "video" : "image",
 		}));
 	}, [viewer]);
-
-	const closeViewerState = useCallback(() => {
-		setViewer(null);
-		setViewerIndex(0);
-		viewerHistoryPushedRef.current = false;
-	}, []);
-
-	const closeViewer = useCallback(() => {
-		if (viewerHistoryPushedRef.current) { window.history.back(); return; }
-		closeViewerState();
-	}, [closeViewerState]);
 
 	const handleIndexChange = useCallback((index: number) => {
 		setViewerIndex((prev) => (prev === index ? prev : index));
@@ -478,6 +501,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 			name: viewer.profileName,
 			subtitle: [statusLabel, distanceLabel].filter(Boolean).join(" · ") || null,
 			isOnline: statusMeta.isOnline,
+			isOnlineEndingSoon: statusMeta.isEndingSoon,
 			onClick: () => handleViewProfile(viewer.profileId),
 		};
 	}, [viewer, t, unitsPreset, handleViewProfile]);
@@ -513,14 +537,6 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 
 			{/* Content */}
 			<div className={`${px} py-4`}>
-				{openAlbumError ? (
-					<ErrorState
-						title={t("shared_albums.error_open_title")}
-						description={openAlbumError}
-						onRetry={() => setOpenAlbumError(null)}
-					/>
-				) : null}
-
 				{isLoading ? (
 					<LoadingState
 						title={t("shared_albums.loading_title")}
@@ -562,13 +578,13 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 									key={`${item.profileId}:${item.album.albumId}`}
 									type="button"
 									onClick={() => void openViewer(item)}
-									className="surface-card relative overflow-hidden rounded-2xl text-left transition-transform hover:-translate-y-0.5"
+									className="native-card relative overflow-hidden rounded-2xl text-left transition-transform hover:-translate-y-0.5"
 								>
 									<div className="relative aspect-[4/6] w-full bg-[var(--surface-2)]">
 										{previewUrl ? (
 											<>
 												<img
-													src={previewUrl}
+													src={proxyMediaUrl(previewUrl)}
 													alt={item.album.albumName ?? t("shared_albums.preview_alt")}
 													className="h-full w-full scale-110 object-cover blur-xl"
 												/>
@@ -600,14 +616,6 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 				)}
 			</div>
 
-			{isOpeningAlbum ? (
-				<div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-					<div className="surface-card p-4 text-sm text-[var(--text-muted)]">
-						{t("shared_albums.opening")}
-					</div>
-				</div>
-			) : null}
-
 			{viewer !== null && (
 				<PhotoViewer
 					isOpen={true}
@@ -619,6 +627,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 					menuActions={albumMenuActions}
 					albumHeader={albumHeader}
 					contentWarning={showAlbumSensitiveContentWarning}
+					isLoading={isOpeningAlbum}
 				/>
 			)}
 		</div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { PageHeader } from "../../components/PageHeader";
 import { useNavigate } from "react-router-dom";
 import z from "zod";
-import { ChevronLeft } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { appLog } from "../../utils/logger";
 import { getCurrentLocation, getLocationErrorMessageKey } from "../../services/currentLocation";
@@ -168,20 +168,13 @@ export function BrowseLocationPage() {
 	return (
 		<section className="app-screen">
 			<div className="mx-auto w-full max-w-4xl">
-				<header className="mb-4 flex items-center gap-3">
-					<button
-						type="button"
-						onClick={() => navigate("/")}
-						className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
-						aria-label={t("browse_location.back_aria")}
-					>
-						<ChevronLeft className="h-4 w-4" />
-					</button>
-					<div>
-						<h1 className="app-title">{t("browse_location.title")}</h1>
-						<p className="app-subtitle">{t("browse_location.subtitle")}</p>
-					</div>
-				</header>
+				<PageHeader
+					onBack={() => navigate("/")}
+					backLabel={t("browse_location.back_aria")}
+					title={t("browse_location.title")}
+					subtitle={t("browse_location.subtitle")}
+					subtitleClassName="mb-4"
+				/>
 
 				{locationError ? (
 					<p className="mb-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text-muted)]">

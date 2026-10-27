@@ -33,6 +33,21 @@ struct ManagedInstancesFile {
     labels: Vec<String>,
 }
 
+/// The system WebView's engine version (WebKitGTK `2.44.1`, WebView2
+/// `120.0.2210.91`, ...), for index.html's "WebView too old" notice.
+/// Async so it stays off the main thread: on Android wry asks the activity
+/// over its main pipe and would wait on itself there.
+#[tauri::command]
+pub async fn webview_version() -> Option<String> {
+    tauri::webview_version().ok()
+}
+
+/// Short commit this binary was built from (see build.rs); None if unknown.
+#[tauri::command]
+pub fn app_commit_hash() -> Option<String> {
+    Some(env!("FG_COMMIT_HASH")).filter(|hash| !hash.is_empty()).map(str::to_owned)
+}
+
 #[tauri::command]
 pub fn runtime_context() -> RuntimeContext {
     #[cfg(target_os = "windows")]

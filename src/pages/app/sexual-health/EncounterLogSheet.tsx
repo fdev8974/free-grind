@@ -1,12 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
-import { Avatar } from "../../../components/ui/avatar";
-import { Chip } from "../../../components/ui/chip";
-import { Button } from "../../../components/ui/button";
+import { Loader2, Trash2 } from "lucide-react";
+import {
+	BottomSheet,
+	SheetCloseButton,
+	SHEET_FOOTER_CLASS,
+	SHEET_FOOTER_ICON_BUTTON_CLASS,
+	sheetButtonClass,
+} from "../../../components/ui/bottom-sheet";
+import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
+import { ProfileImage } from "../../../components/ui/profile-image";
+import { SHEET_FIELD_CLASS, SheetChip, SheetSection } from "../../../components/ui/sheet-section";
+import { cn } from "../../../utils/cn";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { PersonPicker, type PickedPerson } from "./PersonPicker";
 import { addEncounter, deleteEncounter, updateEncounter, type Encounter } from "../../../services/encounters";
@@ -24,7 +31,9 @@ interface EncounterLogSheetProps {
 	editingEncounter?: Encounter;
 	editingAvatarSrc?: string | null;
 	onClose: () => void;
-	onLogged: () => void;
+	/** After a successful save. The sheet closes itself (animated); onClose follows once it's gone. */
+	onLogged?: () => void;
+	/** After a successful delete; the sheet closes itself as with onLogged. */
 	onDeleted?: () => void;
 }
 
@@ -40,6 +49,7 @@ export function EncounterLogSheet({
 	const isDesktop = useDesktopBreakpoint();
 	const [scheme] = usePrepScheme();
 	const isEditing = editingEncounter != null;
+	const sheetCloseRef = useRef<(() => void) | null>(null);
 	const [person, setPerson] = useState<PickedPerson | null>(
 		editingEncounter
 			? {
@@ -102,7 +112,8 @@ export function EncounterLogSheet({
 				});
 				toast.success(t("sexualHealth.encounter.saved", { defaultValue: "Encounter logged" }));
 			}
-			onLogged();
+			onLogged?.();
+			sheetCloseRef.current?.();
 		} catch {
 			toast.error(t("sexualHealth.encounter.save_failed", { defaultValue: "Could not log this encounter." }));
 		} finally {
@@ -116,6 +127,7 @@ export function EncounterLogSheet({
 		try {
 			await deleteEncounter(editingEncounter.id);
 			onDeleted?.();
+			sheetCloseRef.current?.();
 		} finally {
 			setIsDeleting(false);
 			setIsConfirmingDelete(false);
@@ -129,128 +141,112 @@ export function EncounterLogSheet({
 	// this "fixed inset-0" overlay to that container's box instead of the
 	// real viewport, leaving it stuck behind the app's fixed bottom nav bar.
 	return createPortal(
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} isProcessing={isSaving}>
-			<div className="flex items-center justify-between px-4 pb-3">
-				<p className="text-sm font-semibold text-[var(--text)]">
+		<BottomSheet
+			onClose={onClose}
+			closeRef={sheetCloseRef}
+			expandable
+			isDesktop={isDesktop}
+			isProcessing={isSaving}
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
+		>
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">
 					{isEditing
 						? t("sexualHealth.encounter.edit_title", { defaultValue: "Edit encounter" })
 						: t("sexualHealth.encounter.sheet_title", { defaultValue: "Log an encounter" })}
-				</p>
-				<SheetClose
-					disabled={isSaving}
-					className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-40"
-				>
-					<X className="h-4 w-4" />
-				</SheetClose>
+				</h3>
+				<SheetCloseButton disabled={isSaving} />
 			</div>
 
-			<div className={`max-h-[65dvh] overflow-y-auto px-4 ${showPicker ? "" : "pb-4"}`} data-lenis-prevent>
-				{showPicker ? (
-					<PersonPicker
-						onPick={(picked) => {
-							setPerson(picked);
-							setChangingPerson(false);
-						}}
-					/>
-				) : (
-					<div className="grid gap-4">
-						{isEditing ? (
-							<div className="flex items-center gap-3 rounded-xl border border-[var(--border)] px-3 py-2.5">
-								<Avatar src={person!.avatarSrc} fallback={person!.displayName} className="h-9 w-9" />
-								<span className="min-w-0 flex-1 truncate text-sm font-medium">{person!.displayName}</span>
-							</div>
-						) : (
+			{showPicker ? (
+				<PersonPicker
+					onPick={(picked) => {
+						setPerson(picked);
+						setChangingPerson(false);
+					}}
+				/>
+			) : (
+				<>
+					<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+						<div className="space-y-5">
+							<SheetSection title={t("sexualHealth.encounter.person", { defaultValue: "Who" })}>
+								{/* Editing keeps the person; a new log can still swap them. */}
+								<button
+									type="button"
+									disabled={isEditing}
+									onClick={() => setChangingPerson(true)}
+									className="flex w-full items-center gap-3 rounded-2xl bg-[var(--surface-2)] px-3 py-2.5 text-left transition hover:ink-tint-8 disabled:hover:bg-[var(--surface-2)]"
+								>
+									<div className="h-10 w-10 shrink-0 rounded-full overflow-hidden bg-[var(--surface)] drop-shadow-sm">
+										<ProfileImage src={person!.avatarSrc} alt={person!.displayName} />
+									</div>
+									<span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text)]">{person!.displayName}</span>
+									{!isEditing && (
+										<span className="shrink-0 text-xs font-semibold text-[var(--accent)]">
+											{t("sexualHealth.encounter.change_person", { defaultValue: "Change" })}
+										</span>
+									)}
+								</button>
+							</SheetSection>
+
+							<SheetSection
+								title={t("sexualHealth.encounter.when", { defaultValue: "When" })}
+								value={isEditing ? formatDateTime(editingEncounter.occurredAt) : undefined}
+							>
+								{!isEditing && (
+									<input
+										type="datetime-local"
+										value={occurredAt}
+										onChange={(event) => setOccurredAt(event.target.value)}
+										className={cn(SHEET_FIELD_CLASS, "h-11 px-3")}
+									/>
+								)}
+							</SheetSection>
+
+							<SheetSection title={t("sexualHealth.encounter.protection", { defaultValue: "Protection" })}>
+								<div className="flex flex-wrap gap-2">
+									{PROTECTION_TAGS.map((tag) => (
+										<SheetChip key={tag} active={tags.includes(tag)} onClick={() => toggleTag(tag)}>
+											{tag}
+										</SheetChip>
+									))}
+								</div>
+							</SheetSection>
+
+							<SheetSection title={t("sexualHealth.encounter.note", { defaultValue: "Note (optional)" })}>
+								<textarea
+									value={note}
+									onChange={(event) => setNote(event.target.value)}
+									rows={3}
+									className={cn(SHEET_FIELD_CLASS, "resize-none px-4 py-3")}
+								/>
+							</SheetSection>
+						</div>
+					</div>
+
+					<div className={SHEET_FOOTER_CLASS}>
+						{isEditing && (
 							<button
 								type="button"
-								onClick={() => setChangingPerson(true)}
-								className="flex items-center gap-3 rounded-xl border border-[var(--border)] px-3 py-2.5 text-left transition hover:border-[var(--accent)]"
+								onClick={() => setIsConfirmingDelete(true)}
+								disabled={isSaving || isDeleting}
+								aria-label={t("sexualHealth.encounter.delete", { defaultValue: "Delete encounter" })}
+								className={cn(SHEET_FOOTER_ICON_BUTTON_CLASS, "bg-red-500/12 text-red-500 hover:bg-red-500/20 hover:text-red-500")}
 							>
-								<Avatar src={person!.avatarSrc} fallback={person!.displayName} className="h-9 w-9" />
-								<span className="min-w-0 flex-1 truncate text-sm font-medium">{person!.displayName}</span>
-								<span className="shrink-0 text-xs text-[var(--text-muted)]">
-									{t("sexualHealth.encounter.change_person", { defaultValue: "Change" })}
-								</span>
+								<Trash2 className="h-4 w-4" />
 							</button>
 						)}
-
-						{isEditing ? (
-							<div className="grid gap-1.5">
-								<span className="text-xs font-medium text-[var(--text-muted)]">
-									{t("sexualHealth.encounter.when", { defaultValue: "When" })}
-								</span>
-								<p className="text-sm text-[var(--text)]">{formatDateTime(editingEncounter.occurredAt)}</p>
-							</div>
-						) : (
-							<label className="grid gap-1.5">
-								<span className="text-xs font-medium text-[var(--text-muted)]">
-									{t("sexualHealth.encounter.when", { defaultValue: "When" })}
-								</span>
-								<input
-									type="datetime-local"
-									value={occurredAt}
-									onChange={(event) => setOccurredAt(event.target.value)}
-									className="input-field"
-								/>
-							</label>
-						)}
-
-						<div className="grid gap-1.5">
-							<span className="text-xs font-medium text-[var(--text-muted)]">
-								{t("sexualHealth.encounter.protection", { defaultValue: "Protection" })}
-							</span>
-							<div className="flex flex-wrap gap-2">
-								{PROTECTION_TAGS.map((tag) => (
-									<Chip
-										key={tag}
-										selected={tags.includes(tag)}
-										onClick={() => toggleTag(tag)}
-										className="min-h-0 px-3 py-1"
-									>
-										{tag}
-									</Chip>
-								))}
-							</div>
-						</div>
-
-						<label className="grid gap-1.5">
-							<span className="text-xs font-medium text-[var(--text-muted)]">
-								{t("sexualHealth.encounter.note", { defaultValue: "Note (optional)" })}
-							</span>
-							<textarea
-								value={note}
-								onChange={(event) => setNote(event.target.value)}
-								rows={2}
-								className="input-field resize-none"
-							/>
-						</label>
-					</div>
-				)}
-			</div>
-
-			{!showPicker && (
-				<div className="flex gap-2 px-4">
-					{isEditing ? (
 						<button
 							type="button"
-							onClick={() => setIsConfirmingDelete(true)}
+							onClick={() => void handleSubmit()}
 							disabled={isSaving}
-							className="flex flex-1 items-center justify-center rounded-xl border border-red-500/35 px-4 py-2.5 text-sm font-medium text-red-400 transition-all active:scale-95 hover:border-red-500/45 disabled:opacity-40"
-							style={{
-								backgroundColor: "color-mix(in srgb, #ef4444, transparent 92%)",
-								boxShadow: "0 2px 8px color-mix(in srgb, #ef4444, transparent 94%)",
-							}}
+							className={sheetButtonClass()}
 						>
-							{t("sexualHealth.encounter.delete", { defaultValue: "Delete encounter" })}
+							{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("sexualHealth.encounter.save", { defaultValue: "Save" })}
 						</button>
-					) : (
-						<Button variant="secondary" className="flex-1" onClick={onClose} disabled={isSaving}>
-							{t("sexualHealth.encounter.cancel", { defaultValue: "Cancel" })}
-						</Button>
-					)}
-					<Button variant="primary" className="flex-1" loading={isSaving} onClick={() => void handleSubmit()}>
-						{t("sexualHealth.encounter.save", { defaultValue: "Save" })}
-					</Button>
-				</div>
+					</div>
+				</>
 			)}
 
 			<ConfirmDialog

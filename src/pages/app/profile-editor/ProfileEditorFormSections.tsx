@@ -7,13 +7,12 @@ import {
 	Camera,
 	Clock,
 	GripVertical,
+	Map as MapIcon,
 	Plus,
 	Ruler,
 	ShieldPlus,
 	Sparkles,
-	Tag,
 	Trash2,
-	Users,
 	X,
 } from "lucide-react";
 import {
@@ -35,16 +34,22 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { getThumbImageUrl } from "../../../utils/media";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import { type UnitsPreset } from "../../../utils/units";
-import { Chip } from "../../../components/ui/chip";
+import { SheetChip, SheetMoreButton } from "../../../components/ui/sheet-section";
 import { LastTestedMonthPicker } from "../../../components/LastTestedMonthPicker";
 import { CategoryHeader, ChipGroup, ToggleRow } from "./ProfileEditorComponents";
+import { Slider } from "../../../components/ui/range-slider";
+import type { MySettings } from "../../../types/api-functions";
 import { TravelPlansSection } from "./TravelPlansSection";
+import { SpotifyFavoritesSection } from "./SpotifyFavoritesSection";
+import type { SpotifyTrack } from "../../../services/spotify";
 import { TagsPickerDialog } from "./TagsPickerDialog";
 import { ManagedOptionsPickerDialog } from "./ManagedOptionsPickerDialog";
 import {
 	MAX_GENDERS,
 	MAX_PROFILE_PHOTOS,
+	MAX_PROFILE_TAGS,
 	MEDIA_MODERATION_STATE,
 	toggleProfileTagText,
 	type ProfileDraft,
@@ -93,7 +98,7 @@ function SortablePhotoSlot({
 			].join(" ")}
 		>
 			<img
-				src={getThumbImageUrl(hash, "320x320")}
+				src={proxyMediaUrl(getThumbImageUrl(hash, "320x320"))}
 				alt={`Profile photo ${slotIndex + 1}`}
 				className={`h-full w-full object-cover ${isRejected ? "opacity-50 grayscale" : ""}`}
 			/>
@@ -168,6 +173,11 @@ export type ToggleMultiValueKey =
 	| "sexualHealth"
 	| "vaccines";
 
+// Location Randomizer range in the official app (26.21: "Less" … "More").
+const MAP_FUZZ_RADIUS_MIN = 50;
+const MAP_FUZZ_RADIUS_MAX = 1500;
+const MAP_FUZZ_RADIUS_STEP = 50;
+
 type ProfileEditorFormSectionsProps = {
 	draft: ProfileDraft;
 	unitsPreset: UnitsPreset;
@@ -187,6 +197,9 @@ type ProfileEditorFormSectionsProps = {
 	onRemovePhoto: (hash: string) => void;
 	onReorderPhotos: (newHashes: string[]) => void;
 	profileId?: string | number | null;
+	spotifyTracks: SpotifyTrack[];
+	isLoadingSpotify: boolean;
+	onSpotifyChange: (tracks: SpotifyTrack[]) => void;
 	ethnicityOptions: Option[];
 	bodyTypeOptions: Option[];
 	positionOptions: Option[];
@@ -195,6 +208,9 @@ type ProfileEditorFormSectionsProps = {
 	lookingForOptions: Option[];
 	meetAtOptions: Option[];
 	nsfwOptions: Option[];
+	/** Account settings; undefined until /v3/me/prefs/settings has loaded. */
+	settings: MySettings | undefined;
+	onSettingsChange: (patch: Partial<MySettings>) => void;
 	genderOptions: Option[];
 	defaultGenderIds: number[];
 	pronounOptions: Option[];
@@ -222,6 +238,9 @@ export function ProfileEditorFormSections({
 	onRemovePhoto,
 	onReorderPhotos,
 	profileId,
+	spotifyTracks,
+	isLoadingSpotify,
+	onSpotifyChange,
 	ethnicityOptions,
 	bodyTypeOptions,
 	positionOptions,
@@ -230,6 +249,8 @@ export function ProfileEditorFormSections({
 	lookingForOptions,
 	meetAtOptions,
 	nsfwOptions,
+	settings,
+	onSettingsChange,
 	genderOptions,
 	defaultGenderIds,
 	pronounOptions,
@@ -292,7 +313,7 @@ export function ProfileEditorFormSections({
 	return (
 		<div className="grid gap-5">
 			{/* Pictures */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.pictures.title")}
 					description={t("profile_editor.sections.pictures.description")}
@@ -306,16 +327,16 @@ export function ProfileEditorFormSections({
 									onClick={onOpenPhotoDrawer}
 									disabled={uploadDisabled}
 									className={[
-										"inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm font-medium transition-colors",
+										"inline-flex min-h-9 items-center gap-1.5 rounded-full ink-tint-10 px-3.5 py-2 text-sm font-semibold transition-[transform,background-color] duration-150",
 										uploadDisabled
 											? "cursor-not-allowed opacity-40"
-											: "cursor-pointer hover:border-[var(--text-muted)]",
+											: "cursor-pointer hover:ink-tint-14 active:scale-[0.97]",
 									].join(" ")}
 								>
 									{isUploadingPhoto
 										? t("profile_editor.sections.pictures.uploading")
 										: t("profile_editor.sections.pictures.add")}
-									<span className="ml-1 rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
+									<span className="ml-1 rounded-full ink-tint-10 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
 										{profilePhotoHashes.length}/{MAX_PROFILE_PHOTOS}
 									</span>
 								</button>
@@ -350,7 +371,7 @@ export function ProfileEditorFormSections({
 										key={`empty-${i}`}
 										type="button"
 										onClick={onOpenPhotoDrawer}
-										className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+										className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl ink-tint-8 text-[var(--text-muted)] transition-[transform,color] duration-150 hover:ink-tint-12 hover:text-[var(--accent)] active:scale-[0.98]"
 									>
 										<Plus className="h-6 w-6" />
 										<span className="text-xs font-medium">
@@ -371,7 +392,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Profile / Basic Info */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.profile.title")}
 					description={t("profile_editor.sections.profile.description")}
@@ -390,7 +411,7 @@ export function ProfileEditorFormSections({
 							className="input-field"
 							placeholder={t("profile_editor.sections.profile.display_name_placeholder")}
 						/>
-						<p className="mt-2 text-xs text-[var(--text-muted)] sm:text-sm">
+						<p className={`mt-2 text-xs sm:text-sm ${displayNameError ? "text-red-400" : "text-[var(--text-muted)]"}`}>
 							{displayNameError ??
 								t("profile_editor.sections.profile.char_count", {
 									count: draft.displayName.trim().length || 0,
@@ -430,67 +451,42 @@ export function ProfileEditorFormSections({
 						{tagsError && (
 							<p className="mb-2 text-xs text-red-400 sm:text-sm">{tagsError}</p>
 						)}
-						<div className="flex flex-wrap gap-2.5">
-							{tagList.length > 0 ? (
-								<>
-									{tagList.map((tag) => (
-										<button
-											key={tag}
-											type="button"
-											onClick={() =>
-												onDraftChange(
-													"profileTagsText",
-													toggleProfileTagText(draft.profileTagsText, tag),
-												)
-											}
-											className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-sm font-medium transition-colors hover:border-[var(--accent)]"
-										>
-											{tagLabelByKey.get(tag) ?? tag}
-											<X className="h-3 w-3 text-[var(--text-muted)] transition-colors group-hover:text-[var(--text)]" />
-										</button>
-									))}
-									<button
-										type="button"
-										onClick={() => setIsTagsDialogOpen(true)}
-										className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)]"
-									>
-										<Tag className="h-3.5 w-3.5" />
-										{t("profile_editor.sections.profile.my_tags_manage")}
-									</button>
-								</>
-							) : (
-								<button
-									type="button"
-									onClick={() => setIsTagsDialogOpen(true)}
-									className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3 py-1 text-sm font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)]"
+						<div className="flex flex-wrap gap-2">
+							{tagList.map((tag) => (
+								<SheetChip
+									key={tag}
+									active
+									onClick={() =>
+										onDraftChange(
+											"profileTagsText",
+											toggleProfileTagText(draft.profileTagsText, tag),
+										)
+									}
 								>
-									<Plus className="h-3.5 w-3.5" />
-									{t("profile_editor.sections.profile.no_tags_added")}
-								</button>
-							)}
+									<span className="inline-flex items-center gap-1.5">
+										{tagLabelByKey.get(tag) ?? tag}
+										<X className="h-3.5 w-3.5" />
+									</span>
+								</SheetChip>
+							))}
+							<SheetMoreButton onClick={() => setIsTagsDialogOpen(true)}>
+								{tagList.length > 0
+									? t("profile_editor.sections.profile.my_tags_manage")
+									: t("profile_editor.sections.profile.no_tags_added")}
+							</SheetMoreButton>
 						</div>
 					</div>
 				</div>
 			</div>
 
 			{/* Stats / States */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.states.title")}
 					description={t("profile_editor.sections.states.description")}
 					icon={Ruler}
 				/>
 				<div className="grid gap-4">
-					{/* Distance — standalone toggle, plain row like the fields below */}
-					<ToggleRow
-						checked={draft.showDistance}
-						onChange={(checked) => onDraftChange("showDistance", checked)}
-						label={t("profile_editor.sections.states.show_distance")}
-						description={t("profile_editor.sections.states.show_distance_desc")}
-						labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-						padding=""
-					/>
-
 					{/* Age toggle + field — separate plain rows, no shared box */}
 					<ToggleRow
 						checked={draft.showAge}
@@ -610,7 +606,7 @@ export function ProfileEditorFormSections({
 					</div>
 
 					{/* Role/Position — separated from the stats above by a thin divider, not its own box */}
-					<div className="grid gap-4 border-t border-[var(--border)] pt-4">
+					<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
 						<ToggleRow
 							checked={draft.showPosition}
 							onChange={(checked) => onDraftChange("showPosition", checked)}
@@ -639,7 +635,7 @@ export function ProfileEditorFormSections({
 					</div>
 
 					{/* Tribes — separated by a thin divider, not its own box */}
-					<div className="grid gap-4 border-t border-[var(--border)] pt-4">
+					<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
 						<ToggleRow
 							checked={draft.showTribes}
 							onChange={(checked) => onDraftChange("showTribes", checked)}
@@ -675,7 +671,7 @@ export function ProfileEditorFormSections({
 			<TravelPlansSection profileId={profileId} />
 
 			{/* Expectations */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.expectations.title")}
 					description={t("profile_editor.sections.expectations.description")}
@@ -723,7 +719,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Identity */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.identity.title")}
 					description={t("profile_editor.sections.identity.description")}
@@ -735,7 +731,7 @@ export function ProfileEditorFormSections({
 							{t("profile_editor.sections.identity.gender")}
 						</p>
 						{genderOptions.length > 0 ? (
-							<div className="flex flex-wrap gap-2.5">
+							<div className="flex flex-wrap gap-2">
 								{[
 									...defaultGenderIds,
 									...draft.genders.filter((value) => !defaultGenderIds.includes(value)),
@@ -744,23 +740,18 @@ export function ProfileEditorFormSections({
 									if (!option) return null;
 									const active = draft.genders.includes(value);
 									return (
-										<Chip
+										<SheetChip
 											key={value}
-											selected={active}
+											active={active}
 											onClick={() => onToggleMultiValue("genders", value)}
 										>
 											{option.label}
-										</Chip>
+										</SheetChip>
 									);
 								})}
-								<button
-									type="button"
-									onClick={() => setIsGenderDialogOpen(true)}
-									className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-3.5 py-2 text-sm font-medium text-[var(--text-muted)] transition-colors hover:border-[var(--accent)] hover:text-[var(--text)]"
-								>
-									<Users className="h-3.5 w-3.5" />
+								<SheetMoreButton onClick={() => setIsGenderDialogOpen(true)}>
 									{t("profile_editor.sections.identity.gender_more")}
-								</button>
+								</SheetMoreButton>
 							</div>
 						) : (
 							<p className="text-sm text-[var(--text-muted)]">
@@ -788,7 +779,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Health */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.health.title")}
 					description={t("profile_editor.sections.health.description")}
@@ -826,7 +817,7 @@ export function ProfileEditorFormSections({
 					</div>
 
 					{isTestOverdue && (
-						<div className="flex items-start gap-2.5 rounded-xl border border-amber-500/40 bg-amber-500/15 px-3.5 py-3">
+						<div className="flex items-start gap-2.5 rounded-2xl bg-amber-500/12 px-3.5 py-3">
 							<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
 							<p className="text-xs leading-relaxed text-amber-400 sm:text-sm">
 								{t("profile_editor.sections.health.test_reminder")}
@@ -867,7 +858,7 @@ export function ProfileEditorFormSections({
 			</div>
 
 			{/* Social */}
-			<div className="surface-card p-4 sm:p-5">
+			<div className="native-card p-4 sm:p-5">
 				<CategoryHeader
 					title={t("profile_editor.sections.social.title")}
 					description={t("profile_editor.sections.social.description")}
@@ -913,17 +904,89 @@ export function ProfileEditorFormSections({
 				</div>
 			</div>
 
+			<SpotifyFavoritesSection
+				tracks={spotifyTracks}
+				isLoading={isLoadingSpotify}
+				disabled={profileId == null}
+				onChange={onSpotifyChange}
+			/>
+
+			{/* Map & Right Now — account settings (/v3/me/prefs/settings), saved with the profile */}
+			{settings && (
+				<div className="native-card p-4 sm:p-5">
+					<CategoryHeader
+						title={t("profile_editor.sections.map.title", { defaultValue: "Map & Right Now" })}
+						description={t("profile_editor.sections.map.description", {
+							defaultValue: "Account settings for the map and Right Now.",
+						})}
+						icon={MapIcon}
+					/>
+					<div className="grid gap-4">
+						<ToggleRow
+							checked={settings.showOnMap}
+							onChange={(checked) => onSettingsChange({ showOnMap: checked })}
+							label={t("profile_editor.sections.map.show_on_map", { defaultValue: "Show Me on Map" })}
+							description={t("profile_editor.sections.map.show_on_map_desc", {
+								defaultValue: "Your profile appears on the map, always offset from your actual location.",
+							})}
+							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+							padding=""
+						/>
+						{settings.showOnMap && (
+							<div>
+								<Slider
+									min={MAP_FUZZ_RADIUS_MIN}
+									max={MAP_FUZZ_RADIUS_MAX}
+									step={MAP_FUZZ_RADIUS_STEP}
+									defaultValue={settings.mapLocationFuzzRadius ?? MAP_FUZZ_RADIUS_MIN}
+									label={t("profile_editor.sections.map.location_randomizer", { defaultValue: "Location Randomizer" })}
+									displayValue={
+										settings.mapLocationFuzzRadius == null
+											? t("profile_editor.sections.map.radius_default", { defaultValue: "Default" })
+											: isImperialHeight
+												? t("profile_editor.sections.map.radius_ft", {
+														defaultValue: "~{{value}} ft radius",
+														value: Math.round(settings.mapLocationFuzzRadius * 3.280839895),
+													})
+												: t("profile_editor.sections.map.radius_m", {
+														defaultValue: "~{{value}} m radius",
+														value: settings.mapLocationFuzzRadius,
+													})
+									}
+									onChange={(value) => onSettingsChange({ mapLocationFuzzRadius: value })}
+								/>
+								<p className="mt-1 text-xs text-[var(--text-muted)]">
+									{t("profile_editor.sections.map.location_randomizer_desc", {
+										defaultValue: "For your privacy, your location on the map is offset within this range and updates as you move.",
+									})}
+								</p>
+							</div>
+						)}
+						<ToggleRow
+							checked={settings.viewRightNowNsfw}
+							onChange={(checked) => onSettingsChange({ viewRightNowNsfw: checked })}
+							label={t("profile_editor.sections.map.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" })}
+							description={t("profile_editor.sections.map.view_right_now_nsfw_desc", {
+								defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
+							})}
+							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+							padding=""
+						/>
+					</div>
+				</div>
+			)}
+
 			{/* Other / Account Info */}
 			<div>
 				<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 					{t("profile_editor.sections.other.title")}
 				</p>
-				<div className="surface-card overflow-hidden">
+				<div className="native-card overflow-hidden">
 					<div className="flex items-center justify-between px-4 py-3.5">
 						<span className="text-sm text-[var(--text-muted)]">
 							{t("profile_editor.sections.other.user_id")}
 						</span>
-						<span className="rounded-lg bg-[var(--surface-2)] px-2.5 py-1 font-mono text-sm font-semibold">
+						<span className="rounded-full ink-tint-8 px-2.5 py-1 font-mono text-sm font-semibold">
 							{profileId ?? "—"}
 						</span>
 					</div>
@@ -932,8 +995,10 @@ export function ProfileEditorFormSections({
 
 			{isTagsDialogOpen && (
 				<TagsPickerDialog
-					tagsText={draft.profileTagsText}
-					onChange={(next) => onDraftChange("profileTagsText", next)}
+					selected={tagList}
+					max={MAX_PROFILE_TAGS}
+					maxMessage={t("profile_editor.errors.max_selection", { count: MAX_PROFILE_TAGS })}
+					onToggle={(tagKey) => onDraftChange("profileTagsText", toggleProfileTagText(draft.profileTagsText, tagKey))}
 					onClose={() => setIsTagsDialogOpen(false)}
 				/>
 			)}
@@ -947,6 +1012,7 @@ export function ProfileEditorFormSections({
 					selected={draft.genders}
 					max={MAX_GENDERS}
 					maxMessage={t("profile_editor.errors.max_selection", { count: MAX_GENDERS })}
+					confirmLabel={t("common.done", { defaultValue: "Done" })}
 					onToggle={(value) => onToggleMultiValue("genders", value)}
 					onClose={() => setIsGenderDialogOpen(false)}
 				/>

@@ -1,6 +1,11 @@
 pub mod auth;
 pub mod client;
 pub mod entitlements;
+pub mod facebook_oauth;
+pub mod google_oauth;
+pub mod oauth;
 pub mod rest;
 pub mod runtime;
+pub mod session_recovery;
+pub mod sms_report;
 pub mod websocket;

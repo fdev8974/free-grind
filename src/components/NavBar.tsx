@@ -1,13 +1,16 @@
-import { Grid as GridIcon, Flame, MessageCircle } from "lucide-react";
+import { Flame, MessageCircle, Check, Loader2 } from "lucide-react";
+import { LayoutGridFilled as GridIcon, UserFilled } from "./icons/FilledIcons";
+import toast from "react-hot-toast";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "../utils/cn";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
 import { useExploreMode } from "../contexts/ExploreModeContext";
+import { useIsRightNowLive } from "../hooks/useIsRightNowLive";
 import {
 	getInterestLastSeen,
 	INTEREST_SEEN_EVENT,
@@ -20,6 +23,47 @@ import { CHAT_REALTIME_EVENT } from "./ChatRealtimeBridge";
 import { messageSchema, type Message } from "../types/messages";
 import type { RealtimeEnvelope } from "../types/chat-realtime";
 import { useInterestData } from "../hooks/queries/useInterestQueries";
+import { isAndroid, isIos } from "../services/saveMedia";
+import { haptic } from "../utils/haptics";
+import { Avatar } from "./ui/avatar";
+import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
+import { getProfilePhotoHash } from "../pages/app/profile-editor/profileEditorUtils";
+import { getThumbImageUrl } from "../utils/media";
+import { getSavedAccountProfile } from "../services/savedAccountProfiles";
+import { looksLikeMessageUpdate } from "../utils/messageUpdates";
+
+// Bottom-nav style options; only offered (and only honoured) in the mobile app.
+export const NAV_SHOW_LABELS_KEY = "fg-nav-show-labels";
+export const NAV_FLOATING_KEY = "fg-nav-floating";
+export const NAV_STYLE_EVENT = "fg-nav-style-changed";
+
+const readNavStyle = () => ({
+	showLabels: window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true",
+	floating: window.localStorage.getItem(NAV_FLOATING_KEY) === "true",
+});
+
+/**
+ * The bottom nav's effective look, kept in sync with the customization page.
+ * `fullWidth`: edge-to-edge bar (mobile app default) instead of the floating
+ * card desktop/web always use — overlays placed above the nav (e.g. the Right
+ * Now map card) need less bottom offset then.
+ */
+export function useNavStyle(): { fullWidth: boolean; hideLabels: boolean } {
+	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
+	const [navStyle, setNavStyle] = useState(readNavStyle);
+	useEffect(() => {
+		const onChange = () => setNavStyle(readNavStyle());
+		window.addEventListener(NAV_STYLE_EVENT, onChange);
+		return () => window.removeEventListener(NAV_STYLE_EVENT, onChange);
+	}, []);
+	return {
+		// Mobile app hides labels by default; desktop/web always shows them.
+		hideLabels: isMobilePlatform && !navStyle.showLabels,
+		// Full-width edge-to-edge bar in the mobile app, unless the user opted
+		// into the floating card that desktop/web always use.
+		fullWidth: isMobilePlatform && !navStyle.floating,
+	};
+}
 
 /**
  * Extracts and validates chat messages from a variety of possible realtime envelope formats.
@@ -67,9 +111,13 @@ export function NavBar() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const apiFunctions = useApiFunctions();
-	const { userId } = useAuth();
+	const { userId, savedAccounts, switchAccount } = useAuth();
+	const { data: myProfile } = useMyOwnProfile();
 	const { data: interestData } = useInterestData();
 	const { isExploreActive } = useExploreMode();
+	// A live (public) Right Now session takes the grid tab's color over everything, explore included.
+	const isRightNowLive = useIsRightNowLive();
+	const { hideLabels, fullWidth } = useNavStyle();
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
@@ -88,6 +136,63 @@ export function NavBar() {
 	// Read preferences directly from localStorage (defaulting to true if not set)
 	const [showRightNow] = useState(() => window.localStorage.getItem("fg-show-right-now") !== "false");
 	const [showInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
+
+	const profileImageHash = getProfilePhotoHash(myProfile);
+	const profilePhotoUrl = profileImageHash ? getThumbImageUrl(profileImageHash, "75x75") : null;
+
+	// Quick account switcher: opened by long-pressing the settings tab when more
+	// than one account is saved. A plain tap still just opens settings.
+	const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
+	const [switchingProfileId, setSwitchingProfileId] = useState<string | null>(null);
+	const accountSwitcherRef = useRef<HTMLDivElement>(null);
+	const hasAccountSwitcher = savedAccounts.length > 1;
+	const settingsLongPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Set once the long press has opened the switcher, so the trailing
+	// mousedown/click of that same press doesn't also navigate to settings.
+	const settingsLongPressFiredRef = useRef(false);
+
+	const cancelSettingsLongPress = () => {
+		if (settingsLongPressTimerRef.current) {
+			clearTimeout(settingsLongPressTimerRef.current);
+			settingsLongPressTimerRef.current = null;
+		}
+	};
+
+	useEffect(() => cancelSettingsLongPress, []);
+
+	useEffect(() => {
+		if (!isAccountSwitcherOpen) return;
+		const handler = (e: MouseEvent | TouchEvent) => {
+			const target = e.target as Element | null;
+			if (accountSwitcherRef.current?.contains(target)) return;
+			// The settings tab handles its own presses (long press reopens, tap navigates).
+			if (target?.closest?.("[data-nav-account-tab]")) return;
+			setIsAccountSwitcherOpen(false);
+		};
+		document.addEventListener("mousedown", handler);
+		document.addEventListener("touchstart", handler);
+		return () => {
+			document.removeEventListener("mousedown", handler);
+			document.removeEventListener("touchstart", handler);
+		};
+	}, [isAccountSwitcherOpen]);
+
+	useEffect(() => {
+		setIsAccountSwitcherOpen(false);
+	}, [location.pathname]);
+
+	const handleSwitchAccount = async (profileId: string) => {
+		setSwitchingProfileId(profileId);
+		try {
+			await switchAccount(profileId);
+			setIsAccountSwitcherOpen(false);
+			navigate("/");
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Failed to switch account.");
+		} finally {
+			setSwitchingProfileId(null);
+		}
+	};
 
 	const navItems = [
 		{
@@ -118,10 +223,22 @@ export function NavBar() {
 			path: "/chat",
 			visible: true, // Mandatory
 		},
+		{
+			value: "settings",
+			label: t("nav.settings", { defaultValue: "Settings" }),
+			icon: null,
+			path: "/settings",
+			visible: true, // Mandatory
+		},
 	].filter(item => item.visible);
 
 	// Update active tab based on current path
 	useEffect(() => {
+		// Shared albums lives under /settings but is opened from the inbox.
+		if (location.pathname === "/settings/shared-albums") {
+			setActiveTab("inbox");
+			return;
+		}
 		const currentItem = navItems.find(
 			(item) =>
 				(item.path === "/" &&
@@ -229,6 +346,7 @@ export function NavBar() {
 					(m) =>
 						userId != null &&
 						Number(m.senderId) !== Number(userId) &&
+						!looksLikeMessageUpdate(m, userId) &&
 						!mutedConversationIdsRef.current.has(m.conversationId)
 				);
 
@@ -324,36 +442,162 @@ export function NavBar() {
 	const handleTabChange = (value: string) => {
 		setActiveTab(value);
 		const item = navItems.find((i) => i.value === value);
-		if (item) {
+		// Radix fires onValueChange from both mousedown and focus, and
+		// depending on render timing a single tap can hit both — pushing the
+		// same tab twice, so the first system back appeared to do nothing.
+		// BrowserRouter pushes synchronously, so the second call sees the
+		// already-updated pathname and skips.
+		if (item && window.location.pathname !== item.path) {
 			navigate(item.path);
 		}
 	};
+
+	// Publish the bar's rendered height (safe-area padding included) as
+	// --nav-height, so floating UI (FABs, map cards) can sit right above it
+	// regardless of full-width/floating style or hidden labels.
+	const navRef = useRef<HTMLElement>(null);
+	useLayoutEffect(() => {
+		const nav = navRef.current;
+		if (!nav) return;
+		const root = document.documentElement;
+		const publish = () => root.style.setProperty("--nav-height", `${nav.offsetHeight}px`);
+		publish();
+		const observer = "ResizeObserver" in window ? new ResizeObserver(publish) : null;
+		observer?.observe(nav);
+		return () => {
+			observer?.disconnect();
+			root.style.removeProperty("--nav-height");
+		};
+	}, []);
+
+	// Floating bar: keep the same gap below it as on its sides, like iOS, and
+	// let it overlap the gesture-handle / home-indicator area. Only a tall
+	// inset (Android 3-button navigation) is kept clear, since the bar would
+	// cover the system buttons there.
+	const [systemNavInset, setSystemNavInset] = useState(0);
+	useLayoutEffect(() => {
+		const probe = document.createElement("div");
+		probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px)";
+		document.body.appendChild(probe);
+		const measure = () => {
+			const inset = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
+			setSystemNavInset(inset > 40 ? inset : 0);
+		};
+		measure();
+		window.addEventListener("resize", measure);
+		return () => {
+			window.removeEventListener("resize", measure);
+			probe.remove();
+		};
+	}, []);
 
 	// Determine the grid column class safely based on exactly how many tabs remain
 	const gridColsClass = 
 		navItems.length === 2 ? "grid-cols-2" : 
 		navItems.length === 3 ? "grid-cols-3" : 
-		"grid-cols-4";
+		navItems.length === 4 ? "grid-cols-4" :
+		"grid-cols-5";
 
 	return (
-		<nav className="fixed inset-x-0 bottom-0 z-50 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] md:px-4 md:pb-[calc(env(safe-area-inset-bottom,0px)+14px)]">
+		<nav
+			ref={navRef}
+			className={cn(
+				"fixed inset-x-0 bottom-0",
+				// While the account switcher is open, lift the bar (and the switcher
+				// inside it) above the pages' floating action buttons (z-[60]).
+				isAccountSwitcherOpen ? "z-[65]" : "z-50",
+				!fullWidth && "px-3 pb-[calc(var(--nav-system-inset)+0.75rem)] md:px-4 md:pb-[calc(var(--nav-system-inset)+1rem)]",
+			)}
+			style={{ "--nav-system-inset": `${systemNavInset}px` } as React.CSSProperties}
+		>
+			{/* Mobile app: full-width bar that extends under the system navigation
+			    bar (edge-to-edge), with the safe-area inset as inner padding.
+			    Desktop/web: floating rounded card. */}
 			<div
-				className="mx-auto w-full max-w-4xl rounded-2xl border border-[var(--border)] p-1.5"
+				className={cn(
+					"relative",
+					fullWidth
+						? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
+						: // Capsule shape; extra side padding keeps the outer tabs off the curve.
+							"mx-auto w-full max-w-4xl rounded-full border border-[var(--border)] px-3 py-1.5",
+				)}
 				style={{
-					backgroundColor: "rgba(22, 29, 39, 0.9)",
-					background: "color-mix(in srgb, var(--surface) 90%, transparent)",
-					backdropFilter: "blur(16px)",
+					backgroundColor: "rgba(22, 29, 39, 0.8)",
+					background: "color-mix(in srgb, var(--surface) 80%, transparent)",
+					backdropFilter: "blur(24px)",
+					WebkitBackdropFilter: "blur(24px)",
 				}}
 			>
-				<Tabs value={activeTab} onValueChange={handleTabChange}>
-					<TabsList className={`grid h-16 w-full ${gridColsClass} bg-transparent p-0 md:h-[4.1rem]`}>
+				<Tabs
+					value={activeTab}
+					onValueChange={handleTabChange}
+					// Keep the tabs at their previous centered width; only the
+					// background spans the full screen on mobile.
+					className={cn(fullWidth && "mx-auto w-full max-w-4xl px-[calc(0.75rem+1px+0.375rem)]")}
+				>
+					<TabsList
+						className={cn(
+							"grid w-full bg-transparent p-0",
+							gridColsClass,
+							// Mobile app without labels: keep icon size, shrink the bar instead.
+							hideLabels ? "h-12" : "h-16 md:h-[4.1rem]",
+						)}
+					>
 						{navItems.map((item) => {
 							const Icon = item.icon;
+							const isSwitcherTab = item.value === "settings" && hasAccountSwitcher;
 							return (
 								<TabsTrigger
 									key={item.value}
 									value={item.value}
+									data-nav-account-tab={isSwitcherTab ? "" : undefined}
+									aria-expanded={isSwitcherTab ? isAccountSwitcherOpen : undefined}
+									// Radix already switches the tab on mousedown, so by onClick
+									// activeTab equals this item; pointerdown still sees the old tab.
+									onPointerDown={(e) => {
+										if (e.button === 0 && item.value !== activeTab) haptic(10);
+										// Touch/pen: long press opens the switcher. Mouse uses right-click instead.
+										if (!isSwitcherTab || e.pointerType === "mouse") return;
+										settingsLongPressFiredRef.current = false;
+										cancelSettingsLongPress();
+										settingsLongPressTimerRef.current = setTimeout(() => {
+											settingsLongPressTimerRef.current = null;
+											settingsLongPressFiredRef.current = true;
+											haptic(30);
+											setIsAccountSwitcherOpen(true);
+										}, 450);
+									}}
+									onPointerUp={isSwitcherTab ? cancelSettingsLongPress : undefined}
+									onPointerLeave={isSwitcherTab ? cancelSettingsLongPress : undefined}
+									onPointerCancel={isSwitcherTab ? cancelSettingsLongPress : undefined}
+									onContextMenu={
+										isSwitcherTab
+											? (e) => {
+													// Suppress the system/browser menu; on desktop right-click opens the switcher.
+													e.preventDefault();
+													if (e.nativeEvent instanceof PointerEvent ? e.nativeEvent.pointerType === "mouse" : e.button === 2) {
+														setIsAccountSwitcherOpen(true);
+													}
+												}
+											: undefined
+									}
+									onMouseDown={(e) => {
+										// Radix activates tabs on mousedown, i.e. before a touch long press
+										// is detected. Default-preventing makes Radix skip it; onClick (on
+										// release) navigates instead, unless the press was a long press.
+										if (isSwitcherTab) e.preventDefault();
+									}}
+									onFocus={(e) => {
+										// Radix also activates on focus (automatic mode), which on touch
+										// happens at press time too; navigation is left to onClick.
+										if (isSwitcherTab) e.preventDefault();
+									}}
 									onClick={() => {
+										if (isSwitcherTab && settingsLongPressFiredRef.current) {
+											settingsLongPressFiredRef.current = false;
+											return;
+										}
+										if (isSwitcherTab) setIsAccountSwitcherOpen(false);
 										if (item.value === "browse" && activeTab === "browse") {
 											window.dispatchEvent(new CustomEvent("browse-scroll-top"));
 										}
@@ -361,23 +605,44 @@ export function NavBar() {
 										navigate(item.path, { replace: true });
 									}}
 									className={cn(
+										isSwitcherTab && "select-none [-webkit-touch-callout:none]",
 										"flex h-full flex-col items-center justify-center gap-1 rounded-xl text-[var(--text-muted)] transition-colors duration-150 hover:text-[var(--text)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] md:gap-1.5",
-										item.value === "right-now"
-											? "focus-visible:ring-[var(--right-now)] data-[state=active]:bg-[var(--right-now)] data-[state=active]:text-white"
+										// No filled pill (full-width and floating alike), highlight via text color only.
+										"data-[state=active]:bg-transparent data-[state=active]:shadow-none",
+										item.value === "right-now" || (item.value === "browse" && isRightNowLive)
+											? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
 											: item.value === "browse" && isExploreActive
-												? "focus-visible:ring-[var(--explore)] data-[state=active]:bg-[var(--explore)] data-[state=active]:text-white"
-												: "focus-visible:ring-[var(--accent)] data-[state=active]:bg-[var(--accent)] data-[state=active]:text-[var(--accent-contrast)]"
+												? "focus-visible:ring-[var(--explore)] data-[state=active]:text-[var(--explore)]"
+												: "focus-visible:ring-[var(--accent)] data-[state=active]:text-[var(--accent)]",
 									)}
 								>
-									<div className="relative">
-										<Icon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+									{/* Fixed icon-sized slot so the slightly larger avatar overflows evenly
+									    instead of pushing its label below the other tabs' labels. */}
+									<div className="relative flex h-5 w-5 items-center justify-center md:h-[1.2rem] md:w-[1.2rem]">
+										{Icon ? (
+											<Icon className="h-5 w-5 fill-current md:h-[1.2rem] md:w-[1.2rem]" />
+										) : !profilePhotoUrl ? (
+											// No profile photo: a user icon that takes the tab's (active) color like the other icons.
+											<UserFilled className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+										) : (
+											<Avatar
+												src={profilePhotoUrl}
+												alt={t("browse_page.your_profile_photo")}
+												className={cn(
+													"h-6 w-6 shrink-0 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
+													activeTab !== "settings" && !isAccountSwitcherOpen
+														? "ring-transparent"
+														: "ring-[var(--accent)]",
+												)}
+											/>
+										)}
 										{(item.value === "inbox" && inboxUnseen) ||
 										(item.value === "interest" && interestUnseen) ? (
 											<span className="absolute -right-1 -top-1 flex h-2 w-2">
 												<span
 													className={cn(
 														"absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-														activeTab === "right-now"
+														activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
 															? "bg-[var(--right-now)]"
 															: activeTab === "browse" && isExploreActive
 																? "bg-[var(--explore)]"
@@ -387,7 +652,7 @@ export function NavBar() {
 												<span
 													className={cn(
 														"relative inline-block h-2 w-2 rounded-full ring-1 ring-[var(--surface)]",
-														activeTab === "right-now"
+														activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
 															? "bg-[var(--right-now)]"
 															: activeTab === "browse" && isExploreActive
 																? "bg-[var(--explore)]"
@@ -397,14 +662,73 @@ export function NavBar() {
 											</span>
 										) : null}
 									</div>
-									<span className="text-xs md:text-[0.8rem]">
-										{item.label}
-									</span>
+									{hideLabels ? (
+										<span className="sr-only">{item.label}</span>
+									) : (
+										<span className="text-xs md:text-[0.8rem]">
+											{item.label}
+										</span>
+									)}
 								</TabsTrigger>
 							);
 						})}
 					</TabsList>
 				</Tabs>
+
+				{isAccountSwitcherOpen && (
+					<div
+						ref={accountSwitcherRef}
+						className={cn(
+							"absolute bottom-full z-50 mb-2 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-150",
+							fullWidth ? "right-3" : "right-0",
+						)}
+					>
+						<div className="flex flex-col gap-1">
+							{savedAccounts.map((account) => {
+								const isActive = userId != null && String(userId) === account.profileId;
+								const isSwitching = switchingProfileId === account.profileId;
+								const savedProfile = getSavedAccountProfile(account.profileId);
+								return (
+									<button
+										key={account.profileId}
+										type="button"
+										onClick={() => void handleSwitchAccount(account.profileId)}
+										disabled={isActive || isSwitching}
+										className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default"
+									>
+										<div className="relative h-10 w-10 shrink-0">
+											<Avatar
+												src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
+												alt=""
+												className="h-full w-full rounded-full border-0"
+											/>
+											{isSwitching && (
+												<div className="absolute inset-0 flex items-center justify-center rounded-full bg-[var(--surface)]/80">
+													<Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
+												</div>
+											)}
+											{isActive && (
+												<div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-white ring-2 ring-[var(--surface)]">
+													<Check className="h-2.5 w-2.5" strokeWidth={3} />
+												</div>
+											)}
+										</div>
+										<div className="min-w-0 flex-1">
+											<p className="truncate text-sm font-semibold leading-snug text-[var(--text)]">
+												{savedProfile.displayName || t("settings.account_unnamed", { defaultValue: "Someone" })}
+											</p>
+											{account.email && (
+												<p className="truncate text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+													{account.email}
+												</p>
+											)}
+										</div>
+									</button>
+								);
+							})}
+						</div>
+					</div>
+				)}
 			</div>
 		</nav>
 	);

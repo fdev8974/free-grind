@@ -153,7 +153,7 @@ export default function ManagerApp({ currentLabel }: ManagerAppProps) {
 
     return (
         <main className="app-screen p-4 sm:p-8">
-            <section className="surface-card mx-auto max-w-3xl p-6 sm:p-8">
+            <section className="native-card mx-auto max-w-3xl p-6 sm:p-8">
                 <h1 className="text-2xl font-bold">Free Grind Manager</h1>
                 <p className="mt-2 text-sm text-[var(--text-muted)]">
                     Manager mode is active. Create labeled child instances with isolated app data.

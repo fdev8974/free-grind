@@ -49,7 +49,9 @@
 			"identifier": "http:default",
 			"allow": [
 				{ "url": "https://*.cloudfront.net/*" },
-				{ "url": "https://cdns.grindr.com/*" }
+				{ "url": "https://cdns.grindr.com/*" },
+				{ "url": "https://accounts.spotify.com/*" },
+				{ "url": "https://api.spotify.com/*" }
 			]
 		},
 		"sql:default",

@@ -47,15 +47,17 @@ import {
 } from "../../services/conversationHide";
 import {
 	CHAT_REALTIME_EVENT,
+	CHAT_REALTIME_RESYNC,
 	CHAT_REALTIME_STATUS,
 	CHAT_SYSTEM_MESSAGE_EVENT,
 	TYPING_STATUS_EVENT,
 	getChatRealtimeStatus,
 	type TypingStatusDetail,
 } from "../../components/ChatRealtimeBridge";
-import { PhotoViewer, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
+import { PhotoViewer, type HeroRect, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
 import { AlbumMediaSheet } from "../../components/AlbumMediaSheet";
 import { PhotoActionBar } from "../../components/PhotoActionBar";
+import { markAlbumContentReacted, useAlbumContentReactions } from "../../services/albumReactionStore";
 import {
 	messageSchema,
 	type ConversationEntry,
@@ -65,6 +67,7 @@ import {
 import type { RealtimeEnvelope, RealtimeStatus } from "../../types/chat-realtime";
 import type {
 	AlbumListItem,
+	AlbumMediaCount,
 	AlbumViewerState,
 	InboxVisibilityFilter,
 	UiMessage,
@@ -83,17 +86,17 @@ import { parseSlashCommand } from "./chat/slashCommands";
 import { ChatMediaSheet } from "./chat/ChatMediaSheet";
 import * as chatLog from "../../services/chatLog";
 import {
-	buildBinaryUpload,
 	buildChatFiltersDraft,
 	buildPreviewFromMessage,
 	conversationNeedsReply,
 	draftToFilters,
-	extractImageHashFromSignedUrl,
 	getMediaCaptureTarget,
+	findPreviewFallbackMessage,
 	isPreviewUnhelpful,
 	getMessageAlbumId,
 	getMessageImageUrl,
 	getMessageImageCreatedAt,
+	formatTakenOnGrindrTime,
 	getMessageTakenOnGrindr,
 	getMessageVideoUrl,
 	getMessageMediaId,
@@ -104,12 +107,13 @@ import {
 	parseChatFiltersFromLocationState,
     formatDateTime24,
 	sortDrawerMediaByUsage,
+	videoMessageViews,
 	type ChatFiltersDraft,
 } from "./chat/chatUtils";
 import { loadChatFiltersDraft, saveChatFiltersDraft } from "./chat/chat-filters-storage";
-import { fetchAndStoreMedia, getDrawerMediaKey, hydrateMediaByMessageId, isSignedUrlExpired, toDataUri } from "../../services/mediaStore";
+import { fetchAndStoreMedia, getCachedMediaUri, getDrawerMediaKey, getMessageFallbackMediaKey, hydrateMediaByMessageId, isSignedUrlExpired } from "../../services/mediaStore";
 import { captureAlbum, captureAlbumsForMessages, deleteLocalAlbum, getLocalAlbum } from "../../services/albumStore";
-import { saveAllAlbumMedia } from "../../utils/albumMedia";
+import { saveAllAlbumMedia, saveAllMedia } from "../../utils/albumMedia";
 import { formatDistance } from "./gridpage/utils";
 import { captureReplyPreviewsForMessages } from "../../services/replyMediaStore";
 import { useAvatarCache } from "../../hooks/useAvatarCache";
@@ -125,13 +129,14 @@ import {
 	upsertChatContactIndexFromInbox,
 } from "../../services/chatContactIndex";
 import type { ChatContactIndexRecord } from "../../types/chat-contact-index";
-import { markInboxSeen, getInboxLastSeen } from "../../services/seenStore";
-import { SCROLL_RESTORATION_TIMEOUT_MS } from "../../config/ui-constants";
+import { markInboxSeen } from "../../services/seenStore";
 import { clearAutomationSeenHistoryForSender, runAutomationRulesForSender } from "../../utils/automationRules";
 import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
 import { isReadReceiptsHidden } from "../../utils/privacy";
 import { clearChatNotifications } from "../../services/localNotify";
-import freegrindLogo from "../../images/freegrind-logo.webp";
+import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
+import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatMediaSend";
+import { TakenOnGrindrBadge } from "./chat/TakenOnGrindrBadge";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
 import { getProfileImageUrl, getThumbImageUrl, validateMediaHash } from "../../utils/media";
@@ -198,6 +203,29 @@ function canHaveOwnMedia(message: UiMessage): boolean {
 	);
 }
 
+/**
+ * A thread message's image/video as its bubble shows it: the locally stored
+ * copy when it's in the memory cache (by its media key, else by message id),
+ * otherwise the live URL — unless that's an already-expired signed URL. Null
+ * for anything without one (text, audio, Giphy, …).
+ */
+function resolveThreadMessageMedia(message: UiMessage): { url: string; type: "image" | "video" } | null {
+	const target = getMediaCaptureTarget(message);
+	if (target) {
+		if (target.kind === "audio") return null;
+		const cached =
+			getCachedMediaUri(target.mediaKey) ?? getCachedMediaUri(getMessageFallbackMediaKey(message.messageId));
+		if (cached) return { url: cached, type: target.kind };
+		return isSignedUrlExpired(target.url) ? null : { url: target.url, type: target.kind };
+	}
+	if (message.type === "Giphy" || !canHaveOwnMedia(message)) return null;
+	// No live URL anymore (expired, archived): whatever was stored for it.
+	const fallback = getCachedMediaUri(getMessageFallbackMediaKey(message.messageId));
+	if (fallback?.startsWith("data:image/")) return { url: fallback, type: "image" };
+	if (fallback?.startsWith("data:video/")) return { url: fallback, type: "video" };
+	return null;
+}
+
 // Returns a promise so callers that need the captures actually finished
 // (e.g. ChatPage.tsx's openFullScreenImage, which reads chatDb right after)
 // can await it — existing fire-and-forget callers are unaffected, calling an
@@ -220,6 +248,11 @@ function captureMediaForMessages(
 					viewOnce: target.viewOnce,
 				}),
 			);
+			// Locally stored bytes always win over the live URL (which may
+			// already be expired server-side), and the primary key can miss
+			// them when a re-issued URL maps to a different key — so always
+			// also load the message-id copy for the bubble.
+			pending.push(hydrateMediaByMessageId(message.messageId));
 		} else if (canHaveOwnMedia(message)) {
 			// No live URL on this message anymore (expired, archived
 			// conversation, server stopped refreshing it) — fall back to
@@ -228,6 +261,46 @@ function captureMediaForMessages(
 		}
 	}
 	return Promise.all(pending).then(() => {});
+}
+
+type ScrollAnchor = { messageId: string; offset: number };
+
+/**
+ * The topmost message still (partly) visible in the thread, and how far its
+ * top edge sits from the container's top. Restoring that exact offset after
+ * older messages are prepended keeps the reader on the same message no
+ * matter how much height landed above it, or whether the browser's own
+ * scroll anchoring already shifted scrollTop in the meantime.
+ */
+function findScrollAnchor(
+	container: HTMLElement,
+	messages: UiMessage[],
+	elements: Map<string, HTMLElement>,
+): ScrollAnchor | null {
+	const containerTop = container.getBoundingClientRect().top;
+	for (const message of messages) {
+		const element = elements.get(message.messageId);
+		if (!element) continue;
+		const rect = element.getBoundingClientRect();
+		if (rect.bottom > containerTop) {
+			return { messageId: message.messageId, offset: rect.top - containerTop };
+		}
+	}
+	return null;
+}
+
+/** Scrolls so `anchor`'s message sits at its recorded offset again; false if it's not rendered. */
+function restoreScrollAnchor(
+	container: HTMLElement,
+	anchor: ScrollAnchor,
+	elements: Map<string, HTMLElement>,
+): boolean {
+	const element = elements.get(anchor.messageId);
+	if (!element) return false;
+	const offset = element.getBoundingClientRect().top - container.getBoundingClientRect().top;
+	const delta = offset - anchor.offset;
+	if (Math.abs(delta) >= 1) container.scrollTop += delta;
+	return true;
 }
 
 /**
@@ -267,6 +340,24 @@ function mergeMessagePreservingUnsendWipe(
 	if (incoming.unsent && !newBody && prevBody) {
 		return { ...previous, unsent: true, localHistory: true };
 	}
+	// _videoExpired/_imageExpired are client-only flags set by the hydration
+	// passes, so every poll's fresh server copy drops them — the bubble then
+	// flips to the plain "shared video" text until hydration re-flags it.
+	// Carry them over as long as the incoming copy still has no URL.
+	if (newBody && (prevBody?._videoExpired === true || prevBody?._imageExpired === true)) {
+		const carryVideo = prevBody?._videoExpired === true && !getMessageVideoUrl(incoming);
+		const carryImage = prevBody?._imageExpired === true && !getMessageImageUrl(incoming);
+		if (carryVideo || carryImage) {
+			return {
+				...incoming,
+				body: {
+					...newBody,
+					...(carryVideo ? { _videoExpired: true } : {}),
+					...(carryImage ? { _imageExpired: true } : {}),
+				},
+			};
+		}
+	}
 	return incoming;
 }
 
@@ -301,8 +392,22 @@ export function ChatPage() {
 	const olderLoadSnapshotRef = useRef<{
 		scrollTop: number;
 		scrollHeight: number;
+		// Message the reader is looking at — kept current by scroll events
+		// while the load is in flight; scrollTop/scrollHeight are only the
+		// fallback when it isn't rendered anymore.
+		anchor: ScrollAnchor | null;
+		// Oldest message shown when the snapshot was taken — the restore only
+		// applies once something older has actually been prepended.
+		firstMessageId: string | null;
 	} | null>(null);
+	// Cancels the post-restore hold (see the older-load restore effect).
+	const olderLoadHoldCleanupRef = useRef<(() => void) | null>(null);
 	const selectedConversationUnreadCountRef = useRef(0);
+	// Per-conversation result of loadInbox's server-side preview fallback,
+	// keyed by the lastActivityTimestamp it was fetched for.
+	const remotePreviewFallbackRef = useRef(
+		new Map<string, { activity: number; preview: ConversationEntry["data"]["preview"] }>(),
+	);
 	const lastLoadedConversationIdRef = useRef<string | null>(null);
 	const lastMessageIdRef = useRef<string | null>(null);
 	const conversationsWithPendingUnreadRef = useRef(new Set<string>());
@@ -677,12 +782,14 @@ export function ChatPage() {
 	const [isSharingAlbum, setIsSharingAlbum] = useState(false);
 	const [shareableAlbums, setShareableAlbums] = useState<AlbumListItem[]>([]);
 	const [albumCoverMap, setAlbumCoverMap] = useState<Map<number, string>>(new Map());
+	const [albumMediaCountMap, setAlbumMediaCountMap] = useState<Map<number, AlbumMediaCount>>(new Map());
 	const [ownProfilePhotoUrl, setOwnProfilePhotoUrl] = useState<string | null>(null);
 	const [pendingAlbumShare, setPendingAlbumShare] = useState<{
 		albumId: number;
 		albumName: string;
 	} | null>(null);
 	const [albumViewer, setAlbumViewer] = useState<AlbumViewerState | null>(null);
+	const hasReactedToAlbumContent = useAlbumContentReactions(userId, albumViewer !== null);
 	const [albumViewerMediaIndex, setAlbumViewerMediaIndex] = useState<
 		number | null
 	>(null);
@@ -691,14 +798,16 @@ export function ChatPage() {
 	const [isSavingAlbumAll, setIsSavingAlbumAll] = useState(false);
 	const [isChatMediaSheetOpen, setIsChatMediaSheetOpen] = useState(false);
 	const albumViewerCancelledRef = useRef(false);
-	type ThreadMediaItem = PhotoViewerMedia & { meta?: { takenOnGrindr: boolean; createdAtLabel: string | null; timestamp: number } };
+	const albumHistoryModeRef = useRef<"direct" | "viewerOverSheet" | null>(null);
+	type ThreadMediaItem = PhotoViewerMedia & { meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number } };
 	const [fullScreenMediaList, setFullScreenMediaList] = useState<ThreadMediaItem[]>([]);
 	const [fullScreenMediaIndex, setFullScreenMediaIndex] = useState(0);
-	// Guards openFullScreenImage's async carousel build against a second tap
-	// landing while the first is still resolving — without this, whichever
-	// resolves last wins even if it's the stale one, snapping the viewer back
-	// to an earlier tap's image/index.
-	const fullScreenRequestIdRef = useRef(0);
+	const [fullScreenHeroRect, setFullScreenHeroRect] = useState<HeroRect | null>(null);
+	// Set while the viewer shows a profile's photos (openProfilePhotos) rather
+	// than chat media: adds the photo menu (save all) and, for the partner's
+	// photos, the reply bar.
+	const [fullScreenProfilePhotos, setFullScreenProfilePhotos] = useState<{ hashes: string[]; isPartnerProfile: boolean } | null>(null);
+	const [isSavingAllProfilePhotos, setIsSavingAllProfilePhotos] = useState(false);
 	const fullScreenImageUrl = fullScreenMediaList.length > 0 ? fullScreenMediaList[fullScreenMediaIndex]?.url ?? null : null;
 
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
@@ -717,8 +826,8 @@ export function ChatPage() {
 	const [drawerError, setDrawerError] = useState<string | null>(null);
 	const [drawerMedia, setDrawerMedia] = useState<DrawerMedia[]>([]);
 	const [isSendingDrawerMedia, setIsSendingDrawerMedia] = useState(false);
-	const [isAddingDrawerMedia, setIsAddingDrawerMedia] = useState(false);
-	const [deletingDrawerMediaId, setDeletingDrawerMediaId] = useState<number | null>(null);
+	// Items of the current drawer send already through, for the composer's send button.
+	const [drawerSendProgress, setDrawerSendProgress] = useState<{ done: number; total: number } | null>(null);
 	const [nowTimestamp, setNowTimestamp] = useState(() => Date.now());
 	const searchQuery = "";
 	const imageViewerHistoryPushedRef = useRef(false);
@@ -754,10 +863,6 @@ export function ChatPage() {
 		markInboxSeen(Math.max(Date.now(), maxActivityTimestamp));
 	}, [location.pathname, maxActivityTimestamp]);
 
-	// Scroll memory state (effects are placed after filteredConversations declaration)
-	const [hasRestoredInboxScroll, setHasRestoredInboxScroll] = useState(false);
-	const initialLastSeenInbox = useRef(getInboxLastSeen());
-
 	const targetProfileId = useMemo(() => {
 		const raw = searchParams.get("targetProfileId");
 		if (!raw) {
@@ -768,7 +873,7 @@ export function ChatPage() {
 	}, [searchParams]);
 	const chatReturnTo = useMemo(() => {
 		const raw = searchParams.get("returnTo");
-		if (!raw || !raw.startsWith("/")) {
+		if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
 			return null;
 		}
 		return raw;
@@ -1251,19 +1356,25 @@ export function ChatPage() {
 				.filter((item) => Number.isFinite(item.albumId));
 			setShareableAlbums(mapped);
 
-			const coverEntries = await Promise.all(
+			const detailEntries = await Promise.all(
 				mapped.map(async ({ albumId }) => {
 					try {
 						const detail = await service.getAlbum(albumId);
-						const first = detail.content?.[0];
-						const url = first?.thumbUrl || first?.url || first?.coverUrl;
-						return url ? ([albumId, url] as [number, string]) : null;
+						const content = detail.content ?? [];
+						const first = content[0];
+						const url = first?.thumbUrl || first?.url || first?.coverUrl || null;
+						const videos = content.filter((c) => c.contentType?.startsWith("video/")).length;
+						return { albumId, url, counts: { images: content.length - videos, videos } };
 					} catch {
 						return null;
 					}
 				}),
 			);
-			setAlbumCoverMap(new Map(coverEntries.filter((e): e is [number, string] => e !== null)));
+			const loadedDetails = detailEntries.filter((e) => e !== null);
+			setAlbumCoverMap(
+				new Map(loadedDetails.flatMap((e) => (e.url ? [[e.albumId, e.url] as [number, string]] : []))),
+			);
+			setAlbumMediaCountMap(new Map(loadedDetails.map((e) => [e.albumId, e.counts] as [number, AlbumMediaCount])));
 
 			return mapped;
 		} catch (error) {
@@ -1314,22 +1425,20 @@ export function ChatPage() {
 							return c;
 						}
 						const messages = await chatDb.getMessages(c.conversationId);
-						for (let i = messages.length - 1; i >= 0; i--) {
-							const message = messages[i];
-							if (message.body && typeof message.body === "object") {
-								return {
-									...c,
-									entry: {
-										...c.entry,
-										data: {
-											...c.entry.data,
-											preview: buildPreviewFromMessage(message, t),
-										},
-									},
-								};
-							}
+						const message = findPreviewFallbackMessage(messages);
+						if (!message) {
+							return c;
 						}
-						return c;
+						return {
+							...c,
+							entry: {
+								...c.entry,
+								data: {
+									...c.entry.data,
+									preview: buildPreviewFromMessage(message, t),
+								},
+							},
+						};
 					}),
 				);
 				if (cancelled) {
@@ -1544,8 +1653,20 @@ export function ChatPage() {
 				}
 
 				setConversations((previous) => {
-					const entriesWithUnreadFixed = response.entries.map((entry) => {
-						const cid = entry.data.conversationId;
+					const previousById = new Map(
+						previous.map((conversation) => [conversation.data.conversationId, conversation] as const),
+					);
+					const entriesWithUnreadFixed = response.entries.map((rawEntry) => {
+						const cid = rawEntry.data.conversationId;
+						// Keep a fallback preview already patched in (see
+						// entriesNeedingFallbackPreview below) while the server still
+						// has nothing better, instead of flashing back to "no messages
+						// yet" on every poll until the async patch re-lands.
+						const previousPreview = previousById.get(cid)?.data.preview;
+						const entry =
+							isPreviewUnhelpful(rawEntry.data.preview) && !isPreviewUnhelpful(previousPreview ?? null)
+								? { ...rawEntry, data: { ...rawEntry.data, preview: previousPreview ?? null } }
+								: rawEntry;
 
 						// If this is the active conversation, it's definitely read.
 						if (cid === selectedConversationIdRef.current) {
@@ -1633,6 +1754,27 @@ export function ChatPage() {
 								}
 								combined = next;
 							}
+						} else {
+							// A server-filtered response (e.g. unread-only) legitimately
+							// omits the conversation currently open — it's read by
+							// definition — and a brand-new chat isn't in chatDb yet for
+							// the getConversation fallback to recover. Dropping it would
+							// null out selectedConversation and bounce the mobile layout
+							// back to the inbox. Keep it in state; filteredConversations
+							// still applies the same filters client-side, so it doesn't
+							// leak into the visible list.
+							const selectedId = selectedConversationIdRef.current;
+							if (
+								selectedId &&
+								!combined.some((entry) => entry.data.conversationId === selectedId)
+							) {
+								const selectedEntry = previous.find(
+									(entry) => entry.data.conversationId === selectedId,
+								);
+								if (selectedEntry) {
+									combined = [...combined, selectedEntry];
+								}
+							}
 						}
 
 						// Polling re-fetches on a fixed interval regardless of whether
@@ -1690,13 +1832,29 @@ export function ChatPage() {
 						entriesNeedingFallbackPreview.map(async (entry) => {
 							const cid = entry.data.conversationId;
 							const localData = await chatLog.readLog(cid);
-							for (let i = localData.messages.length - 1; i >= 0; i--) {
-								const message = localData.messages[i];
-								if (message.body && typeof message.body === "object") {
-									return [cid, buildPreviewFromMessage(message, t)] as const;
-								}
+							const localMessage = findPreviewFallbackMessage(localData.messages);
+							if (localMessage) {
+								return [cid, buildPreviewFromMessage(localMessage, t)] as const;
 							}
-							return null;
+							// Nothing local either (e.g. a chat never opened on this
+							// device) — ask the server for its latest page once per
+							// lastActivityTimestamp, instead of on every poll.
+							const activity = entry.data.lastActivityTimestamp ?? 0;
+							const cached = remotePreviewFallbackRef.current.get(cid);
+							if (cached && cached.activity === activity) {
+								return cached.preview ? ([cid, cached.preview] as const) : null;
+							}
+							try {
+								const remote = await service.listMessages({ conversationId: cid });
+								const remoteMessage = findPreviewFallbackMessage(
+									[...remote.messages].sort((a, b) => a.timestamp - b.timestamp),
+								);
+								const preview = remoteMessage ? buildPreviewFromMessage(remoteMessage, t) : null;
+								remotePreviewFallbackRef.current.set(cid, { activity, preview });
+								return preview ? ([cid, preview] as const) : null;
+							} catch {
+								return null;
+							}
 						}),
 					).then((results) => {
 						const patches = new Map(
@@ -1803,6 +1961,8 @@ export function ChatPage() {
 						olderLoadSnapshotRef.current = {
 							scrollTop: container.scrollTop,
 							scrollHeight: container.scrollHeight,
+							anchor: findScrollAnchor(container, threadMessagesRef.current, messageElementRefs.current),
+							firstMessageId: threadMessagesRef.current[0]?.messageId ?? null,
 						};
 					}
 					isLoadingOlderMessagesRef.current = true;
@@ -1906,6 +2066,8 @@ export function ChatPage() {
 					olderLoadSnapshotRef.current = {
 						scrollTop: container.scrollTop,
 						scrollHeight: container.scrollHeight,
+						anchor: findScrollAnchor(container, threadMessagesRef.current, messageElementRefs.current),
+						firstMessageId: threadMessagesRef.current[0]?.messageId ?? null,
 					};
 				}
 				isLoadingOlderMessagesRef.current = true;
@@ -2561,14 +2723,7 @@ export function ChatPage() {
 						(a, b) => a.timestamp - b.timestamp,
 					);
 					const newest = sortedCandidates[sortedCandidates.length - 1];
-					let bestPreviewMessage: Message | null = null;
-					for (let i = sortedCandidates.length - 1; i >= 0; i--) {
-						const candidate = sortedCandidates[i];
-						if (candidate.body && typeof candidate.body === "object") {
-							bestPreviewMessage = candidate;
-							break;
-						}
-					}
+					const bestPreviewMessage = findPreviewFallbackMessage(sortedCandidates);
 
 					if (newest && bestPreviewMessage) {
 						syncConversation((conversation) => ({
@@ -2824,20 +2979,28 @@ export function ChatPage() {
 					}
 				}
 				if (!updates.length) return;
+				// A realtime batch can span several conversations — persist each
+				// update under its own conversation, and only merge the ones for
+				// the conversation currently open into the thread view.
 				const nonExpiredImageUpdates = updates.filter((u) => !(u.body as any)?._imageExpired);
-				void chatLog.appendMessages(
-					incomingImagesWithoutUrl[0].conversationId,
-					nonExpiredImageUpdates,
-				);
-				captureMediaForMessages(
-					nonExpiredImageUpdates,
-					incomingImagesWithoutUrl[0].conversationId,
-				);
+				const nonExpiredImageUpdatesByConv = new Map<string, UiMessage[]>();
+				for (const u of nonExpiredImageUpdates) {
+					const list = nonExpiredImageUpdatesByConv.get(u.conversationId) ?? [];
+					list.push(u);
+					nonExpiredImageUpdatesByConv.set(u.conversationId, list);
+				}
+				for (const [cid, list] of nonExpiredImageUpdatesByConv) {
+					void chatLog.appendMessages(cid, list);
+					captureMediaForMessages(list, cid);
+				}
+				const activeConversationId = selectedConversationIdRef.current;
+				const activeUpdates = updates.filter((u) => u.conversationId === activeConversationId);
+				if (!activeUpdates.length) return;
 				setThreadMessages((prev) => {
 					const previousById = new Map(prev.map((m) => [m.messageId, m] as const));
 					const map = new Map<string, UiMessage>();
 					for (const m of prev) map.set(m.messageId, m);
-					for (const m of updates) {
+					for (const m of activeUpdates) {
 						map.set(
 							m.messageId,
 							mergeMessagePreservingUnsendWipe(previousById.get(m.messageId), m),
@@ -2881,19 +3044,28 @@ export function ChatPage() {
 					}
 				}
 				if (!updates.length) return;
+				// A realtime batch can span several conversations — persist each
+				// update under its own conversation, and only merge the ones for
+				// the conversation currently open into the thread view.
 				const nonExpiredVideoUpdates = updates.filter((u) => !(u.body as any)?._videoExpired);
-				if (nonExpiredVideoUpdates.length > 0) {
-					void chatLog.appendMessages(incomingVideosWithoutUrl[0].conversationId, nonExpiredVideoUpdates);
-					captureMediaForMessages(
-						nonExpiredVideoUpdates,
-						incomingVideosWithoutUrl[0].conversationId,
-					);
+				const nonExpiredVideoUpdatesByConv = new Map<string, UiMessage[]>();
+				for (const u of nonExpiredVideoUpdates) {
+					const list = nonExpiredVideoUpdatesByConv.get(u.conversationId) ?? [];
+					list.push(u);
+					nonExpiredVideoUpdatesByConv.set(u.conversationId, list);
 				}
+				for (const [cid, list] of nonExpiredVideoUpdatesByConv) {
+					void chatLog.appendMessages(cid, list);
+					captureMediaForMessages(list, cid);
+				}
+				const activeConversationId = selectedConversationIdRef.current;
+				const activeUpdates = updates.filter((u) => u.conversationId === activeConversationId);
+				if (!activeUpdates.length) return;
 				setThreadMessages((prev) => {
 					const previousById = new Map(prev.map((m) => [m.messageId, m] as const));
 					const map = new Map<string, UiMessage>();
 					for (const m of prev) map.set(m.messageId, m);
-					for (const m of updates) {
+					for (const m of activeUpdates) {
 						map.set(
 							m.messageId,
 							mergeMessagePreservingUnsendWipe(previousById.get(m.messageId), m),
@@ -3207,6 +3379,17 @@ export function ChatPage() {
 
 	const handleThreadScroll = useCallback(() => {
 		const container = threadScrollContainerRef.current;
+		const snapshot = olderLoadSnapshotRef.current;
+		if (container && snapshot && preserveThreadScrollRef.current) {
+			// The reader may keep scrolling (or momentum may carry on) while the
+			// older page is in flight — restore to where they are when it lands,
+			// not to where they were when it was requested.
+			snapshot.scrollTop = container.scrollTop;
+			snapshot.scrollHeight = container.scrollHeight;
+			snapshot.anchor =
+				findScrollAnchor(container, threadMessagesRef.current, messageElementRefs.current) ??
+				snapshot.anchor;
+		}
 		if (
 			!container ||
 			isLoadingOlderMessagesRef.current ||
@@ -3445,6 +3628,9 @@ export function ChatPage() {
 			: baseIntervalMs;
 
 		const intervalId = window.setInterval(() => {
+			// Backgrounded Android deliberately drops the socket (FCM covers it)
+			// and the resume handler below refetches anyway.
+			if (document.hidden) return;
 			void loadInbox({ page: 1, replace: true, silent: true });
 		}, intervalMs);
 
@@ -3457,8 +3643,7 @@ export function ChatPage() {
 	// relying on live WS events from then on — fine while the app stays
 	// foregrounded, but mobile suspends rather than kills the app in the
 	// background, so nothing re-checks the inbox purely from closing and
-	// reopening it (ChatRealtimeBridge's visibilitychange handler only
-	// reconnects the socket). A stuck block_state can otherwise only clear
+	// reopening it (appLifecycle only reconnects the socket). A stuck block_state can otherwise only clear
 	// via a live WS event landing from that exact profile while the app
 	// happens to be connected, or a fresh process start (AuthContext's
 	// inboxSync). Fetch the inbox once on resume so a block/unblock that
@@ -3475,6 +3660,22 @@ export function ChatPage() {
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 		};
 	}, [loadInbox]);
+
+	// Events that arrived while the socket was down (or that the Rust bridge
+	// dropped under load) are gone for good — catch up over REST.
+	useEffect(() => {
+		const handleResync = () => {
+			void loadInbox({ page: 1, replace: true, silent: true });
+			const conversationId = selectedConversationIdRef.current;
+			if (conversationId) {
+				void loadThread({ conversationId, older: false, silent: true });
+			}
+		};
+		window.addEventListener(CHAT_REALTIME_RESYNC, handleResync);
+		return () => {
+			window.removeEventListener(CHAT_REALTIME_RESYNC, handleResync);
+		};
+	}, [loadInbox, loadThread]);
 
 	// The realtime socket can report "connected" while still silently dropping
 	// individual events (e.g. chat.v1.conversation_read), so read-receipt status
@@ -3571,6 +3772,66 @@ export function ChatPage() {
 		}
 	}, [replyTargetMessageId, threadMessages]);
 
+	// Older-page restore runs as a layout effect so the prepended messages are
+	// never painted at the wrong scroll position first.
+	const skipNextThreadScrollEffectRef = useRef(false);
+	useLayoutEffect(() => {
+		if (!preserveThreadScrollRef.current || !threadMessages.length) return;
+		const snapshot = olderLoadSnapshotRef.current;
+		if (lastLoadedConversationIdRef.current !== selectedConversationId || !snapshot) {
+			olderLoadSnapshotRef.current = null;
+			preserveThreadScrollRef.current = false;
+			return;
+		}
+		// Nothing older has landed yet (still in flight, or the load came back
+		// empty) and this update is something else — e.g. a realtime message
+		// appended at the bottom. Restoring the snapshot here would yank the
+		// view back up, so leave it armed.
+		if (threadMessages[0].messageId === snapshot.firstMessageId) return;
+
+		olderLoadSnapshotRef.current = null;
+		preserveThreadScrollRef.current = false;
+		skipNextThreadScrollEffectRef.current = true;
+		const container = threadScrollContainerRef.current;
+		if (!container) return;
+
+		const elements = messageElementRefs.current;
+		const anchor = snapshot.anchor;
+		if (!anchor || !restoreScrollAnchor(container, anchor, elements)) {
+			container.scrollTop = snapshot.scrollTop + (container.scrollHeight - snapshot.scrollHeight);
+			return;
+		}
+
+		// Prepended images/videos finish loading after this and grow the
+		// content above the anchor — keep re-pinning it for a moment, until
+		// the reader touches the list themselves.
+		olderLoadHoldCleanupRef.current?.();
+		const reapply = () => {
+			restoreScrollAnchor(container, anchor, elements);
+		};
+		const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(reapply) : null;
+		for (const child of Array.from(container.children)) resizeObserver?.observe(child);
+		const stop = () => {
+			window.clearTimeout(timer);
+			resizeObserver?.disconnect();
+			container.removeEventListener("load", reapply, true);
+			container.removeEventListener("loadedmetadata", reapply, true);
+			container.removeEventListener("touchstart", stop);
+			container.removeEventListener("wheel", stop);
+			container.removeEventListener("pointerdown", stop);
+			if (olderLoadHoldCleanupRef.current === stop) olderLoadHoldCleanupRef.current = null;
+		};
+		const timer = window.setTimeout(stop, 1500);
+		container.addEventListener("load", reapply, true);
+		container.addEventListener("loadedmetadata", reapply, true);
+		container.addEventListener("touchstart", stop, { passive: true });
+		container.addEventListener("wheel", stop, { passive: true });
+		container.addEventListener("pointerdown", stop);
+		olderLoadHoldCleanupRef.current = stop;
+	}, [threadMessages, selectedConversationId]);
+
+	useEffect(() => () => olderLoadHoldCleanupRef.current?.(), [selectedConversationId]);
+
 	useEffect(() => {
 		if (!threadMessages.length) {
 			lastMessageIdRef.current = null;
@@ -3581,21 +3842,15 @@ export function ChatPage() {
 		const isNewMessageArrival = lastMessageIdRef.current !== lastMessage.messageId;
 		lastMessageIdRef.current = lastMessage.messageId;
 
-		if (preserveThreadScrollRef.current) {
-			const container = threadScrollContainerRef.current;
-			const snapshot = olderLoadSnapshotRef.current;
-			if (container && snapshot) {
-				const heightDelta = container.scrollHeight - snapshot.scrollHeight;
-				container.scrollTop = snapshot.scrollTop + heightDelta;
-			}
-			olderLoadSnapshotRef.current = null;
-			preserveThreadScrollRef.current = false;
-			return;
-		}
-
 		const container = threadScrollContainerRef.current;
 		const isNewConversation =
 			lastLoadedConversationIdRef.current !== selectedConversationId;
+
+		// The layout effect above just restored an older-page prepend.
+		if (skipNextThreadScrollEffectRef.current) {
+			skipNextThreadScrollEffectRef.current = false;
+			return;
+		}
 
 		const isNearBottom = container
 			? container.scrollHeight - container.scrollTop - container.clientHeight < 250
@@ -3876,52 +4131,6 @@ export function ChatPage() {
 		userId,
 	]);
 
-	// Scroll memory: save position on scroll (re-attaches when list mounts/unmounts)
-	useEffect(() => {
-		const container = inboxListRef.current;
-		if (!container) return;
-		const handleScroll = () => {
-			sessionStorage.setItem("chat-inbox-scroll", JSON.stringify({
-				top: container.scrollTop,
-				timestamp: Date.now(),
-			}));
-		};
-		container.addEventListener("scroll", handleScroll, { passive: true });
-		return () => container.removeEventListener("scroll", handleScroll);
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filteredConversations.length]);
-
-	// Scroll memory: restore position once on first load
-	useLayoutEffect(() => {
-		if (filteredConversations.length === 0 || isLoadingInbox || hasRestoredInboxScroll || !inboxListRef.current) return;
-		const storageKey = "chat-inbox-scroll";
-		if (maxActivityTimestamp > initialLastSeenInbox.current) {
-			sessionStorage.removeItem(storageKey);
-			inboxListRef.current.scrollTop = 0;
-			setHasRestoredInboxScroll(true);
-			return;
-		}
-		const saved = sessionStorage.getItem(storageKey);
-		if (saved) {
-			try {
-				const parsed = JSON.parse(saved);
-				if (parsed && typeof parsed === "object" && "top" in parsed) {
-					const { top, timestamp } = parsed as { top: number; timestamp: number };
-					if (Date.now() - timestamp < SCROLL_RESTORATION_TIMEOUT_MS) {
-						inboxListRef.current.scrollTop = top;
-					} else {
-						sessionStorage.removeItem(storageKey);
-					}
-				} else {
-					sessionStorage.removeItem(storageKey);
-				}
-			} catch {
-				sessionStorage.removeItem(storageKey);
-			}
-		}
-		setHasRestoredInboxScroll(true);
-	}, [filteredConversations.length, isLoadingInbox, hasRestoredInboxScroll, maxActivityTimestamp]);
-
 	const handleSelectConversation = (conversation: ConversationEntry) => {
 		const nextId = conversation.data.conversationId;
 		if (targetProfileId) {
@@ -3960,10 +4169,14 @@ export function ChatPage() {
 			if (chatReturnTo) {
 				nextParams.set("returnTo", chatReturnTo);
 			}
+			// Resolving a targetProfileId lookup replaces the transient
+			// /chat?targetProfileId=… entry, so back from the thread lands on
+			// whoever opened the chat (e.g. the profile), not on the inbox.
 			navigate(
 				nextParams.size > 0
 					? `/chat/${encodeURIComponent(conversationId)}?${nextParams.toString()}`
 					: `/chat/${encodeURIComponent(conversationId)}`,
+				{ replace: targetProfileId != null },
 			);
 		},
 		[
@@ -3978,15 +4191,22 @@ export function ChatPage() {
 
 	const getProfileReturnToChatPath = useCallback(
 		(profileId: number) => {
+			// Carry the chat's own returnTo along, so coming back from the
+			// profile still knows where the chat was opened from.
+			const nextParams = new URLSearchParams();
+			if (chatReturnTo) {
+				nextParams.set("returnTo", chatReturnTo);
+			}
 			if (selectedConversationId) {
-				return `/chat/${encodeURIComponent(selectedConversationId)}`;
+				return nextParams.size > 0
+					? `/chat/${encodeURIComponent(selectedConversationId)}?${nextParams.toString()}`
+					: `/chat/${encodeURIComponent(selectedConversationId)}`;
 			}
 
-			const nextParams = new URLSearchParams();
 			nextParams.set("targetProfileId", String(profileId));
 			return `/chat?${nextParams.toString()}`;
 		},
-		[selectedConversationId],
+		[chatReturnTo, selectedConversationId],
 	);
 
 	useEffect(() => {
@@ -4121,6 +4341,55 @@ export function ChatPage() {
 			} catch (error) {
 				toast.error(
 					error instanceof Error ? error.message : t("chat.errors.update_pin_state"),
+				);
+			} finally {
+				setIsUpdatingConversationState(false);
+			}
+		},
+		[isUpdatingConversationState, service, t],
+	);
+
+	const toggleMuteConversation = useCallback(
+		async (conversationId: string, isMuted: boolean) => {
+			if (isUpdatingConversationState) {
+				return;
+			}
+
+			setIsUpdatingConversationState(true);
+
+			try {
+				if (isMuted) {
+					await service.unmuteConversation(conversationId);
+				} else {
+					await service.muteConversation(conversationId);
+				}
+				setConversations((previous) =>
+					previous.map((conversation) =>
+						conversation.data.conversationId === conversationId
+							? { ...conversation, data: { ...conversation.data, muted: !isMuted } }
+							: conversation,
+					),
+				);
+				// Archived entries render from `archivedConversations` (see
+				// togglePinConversation above).
+				setArchivedConversations((previous) => {
+					const existing = previous.get(conversationId);
+					if (!existing) {
+						return previous;
+					}
+					const next = new Map(previous);
+					next.set(conversationId, {
+						...existing,
+						entry: {
+							...existing.entry,
+							data: { ...existing.entry.data, muted: !isMuted },
+						},
+					});
+					return next;
+				});
+			} catch (error) {
+				toast.error(
+					error instanceof Error ? error.message : t("chat.errors.update_mute_state"),
 				);
 			} finally {
 				setIsUpdatingConversationState(false);
@@ -4595,7 +4864,7 @@ export function ChatPage() {
 					const returnTo = getProfileReturnToChatPath(targetId as number);
 					const nextParams = new URLSearchParams();
 					nextParams.set("returnTo", returnTo);
-					navigate(`/profile/${targetId}?${nextParams.toString()}`, { state: { returnTo } });
+					navigate(`/profile/${targetId}?${nextParams.toString()}`, { state: { returnTo, fromChat: true } });
 					break;
 				}
 				case "chat":
@@ -5025,6 +5294,7 @@ export function ChatPage() {
 				if (selectedConversation) {
 					setThreadMessages((previous) => [...previous, sentMessage]);
 				}
+				markAlbumContentReacted(albumId, albumContentId);
 				toast.success(t("chat.toasts.album_reaction_sent", { defaultValue: "Reaction sent" }));
 			} catch (error) {
 				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
@@ -5053,6 +5323,33 @@ export function ChatPage() {
 					setThreadMessages((previous) => [...previous, sentMessage]);
 				}
 				toast.success(t("chat.toasts.album_reply_sent", { defaultValue: "Reply sent" }));
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
+			}
+		},
+		[selectedConversation, service, t, targetProfileId, userId],
+	);
+
+	const sendProfilePhotoReply = useCallback(
+		async (imageHash: string, text: string) => {
+			if (!userId) return;
+			const targetProfileIdValue = selectedConversation
+				? (getOtherParticipant(selectedConversation, userId)?.profileId ?? null)
+				: targetProfileId;
+			if (!targetProfileIdValue) {
+				toast.error(t("chat.errors.missing_recipient"));
+				return;
+			}
+			try {
+				const sentMessage = await service.sendMessage({
+					type: "ProfilePhotoReply",
+					target: { type: "Direct", targetId: targetProfileIdValue },
+					body: { imageHash, photoContentReply: text },
+				});
+				if (selectedConversation) {
+					setThreadMessages((previous) => [...previous, sentMessage]);
+				}
+				toast.success(t("chat.toasts.photo_reply_sent", { defaultValue: "Reply sent" }));
 			} catch (error) {
 				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
 			}
@@ -5129,25 +5426,9 @@ export function ChatPage() {
 			}, 260);
 
 			try {
-				const binaryUpload = await buildBinaryUpload(file);
-				let durationSeconds: number | undefined;
-				if (isVideo) {
-					durationSeconds = await new Promise<number>((resolve) => {
-						const vid = document.createElement("video");
-						vid.preload = "metadata";
-						const objUrl = URL.createObjectURL(file);
-						vid.onloadedmetadata = () => { URL.revokeObjectURL(objUrl); resolve(Math.ceil(vid.duration)); };
-						vid.onerror = () => { URL.revokeObjectURL(objUrl); resolve(0); };
-						vid.src = objUrl;
-					});
-				}
-				const uploaded = await service.uploadChatMedia({
-					multipart: binaryUpload,
-					options: {
-						looping: options.looping,
-						takenOnGrindr: options.takenOnGrindr,
-						durationSeconds,
-					},
+				const uploaded = await uploadChatMediaFile(service, file, {
+					looping: options.looping,
+					takenOnGrindr: options.takenOnGrindr,
 				});
 				setUploadProgress(96);
 
@@ -5162,37 +5443,11 @@ export function ChatPage() {
 					}
 				}
 
-				const imageUrl = uploaded.url;
-				const imageHash = imageUrl
-					? uploaded.mediaHash || extractImageHashFromSignedUrl(imageUrl)
-					: uploaded.mediaHash;
-				const isOnceImage = isImage && options.maxViews === 1;
-				const isUnlimitedVideo = isVideo && options.maxViews > 2;
-				const messageType = isVideo ? (isUnlimitedVideo ? "NonExpiringVideo" : "Video") : isOnceImage ? "ExpiringImage" : "Image";
-				const sentMessage = await service.sendMessage({
-					type: messageType,
-					target: {
-						type: "Direct",
-						targetId: targetProfileIdValue,
-					},
-					body: {
-						mediaId: uploaded.mediaId,
-						width: null,
-						height: null,
-						...(isVideo ? { viewsRemaining: options.maxViews, maxViews: options.maxViews } : {}),
-						...(isOnceImage ? { viewsRemaining: 1, maxViews: 1, duration: 10 } : {}),
-						...(imageUrl ? { url: imageUrl } : {}),
-						...(isImage && imageHash ? { imageHash } : {}),
-					},
+				// Also captures the sent media into chatDb (see chatMediaSend).
+				const sentMessage = await sendUploadedChatMedia(service, uploaded, targetProfileIdValue, {
+					maxViews: options.maxViews,
 					replyToMessageId: replyTargetMessageId,
 				});
-
-				// Capture into chatDb right away — otherwise this send's own
-				// media has no media_files row until the next reload/pagination
-				// pass, which made a just-sent image invisible in the "Sent"
-				// media tab and unable to find itself in the full-screen
-				// carousel (both source from that table) until then.
-				captureMediaForMessages([sentMessage], sentMessage.conversationId);
 
 				setReplyTargetMessageId(null);
 				setThreadMessages((previous) => {
@@ -5763,7 +6018,10 @@ export function ChatPage() {
 				if (!useSheet) setAlbumViewerMediaIndex(resolveIndex(cached.content));
 				setIsAlbumViewerLoading(false);
 			} else {
-				setAlbumViewer(null);
+				// Nothing cached yet: open right away and let the viewer or sheet
+				// show its own loading state until the live fetch below lands.
+				setAlbumViewer({ albumId, albumName: null, content: [], isOwn: isOwnAlbum });
+				if (!useSheet) setAlbumViewerMediaIndex(0);
 				setIsAlbumViewerLoading(true);
 			}
 
@@ -5809,6 +6067,19 @@ export function ChatPage() {
 					...details.content.map((item) => mergedByContentId.get(item.contentId) ?? item),
 					...localOnly,
 				];
+				// Nothing to show: the viewer would just flash open and vanish,
+				// so close it (and its history entry) and say why instead.
+				if (finalContent.length === 0) {
+					if (albumHistoryModeRef.current === "direct") {
+						albumHistoryModeRef.current = null;
+						window.history.back();
+					}
+					setAlbumViewer(null);
+					setAlbumViewerMediaIndex(null);
+					setIsAlbumMediaSheetOpen(false);
+					toast(t("shared_albums.empty_album_title"));
+					return;
+				}
 				setAlbumViewer({
 					albumId: details.albumId,
 					albumName: merged?.albumName ?? details.albumName,
@@ -5853,11 +6124,14 @@ export function ChatPage() {
 	// Tapping an item inside the album's browse-first sheet — the sheet stays
 	// mounted underneath so closing the full-screen viewer returns to it
 	// instead of exiting all the way back to the chat.
-	const openAlbumMediaAtIndex = useCallback((index: number) => {
+	// Where the tapped tile sits in the album sheet, for the viewer's hero open.
+	const [albumViewerHeroRect, setAlbumViewerHeroRect] = useState<HeroRect | null>(null);
+	const openAlbumMediaAtIndex = useCallback((index: number, heroRect?: HeroRect | null) => {
+		setAlbumViewerHeroRect(heroRect ?? null);
 		setAlbumViewerMediaIndex(index);
 	}, []);
 
-	const closeAlbumMediaSheet = useCallback(() => {
+	const resetAlbumViewerState = useCallback(() => {
 		albumViewerCancelledRef.current = true;
 		setIsAlbumMediaSheetOpen(false);
 		setAlbumViewer(null);
@@ -5865,18 +6139,75 @@ export function ChatPage() {
 		setIsAlbumViewerLoading(false);
 	}, []);
 
+	// Pops the history entry the album overlay pushed (see the effects below)
+	// after the UI has already been closed by a button — the mode is cleared
+	// first so the resulting popstate is a no-op for our handler.
+	const popAlbumHistory = useCallback((mode: "direct" | "viewerOverSheet") => {
+		if (albumHistoryModeRef.current !== mode) return;
+		albumHistoryModeRef.current = null;
+		window.history.back();
+	}, []);
+
+	const closeAlbumMediaSheet = useCallback(() => {
+		// BottomSheet manages its own history entry — nothing to pop here.
+		resetAlbumViewerState();
+	}, [resetAlbumViewerState]);
+
 	const closeAlbumMediaViewer = useCallback(() => {
 		if (isAlbumMediaSheetOpen) {
 			// Came from the browse-first sheet — go back to it rather than
 			// exiting the album entirely.
 			setAlbumViewerMediaIndex(null);
+			popAlbumHistory("viewerOverSheet");
 			return;
 		}
-		albumViewerCancelledRef.current = true;
-		setAlbumViewer(null);
-		setAlbumViewerMediaIndex(null);
-		setIsAlbumViewerLoading(false);
-	}, [isAlbumMediaSheetOpen]);
+		resetAlbumViewerState();
+		popAlbumHistory("direct");
+	}, [isAlbumMediaSheetOpen, resetAlbumViewerState, popAlbumHistory]);
+
+	// System back support for albums opened from the thread. A directly-opened
+	// album (no browse-first sheet) gets its own history entry; in sheet mode
+	// BottomSheet already pushes one, so we only add an entry while the
+	// full-screen viewer sits on top of the sheet. Without these, hardware
+	// back popped the chat route itself and dumped the user into the inbox.
+	const isAlbumOverlayOpen = isAlbumViewerLoading || albumViewer !== null || isAlbumMediaSheetOpen;
+	const isAlbumViewerOverSheet = isAlbumMediaSheetOpen && albumViewer !== null && albumViewerMediaIndex !== null;
+
+	useEffect(() => {
+		if (!isAlbumOverlayOpen) {
+			// Closed without going through history (load error, conversation
+			// switch) — just forget the entry rather than navigating.
+			albumHistoryModeRef.current = null;
+			return;
+		}
+		if (albumHistoryModeRef.current !== null) return;
+		if (!isAlbumMediaSheetOpen) {
+			window.history.pushState({ ...window.history.state, chatAlbum: "direct" }, "");
+			albumHistoryModeRef.current = "direct";
+		} else if (isAlbumViewerOverSheet) {
+			// Keeps the router state but drops the sheet's own tag — the locked
+			// sheet only hands Android back to this entry when it can tell the
+			// entry isn't its own.
+			const { bottomSheet: _sheet, bottomSheetId: _sheetId, ...routerState } = window.history.state ?? {};
+			window.history.pushState({ ...routerState, chatAlbum: "viewerOverSheet" }, "");
+			albumHistoryModeRef.current = "viewerOverSheet";
+		}
+	}, [isAlbumOverlayOpen, isAlbumMediaSheetOpen, isAlbumViewerOverSheet]);
+
+	useEffect(() => {
+		const handlePopState = () => {
+			const mode = albumHistoryModeRef.current;
+			if (mode === null) return;
+			albumHistoryModeRef.current = null;
+			if (mode === "viewerOverSheet") {
+				setAlbumViewerMediaIndex(null);
+			} else {
+				resetAlbumViewerState();
+			}
+		};
+		window.addEventListener("popstate", handlePopState);
+		return () => window.removeEventListener("popstate", handlePopState);
+	}, [resetAlbumViewerState]);
 
 	const handleSaveAllAlbumMedia = useCallback(async () => {
 		if (!albumViewer || isSavingAlbumAll) return;
@@ -5926,6 +6257,34 @@ export function ChatPage() {
 		];
 	}, [albumViewer, isSavingAlbumAll, t, handleSaveAllAlbumMedia]);
 
+	const handleSaveAllProfilePhotos = useCallback(async () => {
+		if (!fullScreenProfilePhotos || isSavingAllProfilePhotos) return;
+		setIsSavingAllProfilePhotos(true);
+		try {
+			await saveAllMedia(
+				fullScreenProfilePhotos.hashes.map((hash) => ({ url: getProfileImageUrl(hash, "1024x1024"), type: "image" as const })),
+				// Same folder as saving from the partner's profile page.
+				fullScreenProfilePhotos.isPartnerProfile ? selectedConversationOtherProfileId ?? null : null,
+				t,
+			);
+		} finally {
+			setIsSavingAllProfilePhotos(false);
+		}
+	}, [fullScreenProfilePhotos, isSavingAllProfilePhotos, selectedConversationOtherProfileId, t]);
+
+	const profilePhotoMenuActions = useMemo<PhotoViewerMenuAction[] | undefined>(() => {
+		if (!fullScreenProfilePhotos) return undefined;
+		return [
+			{
+				key: "save-all",
+				label: t("profile_details.save_all"),
+				icon: Images,
+				onClick: () => void handleSaveAllProfilePhotos(),
+				disabled: isSavingAllProfilePhotos,
+			},
+		];
+	}, [fullScreenProfilePhotos, isSavingAllProfilePhotos, t, handleSaveAllProfilePhotos]);
+
 	const albumHeader = useMemo(() => {
 		if (!albumViewer) return undefined;
 		if (albumViewer.isOwn) {
@@ -5956,6 +6315,7 @@ export function ChatPage() {
 			name: selectedConversation?.data.name?.trim() || t("shared_albums.name_fallback"),
 			subtitle: [onlineMeta.label, distanceLabel].filter(Boolean).join(" · ") || null,
 			isOnline: onlineMeta.isOnline,
+			isOnlineEndingSoon: onlineMeta.isEndingSoon,
 			onClick: otherParticipant?.profileId != null
 				? () => {
 					const profileId = otherParticipant.profileId;
@@ -6068,38 +6428,94 @@ export function ChatPage() {
 				return;
 			}
 
+			const views = maxViews ?? 2147483647;
+			const items = mediaIds.flatMap((mediaId) => {
+				const media = drawerMedia.find((m) => m.id === mediaId);
+				if (!media) return [];
+				const isVideo = media.contentType.startsWith("video");
+				const isOnceImage = !isVideo && views === 1;
+				// Videos are always a regular Video, "unlimited" included (see videoMessageViews).
+				const videoViews = videoMessageViews(views);
+				const messageType = isVideo ? "Video" : isOnceImage ? "ExpiringImage" : "Image";
+				const body = {
+					mediaId,
+					width: null,
+					height: null,
+					url: media.url,
+					...(isOnceImage ? { viewsRemaining: 1, maxViews: 1, duration: 10 } : {}),
+					...(isVideo ? { viewsRemaining: videoViews, maxViews: videoViews } : {}),
+				};
+				return [{ mediaId, url: media.url, messageType, body }];
+			});
+			if (items.length === 0) return;
+
+			// Show every item right away as a "sending" bubble — sends run one
+			// after another and can take a while — and swap each for the real
+			// message as it goes through.
+			const baseTimestamp = Date.now();
+			const localItems = items.map((item, index) => ({
+				...item,
+				localMessageId: `local:${baseTimestamp}:${index}:${Math.random()}`,
+			}));
+			const localConversationId =
+				selectedConversation?.data.conversationId ?? `direct:${targetProfileIdValue}`;
+			setThreadMessages((previous) => [
+				...previous,
+				...localItems.map((item, index): UiMessage => ({
+					messageId: item.localMessageId,
+					conversationId: localConversationId,
+					senderId: userId,
+					timestamp: baseTimestamp + index,
+					unsent: false,
+					reactions: [],
+					type: item.messageType,
+					chat1Type: item.messageType.toLowerCase().includes("video") ? "video" : "image",
+					body: item.body,
+					replyToMessage: null,
+					replyPreview: null,
+					dynamic: false,
+					clientState: "pending",
+				})),
+			]);
+			scrollThreadToBottom();
+
 			setIsSendingDrawerMedia(true);
+			setDrawerSendProgress({ done: 0, total: localItems.length });
 			let finalSentMessage: UiMessage | undefined;
 			let pendingReplyId = replyTargetMessageId;
+			const unsentLocalIds = new Set(localItems.map((item) => item.localMessageId));
 			try {
 				// Send each media item as a separate image/video message
-				for (const mediaId of mediaIds) {
-					const media = drawerMedia.find((m) => m.id === mediaId);
-					if (!media) continue;
-
-					const isVideo = media.contentType.startsWith("video");
-					const views = maxViews ?? 2147483647;
-					const isOnceImage = !isVideo && views === 1;
-                    const isUnlimitedVideo = isVideo && views > 2;
-				    const messageType = isVideo ? (isUnlimitedVideo ? "NonExpiringVideo" : "Video") : isOnceImage ? "ExpiringImage" : "Image";
-
+				for (const item of localItems) {
+					const { mediaId } = item;
 					const sentMessage = await service.sendMessage({
-						type: messageType,
+						type: item.messageType,
 						target: {
 							type: "Direct",
 							targetId: targetProfileIdValue,
 						},
-						body: {
-							mediaId,
-							width: null,
-							height: null,
-							url: media.url,
-							...(isOnceImage ? { viewsRemaining: 1, maxViews: 1, duration: 10 } : {}),
-							...(isVideo ? { viewsRemaining: views, maxViews: views } : {}),
-						},
+						body: item.body,
 						replyToMessageId: pendingReplyId,
 					});
 					pendingReplyId = null;
+
+					// The send response doesn't always echo the URL back — keep the
+					// one we already have so the bubble doesn't blank out.
+					const shownMessage: UiMessage =
+						getMessageImageUrl(sentMessage) || getMessageVideoUrl(sentMessage)
+							? sentMessage
+							: { ...sentMessage, body: { ...((sentMessage.body as Record<string, unknown>) ?? {}), url: item.url } };
+					unsentLocalIds.delete(item.localMessageId);
+					setThreadMessages((previous) => {
+						const map = new Map<string, UiMessage>();
+						for (const message of previous) {
+							if (message.messageId !== item.localMessageId) map.set(message.messageId, message);
+						}
+						map.set(shownMessage.messageId, shownMessage);
+						return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
+					});
+					captureMediaForMessages([shownMessage], shownMessage.conversationId);
+					setDrawerSendProgress((progress) => (progress ? { ...progress, done: progress.done + 1 } : progress));
 
 					// Track the last sent message for preview update
 					finalSentMessage = sentMessage;
@@ -6138,17 +6554,22 @@ export function ChatPage() {
 				}
 
 				setReplyTargetMessageId(null);
-				toast.success(t("chat.toasts.media_sent"));
-				setIsDrawerOpen(false);
+				// The bubbles themselves already show each item landing — no
+				// success toast on top. The drawer closes itself (ChatDrawerPanel)
+				// as soon as the send starts, which also pops the sheet's history
+				// entry; unmounting it from here would leave that entry behind.
 
 				// Reload drawer media to update "used" status
-				await loadDrawerMedia();
+				void loadDrawerMedia();
 			} catch (error) {
+				// Drop the bubbles that never went out; the toast says why.
+				setThreadMessages((previous) => previous.filter((message) => !unsentLocalIds.has(message.messageId)));
 				toast.error(
 					error instanceof Error ? error.message : t("chat.errors.send_drawer_media"),
 				);
 			} finally {
 				setIsSendingDrawerMedia(false);
+				setDrawerSendProgress(null);
 			}
 		},
 		[
@@ -6160,76 +6581,21 @@ export function ChatPage() {
 			t,
 			syncConversation,
 			loadDrawerMedia,
+			scrollThreadToBottom,
 			replyTargetMessageId,
 			setReplyTargetMessageId,
 		],
 	);
 
-	const addDrawerMedia = useCallback(
-		async (file: File, takenOnGrindr: boolean, looping?: boolean) => {
-			const isVideo = file.type.startsWith("video/");
-
-			if (file.size > 100 * 1024 * 1024) {
-				toast.error(t("chat.attachments.too_large"));
-				return;
-			}
-
-			setIsAddingDrawerMedia(true);
-			try {
-				let durationSeconds: number | undefined;
-				if (isVideo) {
-					durationSeconds = await new Promise<number>((resolve) => {
-						const vid = document.createElement("video");
-						vid.preload = "metadata";
-						vid.onloadedmetadata = () => {
-							resolve(isFinite(vid.duration) ? Math.round(vid.duration) : 0);
-							URL.revokeObjectURL(vid.src);
-						};
-						vid.onerror = () => { resolve(0); URL.revokeObjectURL(vid.src); };
-						vid.src = URL.createObjectURL(file);
-					});
-				}
-
-				const binaryUpload = await buildBinaryUpload(file);
-				const uploaded = await service.uploadChatMedia({
-					multipart: binaryUpload,
-					options: {
-						looping: isVideo ? (looping ?? false) : false,
-						takenOnGrindr: isVideo ? false : takenOnGrindr,
-						...(durationSeconds != null ? { durationSeconds } : {}),
-					},
-				});
-				await service.addMediaToDrawer(uploaded.mediaId);
-
-				await loadDrawerMedia();
-			} catch (error) {
-				toast.error(
-					error instanceof Error ? error.message : t("chat.errors.upload_media_failed"),
-				);
-			} finally {
-				setIsAddingDrawerMedia(false);
-			}
-		},
-		[loadDrawerMedia, service, t],
-	);
-
-	const deleteDrawerMedia = useCallback(
-		async (mediaId: number) => {
-			setDeletingDrawerMediaId(mediaId);
-			try {
-				await service.deleteDrawerMedia(mediaId);
-				setDrawerMedia((previous) => previous.filter((item) => item.id !== mediaId));
-				void chatDb.deleteMediaFile(getDrawerMediaKey(mediaId));
-			} catch (error) {
-				toast.error(
-					error instanceof Error ? error.message : t("chat.errors.delete_failed"),
-				);
-			} finally {
-				setDeletingDrawerMediaId(null);
-			}
-		},
-		[service, t],
-	);
+	// Adding to and deleting from the drawer happen inside ChatDrawerPanel
+	// (shared with the album/collection sheets); this only drops a deleted
+	// item from the list.
+	const removeDrawerMediaFromList = useCallback((mediaId: number) => {
+		setDrawerMedia((previous) => previous.filter((item) => item.id !== mediaId));
+	}, []);
+	const removeAlbumFromList = useCallback((albumId: number) => {
+		setShareableAlbums((previous) => previous.filter((album) => album.albumId !== albumId));
+	}, []);
 
 	const openAttachmentDialogForFile = (file: File) => {
 		if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
@@ -6247,6 +6613,39 @@ export function ChatPage() {
 		setAttachmentMaxViews(file.type.startsWith("video/") ? 1 : defaultExpiringPhotos ? 1 : 2147483647);
 	};
 
+	// Images shared in from Android's share sheet (see ShareTargetBridge):
+	// the chosen chat takes them, then each goes through the normal
+	// attachment dialog in turn — the next one opens once the previous was
+	// sent or dismissed.
+	const pendingSharedImages = usePendingSharedImages();
+	const sharedImageQueueRef = useRef<{ conversationId: string; files: File[] } | null>(null);
+	const openAttachmentDialogForFileRef = useRef(openAttachmentDialogForFile);
+	openAttachmentDialogForFileRef.current = openAttachmentDialogForFile;
+	useEffect(() => {
+		if (!selectedConversationId || !pendingSharedImages) return;
+		const files = takePendingSharedImages(selectedConversationId);
+		if (!files || files.length === 0) return;
+		sharedImageQueueRef.current = { conversationId: selectedConversationId, files: files.slice(1) };
+		openAttachmentDialogForFileRef.current(files[0]);
+	}, [selectedConversationId, pendingSharedImages]);
+	const previousPendingAttachmentRef = useRef(pendingAttachmentFile);
+	useEffect(() => {
+		// Only advance when a dialog was open and just closed — on the render
+		// that queued the images, the first one's dialog isn't open *yet*.
+		const dialogJustClosed = previousPendingAttachmentRef.current != null && !pendingAttachmentFile;
+		previousPendingAttachmentRef.current = pendingAttachmentFile;
+		const queue = sharedImageQueueRef.current;
+		if (!queue) return;
+		if (queue.conversationId !== selectedConversationId) {
+			sharedImageQueueRef.current = null;
+			return;
+		}
+		if (!dialogJustClosed) return;
+		const next = queue.files.shift();
+		if (queue.files.length === 0) sharedImageQueueRef.current = null;
+		if (next) openAttachmentDialogForFileRef.current(next);
+	}, [pendingAttachmentFile, selectedConversationId]);
+
 	const onAttachmentInput = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
 		event.target.value = "";
@@ -6262,104 +6661,102 @@ export function ChatPage() {
 	};
 
 	/**
-	 * Opens the full-screen carousel for a tapped message's media, expanded to
-	 * every image/video the same sender (me vs. the other participant) has in
-	 * this conversation — sourced from the same chatDb cache as the "received
-	 * media" sheet rather than whatever's currently paged into threadMessages,
-	 * that in-memory window being only a fraction of the conversation for any
-	 * chat with real history.
-	 *
-	 * Resolves the whole list before opening (one atomic state update) rather
-	 * than opening instantly with a single-item placeholder and swapping in
-	 * the real list a moment later — that two-step version raced with
-	 * PhotoViewer's own swipe state (which assumes `photos` is stable for the
-	 * life of one open) and made mid-swipe list swaps snap the view back to
-	 * the tapped item's new index. The cost is a brief (usually
-	 * cache-hit-fast) delay before the viewer appears instead of appearing
-	 * instantly with one photo.
+	 * Opens the full-screen viewer on a tapped chat image/video, as a carousel
+	 * of every image/video on the same side (sent vs received) of the loaded
+	 * thread, in chat order. Built synchronously from the thread with the same
+	 * sources the bubbles show (the locally stored copy once there is one), so
+	 * the viewer opens at once; it used to wait for a capture pass over every
+	 * message plus a full chatDb read first. No capture here either: loading
+	 * the thread already does that, and re-running it on open swapped bubble
+	 * sources mid-view (images reloading, the list jumping under the finger).
 	 */
 	const openFullScreenImage = useCallback((
 		imageUrl: string,
-		meta?: { takenOnGrindr: boolean; createdAtLabel: string | null; timestamp: number },
+		meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number },
 		mediaType: "image" | "video" = "image",
 		messageId?: string,
 		senderId?: number,
+		heroRect?: HeroRect | null,
 	) => {
+		// The tapped bubble's picture, so the viewer can fly it in from there.
+		setFullScreenHeroRect(heroRect ?? null);
+		setFullScreenProfilePhotos(null);
+		const tapped: ThreadMediaItem = { url: imageUrl, type: mediaType, meta: meta ?? undefined };
 		const conversationId = selectedConversation?.data.conversationId;
 		if (!conversationId || messageId == null || senderId == null) {
-			fullScreenRequestIdRef.current += 1;
-			setFullScreenMediaList([{ url: imageUrl, type: mediaType, meta: meta ?? undefined }]);
+			setFullScreenMediaList([tapped]);
 			setFullScreenMediaIndex(0);
 			return;
 		}
 
-		const requestId = ++fullScreenRequestIdRef.current;
-
-		void (async () => {
-			let list: ThreadMediaItem[] = [{ url: imageUrl, type: mediaType, meta: meta ?? undefined }];
-			let idx = 0;
-			try {
-				// Re-capture every currently-loaded message before looking the
-				// tapped one up — guarantees each media_files row is correctly
-				// associated with its real message, even if a same-content
-				// reply-quote/reaction preview capture (which always uses
-				// messageId: null, see replyMediaStore.ts) previously grabbed
-				// that mediaKey first, or the read-status poll's frequent
-				// silent reloads (loadThread's 10s/20s interval, further up
-				// this file) re-ran that same preview capture since. Without
-				// this, images could keep failing to resolve their own sender
-				// indefinitely, since nothing else re-triggers a capture pass
-				// for a page once it's no longer the one being (re)loaded.
-				await captureMediaForMessages(threadMessages, conversationId);
-
-				const files = await chatDb.getMediaFilesForConversation(conversationId);
-				const mine = userId != null && Number(senderId) === Number(userId);
-				const matching = files
-					.filter((f) => (f.senderId != null && userId != null && Number(f.senderId) === Number(userId)) === mine)
-					// newest-first from the query — reverse to chronological order,
-					// matching the old threadMessages-order carousel.
-					.reverse();
-				const foundIdx = matching.findIndex((f) => f.messageId === messageId);
-				if (foundIdx !== -1) {
-					const messagesById = new Map(threadMessages.map((m) => [m.messageId, m] as const));
-					list = matching.map((f) => {
-						const msg = f.messageId ? messagesById.get(f.messageId) : undefined;
-						const createdAt = msg && f.kind === "image" ? getMessageImageCreatedAt(msg) : null;
-						return {
-							url: toDataUri(f.mimeType, f.dataBase64),
-							type: f.kind === "video" ? "video" : "image",
-							meta:
-								msg && f.kind === "image"
-									? {
-											takenOnGrindr: getMessageTakenOnGrindr(msg),
-											createdAtLabel: createdAt != null ? formatDateTime24(createdAt) : null,
-											timestamp: msg.timestamp,
-										}
-									: undefined,
-						};
-					});
-					idx = foundIdx;
-				}
-			} catch (error) {
-				appLog.warn("[ChatPage] failed to build full-screen media carousel", error);
+		const isMine = (id: number | string | null | undefined) => userId != null && id != null && Number(id) === Number(userId);
+		const mine = isMine(senderId);
+		const list: ThreadMediaItem[] = [];
+		let idx = -1;
+		for (const message of threadMessages) {
+			if (message.messageId === messageId) {
+				// Exactly what the bubble showed, so the hero lands on the same picture.
+				idx = list.length;
+				list.push(tapped);
+				continue;
 			}
-			if (fullScreenRequestIdRef.current !== requestId) {
-				// Superseded by a newer tap while this one was still resolving.
-				return;
-			}
+			if (isMine(message.senderId) !== mine) continue;
+			const media = resolveThreadMessageMedia(message);
+			if (!media) continue;
+			const createdAt = media.type === "image" ? getMessageImageCreatedAt(message) : null;
+			list.push({
+				url: media.url,
+				type: media.type,
+				meta:
+					media.type === "image"
+						? {
+								takenOnGrindr: getMessageTakenOnGrindr(message),
+								createdAt,
+								createdAtLabel: createdAt != null ? formatDateTime24(createdAt) : null,
+								timestamp: message.timestamp,
+							}
+						: undefined,
+			});
+		}
+		if (idx === -1) {
+			setFullScreenMediaList([tapped]);
+			setFullScreenMediaIndex(0);
+		} else {
 			setFullScreenMediaList(list);
 			setFullScreenMediaIndex(idx);
-		})();
+		}
+
 	}, [selectedConversation, userId, threadMessages]);
+
+	// A profile photo reply opens on the replied-to photo with the rest of that
+	// profile's photos around it — the chat partner's, or our own when they
+	// replied to one of ours. A photo no longer on the profile still opens, first.
+	const openProfilePhotos = useCallback((
+		mediaHash: string,
+		isPartnerProfile: boolean,
+		heroRect?: HeroRect | null,
+	) => {
+		const profile = isPartnerProfile ? targetProfileDetail : myProfile;
+		const hashes = [
+			...(profile?.medias ?? []).map((media) => media.mediaHash),
+			profile?.profileImageMediaHash,
+		].filter((hash, i, all): hash is string =>
+			typeof hash === "string" && validateMediaHash(hash) && all.indexOf(hash) === i);
+		if (!hashes.includes(mediaHash)) hashes.unshift(mediaHash);
+		setFullScreenProfilePhotos({ hashes, isPartnerProfile });
+		setFullScreenHeroRect(heroRect ?? null);
+		setFullScreenMediaList(hashes.map((hash) => ({ url: getProfileImageUrl(hash, "1024x1024"), type: "image" })));
+		setFullScreenMediaIndex(hashes.indexOf(mediaHash));
+	}, [targetProfileDetail, myProfile]);
 
 	const closeFullScreenImage = useCallback(() => {
 		if (fullScreenMediaList.length === 0) {
 			return;
 		}
 
-		fullScreenRequestIdRef.current += 1;
 		setFullScreenMediaList([]);
 		setFullScreenMediaIndex(0);
+		setFullScreenProfilePhotos(null);
 
 		if (imageViewerHistoryPushedRef.current) {
 			imageViewerHistoryPushedRef.current = false;
@@ -6385,6 +6782,7 @@ export function ChatPage() {
 			imageViewerHistoryPushedRef.current = false;
 			setFullScreenMediaList([]);
 			setFullScreenMediaIndex(0);
+			setFullScreenProfilePhotos(null);
 		};
 
 		window.addEventListener("popstate", handlePopState);
@@ -6446,6 +6844,7 @@ export function ChatPage() {
 			}}
 			typingConversationIds={typingConversationIds}
 			onTogglePinConversation={togglePinConversation}
+			onToggleMuteConversation={toggleMuteConversation}
 			hiddenConversationIds={hiddenConversationIds}
 			onToggleHideConversation={toggleHideConversation}
 			onDeleteConversation={deleteConversationFromChat}
@@ -6497,6 +6896,7 @@ export function ChatPage() {
 			}
 			onEditLocalNickname={editLocalNicknameFromChat}
 			getProfileReturnToChatPath={getProfileReturnToChatPath}
+			chatReturnTo={chatReturnTo}
 			isLoadingThread={isLoadingThread}
 			threadConversationId={threadConversationId}
 			threadError={threadError}
@@ -6514,6 +6914,7 @@ export function ChatPage() {
 			messageLongPressTriggeredRef={messageLongPressTriggeredRef}
 			openFullScreenImage={openFullScreenImage}
 			openAlbumViewerById={openAlbumViewerById}
+			openProfilePhotos={openProfilePhotos}
 			onJumpToMessage={setPendingMessageScrollId}
 			highlightedMessageId={highlightedMessageId}
 			selectedThreadMessageMatches={selectedThreadMessageMatches}
@@ -6554,7 +6955,7 @@ export function ChatPage() {
 			isLoadingAlbums={isLoadingAlbums}
 			shareableAlbums={shareableAlbums}
 			albumCoverMap={albumCoverMap}
-			ownProfilePhotoUrl={ownProfilePhotoUrl}
+			albumMediaCountMap={albumMediaCountMap}
 			isSharingAlbum={isSharingAlbum}
 			pendingAlbumShare={pendingAlbumShare}
 			shareAlbumToCurrentConversation={shareAlbumToCurrentConversation}
@@ -6565,12 +6966,12 @@ export function ChatPage() {
 			drawerError={drawerError}
 			drawerMedia={drawerMedia}
 			isSendingDrawerMedia={isSendingDrawerMedia}
-			isAddingDrawerMedia={isAddingDrawerMedia}
-			deletingDrawerMediaId={deletingDrawerMediaId}
+			drawerSendProgress={drawerSendProgress}
 			onLoadDrawerMedia={loadDrawerMedia}
 			onSendDrawerMedia={sendDrawerMedia}
-			onAddDrawerMedia={addDrawerMedia}
-			onDeleteDrawerMedia={deleteDrawerMedia}
+			onDrawerMediaDeleted={removeDrawerMediaFromList}
+			onDrawerAlbumDeleted={removeAlbumFromList}
+			onReloadAlbums={loadAlbums}
 			onShareAlbumFromDrawer={handleShareAlbumFromDrawer}
 			onStopAlbumShareFromDrawer={handleStopAlbumShare}
 			onSendLocation={sendLocationMessage}
@@ -6612,9 +7013,17 @@ export function ChatPage() {
 					</>
 				) : (
 					<div className="w-full">
-						{selectedConversation ?? targetProfileId ? renderThread : renderInbox}
+						{selectedConversation ?? targetProfileId
+							? renderThread
+							: selectedConversationId && isLoadingInbox
+								? // Remounting on /chat/:id (e.g. back from a profile): the
+									// conversation list is still empty until the cache/inbox load
+									// lands, so don't flash the inbox before the thread appears.
+									<div className="min-h-dvh" />
+								: renderInbox}
 					</div>
 				)}
+
 
 			{chatIsFiltersOpen && (
 				<ChatFiltersOverlay
@@ -6656,14 +7065,6 @@ export function ChatPage() {
 				);
 			})() : null}
 
-			{isAlbumViewerLoading && !albumViewer ? (
-				<div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/50 p-4">
-					<div className="surface-card p-4 text-sm text-[var(--text-muted)]">
-						{t("shared_albums.opening")}
-					</div>
-				</div>
-			) : null}
-
 			{isAlbumMediaSheetOpen && albumViewer ? (
 				<AlbumMediaSheet
 					albumName={albumViewer.albumName}
@@ -6671,6 +7072,7 @@ export function ChatPage() {
 					onClose={closeAlbumMediaSheet}
 					onSelect={openAlbumMediaAtIndex}
 					locked={albumViewerMediaIndex !== null}
+					isLoading={isAlbumViewerLoading}
 				/>
 			) : null}
 
@@ -6683,6 +7085,8 @@ export function ChatPage() {
 				conversationId={selectedConversation?.data.conversationId ?? null}
 				menuActions={albumMenuActions}
 				albumHeader={albumHeader}
+				isLoading={isAlbumViewerLoading}
+				heroRect={albumViewerHeroRect}
 				// Only gate directly-opened albums — once the user has already
 				// browsed the album's contents in the browse-first sheet, the
 				// warning would be redundant for every item tapped from it.
@@ -6696,6 +7100,7 @@ export function ChatPage() {
 								sendAlbumContentReply(albumViewer.albumId, item.contentId, item.contentType, text)
 							}
 							onReact={() => sendAlbumContentReaction(albumViewer.albumId, item.contentId)}
+							reacted={hasReactedToAlbumContent(albumViewer.albumId, item.contentId)}
 						/>
 					);
 				}}
@@ -6708,26 +7113,36 @@ export function ChatPage() {
 				initialIndex={fullScreenMediaIndex}
 				onIndexChange={setFullScreenMediaIndex}
 				conversationId={selectedConversation?.data.conversationId ?? null}
+				heroRect={fullScreenHeroRect}
+				menuActions={profilePhotoMenuActions}
+				renderFooter={fullScreenProfilePhotos?.isPartnerProfile ? (idx) => {
+					const hash = fullScreenProfilePhotos.hashes[idx];
+					if (!hash) return null;
+					return <PhotoActionBar onSendText={(text) => sendProfilePhotoReply(hash, text)} />;
+				} : undefined}
 				renderExtraInfo={(idx) => {
 					const meta = fullScreenMediaList[idx]?.meta;
-					if (!meta) return null;
+					const label = meta ? meta.createdAtLabel ?? (meta.timestamp ? formatDateTime24(meta.timestamp) : null) : null;
+					if (!label) return null;
 					return (
-						<p className="inline-flex items-center gap-1 rounded-full bg-black/65 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/25">
+						<p className="inline-flex items-center gap-1 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md">
+							<span>{label}</span>
+						</p>
+					);
+				}}
+				renderMediaOverlay={(idx) => {
+					const meta = fullScreenMediaList[idx]?.meta;
+					if (!meta?.takenOnGrindr) return null;
+					return (
+						<>
 							<style>{`
 								@keyframes logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
 								.logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
 							`}</style>
-							{meta.takenOnGrindr ? (
-								<img
-									src={freegrindLogo}
-									alt={t("chat.thread.taken_on_grindr")}
-									className="h-3.5 w-3.5 rounded-full logo-shine"
-								/>
-							) : null}
-							{meta.createdAtLabel ?? (meta.timestamp ? formatDateTime24(meta.timestamp) : null) ? (
-								<span>{meta.createdAtLabel ?? formatDateTime24(meta.timestamp)}</span>
-							) : null}
-						</p>
+							<TakenOnGrindrBadge
+								label={meta.createdAt != null ? formatTakenOnGrindrTime(meta.createdAt, nowTimestamp, t) : null}
+							/>
+						</>
 					);
 				}}
 			/>

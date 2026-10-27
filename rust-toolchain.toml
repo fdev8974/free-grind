@@ -1,0 +1,9 @@
+# Single source of truth for the Rust version. rustup picks this up locally and
+# in CI (the workflows run `rustup toolchain install` against this file), so
+# release builds no longer drift with whatever `stable` is on the day.
+# Platform targets are added per job, not listed here, so a local Linux
+# checkout doesn't download the std of every mobile/Apple target.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

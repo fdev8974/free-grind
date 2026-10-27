@@ -1,32 +1,15 @@
-import {
-	ArrowUpDown,
-	Calendar,
-	Compass,
-	Dumbbell,
-	Heart,
-	HeartHandshake,
-	MapPin,
-	Ruler,
-	Scale,
-	Search,
-	ShieldAlert,
-	SlidersHorizontal,
-	Tag as TagIcon,
-	Users,
-	X,
-	Zap,
-	type LucideIcon,
-} from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { type LucideIcon } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { RangeSlider } from "../../components/ui/range-slider";
-import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
+import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
+import { SheetChip, SheetMoreButton, SheetSearchInput, SheetSection } from "../../components/ui/sheet-section";
 import { usePreferences } from "../../contexts/PreferencesContext";
-import { useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
+import { useManagedGenders, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
 import { cn } from "../../utils/cn";
 import { buildTagLabelMap } from "../../utils/tags";
 import { type ManagedOption } from "./GridPage.types";
-import type { ManagedTag } from "../../types/api-functions";
 import {
 	type BrowseFilters,
 	type BrowseFiltersDraft,
@@ -41,7 +24,12 @@ import {
 	getRelationshipStatusOptions,
 	getSexualPositionOptions,
 	getTribeOptions,
+	SEXUAL_POSITION_ICONS,
+	buildGenderOptions,
+	getPrimaryGenderIds,
 } from "./profile-option-builders";
+import { ManagedOptionsPickerDialog } from "./profile-editor/ManagedOptionsPickerDialog";
+import { TagsPickerDialog } from "./profile-editor/TagsPickerDialog";
 import {
 	cmToInches,
 	gramsToKg,
@@ -50,6 +38,9 @@ import {
 	kgToGrams,
 	poundsToGrams,
 } from "../../utils/units";
+
+/** How many catalog tags show inline in the filter sheet before "More tags". */
+const INLINE_TAG_COUNT = 7;
 
 function formatInchesAsFeetInches(totalInches: number): string {
 	const safe = Math.max(0, Math.round(totalInches));
@@ -66,14 +57,34 @@ interface BrowseFiltersOverlayProps {
 	 * doesn't apply to a browsed-away explore location — hide those two quick
 	 * filters while explore mode is active (mirrors GridPage's own filter row). */
 	isExploreActive?: boolean;
+	isDesktop: boolean;
 }
 
-export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExploreActive = false }: BrowseFiltersOverlayProps) {
+export function BrowseFiltersOverlay({ onClose, isDesktop, ...props }: BrowseFiltersOverlayProps) {
+	return (
+		<BottomSheet
+			onClose={onClose}
+			expandable
+			isDesktop={isDesktop}
+			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			panelClassName={isDesktop ? "max-h-[92dvh] px-4" : "px-4"}
+		>
+			<BrowseFiltersSheetContent {...props} />
+		</BottomSheet>
+	);
+}
+
+function BrowseFiltersSheetContent({
+	initialDraft,
+	onApply,
+	isExploreActive = false,
+}: Omit<BrowseFiltersOverlayProps, "onClose" | "isDesktop">) {
 	const { t, i18n } = useTranslation();
 	const { unitsPreset } = usePreferences();
 	const { data: managedTagCategories } = useManagedTagCategories(i18n.language);
-	const [isClosing, setIsClosing] = useState(false);
-	const isClosingRef = useRef(false);
+	const { data: managedGenders } = useManagedGenders();
+	// Closes through the sheet so it animates out and pops its history entry.
+	const handleClose = useBottomSheetClose();
 
 	// Mirrors GridPage's own filter row: while browsing an explore location,
 	// every accent-tinted element in this sheet switches to EXPLORE_COLOR
@@ -89,6 +100,7 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 	const [heightCmMax, setHeightCmMax] = useState(normalized.heightCmMax);
 	const [weightGramsMin, setWeightGramsMin] = useState(normalized.weightGramsMin);
 	const [weightGramsMax, setWeightGramsMax] = useState(normalized.weightGramsMax);
+	const [genders, setGenders] = useState<number[]>(normalized.genders);
 	const [tribes, setTribes] = useState<number[]>(normalized.tribes);
 	const [lookingFor, setLookingFor] = useState<number[]>(normalized.lookingFor);
 	const [relationshipStatuses, setRelationshipStatuses] = useState<number[]>(normalized.relationshipStatuses);
@@ -97,15 +109,7 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 	const [meetAt, setMeetAt] = useState<number[]>(normalized.meetAt);
 	const [nsfwPics, setNsfwPics] = useState<number[]>(normalized.nsfwPics);
 	const [tags, setTags] = useState<string[]>(normalized.tags);
-	const [tagDraft, setTagDraft] = useState("");
 	const [nicknameFilter, setNicknameFilter] = useState(normalized.nicknameFilter);
-
-	const handleClose = () => {
-		if (isClosingRef.current) return;
-		isClosingRef.current = true;
-		setIsClosing(true);
-		setTimeout(() => onClose(), 280);
-	};
 
 	const isImperialHeight = unitsPreset === "uk" || unitsPreset === "american";
 	const isImperialWeight = unitsPreset === "american";
@@ -151,6 +155,16 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 		{ key: "isVisiting", label: t("browse_filters.local_filters.is_visiting") },
 	], [t]);
 
+	const genderFilterOptions = useMemo(() => buildGenderOptions(managedGenders), [managedGenders]);
+	const primaryGenderIds = useMemo(() => getPrimaryGenderIds(managedGenders), [managedGenders]);
+	// Primary genders inline, plus any selected non-primary ones so they stay visible/removable.
+	const inlineGenderOptions = useMemo(() => {
+		const inlineIds = [...primaryGenderIds, ...genders.filter((id) => !primaryGenderIds.includes(id))];
+		return inlineIds
+			.map((id) => genderFilterOptions.find((option) => option.value === id))
+			.filter((option): option is ManagedOption => option !== undefined);
+	}, [genderFilterOptions, primaryGenderIds, genders]);
+	const [isGenderPickerOpen, setIsGenderPickerOpen] = useState(false);
 	const tribeFilterOptions = useMemo<ManagedOption[]>(
 		() => [{ value: -1, label: t("browse_filters.not_specified") }, ...getTribeOptions(t)],
 		[t],
@@ -180,26 +194,22 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 		[t],
 	);
 
-	// Flat list of every managed tag across all categories — the filter only
-	// ever needs to search/add individual tags, never browse by category.
+	// `tags` holds what gets sent to the server: catalog tag keys picked in
+	// TagsPickerDialog. Filters saved before the picker may still hold raw
+	// free-typed text with no catalog key — those render as-is.
 	const allManagedTags = useMemo(
 		() => (managedTagCategories ?? []).flatMap((category) => category.tags),
 		[managedTagCategories],
 	);
-
-	// `tags` holds whatever actually gets sent to the server: a catalog tag's
-	// stable `key` (see addManagedTag), or the raw typed text for a free-typed
-	// tag that isn't in the catalog (addTag) — there's no key for those.
 	const tagLabelByKey = useMemo(() => buildTagLabelMap(allManagedTags), [allManagedTags]);
 	const tagLabel = (value: string) => tagLabelByKey.get(value) ?? value;
-
-	const tagSearchResults = useMemo(() => {
-		const query = tagDraft.trim().toLowerCase();
-		if (!query) return [];
-		return allManagedTags
-			.filter((tag) => tag.text.toLowerCase().includes(query) && !tags.includes(tag.key))
-			.slice(0, 8);
-	}, [tagDraft, allManagedTags, tags]);
+	// Like genders: the first few catalog tags inline, plus any selected ones
+	// beyond those so they stay visible/removable; the rest live in the picker.
+	const inlineTagKeys = useMemo(() => {
+		const primaryKeys = allManagedTags.slice(0, INLINE_TAG_COUNT).map((tag) => tag.key);
+		return [...primaryKeys, ...tags.filter((tag) => !primaryKeys.includes(tag))];
+	}, [allManagedTags, tags]);
+	const [isTagsPickerOpen, setIsTagsPickerOpen] = useState(false);
 
 	const toggleBrowseFilter = (key: keyof BrowseFilters) => {
 		setBrowseFilters((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -209,16 +219,8 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 		setter((prev) => prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]);
 	};
 
-	const addTag = (value: string = tagDraft) => {
-		const norm = value.trim().toLowerCase();
-		if (!norm) return;
-		setTags((prev) => prev.includes(norm) ? prev : [...prev, norm]);
-		setTagDraft("");
-	};
-
-	const addManagedTag = (tag: ManagedTag) => {
-		setTags((prev) => (prev.includes(tag.key) ? prev : [...prev, tag.key]));
-		setTagDraft("");
+	const toggleTag = (tagKey: string) => {
+		setTags((prev) => prev.includes(tagKey) ? prev.filter((v) => v !== tagKey) : [...prev, tagKey]);
 	};
 
 	const clearAll = () => {
@@ -234,7 +236,7 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 			ageMin, ageMax,
 			heightCmMin, heightCmMax,
 			weightGramsMin, weightGramsMax,
-			tribes, lookingFor, relationshipStatuses,
+			genders, tribes, lookingFor, relationshipStatuses,
 			bodyTypes, sexualPositions, meetAt,
 			nsfwPics, tags,
 			nicknameFilter,
@@ -242,159 +244,82 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 		handleClose();
 	};
 
-	const cardStyle: React.CSSProperties = {
-		backgroundColor: `color-mix(in srgb, ${accentColor}, transparent 96%)`,
-		border: `1px solid color-mix(in srgb, ${accentColor}, transparent 88%)`,
-	};
-
-	const LocalBadge = () => (
-		<span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-			<Zap className="h-2.5 w-2.5" />
+	const localBadge = (
+		<span className="inline-flex items-center rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
 			{t("browse_filters.local_filters.badge")}
 		</span>
 	);
 
-	const renderSectionHeader = (title: string, Icon?: LucideIcon, isLocal?: boolean, valueBadge?: string) => (
-		<div className="mb-4 flex items-center justify-between gap-2.5">
-			<div className="flex items-center gap-2.5">
-				{Icon && <Icon className="h-4 w-4 shrink-0" style={{ color: accentColor }} />}
-				<p className="text-sm font-bold tracking-tight text-[var(--text)]">
-					{title}
-				</p>
-				{isLocal && <LocalBadge />}
-			</div>
-			{valueBadge && (
-				<span
-					className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold shadow-sm text-[var(--text)]"
-					style={{ backgroundColor: `color-mix(in srgb, ${accentColor}, transparent 85%)` }}
-				>
-					{valueBadge}
-				</span>
-			)}
-		</div>
-	);
-
-	const renderSection = (
+	const renderChipSection = (
 		title: string,
 		options: ManagedOption[],
 		selectedValues: number[],
 		onToggle: (value: number) => void,
-		icon?: LucideIcon,
+		icons?: Record<number, LucideIcon>,
+		trailing?: React.ReactNode,
 	) => (
-		<section className="rounded-2xl p-4" style={cardStyle}>
-			{renderSectionHeader(title, icon)}
+		<SheetSection title={title}>
 			<div className="flex flex-wrap gap-2">
-				{options.map((option) => {
-					const isSelected = selectedValues.includes(option.value);
-					return (
-						<button
-							key={`${title}-${option.value}`}
-							type="button"
-							onClick={() => onToggle(option.value)}
-							className={cn(
-								"rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-all active:scale-95",
-								isSelected
-									? isExploreActive
-										? "border-[var(--explore)] bg-[var(--explore)] text-white shadow-sm"
-										: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm"
-									: isExploreActive
-										? "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--explore)]/60 hover:text-[var(--text)]"
-										: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)]/60 hover:text-[var(--text)]",
-							)}
-						>
-							{option.label}
-						</button>
-					);
-				})}
+				{options.map((option) => (
+					<SheetChip
+						key={`${title}-${option.value}`}
+						active={selectedValues.includes(option.value)}
+						onClick={() => onToggle(option.value)}
+						accentColor={accentColor}
+					>
+						{(() => {
+							const Icon = icons?.[option.value];
+							return Icon ? (
+								<span className="inline-flex items-center gap-1.5">
+									<Icon className="h-3.5 w-3.5 shrink-0" />
+									{option.label}
+								</span>
+							) : option.label;
+						})()}
+					</SheetChip>
+				))}
+				{trailing}
 			</div>
-		</section>
+		</SheetSection>
 	);
 
 	const renderToggleSection = (
 		title: string,
 		options: Array<{ key: keyof BrowseFilters; label: string }>,
-		icon?: LucideIcon,
 		isLocal?: boolean,
 	) => (
-		<section className="rounded-2xl p-4" style={cardStyle}>
-			{renderSectionHeader(title, icon, isLocal)}
+		<SheetSection title={title} badge={isLocal ? localBadge : undefined}>
 			<div className="flex flex-wrap gap-2">
-				{options.map((filter) => {
-					const active = browseFilters[filter.key];
-					return (
-						<button
-							key={filter.key}
-							type="button"
-							onClick={() => toggleBrowseFilter(filter.key)}
-							className={cn(
-								"rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-all active:scale-95",
-								active
-									? isExploreActive
-										? "border-[var(--explore)] bg-[var(--explore)] text-white shadow-sm"
-										: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-sm"
-									: isExploreActive
-										? "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--explore)]/60 hover:text-[var(--text)]"
-										: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)]/60 hover:text-[var(--text)]",
-							)}
-						>
-							{filter.label}
-						</button>
-					);
-				})}
+				{options.map((filter) => (
+					<SheetChip
+						key={filter.key}
+						active={Boolean(browseFilters[filter.key])}
+						onClick={() => toggleBrowseFilter(filter.key)}
+						accentColor={accentColor}
+					>
+						{filter.label}
+					</SheetChip>
+				))}
 			</div>
-		</section>
+		</SheetSection>
 	);
 
 	return (
-		<div className={`fixed inset-0 z-[55] flex flex-col no-touch-callout isolate ${isClosing ? "pointer-events-none" : ""}`}>
-			<div
-				className={`absolute inset-0 bg-black/45 backdrop-blur-sm ${isClosing ? "animate-backdrop-out" : "animate-backdrop-in"}`}
-				onClick={handleClose}
-			/>
+		<>
+			<div className="mb-3 flex items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">{t("browse_filters.title")}</h3>
+				<SheetCloseButton />
+			</div>
 
-			<div
-				role="dialog"
-				aria-modal="true"
-				className={`relative mx-auto flex h-full w-full max-w-4xl flex-col overflow-hidden bg-[var(--bg)] shadow-2xl transform-gpu will-change-transform ${
-					isClosing ? "animate-modal-top-out" : "animate-modal-top-in"
-				} md:border-x md:border-[var(--border)]`}
-				onClick={(e) => e.stopPropagation()}
-			>
-				<header className="relative shrink-0 overflow-hidden px-[var(--app-px)] pb-5 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
-					<PageHeaderBackground color={accentColor} />
-					<div className="flex items-center justify-between gap-3">
-						<div className="flex items-center gap-3">
-							<div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text)]">
-								<SlidersHorizontal className="h-5 w-5" />
-							</div>
-							<h2 className="text-xl font-bold tracking-tight text-[var(--text)]">
-								{t("browse_filters.title")}
-							</h2>
-						</div>
-						<button
-							type="button"
-							onClick={handleClose}
-							className="shrink-0 rounded-full bg-[var(--surface-2)] p-2 text-[var(--text-muted)] transition hover:bg-[var(--surface-3)] hover:text-[var(--text)] active:scale-90"
-							aria-label="Close"
-						>
-							<X className="h-5 w-5" />
-						</button>
-					</div>
-				</header>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>
+				<div className="space-y-5 pb-2">
+					{renderToggleSection(t("browse_filters.quick_filters"), browseFilterOptions)}
 
-				<div className="shrink-0 border-b border-[var(--border)]" />
-
-				<div className="relative z-10 min-h-0 flex-1 overflow-y-auto px-[var(--app-px)]" data-lenis-prevent>
-					<div className="space-y-6 py-6">
-						{renderToggleSection(t("browse_filters.quick_filters"), browseFilterOptions, Zap)}
-
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(
-								t("browse_filters.age"),
-								Calendar,
-								false,
-								`${ageMin || 18}-${ageMax || 99}${(ageMax ? Number(ageMax) : 99) >= 99 ? "+" : ""}`,
-							)}
+					<SheetSection
+						title={t("browse_filters.age")}
+						value={`${ageMin || 18}-${ageMax || 99}${(ageMax ? Number(ageMax) : 99) >= 99 ? "+" : ""}`}
+					>
+						<div className="px-1">
 							<RangeSlider
 								label={t("browse_filters.age")}
 								min={18}
@@ -408,15 +333,14 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 									setAgeMax(max === 99 ? "" : String(max));
 								}}
 							/>
-						</section>
+						</div>
+					</SheetSection>
 
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(
-								t("browse_filters.height"),
-								Ruler,
-								false,
-								`${isImperialHeight ? formatInchesAsFeetInches(heightMinDefault) : `${heightMinDefault}${heightRange.unit}`} - ${isImperialHeight ? formatInchesAsFeetInches(heightMaxDefault) : `${heightMaxDefault}${heightRange.unit}`}${heightMaxDefault >= heightRange.max ? "+" : ""}`,
-							)}
+					<SheetSection
+						title={t("browse_filters.height")}
+						value={`${isImperialHeight ? formatInchesAsFeetInches(heightMinDefault) : `${heightMinDefault}${heightRange.unit}`} - ${isImperialHeight ? formatInchesAsFeetInches(heightMaxDefault) : `${heightMaxDefault}${heightRange.unit}`}${heightMaxDefault >= heightRange.max ? "+" : ""}`}
+					>
+						<div className="px-1">
 							<RangeSlider
 								label={t("browse_filters.height")}
 								unit={heightRange.unit}
@@ -434,15 +358,14 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 									setHeightCmMax(max === heightRange.max ? "" : String(maxCm));
 								}}
 							/>
-						</section>
+						</div>
+					</SheetSection>
 
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(
-								t("browse_filters.weight"),
-								Scale,
-								false,
-								`${weightMinDefault}${weightRange.unit} - ${weightMaxDefault}${weightRange.unit}${weightMaxDefault >= weightRange.max ? "+" : ""}`,
-							)}
+					<SheetSection
+						title={t("browse_filters.weight")}
+						value={`${weightMinDefault}${weightRange.unit} - ${weightMaxDefault}${weightRange.unit}${weightMaxDefault >= weightRange.max ? "+" : ""}`}
+					>
+						<div className="px-1">
 							<RangeSlider
 								label={t("browse_filters.weight")}
 								unit={weightRange.unit}
@@ -459,182 +382,132 @@ export function BrowseFiltersOverlay({ initialDraft, onClose, onApply, isExplore
 									setWeightGramsMax(max === weightRange.max ? "" : String(maxGrams));
 								}}
 							/>
-						</section>
+						</div>
+					</SheetSection>
 
-						{renderSection(
-							t("profile_editor.sections.states.position"),
-							sexualPositionFilterOptions,
-							sexualPositions,
-							(value) => toggleMultiSelect(value, setSexualPositions),
-							ArrowUpDown,
-						)}
-						{renderSection(
-							t("profile_editor.sections.states.tribes"),
-							tribeFilterOptions,
-							tribes,
-							(value) => toggleMultiSelect(value, setTribes),
-							Users,
-						)}
-						{renderSection(
-							t("profile_editor.sections.expectations.looking_for"),
-							lookingForFilterOptions,
-							lookingFor,
-							(value) => toggleMultiSelect(value, setLookingFor),
-							Heart,
-						)}
-						{renderSection(
-							t("profile_editor.sections.states.relationship_status"),
-							relationshipFilterOptions,
-							relationshipStatuses,
-							(value) => toggleMultiSelect(value, setRelationshipStatuses),
-							HeartHandshake,
-						)}
-						{renderSection(
-							t("profile_editor.sections.states.body_type"),
-							bodyTypeFilterOptions,
-							bodyTypes,
-							(value) => toggleMultiSelect(value, setBodyTypes),
-							Dumbbell,
-						)}
-						{renderSection(
-							t("profile_editor.sections.expectations.meet_at"),
-							meetAtFilterOptions,
-							meetAt,
-							(value) => toggleMultiSelect(value, setMeetAt),
-							MapPin,
-						)}
-						{renderSection(
-							t("profile_editor.sections.expectations.accept_nsfw"),
-							nsfwFilterOptions,
-							nsfwPics,
-							(value) => toggleMultiSelect(value, setNsfwPics),
-							ShieldAlert,
-						)}
+					{renderChipSection(
+						t("profile_editor.sections.states.position"),
+						sexualPositionFilterOptions,
+						sexualPositions,
+						(value) => toggleMultiSelect(value, setSexualPositions),
+						SEXUAL_POSITION_ICONS,
+					)}
+					{genderFilterOptions.length > 0 && renderChipSection(
+						t("profile_editor.sections.identity.gender"),
+						inlineGenderOptions,
+						genders,
+						(value) => toggleMultiSelect(value, setGenders),
+						undefined,
+						<SheetMoreButton onClick={() => setIsGenderPickerOpen(true)} accentColor={accentColor}>
+							{t("profile_editor.sections.identity.gender_more")}
+						</SheetMoreButton>,
+					)}
+					{renderChipSection(
+						t("profile_editor.sections.states.tribes"),
+						tribeFilterOptions,
+						tribes,
+						(value) => toggleMultiSelect(value, setTribes),
+					)}
+					{renderChipSection(
+						t("profile_editor.sections.expectations.looking_for"),
+						lookingForFilterOptions,
+						lookingFor,
+						(value) => toggleMultiSelect(value, setLookingFor),
+					)}
+					{renderChipSection(
+						t("profile_editor.sections.states.relationship_status"),
+						relationshipFilterOptions,
+						relationshipStatuses,
+						(value) => toggleMultiSelect(value, setRelationshipStatuses),
+					)}
+					{renderChipSection(
+						t("profile_editor.sections.states.body_type"),
+						bodyTypeFilterOptions,
+						bodyTypes,
+						(value) => toggleMultiSelect(value, setBodyTypes),
+					)}
+					{renderChipSection(
+						t("profile_editor.sections.expectations.meet_at"),
+						meetAtFilterOptions,
+						meetAt,
+						(value) => toggleMultiSelect(value, setMeetAt),
+					)}
+					{renderChipSection(
+						t("profile_editor.sections.expectations.accept_nsfw"),
+						nsfwFilterOptions,
+						nsfwPics,
+						(value) => toggleMultiSelect(value, setNsfwPics),
+					)}
 
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(t("browse_filters.tags"), TagIcon)}
-							<div className="flex flex-wrap items-center gap-2">
-								<input
-									type="text"
-									placeholder={t("browse_filters.tags_placeholder")}
-									value={tagDraft}
-									onChange={(e) => setTagDraft(e.target.value)}
-									onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
-									className="h-9 min-w-40 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text)]"
-								/>
-								<button
-									type="button"
-									onClick={() => addTag()}
-									className={cn(
-										"h-9 rounded-lg border border-[var(--border)] px-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
-										isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
-									)}
-								>
-									{t("browse_filters.add")}
-								</button>
-							</div>
-							{tagSearchResults.length > 0 && (
-								<div className="mt-2 flex flex-wrap gap-2">
-									{tagSearchResults.map((tag) => (
-										<button
-											key={tag.tagId}
-											type="button"
-											onClick={() => addManagedTag(tag)}
-											className={cn(
-												"rounded-full border bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--text)] transition",
-												isExploreActive
-													? "border-[var(--explore)]/60 hover:bg-[var(--explore)] hover:text-white"
-													: "border-[var(--accent)]/60 hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)]",
-											)}
-										>
-											+ {tag.text}
-										</button>
-									))}
-								</div>
-							)}
-							{tags.length > 0 && (
-								<div className="mt-2 flex flex-wrap gap-2">
-									{tags.map((tag) => (
-										<button
-											key={tag}
-											type="button"
-											onClick={() => setTags((prev) => prev.filter((t) => t !== tag))}
-											className={cn(
-												"rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition",
-												isExploreActive
-													? "border-[var(--explore)] bg-[var(--explore)] text-white"
-													: "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]",
-											)}
-										>
-											{tagLabel(tag)} <span className="ml-1">×</span>
-										</button>
-									))}
-								</div>
-							)}
-						</section>
+					<SheetSection title={t("browse_filters.tags")}>
+						<div className="flex flex-wrap gap-2">
+							{inlineTagKeys.map((tag) => (
+								<SheetChip key={tag} active={tags.includes(tag)} onClick={() => toggleTag(tag)} accentColor={accentColor}>
+									{tagLabel(tag)}
+								</SheetChip>
+							))}
+							<SheetMoreButton onClick={() => setIsTagsPickerOpen(true)} accentColor={accentColor}>
+								{t("browse_filters.tags_more", { defaultValue: "More tags" })}
+							</SheetMoreButton>
+						</div>
+					</SheetSection>
 
-						{renderToggleSection(
-							t("browse_filters.local_filters.visiting_title"),
-							localFilterOptions,
-							Compass,
-							true,
-						)}
+					{renderToggleSection(t("browse_filters.local_filters.visiting_title"), localFilterOptions, true)}
 
-						<section className="rounded-2xl p-4" style={cardStyle}>
-							{renderSectionHeader(t("browse_filters.local_filters.name_title"), Search, true)}
-							<div className="relative">
-								<Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
-								<input
-									type="text"
-									value={nicknameFilter}
-									onChange={(e) => setNicknameFilter(e.target.value)}
-									placeholder={t("browse_filters.local_filters.nickname_placeholder")}
-									className={cn(
-										"h-9 w-full rounded-full border border-[var(--border)] bg-[var(--surface)] pl-8 pr-8 text-sm text-[var(--text)] outline-none transition",
-										isExploreActive ? "focus:border-[var(--explore)]" : "focus:border-[var(--accent)]",
-									)}
-								/>
-								{nicknameFilter && (
-									<button
-										type="button"
-										onClick={() => setNicknameFilter("")}
-										className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-									>
-										<X className="h-3.5 w-3.5" />
-									</button>
-								)}
-							</div>
-						</section>
-					</div>
-				</div>
-
-				<div
-					className="relative z-10 shrink-0 border-t border-[var(--border)] px-[var(--app-px)] pt-3 flex gap-2"
-					style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
-				>
-					<button
-						type="button"
-						onClick={clearAll}
-						className={cn(
-							"flex-1 rounded-xl border border-[var(--border)] py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]",
-							isExploreActive ? "hover:border-[var(--explore)]" : "hover:border-[var(--accent)]",
-						)}
-					>
-						{t("browse_filters.clear_all")}
-					</button>
-					<button
-						type="button"
-						onClick={handleApply}
-						className={cn(
-							"relative flex-1 overflow-hidden rounded-xl py-3 text-sm font-bold transition group",
-							isExploreActive ? "bg-[var(--explore)] text-white" : "bg-[var(--accent)] text-[var(--accent-contrast)]",
-						)}
-					>
-						<span className="relative z-10">{t("browse_filters.apply")}</span>
-						<div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-					</button>
+					<SheetSection title={t("browse_filters.local_filters.name_title")} badge={localBadge}>
+						<SheetSearchInput
+							value={nicknameFilter}
+							onChange={setNicknameFilter}
+							placeholder={t("browse_filters.local_filters.nickname_placeholder")}
+							accentColor={isExploreActive ? "var(--explore)" : "var(--accent)"}
+						/>
+					</SheetSection>
 				</div>
 			</div>
-		</div>
+
+			<div className={SHEET_FOOTER_CLASS}>
+				<button
+					type="button"
+					onClick={clearAll}
+					className={sheetButtonClass("secondary")}
+				>
+					{t("browse_filters.clear_all")}
+				</button>
+				<button
+					type="button"
+					onClick={handleApply}
+					style={{ backgroundColor: accentColor }}
+					className={cn(sheetButtonClass(), isExploreActive && "text-white")}
+				>
+					{t("browse_filters.apply")}
+				</button>
+			</div>
+
+			{/* Portaled so the filter sheet's panel transform can't clip this stacked sheet. */}
+			{isGenderPickerOpen && createPortal(
+				<ManagedOptionsPickerDialog
+					title={t("profile_editor.sections.identity.gender_dialog_title")}
+					searchPlaceholder={t("profile_editor.sections.identity.gender_search_placeholder")}
+					noMatchesLabel={t("profile_editor.sections.identity.gender_no_matches")}
+					options={genderFilterOptions}
+					selected={genders}
+					confirmLabel={t("browse_filters.apply")}
+					accentColor={accentColor}
+					onToggle={(value) => toggleMultiSelect(value, setGenders)}
+					onClose={() => setIsGenderPickerOpen(false)}
+				/>,
+				document.body,
+			)}
+			{isTagsPickerOpen && createPortal(
+				<TagsPickerDialog
+					selected={tags}
+					confirmLabel={t("browse_filters.apply")}
+					accentColor={accentColor}
+					onToggle={toggleTag}
+					onClose={() => setIsTagsPickerOpen(false)}
+				/>,
+				document.body,
+			)}
+		</>
 	);
 }

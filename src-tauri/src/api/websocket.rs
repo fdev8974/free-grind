@@ -2,41 +2,38 @@
 //!
 //! The actual socket (fingerprinting, auth, auto-reconnect) is owned by
 //! `grindr::GrindrClient`'s shared background task — this module only
-//! forwards its typed events back to the webview as the same
-//! `grindr-ws://event` envelope the frontend already expects, and forwards
-//! outgoing frames the other way. `TauriWebSocket`
-//! (`src/services/tauriWebSocket.ts`) and `ChatRealtimeManager`
-//! (`src/services/chatRealtime.ts`) are unaware anything changed.
+//! forwards its typed events and connection state to the webview as
+//! `grindr-ws://event` (consumed by `ChatRealtimeManager`,
+//! `src/services/chatRealtime.ts`), forwards outgoing frames the other way,
+//! and lets the frontend's app lifecycle deactivate or force-reconnect it.
+
+use std::sync::atomic::Ordering;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tokio::sync::broadcast::error::RecvError;
+use tokio::time::timeout;
 
+use super::session_recovery::{report_refresh_failure, SessionErrorPayload};
 use crate::error::{AppError, BanInfo};
 use crate::state::AppState;
 
 const WS_EVENT: &str = "grindr-ws://event";
 
 #[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-struct SessionErrorPayload {
-    message: String,
-    /// The session is gone (401 on refresh); signing in again is the only fix.
-    unauthorized: bool,
-    /// A retry of the same refresh could still succeed.
-    transient: bool,
-}
-
-#[derive(Debug, Clone, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum WsEvent {
     Open,
     Message { data: String },
+    /// The bridge fell behind and the broadcast channel discarded events; the
+    /// frontend refetches over REST.
+    Lagged { skipped: u64 },
     Close { code: u16, reason: String },
     // grindr.rs's `WsConnectionState` doesn't distinguish a clean close from
     // an error — every disconnect surfaces as `Close`. Kept for the wire
-    // format's sake (the frontend's `TauriWebSocket` still has an `onerror`
-    // path) in case a future need to signal a WS-specific error appears.
+    // format's sake (the frontend still handles it) in case a future need to
+    // signal a WS-specific error appears.
     #[allow(dead_code)]
     Error { message: String },
 }
@@ -71,9 +68,10 @@ pub fn spawn_bridge(app: &AppHandle, client: grindr::GrindrClient) {
                             },
                         );
                     }
-                    Err(RecvError::Lagged(_skipped)) => {
+                    Err(RecvError::Lagged(skipped)) => {
                         #[cfg(debug_assertions)]
-                        eprintln!("[HTTP-WS] event bridge lagged, dropped {_skipped} events");
+                        eprintln!("[HTTP-WS] event bridge lagged, dropped {skipped} events");
+                        emit(&app, WsEvent::Lagged { skipped });
                     }
                     Err(RecvError::Closed) => break,
                 }
@@ -87,9 +85,7 @@ pub fn spawn_bridge(app: &AppHandle, client: grindr::GrindrClient) {
         tauri::async_runtime::spawn(async move {
             // React only to transitions, not the initial (always
             // `Disconnected`, since nothing has attempted to connect yet)
-            // value — emitting a spurious `Close` here before any `Open`
-            // would make `TauriWebSocket` mark itself permanently closed and
-            // ignore the real `Open` that follows once `connect()` succeeds.
+            // value; the frontend reads the current state via `ws_status`.
             while rx.changed().await.is_ok() {
                 match &*rx.borrow() {
                     grindr::WsConnectionState::Connected => emit(&app, WsEvent::Open),
@@ -134,14 +130,7 @@ pub fn spawn_bridge(app: &AppHandle, client: grindr::GrindrClient) {
                         );
                     }
                     grindr::AuthEvent::RefreshFailed { message, kind, .. } => {
-                        let _ = app.emit(
-                            "auth:session-error",
-                            SessionErrorPayload {
-                                message,
-                                unauthorized: false,
-                                transient: kind.is_transient(),
-                            },
-                        );
+                        report_refresh_failure(&app, message, kind.is_transient());
                     }
                     grindr::AuthEvent::RefreshRecovered => {
                         let _ = app.emit("auth:session-ok", ());
@@ -171,22 +160,8 @@ struct OutgoingFrame {
 }
 
 #[tauri::command]
-pub async fn ws_connect(
-    app: AppHandle,
-    state: tauri::State<'_, AppState>,
-    url: Option<String>,
-) -> Result<(), AppError> {
-    let _ = url; // kept for frontend call-site compatibility; grindr.rs owns the endpoint
-    let client = state.client()?;
-    client.connect().await;
-    // The bridge only reports *transitions* to connected. A `TauriWebSocket`
-    // opened while grindr.rs's shared socket is already up (a reconnect by
-    // ChatRealtimeManager, React StrictMode's double mount) would otherwise
-    // never see `open` and stay stuck connecting, dropping every send.
-    // A duplicate `open` (the socket connecting right now) is harmless.
-    if *client.connection_state().borrow() == grindr::WsConnectionState::Connected {
-        emit(&app, WsEvent::Open);
-    }
+pub async fn ws_connect(state: tauri::State<'_, AppState>) -> Result<(), AppError> {
+    state.client()?.connect().await;
     Ok(())
 }
 
@@ -196,30 +171,89 @@ pub async fn ws_send(state: tauri::State<'_, AppState>, payload: String) -> Resu
         .map_err(|e| AppError::Http(format!("invalid outgoing ws frame: {e}")))?;
 
     let client = state.client()?;
+
+    // grindr.rs's ws task keeps the command receiver alive while it backs
+    // off, so without this gate a command sent while the socket is down sits
+    // in the buffer and goes out on the next reconnect — long after the
+    // frontend timed it out and reported the send as failed.
+    if *client.connection_state().borrow() != grindr::WsConnectionState::Connected {
+        return Err(AppError::Http("websocket not connected".to_owned()));
+    }
+
+    // `try_send`, so a backed-up buffer fails instead of parking the caller.
     client
         .ws_sender()
-        .send(grindr::WsCommand {
+        .try_send(grindr::WsCommand {
             r#type: frame.r#type,
             ref_id: frame.ref_id,
             payload: frame.payload,
         })
-        .await
-        .map_err(|_| AppError::Http("websocket not connected".to_owned()))
-}
-
-/// There is one grindr-managed socket for the process's lifetime now, not one
-/// per `TauriWebSocket` instance, so there is nothing meaningful to tear
-/// down per-instance. `ChatRealtimeManager`'s own reconnect logic already
-/// tolerates idempotent `ws_connect` calls.
-#[tauri::command]
-pub async fn ws_disconnect() -> Result<(), AppError> {
-    Ok(())
+        .map_err(|e| AppError::Http(format!("websocket send failed: {e}")))
 }
 
 #[tauri::command]
 pub async fn ws_status(state: tauri::State<'_, AppState>) -> Result<bool, AppError> {
     let client = state.client()?;
     Ok(*client.connection_state().borrow() == grindr::WsConnectionState::Connected)
+}
+
+/// Foreground/background signal from the webview (Android only — iOS and
+/// desktop have no push channel and keep the socket up in the background).
+///
+/// Going inactive closes the realtime socket and pauses session refreshes;
+/// FCM covers notifications meanwhile. Coming back drops the connection pool
+/// and TLS session cache first: sockets that idled through a suspend are
+/// often half-dead with neither end having noticed, and the ping loop never
+/// checks for a pong, so it would otherwise take minutes for TCP to give up.
+#[tauri::command]
+pub async fn set_app_active(
+    state: tauri::State<'_, AppState>,
+    active: bool,
+) -> Result<(), AppError> {
+    state.app_active.store(active, Ordering::SeqCst);
+    let client = state.client()?;
+    let resuming = active && !client.is_active();
+    if resuming {
+        client.reset_transport().await?;
+    }
+    client.set_active(active);
+    Ok(())
+}
+
+const RECONNECT_STEP_TIMEOUT: Duration = Duration::from_secs(3);
+
+/// Forces a fresh realtime socket on a fresh transport. For the cases where
+/// the existing one may be silently dead but nothing deactivated it: resume
+/// on iOS/desktop, or the network coming back / changing.
+#[tauri::command]
+pub async fn ws_reconnect(state: tauri::State<'_, AppState>) -> Result<(), AppError> {
+    let client = state.client()?;
+    if !state.app_active.load(Ordering::SeqCst) {
+        return Ok(());
+    }
+
+    let mut states = client.connection_state();
+    if *states.borrow_and_update() == grindr::WsConnectionState::Connected {
+        client.set_active(false);
+        let stopped = timeout(
+            RECONNECT_STEP_TIMEOUT,
+            states.wait_for(|s| *s == grindr::WsConnectionState::Disconnected),
+        )
+        .await
+        .is_ok();
+        if !stopped {
+            client.set_active(state.app_active.load(Ordering::SeqCst));
+            return Err(AppError::Http("WS did not go down in time".to_owned()));
+        }
+    }
+
+    // Also covers a socket stuck backing off on a dead transport: the fresh
+    // one is picked up by its next attempt.
+    let reset = client.reset_transport().await;
+    // Not a plain `true`: the app may have been backgrounded meanwhile.
+    client.set_active(state.app_active.load(Ordering::SeqCst));
+    reset?;
+    Ok(())
 }
 
 #[tauri::command]

@@ -1,9 +1,8 @@
 /**
- * reCAPTCHA Enterprise tokens for Grindr's captcha-gated endpoints, minted by
- * the Free Grind reCAPTCHA helper add-on (Android only, see
- * RecaptchaHelper.kt). Ported from open-grind's mint_recaptcha_token: the
- * helper bundles Google's reCAPTCHA SDK and needs the Grindr app installed,
- * so nothing here works on desktop.
+ * reCAPTCHA Enterprise tokens for Grindr's captcha-gated endpoints, minted
+ * in-app by RecaptchaMintActivity (Android only). Ported from open-grind's
+ * mint_recaptcha_token: it needs Google's reCAPTCHA SDK and the Grindr app
+ * installed, so nothing here works on desktop.
  */
 
 /** The action strings Grindr scores a token against. */
@@ -16,16 +15,13 @@ export type RecaptchaAction =
 	| "device_key_registration";
 
 /**
- * Why no token could be minted. The first four come from Free Grind itself,
- * the rest from the helper's refusal markers.
+ * Why no token could be minted. The first three come from the bridge, the
+ * rest from RecaptchaMintActivity's refusal markers.
  */
 export type RecaptchaFailure =
 	| "unsupportedPlatform"
-	| "addonUnavailable"
-	| "addonUntrusted"
 	| "busy"
 	| "cancelled"
-	| "untrustedCaller"
 	| "unsupportedAction"
 	| "grindrMissing"
 	| "mintFailed";
@@ -41,7 +37,6 @@ export class RecaptchaError extends Error {
 }
 
 type RecaptchaBridge = {
-	recaptchaHelperAvailability?: () => string;
 	mintRecaptchaToken?: (action: string, requestId: string) => string;
 };
 
@@ -52,16 +47,14 @@ type RecaptchaResult = {
 	detail?: string;
 };
 
-const HELPER_REFUSALS: Record<string, RecaptchaFailure> = {
-	"untrusted-caller": "untrustedCaller",
+const REFUSALS: Record<string, RecaptchaFailure> = {
 	"unsupported-action": "unsupportedAction",
 	"grindr-missing": "grindrMissing",
 	"mint-failed": "mintFailed",
 	cancelled: "cancelled",
-	addonUnavailable: "addonUnavailable",
 };
 
-// The helper gives up after 20s itself; this only guards against an Activity
+// The SDK gives up after 20s itself; this only guards against an Activity
 // result that never arrives at all.
 const RESULT_TIMEOUT_MS = 60_000;
 
@@ -69,19 +62,14 @@ function bridge(): RecaptchaBridge | undefined {
 	return (window as Window & { FreeGrindBridge?: RecaptchaBridge }).FreeGrindBridge;
 }
 
-/** Whether a trusted helper is installed, so a token can be asked for. */
-export function isRecaptchaHelperAvailable(): boolean {
-	try {
-		return bridge()?.recaptchaHelperAvailability?.() === "available";
-	} catch {
-		return false;
-	}
+/** Whether this platform can mint a token at all (Android). */
+export function isRecaptchaAvailable(): boolean {
+	return typeof bridge()?.mintRecaptchaToken === "function";
 }
 
 /**
- * Mints a token for `action`. Opens the helper (a translucent activity) and
- * rejects with a {@link RecaptchaError} when it is missing, untrusted or
- * refuses.
+ * Mints a token for `action`. Opens RecaptchaMintActivity (translucent) and
+ * rejects with a {@link RecaptchaError} when it refuses or fails.
  */
 export function mintRecaptchaToken(action: RecaptchaAction): Promise<string> {
 	const native = bridge();
@@ -99,7 +87,7 @@ export function mintRecaptchaToken(action: RecaptchaAction): Promise<string> {
 			if (result.token) {
 				resolve(result.token);
 			} else {
-				const reason = HELPER_REFUSALS[result.error ?? ""] ?? "mintFailed";
+				const reason = REFUSALS[result.error ?? ""] ?? "mintFailed";
 				reject(new RecaptchaError(reason, result.detail));
 			}
 		};
@@ -117,14 +105,12 @@ export function mintRecaptchaToken(action: RecaptchaAction): Promise<string> {
 		let started: string;
 		try {
 			started = native.mintRecaptchaToken!(action, requestId);
-		} catch {
-			started = "addonUnavailable";
+		} catch (error) {
+			started = String(error);
 		}
 		if (started !== "ok") {
 			cleanup();
-			const reason: RecaptchaFailure =
-				started === "busy" || started === "addonUntrusted" ? started : "addonUnavailable";
-			reject(new RecaptchaError(reason));
+			reject(started === "busy" ? new RecaptchaError("busy") : new RecaptchaError("mintFailed", started));
 		}
 	});
 }

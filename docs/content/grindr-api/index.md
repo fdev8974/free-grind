@@ -4,6 +4,6 @@ outline: deep
 
 # Grindr API specification
 
-Last update: 2026.04.08 / v25.20.0 (147239)
+Last update: 2026.10.21 / v26.21.0 (190550)
 
-Licensed under [Personal Use Licence](https://github.com/fdev8974/free-grind/blob/main/LICENSE). You must credit authors and reference this project if you're going to use any parts of this document.
+Licensed under [MIT](https://opengrind.org/license). You must credit authors and reference this project if you're going to use any parts of this document.

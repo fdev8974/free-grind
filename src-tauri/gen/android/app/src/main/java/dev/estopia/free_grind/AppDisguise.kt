@@ -5,9 +5,12 @@ import android.app.ActivityManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ComponentName
+import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
+import android.media.AudioAttributes
+import android.net.Uri
 import android.util.Log
 
 /**
@@ -27,9 +30,19 @@ import android.util.Log
  */
 object AppDisguise {
   // Shared with MainActivity.ensureNotificationChannels and NotificationPoster,
-  // which both need to (re)create these same two channel ids.
-  const val CHAT_CHANNEL_ID = "free_grind_chat_notifications_v2"
-  const val TAPS_CHANNEL_ID = "free_grind_taps_notifications_v2"
+  // which both (re)create these same two channel ids via messageChannel().
+  // A channel's sound is fixed by whichever createNotificationChannel call
+  // comes first, so bumping the suffix is the only way to fix the sound on
+  // installs whose _v2 channels were created soundless (default OS tone).
+  const val CHAT_CHANNEL_ID = "free_grind_chat_notifications_v3"
+  const val TAPS_CHANNEL_ID = "free_grind_taps_notifications_v3"
+  private val LEGACY_CHANNEL_IDS = listOf(
+    "free_grind_chat_notifications", "free_grind_taps_notifications",
+    "free_grind_chat_notifications_v2", "free_grind_taps_notifications_v2",
+  )
+  // Non-chat pushes (favorite online, views, boosts, …); only NotificationPoster
+  // creates it, on the first such push.
+  const val ACTIVITY_CHANNEL_ID = "free_grind_activity_notifications"
 
   enum class Identity(
     val id: String,
@@ -39,25 +52,36 @@ object AppDisguise {
     // identities so that surface doesn't give the disguise away either.
     val chatChannelName: String,
     val tapsChannelName: String,
+    val activityChannelName: String,
     // Same label/icon shown on the launcher alias — reused for the Recents
     // (task switcher) card and the custom splash dialog, the two other
     // places that otherwise keep showing the real "Free Grind" identity
     // regardless of which alias is enabled.
     val labelRes: Int,
     val iconRes: Int,
+    // Monochrome status-bar/notification small icon; the fox silhouette
+    // would otherwise give every decoy away on each incoming notification.
+    val notificationIconRes: Int,
   ) {
-    DEFAULT("default", "DisguiseDefaultAlias", "Chat Messages", "Taps", R.string.app_name, R.mipmap.ic_launcher),
+    DEFAULT(
+      "default", "DisguiseDefaultAlias", "Chat Messages", "Taps", "Activity",
+      R.string.app_name, R.mipmap.ic_launcher,
+      R.drawable.ic_notification_silhouette,
+    ),
     CALCULATOR(
-      "calculator", "DisguiseCalculatorAlias", "Reminders", "Alerts",
+      "calculator", "DisguiseCalculatorAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_calculator, R.mipmap.ic_launcher_calculator,
+      R.drawable.ic_notification_calculator,
     ),
     NOTES(
-      "notes", "DisguiseNotesAlias", "Reminders", "Alerts",
+      "notes", "DisguiseNotesAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_notes, R.mipmap.ic_launcher_notes,
+      R.drawable.ic_notification_notes,
     ),
     WEATHER(
-      "weather", "DisguiseWeatherAlias", "Reminders", "Alerts",
+      "weather", "DisguiseWeatherAlias", "Reminders", "Alerts", "Updates",
       R.string.disguise_name_weather, R.mipmap.ic_launcher_weather,
+      R.drawable.ic_notification_weather,
     );
 
     companion object {
@@ -103,12 +127,6 @@ object AppDisguise {
     return Identity.DEFAULT
   }
 
-  /** The channel display name to use for the currently active disguise. */
-  fun channelName(context: Context, isTap: Boolean): String {
-    val identity = currentDisguise(context)
-    return if (isTap) identity.tapsChannelName else identity.chatChannelName
-  }
-
   /**
    * Updates this task's Recents/multitasking-switcher card (icon + label) to
    * match [identity]. Without this, Recents falls back to the app's real
@@ -128,6 +146,43 @@ object AppDisguise {
     }
   }
 
+  /**
+   * The chat/taps channel, always with the Free Grind message sound. Every
+   * place that creates these channels must go through here: a first creation
+   * without setSound() would lock the channel to the OS default tone.
+   */
+  fun messageChannel(context: Context, identity: Identity, isTap: Boolean): NotificationChannel =
+    NotificationChannel(
+      if (isTap) TAPS_CHANNEL_ID else CHAT_CHANNEL_ID,
+      if (isTap) identity.tapsChannelName else identity.chatChannelName,
+      NotificationManager.IMPORTANCE_HIGH,
+    ).apply {
+      description = if (isTap) "Notifications for incoming taps" else "Notifications for new chat messages"
+      enableLights(true)
+      enableVibration(true)
+      setShowBadge(true)
+      setSound(
+        messageSoundUri(context),
+        AudioAttributes.Builder()
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .build(),
+      )
+    }
+
+  fun messageSoundUri(context: Context): Uri =
+    Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.free_grind_message}")
+
+  /** Creates/renames the chat + taps channels and drops superseded channel ids. */
+  fun ensureMessageChannels(context: Context, identity: Identity = currentDisguise(context)) {
+    val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    for (id in LEGACY_CHANNEL_IDS) {
+      if (nm.getNotificationChannel(id) != null) nm.deleteNotificationChannel(id)
+    }
+    nm.createNotificationChannel(messageChannel(context, identity, isTap = false))
+    nm.createNotificationChannel(messageChannel(context, identity, isTap = true))
+  }
+
   // Renaming an *existing* channel just means calling createNotificationChannel
   // again with a new name for the same id — per-channel fields the user could
   // have customized (importance, sound) are left alone by the system on
@@ -135,12 +190,13 @@ object AppDisguise {
   // at startup and right after switching disguises, without needing to
   // delete+recreate the channel (which would reset those user customizations).
   private fun refreshChannelNames(context: Context, identity: Identity) {
+    ensureMessageChannels(context, identity)
     val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    nm.createNotificationChannel(
-      NotificationChannel(CHAT_CHANNEL_ID, identity.chatChannelName, NotificationManager.IMPORTANCE_HIGH)
-    )
-    nm.createNotificationChannel(
-      NotificationChannel(TAPS_CHANNEL_ID, identity.tapsChannelName, NotificationManager.IMPORTANCE_HIGH)
-    )
+    // Only renamed once it exists — it's created lazily on the first such push.
+    if (nm.getNotificationChannel(ACTIVITY_CHANNEL_ID) != null) {
+      nm.createNotificationChannel(
+        NotificationChannel(ACTIVITY_CHANNEL_ID, identity.activityChannelName, NotificationManager.IMPORTANCE_DEFAULT)
+      )
+    }
   }
 }

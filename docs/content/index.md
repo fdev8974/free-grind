@@ -2,27 +2,19 @@
 # https://vitepress.dev/reference/default-theme-home-page
 layout: home
 
+titleTemplate: ':title — free & open source Grindr client'
+
 hero:
   name: "Free Grind"
   text: "Unofficial Grindr client"
-  tagline: Crossplatform, free, libre, ad-free, tracker-free, privacy-centered and community-driven
+  tagline: Free, open source and private. No ads, no trackers, no paywalls.
   actions:
     - theme: brand
-      text: Read Guides
-      link: /guide/
-    - theme: alt
-      text: API Reference
-      link: /grindr-api/
+      text: Download
+      icon: '<span class="vp-icon i-download"></span>'
+      link: /guide/download
     - theme: alt
       text: Source code
+      icon: '<span class="vp-icon i-github"></span>'
       link: https://github.com/fdev8974/free-grind
-
-features:
-  - title: User Guides
-    details: Step-by-step guides for setup, chat workflows, media sharing, and troubleshooting.
-  - title: Grindr API Reference
-    details: Detailed endpoint docs, schemas, behavior notes, and reverse-engineered findings.
-  - title: Privacy-First Design
-    details: Community-driven FLOSS client with a focus on user control and reduced tracking surface.
 ---
-

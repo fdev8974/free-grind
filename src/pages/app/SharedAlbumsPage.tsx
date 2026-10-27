@@ -1,4 +1,6 @@
-import { Album, ChevronLeft, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Wifi } from "lucide-react";
+import { Album, Film, Images, Layers, MessageCircle, RefreshCw, Star, Trash2, UserRound, Video } from "lucide-react";
+import type { TFunction } from "i18next";
+import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -23,14 +25,16 @@ import {
 	getCachedAlbumCoverUri,
 	getLocalAlbum,
 } from "../../services/albumStore";
-import { getAllAlbums, getConversation } from "../../services/chatDb";
+import { getAlbumMediaCounts, getAllAlbums, getConversation } from "../../services/chatDb";
 import { toDataUri } from "../../services/mediaStore";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
-import { PhotoViewer, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
+import { PhotoViewer, type HeroRect, type PhotoViewerMedia, type PhotoViewerMenuAction } from "../../components/PhotoViewer";
 import { AlbumMediaSheet } from "../../components/AlbumMediaSheet";
 import { PhotoActionBar } from "../../components/PhotoActionBar";
+import { markAlbumContentReacted, useAlbumContentReactions } from "../../services/albumReactionStore";
 import { useRevealOnScroll } from "../../hooks/useRevealOnScroll";
 import { saveAllAlbumMedia } from "../../utils/albumMedia";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 
 function getCounterparty(
 	entry: ConversationEntry,
@@ -68,7 +72,7 @@ function AlbumCard({
 	onClick: () => void;
 	onDelete: () => void;
 	isDeleting: boolean;
-	t: (key: string) => string;
+	t: TFunction;
 }) {
 	const { ref, revealClass } = useRevealOnScroll();
 	const previewUrl =
@@ -77,63 +81,65 @@ function AlbumCard({
 		item.album.content?.coverUrl ||
 		null;
 	const avatarUrl = item.profileMediaHash
-		? getThumbImageUrl(item.profileMediaHash, "320x320")
+		? getThumbImageUrl(item.profileMediaHash, "75x75")
 		: null;
+	const { imageCount, videoCount } = item.album.contentCount;
+	const showsAlbumNumber = !item.localOnly && item.totalAlbumsShared != null && item.totalAlbumsShared > 1;
 
 	return (
 		<div ref={ref} className={revealClass}>
-			<div className="surface-card relative w-full overflow-hidden rounded-2xl transition-transform hover:-translate-y-0.5">
+			<div className="group relative w-full overflow-hidden rounded-2xl bg-[var(--surface-2)] transition-transform hover:-translate-y-0.5">
 				<button
 					type="button"
 					onClick={onClick}
-					className="block w-full text-left"
+					className="relative block aspect-[4/6] w-full text-left"
 				>
-					<div className="relative aspect-[4/6] w-full bg-[var(--surface-2)]">
-						{previewUrl ? (
-							<>
-								<img
-									src={previewUrl}
-									alt={item.album.albumName ?? t("shared_albums.preview_alt")}
-									className="h-full w-full scale-110 object-cover"
-								/>
-								<div className="absolute inset-0 bg-black/25" />
-							</>
-						) : (
-							<div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
-								<Album className="h-8 w-8" />
-							</div>
-						)}
-						<div className="absolute left-2 top-2 flex items-center gap-1">
-							{item.album.contentCount.videoCount > 0 ? (
-								<div
-									className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold text-white/85 backdrop-blur-sm"
-									title={t("shared_albums.video_label")}
-									aria-label={t("shared_albums.video_label")}
-								>
-									<Film className="h-3 w-3" />
-								</div>
-							) : null}
+					{previewUrl ? (
+						<img
+							src={proxyMediaUrl(previewUrl)}
+							alt={item.album.albumName ?? t("shared_albums.preview_alt")}
+							loading="lazy"
+							className="h-full w-full object-cover transition group-hover:scale-105"
+						/>
+					) : (
+						<div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
+							<Album className="h-8 w-8 opacity-40" />
 						</div>
-						{!item.localOnly && item.totalAlbumsShared != null && item.totalAlbumsShared > 1 ? (
-							<div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/50 px-2 py-1 text-[10px] font-semibold tabular-nums text-white/85 backdrop-blur-sm">
-								<Layers className="h-3 w-3" />
-								{item.albumNumber}/{item.totalAlbumsShared}
-							</div>
+					)}
+					{showsAlbumNumber ? (
+						<div className="absolute left-2 top-2 inline-flex h-6 items-center gap-1 rounded-full bg-black/60 px-2 text-[10px] font-semibold leading-none tabular-nums text-white/85">
+							<Layers className="h-3 w-3" />
+							{item.albumNumber}/{item.totalAlbumsShared}
+						</div>
+					) : null}
+					{/* Owner and contents, like the chat's album bubble */}
+					<div className="absolute inset-x-0 bottom-0 space-y-1 bg-gradient-to-t from-black/75 via-black/40 to-transparent px-2 pb-2 pt-10">
+						{item.album.albumName ? (
+							<p className="truncate text-xs font-semibold leading-tight text-white drop-shadow">
+								{item.album.albumName}
+							</p>
 						) : null}
-						<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-white">
-							<div className="h-14 w-14 overflow-hidden rounded-full border-white/25 bg-white/15 text-white shadow-lg backdrop-blur-sm">
-								<ProfileImage src={avatarUrl} alt={item.profileName} />
-							</div>
-							<div className="min-w-0">
-								<p className="truncate text-sm font-semibold leading-tight text-white drop-shadow">
-									{item.profileName}
-								</p>
-								{item.album.albumName ? (
-									<p className="mt-0.5 truncate text-[11px] font-medium leading-tight text-white/75 drop-shadow">
-										{item.album.albumName}
-									</p>
+						{imageCount > 0 || videoCount > 0 ? (
+							<div className="flex items-center gap-2 text-[11px] font-medium text-white/90">
+								{imageCount > 0 ? (
+									<span className="inline-flex items-center gap-1 tabular-nums" title={t("chat.thread.album_photo_count", { count: imageCount })}>
+										<Images className="h-3 w-3" />
+										{imageCount}
+									</span>
+								) : null}
+								{videoCount > 0 ? (
+									<span className="inline-flex items-center gap-1 tabular-nums" title={t("chat.thread.album_video_count", { count: videoCount })}>
+										<Video className="h-3 w-3" />
+										{videoCount}
+									</span>
 								) : null}
 							</div>
+						) : null}
+						<div className="flex items-center gap-1.5">
+							<div className="h-5 w-5 shrink-0 overflow-hidden rounded-full bg-white/15">
+								<ProfileImage src={avatarUrl} alt={item.profileName} />
+							</div>
+							<p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{item.profileName}</p>
 						</div>
 					</div>
 				</button>
@@ -145,9 +151,9 @@ function AlbumCard({
 					}}
 					disabled={isDeleting}
 					title={t("shared_albums.delete")}
-					className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-red-500/80 disabled:opacity-50"
+					className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/85 transition hover:bg-red-500/80 hover:text-white disabled:opacity-50"
 				>
-					<Trash2 className="h-3.5 w-3.5" />
+					<Trash2 className="h-3 w-3" />
 				</button>
 			</div>
 		</div>
@@ -166,14 +172,16 @@ export function SharedAlbumsPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [items, setItems] = useState<SharedAlbumItem[]>([]);
 	const [isOpeningAlbum, setIsOpeningAlbum] = useState(false);
-	const [openAlbumError, setOpenAlbumError] = useState<string | null>(null);
+	// The album an open is in flight for; cleared when the viewer closes.
+	const pendingOpenAlbumIdRef = useRef<AlbumViewer["albumId"] | null>(null);
 	const [viewer, setViewer] = useState<AlbumViewer | null>(null);
+	const hasReactedToAlbumContent = useAlbumContentReactions(userId, viewer !== null);
 	const [viewerIndex, setViewerIndex] = useState(0);
 	const [isContentSheetOpen, setIsContentSheetOpen] = useState(false);
 	const [isSavingAll, setIsSavingAll] = useState(false);
 	const feedContainerRef = useRef<HTMLDivElement>(null);
 	const viewerHistoryPushedRef = useRef(false);
-	const minmaxValue = mobileGridColumns === "2" ? "130px" : "100px";
+	const minmaxValue = mobileGridColumns === "2" ? "130px" : mobileGridColumns === "4" ? "80px" : "100px";
 
 	const [filters, setFilters] = useState({ isFavorite: false, isOnline: false, onlyVideo: false });
 
@@ -298,6 +306,11 @@ export function SharedAlbumsPage() {
 				: (await getAllAlbums().catch(() => [])).filter(
 					(stored) => !liveAlbumIds.has(Number(stored.albumId)),
 				);
+			// Counts only, in one query: loading each album's media just to count
+			// it read every stored photo and video into memory and crashed the page.
+			const localCounts = cachedOnlyAlbums.length > 0
+				? await getAlbumMediaCounts().catch(() => new Map<string, { imageCount: number; videoCount: number }>())
+				: new Map<string, { imageCount: number; videoCount: number }>();
 			const cachedOnlyItems = (
 				await Promise.all(
 					cachedOnlyAlbums.map(async (stored): Promise<SharedAlbumItem | null> => {
@@ -317,6 +330,7 @@ export function SharedAlbumsPage() {
 								}
 							}
 						}
+						const localContentCount = localCounts.get(String(stored.albumId)) ?? { imageCount: 0, videoCount: 0 };
 						const cachedCover =
 							getCachedAlbumCoverUri(Number(stored.albumId)) ??
 							(stored.previewCoverBase64 && stored.previewCoverMimeType
@@ -336,7 +350,7 @@ export function SharedAlbumsPage() {
 								content: cachedCover
 									? { thumbUrl: cachedCover, url: cachedCover, coverUrl: cachedCover }
 									: null,
-								contentCount: { imageCount: 0, videoCount: 0 },
+								contentCount: localContentCount,
 							},
 							albumNumber: Number.MAX_SAFE_INTEGER,
 							localOnly: true,
@@ -521,24 +535,59 @@ export function SharedAlbumsPage() {
 		[openAlbumAsBottomSheet],
 	);
 
+	const closeViewerState = useCallback(() => {
+		// Closed while still loading: the pending open is dropped.
+		pendingOpenAlbumIdRef.current = null;
+		setIsOpeningAlbum(false);
+		setViewer(null);
+		setViewerIndex(0);
+		setIsContentSheetOpen(false);
+		viewerHistoryPushedRef.current = false;
+	}, []);
+
+	const closeViewer = useCallback(() => {
+		if (viewerHistoryPushedRef.current) {
+			window.history.back();
+			return;
+		}
+
+		closeViewerState();
+	}, [closeViewerState]);
+
 	const openViewer = useCallback(
 		async (item: SharedAlbumItem) => {
 			if (isOpeningAlbum) {
 				return;
 			}
 
-			setOpenAlbumError(null);
+			const albumId = item.album.albumId;
 
-			// Also visible as a toast, not just the inline banner at the top of
-			// the grid — that banner is scrolled out of view as soon as the
-			// user has scrolled past the first row, which otherwise makes a
-			// failed open look like the tap did nothing at all.
-			const reportOpenError = (message: string) => {
-				setOpenAlbumError(message);
+			// Open right away with what the tile already knows; the viewer or
+			// sheet shows its own loading state until the content arrives.
+			const meta = {
+				albumId,
+				albumName: item.album.albumName ?? null,
+				profileId: item.profileId,
+				profileName: item.profileName,
+				profileMediaHash: item.profileMediaHash,
+				onlineUntil: item.onlineUntil,
+				lastOnline: item.lastOnline,
+				distanceMetres: item.distanceMetres,
+				conversationId: item.conversationId,
+			};
+			pendingOpenAlbumIdRef.current = albumId;
+			setIsOpeningAlbum(true);
+			openLoadedAlbum({ ...meta, content: [] });
+			// Ignored once the album was closed (or another one opened) meanwhile.
+			const isStillOpening = () => pendingOpenAlbumIdRef.current === albumId;
+			const present = (data: AlbumViewer) => {
+				if (isStillOpening()) setViewer(data);
+			};
+			const failOpen = (message: string) => {
+				if (!isStillOpening()) return;
+				closeViewer();
 				toast.error(message);
 			};
-
-			const albumId = item.album.albumId;
 
 			// Opens straight from chatDb's cached content — used both for
 			// localOnly items (album dropped out of the live feed entirely)
@@ -553,16 +602,10 @@ export function SharedAlbumsPage() {
 				if (!local || local.content.length === 0) {
 					return false;
 				}
-				openLoadedAlbum({
+				present({
+					...meta,
 					albumId: local.albumId,
-					albumName: local.albumName ?? item.album.albumName ?? null,
-					profileId: item.profileId,
-					profileName: item.profileName,
-					profileMediaHash: item.profileMediaHash,
-					onlineUntil: item.onlineUntil,
-					lastOnline: item.lastOnline,
-					distanceMetres: item.distanceMetres,
-					conversationId: item.conversationId,
+					albumName: local.albumName ?? meta.albumName,
 					content: local.content,
 				});
 				return true;
@@ -571,18 +614,19 @@ export function SharedAlbumsPage() {
 			// The album has dropped out of the live feed entirely, so local
 			// cache is the only source.
 			if (item.localOnly) {
-				setIsOpeningAlbum(true);
 				try {
 					if (!(await openFromLocalCache())) {
-						reportOpenError(t("shared_albums.error_open_fallback"));
+						failOpen(t("shared_albums.error_open_fallback"));
 					}
 				} finally {
-					setIsOpeningAlbum(false);
+					if (isStillOpening()) {
+						pendingOpenAlbumIdRef.current = null;
+						setIsOpeningAlbum(false);
+					}
 				}
 				return;
 			}
 
-			setIsOpeningAlbum(true);
 			try {
 				await apiFunctions.openSharedAlbum({ albumId });
 
@@ -616,16 +660,20 @@ export function SharedAlbumsPage() {
 					...localOnly,
 				];
 
-				openLoadedAlbum({
+				// Nothing to show: the viewer would just flash open and vanish,
+				// so close it and say why instead.
+				if (mergedContent.length === 0) {
+					if (isStillOpening()) {
+						closeViewer();
+						toast(t("shared_albums.empty_album_title"));
+					}
+					return;
+				}
+
+				present({
+					...meta,
 					albumId: details.albumId,
-					albumName: details.albumName ?? local?.albumName ?? null,
-					profileId: item.profileId,
-					profileName: item.profileName,
-					profileMediaHash: item.profileMediaHash,
-					onlineUntil: item.onlineUntil,
-					lastOnline: item.lastOnline,
-					distanceMetres: item.distanceMetres,
-					conversationId: item.conversationId,
+					albumName: details.albumName ?? local?.albumName ?? meta.albumName,
 					content: mergedContent,
 				});
 
@@ -649,22 +697,28 @@ export function SharedAlbumsPage() {
 				if (await openFromLocalCache().catch(() => false)) {
 					return;
 				}
-				reportOpenError(
+				failOpen(
 					openError instanceof Error
 						? openError.message
 						: t("shared_albums.error_open_fallback"),
 				);
 			} finally {
-				setIsOpeningAlbum(false);
+				if (isStillOpening()) {
+					pendingOpenAlbumIdRef.current = null;
+					setIsOpeningAlbum(false);
+				}
 			}
 		},
-		[apiFunctions, isOpeningAlbum, t, openLoadedAlbum],
+		[apiFunctions, isOpeningAlbum, t, openLoadedAlbum, closeViewer],
 	);
 
 	// Tapping an item inside the album's browse-first sheet — the sheet stays
 	// mounted underneath so closing the full-screen viewer returns to it
 	// instead of exiting all the way back to the album grid.
-	const handleSelectAlbumContent = useCallback((index: number) => {
+	// Where the tapped tile sits in the album sheet, for the viewer's hero open.
+	const [viewerHeroRect, setViewerHeroRect] = useState<HeroRect | null>(null);
+	const handleSelectAlbumContent = useCallback((index: number, heroRect?: HeroRect | null) => {
+		setViewerHeroRect(heroRect ?? null);
 		setIsContentSheetOpen(false);
 		setViewerIndex(index);
 		if (!viewerHistoryPushedRef.current) {
@@ -700,6 +754,7 @@ export function SharedAlbumsPage() {
 					target: { type: "Direct", targetId: targetProfileId },
 					body: { albumId, albumContentId },
 				});
+				markAlbumContentReacted(albumId, albumContentId);
 				toast.success(t("chat.toasts.album_reaction_sent", { defaultValue: "Reaction sent" }));
 			} catch (error) {
 				toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
@@ -737,22 +792,6 @@ export function SharedAlbumsPage() {
 			type: item.contentType?.startsWith("video/") ? "video" : "image",
 		}));
 	}, [viewer]);
-
-	const closeViewerState = useCallback(() => {
-		setViewer(null);
-		setViewerIndex(0);
-		setIsContentSheetOpen(false);
-		viewerHistoryPushedRef.current = false;
-	}, []);
-
-	const closeViewer = useCallback(() => {
-		if (viewerHistoryPushedRef.current) {
-			window.history.back();
-			return;
-		}
-
-		closeViewerState();
-	}, [closeViewerState]);
 
 	const handleIndexChange = useCallback((index: number) => {
 		setViewerIndex((prev) => (prev === index ? prev : index));
@@ -852,6 +891,7 @@ export function SharedAlbumsPage() {
 			name: viewer.profileName,
 			subtitle: [statusLabel, distanceLabel].filter(Boolean).join(" · ") || null,
 			isOnline: statusMeta.isOnline,
+			isOnlineEndingSoon: statusMeta.isEndingSoon,
 			onClick: () => handleViewProfile(viewer.profileId),
 		};
 	}, [viewer, t, unitsPreset, handleViewProfile]);
@@ -861,7 +901,7 @@ export function SharedAlbumsPage() {
 			<PullToRefreshContainer
 				className="app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
 				contentClassName="flex flex-1 flex-col min-h-0"
-				style={{ overflow: "visible", overflowX: "hidden" }}
+				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}
 				onRefresh={handleRefresh}
 				isDisabled={isLoading || isRefreshing}
 				isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
@@ -871,34 +911,28 @@ export function SharedAlbumsPage() {
 				{/* Header */}
 				<header className="relative z-20 shrink-0 pointer-events-none">
 					<PageHeaderBackground color="var(--accent)" />
-					<div className="pointer-events-auto flex flex-col gap-3 mx-auto w-full max-w-6xl px-[var(--app-px)]">
-						<button
-							type="button"
-							onClick={() => navigate("/chat", { replace: true })}
-							className="mt-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-						>
-							<ChevronLeft className="h-4 w-4" />
-							{t("nav.inbox")}
-						</button>
-
+					<div className="pointer-events-auto flex flex-col gap-3 mx-auto w-full max-w-6xl px-4 sm:px-5">
 						{/* Row 1: title + count subtitle + refresh */}
 						<div className="flex items-center justify-between gap-2">
-							<div className="min-w-0">
-								<h1 className="app-title">{t("shared_albums.title")}</h1>
-								<p className="app-subtitle">
-									{isLoading
-										? t("shared_albums.loading_title")
-										: [
-											t("shared_albums.albums_count", { count: items.length }),
-											t("shared_albums.people_count", { count: profileCount }),
-										].join(" · ")}
-								</p>
+							<div className="flex min-w-0 items-center gap-2">
+								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
+								<div className="min-w-0">
+									<h1 className="truncate text-lg font-semibold">{t("shared_albums.title")}</h1>
+									<p className="app-subtitle">
+										{isLoading
+											? t("shared_albums.loading_title")
+											: [
+												t("shared_albums.albums_count", { count: items.length }),
+												t("shared_albums.people_count", { count: profileCount }),
+											].join(" · ")}
+									</p>
+								</div>
 							</div>
 							<button
 								type="button"
 								onClick={handleRefresh}
 								disabled={isRefreshing || isLoading}
-								className="shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
+								className="header-icon-btn shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
 								aria-label={t("shared_albums.refresh")}
 							>
 								<RefreshCw className={`h-5 w-5 ${isRefreshing || isLoading ? "animate-spin" : ""}`} />
@@ -919,7 +953,7 @@ export function SharedAlbumsPage() {
 								)}
 								style={!filters.isFavorite ? { "--pill-color": "var(--accent)" } as CSSProperties : undefined}
 							>
-								<Star className={`h-3.5 w-3.5 ${filters.isFavorite ? "fill-current" : ""}`} />
+								<Star className="h-3.5 w-3.5 fill-current" />
 								{t("shared_albums.filter_favorites")}
 							</button>
 							<button
@@ -934,7 +968,7 @@ export function SharedAlbumsPage() {
 								)}
 								style={!filters.isOnline ? { "--pill-color": "var(--accent)" } as CSSProperties : undefined}
 							>
-								<Wifi className="h-3.5 w-3.5" />
+								<span className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
 								{t("shared_albums.filter_online")}
 							</button>
 							<button
@@ -958,14 +992,6 @@ export function SharedAlbumsPage() {
 
 				<FeedScrollContainer ref={feedContainerRef}>
 					<div className="mx-auto w-full max-w-6xl px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)]">
-						{openAlbumError ? (
-							<ErrorState
-								title={t("shared_albums.error_open_title")}
-								description={openAlbumError}
-								onRetry={() => setOpenAlbumError(null)}
-							/>
-						) : null}
-
 						{isLoading ? (
 							<div
 								className="grid gap-4"
@@ -974,7 +1000,7 @@ export function SharedAlbumsPage() {
 								}}
 							>
 								{Array.from({ length: 12 }).map((_, i) => (
-									<div key={i} className="surface-card overflow-hidden rounded-2xl">
+									<div key={i} className="native-card overflow-hidden rounded-2xl">
 										<div className="relative aspect-[4/6] w-full animate-pulse bg-[var(--surface-2)]">
 											<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-3">
 												<div className="h-20 w-20 rounded-full bg-[var(--border)]" />
@@ -1060,14 +1086,6 @@ export function SharedAlbumsPage() {
 			 * app-screen's padding (a gap at the top) and trap them under the
 			 * bottom NavBar's stacking context instead of covering it.
 			 */}
-			{isOpeningAlbum ? (
-				<div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4">
-					<div className="surface-card p-4 text-sm text-[var(--text-muted)]">
-						{t("shared_albums.opening")}
-					</div>
-				</div>
-			) : null}
-
 			{viewer !== null && openAlbumAsBottomSheet ? (
 				<AlbumMediaSheet
 					albumName={viewer.albumName}
@@ -1075,6 +1093,7 @@ export function SharedAlbumsPage() {
 					onClose={closeViewerState}
 					onSelect={handleSelectAlbumContent}
 					locked={!isContentSheetOpen}
+					isLoading={isOpeningAlbum}
 				/>
 			) : null}
 
@@ -1088,6 +1107,8 @@ export function SharedAlbumsPage() {
 					conversationId={albumViewerFolderKey(viewer)}
 					menuActions={albumMenuActions}
 					albumHeader={albumHeader}
+					isLoading={isOpeningAlbum}
+					heroRect={viewerHeroRect}
 					// Only gate directly-opened albums — once the user has already
 					// browsed the album's contents in the browse-first sheet, the
 					// warning would be redundant for every item tapped from it.
@@ -1101,6 +1122,7 @@ export function SharedAlbumsPage() {
 									sendAlbumContentReply(viewer.albumId, item.contentId, item.contentType, viewer.profileId, text)
 								}
 								onReact={() => sendAlbumContentReaction(viewer.albumId, item.contentId, viewer.profileId)}
+								reacted={hasReactedToAlbumContent(viewer.albumId, item.contentId)}
 							/>
 						);
 					}}

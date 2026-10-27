@@ -1,5 +1,6 @@
-import { RefreshCw, Eye, Flame } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties, type TouchEvent } from "react";
+import { RefreshCw } from "lucide-react";
+import { EyeFilled, FlameFilled, SendFilled } from "../../components/icons/FilledIcons";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type ComponentType, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useInterestData } from "../../hooks/queries/useInterestQueries";
@@ -14,6 +15,8 @@ import {
 	PREVIEW_ID_PREFIX,
 } from "./interest/interestUtils";
 import { InterestTabs, InterestRow, type InterestTabConfig } from "./interest/InterestComponents";
+import { InterestViewsGrid, useViewsGridLayout } from "./interest/InterestViewsGrid";
+import { getAllCachedBrowseCardsById } from "./gridpage/cache";
 import { InterestOnboardingModal } from "./interest/InterestOnboardingModal";
 import {
 	SCROLL_RESTORATION_TIMEOUT_MS,
@@ -24,6 +27,8 @@ import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { usePreferences } from "../../contexts/PreferencesContext";
 
 const ONBOARDING_KEY = "fg-interest-onboarding-seen";
+
+const TAB_ICONS: Record<InterestTab, ComponentType<{ className?: string }>> = { views: EyeFilled, taps: FlameFilled, sent: SendFilled };
 
 function loadStoredLimit(tab: InterestTab, fallback: number): number {
 	const saved = sessionStorage.getItem(`interest-scroll-${tab}`);
@@ -38,10 +43,33 @@ function loadStoredLimit(tab: InterestTab, fallback: number): number {
 	return fallback;
 }
 
+function InterestViewsGridSkeleton() {
+	const { isDesktop, gridTemplateColumns, gridClassName } = useViewsGridLayout();
+	return (
+		<div className={gridClassName} style={{ gridTemplateColumns }}>
+			{Array.from({ length: 12 }).map((_, i) => (
+				<div
+					key={i}
+					className={cn(
+						"relative h-0 w-full animate-pulse overflow-hidden bg-[var(--surface-2)] pb-[100%]",
+						isDesktop ? "rounded-xl" : "rounded-[4px]",
+					)}
+				>
+					<div className="absolute left-2 top-2 h-4 w-9 rounded-full bg-white/20" />
+					<div className="absolute bottom-2 left-2 flex flex-col gap-1.5">
+						<div className="h-2.5 w-16 rounded-full bg-white/20" />
+						<div className="h-2 w-10 rounded-full bg-white/15" />
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
 function InterestSkeleton({ mode }: { mode: InterestTab }) {
 	return (
 		<div className="flex items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4">
-			<div className="h-15 w-15 shrink-0 squircle animate-pulse bg-[var(--surface-2)]" />
+			<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]" />
 			<div className="flex flex-1 flex-col gap-2">
 				<div className="h-3 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
 				<div className="h-2.5 w-16 animate-pulse rounded-full bg-[var(--border)]" />
@@ -69,6 +97,8 @@ export function InterestPage() {
 	const fallbackTab: InterestTab = isValidTab(lastActiveTab) ? lastActiveTab : defaultSetting;
 	const tabParam = searchParams.get("tab");
 	const activeTab: InterestTab = isValidTab(tabParam) ? tabParam : fallbackTab;
+	// Views render as a tile grid by default; "list" shows them as rows like taps.
+	const isViewsGrid = activeTab === "views" && window.localStorage.getItem("fg-interest-views-layout") !== "list";
 
 	useEffect(() => {
 		window.localStorage.setItem("fg-interest-last-tab", activeTab);
@@ -137,6 +167,10 @@ export function InterestPage() {
 	}, [data?.taps, demoAddedTaps, demoMode]);
 
 	const sentTaps = useMemo(() => data?.sentTaps ?? [], [data?.sentTaps]);
+
+	// Views don't carry age/favorite — borrow them from the browse grid's
+	// cache for anyone we've seen there. Re-read whenever the data refreshes.
+	const browseCardsById = useMemo(() => getAllCachedBrowseCardsById(), [data]);
 
 	const itemsByTab = useMemo(
 		() => ({ views, taps, sent: sentTaps }) satisfies Record<InterestTab, InterestItem[]>,
@@ -291,7 +325,7 @@ export function InterestPage() {
 	const [showOnboarding, setShowOnboarding] = useState(() => {
 		return !localStorage.getItem(ONBOARDING_KEY);
 	});
-	const touchStartXRef = useRef<number | null>(null);
+	const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
 	const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
 	const feedContainerRef = useRef<HTMLDivElement | null>(null);
@@ -304,10 +338,6 @@ export function InterestPage() {
 			setShowOnboarding(true);
 		}
 	}, [activeTab]);
-
-	const handleCloseOnboarding = useCallback(() => {
-		setShowOnboarding(false);
-	}, []);
 
 	const handleAcknowledgeOnboarding = useCallback(() => {
 		setShowOnboarding(false);
@@ -325,8 +355,10 @@ export function InterestPage() {
 	const activeItems = itemsByTab[activeTab];
 
 	const displayedItems = useMemo(
-		() => activeItems.slice(0, limits[activeTab]),
-		[activeItems, limits, activeTab],
+		// The views grid is virtualized, so it takes the whole list at once;
+		// only the plain lists page through it.
+		() => (isViewsGrid ? activeItems : activeItems.slice(0, limits[activeTab])),
+		[activeItems, limits, activeTab, isViewsGrid],
 	);
 
 	const hasMoreItems = activeItems.length > displayedItems.length;
@@ -463,6 +495,16 @@ export function InterestPage() {
 		}
 	}, [activeTab, maxInterestTimestamp, data]);
 
+	// Refetch once when the page opens — the query's 5 min staleTime would
+	// otherwise keep showing cached views/taps. One query feeds all tabs, so
+	// switching tabs needs no refetch. cancelRefetch: false joins an
+	// already-running fetch (e.g. the very first load) instead of restarting it.
+	const refetchRef = useRef(refetch);
+	refetchRef.current = refetch;
+	useEffect(() => {
+		void refetchRef.current({ cancelRefetch: false });
+	}, []);
+
 	const handleRefresh = useCallback(() => {
 		setLimits((prev) => ({ ...prev, [activeTab]: ITEMS_PER_PAGE }));
 		sessionStorage.removeItem(`interest-scroll-${activeTab}`);
@@ -495,7 +537,8 @@ export function InterestPage() {
 	);
 
 	const handleTouchStart = useCallback((event: TouchEvent<HTMLDivElement>) => {
-		touchStartXRef.current = event.touches[0]?.clientX ?? null;
+		const touch = event.touches[0];
+		touchStartRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
 	}, []);
 
 	const tabOrder: InterestTab[] = useMemo(
@@ -510,24 +553,39 @@ export function InterestPage() {
 		[newViewsCount, newTapsCount],
 	);
 
+	const isRefreshingTotal = (isFetching && !isQueryLoading) || isDemoLoading;
 	const tabConfigs: InterestTabConfig[] = useMemo(
 		() => tabOrder.map((tab) => ({
 			key: tab,
 			label: t(`interest_page.tabs.${tab}`),
-			count: tabCounts[tab],
+			icon: TAB_ICONS[tab],
+			unread: tabCounts[tab],
+			// Only the active tab shows its total; activeItems belongs to it.
+			total: tab === activeTab ? (tab === "views" ? viewedCount : activeItems.length) : undefined,
+			isRefreshing: tab === activeTab && isRefreshingTotal,
+			totalTitle: tab === "views"
+				? t("interest_page.total_viewed_count")
+				: tab === "taps" ? t("interest_page.total_taps_count") : undefined,
 		})),
-		[tabOrder, tabCounts, t],
+		[tabOrder, tabCounts, t, activeTab, viewedCount, activeItems.length, isRefreshingTotal],
 	);
 
 	const handleTouchEnd = useCallback(
 		(event: TouchEvent<HTMLDivElement>) => {
-			const startX = touchStartXRef.current;
-			if (startX == null) {
+			const start = touchStartRef.current;
+			touchStartRef.current = null;
+			if (start == null) {
 				return;
 			}
 
-			const endX = event.changedTouches[0]?.clientX ?? startX;
-			const deltaX = startX - endX;
+			const endTouch = event.changedTouches[0];
+			const deltaX = start.x - (endTouch?.clientX ?? start.x);
+			const deltaY = (endTouch?.clientY ?? start.y) - start.y;
+			// Only clearly horizontal gestures switch tabs — a slightly diagonal
+			// pull-to-refresh drag must not count as a swipe.
+			if (Math.abs(deltaX) < Math.abs(deltaY) * 2) {
+				return;
+			}
 			const currentIndex = tabOrder.indexOf(activeTab);
 
 			// Swipe left (positive deltaX) -> move to the next tab
@@ -539,8 +597,6 @@ export function InterestPage() {
 			if (deltaX < -70 && currentIndex > 0) {
 				handleSetActiveTab(tabOrder[currentIndex - 1]);
 			}
-
-			touchStartXRef.current = null;
 		},
 		[activeTab, handleSetActiveTab, tabOrder],
 	);
@@ -580,33 +636,6 @@ export function InterestPage() {
 								tabs={tabConfigs}
 								onTabClick={handleSetActiveTab}
 							/>
-
-							{activeTab !== "sent" && (
-								<div
-									className="glass-pill flex h-8 shrink-0 items-center gap-1.5 px-3"
-									style={{ "--pill-color": "var(--text-muted)" } as CSSProperties}
-									title={t(activeTab === "views" ? "interest_page.total_viewed_count" : "interest_page.total_taps_count")}
-								>
-									{activeTab === "views" ? (
-										<Eye className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									) : (
-										<Flame className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									)}
-									<div className="relative flex min-w-[1.25rem] items-center justify-center">
-										<p className={cn(
-											"text-xs font-bold text-[var(--text-muted)] leading-none tabular-nums shrink-0 transition-opacity duration-300",
-											(isFetching && !isQueryLoading) || isDemoLoading ? "opacity-0" : "opacity-100"
-										)}>
-											{activeTab === "views" ? viewedCount : activeItems.length}
-										</p>
-										{((isFetching && !isQueryLoading) || isDemoLoading) && (
-											<div className="absolute inset-0 flex items-center justify-center">
-												<RefreshCw className="h-3 w-3 animate-spin text-[var(--text-muted)]" />
-											</div>
-										)}
-									</div>
-								</div>
-							)}
 						</div>
 					</div>
 				</div>
@@ -619,7 +648,9 @@ export function InterestPage() {
 			>
 				<div className="mx-auto w-full max-w-4xl pb-[calc(env(safe-area-inset-bottom,0px)+120px)] px-0">
 					{(isLoading && (activeItems.length === 0 || isDemoLoading)) ? (
-						<div className="border-t border-[var(--border)]/10">
+						isViewsGrid ? (
+							<InterestViewsGridSkeleton />
+						) : <div>
 							{Array.from({ length: 8 }).map((_, i) => (
 								<InterestSkeleton key={i} mode={activeTab} />
 							))}
@@ -647,14 +678,22 @@ export function InterestPage() {
 
 							{activeItems.length > 0 && (
 								<div className="flex flex-col">
-									{displayedItems.map((item, index) => (
+									{isViewsGrid ? (
+										<InterestViewsGrid
+											items={displayedItems}
+											browseCardsById={browseCardsById}
+											onOpenProfile={handleOpenProfile}
+											now={nowTimestamp}
+											isProfileBlocked={isProfileBlocked}
+											scrollContainerRef={feedContainerRef}
+										/>
+									) : displayedItems.map((item) => (
 										<InterestRow
 											key={`${activeTab}-${item.profileId}-${item.timestamp ?? "na"}`}
 											item={item}
 											mode={activeTab}
 											onOpenProfile={handleOpenProfile}
 											now={nowTimestamp}
-											isFirst={index === 0}
 											isBlocked={isProfileBlocked(item.profileId)}
 										/>
 									))}
@@ -680,10 +719,7 @@ export function InterestPage() {
 			</FeedScrollContainer>
 		</PullToRefreshContainer>
 		{showOnboarding && activeTab === "views" && (
-			<InterestOnboardingModal
-				onClose={handleCloseOnboarding}
-				onConfirm={handleAcknowledgeOnboarding}
-			/>
+			<InterestOnboardingModal onConfirm={handleAcknowledgeOnboarding} />
 		)}
 	</>
 	);

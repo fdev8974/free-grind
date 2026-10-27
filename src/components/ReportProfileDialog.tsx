@@ -1,5 +1,5 @@
-import { Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Check, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { useApiFunctions } from "../hooks/useApiFunctions";
@@ -10,7 +10,12 @@ import {
 	type ReportLocation,
 	type ReportReason,
 } from "../types/reports";
-import { Chip } from "./ui/chip";
+import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { cn } from "../utils/cn";
+import { NATIVE_SHEET_BG } from "./ui/action-sheet";
+import { SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "./ui/bottom-sheet";
+import { ControlledBottomSheet } from "./ui/controlled-sheet";
+import { SHEET_FIELD_CLASS, SheetChip, SheetSection } from "./ui/sheet-section";
 
 type ReportProfileDialogProps = {
 	isOpen: boolean;
@@ -23,7 +28,7 @@ type ReportProfileDialogProps = {
 export function ReportProfileDialog({ isOpen, profileId, onClose, onBlock }: ReportProfileDialogProps) {
 	const { t } = useTranslation();
 	const apiFunctions = useApiFunctions();
-	const dialogRef = useRef<HTMLDialogElement | null>(null);
+	const isDesktop = useDesktopBreakpoint();
 	const [reason, setReason] = useState<ReportReason | null>(null);
 	const [locations, setLocations] = useState<ReportLocation[]>([]);
 	const [comment, setComment] = useState("");
@@ -37,40 +42,6 @@ export function ReportProfileDialog({ isOpen, profileId, onClose, onBlock }: Rep
 		setComment("");
 		setIsSubmitted(false);
 	}, [isOpen]);
-
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		if (isOpen) {
-			if (!dialog.open) {
-				try {
-					dialog.showModal();
-				} catch {
-					dialog.show();
-				}
-			}
-		} else if (dialog.open) {
-			dialog.close();
-		}
-	}, [isOpen]);
-
-	useEffect(() => {
-		return () => {
-			const dialog = dialogRef.current;
-			if (dialog?.open) dialog.close();
-		};
-	}, []);
-
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		const handleCancel = (event: Event) => {
-			event.preventDefault();
-			if (!isSubmitting) onClose();
-		};
-		dialog.addEventListener("cancel", handleCancel);
-		return () => dialog.removeEventListener("cancel", handleCancel);
-	}, [isSubmitting, onClose]);
 
 	const showDetails = reason !== null && reason !== "SPAM";
 
@@ -94,118 +65,106 @@ export function ReportProfileDialog({ isOpen, profileId, onClose, onBlock }: Rep
 	};
 
 	return (
-		<dialog
-			ref={dialogRef}
-			className="fixed inset-0 m-auto h-fit max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
-			onClick={(event) => {
-				if (event.target === dialogRef.current && !isSubmitting) onClose();
-			}}
+		<ControlledBottomSheet
+			isOpen={isOpen}
+			onDismiss={onClose}
+			expandable={!isSubmitted}
+			isDesktop={isDesktop}
+			isProcessing={isSubmitting}
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
 		>
-			<div className="flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col p-4">
-				<p className="text-sm font-semibold text-[var(--text)]">
-					{isSubmitted ? t("profile_details.report.submitted_title") : t("profile_details.report.title")}
-				</p>
-
-				{isSubmitted ? (
-					<>
-						<p className="mt-2 text-sm leading-relaxed text-[var(--text)]">{t("profile_details.report.submitted_message")}</p>
-						{onBlock && (
-							<p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">{t("profile_details.report.block_hint")}</p>
-						)}
-						<div className="mt-6 flex gap-2">
+			{isSubmitted ? (
+				<>
+					<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+						<div className="flex flex-col items-center px-2 pt-2 text-center">
+							<span className="flex h-14 w-14 items-center justify-center rounded-full accent-tint-15 text-[var(--accent)]">
+								<Check className="h-7 w-7" strokeWidth={2.5} />
+							</span>
+							<h3 className="mt-4 text-base font-semibold text-[var(--text)]">{t("profile_details.report.submitted_title")}</h3>
+							<p className="mt-2 text-sm leading-relaxed text-[var(--text)]">{t("profile_details.report.submitted_message")}</p>
 							{onBlock && (
-								<button
-									type="button"
-									onClick={() => {
-										onClose();
-										onBlock();
-									}}
-									className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-red-500/50 bg-red-500/15 px-4 text-sm font-semibold text-red-400 transition hover:border-red-500/80 hover:bg-red-500/25"
-								>
-									{t("profile_details.block")}
-								</button>
+								<p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">{t("profile_details.report.block_hint")}</p>
 							)}
-							<button
-								type="button"
-								onClick={onClose}
-								className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
-							>
-								{t("profile_details.report.done")}
-							</button>
 						</div>
-					</>
-				) : (
-					<>
-						<p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{t("profile_details.report.message")}</p>
-
-						<div className="mt-4 min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
-							<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-								{t("profile_details.report.reason_label")}
-							</p>
-							<div className="flex flex-wrap gap-2">
-								{REPORT_REASONS.map((value) => (
-									<Chip
-										key={value}
-										selected={reason === value}
-										disabled={isSubmitting}
-										onClick={() => setReason(reason === value ? null : value)}
-									>
-										{t(`profile_details.report.reasons.${value}`)}
-									</Chip>
-								))}
-							</div>
+					</div>
+					<div className={SHEET_FOOTER_CLASS}>
+						{onBlock && (
+							<SheetClose onClick={onBlock} className={sheetButtonClass("destructive")}>
+								{t("profile_details.block")}
+							</SheetClose>
+						)}
+						<SheetClose className={sheetButtonClass()}>
+							{t("profile_details.report.done")}
+						</SheetClose>
+					</div>
+				</>
+			) : (
+				<>
+					<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+						<h3 className="text-sm font-semibold text-[var(--text)]">{t("profile_details.report.title")}</h3>
+						<SheetCloseButton disabled={isSubmitting} />
+					</div>
+					<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+						<p className="mb-4 px-1 text-sm leading-relaxed text-[var(--text-muted)]">{t("profile_details.report.message")}</p>
+						<div className="space-y-5">
+							<SheetSection title={t("profile_details.report.reason_label")}>
+								<div className="flex flex-wrap gap-2">
+									{REPORT_REASONS.map((value) => (
+										<SheetChip
+											key={value}
+											active={reason === value}
+											onClick={() => !isSubmitting && setReason(reason === value ? null : value)}
+										>
+											{t(`profile_details.report.reasons.${value}`)}
+										</SheetChip>
+									))}
+								</div>
+							</SheetSection>
 
 							{showDetails && (
 								<>
-									<p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-										{t("profile_details.report.location_label")}
-									</p>
-									<div className="flex flex-wrap gap-2">
-										{REPORT_LOCATIONS.map((value) => (
-											<Chip
-												key={value}
-												selected={locations.includes(value)}
-												disabled={isSubmitting}
-												onClick={() => toggleLocation(value)}
-											>
-												{t(`profile_details.report.locations.${value}`)}
-											</Chip>
-										))}
-									</div>
+									<SheetSection title={t("profile_details.report.location_label")}>
+										<div className="flex flex-wrap gap-2">
+											{REPORT_LOCATIONS.map((value) => (
+												<SheetChip
+													key={value}
+													active={locations.includes(value)}
+													onClick={() => !isSubmitting && toggleLocation(value)}
+												>
+													{t(`profile_details.report.locations.${value}`)}
+												</SheetChip>
+											))}
+										</div>
+									</SheetSection>
 									<textarea
 										value={comment}
 										onChange={(event) => setComment(event.target.value)}
 										placeholder={t("profile_details.report.details_placeholder")}
 										disabled={isSubmitting}
 										rows={3}
-										className="mt-4 w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)] disabled:opacity-60"
+										className={cn(SHEET_FIELD_CLASS, "resize-none px-4 py-3 disabled:opacity-60")}
 									/>
 								</>
 							)}
 						</div>
-
-						<div className="mt-6 flex gap-2">
-							<button
-								type="button"
-								onClick={onClose}
-								disabled={isSubmitting}
-								className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
-							>
-								{t("chat.actions.cancel")}
-							</button>
-							<button
-								type="button"
-								onClick={() => void handleSubmit()}
-								disabled={isSubmitting || reason === null}
-								className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-							>
-								{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-								<span>{t("profile_details.report.submit")}</span>
-							</button>
-						</div>
-					</>
-				)}
-			</div>
-		</dialog>
+					</div>
+					<div className={SHEET_FOOTER_CLASS}>
+						<SheetClose disabled={isSubmitting} className={sheetButtonClass("secondary")}>
+							{t("chat.actions.cancel")}
+						</SheetClose>
+						<button
+							type="button"
+							onClick={() => void handleSubmit()}
+							disabled={isSubmitting || reason === null}
+							className={sheetButtonClass()}
+						>
+							{isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+							<span className="truncate">{t("profile_details.report.submit")}</span>
+						</button>
+					</div>
+				</>
+			)}
+		</ControlledBottomSheet>
 	);
 }

@@ -8,51 +8,41 @@ import {
 	Copy,
 	Download,
 	EllipsisVertical,
-	Eye,
-	EyeOff,
 	Languages,
 	Star,
 	GitMerge,
 	GripVertical,
-	HeartPulse,
-	Hourglass,
 	ImagePlus,
-	Images,
 	Loader2,
-	MapPin,
 	Mic,
+	MapPin,
 	Square,
 	Plus,
 	Settings2,
-	BookMarked,
 	MessageCircleOff,
-	MessageCircleX,
 	Flag,
 	MessageSquarePlus,
-	MessageSquareQuote,
-	PencilLine,
 	Pin,
 	Play,
 	Reply,
 	RotateCw,
-	SendHorizontal,
 	ShieldCheck,
 	SquareCenterlineDashedHorizontal,
-	SquareStack,
-	Sticker,
 	Trash2,
 	Video,
-	VideoOff,
 	Undo2,
-	User,
-	Volume2,
 	X,
+	BellOff,
+	Repeat,
 } from "lucide-react";
+import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
+import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, SendHorizontalFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import type { NavigateFunction } from "react-router-dom";
+import { navigateBackTo } from "../../../utils/navigateBack";
 import toast from "react-hot-toast";
 import { appLog } from "../../../utils/logger";
 import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
@@ -62,7 +52,7 @@ import { isWebRtcSupported } from "../../../services/agoraCall";
 import {
 	useModalClose,
 } from "../../../hooks/useModalClose";
-import type { AlbumListItem, UiMessage } from "../../../types/chat-page";
+import type { AlbumListItem, AlbumMediaCount, UiMessage } from "../../../types/chat-page";
 import type { ConversationEntry, Message } from "../../../types/messages";
 import type { ProfileDetail } from "../../../types/grid";
 import type { DrawerMedia } from "./ChatDrawerPanel";
@@ -70,9 +60,10 @@ import { ChatDrawerPanel } from "./ChatDrawerPanel";
 import { EncounterLogSheet } from "../sexual-health/EncounterLogSheet";
 import { isSexualHealthEnabled } from "../../../utils/optionalFeatures";
 import { decodeGeohash } from "../../../utils/geohash";
-import { MapLocationPicker } from "../gridpage/components/MapLocationPicker";
-import freegrindLogo from "../../../images/freegrind-logo.webp";
+import { ShareLocationSheet } from "./ShareLocationSheet";
+import { loadSavedLocations } from "../../../services/savedLocations";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import { useEffectiveColorScheme } from "../../../hooks/useEffectiveColorScheme";
 import {
 	getMessageLocation,
 	getMessagePreviewLabel,
@@ -87,7 +78,8 @@ import {
 	getMediaCaptureTarget,
 } from "./chatUtils";
 import { getCachedMediaUri } from "../../../services/mediaStore";
-import { isAlbumCachedLocally } from "../../../services/albumStore";
+import { getCachedAlbumCoverUri, isAlbumCachedLocally } from "../../../services/albumStore";
+import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { getThumbImageUrl } from "../../../utils/media";
 import { formatDistance } from "../gridpage/utils";
 import { ProfileImage } from "../../../components/ui/profile-image";
@@ -97,12 +89,13 @@ import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { ReportProfileDialog } from "../../../components/ReportProfileDialog";
 import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
-import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden } from "../../../utils/privacy";
+import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
 import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
-import { ToggleRow } from "../../../components/ui/toggle-row";
+import { SheetToggleList } from "../../../components/ui/sheet-section";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
+import { NATIVE_SHEET_BG, SheetActionList } from "../../../components/ui/action-sheet";
 import {
 	DndContext,
 	MouseSensor,
@@ -151,6 +144,14 @@ import {
 
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
+import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
+import { DrawerEmptyState, ExpiryToggleButton, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon, VideoExpiryButton } from "./drawerUi";
+import { haptic } from "../../../utils/haptics";
+import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
+import { useNicknameNameChange } from "../../../hooks/useNicknameNameChange";
+import { NicknameMenuItemLabel, NicknameNameChangeBadge } from "../../../components/NicknameNameHint";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import type { HeroRect } from "../../../components/PhotoViewer";
 
 type ChatThreadPanelProps = {
 	navigate: NavigateFunction;
@@ -181,6 +182,7 @@ type ChatThreadPanelProps = {
 	localNickname?: string | null;
 	onEditLocalNickname?: (profileId: number, defaultName: string) => void | Promise<void>;
 	getProfileReturnToChatPath: (profileId: number) => string;
+	chatReturnTo: string | null;
 	isLoadingThread: boolean;
 	threadConversationId: string | null;
 	threadError: string | null;
@@ -196,8 +198,9 @@ type ChatThreadPanelProps = {
 	startMessageLongPress: (messageId: string) => void;
 	endMessageLongPress: () => void;
 	messageLongPressTriggeredRef: { current: boolean };
-	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number) => void;
+	openFullScreenImage: (imageUrl: string, meta?: { takenOnGrindr: boolean; createdAt: number | null; createdAtLabel: string | null; timestamp: number }, mediaType?: "image" | "video", messageId?: string, senderId?: number, heroRect?: HeroRect | null) => void;
 	openAlbumViewerById: (albumId: number, isOwnAlbum?: boolean) => void | Promise<void>;
+	openProfilePhotos: (mediaHash: string, isPartnerProfile: boolean, heroRect?: HeroRect | null) => void;
 	onJumpToMessage: (messageId: string) => void;
 	highlightedMessageId: string | null;
 	selectedThreadMessageMatches: Array<{ messageId: string }>;
@@ -238,7 +241,7 @@ type ChatThreadPanelProps = {
 	isLoadingAlbums: boolean;
 	shareableAlbums: AlbumListItem[];
 	albumCoverMap?: Map<number, string>;
-	ownProfilePhotoUrl?: string | null;
+	albumMediaCountMap?: Map<number, AlbumMediaCount>;
 	isSharingAlbum: boolean;
 	pendingAlbumShare: {
 		albumId: number;
@@ -255,12 +258,14 @@ type ChatThreadPanelProps = {
 	drawerError: string | null;
 	drawerMedia: DrawerMedia[];
 	isSendingDrawerMedia: boolean;
-	isAddingDrawerMedia: boolean;
-	deletingDrawerMediaId: number | null;
+	/** Progress of a running drawer send, shown on the composer's send button. */
+	drawerSendProgress?: { done: number; total: number } | null;
 	onLoadDrawerMedia: () => void | Promise<void>;
 	onSendDrawerMedia: (mediaIds: number[], maxViews?: number) => Promise<void>;
-	onAddDrawerMedia: (file: File, takenOnGrindr: boolean) => Promise<void>;
-	onDeleteDrawerMedia: (mediaId: number) => Promise<void>;
+	onDrawerMediaDeleted: (mediaId: number) => void;
+	onDrawerAlbumDeleted: (albumId: number) => void;
+	/** Reloads the albums after one was created or edited from the drawer. */
+	onReloadAlbums: () => void | Promise<unknown>;
 	onShareAlbumFromDrawer: (albumId: number, expirationType: string) => Promise<void>;
 	onStopAlbumShareFromDrawer: (albumId: number) => Promise<void>;
 	onSendLocation: (lat: number, lon: number) => void | Promise<void>;
@@ -292,8 +297,17 @@ type ChatThreadPanelProps = {
 	isMergingConversation?: boolean;
 };
 
+/** Fill of the pending voice message pill (shown in place of the composer). */
+const PENDING_AUDIO_FILL_CLASS = "bg-[color-mix(in_srgb,var(--accent)_14%,var(--surface-2))]";
 
-function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction }: { blob: Blob; durationMs: number; recordedBars: number[]; recordedFraction: number }) {
+/** The composer pill's fill; an attached reply preview shares it, so both read as one field. */
+function composerFillClass(isRecording: boolean, recordingMs: number): string {
+	if (!isRecording) return "bg-[var(--surface-2)]";
+	return recordingMs >= 50_000 ? "bg-red-500/15" : PENDING_AUDIO_FILL_CLASS;
+}
+
+
+function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction, largeButton }: { blob: Blob; durationMs: number; recordedBars: number[]; recordedFraction: number; largeButton?: boolean }) {
 	const [url, setUrl] = useState<string | null>(null);
 	useEffect(() => {
 		const u = URL.createObjectURL(blob);
@@ -301,7 +315,7 @@ function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction }
 		return () => { setTimeout(() => URL.revokeObjectURL(u), 3000); };
 	}, [blob]);
 	if (!url) return null;
-	return <AudioMessagePlayer src={url} messageId="preview" mine={false} className="w-full" durationHint={durationMs / 1000} hideSpeed compact initialBars={recordedBars} recordedFraction={recordedFraction} />;
+	return <AudioMessagePlayer src={url} messageId="preview" mine={false} className="w-full" durationHint={durationMs / 1000} hideSpeed compact largeButton={largeButton} initialBars={recordedBars} recordedFraction={recordedFraction} />;
 }
 
 type SortableSavedPhraseRowProps = {
@@ -317,7 +331,9 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 		useSortable({ id: phrase });
 
 	const style: React.CSSProperties = {
-		transform: CSS.Transform.toString(transform),
+		// Translate only: Transform also carries a scale when rows differ in
+		// height, which stretched the dragged phrase.
+		transform: CSS.Translate.toString(transform),
 		transition,
 	};
 
@@ -326,35 +342,36 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 			ref={setNodeRef}
 			style={style}
 			{...(isDesktop ? {} : { ...attributes, ...listeners })}
-			className={`group flex items-start gap-3 px-4 py-3 ${isDesktop ? "" : "touch-pan-y no-touch-callout"} ${isDragging ? "z-10 bg-[var(--surface)] opacity-60" : ""}`}
+			// While reordering, the sheet must not take the drag as a dismiss.
+			data-sheet-no-drag={isDragging ? "" : undefined}
+			// Inset divider (starts at the text, like native lists), hidden on the
+			// first row and on the row being dragged.
+			className={`group relative flex items-center gap-1 pl-1 pr-2 before:absolute before:right-3 before:top-0 before:h-px before:bg-[var(--border)] before:opacity-60 first:before:hidden before:left-9 ${isDesktop ? "" : "touch-pan-y no-touch-callout"} ${isDragging ? "z-10 rounded-2xl bg-[color-mix(in_srgb,var(--surface-2)_85%,var(--text)_10%)] shadow-lg before:hidden" : ""}`}
 		>
-			{isDesktop && (
-				<button
-					type="button"
-					{...attributes}
-					{...listeners}
-					className="mt-0.5 flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded-xl text-[var(--text-muted)] active:cursor-grabbing"
-					aria-label={t("settings_saved_phrases.reorder", { defaultValue: "Reorder phrase" })}
-				>
-					<GripVertical className="h-4 w-4" />
-				</button>
-			)}
-			<div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--accent)]">
-				<MessageSquareQuote className="h-3.5 w-3.5" />
-			</div>
+			{/* Drag handle: grabbable on desktop; on touch the whole row reorders
+			    after a long press, so here it only marks the row as movable. */}
+			<span
+				{...(isDesktop ? { ...attributes, ...listeners, role: "button" } : {})}
+				className={`flex h-8 w-6 shrink-0 items-center justify-center text-[var(--text-muted)] ${isDesktop ? "cursor-grab opacity-50 transition group-hover:opacity-100 active:cursor-grabbing" : "opacity-50"}`}
+				aria-label={isDesktop ? t("settings_saved_phrases.reorder", { defaultValue: "Reorder phrase" }) : undefined}
+				aria-hidden={isDesktop ? undefined : true}
+			>
+				<GripVertical className="h-4 w-4" />
+			</span>
+			{/* The whole row sends the phrase, not just its text. */}
 			<SheetClose
 				onClick={onUse}
-				className="min-w-0 flex-1 break-words text-left text-sm leading-relaxed text-[var(--text)] transition hover:text-[var(--accent)]"
+				className="min-w-0 flex-1 rounded-xl py-3 pl-1 pr-2 text-left transition active:ink-tint-6"
 			>
-				<span className="block break-words">{phrase}</span>
+				<span className="block break-words text-sm leading-relaxed text-[var(--text)]">{phrase}</span>
 			</SheetClose>
 			<button
 				type="button"
 				onClick={onDelete}
-				className="mt-0.5 shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+				className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition active:scale-90 active:bg-red-500/15 hover:bg-red-500/10 hover:text-red-400"
 				aria-label={t("settings_saved_phrases.delete", { defaultValue: "Delete phrase" })}
 			>
-				<Trash2 className="h-3.5 w-3.5" />
+				<Trash2 className="h-4 w-4" />
 			</button>
 		</div>
 	);
@@ -364,7 +381,50 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { t } = useTranslation();
 	useAvatarCache();
     const apiFunctions = useApiFunctions();
-	const { unitsPreset, geohash } = usePreferences();
+	const { unitsPreset, geohash, amoledMode, mobileEnterToSend } = usePreferences();
+	const enterSends = props.isDesktop || mobileEnterToSend;
+	const effectiveColorScheme = useEffectiveColorScheme();
+	// AMOLED on mobile: the bottom bar blends into the black page so the saved
+	// phrases and the input float instead of sitting on a surface strip.
+	// Same light tick as the bottom nav tabs.
+	const composerActionHaptic = (event: React.PointerEvent) => {
+		if (event.pointerType !== "mouse") haptic(10);
+	};
+	const isMobileAmoled = !props.isDesktop && amoledMode && effectiveColorScheme === "dark";
+	// Frosted like the bottom nav: the thread scrolls on underneath it.
+	const mobileComposerBg = isMobileAmoled
+		? "bg-[color-mix(in_srgb,var(--bg)_86%,transparent)] backdrop-blur-xl"
+		: "border-t border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)] backdrop-blur-xl";
+	// Height of the floating mobile composer, reserved as bottom padding in the
+	// message list so the newest message isn't hidden behind it.
+	const [composerHeight, setComposerHeight] = useState(0);
+	const [headerHeight, setHeaderHeight] = useState(0);
+	const headerObserverRef = useRef<ResizeObserver | null>(null);
+	const headerRef = useCallback((node: HTMLDivElement | null) => {
+		headerObserverRef.current?.disconnect();
+		headerObserverRef.current = null;
+		if (!node) {
+			setHeaderHeight(0);
+			return;
+		}
+		const observer = new ResizeObserver(() => setHeaderHeight(node.offsetHeight));
+		observer.observe(node);
+		headerObserverRef.current = observer;
+		setHeaderHeight(node.offsetHeight);
+	}, []);
+	const composerObserverRef = useRef<ResizeObserver | null>(null);
+	const composerRef = useCallback((node: HTMLFormElement | null) => {
+		composerObserverRef.current?.disconnect();
+		composerObserverRef.current = null;
+		if (!node) {
+			setComposerHeight(0);
+			return;
+		}
+		const observer = new ResizeObserver(() => setComposerHeight(node.offsetHeight));
+		observer.observe(node);
+		composerObserverRef.current = observer;
+		setComposerHeight(node.offsetHeight);
+	}, []);
 	// Feature-detected once (doesn't change during the app's lifetime) —
 	// hides every video-call entry point entirely on WebView builds without
 	// RTCPeerConnection (confirmed missing on some Linux WebKitGTK builds)
@@ -374,11 +434,21 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const [banWordPrompt, setBanWordPrompt] = useState<{ text: string } | null>(null);
 	const [banNamePrompt, setBanNamePrompt] = useState<{ text: string } | null>(null);
 	const [isSavedPhrasesOpen, setIsSavedPhrasesOpen] = useState(false);
+	// Animated close for the saved phrases / merge sheets, plus an action to
+	// run once they're gone (navigation or the next dialog would otherwise race
+	// the sheet popping its own history entry).
+	const savedPhrasesSheetCloseRef = useRef<(() => void) | null>(null);
+	const mergeSheetCloseRef = useRef<(() => void) | null>(null);
+	const afterSheetCloseRef = useRef<(() => void) | null>(null);
+	const runAfterSheetClose = () => {
+		const action = afterSheetCloseRef.current;
+		afterSheetCloseRef.current = null;
+		action?.();
+	};
 	const [isEncounterSheetOpen, setIsEncounterSheetOpen] = useState(false);
 	const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
 	const closeReportDialog = useCallback(() => setIsReportDialogOpen(false), []);
 	const [showSexualHealth] = useState(isSexualHealthEnabled);
-	const [phrasesExpanded, setPhrasesExpanded] = useState(false);
 	const [isGiphyPickerOpen, setIsGiphyPickerOpen] = useState(false);
 	const [newPhraseInput, setNewPhraseInput] = useState("");
 	const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
@@ -453,7 +523,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			mediaRecorderRef.current = recorder;
 			recordingStartRef.current = Date.now();
 			setIsRecording(true);
-			(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(30) ?? navigator.vibrate?.(30);
+			haptic(30);
 			setRecordingMs(0);
 			recordingTimerRef.current = setInterval(() => {
 				const elapsed = Date.now() - recordingStartRef.current;
@@ -514,7 +584,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			void fixWebmDuration(rawBlob, durationMs).then((blob) => {
 				if (durationMs >= 500) {
 					if (autoSend) {
-						(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(30) ?? navigator.vibrate?.(30);
+						haptic(30);
 					}
 					setRecordedWaveform(capturedBars);
 					props.onAudioRecorded(blob, durationMs, autoSend);
@@ -596,6 +666,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		localNickname = null,
 		onEditLocalNickname,
 		getProfileReturnToChatPath,
+		chatReturnTo,
 		isLoadingThread,
 		threadConversationId,
 		threadError,
@@ -613,6 +684,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		messageLongPressTriggeredRef,
 		openFullScreenImage,
 		openAlbumViewerById,
+		openProfilePhotos,
 		onJumpToMessage,
 		highlightedMessageId,
 		selectedThreadMessageMatches,
@@ -652,7 +724,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		isLoadingAlbums,
 		shareableAlbums,
 		albumCoverMap: externalAlbumCoverMap,
-		ownProfilePhotoUrl,
+		albumMediaCountMap,
 		isSharingAlbum,
 		pendingAlbumShare,
 		shareAlbumToCurrentConversation: _shareAlbumToCurrentConversation,
@@ -675,17 +747,34 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		drawerError,
 		drawerMedia,
 		isSendingDrawerMedia,
-		isAddingDrawerMedia,
-		deletingDrawerMediaId,
+		drawerSendProgress = null,
 		onLoadDrawerMedia,
 		onSendDrawerMedia,
-		onAddDrawerMedia,
-		onDeleteDrawerMedia,
+		onDrawerMediaDeleted,
+		onDrawerAlbumDeleted,
+		onReloadAlbums,
 		onShareAlbumFromDrawer,
 		onStopAlbumShareFromDrawer,
 		onSendLocation,
 		onSendGiphy,
 	} = props;
+	const headerMenuPresence = usePresence(isHeaderActionsMenuOpen);
+
+	const headerProfileId = selectedConversation
+		? getOtherParticipant(selectedConversation, userId)?.profileId ?? null
+		: targetProfileId;
+	// Only trust the live detail once it belongs to this chat — right after
+	// switching chats it can still hold the previous profile.
+	const liveHeaderDisplayName =
+		targetProfileDetail && headerProfileId != null && targetProfileDetail.profileId === String(headerProfileId)
+			? targetProfileDetail.displayName
+			: selectedConversation?.data.name;
+	const nicknameNameChange = useNicknameNameChange(headerProfileId, localNickname, liveHeaderDisplayName);
+	const { acknowledge: acknowledgeNicknameNameChange } = nicknameNameChange;
+	// Opening the menu shows the rename (in the nickname item), so it counts as seen.
+	useEffect(() => {
+		if (isHeaderActionsMenuOpen) acknowledgeNicknameNameChange();
+	}, [isHeaderActionsMenuOpen, acknowledgeNicknameNameChange]);
 
     const [savedPhrases, setSavedPhrases] = useState<string[]>([]);
 
@@ -848,6 +937,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		};
 	}, []);
     
+    // Same right-edge fade as the grid header's quick-filter chips.
+    const phraseRowFade = useScrollRowFade();
+
     const filteredPhrases = savedPhrases.filter((phrase) =>
         draft.trim() === "" || phrase.toLowerCase().startsWith(draft.toLowerCase()),
     );
@@ -891,6 +983,15 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		return map;
 	}, [threadMessages, externalAlbumCoverMap]);
 
+	const ownAlbumNameMap = useMemo(() => {
+		const map = new Map<number, string>();
+		for (const album of shareableAlbums) {
+			const name = album.albumName?.trim();
+			if (name) map.set(album.albumId, name);
+		}
+		return map;
+	}, [shareableAlbums]);
+
 	const sharedAlbumIds = useMemo(() => {
 		const ids = new Set<number>();
 		for (const msg of threadMessages) {
@@ -902,13 +1003,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	}, [threadMessages]);
 
     const [showReadReceiptToggle] = useState(() => getShowReadReceiptToggle());
-    const [readReceiptsHidden, setReadReceiptsHidden] = useState(true);
-
-    useEffect(() => {
-        if (selectedConversation) {
-            setReadReceiptsHidden(isReadReceiptsHidden(selectedConversation.data.conversationId));
-        }
-    }, [selectedConversation]);
+    // Derived from the privacy cache so a toggle from the chat list's context menu shows up here too.
+    useReadReceiptsChanged();
+    const readReceiptsHidden = selectedConversation ? isReadReceiptsHidden(selectedConversation.data.conversationId) : true;
 
 	const messageTranslations = useMessageTranslations(
 		selectedConversation?.data.conversationId ?? null,
@@ -966,7 +1063,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			return;
 		}
 		if (!geohash) {
-			toast.error(t("chat.errors.no_location_set", { defaultValue: "No location set in settings" }));
+			// No own location set — fall back to the first saved location, if any.
+			void loadSavedLocations().then((saved) => {
+				if (saved[0]) setPendingLocationShare({ lat: saved[0].lat, lon: saved[0].lon });
+				else toast.error(t("chat.errors.no_location_set", { defaultValue: "No location set in settings" }));
+			});
 			return;
 		}
 		try {
@@ -1159,7 +1260,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const renderThread = (selectedConversation || targetProfileId) ? (
 		<div
 			className={`relative flex h-full flex-col ${!isDesktop ? "overflow-hidden p-0" : "overflow-hidden p-3 sm:p-4"} ${
-				isDesktop ? "surface-card" : ""
+				isDesktop ? "native-card" : ""
 			}`}
 			style={
 				!isDesktop
@@ -1218,6 +1319,17 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				// conversation to archive yet in the new-chat case, so key off
 				// isBlockedBySelf directly there instead.
 				const showBlockGroup = selectedConversation ? !isArchived : !isBlockedBySelf;
+				// Avatar, name and status line all open the profile (like the album viewer's header).
+				const openHeaderProfile = () => {
+					if (profileId == null) return;
+					const returnTo = getProfileReturnToChatPath(profileId);
+					const nextParams = new URLSearchParams();
+					nextParams.set("returnTo", returnTo);
+					navigate(
+						`/profile/${profileId}?${nextParams.toString()}`,
+						{ state: { returnTo, fromChat: true } },
+					);
+				};
 				const showUnblockButton = selectedConversation
 					? isArchived && isBlockedBySelf
 					: isBlockedBySelf;
@@ -1287,24 +1399,26 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				return (
 					<>
 						<div
-							className={`flex items-center justify-between gap-3 border-b border-[var(--border)] ${!isDesktop ? "shrink-0 bg-[var(--surface)] px-[var(--app-px)] pb-3" : "mb-3 pb-3 -mx-3 sm:-mx-4 px-3 sm:px-4"}`}
+							ref={!isDesktop ? headerRef : undefined}
+							className={`flex items-center justify-between gap-3 border-b ${!isDesktop ? `absolute inset-x-0 top-0 z-40 px-[var(--app-px)] pb-3 backdrop-blur-xl ${isMobileAmoled ? "border-transparent bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "border-[var(--border)]/60 bg-[color-mix(in_srgb,var(--surface)_86%,transparent)]"}` : "-mx-3 -mt-3 mb-3 p-3 sm:-mx-4 sm:-mt-4 sm:p-4 border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? {
-										paddingTop:
-											"calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))",
+										// 40px row centred on the shared header line, same as the
+										// profile header and photo viewer (see --header-icon-center).
+										paddingTop: "calc(var(--header-icon-center) - 1.25rem)",
 									}
 									: undefined
 							}
 						>
 							<div
-								className={`min-w-0 flex items-center gap-3 ${!isDesktop ? "pl-0" : ""}`}
+								className={`group/reveal min-w-0 flex items-center gap-3 ${!isDesktop ? "pl-0" : ""}`}
 							>
                                 {!isDesktop && (
                                     <button
                                         type="button"
-                                        onClick={() => navigate("/chat")}
-                                        className="shrink-0 rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
+                                        onClick={() => (chatReturnTo ? navigateBackTo(navigate, chatReturnTo) : navigate("/chat"))}
+                                        className="header-icon-btn header-icon-btn--back inline-flex shrink-0 items-center justify-center rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
                                         aria-label={t("browse_location.back_aria")}
                                     >
                                         <ChevronLeft className="h-4 w-4" />
@@ -1312,24 +1426,15 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                                 )}
 								<button
 									type="button"
-									onClick={() => {
-										if (profileId == null) {
-											return;
-										}
-										const returnTo = getProfileReturnToChatPath(profileId);
-										const nextParams = new URLSearchParams();
-										nextParams.set("returnTo", returnTo);
-										navigate(
-											`/profile/${profileId}?${nextParams.toString()}`,
-											{ state: { returnTo } },
-										);
-									}}
+									onClick={openHeaderProfile}
 									disabled={profileId == null}
 									aria-label="Open profile"
 									title={onlineMeta.label}
-									className={`h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-[var(--surface-2)] transition disabled:cursor-default disabled:opacity-80 ${
+									className={`header-back-adjacent h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-[var(--surface-2)] transition disabled:cursor-default disabled:opacity-80 ${
 										isOnline
-											? "border-emerald-500 shadow-[0_0_0_2px_color-mix(in_srgb,var(--surface)_70%,transparent)] hover:border-emerald-400"
+											? onlineMeta.isEndingSoon
+												? "border-amber-500 shadow-[0_0_0_2px_color-mix(in_srgb,var(--surface)_70%,transparent)] hover:border-amber-400"
+												: "border-emerald-500 shadow-[0_0_0_2px_color-mix(in_srgb,var(--surface)_70%,transparent)] hover:border-emerald-400"
 											: "border-[var(--border)] hover:border-[var(--accent)]"
 									}`}
 								>
@@ -1342,23 +1447,33 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										className={isArchived ? "grayscale" : undefined}
 									/>
 								</button>
-								<div className="min-w-0">
-									<div className="flex items-center gap-1.5 min-w-0">
-										<p className="truncate text-lg font-semibold">
+								<button
+									type="button"
+									onClick={openHeaderProfile}
+									disabled={profileId == null}
+									className="min-w-0 text-left transition active:opacity-70 disabled:cursor-default disabled:active:opacity-100"
+								>
+									<span className="flex items-center gap-1.5 min-w-0">
+										<span className="block truncate text-base font-semibold leading-tight">
 											{displayName}
-										</p>
-									</div>
-									<p className="text-sm text-[var(--text-muted)]">
+										</span>
+									</span>
+									{/* Same type sizes as the profile's floating header (name text-base,
+									    status line text-xs); leading-tight keeps the block within the
+									    40px avatar height, so the row sits like the profile / photo viewer. */}
+									<span className="block text-xs leading-tight text-[var(--text-muted)]">
 										{[
 											onlineMeta.label,
 											distanceLabel,
 										]
 											.filter(Boolean)
 											.join(" · ")}
-									</p>
-								</div>
+									</span>
+								</button>
 							</div>
-							<div className="flex items-center gap-2">
+							{/* Borderless glyph buttons, same as the inbox / settings page headers;
+							    toggled states carry their colour in the glyph instead of a chip. */}
+							<div className="flex shrink-0 items-center gap-0.5">
             {isDesktop && showBlockGroup && (
                 <>
                     <button
@@ -1369,16 +1484,16 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                         }}
                         disabled={isTogglingFavorite || profileId == null || !onToggleFavorite}
                         title={isFavorite ? t("chat.unfavorite") : t("chat.favorite")}
-                        className={`rounded-xl border p-2 transition disabled:opacity-60 ${
+                        className={`header-icon-btn rounded-xl p-2 transition disabled:opacity-60 ${
                             isFavorite
-                                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-110"
-                                : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                                ? "header-icon-btn--active text-[var(--accent)] hover:brightness-110"
+                                : "text-[var(--text-muted)] hover:text-[var(--text)]"
                         }`}
                     >
                         {isTogglingFavorite ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
-                            <Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
+                            <Star className={`h-5 w-5 ${isFavorite ? "fill-current" : ""}`} />
                         )}
                     </button>
                     <button
@@ -1386,25 +1501,25 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                         disabled={isUpdatingConversationState || !selectedConversation}
                         onClick={togglePin}
                         title={selectedConversation?.data.pinned ? t("chat.unpin") : t("chat.pin")}
-                        className={`rounded-xl border p-2 transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                        className={`header-icon-btn rounded-xl p-2 transition disabled:opacity-40 disabled:cursor-not-allowed ${
                             selectedConversation?.data.pinned
-                                ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] hover:brightness-110"
-                                : "border-[var(--border)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+                                ? "header-icon-btn--active text-[var(--accent)] hover:brightness-110"
+                                : "text-[var(--text-muted)] hover:text-[var(--text)]"
                         }`}
                     >
-                        <Pin className="h-4 w-4" />
+                        <Pin className={`h-5 w-5 ${selectedConversation?.data.pinned ? "fill-current" : ""}`} />
                     </button>
                     <button
                         type="button"
                         onClick={requestBlockProfile}
                         disabled={isBlockingProfile || profileId == null || !onBlockProfile}
                         title={isBlockingProfile ? t("profile_details.block_in_progress") : t("profile_details.block")}
-                        className="rounded-xl border border-red-500/40 bg-red-500/10 p-2 text-red-300 transition hover:bg-red-500/20 disabled:opacity-60"
+                        className="header-icon-btn rounded-xl p-2 text-red-500/80 transition hover:text-red-500 disabled:opacity-60"
                     >
                         {isBlockingProfile ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" />
                         ) : (
-                            <Ban className="h-4 w-4" />
+                            <Ban className="h-5 w-5" />
                         )}
                     </button>
                 </>
@@ -1416,12 +1531,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                     onClick={requestUnblockProfile}
                     disabled={isUnblockingProfile || profileId == null || !onUnblockProfile}
                     title={isUnblockingProfile ? t("profile_details.unblock_in_progress") : t("profile_details.unblock")}
-                    className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-2 text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-60"
+                    className="header-icon-btn rounded-xl p-2 text-emerald-500/80 transition hover:text-emerald-500 disabled:opacity-60"
                 >
                     {isUnblockingProfile ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-5 w-5 animate-spin" />
                     ) : (
-                        <ShieldCheck className="h-4 w-4" />
+                        <ShieldCheck className="h-5 w-5" />
                     )}
                 </button>
             )}
@@ -1431,10 +1546,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										type="button"
 										onClick={onOpenMediaSheet}
 										disabled={!selectedConversation}
-										className="rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
+										className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
 										aria-label="Received media"
 									>
-										<Images className="h-4 w-4" />
+										<ImagesFilled className="h-5 w-5" />
 									</button>
 								)}
 
@@ -1447,14 +1562,23 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										onClick={() =>
 											setIsHeaderActionsMenuOpen((current) => !current)
 										}
-										className="rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
+										className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 										aria-label="Open conversation actions"
 										aria-expanded={isHeaderActionsMenuOpen}
 									>
-										<EllipsisVertical className="h-4 w-4" />
+										<EllipsisVertical className="h-5 w-5" />
 									</button>
-									{isHeaderActionsMenuOpen ? (
-										<div className="absolute right-0 top-full z-30 mt-2 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+									{nicknameNameChange.hasUnseenChange && <NicknameNameChangeBadge />}
+									{headerMenuPresence.rendered ? (
+										<div
+											data-lenis-prevent
+											className="absolute right-0 top-full z-40 mt-1 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
+											// Mobile: stay within the space between the floating header and composer.
+											style={{
+												...menuTransitionStyle(headerMenuPresence.visible),
+												...(!isDesktop ? { maxHeight: `calc(${mobileKeyboardInset > 0 ? `100dvh - ${mobileKeyboardInset}px` : "100dvh"} - ${headerHeight + composerHeight}px - 1rem)` } : {}),
+											}}
+										>
 											<div className="flex shrink-0 flex-col gap-1 px-2">
 											{!isArchived && (
 											<button
@@ -1465,12 +1589,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													const returnTo = getProfileReturnToChatPath(profileId);
 													const nextParams = new URLSearchParams();
 													nextParams.set("returnTo", returnTo);
-													navigate(`/profile/${profileId}?${nextParams.toString()}`, { state: { returnTo } });
+													navigate(`/profile/${profileId}?${nextParams.toString()}`, { state: { returnTo, fromChat: true } });
 												}}
 												disabled={profileId == null}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"
 											>
-												<User className="mr-2 h-4 w-4 opacity-70" />
+												<UserFilled className="mr-2 h-4 w-4 opacity-70" />
 												{t("chat.view_profile")}
 											</button>
 											)}
@@ -1483,8 +1607,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												}}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
 											>
-												<HeartPulse className="mr-2 h-4 w-4 opacity-70" />
-												{t("chat.log_encounter", { defaultValue: "I met this person now" })}
+												<BananaFilled className="mr-2 h-4 w-4 opacity-70" />
+												{t("chat.log_encounter", { defaultValue: "We just hooked up" })}
 											</button>
 											)}
 											{!isArchived && profileId != null && (() => {
@@ -1504,9 +1628,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
 												>
 													{videoCallDisabled ? (
-														<VideoOff className="mr-2 h-4 w-4 opacity-70" />
+														<VideoOffFilled className="mr-2 h-4 w-4 opacity-70" />
 													) : (
-														<Video className="mr-2 h-4 w-4 opacity-70" />
+														<Video className="mr-2 h-4 w-4 fill-current opacity-70" />
 													)}
 													<span className="flex flex-col">
 														<span>{t("chat.start_video_call")}</span>
@@ -1535,7 +1659,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													disabled={!selectedConversation}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 												>
-													<Images className="mr-2 h-4 w-4 opacity-70" />
+													<ImagesFilled className="mr-2 h-4 w-4 opacity-70" />
 													{t("chat.received_media")}
 												</button>
 											)}
@@ -1567,7 +1691,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														if (!selectedConversation) return;
 														setIsHeaderActionsMenuOpen(false);
 														const newState = toggleReadReceiptsHidden(selectedConversation.data.conversationId);
-														setReadReceiptsHidden(newState);
 														if (!newState) {
 															const lastMsg = threadMessages[threadMessages.length - 1];
 															if (lastMsg) {
@@ -1594,13 +1717,18 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												onClick={() => {
 													setIsHeaderActionsMenuOpen(false);
 													if (profileId == null || !onEditLocalNickname) return;
-													void onEditLocalNickname(profileId, displayName);
+													// Their own name, so the prompt's placeholder shows it rather than the nickname.
+													void onEditLocalNickname(profileId, nicknameNameChange.realName || actualProfileName?.trim() || displayName);
 												}}
 												disabled={profileId == null || !onEditLocalNickname}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"
 											>
-												<PencilLine className="mr-2 h-4 w-4 opacity-70" />
-												{localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+												<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
+												<NicknameMenuItemLabel
+													label={localNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+													realName={nicknameNameChange.realName}
+													previousName={nicknameNameChange.previousName}
+												/>
 											</button>
 											{isArchived && onMergeConversation && (
 												<button
@@ -1650,7 +1778,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													}}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 												>
-													<Pin className="mr-2 h-4 w-4 opacity-70" />
+													<Pin className={`mr-2 h-4 w-4 opacity-70 ${selectedConversation?.data.pinned ? "fill-current" : ""}`} />
 													{selectedConversation?.data.pinned ? t("chat.unpin") : t("chat.pin")}
 												</button>
 											)}
@@ -1663,7 +1791,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												}}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 											>
-												{isHidden ? <Eye className="mr-2 h-4 w-4 opacity-70" /> : <EyeOff className="mr-2 h-4 w-4 opacity-70" />}
+												{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 												{isHidden
 													? t("chat.unhide_conversation", { defaultValue: "Unhide chat" })
 													: t("chat.hide_conversation", { defaultValue: "Hide chat" })}
@@ -1679,9 +1807,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
 												>
 													{selectedConversation?.data.muted ? (
-														<Volume2 className="mr-2 h-4 w-4 opacity-70" />
+														<BellOffFilled className="mr-2 h-4 w-4 opacity-70" />
 													) : (
-														<MessageCircleOff className="mr-2 h-4 w-4 opacity-70" />
+														<BellOff className="mr-2 h-4 w-4 opacity-70" />
 													)}
 													{selectedConversation?.data.muted ? t("chat.unmute") : t("chat.mute")}
 												</button>
@@ -1726,7 +1854,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													disabled={isUnblockingProfile || profileId == null || !onUnblockProfile}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-emerald-400 transition hover:bg-emerald-500/10 disabled:opacity-60"
 												>
-													<ShieldCheck className="mr-2 h-4 w-4 opacity-70" />
+													<ShieldCheckFilled className="mr-2 h-4 w-4 opacity-70" />
 													{isUnblockingProfile ? t("profile_details.unblock_in_progress") : t("profile_details.unblock")}
 												</button>
 											)}
@@ -1739,7 +1867,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													}}
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10"
 												>
-													<Flag className="mr-2 h-4 w-4 opacity-70" />
+													<Flag className="mr-2 h-4 w-4 fill-current opacity-70" />
 													{t("profile_details.report.menu_item")}
 												</button>
 											)}
@@ -1749,7 +1877,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												disabled={!selectedConversation || !onDeleteConversation || isDeletingConversation}
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-40 disabled:cursor-not-allowed"
 											>
-												<MessageCircleX className="mr-2 h-4 w-4 opacity-70" />
+												<MessageCircleXFilled className="mr-2 h-4 w-4 opacity-70" />
 												{isDeletingConversation ? t("chat.delete_conversation_in_progress") : t("chat.delete_conversation")}
 											</button>
 											</div>
@@ -1865,7 +1993,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									avatarSrc: resolveAvatarSrc(avatarHash, getParticipantAvatarUrl(avatarHash)),
 								}}
 								onClose={() => setIsEncounterSheetOpen(false)}
-								onLogged={() => setIsEncounterSheetOpen(false)}
 							/>
 						) : null}
 					</>
@@ -1897,6 +2024,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			) : (
 				<ChatThreadMessages
 						isDesktop={isDesktop}
+						bottomInset={!isDesktop ? composerHeight : 0}
+						topInset={!isDesktop ? headerHeight : 0}
 						selectedConversation={selectedConversation}
 						userId={userId}
 						nowTimestamp={nowTimestamp}
@@ -1914,6 +2043,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						messageLongPressTriggeredRef={messageLongPressTriggeredRef}
 						openFullScreenImage={openFullScreenImage}
 						openAlbumViewerById={openAlbumViewerById}
+						openProfilePhotos={openProfilePhotos}
 						onJumpToMessage={onJumpToMessage}
 						highlightedMessageId={highlightedMessageId}
 						selectedThreadMessageMatches={selectedThreadMessageMatches}
@@ -1930,10 +2060,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						canReply={canReply}
 						handleStopAlbumShare={handleStopAlbumShare}
 						handleRemoveLocalAlbum={handleRemoveLocalAlbum}
+						ownAlbumMediaCountMap={albumMediaCountMap}
+						ownAlbumNameMap={ownAlbumNameMap}
 						threadBottomRef={threadBottomRef}
 						isPartnerTyping={isPartnerTyping}
 						isArchived={isArchived}
-						ownProfilePhotoUrl={ownProfilePhotoUrl}
 						localNickname={localNickname}
 						messageTranslations={messageTranslations}
 				/>
@@ -1952,7 +2083,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 
 					{isArchived ? (
 						<div
-					className={`${!isDesktop ? "shrink-0 px-[var(--app-px)] py-3" : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4"} bg-[var(--surface)]`}
+					className={`${!isDesktop ? `shrink-0 px-[var(--app-px)] py-3 ${mobileComposerBg}` : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--surface)]"}`}
 							style={
 								!isDesktop
 									? { paddingBottom: mobileKeyboardInset > 0 ? "12px" : "max(12px, env(safe-area-inset-bottom))" }
@@ -1981,13 +2112,20 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						</div>
 					) : (
 					<form
+						ref={!isDesktop ? composerRef : undefined}
 						onSubmit={onFormSubmit}
-						className={`relative ${!isDesktop ? "shrink-0 px-[var(--app-px)] py-3" : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4"} border-t border-[var(--border)] bg-[var(--surface)]`}
-						style={
-							!isDesktop
-								? { paddingBottom: mobileKeyboardInset > 0 ? "12px" : "max(12px, env(safe-area-inset-bottom))" }
-								: undefined
-						}
+						// Mobile: a tap that just misses the send button (or lands on the
+						// pill's padding, a phrase pill, …) would move focus off the
+						// textarea and close the keyboard. Cancelling mousedown keeps the
+						// focus where it is; clicks still fire. The action row below is
+						// left alone — its buttons open sheets, where the keyboard should go.
+						onMouseDown={!isDesktop ? (event) => {
+							const target = event.target as HTMLElement;
+							if (document.activeElement !== textareaRef.current) return;
+							if (target.closest("textarea, input, [data-composer-actions]")) return;
+							event.preventDefault();
+						} : undefined}
+						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-[35] px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)]"}
 					>
 						{(isUploadingAttachment || uploadProgress > 0) && (
 							<div
@@ -2002,7 +2140,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						)}
 						{/* --- QUICK PHRASE PILLS --- */}
 						{!slashMenuMatch && filteredPhrases.length > 0 && (
-							<div className="mb-2 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+							<div
+								ref={phraseRowFade.ref}
+								onScroll={phraseRowFade.onScroll}
+								className="mb-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+							>
+								<div className="flex min-w-max items-center gap-2">
 								{filteredPhrases.map((phrase, idx) => {
 									const isExact = phrase.toLowerCase() === draft.trim().toLowerCase();
 									return (
@@ -2013,13 +2156,16 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											className={`max-w-[200px] shrink-0 rounded-2xl rounded-br-[3px] border px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
 												isExact
 													? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
-													: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+													: !isDesktop
+														? "border-transparent bg-[var(--surface-2)] text-[var(--text)]"
+														: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:border-[var(--accent)] hover:text-[var(--accent)]"
 											}`}
 										>
 											<span className="block truncate">{phrase}</span>
 										</button>
 									);
 								})}
+								</div>
 							</div>
 						)}
 						{/* -------------------------- */}
@@ -2028,7 +2174,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							const rtm = replyTargetMessage;
 							const rtmBody = rtm.body as Record<string, unknown> | null | undefined;
 							const isAudioReply = rtm.type === "Audio" || rtm.chat1Type?.toLowerCase() === "audio";
-							const isImageReply = rtm.type === "Image" || rtm.type === "ExpiringImage" || rtm.chat1Type?.toLowerCase() === "image" || rtm.chat1Type?.toLowerCase() === "expiring_image";
+							const isImageReply = rtm.type === "Image" || rtm.type === "ExpiringImage" || rtm.type === "Giphy" || rtm.chat1Type?.toLowerCase() === "image" || rtm.chat1Type?.toLowerCase() === "expiring_image";
 							const isVideoReply = rtm.type === "Video" || rtm.type === "PrivateVideo" || rtm.type === "NonExpiringVideo"
 								|| rtm.chat1Type?.toLowerCase() === "video" || rtm.chat1Type?.toLowerCase() === "privatevideo" || rtm.chat1Type?.toLowerCase() === "nonexpiringvideo";
 							// Prefer the locally-cached copy over the live body URL — by the
@@ -2052,10 +2198,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								if (rtm.type === "AlbumContentReaction" || rtm.type === "AlbumContentReply") {
 									return typeof rtmBody?.previewUrl === "string" ? rtmBody.previewUrl : null;
 								}
-								const albumCover = getMessageAlbumCoverUrl(rtm);
+								const rtmAlbumId = getMessageAlbumId(rtm);
+								const albumCover = (rtmAlbumId != null ? getCachedAlbumCoverUri(rtmAlbumId) : null)
+									?? getMessageAlbumCoverUrl(rtm);
 								if (albumCover) return albumCover;
 								return null;
 							})();
+							const rtmLocation = getMessageLocation(rtm);
 							const audioDuration = (() => {
 								if (!isAudioReply) return null;
 								const rawMs = typeof rtmBody?.length === "number" ? rtmBody.length : null;
@@ -2063,94 +2212,112 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								const totalSec = Math.floor(rawMs / 1000);
 								return `${Math.floor(totalSec / 60)}:${(totalSec % 60).toString().padStart(2, "0")}`;
 							})();
+							// The composer field's top part: same fill, flat bottom edge joining
+							// the pill below, holding the quote as an inset card whose corners
+							// follow the pill's (25px - 4px inset). A pending voice message
+							// replaces the composer, so then it joins that pill instead.
 							return (
-								<div className="relative mb-2 overflow-hidden rounded-xl bg-[var(--surface-2)]">
-									<div className="absolute left-0 top-0 h-full w-[3px] bg-[var(--accent)]" />
-									<div className="flex items-center gap-2 py-[13px] pl-[13px] pr-2">
-										<div className="min-w-0 flex-1">
-											<p className="mb-0.5 truncate text-[11px] font-semibold text-[var(--accent)]">
-												{userId != null && Number(rtm.senderId) === Number(userId)
-													? t("chat.thread.replying_to_myself")
-													: t("chat.thread.replying_to_name", {
-														name: localNickname || selectedConversation?.data.name?.trim() || t("common.unknown_display_name"),
-													})
-												}
-											</p>
-											<p className="truncate text-xs text-[var(--text-muted)]">
-												{isAudioReply ? t("chat.thread.audio_label") : getMessagePreviewLabel(rtm, t)}
-											</p>
+								<div className={`rounded-t-[25px] p-1 pb-0 transition-colors ${
+									props.pendingAudioBlob ? PENDING_AUDIO_FILL_CLASS : composerFillClass(isRecording, recordingMs)
+								}`}>
+								<div className="flex items-center gap-2.5 rounded-[21px] bg-[color-mix(in_srgb,var(--text)_6%,transparent)] py-1.5 pl-1.5 pr-1">
+									{thumbUrl ? (
+										<img src={proxyMediaUrl(thumbUrl)} alt="" className="h-9 w-9 shrink-0 rounded-[15px] object-cover" />
+									) : videoUrl ? (
+										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-black">
+											<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
+												<Loader2 className="h-3.5 w-3.5 animate-spin text-white/60" />
+											</div>
+											<video
+												muted
+												preload="metadata"
+												src={proxyMediaUrl(videoUrl, { as: "video" })}
+												onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
+												onSeeked={(e) => {
+													const el = e.currentTarget;
+													el.style.opacity = "1";
+													const parent = el.parentElement;
+													const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");
+													if (spinner) spinner.style.display = "none";
+													const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
+													if (badge) badge.style.opacity = "1";
+												}}
+												className="h-full w-full object-cover opacity-0 transition-opacity duration-200"
+											/>
+											<div className="js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200">
+												<Play className="h-3.5 w-3.5 fill-white text-white drop-shadow" />
+											</div>
 										</div>
-										{thumbUrl ? (
-											<img src={thumbUrl} alt="" className="h-10 w-10 shrink-0 rounded object-cover" />
-										) : videoUrl ? (
-											<div className="relative h-10 w-10 shrink-0 overflow-hidden rounded bg-black">
-												<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
-													<Loader2 className="h-3.5 w-3.5 animate-spin text-white/60" />
-												</div>
-												<video
-													muted
-													preload="metadata"
-													src={videoUrl}
-													onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-													onSeeked={(e) => {
-														const el = e.currentTarget;
-														el.style.opacity = "1";
-														const parent = el.parentElement;
-														const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");
-														if (spinner) spinner.style.display = "none";
-														const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
-														if (badge) badge.style.opacity = "1";
-													}}
-													className="h-full w-full object-cover opacity-0 transition-opacity duration-200"
-												/>
-												<div className="js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200">
-													<Play className="h-3.5 w-3.5 fill-white text-white drop-shadow" />
-												</div>
-											</div>
-										) : isAudioReply ? (
-											<div className="flex w-10 shrink-0 items-center justify-end py-0.5 text-[var(--text-muted)]">
-												<div className="flex flex-col items-center gap-1">
-													<Mic className="h-4 w-4" />
-													<span className="text-[10px]">{audioDuration ?? "0:00"}</span>
-												</div>
-											</div>
-										) : null}
-										<button
-											type="button"
-											onClick={clearReplyTarget}
-											className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:text-[var(--text)]"
-											aria-label={t("chat.actions.cancel")}
-										>
-											<X className="h-3.5 w-3.5" />
-										</button>
+									) : rtmLocation ? (
+										// No pin: the map's own is too tall for 36px.
+										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-[var(--surface-2)]">
+											<MapLocationPreview lat={rtmLocation.lat} lon={rtmLocation.lon} zoom={14} marker={false} className="pointer-events-none absolute inset-0" />
+										</div>
+									) : (
+										<div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--accent)]">
+											{isAudioReply ? <Mic className="h-4 w-4" />
+												: rtm.type === "Location" ? <MapPin className="h-4 w-4" />
+												: <Reply className="h-4 w-4" />}
+										</div>
+									)}
+									<div className="min-w-0 flex-1">
+										<p className="truncate text-xs font-semibold text-[var(--accent)]">
+											{userId != null && Number(rtm.senderId) === Number(userId)
+												? t("chat.thread.replying_to_myself")
+												: t("chat.thread.replying_to_name", {
+													name: localNickname || selectedConversation?.data.name?.trim() || t("common.unknown_display_name"),
+												})
+											}
+										</p>
+										<p className="truncate text-xs text-[var(--text-muted)]">
+											{isAudioReply
+												? `${t("chat.thread.audio_label")}${audioDuration ? ` · ${audioDuration}` : ""}`
+												: getMessagePreviewLabel(rtm, t)}
+										</p>
 									</div>
+									<button
+										type="button"
+										onClick={clearReplyTarget}
+										className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:ink-tint-8 hover:text-[var(--text)] active:scale-90"
+										aria-label={t("chat.actions.cancel")}
+									>
+										<X className="h-4 w-4" />
+									</button>
+								</div>
 								</div>
 							);
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className="mb-2 rounded-xl border border-[var(--accent)] bg-[var(--surface-2)] pl-1.5 pr-1 py-1.5 flex items-center gap-1">
+							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 rounded-[25px] border border-transparent ${PENDING_AUDIO_FILL_CLASS} ${
+								selectedConversation && replyTargetMessage ? "rounded-t-none" : ""
+							}`}>
+								{/* No fixed height: like the composer it's border + py-1 + its h-10/h-8
+								    buttons, all in rem, so the two match even when the system font
+								    scale changes rem (a px height drifted from it). */}
 								<div className="flex-1 min-w-0">
-									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} />
+									<AudioPreviewPlayer blob={props.pendingAudioBlob} durationMs={props.pendingAudioDuration} recordedBars={recordedWaveform} recordedFraction={Math.min(1, props.pendingAudioDuration / 60_000)} largeButton />
 								</div>
+								{/* Same size as the composer's send button, so the two read as a pair. */}
 								<button
 									type="button"
 									onClick={() => { setRecordedWaveform([]); props.cancelAudio(); }}
-									className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:text-red-500"
+									disabled={props.isSendingAudio}
+									className={`shrink-0 inline-flex h-10 w-10 rounded-full active:scale-90 items-center justify-center text-[var(--text-muted)] transition hover:text-red-500 active:text-red-500 disabled:opacity-40`}
 									aria-label={t("chat.actions.cancel")}
 								>
-									<Trash2 className="h-3.5 w-3.5" />
+									<Trash2 className={"h-5 w-5"} />
 								</button>
 								<button
 									type="button"
 									onClick={() => { setRecordedWaveform([]); void props.confirmAudio(); }}
 									disabled={props.isSendingAudio}
-									className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--accent)] transition hover:opacity-80 disabled:opacity-40"
+									className={`shrink-0 inline-flex h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] active:scale-90 items-center justify-center transition hover:opacity-80 disabled:opacity-60`}
 									aria-label={t("chat.attachments.send")}
 								>
 									{props.isSendingAudio
-										? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-										: <SendHorizontal className="h-3.5 w-3.5" />}
+										? <Loader2 className={`h-5 w-5 animate-spin`} />
+										: <SendHorizontalFilled className={"h-5 w-5"} />}
 								</button>
 							</div>
 						) : null}
@@ -2158,8 +2325,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						{slashMatches.length > 0 && (
 							<div
 								onMouseDown={(event) => event.preventDefault()}
-								className="absolute bottom-full left-0 right-0 max-h-64 overflow-hidden rounded-t-2xl border-x border-t border-[var(--accent)] bg-[var(--surface)] shadow-xl z-40">
-								<div className="max-h-64 overflow-y-auto p-1.5">
+								// A frosted card floating above the pill composer (same material).
+								className="absolute bottom-full left-0 right-0 z-40 mb-2 max-h-64 overflow-hidden rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_90%,transparent)] shadow-[0_-1px_4px_rgba(0,0,0,0.15),0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+								<div data-lenis-prevent className="max-h-64 overflow-y-auto p-1.5">
 								<div className="flex flex-col gap-1">
 									{slashMatches.map((command, index) => {
 										const isSelected = index === slashSelectedIndex;
@@ -2172,10 +2340,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												onClick={() => selectSlashCommand(command)}
 												onMouseEnter={() => setSlashSelectedIndex(index)}
 												title={isDisabled ? t("chat.slash_commands.errors.no_conversation", { defaultValue: "Open a chat first" }) : undefined}
-												className={`w-full rounded-xl text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 ${
+												className={`w-full text-left px-3 py-2 transition disabled:cursor-not-allowed disabled:opacity-40 rounded-2xl active:scale-[0.98] ${
 													isSelected
 														? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-														: "bg-[var(--surface-2)] hover:bg-[color-mix(in_srgb,var(--surface-2)_80%,var(--text)_8%)]"
+														: isDesktop
+															? "hover:ink-tint-8"
+															: "active:ink-tint-8"
 												}`}
 											>
 												<div className="flex items-center gap-1.5 text-sm font-semibold">
@@ -2185,7 +2355,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 															className={`inline-flex items-center leading-none rounded-md px-1.5 py-1 text-[10px] font-normal ${
 																isSelected
 																	? "bg-black/15 text-[var(--accent-contrast)]"
-																	: "bg-[var(--surface)] text-[var(--text-muted)]"
+																	: "ink-tint-8 text-[var(--text-muted)]"
 															}`}
 														>
 															{command.argHint}
@@ -2199,7 +2369,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 																	className={`inline-flex items-center leading-none rounded-full px-1.5 py-1 text-[10px] font-medium ${
 																		isSelected
 																			? "bg-black/15 text-[var(--accent-contrast)]"
-																			: "bg-[var(--surface)] text-[var(--text-muted)]"
+																			: "ink-tint-8 text-[var(--text-muted)]"
 																	}`}
 																>
 																	/{alias}
@@ -2218,25 +2388,29 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									})}
 								</div>
 								</div>
-								<div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 bg-gradient-to-t from-black/30 to-transparent" />
-								<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-[var(--border)]" />
 							</div>
 						)}
-						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 ${slashMatches.length > 0 ? "rounded-b-xl border-t-0" : "rounded-xl"} border py-1.5 mb-2 transition-colors ${isRecording ? `pl-1 pr-1 ${recordingMs >= 50_000 ? "border-red-500" : "border-[var(--accent)]"} bg-[var(--surface-2)]` : "pl-3 pr-1 border-[var(--border)] bg-[var(--surface-2)] focus-within:border-[var(--accent)]"}`}>
+						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 rounded-[25px] border py-1 mb-2 transition-colors ${
+							// No outline, state is shown through the fill instead.
+							isRecording ? "pl-1 pr-1" : "pl-3 pr-1"
+						} border-transparent ${composerFillClass(isRecording, recordingMs)} ${
+							// A reply preview sits on top as the same field's first row.
+							selectedConversation && replyTargetMessage ? "rounded-t-none" : ""
+						}`}>
 							{isRecording ? (
 								<>
 									<button
 										type="button"
 										onClick={cancelRecording}
-										className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg"
+										className={`shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg`}
 										style={{ color: `color-mix(in srgb, var(--accent) ${Math.round((1 - dragProgress) * 100)}%, #ef4444)` }}
 										aria-label={t("chat.cancel_recording", { defaultValue: "Cancel" })}
 									>
-										<span className="relative h-4 w-4">
+										<span className={`relative h-5 w-5`}>
 											<span className="absolute inset-0" style={{ opacity: Math.max(0, 1 - dragProgress * 2) }}>
-											<Mic className="h-4 w-4 animate-pulse" />
+											<MicFilled className={`h-5 w-5 animate-pulse`} />
 										</span>
-											<Trash2 className={`absolute inset-0 h-4 w-4 ${trashBounce ? "animate-trash-bounce" : ""}`} style={{ opacity: Math.max(0, (dragProgress - 0.3) / 0.7) }} />
+											<Trash2 className={`absolute inset-0 h-5 w-5 ${trashBounce ? "animate-trash-bounce" : ""}`} style={{ opacity: Math.max(0, (dragProgress - 0.3) / 0.7) }} />
 										</span>
 									</button>
 									<span className={`text-sm font-semibold tabular-nums shrink-0 ${recordingMs >= 50_000 ? "text-red-500 animate-pulse" : "text-[var(--accent)]"}`}>
@@ -2245,12 +2419,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									<div className="flex-1" />
 									{!isDesktop && showRecordCircle && (
 									<span
-										className="text-xs text-[var(--text-muted)] shrink-0 select-none"
+										className="inline-flex items-center gap-0.5 text-xs text-[var(--text-muted)] shrink-0 select-none"
 										style={{
 											transform: `translateX(${recordDragX * 0.4}px)`,
 											opacity: 1 - dragProgress * 1.5,
 										}}
 									>
+										<ChevronLeft className="h-4 w-4 shrink-0" />
 										{t("chat.cancel_recording", { defaultValue: "Slide left to cancel" })}
 									</span>
 								)}
@@ -2302,41 +2477,67 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												return;
 											}
 										}
-										if (isDesktop && event.key === "Enter" && !event.shiftKey) {
+										if (enterSends && event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
 											event.preventDefault();
 											event.currentTarget.form?.requestSubmit();
 										}
 									}}
 									rows={1}
 									maxLength={1000}
+									enterKeyHint={enterSends ? "send" : "enter"}
 									placeholder={
 										selectedConversation
 											? t("chat.write_message")
 											: t("chat.new_conversation.write_first_message")
 									}
-									className="flex-1 bg-transparent py-1 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60"
+									className={`flex-1 bg-transparent py-2.5 text-sm leading-5 text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60`}
 									style={{ fieldSizing: "content", maxHeight: "115px" } as React.CSSProperties}
 								/>
 							)}
 							{isRecording && (isDesktop || !showRecordCircle) ? (
 								<button
+									key="stop"
 									type="button"
 									onClick={() => stopRecording()}
-									className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:opacity-80 transition"
+									className={`shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg text-red-500 hover:opacity-80 transition`}
 									aria-label={t("chat.stop_recording", { defaultValue: "Stop recording" })}
 								>
-									<Square className="h-4 w-4 fill-current" />
+									<Square className={`h-5 w-5 fill-current`} />
+								</button>
+							) : isSendingDrawerMedia && draft.trim().length === 0 && !isSending ? (
+								// Drawer send in flight (its sheet is already closed): the send
+								// button doubles as the progress indicator until it's done.
+								<button
+									key="drawer-send"
+									type="button"
+									disabled
+									className={`relative shrink-0 inline-flex h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] items-center justify-center`}
+									aria-label={t("chat.sending")}
+								>
+									<Loader2 className={`h-5 w-5 animate-spin`} />
+									{drawerSendProgress && drawerSendProgress.total > 1 ? (
+										<span className="absolute -right-1 -top-1 min-w-[1.25rem] rounded-full bg-[var(--surface)] px-1 text-center text-[10px] font-semibold leading-4 tabular-nums text-[var(--text)] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+											{Math.min(drawerSendProgress.done + 1, drawerSendProgress.total)}/{drawerSendProgress.total}
+										</span>
+									) : null}
 								</button>
 							) : draft.trim().length > 0 || isSending ? (
+								// Distinct keys: if React reused one <button> across these
+								// branches, the accent background would fade out over the
+								// mic button's square corners right after sending.
 								<button
+									key="send"
 									type="submit"
 									disabled={isSending || !!pendingLocationShare || draft.trim().length === 0}
-									className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--accent)] transition hover:opacity-80 disabled:opacity-30"
+									// Mobile: the invisible ::after widens the tap target past the
+									// pill's edge, so a slightly-off tap still sends.
+									className={`shrink-0 inline-flex relative h-10 w-10 after:absolute after:-inset-x-3 after:-inset-y-2 after:content-[''] items-center justify-center transition hover:opacity-80 disabled:opacity-30 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]`}
 								>
-									{isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
+									{isSending ? <Loader2 className={`h-5 w-5 animate-spin`} /> : <SendHorizontalFilled className={"h-5 w-5"} />}
 								</button>
 							) : (
 								<button
+									key="record"
 									type="button"
 									onClick={isDesktop ? () => void startRecording() : undefined}
 									onPointerDown={!isDesktop ? (e) => {
@@ -2358,7 +2559,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											isCapturingRef.current = false;
 											e.currentTarget.releasePointerCapture(e.pointerId);
 											if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
-											(window as unknown as { FreeGrindBridge?: { vibrate?: (ms: number) => void } }).FreeGrindBridge?.vibrate?.(80) ?? navigator.vibrate?.(80);
+											haptic(80);
 											setTrashBounce(true);
 											setTimeout(() => {
 												setTrashBounce(false);
@@ -2370,7 +2571,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									} : undefined}
 									onPointerUp={!isDesktop ? () => { isCapturingRef.current = false; setRecordDragX(0); if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; } setShowRecordCircle(false); stopRecording(true); } : undefined}
 									onPointerCancel={!isDesktop ? () => { isCapturingRef.current = false; setRecordDragX(0); if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; } setShowRecordCircle(false); cancelRecording(); } : undefined}
-									className={`relative shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-lg transition select-none touch-none ${isRecording ? "text-red-500" : "text-[var(--accent)] hover:opacity-80"}`}
+									className={`relative shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-lg transition select-none touch-none ${isRecording ? "text-red-500" : "text-[var(--accent)] hover:opacity-80"}`}
 									style={showRecordCircle ? {
 										transform: `translateX(${recordDragX}px)`,
 										transition: recordDragX === 0 ? "transform 0.3s cubic-bezier(0.34,1.56,0.64,1)" : "none",
@@ -2388,72 +2589,92 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											}}
 										/>
 									)}
-									<Mic className="relative h-4 w-4" />
+									<MicFilled className={`relative ${!isDesktop ? "h-5 w-5" : "h-4 w-4"}`} />
 								</button>
 							)}
 						</div>}
 						</div>
 
-                        <div className={`${!isDesktop ? "mb-2" : ""} mx-5 flex items-center justify-between gap-2`}>
+                        {/* Mirrors the mobile NavBar geometry (same side inset, equal-width
+                            columns, h-12 row) so the icons line up with the app's bottom menu. */}
+                        <div
+							data-composer-actions
+							className={
+								!isDesktop
+									? "-mx-[var(--app-px)]"
+									: "mx-5"
+							}
+							style={
+								!isDesktop
+									? { paddingBottom: mobileKeyboardInset > 0 ? "0.375rem" : "calc(env(safe-area-inset-bottom, 0px) + 0.375rem)" }
+									: undefined
+							}
+						>
+						<div className={!isDesktop ? "mx-auto grid h-12 w-full max-w-4xl grid-cols-5 px-[calc(0.75rem+1px+0.375rem)]" : "flex items-center justify-between gap-2"}>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									setIsGiphyPickerOpen((prev) => !prev);
 									if (isDrawerOpen) toggleDrawer();
 								}}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.giphy.button_label")}
 								title={t("chat.giphy.button_label")}
 							>
-								<Sticker className="h-5 w-5" />
+								<StickerFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									attachmentInputRef.current?.click();
 									if (isDrawerOpen) toggleDrawer();
 									if (pendingLocationShare) handleLocationShareRequest();
 								}}
 								disabled={isUploadingAttachment}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.attach_media")}
 								title={t("chat.attach_media")}
 							>
-								<ImagePlus className="h-5 w-5" />
+								<CameraPlusFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									toggleDrawer();
 									if (pendingLocationShare) handleLocationShareRequest();
 								}}
 								disabled={!selectedConversation && !targetProfileId}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed`}
 								aria-label={t("chat.drawer_label")}
 								title={t("chat.drawer_label")}
 							>
-								<SquareStack className="h-5 w-5" />
+								<ImagesFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => {
 									handleLocationShareRequest();
 									if (isDrawerOpen) toggleDrawer();
 								}}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.share_location_label", { defaultValue: "Share Location" })}
 								title={t("chat.share_location_label", { defaultValue: "Share Location" })}
 							>
-								<MapPin className="h-5 w-5" />
+								<MapPinFilled className="h-5 w-5" />
 							</button>
 							<button
 								type="button"
+								onPointerDown={composerActionHaptic}
 								onClick={() => setIsSavedPhrasesOpen((prev) => !prev)}
-								className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60"
+								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
 								aria-label={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 								title={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
 							>
-								<BookMarked className="h-5 w-5" />
+								<MessageSquareQuoteFilled className="h-5 w-5" />
 							</button>
 
 							<input
@@ -2463,6 +2684,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								accept="image/*,video/*"
 								className="hidden"
 							/>
+						</div>
 						</div>
 
 
@@ -2485,30 +2707,25 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							}
 							isProcessing={isUploadingAttachment}
 							isDesktop={isDesktop}
+							bg={NATIVE_SHEET_BG}
 							footerLeft={(() => {
 								const isVideo = pendingAttachmentFile.type.startsWith("video/");
+								// Photos: unlimited or 10s, a single toggle. Videos also have "repeat".
+								if (!isVideo) {
+									return (
+										<ExpiryToggleButton
+											expiring={attachmentMaxViews !== 2147483647}
+											onChange={(expiring) => setAttachmentMaxViews(expiring ? 1 : 2147483647)}
+											expiringLabel={t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}
+										/>
+									);
+								}
 								return (
-									<div className="relative inline-flex h-11 items-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] min-w-[120px]">
-										<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
-										<select
-											value={attachmentMaxViews}
-											onChange={(e) => setAttachmentMaxViews(Number(e.target.value))}
-											className="h-full w-full appearance-none rounded-xl bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
-										>
-											{isVideo ? (
-												<>
-													<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-													<option value={1}>{t("chat_drawer.expiry.once", { defaultValue: "Once" })}</option>
-													<option value={2}>{t("chat_drawer.expiry.repeat", { defaultValue: "Repeat" })}</option>
-												</>
-											) : (
-												<>
-													<option value={2147483647}>{t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" })}</option>
-													<option value={1}>{t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}</option>
-												</>
-											)}
-										</select>
-									</div>
+									<VideoExpiryButton
+										value={attachmentMaxViews}
+										onChange={setAttachmentMaxViews}
+										isDesktop={isDesktop}
+									/>
 								);
 							})()}
 						>
@@ -2517,13 +2734,21 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							<div className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
 							{attachmentPreviewUrl && (
 								pendingAttachmentFile.type.startsWith("video/") ? (
-									<div className="px-3 pb-3">
-										<div className="border border-[var(--border)]" style={{ borderRadius: "0.75rem", clipPath: "inset(0 round 0.75rem)" }}>
+									<div className="px-4 pb-3">
+										<div style={{ borderRadius: "1rem", clipPath: "inset(0 round 1rem)" }}>
 											<video src={attachmentPreviewUrl} controls className="w-full object-contain" style={{ maxHeight: "40dvh" }} />
+										</div>
+										<div className="mt-3 flex items-center justify-center gap-3">
+											<MediaToolButton
+												icon={<Repeat />}
+												label={t("chat.attachments.looping")}
+												active={attachmentLooping}
+												onClick={() => setAttachmentLooping(!attachmentLooping)}
+											/>
 										</div>
 									</div>
 								) : (
-									<div className="px-3 pb-3">
+									<div className="px-4 pb-3">
 										<div className="flex justify-center">
 											<style>{`
 												@keyframes attach-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
@@ -2536,7 +2761,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												.attach-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
 												.attach-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
 											`}</style>
-											<div className="relative rounded-xl border border-[var(--border)] overflow-hidden">
+											<div className="relative overflow-hidden rounded-2xl">
 											<ReactCrop
 												crop={attachmentCrop}
 												onChange={(c) => { setIsDraggingAttachmentCrop(true); setAttachmentCrop(c); }}
@@ -2558,51 +2783,39 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														transform: "translateY(-100%)",
 													}}
 												>
-													<img src={freegrindLogo} alt="" className="h-5 w-5 rounded-full attach-logo-shine" />
-													<span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-semibold text-white">
-														<span>{t("chat.time.just_now", { defaultValue: "just now" })}</span>
-													</span>
+													<TakenOnGrindrBadge label={t("chat.time.just_now", { defaultValue: "just now" })} shineClassName="attach-logo-shine" />
 												</div>
 											)}
 											</div>
 										</div>
-										<div className="mt-3 flex items-center justify-center gap-8">
-											<button type="button" onClick={() => void applyAttachmentTransform("flipH")} className="text-[var(--text-muted)] transition hover:text-[var(--text)]" aria-label="Flip horizontal">
-												<SquareCenterlineDashedHorizontal className="h-6 w-6" />
-											</button>
-											<button type="button" onClick={() => void applyAttachmentTransform("rotateCw")} className="text-[var(--text-muted)] transition hover:text-[var(--text)]" aria-label="Rotate clockwise">
-												<RotateCw className="h-6 w-6" />
-											</button>
+										<div className="mt-3 flex items-center justify-center gap-3">
+											<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyAttachmentTransform("flipH")} />
+											<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyAttachmentTransform("rotateCw")} />
+											<MediaToolDivider />
+											<MediaToolButton
+												icon={<TakenOnGrindrToolIcon active={attachmentTakenOnGrindr} />}
+												label={t("chat.attachments.taken_on_grindr")}
+												active={attachmentTakenOnGrindr}
+												onClick={() => setAttachmentTakenOnGrindr(!attachmentTakenOnGrindr)}
+											/>
 										</div>
 									</div>
 								)
 							)}
 							</div>
-							{/* Sticky toggle row — always pinned to bottom of sheet */}
-							<div className="shrink-0 px-3 pb-3 pt-2">
-								<div className="divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
-									{pendingAttachmentFile?.type.startsWith("video/") ? (
-										<ToggleRow
-											checked={attachmentLooping}
-											onChange={setAttachmentLooping}
-											label={t("chat.attachments.looping")}
-											description={t("chat.attachments.looping_description")}
-										/>
-									) : (
-										<ToggleRow
-											checked={attachmentTakenOnGrindr}
-											onChange={setAttachmentTakenOnGrindr}
-											label={t("chat.attachments.taken_on_grindr")}
-											description={t("chat.attachments.taken_on_grindr_description")}
-										/>
-									)}
-									<ToggleRow
-										checked={attachmentAddToDrawer}
-										onChange={setAttachmentAddToDrawer}
-										label={t("chat.attachments.add_to_drawer", { defaultValue: "Add to drawer" })}
-										description={t("chat.attachments.add_to_drawer_description", { defaultValue: "Also save this to your drawer so you can send it again later" })}
-									/>
-								</div>
+							{/* Options, pinned below the preview */}
+							<div className="shrink-0 px-4 pb-3 pt-2">
+								<SheetToggleList
+									items={[
+										{
+											key: "add-to-drawer",
+											checked: attachmentAddToDrawer,
+											onChange: setAttachmentAddToDrawer,
+											label: t("chat.attachments.add_to_drawer", { defaultValue: "Add to drawer" }),
+											description: t("chat.attachments.add_to_drawer_description", { defaultValue: "Also save this to your drawer so you can send it again later" }),
+										},
+									]}
+								/>
 							</div>
 						</div>
 						</BottomDrawer>
@@ -2615,58 +2828,40 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							isLoading={isLoadingDrawer}
 							error={drawerError}
 							isSending={isSendingDrawerMedia}
-							isAdding={isAddingDrawerMedia}
-							deletingMediaId={deletingDrawerMediaId}
 							onBack={toggleDrawer}
 							onLoadMedia={onLoadDrawerMedia}
 							onSendMedia={onSendDrawerMedia}
-							onAddMedia={onAddDrawerMedia}
-							onDeleteMedia={onDeleteDrawerMedia}
+							onMediaDeleted={onDrawerMediaDeleted}
+							onAlbumDeleted={onDrawerAlbumDeleted}
+							onAlbumsChanged={onReloadAlbums}
 							onShareAlbum={onShareAlbumFromDrawer}
 							onStopAlbumShare={onStopAlbumShareFromDrawer}
 							albums={shareableAlbums}
 							isLoadingAlbums={isLoadingAlbums}
 							albumCoverMap={albumCoverMap}
+							albumMediaCountMap={albumMediaCountMap}
 							sharedAlbumIds={sharedAlbumIds}
 							isSharingAlbum={isSharingAlbum}
 							isDesktop={isDesktop}
 							noConversation={!selectedConversation && !targetProfileId}
-							ownProfilePhotoUrl={ownProfilePhotoUrl}
 						/>
 					) : null}
 
                     {pendingLocationShare ? (
-						<BottomDrawer
-							title={t("chat.share_location_confirm", { defaultValue: "Share this location?" })}
+						<ShareLocationSheet
+							location={pendingLocationShare}
+							onChange={setPendingLocationShare}
 							onClose={() => setPendingLocationShare(null)}
-							onConfirm={() => {
-								void onSendLocation(pendingLocationShare.lat, pendingLocationShare.lon);
-								setPendingLocationShare(null);
-							}}
-							confirmLabel={t("chat.send")}
+							onSend={(loc) => void onSendLocation(loc.lat, loc.lon)}
 							isDesktop={isDesktop}
-						>
-							<div className="px-3 pb-3">
-								<div className="overflow-hidden rounded-xl border border-[var(--border)]" style={{ height: "40dvh" }}>
-									<MapLocationPicker
-										selectedLocation={pendingLocationShare}
-										onPick={(lat, lon) => setPendingLocationShare({ lat, lon })}
-										onError={(msg) => toast.error(msg)}
-										className="h-full w-full"
-										defaultZoom={18}
-									/>
-								</div>
-							</div>
-						</BottomDrawer>
+						/>
                     ) : null}
 
 					{isGiphyPickerOpen ? (
 						<GiphyPickerSheet
 							onClose={() => setIsGiphyPickerOpen(false)}
-							onSelect={(gif) => {
-								setIsGiphyPickerOpen(false);
-								void onSendGiphy(gif);
-							}}
+							// The sheet closes itself (animated) after a pick.
+							onSelect={(gif) => void onSendGiphy(gif)}
 							isDesktop={isDesktop}
 							isSending={isSending}
 						/>
@@ -2675,104 +2870,114 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					{isSavedPhrasesOpen ? (
 						<BottomSheet
 							onClose={() => {
-								setPhrasesExpanded(false);
 								setIsSavedPhrasesOpen(false);
+								runAfterSheetClose();
 							}}
-							onExpand={() => setPhrasesExpanded(true)}
+							closeRef={savedPhrasesSheetCloseRef}
+							expandable
 							isDesktop={isDesktop}
 							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+							panelClassName="px-4"
 						>
-							{/* Header */}
-							<div className="flex items-center justify-between px-4 pb-3">
-									<div className="flex items-center gap-2">
-										<p className="text-sm font-semibold text-[var(--text)]">
-											{t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
-										</p>
-										{savedPhrases.length > 0 && (
-											<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
-												{savedPhrases.length}
-											</span>
-										)}
-									</div>
-									<div className="flex items-center gap-1">
-										<button
-											type="button"
-											onClick={() => { setIsSavedPhrasesOpen(false); navigate("/settings/data"); }}
-											className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-											aria-label={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
-											title={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
-										>
-											<Settings2 className="h-4 w-4" />
-										</button>
-										<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-											<X className="h-4 w-4" />
-										</SheetClose>
-									</div>
-								</div>
-
-								{/* Add input */}
-								<div className="px-3 pb-3">
-									<div className="flex gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-1.5">
-										<input
-											type="text"
-											value={newPhraseInput}
-											onChange={(e) => setNewPhraseInput(e.target.value)}
-											onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddPhrase(); } }}
-											placeholder={t("settings_saved_phrases.new_placeholder", { defaultValue: "Add a new phrase..." })}
-											className="min-w-0 flex-1 bg-transparent px-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none"
-										/>
-										<button
-											type="button"
-											onClick={handleAddPhrase}
-											disabled={!newPhraseInput.trim()}
-											className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 text-xs font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-40"
-										>
-											<Plus className="h-3.5 w-3.5" />
-											{t("settings_saved_phrases.add", { defaultValue: "Add" })}
-										</button>
-									</div>
-								</div>
-
-								<div className="border-t border-[var(--border)]" />
-
-								{/* Phrases list */}
-								<div data-lenis-prevent className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: phrasesExpanded ? "72dvh" : "40dvh", transition: "max-height 0.25s ease" }}>
-									{savedPhrases.length === 0 ? (
-										<div className="flex flex-col items-center justify-center gap-2.5 text-center text-[var(--text-muted)]" style={{ minHeight: "40dvh" }}>
-											<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
-												<BookMarked className="h-5 w-5 opacity-60" />
-											</div>
-											<p className="text-sm font-medium">
-												{t("settings_saved_phrases.empty", { defaultValue: "No saved phrases yet." })}
-											</p>
-											<p className="text-xs opacity-60">
-												{t("settings_saved_phrases.empty_hint", { defaultValue: "Type above to add your first phrase." })}
-											</p>
-										</div>
-									) : (
-										<DndContext sensors={savedPhrasesSensors} modifiers={[restrictToVerticalAxis]} autoScroll={false} onDragEnd={(e) => void handlePhrasesDragEnd(e)}>
-											<SortableContext items={savedPhrases} strategy={verticalListSortingStrategy}>
-												<div className="divide-y divide-[var(--border)]">
-													{savedPhrases.map((phrase, originalIndex) => (
-														<SortableSavedPhraseRow
-															key={phrase}
-															phrase={phrase}
-															onUse={() => handleUsePhrase(phrase)}
-															onDelete={() => handleDeletePhrase(originalIndex)}
-															isDesktop={isDesktop}
-														/>
-													))}
-												</div>
-											</SortableContext>
-										</DndContext>
+							<div className="mb-3 flex items-center justify-between gap-3">
+								<div className="flex min-w-0 items-center gap-2">
+									<h3 className="truncate text-sm font-semibold text-[var(--text)]">
+										{t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
+									</h3>
+									{savedPhrases.length > 0 && (
+										<span className="rounded-full ink-tint-8 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
+											{savedPhrases.length}
+										</span>
 									)}
 								</div>
+								<div className="flex items-center gap-2">
+									<button
+										type="button"
+										onClick={() => {
+											afterSheetCloseRef.current = () => navigate("/settings/data");
+											savedPhrasesSheetCloseRef.current?.();
+										}}
+										className={SHEET_ICON_BUTTON_CLASS}
+										aria-label={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
+										title={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
+									>
+										<Settings2 className="h-4 w-4" />
+									</button>
+									<SheetCloseButton />
+								</div>
+							</div>
+
+							{/* Add field: round add button inside, like a composer. */}
+							<form
+								className="relative mb-3 shrink-0"
+								onSubmit={(e) => {
+									e.preventDefault();
+									handleAddPhrase();
+								}}
+							>
+								<input
+									type="text"
+									value={newPhraseInput}
+									onChange={(e) => setNewPhraseInput(e.target.value)}
+									enterKeyHint="done"
+									placeholder={t("settings_saved_phrases.new_placeholder", { defaultValue: "Add a new phrase..." })}
+									className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] pl-3.5 pr-12 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]"
+								/>
+								<button
+									type="submit"
+									disabled={!newPhraseInput.trim()}
+									className="absolute right-1.5 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] transition active:scale-90 hover:brightness-110 disabled:bg-[var(--surface-2)] disabled:text-[var(--text-muted)]"
+									aria-label={t("settings_saved_phrases.add", { defaultValue: "Add" })}
+									title={t("settings_saved_phrases.add", { defaultValue: "Add" })}
+								>
+									<Plus className="h-4 w-4" strokeWidth={2.5} />
+								</button>
+							</form>
+
+							{/* Phrases list */}
+							<div
+								data-lenis-prevent
+								className="-mx-4 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-1"
+								style={{ maxHeight: isDesktop ? "40dvh" : undefined }}
+							>
+								{savedPhrases.length === 0 ? (
+									<div className="flex h-full min-h-[30dvh] items-center justify-center">
+										<DrawerEmptyState
+											fanned={false}
+											icon={<MessageSquareQuoteFilled className="h-5 w-5" />}
+											title={t("settings_saved_phrases.empty", { defaultValue: "No saved phrases yet." })}
+											hint={t("settings_saved_phrases.empty_hint", { defaultValue: "Type above to add your first phrase." })}
+										/>
+									</div>
+								) : (
+									<DndContext sensors={savedPhrasesSensors} modifiers={[restrictToVerticalAxis]} autoScroll={false} onDragEnd={(e) => void handlePhrasesDragEnd(e)}>
+										<SortableContext items={savedPhrases} strategy={verticalListSortingStrategy}>
+											{/* Inset grouped list, like native settings lists. */}
+											<div className="rounded-2xl bg-[var(--surface-2)] py-1">
+												{savedPhrases.map((phrase, originalIndex) => (
+													<SortableSavedPhraseRow
+														key={phrase}
+														phrase={phrase}
+														onUse={() => handleUsePhrase(phrase)}
+														onDelete={() => handleDeletePhrase(originalIndex)}
+														isDesktop={isDesktop}
+													/>
+												))}
+											</div>
+										</SortableContext>
+									</DndContext>
+								)}
+							</div>
 						</BottomSheet>
 					) : null}
 
 					{isMergeSheetOpen ? (
 						<BottomSheet
-							onClose={() => setIsMergeSheetOpen(false)}
+							onClose={() => {
+								setIsMergeSheetOpen(false);
+								runAfterSheetClose();
+							}}
+							closeRef={mergeSheetCloseRef}
 							isDesktop={isDesktop}
 							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 						>
@@ -2780,9 +2985,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								<p className="text-sm font-semibold text-[var(--text)]">
 									{t("chat.merge_conversation_dialog_title", { defaultValue: "Merge into…" })}
 								</p>
-								<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-									<X className="h-4 w-4" />
-								</SheetClose>
+								<SheetCloseButton />
 							</div>
 
 							<div className="px-3 pb-3">
@@ -2815,8 +3018,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													key={conversation.data.conversationId}
 													type="button"
 													onClick={() => {
-														setIsMergeSheetOpen(false);
-														setMergeConfirmTarget(conversation);
+														afterSheetCloseRef.current = () => setMergeConfirmTarget(conversation);
+														mergeSheetCloseRef.current?.();
 													}}
 													className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-[var(--surface-2)]"
 												>
@@ -2849,21 +3052,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					) : null}
 
 					{!isDesktop && selectedActionMessage && !isAlbumSheetOpen ? (
-						<BottomSheet
+						<SheetActionList
+							title={t("chat.actions.title")}
 							isDesktop={false}
 							onClose={() => setOpenMessageActionId(null)}
-							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-						>
-							<div className="flex items-center justify-between px-4 pb-3">
-								<p className="text-sm font-semibold text-[var(--text)]">
-									{t("chat.actions.title")}
-								</p>
-								<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-									<X className="h-4 w-4" />
-								</SheetClose>
-							</div>
-							<div className="divide-y divide-[var(--border)] pb-1">
-								{(() => {
+							actions={(() => {
 									const message = selectedActionMessage;
 									const mine = selectedActionMessageMine;
 									const isMutating = isMutatingMessageId === message.messageId;
@@ -3020,28 +3213,16 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										danger: true,
 									});
 
-									return rows.map((row) => (
-										<SheetClose
-											key={row.key}
-											disabled={row.disabled}
-											onClick={row.onClick}
-											className={`flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium transition active:bg-[var(--surface-2)] disabled:opacity-50 ${
-												row.danger ? "text-red-400" : "text-[var(--text)]"
-											}`}
-										>
-											<div
-												className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl ${
-													row.danger ? "bg-red-500/10 text-red-400" : "bg-[var(--surface-2)] text-[var(--accent)]"
-												}`}
-											>
-												{row.icon}
-											</div>
-											{row.label}
-										</SheetClose>
-									));
+									return rows.map((row) => ({
+										key: row.key,
+										icon: row.icon as React.ReactElement<{ className?: string }>,
+										label: row.label,
+										disabled: row.disabled,
+										tone: row.danger ? ("danger" as const) : ("default" as const),
+										onSelect: row.onClick,
+									}));
 								})()}
-							</div>
-						</BottomSheet>
+						/>
 					) : null}
 
 
@@ -3049,7 +3230,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	) : (
 		<div
 			className={`flex h-full overflow-hidden items-center justify-center p-6 text-center text-[var(--text-muted)] ${
-				isDesktop ? "surface-card" : ""
+				isDesktop ? "native-card" : ""
 			}`}
 		>
 			{t("chat.select_conversation")}

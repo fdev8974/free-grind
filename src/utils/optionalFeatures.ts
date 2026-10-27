@@ -1,7 +1,9 @@
 /**
  * Optional features the user can switch on/off under Customizability →
- * Optional Features. Toggling one reloads the app, so reading these once at
- * mount is enough — no change events to subscribe to.
+ * Optional Features. Consumers read these once at mount — fine because none of
+ * them stay mounted while the Optional Features page is open, so they pick up
+ * the new value on the next mount. A component that stays mounted across
+ * routes would need a change event instead.
  */
 
 export const SHOW_VIDEO_GALLERY_KEY = "fg-show-video-gallery";

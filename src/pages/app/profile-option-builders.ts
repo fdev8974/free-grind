@@ -1,5 +1,15 @@
 import type { TFunction } from "i18next";
+import {
+	ArrowDown,
+	ArrowLeftRight,
+	ArrowUp,
+	ArrowUpDown,
+	ChevronsDown,
+	ChevronsUp,
+	type LucideIcon,
+} from "lucide-react";
 import type { ManagedOption } from "./GridPage.types";
+import type { ManagedGender } from "../../types/api-functions";
 
 type OptionDef = {
 	value: number;
@@ -115,6 +125,8 @@ const SEXUAL_HEALTH_DEFS: readonly OptionDef[] = [
 	{ value: 3, key: "profile_details.labels.sexual_health.prep" },
 	{ value: 4, key: "profile_details.labels.sexual_health.hiv_undetectable" },
 	{ value: 5, key: "profile_details.labels.sexual_health.discuss" },
+	{ value: 6, key: "profile_details.labels.sexual_health.sober" },
+	{ value: 7, key: "profile_details.labels.sexual_health.drug_free" },
 ];
 
 const VACCINE_DEFS: readonly OptionDef[] = [
@@ -159,6 +171,43 @@ export function getEthnicityLabelMap(t: TFunction): Record<number, string> {
 export function getSexualPositionOptions(t: TFunction): ManagedOption[] {
 	return buildManagedOptions(t, SEXUAL_POSITION_DEFS);
 }
+
+// The curated inline quick-pick order (man, cis man, trans man, woman, cis
+// woman, trans woman, non-binary) — genderId is stable across the API, unlike
+// displayGroup ordering, which the server doesn't otherwise rank.
+const DEFAULT_GENDER_ORDER = [1, 4, 5, 2, 6, 7, 3];
+
+// sortFilter ranks most genders (ascending = intended order); the rest
+// (sortFilter === null) just sort to the end, no special grouping.
+export function buildGenderOptions(genders: readonly ManagedGender[] | undefined): ManagedOption[] {
+	const sorted = [...(genders ?? [])].sort((a, b) => {
+		const left = a.sortFilter ?? Number.POSITIVE_INFINITY;
+		const right = b.sortFilter ?? Number.POSITIVE_INFINITY;
+		return left - right;
+	});
+	return sorted.map((item) => ({ value: item.genderId, label: item.gender }));
+}
+
+/** The primary (displayGroup 1) genders shown inline; the rest live behind a "more" picker. */
+export function getPrimaryGenderIds(genders: readonly ManagedGender[] | undefined): number[] {
+	const groupOneIds = new Set(
+		(genders ?? [])
+			.filter((item) => item.displayGroup === 1)
+			.map((item) => item.genderId),
+	);
+	const ordered = DEFAULT_GENDER_ORDER.filter((id) => groupOneIds.has(id));
+	const extra = [...groupOneIds].filter((id) => !DEFAULT_GENDER_ORDER.includes(id));
+	return [...ordered, ...extra];
+}
+
+export const SEXUAL_POSITION_ICONS: Record<number, LucideIcon> = {
+	1: ArrowUp,        // Top
+	2: ArrowDown,      // Bottom
+	3: ArrowUpDown,    // Versatile
+	4: ChevronsDown,   // Vers Bottom
+	5: ChevronsUp,     // Vers Top
+	6: ArrowLeftRight, // Side
+};
 
 export function getSexualPositionLabelMap(t: TFunction): Record<number, string> {
 	return toLabelMap(getSexualPositionOptions(t));

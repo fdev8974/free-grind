@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Direct Share: recent chats published by ShareTarget.publishShortcuts show up
+  as targets in the system share sheet for images. Only referenced from the
+  default (undisguised) launcher alias, and the shortcuts are only published
+  while that alias is active.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="dev.estopia.free_grind.DisguiseDefaultAlias">
+        <data android:mimeType="image/*" />
+        <category android:name="dev.estopia.free_grind.category.SHARE_IMAGE" />
+    </share-target>
+</shortcuts>

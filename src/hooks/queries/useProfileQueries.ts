@@ -8,7 +8,8 @@ import {
 	applySelfBlockAction,
 	markConversationDeleteHandled,
 } from "../../services/conversationArchive";
-import { profileSchema } from "../../pages/app/profile-editor/profileEditorUtils";
+import { profileSchema, unwrapOwnProfile } from "../../pages/app/profile-editor/profileEditorUtils";
+import { getSpotifyTracks, searchSpotifyTracks, type SpotifyTrack } from "../../services/spotify";
 
 // chat.v1.conversation.delete fires identically for "we blocked/unblocked
 // them" and "they blocked/unblocked us" — mark the conversation right after
@@ -25,6 +26,16 @@ import { profileSchema } from "../../pages/app/profile-editor/profileEditorUtils
 // applySelfBlockAction's local state check could see it — producing a
 // duplicate "You blocked/unblocked this person".
 function markConversationSelfAction(profileId: string, action: "block" | "unblock") {
+	// Key the mark on the profile id too — it's always known here and is the
+	// only self-attribution signal available when there's no local conversation
+	// yet (we blocked/unblocked someone we never chatted with). The WS handler
+	// derives the same profile id from the chat.v1.conversation.delete event and
+	// consumes it, so our own action can't fall through and be misrecorded as
+	// "they blocked/unblocked you".
+	markSelfBlockAction(profileId, action);
+	// When a conversation does exist, also key the mark (and the WS-echo dedup
+	// lock) on its id — that's what the chat-open / grid / reconcile paths
+	// consume, and it's a local DB read that reliably lands before the event.
 	void findConversationByProfileId(profileId)
 		.then((conversation) => {
 			if (conversation) {
@@ -157,12 +168,19 @@ export function useMyOwnProfile(enabled: boolean = true) {
 		queryKey: ["my-own-profile"],
 		queryFn: async () => {
 			const raw = await api.getMyOwnProfile();
-			const rawProfileObject =
-				raw && typeof raw === "object" && Array.isArray((raw as { profiles?: unknown }).profiles)
-					? ((raw as { profiles: Record<string, unknown>[] }).profiles[0] ?? null)
-					: (raw as Record<string, unknown> | null);
-			return profileSchema.parse(rawProfileObject);
+			return profileSchema.parse(unwrapOwnProfile(raw));
 		},
+		enabled,
+		staleTime: 1000 * 60 * 5,
+	});
+}
+
+/** Account-level prefs from /v3/me/prefs/settings (e.g. Right Now explicit images). */
+export function useMySettings(enabled: boolean = true) {
+	const api = useApiFunctions();
+	return useQuery({
+		queryKey: ["my-settings"],
+		queryFn: () => api.getMySettings(),
 		enabled,
 		staleTime: 1000 * 60 * 5,
 	});
@@ -273,5 +291,59 @@ export function useDeleteTravelPlan() {
 		mutationFn: ({ travelPlanId }: { travelPlanId: number; profileId: number }) =>
 			api.deleteTravelPlan(travelPlanId),
 		onSuccess: (_, variables) => invalidateTravelPlans(queryClient, variables.profileId),
+	});
+}
+
+/**
+ * Hook to fetch a profile's favourite Spotify songs. Resolves the backend's
+ * list of track ids into full track metadata via the Spotify Web API.
+ * Returns [] when the profile has none.
+ */
+export function useProfileSpotifyFavorites(
+	profileId: string | null | undefined,
+	enabled = true,
+) {
+	const api = useApiFunctions();
+	return useQuery<SpotifyTrack[]>({
+		queryKey: ["spotify-favorites", profileId ?? null],
+		queryFn: async () => {
+			const songIds = await api.getSpotifyFavoriteSongIds(profileId!);
+			if (songIds.length === 0) {
+				return [];
+			}
+			return getSpotifyTracks(songIds);
+		},
+		enabled: enabled && !!profileId,
+		staleTime: 1000 * 60 * 30,
+		retry: 1,
+	});
+}
+
+/**
+ * Mutation to save the current account's favourite Spotify songs. Invalidates
+ * that profile's cached favourites so the profile view reflects the change.
+ */
+export function useUpdateSpotifyFavorites(profileId: string | null | undefined) {
+	const api = useApiFunctions();
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (songIds: string[]) => api.setSpotifyFavoriteSongIds(songIds),
+		onSuccess: () => {
+			void queryClient.invalidateQueries({ queryKey: ["spotify-favorites", profileId ?? null] });
+		},
+	});
+}
+
+/**
+ * Hook to search the Spotify catalogue for tracks. Debounce the query at the
+ * call site; passes an empty result straight through for a blank query.
+ */
+export function useSpotifyTrackSearch(query: string) {
+	return useQuery<SpotifyTrack[]>({
+		queryKey: ["spotify-search", query.trim()],
+		queryFn: () => searchSpotifyTracks(query),
+		enabled: query.trim().length > 0,
+		staleTime: 1000 * 60 * 5,
+		retry: 1,
 	});
 }

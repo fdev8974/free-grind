@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { AtSign, Ban, Calendar, FileText, Flame, ImageOff, Image as ImageIcon, MessageCirclePlus, MessageSquare, Plus, Search, Trash2, User, X } from "lucide-react";
+import { AtSign, Ban, Calendar, ChevronDown, FileText, Flame, ImageOff, Image as ImageIcon, MessageCirclePlus, MessageSquare, Plus, Search, Trash2, User } from "lucide-react";
 import toast from "react-hot-toast";
-import { AppToaster } from "../AppToaster";
 import { Slider } from "../ui/range-slider";
 import type { Album } from "../../types/albums";
 import type {
@@ -12,6 +12,61 @@ import type {
 	AutomationTrigger,
 } from "../../utils/automationRules";
 import { getTapEmoji, tapLabel } from "../../pages/app/interest/interestUtils";
+import {
+	SheetCloseButton,
+	SHEET_FOOTER_CLASS,
+	SHEET_FOOTER_ICON_BUTTON_CLASS,
+	sheetButtonClass,
+} from "../ui/bottom-sheet";
+import { NATIVE_SHEET_BG } from "../ui/action-sheet";
+import { ControlledBottomSheet } from "../ui/controlled-sheet";
+import { SelectSheet } from "../ui/select-sheet";
+import { SHEET_FIELD_CLASS, SheetChip, SheetSection, SheetTextInput } from "../ui/sheet-section";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { cn } from "../../utils/cn";
+
+/** One condition or action of the rule: icon tile, content, remove button. */
+function RuleItemCard({
+	icon,
+	iconClass,
+	onRemove,
+	children,
+}: {
+	icon: ReactNode;
+	iconClass: string;
+	onRemove?: () => void;
+	children: ReactNode;
+}) {
+	return (
+		<div className="flex items-start gap-3 rounded-2xl bg-[var(--surface-2)] p-3">
+			<div className={cn("shrink-0 rounded-2xl p-2.5", iconClass)}>{icon}</div>
+			<div className="min-w-0 flex-1 self-center">{children}</div>
+			{onRemove && (
+				<button
+					type="button"
+					onClick={onRemove}
+					className="shrink-0 rounded-full p-2 text-[var(--text-muted)] transition hover:bg-red-500/12 hover:text-red-500"
+				>
+					<Trash2 className="h-4 w-4" />
+				</button>
+			)}
+		</div>
+	);
+}
+
+/** "Add …" row under a list of conditions or actions; opens a picker sheet. */
+function AddItemButton({ label, onClick }: { label: string; onClick: () => void }) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--text)_20%,transparent)] px-4 py-3 text-sm font-semibold text-[var(--accent)] transition hover:ink-tint-6 active:scale-[0.99]"
+		>
+			<Plus className="h-4 w-4" />
+			{label}
+		</button>
+	);
+}
 
 // The "doesn't contain" keyword conditions aren't a distinct entry in
 // AutomationRuleCondition — they're the same type with `negate: true`. But in
@@ -160,39 +215,15 @@ export function AutomationRuleEditor({
 	onDelete?: () => void;
 }) {
 	const { t } = useTranslation();
-	const dialogRef = useRef<HTMLDialogElement | null>(null);
+	const isDesktop = useDesktopBreakpoint();
 	const [draft, setDraft] = useState<AutomationRule | null>(rule);
+	// The picker sheet open on top: add a condition / action, or pick the album of an action.
+	const [picker, setPicker] = useState<"condition" | "action" | { albumOf: number } | null>(null);
 
 	useEffect(() => {
-		setDraft(rule);
+		// Keeps the last rule while the sheet slides out after closing.
+		if (rule) setDraft(rule);
 	}, [rule]);
-
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		if (isOpen) {
-			if (!dialog.open) {
-				try {
-					dialog.showModal();
-				} catch {
-					dialog.show();
-				}
-			}
-		} else if (dialog.open) {
-			dialog.close();
-		}
-	}, [isOpen]);
-
-	useEffect(() => {
-		const dialog = dialogRef.current;
-		if (!dialog) return;
-		const handleCancel = (event: Event) => {
-			event.preventDefault();
-			onCancel();
-		};
-		dialog.addEventListener("cancel", handleCancel);
-		return () => dialog.removeEventListener("cancel", handleCancel);
-	}, [onCancel]);
 
 	const conditionLabel = (kind: ConditionKind) => t(`settings_automation.condition_${kind}`);
 	const actionLabel = (kind: ActionKind) => t(`settings_automation.action_${kind}`);
@@ -257,131 +288,95 @@ export function AutomationRuleEditor({
 		onSave(draft);
 	};
 
-	return (
-		<dialog
-			ref={dialogRef}
-			className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-lg overflow-hidden rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl outline-none backdrop:bg-black/45"
-			onClick={(event) => {
-				if (event.target === dialogRef.current) onCancel();
-			}}
-		>
-			<AppToaster />
-			{draft && <div className="grid max-h-[85dvh] grid-rows-[auto_1fr_auto]">
-			<div className="border-b border-[var(--border)] p-5 pb-4">
-				<div className="flex items-center justify-between gap-2">
-					<p className="text-base font-semibold">{t(isNew ? "settings_automation.add_rule" : "settings_automation.edit_rule")}</p>
-					<button
-						type="button"
-						onClick={onCancel}
-						aria-label={t("settings_automation.cancel")}
-						className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-					>
-						<X className="h-4 w-4" />
-					</button>
-				</div>
+	const actionIcon = (kind: ActionKind) =>
+		kind === "block" ? Ban : kind === "send_message" ? MessageSquare : kind === "share_album" ? ImageIcon : Flame;
+	const removeIfUnlocked = (remove: () => void) => (draft?.locked ? undefined : remove);
 
-				<input
-					type="text"
-					value={draft.nameKey ? t(draft.nameKey) : draft.name}
-					onChange={(e) => setDraft(draft && { ...draft, name: e.target.value, nameKey: undefined })}
-					placeholder={t("settings_automation.rule_name_placeholder")}
-					readOnly={draft.locked}
-					className={`input-field mt-3 ${draft.locked ? "cursor-not-allowed opacity-60" : ""}`}
-				/>
+	return (
+		<ControlledBottomSheet
+			isOpen={isOpen}
+			onDismiss={onCancel}
+			expandable
+			isDesktop={isDesktop}
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[88dvh] px-4" : "px-4"}
+		>
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">
+					{t(isNew ? "settings_automation.add_rule" : "settings_automation.edit_rule")}
+				</h3>
+				<SheetCloseButton />
 			</div>
 
-			<div className="min-h-0 overflow-y-auto px-5 pb-5">
-				{/* TRIGGER */}
-				<p className="mb-2 mt-4 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-					{t("settings_automation.trigger_label")}
-				</p>
-				<div className="grid grid-cols-3 gap-1.5">
-					{TRIGGER_KINDS.map((trigger) => {
-						const selected = draft.triggers.includes(trigger);
-						return (
-							<button
-								key={trigger}
-								type="button"
-								disabled={draft.locked}
-								onClick={() => {
-									if (selected && draft.triggers.length <= 1) return; // keep at least one
-									const nextTriggers = selected
-										? draft.triggers.filter((t) => t !== trigger)
-										: [...draft.triggers, trigger];
-									setDraft(
-										draft && {
-											...draft,
-											triggers: nextTriggers,
-											conditions: dropIncompatibleConditions(nextTriggers, draft.conditions),
-										},
-									);
-								}}
-								className={`flex flex-col items-center gap-1 rounded-lg px-2 py-2 text-center text-[11px] font-semibold leading-tight transition disabled:cursor-not-allowed disabled:opacity-60 ${
-									selected
-										? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-										: "bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]"
-								}`}
-							>
-								{trigger === "tap_received" ? (
-									<Flame className="h-4 w-4" />
-								) : trigger === "message_received" ? (
-									<MessageSquare className="h-4 w-4" />
-								) : (
-									<MessageCirclePlus className="h-4 w-4" />
-								)}
-								<span>{triggerLabel(trigger)}</span>
-							</button>
-						);
-					})}
-				</div>
+			{draft && (
+			<>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<div className="space-y-5">
+				<SheetSection title={t("settings_automation.rule_name_label", { defaultValue: "Name" })}>
+					<SheetTextInput
+						value={draft.nameKey ? t(draft.nameKey) : draft.name}
+						onChange={(name) => setDraft(draft && { ...draft, name, nameKey: undefined })}
+						placeholder={t("settings_automation.rule_name_placeholder")}
+						disabled={draft.locked}
+					/>
+				</SheetSection>
 
-				{/* CONDITIONS */}
-				<div className="mb-2 mt-5 flex items-center justify-between px-1">
-					<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-						{t("settings_automation.conditions_label")}
-					</p>
-					{draft.conditions.length > 1 && (
-						<div className="flex overflow-hidden rounded-lg border border-[var(--border)]">
-							{(["all", "any"] as const).map((mode) => (
-								<button
-									key={mode}
-									type="button"
-									disabled={draft.locked}
-									onClick={() => setDraft(draft && { ...draft, matchMode: mode })}
-									className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${
-										draft.matchMode === mode
-											? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-											: "bg-[var(--surface-2)] text-[var(--text-muted)] hover:text-[var(--text)]"
-									}`}
-								>
-									{t(`settings_automation.match_mode_${mode}`)}
-								</button>
-							))}
-						</div>
-					)}
-				</div>
-				<div className="grid gap-2">
-					{draft.conditions.map((condition, index) => {
-						const removeButton = !draft.locked && (
-							<button
-								type="button"
-								onClick={() => removeCondition(index)}
-								className="mt-0.5 shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
-							>
-								<Trash2 className="h-4 w-4" />
-							</button>
-						);
-
-						if (condition.type === "age_above" || condition.type === "age_below") {
+				<SheetSection title={t("settings_automation.trigger_label")}>
+					<div className="flex flex-wrap gap-2">
+						{TRIGGER_KINDS.map((trigger) => {
+							const selected = draft.triggers.includes(trigger);
+							const Icon = trigger === "tap_received" ? Flame : trigger === "message_received" ? MessageSquare : MessageCirclePlus;
 							return (
-								<div
-									key={condition.type}
-									className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"
+								<SheetChip
+									key={trigger}
+									active={selected}
+									onClick={() => {
+										if (draft.locked) return;
+										if (selected && draft.triggers.length <= 1) return; // keep at least one
+										const nextTriggers = selected
+											? draft.triggers.filter((t) => t !== trigger)
+											: [...draft.triggers, trigger];
+										setDraft(
+											draft && {
+												...draft,
+												triggers: nextTriggers,
+												conditions: dropIncompatibleConditions(nextTriggers, draft.conditions),
+											},
+										);
+									}}
 								>
-									<div className="mt-0.5 shrink-0 rounded-2xl bg-purple-500/15 p-2.5 text-purple-400">
-										<Calendar className="h-5 w-5" />
-									</div>
-									<div className="min-w-0 flex-1">
+									<span className="inline-flex items-center gap-1.5">
+										<Icon className="h-3.5 w-3.5" />
+										{triggerLabel(trigger)}
+									</span>
+								</SheetChip>
+							);
+						})}
+					</div>
+				</SheetSection>
+
+				<SheetSection title={t("settings_automation.conditions_label")}>
+					<div className="grid gap-2">
+						{draft.conditions.length > 1 && (
+							<div className="flex gap-2">
+								{(["all", "any"] as const).map((mode) => (
+									<SheetChip
+										key={mode}
+										size="sm"
+										active={draft.matchMode === mode}
+										onClick={() => !draft.locked && setDraft(draft && { ...draft, matchMode: mode })}
+									>
+										{t(`settings_automation.match_mode_${mode}`)}
+									</SheetChip>
+								))}
+							</div>
+						)}
+						{draft.conditions.map((condition, index) => {
+							const onRemove = removeIfUnlocked(() => removeCondition(index));
+
+							if (condition.type === "age_above" || condition.type === "age_below") {
+								return (
+									<RuleItemCard key={condition.type} icon={<Calendar className="h-5 w-5" />} iconClass="bg-purple-500/15 text-purple-400" onRemove={onRemove}>
 										<Slider
 											label={conditionLabel(condition.type)}
 											displayValue={String(condition.value)}
@@ -392,51 +387,30 @@ export function AutomationRuleEditor({
 											defaultValue={condition.value}
 											onChange={(value) => updateCondition(index, { value })}
 										/>
-									</div>
-									{removeButton}
-								</div>
-							);
-						}
+									</RuleItemCard>
+								);
+							}
 
-						if (isKeywordCondition(condition)) {
-							return (
-								<div
-									key={condition.type}
-									className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"
-								>
-									<div className="mt-0.5 shrink-0 rounded-2xl bg-purple-500/15 p-2.5 text-purple-400">
-										{condition.type === "bio_contains_keyword" ? (
-											<FileText className="h-5 w-5" />
-										) : condition.type === "display_name_contains_keyword" ? (
-											<User className="h-5 w-5" />
-										) : condition.type === "message_contains_keyword" ? (
-											<Search className="h-5 w-5" />
-										) : (
-											<AtSign className="h-5 w-5" />
-										)}
-									</div>
-									<div className="min-w-0 flex-1">
+							if (isKeywordCondition(condition)) {
+								const Icon =
+									condition.type === "bio_contains_keyword" ? FileText
+									: condition.type === "display_name_contains_keyword" ? User
+									: condition.type === "message_contains_keyword" ? Search
+									: AtSign;
+								return (
+									<RuleItemCard key={condition.type} icon={<Icon className="h-5 w-5" />} iconClass="bg-purple-500/15 text-purple-400" onRemove={onRemove}>
 										<p className="text-sm font-medium">{conditionLabel(conditionKindOf(condition))}</p>
-										<div className="mt-2 flex overflow-hidden rounded-lg border border-[var(--border)]">
-											{(["custom", "forbidden"] as const).map((source, i) => {
-												const selected = !!condition.useForbiddenList === (source === "forbidden");
-												return (
-													<button
-														key={source}
-														type="button"
-														onClick={() => updateCondition(index, { useForbiddenList: source === "forbidden" })}
-														className={`flex-1 px-2 py-1.5 text-[11px] font-semibold transition ${
-															i > 0 ? "border-l border-[var(--border)]" : ""
-														} ${
-															selected
-																? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-																: "bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]"
-														}`}
-													>
-														{t(`settings_automation.keyword_source_${source}`)}
-													</button>
-												);
-											})}
+										<div className="mt-2 flex flex-wrap gap-2">
+											{(["custom", "forbidden"] as const).map((source) => (
+												<SheetChip
+													key={source}
+													size="sm"
+													active={!!condition.useForbiddenList === (source === "forbidden")}
+													onClick={() => updateCondition(index, { useForbiddenList: source === "forbidden" })}
+												>
+													{t(`settings_automation.keyword_source_${source}`)}
+												</SheetChip>
+											))}
 										</div>
 										{condition.useForbiddenList ? (
 											<p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
@@ -447,218 +421,190 @@ export function AutomationRuleEditor({
 												value={condition.keywords}
 												onChange={(e) => updateCondition(index, { keywords: e.target.value })}
 												placeholder={t("settings_automation.condition_keywords_placeholder")}
-												className="input-field mt-2 min-h-[60px] resize-y"
+												rows={2}
+												className={cn(SHEET_FIELD_CLASS, "mt-2 resize-y bg-[var(--surface)] px-3 py-2.5")}
 											/>
 										)}
-									</div>
-									{removeButton}
-								</div>
-							);
-						}
+									</RuleItemCard>
+								);
+							}
 
-						// Remaining condition types all share the `has: boolean` shape:
-						// profile_picture plus the has_*_handle conditions. profile_picture
-						// keeps its original translation keys; the handle conditions use a
-						// `condition_<type>[_none|_has]` naming scheme instead.
-						const titleKey =
-							condition.type === "profile_picture" ? "condition_profile_picture" : `condition_${condition.type}`;
-						const noneKey =
-							condition.type === "profile_picture" ? "condition_no_profile_picture" : `condition_${condition.type}_none`;
-						const hasKey =
-							condition.type === "profile_picture" ? "condition_has_profile_picture" : `condition_${condition.type}_has`;
-						return (
-							<div
-								key={condition.type}
-								className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"
-							>
-								<div className="mt-0.5 shrink-0 rounded-2xl bg-purple-500/15 p-2.5 text-purple-400">
-									{condition.type === "profile_picture" ? (
-										condition.has ? <ImageIcon className="h-5 w-5" /> : <ImageOff className="h-5 w-5" />
-									) : (
-										<AtSign className="h-5 w-5" />
-									)}
-								</div>
-								<div className="min-w-0 flex-1">
+							// Remaining condition types all share the `has: boolean` shape:
+							// profile_picture plus the has_*_handle conditions. profile_picture
+							// keeps its original translation keys; the handle conditions use a
+							// `condition_<type>[_none|_has]` naming scheme instead.
+							const titleKey =
+								condition.type === "profile_picture" ? "condition_profile_picture" : `condition_${condition.type}`;
+							const noneKey =
+								condition.type === "profile_picture" ? "condition_no_profile_picture" : `condition_${condition.type}_none`;
+							const hasKey =
+								condition.type === "profile_picture" ? "condition_has_profile_picture" : `condition_${condition.type}_has`;
+							return (
+								<RuleItemCard
+									key={condition.type}
+									icon={condition.type === "profile_picture"
+										? condition.has ? <ImageIcon className="h-5 w-5" /> : <ImageOff className="h-5 w-5" />
+										: <AtSign className="h-5 w-5" />}
+									iconClass="bg-purple-500/15 text-purple-400"
+									onRemove={onRemove}
+								>
 									<p className="text-sm font-medium">{t(`settings_automation.${titleKey}`)}</p>
-									<select
-										value={condition.has ? "has" : "none"}
-										onChange={(e) => updateCondition(index, { has: e.target.value === "has" })}
-										className="input-field mt-2"
-									>
-										<option value="none">{t(`settings_automation.${noneKey}`)}</option>
-										<option value="has">{t(`settings_automation.${hasKey}`)}</option>
-									</select>
-								</div>
-								{removeButton}
-							</div>
-						);
-					})}
+									<div className="mt-2 flex flex-wrap gap-2">
+										{([false, true] as const).map((has) => (
+											<SheetChip
+												key={String(has)}
+												size="sm"
+												active={condition.has === has}
+												onClick={() => updateCondition(index, { has })}
+											>
+												{t(`settings_automation.${has ? hasKey : noneKey}`)}
+											</SheetChip>
+										))}
+									</div>
+								</RuleItemCard>
+							);
+						})}
 
-					{!draft.locked && availableConditionKinds.length > 0 && (
-						<select
-							value=""
-							onChange={(e) => {
-								if (e.target.value) addCondition(e.target.value as ConditionKind);
-							}}
-							className="input-field"
-						>
-							<option value="" disabled>
-								{t("settings_automation.add_condition")}
-							</option>
-							{availableConditionKinds.map((kind) => (
-								<option key={kind} value={kind}>
-									{conditionLabel(kind)}
-								</option>
-							))}
-						</select>
-					)}
-				</div>
+						{!draft.locked && availableConditionKinds.length > 0 && (
+							<AddItemButton label={t("settings_automation.add_condition")} onClick={() => setPicker("condition")} />
+						)}
+					</div>
+				</SheetSection>
 
-				{/* ACTIONS */}
-				<p className="mb-2 mt-5 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-					{t("settings_automation.actions_label")}
-				</p>
-				<div className="grid gap-2">
-					{draft.actions.map((action, index) =>
-						action.type === "block" ? (
-							<div
-								key={index}
-								className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"
-							>
-								<div className="shrink-0 rounded-2xl bg-orange-500/15 p-2.5 text-orange-400">
-									<Ban className="h-5 w-5" />
-								</div>
-								<p className="min-w-0 flex-1 text-sm font-medium">{actionLabel(action.type)}</p>
-								{!draft.locked && (
-									<button
-										type="button"
-										onClick={() => removeAction(index)}
-										className="shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
-									>
-										<Trash2 className="h-4 w-4" />
-									</button>
-								)}
-							</div>
-						) : (
-							<div
-								key={index}
-								className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-3"
-							>
-								<div className="mt-0.5 shrink-0 rounded-2xl bg-orange-500/15 p-2.5 text-orange-400">
-									{action.type === "send_message" && <MessageSquare className="h-5 w-5" />}
-									{action.type === "share_album" && <ImageIcon className="h-5 w-5" />}
-									{action.type === "send_tap" && <Flame className="h-5 w-5" />}
-								</div>
-								<div className="min-w-0 flex-1">
+				<SheetSection title={t("settings_automation.actions_label")}>
+					<div className="grid gap-2">
+						{draft.actions.map((action, index) => {
+							const Icon = actionIcon(action.type);
+							const album = action.type === "share_album"
+								? albums.find((a) => Number(a.albumId) === action.albumId)
+								: undefined;
+							return (
+								<RuleItemCard
+									key={index}
+									icon={<Icon className="h-5 w-5" />}
+									iconClass="bg-orange-500/15 text-orange-400"
+									onRemove={removeIfUnlocked(() => removeAction(index))}
+								>
 									<p className="text-sm font-medium">{actionLabel(action.type)}</p>
 									{action.type === "send_tap" && (
-										<div className="mt-2 flex gap-1.5">
-											{TAP_TYPES.map((tapType) => (
-												<button
-													key={tapType}
-													type="button"
-													disabled={draft.locked}
-													onClick={() => updateAction(index, { tapType })}
-													className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-														action.tapType === tapType
-															? "bg-[var(--accent)] text-[var(--accent-contrast)]"
-															: "bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)]"
-													}`}
-												>
-													<span>{getTapEmoji(tapType)}</span>
-													<span>{tapLabel(tapType, t)}</span>
-												</button>
-											))}
-										</div>
-									)}
-									{action.type === "send_tap" && (
-										<p className="mt-1.5 text-xs text-[var(--text-muted)]">
-											{t("settings_automation.action_send_tap_hint")}
-										</p>
+										<>
+											<div className="mt-2 flex flex-wrap gap-2">
+												{TAP_TYPES.map((tapType) => (
+													<SheetChip
+														key={tapType}
+														size="sm"
+														active={action.tapType === tapType}
+														onClick={() => !draft.locked && updateAction(index, { tapType })}
+													>
+														<span className="inline-flex items-center gap-1.5">
+															<span>{getTapEmoji(tapType)}</span>
+															{tapLabel(tapType, t)}
+														</span>
+													</SheetChip>
+												))}
+											</div>
+											<p className="mt-1.5 text-xs text-[var(--text-muted)]">
+												{t("settings_automation.action_send_tap_hint")}
+											</p>
+										</>
 									)}
 									{action.type === "send_message" && (
 										<textarea
 											value={action.text}
 											onChange={(e) => updateAction(index, { text: e.target.value })}
 											placeholder={t("settings_automation.action_send_message_placeholder")}
-											className="input-field mt-2 min-h-[70px] resize-y"
+											rows={3}
+											className={cn(SHEET_FIELD_CLASS, "mt-2 resize-y bg-[var(--surface)] px-3 py-2.5")}
 										/>
 									)}
 									{action.type === "share_album" && (
 										albums.length > 0 ? (
-											<select
-												value={action.albumId}
-												onChange={(e) => updateAction(index, { albumId: Number(e.target.value) })}
-												className="input-field mt-2"
+											<button
+												type="button"
+												onClick={() => setPicker({ albumOf: index })}
+												className="mt-2 flex h-10 w-full items-center justify-between gap-2 rounded-xl bg-[var(--surface)] px-3 text-left text-sm text-[var(--text)] transition hover:ink-tint-6"
 											>
-												{albums.map((album) => (
-													<option key={album.albumId} value={album.albumId}>
-														{album.albumName || album.albumId}
-													</option>
-												))}
-											</select>
+												<span className="truncate">{album?.albumName || album?.albumId || action.albumId}</span>
+												<ChevronDown className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+											</button>
 										) : (
 											<p className="mt-1 text-xs text-[var(--text-muted)]">
 												{t("settings_automation.no_albums_hint")}
 											</p>
 										)
 									)}
-								</div>
-								{!draft.locked && (
-									<button
-										type="button"
-										onClick={() => removeAction(index)}
-										className="mt-0.5 shrink-0 rounded-lg p-2 text-[var(--text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
-									>
-										<Trash2 className="h-4 w-4" />
-									</button>
-								)}
-							</div>
-						),
-					)}
+								</RuleItemCard>
+							);
+						})}
 
-					{!draft.locked && (
-					<select
-						value=""
-						onChange={(e) => {
-							if (e.target.value) addAction(e.target.value as ActionKind);
-						}}
-						className="input-field"
-					>
-						<option value="" disabled>
-							{t("settings_automation.add_action")}
-						</option>
-						{ACTION_KINDS.map((kind) => (
-							<option key={kind} value={kind}>
-								{actionLabel(kind)}
-							</option>
-						))}
-					</select>
-					)}
+						{!draft.locked && (
+							<AddItemButton label={t("settings_automation.add_action")} onClick={() => setPicker("action")} />
+						)}
+					</div>
+				</SheetSection>
 				</div>
 			</div>
 
-			<div className="flex items-center gap-2 border-t border-[var(--border)] p-5 pt-4">
+			<div className={SHEET_FOOTER_CLASS}>
 				{onDelete && (
 					<button
 						type="button"
 						onClick={onDelete}
-						className="inline-flex h-11 flex-1 basis-1/2 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 text-sm font-medium text-red-400 transition hover:border-red-500/50 hover:bg-red-500/15 hover:text-red-300"
+						aria-label={t("settings_automation.delete_rule")}
+						className={cn(SHEET_FOOTER_ICON_BUTTON_CLASS, "bg-red-500/12 text-red-500 hover:bg-red-500/20 hover:text-red-500")}
 					>
 						<Trash2 className="h-4 w-4" />
-						{t("settings_automation.delete_rule")}
 					</button>
 				)}
-				<button
-					type="button"
-					onClick={handleSave}
-					className={`btn-accent inline-flex h-11 items-center justify-center gap-2 px-4 ${onDelete ? "flex-1 basis-1/2" : "w-full"}`}
-				>
-					<Plus className="h-4 w-4" />
+				<button type="button" onClick={handleSave} className={sheetButtonClass()}>
 					{t("settings_automation.save_rule")}
 				</button>
 			</div>
-			</div>}
-		</dialog>
+			</>
+			)}
+
+			{/* Pickers stacked on top; portaled so the panel's transform doesn't move them. */}
+			{picker === "condition" && createPortal(
+				<SelectSheet<ConditionKind>
+					// Long list: starts small, drag up for the rest.
+					expandable
+					mediumDetent={0.45}
+					title={t("settings_automation.add_condition")}
+					value={null}
+					options={availableConditionKinds.map((kind) => ({ value: kind, label: conditionLabel(kind) }))}
+					onSelect={addCondition}
+					onClose={() => setPicker(null)}
+					isDesktop={isDesktop}
+				/>,
+				document.body,
+			)}
+			{picker === "action" && createPortal(
+				<SelectSheet<ActionKind>
+					title={t("settings_automation.add_action")}
+					value={null}
+					options={ACTION_KINDS.map((kind) => ({
+						value: kind,
+						label: actionLabel(kind),
+						icon: actionIcon(kind),
+						iconClassName: "bg-orange-500/15 text-orange-400",
+					}))}
+					onSelect={addAction}
+					onClose={() => setPicker(null)}
+					isDesktop={isDesktop}
+				/>,
+				document.body,
+			)}
+			{picker !== null && typeof picker === "object" && draft?.actions[picker.albumOf]?.type === "share_album" && createPortal(
+				<SelectSheet<string>
+					title={actionLabel("share_album")}
+					value={String((draft.actions[picker.albumOf] as Extract<AutomationRuleAction, { type: "share_album" }>).albumId)}
+					options={albums.map((album) => ({ value: String(album.albumId), label: album.albumName || String(album.albumId) }))}
+					onSelect={(albumId) => updateAction(picker.albumOf, { albumId: Number(albumId) })}
+					onClose={() => setPicker(null)}
+					isDesktop={isDesktop}
+				/>,
+				document.body,
+			)}
+		</ControlledBottomSheet>
 	);
 }

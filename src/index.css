@@ -23,10 +23,16 @@
 	--animate-search-in: search-in 0.3s ease-out forwards;
 	--animate-badge-in: badge-in 0.3s ease-out forwards;
 	--animate-morph-glow: morph-glow 8s ease-in-out infinite;
+	/* Slow breathing glow (Right Now sheet header) */
+	--animate-glow-breathe: glow-breathe 4s ease-in-out infinite;
 	--animate-spin: spin 1s linear infinite;
 	--animate-fade-in: fade-in 0.4s ease-out forwards;
 	--animate-fade-in-subtle: fade-in-subtle 0.4s ease-out both;
 	--animate-reveal-row: reveal-row 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+	/* Paged fullscreen flows (onboarding, what's new): the new page slides in
+	   from the side it's coming from. */
+	--animate-step-in-next: step-in-next 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+	--animate-step-in-prev: step-in-prev 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 	--animate-progress-indeterminate: progress-indeterminate 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 
 	/* Jump-to-message highlight (chat reply-quote tap) */
@@ -41,6 +47,9 @@
 	--animate-sin-mode-title-in: sin-mode-title-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
 	--animate-sin-mode-rays: sin-mode-rays-spin 14s linear infinite;
 	--animate-sin-mode-shimmer: sin-mode-shimmer 1.6s ease-in-out infinite;
+	/* Expiring things (album bubbles, the drawer's expiry toggle): flips over
+	   like a real hourglass, then rests while the sand runs. */
+	--animate-hourglass-rotate: hourglass-rotate 2.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 
 	@keyframes morph-glow {
 		0%, 100% {
@@ -59,6 +68,23 @@
 			transform: scale(1.1) translate(-10%, -5%);
 			border-radius: 60% 40% 50% 50% / 40% 40% 60% 60%;
 		}
+	}
+
+	@keyframes glow-breathe {
+		0%, 100% {
+			opacity: 0.65;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 1;
+			transform: scale(1.12);
+		}
+	}
+
+	@keyframes hourglass-rotate {
+		0%, 35% { transform: rotate(0deg); }
+		50%, 85% { transform: rotate(180deg); }
+		100% { transform: rotate(360deg); }
 	}
 
 	@keyframes badge-in {
@@ -98,6 +124,14 @@
 	@keyframes fade-in {
 		from { opacity: 0; }
 		to { opacity: 1; }
+	}
+	@keyframes step-in-next {
+		from { opacity: 0; transform: translateX(32px); }
+		to { opacity: 1; transform: none; }
+	}
+	@keyframes step-in-prev {
+		from { opacity: 0; transform: translateX(-32px); }
+		to { opacity: 1; transform: none; }
 	}
 	@keyframes fade-in-subtle {
 		from { opacity: 0; }
@@ -312,10 +346,20 @@
 		--accent: #7c3aed;
 		--accent-contrast: #ffffff;
 		--right-now: #9333ea;
+		/* 15% tint of --right-now for icon chips; precomputed because the
+		   color-mix() Tailwind emits for var()/opacity isn't supported by
+		   older Android WebViews, which then fall back to the opaque color. */
+		--right-now-soft: rgb(147 51 234 / 0.15);
 		/* Keep in sync with EXPLORE_COLOR in LocationOverlay.tsx */
 		--explore: #3b82f6;
 		--content-max: 1200px;
 		--app-px: clamp(12px, 2.6vw, 28px);
+		/* Shared top-bar geometry, taken from the main tab headers (Inbox, Right Now,
+		   Interest: .app-screen top padding + one .app-title line). Every other top
+		   bar centres its icons on --header-icon-center so they all line up. */
+		--header-top: calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px));
+		--header-row-h: calc(clamp(1.6rem, 4.2vw, 2.05rem) * 1.1);
+		--header-icon-center: calc(var(--header-top) + var(--header-row-h) / 2);
 		--radius-sm: 12px;
 		--radius-md: 16px;
 		--radius-lg: 18px;
@@ -365,6 +409,16 @@
 		--dark-noise: 0.03;
 
 		background-color: var(--bg);
+	}
+
+	/* AMOLED: swap the dark palette for pure black. Overriding the --dark-*
+	   tokens means every dark rule (forced or via prefers-color-scheme) picks
+	   it up, while light mode stays untouched. */
+	:root[data-amoled="true"] {
+		--dark-bg: #000000;
+		--dark-surface: #0b0d11;
+		--dark-surface-2: #15191f;
+		--dark-border: #242a33;
 	}
 
 	@media (prefers-color-scheme: dark) {
@@ -421,14 +475,16 @@
 	#app {
 		width: 100%;
 		min-height: 100%;
-		overflow-x: hidden;
+		/* clip, not hidden: hidden turns these into scroll containers, which
+		   silently breaks `position: sticky` (PageHeader) for window-scrolled pages. */
+		overflow-x: clip;
 	}
 
 	body {
 		margin: 0;
 		background: var(--bg);
 		color: var(--text);
-		font-family: "IBM Plex Sans Variable", "IBM Plex Sans", sans-serif;
+		font-family: "Inter Variable", "Inter", sans-serif;
 		font-feature-settings:
 			"rlig" 1,
 			"calt" 1;
@@ -532,13 +588,17 @@
 @layer utilities {
 	.h-15 { height: 3.75rem; }
 	.w-15 { width: 3.75rem; }
-	.squircle {
-		border-radius: 32%;
-		mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M 0,50 C 0,6.7 6.7,0 50,0 C 93.3,0 100,6.7 100,50 C 100,93.3 93.3,100 50,100 C 6.7,100 0,93.3 0,50' fill='%23000'/%3E%3C/svg%3E");
-		mask-size: 100% 100%;
-		-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M 0,50 C 0,6.7 6.7,0 50,0 C 93.3,0 100,6.7 100,50 C 100,93.3 93.3,100 50,100 C 6.7,100 0,93.3 0,50' fill='%23000'/%3E%3C/svg%3E");
-		-webkit-mask-size: 100% 100%;
-		overflow: hidden;
+	/* Badges on a round avatar: center the badge on the circle's edge at 45°
+	   (1 - 1/√2) / 2 ≈ 14.6% in from the corner, independent of avatar size. */
+	.circle-badge-br {
+		right: 14.6%;
+		bottom: 14.6%;
+		transform: translate(50%, 50%);
+	}
+	.circle-badge-tr {
+		right: 14.6%;
+		top: 14.6%;
+		transform: translate(50%, -50%);
 	}
 }
 
@@ -603,6 +663,7 @@
 		-webkit-user-select: none;
 		transition:
 			border-color 0.2s ease,
+			background-color 0.15s ease,
 			transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 	}
 
@@ -667,6 +728,227 @@
 
 	.sin-mode-title {
 		text-shadow: 0 0 20px rgba(217, 70, 239, 0.85), 0 0 60px rgba(168, 85, 247, 0.55);
+	}
+
+	/* Right Now "session started" overlay — Sin Mode's build in Right Now purple */
+	.right-now-started-backdrop {
+		background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--right-now) 32%, transparent) 0%, rgba(14, 4, 22, 0.93) 60%, rgba(9, 3, 15, 0.98) 100%);
+	}
+
+	.right-now-started-rays {
+		background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--right-now) 20%, transparent) 0deg 6deg, transparent 6deg 18deg);
+		mask-image: radial-gradient(circle, black 0%, transparent 68%);
+		-webkit-mask-image: radial-gradient(circle, black 0%, transparent 68%);
+	}
+
+	.right-now-started-halo {
+		background: radial-gradient(circle, color-mix(in srgb, var(--right-now) 70%, transparent) 0%, color-mix(in srgb, var(--right-now) 18%, transparent) 55%, transparent 72%);
+	}
+
+	.right-now-started-title {
+		text-shadow: 0 0 20px color-mix(in srgb, var(--right-now) 85%, transparent), 0 0 60px color-mix(in srgb, var(--right-now) 55%, transparent);
+	}
+
+	/* Right Now map markers (game style): countdown ring, pop-in, selection,
+	   name plates and the viewer's own radar. Built as plain DOM in RightNowMap. */
+	/* No `position` on the marker roots (.rn-marker, .rn-cluster, .rn-radar):
+	   maplibre places them via .maplibregl-marker { position: absolute } plus a
+	   transform; overriding it to relative stacks them in normal flow, so they
+	   drift away from their coordinates when zooming. Absolute already makes
+	   them the containing block for their positioned children. */
+	.rn-marker-pop {
+		width: 100%;
+		height: 100%;
+		animation: rn-marker-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+	}
+	.rn-marker-inner {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		transition: transform 200ms ease, opacity 200ms ease, filter 200ms ease;
+	}
+	.rn-marker[data-selected="true"] {
+		z-index: 10;
+	}
+	.rn-marker[data-selected="true"] .rn-marker-inner {
+		transform: scale(1.25);
+		animation: rn-marker-bounce 0.5s ease-out;
+		filter: drop-shadow(0 0 10px color-mix(in srgb, var(--right-now) 70%, transparent));
+	}
+	.rn-map-has-selection .rn-marker:not([data-selected="true"]) .rn-marker-inner,
+	.rn-map-has-selection .rn-cluster .rn-marker-inner {
+		opacity: 0.45;
+		filter: saturate(0.6);
+	}
+	/* SVG is a replaced element: `inset` alone doesn't stretch it (it keeps its
+	   300x150 default box), so position and size it explicitly around the avatar. */
+	.rn-ring {
+		position: absolute;
+		left: -3px;
+		top: -3px;
+		width: calc(100% + 6px);
+		height: calc(100% + 6px);
+		display: block;
+		pointer-events: none;
+		overflow: visible;
+	}
+	.rn-ring-progress {
+		filter: drop-shadow(0 0 3px var(--right-now));
+	}
+	.rn-ring-fresh .rn-ring-progress {
+		animation: rn-ring-glow 1.6s ease-in-out infinite;
+	}
+	.rn-ring-low .rn-ring-progress {
+		animation: rn-ring-blink 1s ease-in-out infinite;
+	}
+	.rn-nameplate {
+		position: absolute;
+		top: calc(100% + 8px);
+		left: 50%;
+		transform: translateX(-50%) translateY(-4px);
+		white-space: nowrap;
+		border-radius: 9999px;
+		padding: 2px 8px;
+		font-size: 11px;
+		font-weight: 700;
+		line-height: 16px;
+		color: #fff;
+		background: color-mix(in srgb, var(--right-now) 85%, black);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity 200ms ease, transform 200ms ease;
+	}
+	.rn-map-zoomed .rn-nameplate,
+	.rn-marker[data-selected="true"] .rn-nameplate {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
+	}
+	.rn-map-has-selection .rn-marker:not([data-selected="true"]) .rn-nameplate {
+		opacity: 0;
+	}
+	.rn-radar {
+		width: 22px;
+		height: 22px;
+		pointer-events: none;
+	}
+	.rn-radar-dot {
+		position: absolute;
+		inset: 3px;
+		border-radius: 9999px;
+		background: var(--right-now);
+		border: 3px solid #fff;
+		box-shadow: 0 0 12px var(--right-now);
+	}
+	.rn-radar-ring {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		width: 22px;
+		height: 22px;
+		margin: -11px 0 0 -11px;
+		border-radius: 9999px;
+		border: 2px solid var(--right-now);
+		animation: rn-radar 3s ease-out infinite;
+	}
+	.rn-radar-ring:nth-child(2) { animation-delay: 1s; }
+	.rn-radar-ring:nth-child(3) { animation-delay: 2s; }
+	.rn-radar-label {
+		position: absolute;
+		top: calc(100% + 6px);
+		left: 50%;
+		transform: translateX(-50%);
+		border-radius: 9999px;
+		padding: 1px 7px;
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: #fff;
+		background: var(--right-now);
+		white-space: nowrap;
+	}
+	/* Cluster: looks like a profile marker (same size and ring) showing the
+	   newest member's photo dimmed, the member count in the middle and two
+	   offset circles peeking out behind it as a "stack". */
+	.rn-cluster {
+		cursor: pointer;
+	}
+	.rn-cluster-stack {
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		border: 2px solid var(--bg);
+		background: color-mix(in srgb, var(--right-now) 45%, var(--surface-2));
+		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+	}
+	.rn-cluster-stack:nth-child(1) { transform: translate(7px, -6px) scale(0.9); opacity: 0.55; }
+	.rn-cluster-stack:nth-child(2) { transform: translate(3.5px, -3px) scale(0.95); opacity: 0.8; }
+	.rn-cluster-face {
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		border: 1px solid var(--bg);
+		background: var(--surface-2);
+		color: var(--text-muted);
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 0 6px color-mix(in srgb, var(--right-now) 30%, transparent);
+	}
+	.rn-cluster-face img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		filter: blur(1.5px) brightness(0.5) saturate(1.2);
+		transform: scale(1.1);
+	}
+	.rn-cluster-count {
+		position: relative;
+		color: #fff;
+		font-size: 15px;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+	}
+	.rn-cluster:active .rn-marker-inner {
+		transform: scale(0.94);
+	}
+	@keyframes rn-marker-pop {
+		0% { opacity: 0; transform: scale(0.2) translateY(12px); }
+		70% { opacity: 1; transform: scale(1.12) translateY(-2px); }
+		100% { opacity: 1; transform: scale(1) translateY(0); }
+	}
+	@keyframes rn-marker-bounce {
+		0% { transform: scale(1); }
+		40% { transform: scale(1.38) translateY(-6px); }
+		70% { transform: scale(1.18) translateY(0); }
+		100% { transform: scale(1.25); }
+	}
+	@keyframes rn-ring-glow {
+		0%, 100% { filter: drop-shadow(0 0 3px var(--right-now)); }
+		50% { filter: drop-shadow(0 0 9px var(--right-now)); }
+	}
+	@keyframes rn-ring-blink {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0.35; }
+	}
+	@keyframes rn-radar {
+		0% { transform: scale(1); opacity: 0.8; }
+		100% { transform: scale(7); opacity: 0; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.rn-marker-pop,
+		.rn-marker[data-selected="true"] .rn-marker-inner,
+		.rn-ring-fresh .rn-ring-progress,
+		.rn-ring-low .rn-ring-progress,
+		.rn-radar-ring {
+			animation: none;
+		}
+		.rn-radar-ring { display: none; }
 	}
 
 	.tab-menu {
@@ -778,6 +1060,14 @@
 			calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px));
 	}
 
+	/* Sticky page header (PageHeader): pulls itself up over .app-screen's top
+	   padding so its scrolled backdrop also covers the status-bar area; its row
+	   then starts exactly where a tab header's title row does. */
+	.page-header {
+		margin-top: calc(-1 * var(--header-top));
+		padding-top: var(--header-top);
+	}
+
 	@media (min-width: 1024px) {
 		.app-screen {
 			padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
@@ -785,27 +1075,12 @@
 	}
 
 
-	/* Standard card with borders, shadows, and rounded corners used for modals and focused UI elements */
-	.surface-card {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 18px;
-		box-shadow: 0 16px 34px rgba(0, 0, 0, 0.17);
-		box-shadow:
-			0 16px 34px color-mix(in srgb, #000 17%, transparent),
-			0 1px 0 color-mix(in srgb, var(--surface) 74%, transparent) inset;
-	}
-
-	/* Search bar sitting directly above the settings list — shares surface-card's
-	   elevation so it reads as part of the same card system instead of a flat,
-	   unrelated strip, with an accent border on focus like other search inputs. */
+	/* Search bar sitting directly above the settings list, with an accent
+	   border on focus like other search inputs. */
 	.settings-search-bar {
 		background: var(--surface);
-		border: 1px solid var(--border);
+		border: 1px solid transparent;
 		border-radius: 16px;
-		box-shadow:
-			0 10px 24px color-mix(in srgb, #000 12%, transparent),
-			0 1px 0 color-mix(in srgb, var(--surface) 74%, transparent) inset;
 		transition: border-color 140ms ease;
 	}
 	.settings-search-bar:focus-within {
@@ -964,6 +1239,40 @@
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-scheme="light"]) .glass-pill.neutral {
 			border-color: rgba(255, 255, 255, 0.1);
+		}
+	}
+
+	/* Borderless grouped card for app pages. Opaque, so nested sticky/absolute
+	   content needs no isolation. Light: white on the grey page. Dark: the
+	   regular surface. AMOLED's surface is nearly black, so there it's a
+	   darkened surface-2 instead (keeps the palette's blue tint, which a
+	   text-color mix lost). That card is then about as light as surface-2
+	   itself, so inside it --surface-2 steps up one level: icon tiles, avatar
+	   placeholders, progress tracks and hovers built on it stay visible. */
+	.native-card {
+		border-radius: 20px;
+		background: var(--surface);
+	}
+	/* Just the card's fill (incl. AMOLED below), e.g. for chips sitting on the page. */
+	.native-card-fill {
+		background: var(--surface);
+	}
+	:root[data-scheme="dark"][data-amoled="true"] .native-card,
+	:root[data-scheme="dark"][data-amoled="true"] .native-card-fill,
+	:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
+		background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
+	}
+	:root[data-scheme="dark"][data-amoled="true"] .native-card {
+		--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
+	}
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-card-fill,
+		:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
+			background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
+		}
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-card {
+			--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
 		}
 	}
 
@@ -1186,6 +1495,11 @@
 }
 
 @media (min-width: 640px) {
+  /* The centered fs-card is itself var(--surface), so a .native-card inside
+     it would vanish there; step it up a level instead. */
+  .fs-card-inner .native-card {
+    background: var(--surface-2);
+  }
   .fs-card-inner::before {
     display: none;
   }
@@ -1220,4 +1534,224 @@
     padding-bottom: 3.5rem;
   }
 
+}
+
+/* Keep modal <dialog>s (prompts, "open profile by ID", report, …) above the
+   mobile keyboard: shrink their containing area to the visible part of the
+   viewport so the usual `inset-0 m-auto` centering lands above the keyboard.
+   --keyboard-inset is published by useKeyboardInsetVar (RootLayout).
+   Unlayered on purpose so it wins over Tailwind's inset/max-h utilities. */
+dialog:modal {
+	bottom: var(--keyboard-inset, 0px);
+	max-height: calc(100dvh - var(--keyboard-inset, 0px) - 2rem);
+	transition: bottom 0.2s ease-out;
+}
+
+/* Blur whatever sits behind a modal <dialog>; the tint still comes from each
+   dialog's own backdrop:bg-* utility. */
+dialog::backdrop {
+	-webkit-backdrop-filter: blur(6px);
+	backdrop-filter: blur(6px);
+}
+
+/* Header icon buttons: bare glyphs everywhere (native nav bar look), slightly
+   larger on touch devices. Deliberately unlayered so it wins over leftover
+   Tailwind border/bg utilities on the buttons. `.touch-ui` is set on <html> by
+   installTouchUiClass (useDesktopBreakpoint) — a class rather than a pointer
+   media query so Android with a mouse (WSA) still counts as mobile. */
+.header-icon-btn {
+	border-color: transparent !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
+	/* The build's CSS minifier collapses a plain `backdrop-filter: none`
+	   into only the -webkit- variant, so neutralise Tailwind's blur via
+	   its variable instead — that survives into the unprefixed property. */
+	--tw-backdrop-blur: blur(0) !important;
+}
+
+/* Always a 40px square (glyph + padding), the same height as the header
+   avatar row, so the hover box lines up with the header's own padding. */
+.header-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.625rem !important;
+}
+
+.touch-ui .header-icon-btn {
+	padding: 0.5rem !important;
+}
+
+/* Press feedback for every header button, whatever transition utility the
+   button itself carries (some only had transition-colors, so no scale).
+   Round like the app's other icon buttons, so the hover box is a circle. */
+.header-icon-btn {
+	border-radius: 9999px !important;
+	transition-property: color, background-color, border-color, opacity, scale, transform;
+	transition-duration: 150ms;
+}
+
+.header-icon-btn:not(:disabled):active {
+	scale: 0.9;
+}
+
+/* One hover treatment for every header button (and the bare glyph buttons of
+   the profile's bottom bar) on desktop; a neutral translucent grey reads on
+   page headers and over profile photos alike. */
+:root:not(.touch-ui) .header-icon-btn:not(:disabled):hover,
+:root:not(.touch-ui) .bar-icon-btn:not(:disabled):hover {
+	background-color: rgb(128 128 128 / 0.16) !important;
+}
+
+.header-icon-btn > svg {
+	width: 1.25rem;
+	height: 1.25rem;
+}
+
+.touch-ui .header-icon-btn > svg {
+	width: 1.5rem;
+	height: 1.5rem;
+}
+
+/* Pull the back chevron toward the screen edge like a native back button.
+   Touch only — desktop shows a hover box, which must stay inside the padding. */
+.touch-ui .header-icon-btn--back {
+	margin-inline-start: -0.5rem;
+}
+
+/* The borderless chevron's own padding already reads as spacing, so pull
+   the avatar + name that follow it in by the same amount. */
+.touch-ui .header-icon-btn--back + .header-back-adjacent {
+	margin-inline-start: -0.5rem;
+}
+
+/* Toggled states (favorite) lose their filled chip, so carry it in the glyph. */
+.header-icon-btn--active {
+	color: var(--accent) !important;
+}
+
+/* Grid tile double-tap burst (tint via --burst-rgb, see TileFlameBurst) */
+@keyframes tile-flame-glow {
+  0%   { opacity: 0; transform: scale(0.6); }
+  25%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+.tile-flame-glow {
+  background: radial-gradient(circle at 50% 55%, rgba(var(--burst-rgb, 255, 140, 20), 0.55) 0%, rgba(var(--burst-rgb, 255, 140, 20), 0.25) 35%, transparent 70%);
+  mix-blend-mode: screen;
+  animation: tile-flame-glow 0.9s ease-out forwards;
+}
+
+@keyframes tile-flame-emoji {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(-12deg); }
+  25%  { opacity: 1; transform: translate(-50%, -55%) scale(1.35) rotate(6deg); }
+  40%  { transform: translate(-50%, -52%) scale(0.95) rotate(-3deg); }
+  55%  { opacity: 1; transform: translate(-50%, -54%) scale(1.05) rotate(0deg); }
+  100% { opacity: 0; transform: translate(-50%, -110%) scale(0.85) rotate(4deg); }
+}
+.tile-flame-emoji {
+  animation: tile-flame-emoji 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  filter: drop-shadow(0 0 10px rgba(var(--burst-rgb, 255, 140, 20), 0.9)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+
+@keyframes tile-flame-ember {
+  0%   { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  12%  { opacity: 1; transform: translate(calc(var(--dx) * 0.15), calc(var(--dy) * 0.15)) scale(1.2); }
+  60%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); }
+}
+.tile-flame-ember {
+  opacity: 0;
+  animation: tile-flame-ember var(--dur, 0.8s) cubic-bezier(0.22, 0.61, 0.36, 1) var(--delay, 0s) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-flame-ember { display: none; }
+  .animate-hourglass-rotate { animation: none; }
+  .animate-step-in-next,
+  .animate-step-in-prev { animation: fade-in 0.2s ease-out both; }
+}
+
+/* Glow on the "taken on Grindr" logo; global so drawer tiles get it on every page. */
+@keyframes logo-shine {
+	0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.3)) brightness(1); }
+	50% { filter: drop-shadow(0 0 7px rgba(255, 140, 0, 0.95)) brightness(1.25); }
+}
+.logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .logo-shine { animation: none; } }
+
+/*
+ * Accent tint: `accent-tint-14` = the accent color at 14% behind the content.
+ * Drawn as an opacity layer instead of color-mix(var(--accent) …, transparent):
+ * for color-mix Tailwind emits a solid var(--accent) fallback, so webviews
+ * without color-mix (seen on desktop) paint the whole pill solid accent and
+ * the accent-colored text on it disappears. Sets position: relative.
+ */
+@utility accent-tint-* {
+	position: relative;
+	isolation: isolate;
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		border-radius: inherit;
+		background-color: var(--accent);
+		opacity: calc(--value(integer) * 1%);
+		pointer-events: none;
+		transition: opacity 150ms;
+	}
+}
+
+/* Same as accent-tint, but tinted with the text color — the soft neutral fill
+ * of sheet header buttons and small pills (`ink-tint-8`). Sets position: relative. */
+@utility ink-tint-* {
+	position: relative;
+	isolation: isolate;
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		border-radius: inherit;
+		background-color: var(--text);
+		opacity: calc(--value(integer) * 1%);
+		pointer-events: none;
+		transition: opacity 150ms;
+	}
+}
+
+/* Floating sheet footers (SHEET_FOOTER_FADE_CLASS) overlap the content above
+ * by their height (-mt-20). The element right before one gets that much
+ * bottom padding back, so a list can still scroll its last entry above the
+ * buttons and short content isn't covered. */
+:where(*):has(+ .sheet-footer) {
+	padding-bottom: calc(5rem + 0.75rem) !important;
+}
+/* Nothing before it to float over (e.g. wrapped in its own mt-auto div). */
+.sheet-footer:first-child {
+	margin-top: 0;
+}
+/* The panel's bottom padding (safe area + the hidden bleed, see
+ * SHEET_BOTTOM_PADDING) would otherwise sit below the footer in the plain
+ * sheet color, a light strip under the fade. The footer takes that padding
+ * over, so its fade runs down to the screen edge (like the map sheets). */
+.sheet-footer {
+	margin-bottom: calc(-1 * (max(16px, env(safe-area-inset-bottom)) + 48px));
+	padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
+}
+/* A floating SheetSearchInput is pulled down over the scroll area after it;
+ * that area starts its content just under the pill (48px + a small gap). */
+:where(.sheet-search + *) {
+	padding-top: 3.75rem;
+}
+
+/* QR scan (services/qrScanner.ts): the camera sits behind the webview, so the
+   page goes see-through and only the portaled QrScanOverlay stays visible. */
+html.qr-scanning,
+html.qr-scanning body {
+	background: transparent !important;
+}
+html.qr-scanning #app {
+	visibility: hidden;
 }

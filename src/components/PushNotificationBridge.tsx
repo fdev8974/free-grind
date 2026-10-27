@@ -8,6 +8,13 @@ type NativePushNotificationDetail = {
 	action?: string | null;
 	conversationId?: string | null;
 	senderId?: string | null;
+	// Set by a notification action button ("profile" = Open profile);
+	// absent for a plain tap on the notification.
+	openTarget?: string | null;
+	// Non-chat pushes (favorite online, views, …) — see the native
+	// FreeGrindFirebaseMessagingService.buildSystemPushPayload.
+	isSystem?: boolean;
+	growthType?: string | null;
 };
 
 declare global {
@@ -26,7 +33,8 @@ function detailKey(detail: NativePushNotificationDetail): string {
 	const conversationId =
 		typeof detail.conversationId === "string" ? detail.conversationId : "";
 	const senderId = typeof detail.senderId === "string" ? detail.senderId : "";
-	return `${event}|${action}|${conversationId}|${senderId}`;
+	const openTarget = typeof detail.openTarget === "string" ? detail.openTarget : "";
+	return `${event}|${action}|${conversationId}|${senderId}|${openTarget}`;
 }
 
 function removeQueuedPushNotification(detail: NativePushNotificationDetail) {
@@ -78,7 +86,57 @@ function getConversationId(detail: NativePushNotificationDetail): string | null 
 	return null;
 }
 
+// Grindr's own deeplinks on non-chat pushes (26.21 GeneralDeepLinks), mapped
+// onto our routes. growth-notification's `type` is one of the app's
+// favorite_online/tapped_online/recommended_online/media_recipient_online
+// (profile-targeted), multiple_favorites_online, unread_chats, viewed_profile.
+const PROFILE_GROWTH_TYPES = new Set([
+	"favorite_online",
+	"tapped_online",
+	"recommended_online",
+	"media_recipient_online",
+]);
+
+function getSystemRoute(detail: NativePushNotificationDetail): string | null {
+	if (typeof detail.action !== "string" || !detail.action.startsWith("grindr://")) {
+		return null;
+	}
+	let url: URL;
+	try {
+		url = new URL(detail.action);
+	} catch {
+		return null;
+	}
+	const host = url.hostname || url.pathname.replace(/^\/+/, "").split("/")[0];
+	const type = detail.growthType ?? url.searchParams.get("type");
+	const profileId =
+		(typeof detail.senderId === "string" && detail.senderId.trim()) ||
+		url.searchParams.get("profileId") ||
+		url.searchParams.get("profileID");
+
+	if (host === "favorite-profile" || (type && PROFILE_GROWTH_TYPES.has(type))) {
+		if (profileId) return `/profile/${encodeURIComponent(profileId)}`;
+	}
+	if (host === "inbox" || type === "unread_chats") return "/chat";
+	if (host === "viewed-me" || type === "viewed_profile") return "/interest?tab=views";
+	if (host === "taps-inbox" || host === "interest-taps") return "/interest?tab=taps";
+	if (host === "favorites" || type === "multiple_favorites_online") return "/";
+	return null;
+}
+
 function getNotificationRoute(detail: NativePushNotificationDetail): string | null {
+	if (detail.isSystem) {
+		return getSystemRoute(detail);
+	}
+
+	if (
+		detail.openTarget === "profile" &&
+		typeof detail.senderId === "string" &&
+		detail.senderId.trim()
+	) {
+		return `/profile/${encodeURIComponent(detail.senderId.trim())}`;
+	}
+
 	const conversationId = getConversationId(detail);
 	if (conversationId) {
 		return `/chat/${encodeURIComponent(conversationId)}`;

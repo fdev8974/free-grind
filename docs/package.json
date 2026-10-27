@@ -5,18 +5,29 @@
 	"type": "module",
 	"module": "index.ts",
 	"scripts": {
-		"prestart": "bun run --cwd .. sync",
-		"prebuild": "bun run --cwd .. sync",
-		"prepreview": "bun run --cwd .. sync",
-		"build": "vitepress build",
+		"audit:coverage": "bun run scripts/audit-coverage.ts",
+		"audit:links": "bun run scripts/audit-links.ts",
+		"audit:openapi": "bun run scripts/audit-openapi.ts",
+		"audit:queries": "bun run scripts/audit-queries.ts",
+		"build": "bun run generate && vitepress build",
+		"cleanup": "bun run scripts/cleanup-openapi.ts",
+		"generate": "bun run scripts/generate-docs.ts",
 		"preview": "vitepress preview",
-		"start": "vitepress dev"
+		"start": "bun run generate && vitepress dev",
+		"validate": "bun run scripts/validate-openapi.ts"
 	},
 	"devDependencies": {
+		"@iconify-json/lucide": "^1.2.126",
+		"@iconify-json/simple-icons": "^1.2.93",
+		"@iconify/types": "^2.0.0",
+		"@iconify/utils": "^3.1.4",
 		"@types/bun": "latest",
 		"vitepress": "^2.0.0-alpha.17"
 	},
 	"peerDependencies": {
 		"typescript": "^6"
+	},
+	"patchedDependencies": {
+		"vitepress@2.0.0-alpha.17": "patches/vitepress@2.0.0-alpha.17.patch"
 	}
 }

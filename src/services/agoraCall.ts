@@ -52,9 +52,16 @@ export class AgoraCallSession {
 	private client: IAgoraRTCClient;
 	private micTrack: IMicrophoneAudioTrack | null = null;
 	private camTrack: ICameraVideoTrack | null = null;
-	private facingMode: "user" | "environment" = "user";
+	// null on desktop, where there's only one camera and no facing mode to ask for.
+	private facingMode: "user" | "environment" | null;
+	// Set by leave(), which can run while join() is still opening the camera.
+	private left = false;
 
-	constructor(private readonly handlers: AgoraCallHandlers) {
+	constructor(
+		private readonly handlers: AgoraCallHandlers,
+		facingMode: "user" | "environment" | null = null,
+	) {
+		this.facingMode = facingMode;
 		// The real app calls setChannelProfile(1) (LIVE_BROADCASTING) rather than
 		// the default COMMUNICATION profile — the Web SDK equivalent is
 		// mode: "live", which requires an explicit client role since only
@@ -64,6 +71,10 @@ export class AgoraCallSession {
 			this.handlers.onRemoteUserJoined?.(user);
 		});
 		this.client.on("user-published", async (user, mediaType) => {
+			// Publishing implies they joined — covers a missed or late
+			// user-joined, which would otherwise leave the caller ringing
+			// while the callee is already in the call.
+			this.handlers.onRemoteUserJoined?.(user);
 			await this.client.subscribe(user, mediaType);
 			if (mediaType === "video" && user.videoTrack) {
 				this.handlers.onRemoteVideoTrack(user.videoTrack);
@@ -87,14 +98,33 @@ export class AgoraCallSession {
 	// joining with a different/null uid fails with CAN_NOT_GET_GATEWAY_SERVER
 	// ("invalid token, authorized failed") even though the token itself and
 	// channel name are correct.
-	async join(channelId: string, token: string, uid: number): Promise<void> {
+	// Coerced because userId is a string at runtime after a fresh login
+	// (LoginResult.profileId) — Agora then joins it as a string "user
+	// account", which int-uid peers never see as user-joined.
+	// withCamera false joins with the microphone only — the camera isn't
+	// opened at all (no capture, no camera light) until setCameraMuted(false).
+	async join(channelId: string, token: string, uid: number, withCamera: boolean): Promise<void> {
 		if (!isWebRtcSupported()) {
 			throw new WebRtcUnsupportedError();
 		}
 		await this.client.setClientRole("host");
-		await this.client.join(AGORA_APP_ID, channelId, token, uid);
-		[this.micTrack, this.camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks();
-		await this.client.publish([this.micTrack, this.camTrack]);
+		await this.client.join(AGORA_APP_ID, channelId, token, Number(uid));
+		const [micTrack, camTrack] = withCamera
+			? await AgoraRTC.createMicrophoneAndCameraTracks(undefined, this.cameraConfig())
+			: [await AgoraRTC.createMicrophoneAudioTrack(), null];
+		// The call ended while the camera was opening — leave() already ran and
+		// had nothing to close, so release the devices here instead.
+		if (this.left) {
+			micTrack.close();
+			camTrack?.close();
+			return;
+		}
+		[this.micTrack, this.camTrack] = [micTrack, camTrack];
+		await this.client.publish(camTrack ? [micTrack, camTrack] : [micTrack]);
+	}
+
+	private cameraConfig() {
+		return this.facingMode ? { facingMode: this.facingMode } : undefined;
 	}
 
 	getLocalVideoTrack(): ICameraVideoTrack | null {
@@ -112,8 +142,20 @@ export class AgoraCallSession {
 		this.micTrack?.setMuted(muted);
 	}
 
-	setCameraMuted(muted: boolean): void {
-		this.camTrack?.setMuted(muted);
+	// The first unmute after joining without a camera opens and publishes it;
+	// the remote side then gets a regular user-published for the video.
+	async setCameraMuted(muted: boolean): Promise<void> {
+		if (!muted && !this.camTrack) {
+			const camTrack = await AgoraRTC.createCameraVideoTrack(this.cameraConfig());
+			if (this.left) {
+				camTrack.close();
+				return;
+			}
+			this.camTrack = camTrack;
+			await this.client.publish(camTrack);
+			return;
+		}
+		await this.camTrack?.setMuted(muted);
 	}
 
 	// Toggles front/back camera in place — setDevice({facingMode}) (Web SDK
@@ -123,13 +165,15 @@ export class AgoraCallSession {
 	// no "environment" facing mode) — callers should show that as an error
 	// rather than silently failing.
 	async switchCamera(): Promise<void> {
-		if (!this.camTrack) return;
-		const next = this.facingMode === "user" ? "environment" : "user";
-		await this.camTrack.setDevice({ facingMode: next });
+		const next = this.facingMode === "environment" ? "user" : "environment";
+		// Not opened yet (call started with the camera off) — just remember the
+		// choice for when it is.
+		if (this.camTrack) await this.camTrack.setDevice({ facingMode: next });
 		this.facingMode = next;
 	}
 
 	async leave(): Promise<void> {
+		this.left = true;
 		try {
 			this.micTrack?.close();
 			this.camTrack?.close();

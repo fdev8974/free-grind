@@ -1,0 +1,99 @@
+name: Build iOS IPA
+
+on:
+  workflow_call:
+    inputs:
+      release_id:
+        description: "GitHub Release ID to upload the IPA to (omit to upload as a workflow artifact)"
+        required: false
+        type: string
+      artifact_name:
+        description: "Workflow artifact name when not uploading to a release"
+        required: false
+        type: string
+        default: free-grind-ios
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # src-tauri/vendor/freegrind-google-oauth-webextension (desktop Google sign-in)
+          submodules: true
+          # Full history: ci/build/ios.sh uses the commit count as build number.
+          fetch-depth: 0
+
+      - name: Select Xcode
+        # Pinned: the image's default Xcode changes over time, and with it the
+        # iOS SDK the app is built against (which changes how it looks).
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.6.app
+          xcodebuild -version
+
+      - name: Setup Node
+        # Vite runs under Node; the runner's preinstalled one isn't pinned.
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Setup Rust
+        run: rustup toolchain install
+
+      - name: Build the IPA
+        id: ios_ipa
+        env:
+          # Default update channel baked into the frontend: builds from main ship
+          # on Stable, every other branch (beta builds) on Development.
+          FG_CHANNEL: ${{ github.ref_name == 'main' && 'main' || 'development' }}
+        run: |
+          bash ci/build/ios.sh
+          echo "ipa_path=$(ls "$PWD"/out/ios/*.ipa)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload iOS IPA to release
+        if: ${{ inputs.release_id }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          RELEASE_ID: ${{ inputs.release_id }}
+          IPA_PATH: ${{ steps.ios_ipa.outputs.ipa_path }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const ipaPath = process.env.IPA_PATH;
+            if (!ipaPath || !fs.existsSync(ipaPath)) {
+              throw new Error(`IPA not found at ${ipaPath}`);
+            }
+
+            const ipaName = path.basename(ipaPath);
+            const fileData = fs.readFileSync(ipaPath);
+
+            await github.rest.repos.uploadReleaseAsset({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: Number(process.env.RELEASE_ID),
+              name: ipaName,
+              data: fileData,
+              headers: {
+                'content-type': 'application/octet-stream',
+                'content-length': fileData.length
+              }
+            });
+
+            console.log(`✓ Unsigned iOS IPA uploaded to release as ${ipaName}`);
+
+      - name: Upload iOS IPA as artifact
+        if: ${{ !inputs.release_id }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact_name || 'free-grind-ios' }}
+          path: ${{ steps.ios_ipa.outputs.ipa_path }}
+          retention-days: 14
+          if-no-files-found: error

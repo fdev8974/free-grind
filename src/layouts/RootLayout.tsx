@@ -1,12 +1,18 @@
 import { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useExploreMode } from "../contexts/ExploreModeContext";
+import { useKeyboardInsetVar } from "../hooks/useKeyboardInsetVar";
+import { useIsRightNowLive } from "../hooks/useIsRightNowLive";
 
 export function RootLayout() {
 	const location = useLocation();
 	const navigate = useNavigate();
 	const { isExploreActive } = useExploreMode();
-	const isRightNow = location.pathname === "/right-now";
+	// Right Now colors win over everything: on its own page, and on the grid
+	// while a public session is live (over explore mode too).
+	const isRightNowLive = useIsRightNowLive();
+	const isRightNow = location.pathname === "/right-now" || (location.pathname === "/" && isRightNowLive);
+	useKeyboardInsetVar();
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {

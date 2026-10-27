@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clapperboard, Flame, HeartPulse, Languages, LayoutGrid, Monitor, Moon, Ruler, Sparkles, Star, Sun, Triangle } from "lucide-react";
+import { Columns2, Columns3, Columns4, Languages, LayoutGrid, List, PanelBottom, Ruler, Type, Vibrate } from "lucide-react";
+import { ClockFilled, FlameFilled, ImagesFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
+import { RightNowIcon } from "../../components/icons/RightNowIcon";
+import { HAPTICS_ENABLED_KEY, isHapticsEnabled } from "../../utils/haptics";
+import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/timeFormat";
+import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
+import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
+import { SelectRow } from "../../components/ui/select-row";
 import { useTranslation } from "react-i18next";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -11,15 +18,6 @@ import {
 	resolveSupportedLocale,
 } from "../../utils/locales";
 import { type UnitsPreset } from "../../utils/units";
-import {
-	SHOW_LOCATE_KEY,
-	SHOW_SEXUAL_HEALTH_KEY,
-	SHOW_VIDEO_GALLERY_KEY,
-	isLocateEnabled,
-	isSexualHealthEnabled,
-	isVideoGalleryEnabled,
-	setOptionalFeatureEnabled,
-} from "../../utils/optionalFeatures";
 
 function normalizeHex(value: string): string {
 	const cleaned = value.trim().replace(/^#/, "");
@@ -63,47 +61,6 @@ function getContrastForHex(hexColor: string): "#1a1a1a" | "#ffffff" {
 }
 
 
-function SelectRow({
-	icon,
-	iconClass,
-	label,
-	value,
-	onChange,
-	options,
-	id,
-	highlighted,
-}: {
-	icon: React.ReactNode;
-	iconClass: string;
-	label: string;
-	value: string;
-	onChange: (v: string) => void;
-	options: { value: string; label: string }[];
-	id?: string;
-	highlighted?: boolean;
-}) {
-	return (
-		<div
-			id={id}
-			className={`flex items-center gap-3 px-4 py-3.5 ${highlighted ? "animate-settings-highlight" : ""}`}
-		>
-			<div className={`rounded-2xl p-2.5 shrink-0 ${iconClass}`}>{icon}</div>
-			<p className="min-w-0 flex-1 text-sm font-semibold">{label}</p>
-			<select
-				value={value}
-				onChange={(e) => onChange(e.target.value)}
-				className="h-9 w-40 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2 pr-7 text-sm text-[var(--text)] outline-none transition focus:border-[var(--accent)]"
-			>
-				{options.map((o) => (
-					<option key={o.value} value={o.value}>
-						{o.label}
-					</option>
-				))}
-			</select>
-		</div>
-	);
-}
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
 	return (
 		<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
@@ -117,21 +74,28 @@ export function CustomizabilityPage() {
 	const highlightId = useSettingsHighlight();
 	const {
 		colorScheme,
+		amoledMode,
 		accentColor,
 		mobileGridColumns,
+		mobileViewsGridColumns,
 		unitsPreset,
 		revealEffectEnabled,
 		revealEffectStrength,
+		showGridTapStatus,
+		splitDrawerCategories,
 		setPreferences,
 	} = usePreferences();
 	const [customHex, setCustomHex] = useState(accentColor);
 	const [hexError, setHexError] = useState<string | null>(null);
 	const [showRightNow, setShowRightNow] = useState(() => window.localStorage.getItem("fg-show-right-now") !== "false");
+	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
+	const [showNavLabels, setShowNavLabels] = useState(() => window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true");
+	const [hapticsEnabled, setHapticsEnabled] = useState(isHapticsEnabled);
+	const [timeFormat, setTimeFormat] = useState<TimeFormat>(getTimeFormat);
+	const [floatingNav, setFloatingNav] = useState(() => window.localStorage.getItem(NAV_FLOATING_KEY) === "true");
 	const [showInterest, setShowInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
-	const [showVideoGallery, setShowVideoGallery] = useState(isVideoGalleryEnabled);
-	const [showSexualHealth, setShowSexualHealth] = useState(isSexualHealthEnabled);
-	const [showLocate, setShowLocate] = useState(isLocateEnabled);
 	const [defaultInterestTab, setDefaultInterestTab] = useState(() => window.localStorage.getItem("fg-interest-default-tab") || "taps");
+	const [viewsLayout, setViewsLayout] = useState(() => window.localStorage.getItem("fg-interest-views-layout") === "list" ? "list" : "grid");
 	const schemeOptions: {
 		value: ColorScheme;
 		label: string;
@@ -141,17 +105,17 @@ export function CustomizabilityPage() {
 			{
 				value: "system",
 				label: t("customizability.schemes.system"),
-				icon: <Monitor className="h-5 w-5" />,
+				icon: <MonitorFilled className="h-5 w-5" />,
 			},
 			{
 				value: "light",
 				label: t("customizability.schemes.light"),
-				icon: <Sun className="h-5 w-5" />,
+				icon: <SunFilled className="h-5 w-5" />,
 			},
 			{
 				value: "dark",
 				label: t("customizability.schemes.dark"),
-				icon: <Moon className="h-5 w-5" />,
+				icon: <MoonFilled className="h-5 w-5" />,
 			},
 		],
 		[t],
@@ -218,11 +182,11 @@ export function CustomizabilityPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<BackToSettings />
-				<h1 className="app-title mb-1">{t("settings.customizability")}</h1>
-				<p className="app-subtitle">{t("customizability.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.customizability")}
+				subtitle={t("customizability.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 
@@ -232,9 +196,10 @@ export function CustomizabilityPage() {
 					<div className="grid gap-3">
 
 						{/* Color Scheme */}
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<div
 							id="cust-color-scheme"
-							className={`surface-card p-4 ${highlightId === "cust-color-scheme" ? "animate-settings-highlight" : ""}`}
+							className={`p-4 ${highlightId === "cust-color-scheme" ? "animate-settings-highlight" : ""}`}
 						>
 							<p className="mb-3 text-sm font-semibold">{t("customizability.color_scheme")}</p>
 							<div className="grid grid-cols-3 gap-2">
@@ -245,14 +210,7 @@ export function CustomizabilityPage() {
 											key={value}
 											type="button"
 											onClick={() => handleSchemeChange(value)}
-											className="flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-all"
-											style={{
-												borderColor: isActive ? "var(--accent)" : "var(--border)",
-												background: isActive
-													? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-													: "var(--surface-2)",
-												color: isActive ? "var(--accent-readable)" : "var(--text)",
-											}}
+											className={`flex flex-col items-center gap-2 rounded-2xl p-4 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isActive ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
 										>
 											{icon}
 											<span className="text-xs font-medium">{label}</span>
@@ -261,9 +219,23 @@ export function CustomizabilityPage() {
 								})}
 							</div>
 						</div>
+						{/* Only meaningful when dark can be active ("system" may resolve to dark). */}
+						{colorScheme !== "light" && (
+							<ToggleRow
+								id="cust-amoled"
+								highlighted={highlightId === "cust-amoled"}
+								icon={<MoonFilled className="h-5 w-5" />}
+								iconClass="bg-violet-500/15 text-violet-400"
+								label={t("customizability.amoled.title")}
+								description={t("customizability.amoled.desc")}
+								checked={amoledMode}
+								onChange={(checked) => void setPreferences({ amoledMode: checked })}
+							/>
+						)}
+						</div>
 
 						{/* Accent Color + Preview combined */}
-						<div className="surface-card overflow-hidden">
+						<div className="native-card overflow-hidden">
 						<div
 							id="cust-accent-color"
 							className={`p-4 ${highlightId === "cust-accent-color" ? "animate-settings-highlight" : ""}`}
@@ -368,21 +340,21 @@ export function CustomizabilityPage() {
 							<div className="flex flex-wrap gap-2">
 								<button
 									type="button"
-									className="inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold"
+									className="inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold"
 									style={{ background: "var(--accent)", color: "var(--accent-contrast)" }}
 								>
 									{t("customizability.preview_primary")}
 								</button>
 								<button
 									type="button"
-									className="inline-flex h-9 items-center rounded-lg border px-4 text-sm font-semibold"
+									className="inline-flex h-9 items-center rounded-full border px-4 text-sm font-semibold"
 									style={{ borderColor: "var(--accent)", color: "var(--accent-readable)" }}
 								>
 									{t("customizability.preview_outlined")}
 								</button>
 								<button
 									type="button"
-									className="inline-flex h-9 items-center rounded-lg px-4 text-sm font-semibold"
+									className="inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold"
 									style={{
 										background: "color-mix(in srgb, var(--accent) 15%, transparent)",
 										color: "var(--accent-readable)",
@@ -412,102 +384,84 @@ export function CustomizabilityPage() {
 					</div>
 				</div>
 
-				{/* LAYOUT */}
+				{/* GRID PAGE (column count only affects the mobile app) */}
 				<div>
-					<SectionLabel>{t("customizability.layout")}</SectionLabel>
-					<div className="grid gap-3">
-
-						{/* Browse Grid + Reveal Effect combined */}
-						<div className="surface-card overflow-hidden">
-
-							{/* Browse Grid */}
-							<div
+					<SectionLabel>{t("customizability.grid_page")}</SectionLabel>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						{isMobilePlatform && (
+							<SelectRow
 								id="cust-browse-grid"
-								className={`p-4 ${highlightId === "cust-browse-grid" ? "animate-settings-highlight" : ""}`}
-							>
-								<div className="flex items-start gap-3">
-									<div className="rounded-2xl bg-blue-500/15 p-2.5 text-blue-400 shrink-0">
-										<LayoutGrid className="h-5 w-5" />
-									</div>
-									<div className="min-w-0 flex-1">
-										<p className="text-sm font-semibold leading-snug">{t("customizability.browse_grid_mobile")}</p>
-										<p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">
-											{t("customizability.browse_grid_mobile_desc")}
-										</p>
-										<div className="mt-3 grid grid-cols-2 gap-2">
-											{(["2", "3"] as const).map((cols) => (
-												<button
-													key={cols}
-													type="button"
-													onClick={() => void setPreferences({ mobileGridColumns: cols })}
-													className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
-													style={{
-														borderColor: mobileGridColumns === cols ? "var(--accent)" : "var(--border)",
-														background: mobileGridColumns === cols
-															? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-															: "var(--surface-2)",
-														color: mobileGridColumns === cols ? "var(--accent-readable)" : "var(--text)",
-													}}
-												>
-													{t(`customizability.columns_${cols}`)}
-												</button>
-											))}
-										</div>
-									</div>
-									{/* spacer matching toggle width so buttons align with reveal effect */}
-									<div className="w-12 shrink-0" />
-								</div>
-							</div>
-
-							{/* Reveal Effect */}
-							<div className="border-t border-[var(--border)]">
-								<ToggleRow
-									id="cust-reveal-effect"
-									highlighted={highlightId === "cust-reveal-effect"}
-									icon={<Sparkles className="h-5 w-5" />}
-									iconClass="bg-violet-500/15 text-violet-400"
-									label={t("customizability.reveal_effect.enable")}
-									description={t("customizability.reveal_effect.enable_desc")}
-									checked={revealEffectEnabled}
-									onChange={(checked) => void setPreferences({ revealEffectEnabled: checked })}
-								/>
-								{revealEffectEnabled && (
-									<div className="grid grid-cols-2 gap-2 pb-4 pl-[68px] pr-[76px]">
-										{(["subtle", "pronounced"] as const).map((s) => (
-											<button
-												key={s}
-												type="button"
-												onClick={() => void setPreferences({ revealEffectStrength: s })}
-												className="rounded-xl border-2 p-3 text-sm font-semibold transition-all"
-												style={{
-													borderColor: revealEffectStrength === s ? "var(--accent)" : "var(--border)",
-													background: revealEffectStrength === s
-														? "color-mix(in srgb, var(--accent) 12%, var(--surface))"
-														: "var(--surface-2)",
-													color: revealEffectStrength === s ? "var(--accent-readable)" : "var(--text)",
-												}}
-											>
-												{t(`customizability.reveal_effect.strengths.${s}`)}
-											</button>
-										))}
-									</div>
-								)}
-							</div>
-
-						</div>
-
+								highlighted={highlightId === "cust-browse-grid"}
+								icon={<LayoutGridFilled className="h-5 w-5" />}
+								iconClass="bg-blue-500/15 text-blue-400"
+								label={t("customizability.grid_layout")}
+								description={t("customizability.browse_grid_mobile_desc")}
+								value={mobileGridColumns}
+								onChange={(cols) => void setPreferences({ mobileGridColumns: cols })}
+								options={[
+									{ value: "2", label: t("customizability.columns_2") },
+									{ value: "3", label: t("customizability.columns_3") },
+									{ value: "4", label: t("customizability.columns_4") },
+								]}
+							/>
+						)}
+						<ToggleRow
+							id="cust-grid-tap-status"
+							highlighted={highlightId === "cust-grid-tap-status"}
+							icon={<FlameFilled className="h-5 w-5" />}
+							iconClass="bg-orange-500/15 text-orange-400"
+							label={t("customizability.show_grid_tap_status", { defaultValue: "Show Taps on the Grid" })}
+							description={t("customizability.show_grid_tap_status_desc", {
+								defaultValue: "Show a small flame on grid tiles of profiles you've tapped or who tapped you in the last 24 hours.",
+							})}
+							checked={showGridTapStatus}
+							onChange={(checked) => void setPreferences({ showGridTapStatus: checked })}
+						/>
 					</div>
 				</div>
 
 				{/* NAVIGATION */}
 				<div>
-					<SectionLabel>{t("customizability.navigation_tabs")}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<SectionLabel>{t("customizability.navigation_bar")}</SectionLabel>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						{/* Bar style options only exist in the mobile app. */}
+						{isMobilePlatform && (
+							<>
+								<ToggleRow
+									id="cust-nav-floating"
+									highlighted={highlightId === "cust-nav-floating"}
+									icon={<PanelBottom className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("customizability.nav_floating")}
+									description={t("customizability.nav_floating_desc")}
+									checked={floatingNav}
+									onChange={(checked) => {
+										setFloatingNav(checked);
+										window.localStorage.setItem(NAV_FLOATING_KEY, String(checked));
+										window.dispatchEvent(new Event(NAV_STYLE_EVENT));
+									}}
+								/>
+								<ToggleRow
+									id="cust-nav-show-labels"
+									highlighted={highlightId === "cust-nav-show-labels"}
+									icon={<Type className="h-5 w-5" />}
+									iconClass="bg-sky-500/15 text-sky-400"
+									label={t("customizability.nav_show_labels")}
+									description={t("customizability.nav_show_labels_desc")}
+									checked={showNavLabels}
+									onChange={(checked) => {
+										setShowNavLabels(checked);
+										window.localStorage.setItem(NAV_SHOW_LABELS_KEY, String(checked));
+										window.dispatchEvent(new Event(NAV_STYLE_EVENT));
+									}}
+								/>
+							</>
+						)}
 						<ToggleRow
 							id="cust-show-right-now"
 							highlighted={highlightId === "cust-show-right-now"}
-							icon={<Flame className="h-5 w-5" />}
-							iconClass="bg-orange-500/15 text-orange-400"
+							icon={<RightNowIcon className="h-5 w-5" />}
+							iconClass="bg-[var(--right-now-soft)] text-[var(--right-now)]"
 							label={t("customizability.show_right_now")}
 							description={t("customizability.show_right_now_desc")}
 							checked={showRightNow}
@@ -520,7 +474,7 @@ export function CustomizabilityPage() {
 						<ToggleRow
 							id="cust-show-interest"
 							highlighted={highlightId === "cust-show-interest"}
-							icon={<Star className="h-5 w-5" />}
+							icon={<FlameFilled className="h-5 w-5" />}
 							iconClass="bg-yellow-500/15 text-yellow-400"
 							label={t("customizability.show_interest")}
 							description={t("customizability.show_interest_desc")}
@@ -531,11 +485,18 @@ export function CustomizabilityPage() {
 								window.location.reload();
 							}}
 						/>
-						{showInterest && (
+					</div>
+				</div>
+
+				{/* INTEREST PAGE */}
+				{showInterest && (
+					<div>
+						<SectionLabel>{t("customizability.interest_page")}</SectionLabel>
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<SelectRow
-								icon={<Star className="h-5 w-5 opacity-50" />}
+								icon={<FlameFilled className="h-5 w-5 opacity-50" />}
 								iconClass="bg-yellow-500/10 text-yellow-400"
-								label={t("customizability.default_interest_view")}
+								label={t("customizability.default_view")}
 								value={defaultInterestTab}
 								onChange={(val) => {
 									setDefaultInterestTab(val);
@@ -547,69 +508,111 @@ export function CustomizabilityPage() {
 									{ value: "views", label: t("customizability.interest_show_views") },
 								]}
 							/>
-						)}
+							<SelectRow
+								id="cust-views-grid"
+								highlighted={highlightId === "cust-views-grid"}
+								icon={<LayoutGridFilled className="h-5 w-5" />}
+								iconClass="bg-blue-500/15 text-blue-400"
+								label={t("customizability.views_grid_layout")}
+								description={t("customizability.views_display_desc")}
+								// Mobile picks the column count right here; desktop's grid sizes itself.
+								value={viewsLayout === "list" ? "list" : isMobilePlatform ? mobileViewsGridColumns : "grid"}
+								onChange={(val) => {
+									const layout = val === "list" ? "list" : "grid";
+									setViewsLayout(layout);
+									window.localStorage.setItem("fg-interest-views-layout", layout);
+									if (val === "2" || val === "3" || val === "4") {
+										void setPreferences({ mobileViewsGridColumns: val });
+									}
+								}}
+								options={[
+									{ value: "list", label: t("customizability.views_display_list"), icon: List },
+									...(isMobilePlatform
+										? [
+											{ value: "2", label: t("customizability.columns_2"), icon: Columns2 },
+											{ value: "3", label: t("customizability.columns_3"), icon: Columns3 },
+											{ value: "4", label: t("customizability.columns_4"), icon: Columns4 },
+										]
+										: [{ value: "grid", label: t("customizability.views_display_grid"), icon: LayoutGrid }]),
+								]}
+							/>
+						</div>
+					</div>
+				)}
+
+				{/* CHAT */}
+				<div>
+					<SectionLabel>{t("customizability.chat_section", { defaultValue: "Chat Page" })}</SectionLabel>
+					<div className="native-card overflow-hidden">
+						<ToggleRow
+							id="cust-drawer-layout"
+							highlighted={highlightId === "cust-drawer-layout"}
+							icon={<ImagesFilled className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("customizability.drawer_layout", { defaultValue: "Split Media Drawer into Categories" })}
+							description={t("customizability.drawer_layout_desc", {
+								defaultValue: "Show media, albums and collections in separate tabs instead of all on one page.",
+							})}
+							checked={splitDrawerCategories}
+							onChange={(checked) => void setPreferences({ splitDrawerCategories: checked })}
+						/>
 					</div>
 				</div>
 
-				{/* OPTIONAL FEATURES */}
+				{/* VISUAL EFFECTS */}
 				<div>
-					<SectionLabel>{t("customizability.optional_features", { defaultValue: "Optional Features" })}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
-						<ToggleRow
-							id="cust-show-video-gallery"
-							highlighted={highlightId === "cust-show-video-gallery"}
-							icon={<Clapperboard className="h-5 w-5" />}
-							iconClass="bg-sky-500/15 text-sky-400"
-							label={t("customizability.show_video_gallery", { defaultValue: "Video Gallery" })}
-							description={t("customizability.show_video_gallery_desc", {
-								defaultValue: "Show a button in the inbox header that opens a gallery of all locally stored videos from chats and albums.",
-							})}
-							checked={showVideoGallery}
-							onChange={(checked) => {
-								setShowVideoGallery(checked);
-								setOptionalFeatureEnabled(SHOW_VIDEO_GALLERY_KEY, checked);
-								window.location.reload();
-							}}
-						/>
-						<ToggleRow
-							id="cust-show-sexual-health"
-							highlighted={highlightId === "cust-show-sexual-health"}
-							icon={<HeartPulse className="h-5 w-5" />}
-							iconClass="bg-rose-500/15 text-rose-400"
-							label={t("customizability.show_sexual_health", { defaultValue: "Sexual Health" })}
-							description={t("customizability.show_sexual_health_desc", {
-								defaultValue: "Show the Sexual Health section, its inbox header button and \"I met this person now\" in the chat menu.",
-							})}
-							checked={showSexualHealth}
-							onChange={(checked) => {
-								setShowSexualHealth(checked);
-								setOptionalFeatureEnabled(SHOW_SEXUAL_HEALTH_KEY, checked);
-								window.location.reload();
-							}}
-						/>
-						<ToggleRow
-							id="cust-show-locate"
-							highlighted={highlightId === "cust-show-locate"}
-							icon={<Triangle className="h-5 w-5" />}
-							iconClass="bg-emerald-500/15 text-emerald-400"
-							label={t("customizability.show_locate", { defaultValue: "Locate" })}
-							description={t("customizability.show_locate_desc", {
-								defaultValue: "Show \"Locate\" in the profile menu to estimate a profile's position by triangulation.",
-							})}
-							checked={showLocate}
-							onChange={(checked) => {
-								setShowLocate(checked);
-								setOptionalFeatureEnabled(SHOW_LOCATE_KEY, checked);
-								window.location.reload();
-							}}
+					<SectionLabel>{t("customizability.visual_effects")}</SectionLabel>
+					<div className="native-card overflow-hidden">
+						{/* Off and both strengths in one picker. */}
+						<SelectRow
+							id="cust-reveal-effect"
+							highlighted={highlightId === "cust-reveal-effect"}
+							icon={<SparklesFilled className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("customizability.reveal_effect.title")}
+							description={t("customizability.reveal_effect.description")}
+							value={revealEffectEnabled ? revealEffectStrength : "off"}
+							onChange={(choice) =>
+								void setPreferences(
+									choice === "off"
+										? { revealEffectEnabled: false }
+										: { revealEffectEnabled: true, revealEffectStrength: choice },
+								)}
+							options={[
+								{ value: "off", label: t("customizability.reveal_effect.strengths.off", { defaultValue: "Off" }) },
+								{ value: "subtle", label: t("customizability.reveal_effect.strengths.subtle") },
+								{ value: "pronounced", label: t("customizability.reveal_effect.strengths.pronounced") },
+							]}
 						/>
 					</div>
 				</div>
+
+				{/* INTERACTION (mobile app only) */}
+				{isMobilePlatform && (
+					<div>
+						<SectionLabel>{t("customizability.interaction")}</SectionLabel>
+						<div className="native-card overflow-hidden">
+							<ToggleRow
+								id="cust-haptics"
+								highlighted={highlightId === "cust-haptics"}
+								icon={<Vibrate className="h-5 w-5" />}
+								iconClass="bg-rose-500/15 text-rose-400"
+								label={t("customizability.haptic_feedback")}
+								description={t("customizability.haptic_feedback_desc")}
+								checked={hapticsEnabled}
+								onChange={(checked) => {
+									setHapticsEnabled(checked);
+									window.localStorage.setItem(HAPTICS_ENABLED_KEY, String(checked));
+								}}
+							/>
+						</div>
+					</div>
+				)}
 
 				{/* REGIONAL */}
 				<div>
 					<SectionLabel>{t("customizability.regional")}</SectionLabel>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<SelectRow
 							id="cust-language"
 							highlighted={highlightId === "cust-language"}
@@ -632,6 +635,23 @@ export function CustomizabilityPage() {
 								{ value: "world", label: t("customizability.units_world") },
 								{ value: "uk", label: t("customizability.units_uk") },
 								{ value: "american", label: t("customizability.units_american") },
+							]}
+						/>
+						<SelectRow
+							id="cust-time-format"
+							highlighted={highlightId === "cust-time-format"}
+							icon={<ClockFilled className="h-5 w-5" />}
+							iconClass="bg-indigo-500/15 text-indigo-400"
+							label={t("customizability.time_format")}
+							value={timeFormat}
+							onChange={(val) => {
+								setTimeFormat(val as TimeFormat);
+								window.localStorage.setItem(TIME_FORMAT_KEY, val);
+							}}
+							options={[
+								{ value: "system", label: t("customizability.time_format_system") },
+								{ value: "12h", label: t("customizability.time_format_12h") },
+								{ value: "24h", label: t("customizability.time_format_24h") },
 							]}
 						/>
 					</div>

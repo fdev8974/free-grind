@@ -12,6 +12,48 @@ export class ApiFunctionError extends Error {
 	}
 }
 
+/** Banned terms per moderated field, as reported by a rejected profile update. */
+export interface BannedTermsByField {
+	displayName?: string[];
+	aboutMe?: string[];
+	genderDisplay?: string[];
+	pronounsDisplay?: string[];
+}
+
+/**
+ * PUT /v3.1/me/profile answers 400 `urn:gr:err:hit_banned_terms` when a
+ * moderated text field contains a banned term. The whole update is rejected —
+ * nothing is saved, clean fields included.
+ */
+export class BannedTermsError extends ApiFunctionError {
+	fields: BannedTermsByField;
+
+	constructor(message: string, payload: unknown, fields: BannedTermsByField) {
+		super(message, 400, payload);
+		this.name = "BannedTermsError";
+		this.fields = fields;
+	}
+}
+
+/** Reads a BannedTermsResponse body; null when it isn't one. */
+export function parseBannedTerms(payload: unknown): BannedTermsByField | null {
+	if (!payload || typeof payload !== "object") return null;
+	const p = payload as Record<string, unknown>;
+	const termsOf = (value: unknown): string[] | undefined => {
+		const terms = (value as { terms?: unknown } | null)?.terms;
+		return Array.isArray(terms) ? terms.filter((term): term is string => typeof term === "string") : undefined;
+	};
+	const fields: BannedTermsByField = {
+		displayName: termsOf(p.display_name),
+		aboutMe: termsOf(p.about_me),
+		genderDisplay: termsOf(p.gender_display),
+		pronounsDisplay: termsOf(p.pronouns_display),
+	};
+	const hasField = Object.values(fields).some((terms) => terms !== undefined);
+	if (p.type !== "urn:gr:err:hit_banned_terms" && !hasField) return null;
+	return fields;
+}
+
 /**
  * Turns a rejected Tauri command's `AppError`-shaped payload (a plain object
  * like `{kind: "Api", message: {code, message}}`, not an `Error` instance —

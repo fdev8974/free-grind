@@ -1,4 +1,5 @@
 import {
+	useCallback,
 	useReducer,
 	useEffect,
 	useRef,
@@ -16,11 +17,16 @@ import {
 	AuthContext,
 	type AccountStatus,
 	type AuthContextType,
+	type AuthError,
 	type AuthState,
 	type SavedAccountMeta,
+	type LoginOptions,
+	type SignUpData,
+	SmsVerificationRequiredError,
 } from "./auth-context";
 import { appLog } from "../utils/logger";
 import { setActiveChatDbUser, migrateLegacySettingsIfNeeded } from "../services/chatDb";
+import { setActiveChatContactIndexAccount } from "../services/chatContactIndex";
 import { setActiveInterestStoreUser } from "../services/interestViewsStore";
 import { clearAllCaches } from "../pages/app/gridpage/cache";
 import { loadAutomationCache } from "../utils/autoblock";
@@ -32,29 +38,70 @@ import { runInboxSync } from "../services/inboxSync";
 import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
 import { mintRecaptchaToken, RecaptchaError, type RecaptchaFailure } from "../services/recaptcha";
+import { restoreStrandedLocation } from "../services/entitlementBypass";
 
 const AUTH_USER_ID_STORAGE_KEY = "fg-user-id";
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
 const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
 
+/** The FCM token Android handed over, cached or still waiting on window. */
+function cachedPushToken(): string | null {
+	const fallback = (window as Window & { __FG_FCM_TOKEN?: unknown }).__FG_FCM_TOKEN;
+	return window.localStorage.getItem(PUSH_TOKEN_STORAGE_KEY) || (typeof fallback === "string" ? fallback : null) || null;
+}
+
 // Grindr's API returns this generic validation error for several rejected-login
 // cases (wrong credentials, malformed/expired token) rather than a specific one,
 // so its raw "Error 4: invalid input parameters" text is meaningless to users.
 const INVALID_INPUT_PARAMETERS_CODE = 4;
+// Sign-in refused until the account verifies a phone number by SMS (Grindr
+// code 30): the profile id and whole body the error carries, null for
+// anything else.
+function verificationRequired(appError: AppError | null): { profileId: string; body: string } | null {
+	if (appError?.kind !== "VerificationRequired") return null;
+	const message = appError.message;
+	if (typeof message !== "object") return null;
+	const profileId = "profileId" in message && typeof message.profileId === "string" ? message.profileId : null;
+	if (!profileId) return null;
+	return { profileId, body: ("body" in message && message.body) || "" };
+}
+
+// Error markers from api/facebook_oauth and api/google_oauth (Rust), matched verbatim.
+const GOOGLE_CANCELED = "google-canceled";
+const FACEBOOK_CANCELED = "facebook-canceled";
+const FACEBOOK_DIALOG_ERROR = "facebook-dialog-error";
+const FACEBOOK_HANDOFF_REFUSED = "facebook-handoff-refused";
+// Error markers from sign_in_with_transfer_code (api/auth.rs), matched verbatim.
+const TRANSFER_CODE_MESSAGES: Record<string, string> = {
+	"transfer-code-invalid": "This isn't a Free Grind sign-in code.",
+	"transfer-code-expired": "This sign-in code has expired. Show a new one on the other device.",
+	"transfer-code-revoked": "The other device's session is no longer valid. Sign in there again, then show a new code.",
+};
 
 function describeLoginError(
 	appError: AppError | null,
 	fallback: string,
 	invalidCredentialsMessage: string,
-): string {
+): AuthError {
 	if (
 		appError?.kind === "Api" &&
 		typeof appError.message === "object" &&
 		appError.message.code === INVALID_INPUT_PARAMETERS_CODE
 	) {
-		return invalidCredentialsMessage;
+		return { message: invalidCredentialsMessage };
 	}
-	return appError?.prettyMessage || fallback;
+	// Plumbing failures ("failed to open sign-in window: ..."): the raw text
+	// means nothing to the user, so it only goes under "Details".
+	if (appError?.kind === "Connect") {
+		return {
+			message: "Couldn't connect. Check your internet connection and try again.",
+			detail: appError.prettyMessage,
+		};
+	}
+	if (appError?.kind === "Http") {
+		return { message: fallback, detail: appError.prettyMessage };
+	}
+	return { message: appError?.prettyMessage || fallback };
 }
 
 function isInvalidCredentials(appError: AppError | null): boolean {
@@ -66,22 +113,19 @@ function isInvalidCredentials(appError: AppError | null): boolean {
 	);
 }
 
-// Shown when an account needs a reCAPTCHA token to sign in (Grindr's
-// first-party reCAPTCHA) but the helper couldn't mint one.
-const CAPTCHA_SIGN_IN_MESSAGES: Partial<Record<RecaptchaFailure, string>> = {
-	unsupportedPlatform:
-		"This account needs captcha verification, available through the Free Grind reCAPTCHA helper on Android.",
-	addonUnavailable: "Install the Free Grind reCAPTCHA helper to sign in to this account.",
-	addonUntrusted: "The installed reCAPTCHA helper isn't the official Free Grind build.",
-	untrustedCaller: "The reCAPTCHA helper doesn't trust this Free Grind build. Install both from the same source.",
-	grindrMissing: "The reCAPTCHA helper needs the Grindr app installed to verify this sign-in.",
+// Shown when a sign-in or sign-up needs a reCAPTCHA token (Grindr's
+// first-party reCAPTCHA) but none could be minted.
+const CAPTCHA_MESSAGES: Partial<Record<RecaptchaFailure, string>> = {
+	unsupportedPlatform: "This account needs captcha verification, which is only available on Android.",
+	grindrMissing: "Captcha verification needs the Grindr app installed on this device.",
 };
+const CAPTCHA_FAILED_MESSAGE = "Captcha verification failed. Please try again.";
 
 type AuthAction =
 	| { type: "SET_USER"; payload: number }
 	| { type: "CLEAR_USER" }
 	| { type: "SET_LOADING"; payload: boolean }
-	| { type: "SET_ERROR"; payload: string | null }
+	| { type: "SET_ERROR"; payload: AuthError | null }
 	| { type: "SET_SETTINGS_READY"; payload: boolean }
 	| { type: "SET_TOKEN_EXPIRED"; payload: boolean }
 	| { type: "SET_ACCOUNT_STATUS"; payload: AccountStatus };
@@ -201,7 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				appLog.error("[Auth] checkAuth failed", appError ?? error);
 				dispatch({
 					type: "SET_ERROR",
-					payload: appError?.prettyMessage || "Failed to check auth status",
+					payload: { message: appError?.prettyMessage || "Failed to check auth status" },
 				});
 			}
 		} finally {
@@ -209,7 +253,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
-	const login = async (email: string, password: string) => {
+	const login = async (email: string, password: string, { keepDevice }: LoginOptions = {}) => {
+		// The sign-in endpoint the last attempt went to, for the SMS page's report.
+		let endpoint = "/v8/sessions";
 		try {
 			appLog.info("[Auth] login: attempting email/password login");
 			dispatch({ type: "SET_LOADING", payload: true });
@@ -217,20 +263,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 			let result;
 			try {
-				result = await callMethod("login", { email, password });
+				result = await callMethod("login", { email, password, keepDevice });
 			} catch (error) {
 				// Accounts with Grindr's first-party reCAPTCHA fail the plain
 				// /v8 sign-in as invalid credentials. Open Grind retries those
 				// with a reCAPTCHA token via /v9 once the assignment says so.
-				if (!isInvalidCredentials(asAppError(error))) throw error;
+				const firstError = asAppError(error);
+				if (firstError?.kind === "VerificationRequired" || !isInvalidCredentials(firstError)) throw error;
 				const required = await callMethod("recaptcha_first_party_enabled").catch((checkError) => {
 					appLog.warn("[Auth] recaptcha_first_party check failed", asAppError(checkError) ?? checkError);
 					return false;
 				});
 				if (!required) throw error;
 				appLog.info("[Auth] login: retrying with a reCAPTCHA token");
+				endpoint = "/v9/sessions (reCAPTCHA)";
 				const captchaToken = await mintRecaptchaToken("login");
-				result = await callMethod("login", { email, password, captchaToken });
+				result = await callMethod("login", { email, password, captchaToken, keepDevice });
 			}
 			appLog.info("[Auth] login: succeeded");
 			dispatch({ type: "SET_USER", payload: result.profileId });
@@ -239,28 +287,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				toast.success("Login successful");
 			}
 		} catch (error) {
+			// Not a failure to report: the page switches to SMS verification.
+			// Without a profile id there's nothing to verify against, so that
+			// falls through to the generic error below.
+			const verification = verificationRequired(asAppError(error));
+			if (verification) {
+				appLog.info("[Auth] login: SMS verification required");
+				throw new SmsVerificationRequiredError(verification.profileId, { endpoint, body: verification.body });
+			}
 			if (handleAccountBlock(error)) {
 				throw error;
 			}
 			if (error instanceof RecaptchaError) {
 				appLog.warn("[Auth] login: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
 				if (error.reason !== "cancelled") {
-					const message =
-						CAPTCHA_SIGN_IN_MESSAGES[error.reason] ?? "Captcha verification failed. Please try again.";
-					dispatch({ type: "SET_ERROR", payload: message });
-					toast.error(message);
+					const message = CAPTCHA_MESSAGES[error.reason] ?? CAPTCHA_FAILED_MESSAGE;
+					dispatch({ type: "SET_ERROR", payload: { message } });
 				}
 				throw error;
 			}
 			const appError = asAppError(error);
 			const message = describeLoginError(
 				appError,
-				"Login failed",
+				"Sign-in failed. Please try again.",
 				"Invalid email or password. Please check your credentials and try again.",
 			);
 			appLog.error("[Auth] login failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
-			toast.error(message);
 			throw error;
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
@@ -287,21 +340,187 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const appError = asAppError(error);
 			const message = describeLoginError(
 				appError,
-				"Google login failed",
+				"Google sign-in failed. Please try again.",
 				"This Google token is invalid or has expired. Please get a new one and try again.",
 			);
 			appLog.error("[Auth] loginWithGoogle failed", { kind: appError?.kind, message });
 			dispatch({ type: "SET_ERROR", payload: message });
-			toast.error(message);
 			throw error;
 		} finally {
 			dispatch({ type: "SET_LOADING", payload: false });
 		}
 	};
 
+	const loginWithGoogleWindow = async () => {
+		try {
+			appLog.info("[Auth] loginWithGoogleWindow: opening Google sign-in window");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			const result = await callMethod("login_with_google_window");
+			appLog.info("[Auth] loginWithGoogleWindow: succeeded");
+			dispatch({ type: "SET_USER", payload: result.profileId });
+			void refreshSavedAccounts();
+			if (!showRestriction(result.restriction)) {
+				toast.success("Google login successful");
+			}
+		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
+			const appError = asAppError(error);
+			if (appError?.kind === "Auth" && appError.message === GOOGLE_CANCELED) {
+				// The user closed the window.
+				appLog.info("[Auth] loginWithGoogleWindow: canceled");
+				throw error;
+			}
+			const message = describeLoginError(appError, "Google sign-in failed. Please try again.", "Google sign-in failed. Please try again.");
+			appLog.error("[Auth] loginWithGoogleWindow failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+	};
+
+	// Signs in with a code shown on another device (create_transfer_code
+	// there), scanned as a QR code or pasted as text.
+	const loginWithTransferCode = async (code: string) => {
+		try {
+			appLog.info("[Auth] loginWithTransferCode: attempting");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			const result = await callMethod("sign_in_with_transfer_code", { code });
+			appLog.info("[Auth] loginWithTransferCode: succeeded");
+			dispatch({ type: "SET_USER", payload: result.profileId });
+			void refreshSavedAccounts();
+			if (!showRestriction(result.restriction)) {
+				toast.success("Login successful");
+			}
+		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
+			const appError = asAppError(error);
+			const transferMessage =
+				appError?.kind === "Auth" && typeof appError.message === "string"
+					? TRANSFER_CODE_MESSAGES[appError.message]
+					: undefined;
+			const message: AuthError = transferMessage
+				? { message: transferMessage }
+				: describeLoginError(appError, "Sign-in failed. Please try again.", "Sign-in failed. Please try again.");
+			appLog.error("[Auth] loginWithTransferCode failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+	};
+
+	const loginWithFacebook = async () => {
+		try {
+			appLog.info("[Auth] loginWithFacebook: opening Facebook sign-in window");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			const result = await callMethod("login_with_facebook");
+			appLog.info("[Auth] loginWithFacebook: succeeded");
+			dispatch({ type: "SET_USER", payload: result.profileId });
+			void refreshSavedAccounts();
+			if (!showRestriction(result.restriction)) {
+				toast.success("Facebook login successful");
+			}
+		} catch (error) {
+			if (handleAccountBlock(error)) {
+				throw error;
+			}
+			const appError = asAppError(error);
+			if (appError?.kind === "Auth" && appError.message === FACEBOOK_CANCELED) {
+				// The user closed the window or declined the consent screen.
+				appLog.info("[Auth] loginWithFacebook: canceled");
+				throw error;
+			}
+			const message: AuthError =
+				appError?.kind === "Auth" && appError.message === FACEBOOK_HANDOFF_REFUSED
+					? { message: "Facebook tried to continue in another app. Please sign in on the Facebook page instead." }
+					: appError?.kind === "Auth" && appError.message === FACEBOOK_DIALOG_ERROR
+						? { message: "Facebook refused the sign-in. Please try again later." }
+						: describeLoginError(appError, "Facebook sign-in failed. Please try again.", "Facebook sign-in failed. Please try again.");
+			appLog.error("[Auth] loginWithFacebook failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+	};
+
+	const signUp = async ({ email, password, birthday }: SignUpData) => {
+		try {
+			appLog.info("[Auth] signUp: creating email account");
+			dispatch({ type: "SET_LOADING", payload: true });
+			dispatch({ type: "SET_ERROR", payload: null });
+
+			// Sign-up is Android-only: rejects with a RecaptchaError elsewhere.
+			const captchaToken = await mintRecaptchaToken("sign_up");
+			const profileId = await callMethod("create_account", {
+				email,
+				password,
+				birthday,
+				captchaToken,
+				pushToken: cachedPushToken(),
+			});
+			appLog.info("[Auth] signUp: account created", { profileId });
+			toast.success("Account created");
+		} catch (error) {
+			if (error instanceof RecaptchaError) {
+				appLog.warn("[Auth] signUp: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
+				if (error.reason !== "cancelled") {
+					const message = CAPTCHA_MESSAGES[error.reason] ?? CAPTCHA_FAILED_MESSAGE;
+					dispatch({ type: "SET_ERROR", payload: { message } });
+				}
+				throw error;
+			}
+			const appError = asAppError(error);
+			const message = describeLoginError(appError, "Sign-up failed. Please try again.", "Sign-up failed. Please try again.");
+			appLog.error("[Auth] signUp failed", { kind: appError?.kind, message });
+			dispatch({ type: "SET_ERROR", payload: message });
+			throw error;
+		} finally {
+			dispatch({ type: "SET_LOADING", payload: false });
+		}
+
+		// The response carries no session: sign in on the device the account
+		// was just created on.
+		await login(email, password, { keepDevice: true });
+	};
+
+	// Once a timed ban has run out, Grindr wants its ban agreement accepted
+	// before the account can be used again. The backend refreshes the session
+	// right after, so the result's restriction is the account's new state.
+	// Throws on failure so the prompt can show it.
+	const acceptBanAgreement = async () => {
+		try {
+			const result = await callMethod("accept_ban_agreement");
+			if (!showRestriction(result.restriction)) {
+				appLog.info("[Auth] ban agreement accepted, restriction lifted");
+				dispatch({ type: "SET_ACCOUNT_STATUS", payload: null });
+			}
+		} catch (error) {
+			// The session is gone; let TokenExpiredGate (behind this gate) take over.
+			if (asAppError(error)?.kind === "TokenExpired") {
+				dispatch({ type: "SET_ACCOUNT_STATUS", payload: null });
+			}
+			throw error;
+		}
+	};
+
 	const logout = async () => {
 		try {
 			dispatch({ type: "SET_LOADING", payload: true });
+			// Repair a location left parked in Honduras before the session goes
+			// away, so the account isn't stranded there after sign-out (#446).
+			await restoreStrandedLocation();
 			await callMethod("logout");
 			dispatch({ type: "CLEAR_USER" });
 			toast.success("Logged out");
@@ -338,7 +557,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			const appError = asAppError(error);
 			const message = appError?.prettyMessage || "Failed to switch account";
 			appLog.error("[Auth] switchAccount failed", { kind: appError?.kind, message });
-			dispatch({ type: "SET_ERROR", payload: message });
+			dispatch({ type: "SET_ERROR", payload: { message } });
 			toast.error(message);
 			throw error;
 		} finally {
@@ -389,6 +608,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		dispatch({ type: "SET_SETTINGS_READY", payload: false });
 		setActiveInterestStoreUser(state.userId);
+		setActiveChatContactIndexAccount(state.userId);
 
 		void (async () => {
 			await setActiveChatDbUser(state.userId);
@@ -625,15 +845,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	}, [state.userId, state.isLoading]);
 
+	const clearError = useCallback(() => dispatch({ type: "SET_ERROR", payload: null }), []);
+
 	const value: AuthContextType = {
 		...state,
 		login,
 		loginWithGoogle,
+		loginWithGoogleWindow,
+		loginWithFacebook,
+		loginWithTransferCode,
+		signUp,
 		logout,
 		checkAuth,
+		acceptBanAgreement,
 		savedAccounts,
 		switchAccount,
 		removeSavedAccount,
+		clearError,
 	};
 
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

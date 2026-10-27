@@ -5,8 +5,11 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { isIos, saveMediaToDevice } from "../services/saveMedia";
 import { appLog } from "../utils/logger";
+import { haptic } from "../utils/haptics";
 import { ProfileImage } from "./ui/profile-image";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { menuTransitionStyle, usePresence } from "../hooks/usePresence";
+import { proxyMediaUrl } from "../utils/mediaProxy";
 
 export type PhotoViewerMedia = {
 	url: string;
@@ -21,6 +24,8 @@ export type PhotoViewerProps = {
 	initialIndex?: number;
 	onIndexChange?: (index: number) => void;
 	renderExtraInfo?: (index: number) => React.ReactNode;
+	/** Badge pinned to the bottom-left corner of the visible picture (images only) — follows zoom/pan without being scaled itself. */
+	renderMediaOverlay?: (index: number) => React.ReactNode;
 	/** Full-width bar anchored to the bottom (e.g. a reply/react bar) — pushes the page-count pill and renderExtraInfo up out of its way when present. */
 	renderFooter?: (index: number) => React.ReactNode;
 	/** Chat conversation this media belongs to, if any — saved media is filed under a matching device subfolder instead of a flat Downloads folder. */
@@ -34,12 +39,51 @@ export type PhotoViewerProps = {
 		/** Online/distance line shown under the name, e.g. "Online · 3 km" — omitted when not available. */
 		subtitle?: string | null;
 		isOnline?: boolean;
+		/** Online with only a few minutes left — avatar ring turns amber. */
+		isOnlineEndingSoon?: boolean;
 		/** Tapping the avatar/name opens the profile — omitted (non-interactive) when not provided. */
 		onClick?: () => void;
 	};
 	/** When true, a "could contain sensitive content" gate screen is shown first — the actual media only reveals after the user confirms. Re-shown every time the viewer opens. */
 	contentWarning?: boolean;
+	/** The album's media are still loading: opens right away with the header and a spinner instead of nothing. */
+	isLoading?: boolean;
+	/** Screen rect of the (object-cover) picture the initial photo was opened from: the photo then
+	 * flies from there into place ("hero" open) instead of the default fade/zoom-in. */
+	heroRect?: HeroRect | null;
 };
+
+export type HeroRect = {
+	left: number;
+	top: number;
+	width: number;
+	height: number;
+	/** Corner radius of the source (e.g. a chat bubble's image), animated down to square. */
+	borderRadius?: number;
+};
+
+/** The picture or video inside `tile` (object-cover) as it sits on screen, plus
+ * the tile's corner radius: the `heroRect` for opening it in the viewer. */
+export function getHeroRectFromElement(tile: HTMLElement): HeroRect | null {
+	const media = tile.querySelector("img, video");
+	if (!media) return null;
+	const rect = media.getBoundingClientRect();
+	const style = getComputedStyle(tile);
+	const borderRadius = Math.max(
+		parseFloat(style.borderTopLeftRadius) || 0,
+		parseFloat(style.borderTopRightRadius) || 0,
+		parseFloat(style.borderBottomLeftRadius) || 0,
+		parseFloat(style.borderBottomRightRadius) || 0,
+	);
+	return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, borderRadius };
+}
+
+/** measure: laid out but hidden, to find where the photo lands; from: drawn exactly over
+ * heroRect; to: animating into place; none: no hero (or finished). */
+type HeroPhase = "measure" | "from" | "to" | "none";
+
+const HERO_ANIMATION_MS = 320;
+const HERO_EASING = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 
 export type PhotoViewerMenuAction = {
 	key: string;
@@ -81,6 +125,79 @@ function getObjectContainRect(el: HTMLImageElement | HTMLVideoElement): DOMRect 
 	return new DOMRect(left, top, contentW, contentH);
 }
 
+/**
+ * Pins its children to the bottom-left corner of the sibling <img>'s actually
+ * drawn content (see getObjectContainRect — the element box is letterboxed),
+ * then maps that corner through the image's zoom transform
+ * (`translate(offset) scale(scale)`, origin = box center) so the badge rides
+ * along with zoom/pan while staying unscaled itself.
+ */
+function MediaCornerOverlay({
+	zoomScale,
+	zoomOffset,
+	children,
+}: {
+	zoomScale: number;
+	zoomOffset: { x: number; y: number };
+	children: React.ReactNode;
+}) {
+	const anchorRef = useRef<HTMLDivElement>(null);
+	const [content, setContent] = useState<{ boxW: number; boxH: number; w: number; h: number } | null>(null);
+
+	useLayoutEffect(() => {
+		const img = anchorRef.current?.parentElement?.querySelector("img");
+		if (!img) return;
+		const measure = () => {
+			const boxW = img.offsetWidth;
+			const boxH = img.offsetHeight;
+			const { naturalWidth: nw, naturalHeight: nh } = img;
+			if (!nw || !nh || !boxW || !boxH) return;
+			const mediaRatio = nw / nh;
+			const fitsWidth = mediaRatio > boxW / boxH;
+			setContent({
+				boxW,
+				boxH,
+				w: fitsWidth ? boxW : boxH * mediaRatio,
+				h: fitsWidth ? boxW / mediaRatio : boxH,
+			});
+		};
+		measure();
+		img.addEventListener("load", measure);
+		const observer = new ResizeObserver(measure);
+		observer.observe(img);
+		return () => {
+			img.removeEventListener("load", measure);
+			observer.disconnect();
+		};
+	}, []);
+
+	const x = content ? content.boxW / 2 + (-content.w / 2) * zoomScale + zoomOffset.x : 0;
+	const y = content ? content.boxH / 2 + (content.h / 2) * zoomScale + zoomOffset.y : 0;
+
+	return (
+		<div
+			ref={anchorRef}
+			className="pointer-events-none absolute left-0 top-0"
+			style={{
+				// Same inset as in the image-only chat bubble's footer row (px-3 py-2).
+				transform: `translate(${x}px, ${y}px) translate(0.75rem, calc(-100% - 0.5rem))`,
+				visibility: content ? "visible" : "hidden",
+			}}
+		>
+			{children}
+		</div>
+	);
+}
+
+/** Vertical drag distance (px) past which releasing closes the viewer. */
+const DISMISS_THRESHOLD_PX = 120;
+// Double-tap to zoom: how long to wait for the second tap, how far it may land
+// from the first, the zoom it jumps to, and how long that jump animates.
+const DOUBLE_TAP_MS = 260;
+const DOUBLE_TAP_SLOP_PX = 40;
+const DOUBLE_TAP_ZOOM = 2.5;
+const ZOOM_ANIMATION_MS = 250;
+
 export function PhotoViewer({
 	isOpen,
 	onClose,
@@ -88,11 +205,14 @@ export function PhotoViewer({
 	initialIndex = 0,
 	onIndexChange,
 	renderExtraInfo,
+	renderMediaOverlay,
 	renderFooter,
 	conversationId,
 	menuActions,
 	albumHeader,
 	contentWarning,
+	isLoading = false,
+	heroRect,
 }: PhotoViewerProps) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
@@ -101,14 +221,12 @@ export function PhotoViewer({
 	// gate, default chrome, album header) so switching between them never
 	// shifts the back button. The position indicator sits below this, it
 	// never pushes the header itself down.
-	const chromeTopOffset = "calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))";
-	// The real chat header vertically centers its back button (items-center)
-	// against a taller h-10 avatar, which visually shifts the button ~4px
-	// below the row's own top edge. The album header here reproduces that
-	// centering naturally; buttons rendered standalone (gate screen,
-	// non-album chrome) need this offset added explicitly to land on the
-	// exact same pixel as the chat header's back button.
-	const chromeButtonTop = `calc(${chromeTopOffset} + 7px)`;
+	// Same top-bar line as every other header (Inbox, PageHeader, profile): the
+	// 40px button row is centred on --header-icon-center, with the app gutter.
+	const chromeTopOffset = "calc(var(--header-icon-center) - 1.25rem)";
+	// Standalone buttons (gate screen, non-album chrome) sit in no row, so they
+	// get the row's top directly — the album row is button/avatar height anyway.
+	const chromeButtonTop = chromeTopOffset;
 
 	const [centerIdx, setCenterIdx] = useState(initialIndex);
 	const [trackPos, setTrackPos] = useState(1);
@@ -118,6 +236,7 @@ export function PhotoViewer({
 	const [zoomOffset, setZoomOffset] = useState({ x: 0, y: 0 });
 	const [isSaving, setIsSaving] = useState(false);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const menuPresence = usePresence(isMenuOpen);
 	const menuRef = useRef<HTMLDivElement | null>(null);
 	const [hasAcknowledgedWarning, setHasAcknowledgedWarning] = useState(false);
 
@@ -128,6 +247,32 @@ export function PhotoViewer({
 	// this. Always treated as visible on desktop (see `chromeVisible` below),
 	// since this is a mobile-only gesture.
 	const [showChrome, setShowChrome] = useState(true);
+	// Vertical drag-to-dismiss (mobile, unzoomed): the media follows the finger
+	// while the backdrop fades; past the threshold it closes, otherwise snaps back.
+	const [dismissY, setDismissY] = useState(0);
+	const [isDismissDragging, setIsDismissDragging] = useState(false);
+	const dismissArmedRef = useRef(false);
+	const dismissStartTimeRef = useRef(0);
+	// Fade-out before handing control back to the parent, for every close path.
+	const [isClosing, setIsClosing] = useState(false);
+	// False for the first painted frame after opening, so the fade/zoom-in can transition.
+	const [isEntered, setIsEntered] = useState(false);
+	const heroRectRef = useRef(heroRect);
+	heroRectRef.current = heroRect;
+	const [heroPhase, setHeroPhase] = useState<HeroPhase>(() => (isOpen && heroRect ? "measure" : "none"));
+	const [heroFromStyle, setHeroFromStyle] = useState<{ transform: string; clipPath: string } | null>(null);
+	const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const onCloseRef = useRef(onClose);
+	onCloseRef.current = onClose;
+	const closeAnimated = useCallback(() => {
+		if (closeTimerRef.current) return;
+		setIsClosing(true);
+		closeTimerRef.current = setTimeout(() => {
+			closeTimerRef.current = null;
+			onCloseRef.current();
+		}, 180);
+	}, []);
+	useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 	const [videoCurrentTime, setVideoCurrentTime] = useState(0);
 	const [videoDuration, setVideoDuration] = useState(0);
 	const [isScrubbing, setIsScrubbing] = useState(false);
@@ -161,6 +306,26 @@ export function PhotoViewer({
 	useEffect(() => { zoomScaleRef.current = zoomScale; }, [zoomScale]);
 	useEffect(() => { zoomOffsetRef.current = zoomOffset; }, [zoomOffset]);
 
+	// Double-tap (double-click on desktop) to zoom: a tap on an image waits
+	// DOUBLE_TAP_MS for a second one before toggling the chrome, so the first
+	// tap of a double-tap doesn't also flash the chrome away.
+	const lastTapRef = useRef<{ time: number; x: number; y: number } | null>(null);
+	const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Animates the zoom transform only for a double-tap jump, not for pinch/pan.
+	const [isZoomAnimating, setIsZoomAnimating] = useState(false);
+	const zoomAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const clearPendingTap = useCallback(() => {
+		lastTapRef.current = null;
+		if (singleTapTimerRef.current) {
+			clearTimeout(singleTapTimerRef.current);
+			singleTapTimerRef.current = null;
+		}
+	}, []);
+	useEffect(() => () => {
+		if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+		if (zoomAnimTimerRef.current) clearTimeout(zoomAnimTimerRef.current);
+	}, []);
+
 	// Desktop-only mouse equivalents of the touch pinch-zoom/pan above: wheel
 	// to zoom (centered on the cursor), click-and-drag to pan once zoomed.
 	const trackContainerRef = useRef<HTMLDivElement | null>(null);
@@ -192,10 +357,112 @@ export function PhotoViewer({
 		setIsMenuOpen(false);
 		setHasAcknowledgedWarning(false);
 		setShowChrome(true);
+		setDismissY(0);
+		setIsDismissDragging(false);
+		setIsClosing(false);
+		setIsEntered(false);
+		setHeroPhase(heroRectRef.current ? "measure" : "none");
+		setHeroFromStyle(null);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isOpen]);
 
+	// Hero open: once the photo is laid out (hidden), map its drawn rect onto
+	// heroRect — scaled to cover it and clipped to it, like the object-cover
+	// source — then animate both back to identity.
+	useLayoutEffect(() => {
+		if (heroPhase !== "measure") return;
+		const el = mediaRef.current;
+		let cancelled = false;
+		const start = () => {
+			if (cancelled) return;
+			const hero = heroRectRef.current;
+			const content = el ? getObjectContainRect(el) : null;
+			if (!hero || !content || !hero.width || !hero.height) {
+				setHeroPhase("none");
+				return;
+			}
+			if (el instanceof HTMLVideoElement) {
+				// Its preview frame normally fades in; here it has to be there
+				// from the first frame of the flight.
+				el.style.transition = "none";
+				el.style.opacity = "1";
+				setTimeout(() => { el.style.transition = ""; }, HERO_ANIMATION_MS + 50);
+			}
+			const scale = Math.max(hero.width / content.width, hero.height / content.height);
+			// transform-origin 0 0: screen = local * scale + translate.
+			const tx = hero.left + hero.width / 2 - (content.left + content.width / 2) * scale;
+			const ty = hero.top + hero.height / 2 - (content.top + content.height / 2) * scale;
+			const top = (hero.top - ty) / scale;
+			const left = (hero.left - tx) / scale;
+			const right = window.innerWidth - (hero.left + hero.width - tx) / scale;
+			const bottom = window.innerHeight - (hero.top + hero.height - ty) / scale;
+			// The clip is drawn in the scaled layer, so the radius is too.
+			const radius = (hero.borderRadius ?? 0) / scale;
+			setHeroFromStyle({
+				transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
+				clipPath: `inset(${top}px ${right}px ${bottom}px ${left}px round ${radius}px)`,
+			});
+			setHeroPhase("from");
+		};
+		// Ready once there's something to draw: a decoded image, or a video's
+		// preview frame (the seek to 0.001 in onLoadedMetadata lands).
+		const isVideo = el instanceof HTMLVideoElement;
+		const isReady = isVideo
+			? el.readyState >= 2 && el.videoWidth > 0 && el.style.opacity === "1"
+			: el instanceof HTMLImageElement && el.complete && el.naturalWidth > 0;
+		if (el && !isReady) {
+			// Not ready yet: wait briefly (videos need longer), otherwise open the normal way.
+			const readyEvent = isVideo ? "seeked" : "load";
+			const fail = () => { if (!cancelled) setHeroPhase("none"); };
+			el.addEventListener(readyEvent, start, { once: true });
+			el.addEventListener("error", fail, { once: true });
+			const timer = setTimeout(fail, isVideo ? 600 : 250);
+			return () => {
+				cancelled = true;
+				clearTimeout(timer);
+				el.removeEventListener(readyEvent, start);
+				el.removeEventListener("error", fail);
+			};
+		}
+		start();
+		return () => { cancelled = true; };
+	}, [heroPhase]);
+
 	useEffect(() => {
+		if (heroPhase === "from") {
+			// Two frames so the start state is painted before transitioning.
+			let inner = 0;
+			const outer = requestAnimationFrame(() => {
+				inner = requestAnimationFrame(() => setHeroPhase("to"));
+			});
+			return () => {
+				cancelAnimationFrame(outer);
+				cancelAnimationFrame(inner);
+			};
+		}
+		if (heroPhase === "to") {
+			const timer = setTimeout(() => setHeroPhase("none"), HERO_ANIMATION_MS + 20);
+			return () => clearTimeout(timer);
+		}
+	}, [heroPhase]);
+	const isHeroActive = heroPhase !== "none";
+	// Backdrop and chrome stay hidden until the photo starts flying in.
+	const isHeroBeforeFlight = heroPhase === "measure" || heroPhase === "from";
+
+	useEffect(() => {
+		if (!isOpen) return;
+		let inner = 0;
+		const outer = requestAnimationFrame(() => {
+			inner = requestAnimationFrame(() => setIsEntered(true));
+		});
+		return () => {
+			cancelAnimationFrame(outer);
+			cancelAnimationFrame(inner);
+		};
+	}, [isOpen]);
+
+	useEffect(() => {
+		clearPendingTap();
 		setIsMenuOpen(false);
 		setIsVideoPlaying(false);
 		setIsVideoMuted(true);
@@ -300,6 +567,24 @@ export function PhotoViewer({
 			y: Math.min(maxY, Math.max(-maxY, offset.y)),
 		};
 	}, []);
+
+	// Zooms in on the given screen point, or back out when already zoomed.
+	const toggleZoomAt = useCallback((clientX: number, clientY: number) => {
+		setIsZoomAnimating(true);
+		if (zoomAnimTimerRef.current) clearTimeout(zoomAnimTimerRef.current);
+		zoomAnimTimerRef.current = setTimeout(() => setIsZoomAnimating(false), ZOOM_ANIMATION_MS);
+		haptic(8);
+		if (zoomScaleRef.current > 1) {
+			setZoomScale(1);
+			setZoomOffset({ x: 0, y: 0 });
+			return;
+		}
+		// Same origin math as the pinch: the transform origin is the screen centre.
+		const cx = clientX - window.innerWidth / 2;
+		const cy = clientY - window.innerHeight / 2;
+		setZoomScale(DOUBLE_TAP_ZOOM);
+		setZoomOffset(clampOffset({ x: -cx * (DOUBLE_TAP_ZOOM - 1), y: -cy * (DOUBLE_TAP_ZOOM - 1) }, DOUBLE_TAP_ZOOM));
+	}, [clampOffset]);
 
 	// Mouse wheel zoom, centered on the cursor — desktop's equivalent of the
 	// touch pinch gesture. Attached as a native listener (not React's onWheel)
@@ -407,6 +692,9 @@ export function PhotoViewer({
 			decidedAxisRef.current = null;
 			isDraggingRef.current = false;
 			setDragOffset(0);
+			// A second finger turns a dismiss drag into a pinch.
+			setDismissY(0);
+			setIsDismissDragging(false);
 		}
 	}, []);
 
@@ -424,6 +712,7 @@ export function PhotoViewer({
 
 				setZoomScale((prev) => {
 					const next = Math.min(Math.max(1, prev * ratio), 4);
+					if ((next === 4 && prev < 4) || (next === 1 && prev > 1)) haptic(10);
 					if (pinchCenterRef.current && next !== prev) {
 						const cx = pinchCenterRef.current.x - window.innerWidth / 2;
 						const cy = pinchCenterRef.current.y - window.innerHeight / 2;
@@ -484,20 +773,32 @@ export function PhotoViewer({
 				return;
 			}
 
-			// Not zoomed: lock axis, swipe left/right to navigate (only when multiple photos)
-			if (N < 2) return;
+			// Not zoomed: lock axis — left/right navigates (only with multiple
+			// photos), up/down drags the viewer away to dismiss it.
 			if (!decidedAxisRef.current && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
 				decidedAxisRef.current = Math.abs(dx) >= Math.abs(dy) ? "h" : "v";
+				if (decidedAxisRef.current === "v") {
+					dismissArmedRef.current = false;
+					dismissStartTimeRef.current = performance.now();
+					setIsDismissDragging(true);
+				}
 			}
 
-			if (decidedAxisRef.current === "h") {
+			if (decidedAxisRef.current === "h" && N >= 2) {
 				isDraggingRef.current = true;
 				setDragOffset(dx);
+			} else if (decidedAxisRef.current === "v" && !isDesktop) {
+				setDismissY(dy);
+				const armed = Math.abs(dy) > DISMISS_THRESHOLD_PX;
+				if (armed !== dismissArmedRef.current) {
+					dismissArmedRef.current = armed;
+					if (armed) haptic(15);
+				}
 			}
 
 			lastTouchRef.current = { x: touch.clientX, y: touch.clientY };
 		},
-		[clampOffset, N],
+		[clampOffset, N, isDesktop],
 	);
 
 	const handleTouchEnd = useCallback(
@@ -513,7 +814,23 @@ export function PhotoViewer({
 				return;
 			}
 
-			if (N >= 2 && decidedAxisRef.current === "h" && zoomScaleRef.current === 1 && isDraggingRef.current) {
+			// A moved gesture is ours alone: end it like the close button's
+			// touchend does, so the browser doesn't follow up with compat mouse
+			// events or treat the next tap after closing as part of it.
+			if (gestureMovedRef.current && e.cancelable) e.preventDefault();
+
+			if (decidedAxisRef.current === "v" && zoomScaleRef.current === 1 && !isDesktop) {
+				setIsDismissDragging(false);
+				const elapsed = Math.max(1, performance.now() - dismissStartTimeRef.current);
+				const isFling = Math.abs(dismissY) / elapsed > 0.6 && Math.abs(dismissY) > 40;
+				if (Math.abs(dismissY) > DISMISS_THRESHOLD_PX || isFling) {
+					// Keep travelling in the swipe direction while fading out.
+					setDismissY(Math.sign(dismissY || 1) * window.innerHeight * 0.6);
+					closeAnimated();
+				} else {
+					setDismissY(0);
+				}
+			} else if (N >= 2 && decidedAxisRef.current === "h" && zoomScaleRef.current === 1 && isDraggingRef.current) {
 				const threshold = Math.min(70, window.innerWidth * 0.22);
 				if (dragOffset < -threshold) showNext();
 				else if (dragOffset > threshold) showPrev();
@@ -534,7 +851,7 @@ export function PhotoViewer({
 				setZoomOffset({ x: 0, y: 0 });
 			}
 		},
-		[dragOffset, showNext, showPrev, N],
+		[dragOffset, showNext, showPrev, N, dismissY, isDesktop, closeAnimated],
 	);
 
 	const handleButtonTouchEnd = useCallback(
@@ -551,13 +868,13 @@ export function PhotoViewer({
 	useEffect(() => {
 		if (!isOpen) return;
 		const onKey = (e: KeyboardEvent) => {
-			if (e.key === "Escape") { e.stopPropagation(); onClose(); return; }
+			if (e.key === "Escape") { e.stopPropagation(); closeAnimated(); return; }
 			if (e.key === "ArrowLeft") showPrev();
 			if (e.key === "ArrowRight") showNext();
 		};
 		window.addEventListener("keydown", onKey, { capture: true });
 		return () => window.removeEventListener("keydown", onKey, { capture: true });
-	}, [isOpen, onClose, showPrev, showNext]);
+	}, [isOpen, closeAnimated, showPrev, showNext]);
 
 	const handleSave = async () => {
 		const photo = photos[centerIdx];
@@ -605,9 +922,11 @@ export function PhotoViewer({
 		setVideoCurrentTime(el.currentTime);
 	}, [videoDuration]);
 
-	if (!isOpen || N === 0) return null;
+	if (!isOpen || (N === 0 && !isLoading)) return null;
 
-	if (contentWarning && !hasAcknowledgedWarning) {
+	// Only once there's media to hide — while loading the viewer shows nothing
+	// sensitive yet, and an album that turns out empty never gets the warning.
+	if (contentWarning && !hasAcknowledgedWarning && N > 0) {
 		return createPortal(
 			<div
 				className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6 bg-black px-8 text-center"
@@ -616,7 +935,7 @@ export function PhotoViewer({
 				<button
 					type="button"
 					onClick={(e) => { e.stopPropagation(); onClose(); }}
-					className="absolute left-3 inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90 sm:left-5"
+					className="header-icon-btn header-icon-btn--back absolute left-[var(--app-px)] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 					style={{ top: chromeButtonTop }}
 					aria-label={t("profile_details.close_photo_viewer")}
 				>
@@ -647,6 +966,42 @@ export function PhotoViewer({
 		);
 	}
 
+	// Still loading: the viewer's own chrome (back, album header) over black,
+	// with a spinner where the media will appear.
+	if (N === 0) {
+		return createPortal(
+			<div className="fixed inset-0 z-[80] bg-black">
+				<div className="absolute inset-x-0 top-0 z-[83] flex items-center gap-3 px-[var(--app-px)]" style={{ paddingTop: chromeTopOffset }}>
+					<button
+						type="button"
+						onClick={onClose}
+						className="header-icon-btn header-icon-btn--back inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
+						aria-label={t("profile_details.close_photo_viewer")}
+					>
+						<ChevronLeft className="h-4 w-4" />
+					</button>
+					{albumHeader && (
+						<div className="header-back-adjacent flex min-w-0 items-center gap-3">
+							<div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-white/30 bg-white/10">
+								<ProfileImage src={albumHeader.avatarUrl} alt={albumHeader.name} />
+							</div>
+							<div className="min-w-0">
+								<p className="truncate text-base font-semibold leading-tight text-white">{albumHeader.name}</p>
+								{albumHeader.subtitle && (
+									<p className="truncate text-xs leading-tight text-white/70">{albumHeader.subtitle}</p>
+								)}
+							</div>
+						</div>
+					)}
+				</div>
+				<div className="flex h-full items-center justify-center" role="status" aria-label={t("shared_albums.opening")}>
+					<Loader2 className="h-8 w-8 animate-spin text-white/70" />
+				</div>
+			</div>,
+			document.body,
+		);
+	}
+
 	const slots: Array<{ photoIndex: number; slotIndex: number }> =
 		N <= 1
 			? [{ photoIndex: centerIdx, slotIndex: 0 }]
@@ -662,11 +1017,33 @@ export function PhotoViewer({
 	// The tap-to-hide-chrome gesture is mobile-only — desktop keeps chrome on
 	// permanently (showChrome still exists in state there, it's just never
 	// toggled since the click handler below only flips it off-desktop).
-	const chromeVisible = isDesktop || showChrome;
+	const dismissProgress = Math.min(1, Math.abs(dismissY) / (DISMISS_THRESHOLD_PX * 2.5));
+	const chromeVisible = (isDesktop || showChrome) && dismissY === 0 && !isClosing && !isHeroBeforeFlight;
 	const chromeFadeClass = `transition-opacity duration-300 ${chromeVisible ? "opacity-100" : "pointer-events-none opacity-0"}`;
 
 	return createPortal(
-		<div className="fixed inset-0 z-[80] bg-black" onClick={onClose}>
+		<div
+			// touch-none + overscroll-none + data-lenis-prevent: no touch on the
+			// viewer (wherever it starts, chrome included) ever becomes a browser
+			// pan/fling or a Lenis scroll, which could swallow the next tap after
+			// closing. Gestures are all handled in JS.
+			data-lenis-prevent
+			className="fixed inset-0 z-[80] touch-none overscroll-none"
+			onClick={closeAnimated}
+			style={{
+				// Once closing, taps go straight through to the page below, even
+				// before the parent unmounts the viewer.
+				pointerEvents: isClosing ? "none" : undefined,
+				backgroundColor: `rgba(0, 0, 0, ${isHeroBeforeFlight ? 0 : 1 - dismissProgress * 0.85})`,
+				// A hero open shows the photo at once; only the backdrop fades in.
+				opacity: isClosing || (!isEntered && !isHeroActive) ? 0 : 1,
+				transition: isDismissDragging
+					? "none"
+					: isHeroActive
+						? `opacity 200ms ease-out, background-color ${HERO_ANIMATION_MS}ms ease-out`
+						: "opacity 200ms ease-out, background-color 220ms ease-out",
+			}}
+		>
 			{isCurrentVideo && !(menuActions && menuActions.length > 0) && (
 				// Same darkening treatment as the album header's top gradient —
 				// the seek bar/mute button dropped their own chip backgrounds, so
@@ -690,7 +1067,7 @@ export function PhotoViewer({
 						aria-hidden="true"
 					/>
 					<div
-						className={`pointer-events-none absolute inset-x-0 top-0 z-[83] px-3 sm:px-5 ${chromeFadeClass}`}
+						className={`pointer-events-none absolute inset-x-0 top-0 z-[83] px-[var(--app-px)] ${chromeFadeClass}`}
 						style={{ paddingTop: chromeTopOffset }}
 					>
 						<div
@@ -700,10 +1077,10 @@ export function PhotoViewer({
 							<div className="flex min-w-0 items-center gap-3">
 							<button
 								type="button"
-								onClick={onClose}
+								onClick={closeAnimated}
 								onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
-								onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
-								className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90"
+								onTouchEnd={(e) => handleButtonTouchEnd(e, closeAnimated)}
+								className="header-icon-btn header-icon-btn--back inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 								aria-label={t("profile_details.close_photo_viewer")}
 							>
 								<ChevronLeft className="h-4 w-4" />
@@ -714,19 +1091,24 @@ export function PhotoViewer({
 									type="button"
 									onClick={albumHeader.onClick}
 									disabled={!albumHeader.onClick}
-									className="flex min-w-0 items-center gap-3 text-left disabled:cursor-default"
+									className="header-back-adjacent flex min-w-0 items-center gap-3 text-left disabled:cursor-default"
 								>
 									<div
 										className={`h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-white/10 ${
-											albumHeader.isOnline ? "border-emerald-500" : "border-white/30"
+											albumHeader.isOnline
+												? albumHeader.isOnlineEndingSoon ? "border-amber-500" : "border-emerald-500"
+												: "border-white/30"
 										}`}
 									>
 										<ProfileImage src={albumHeader.avatarUrl} alt={albumHeader.name} />
 									</div>
+									{/* Same type sizes as the profile's floating header (name text-base,
+									    status line text-xs); leading-tight keeps the block within the 40px
+									    avatar height, so the icons sit on the same line as without it. */}
 									<div className="min-w-0">
-										<p className="truncate text-lg font-semibold text-white">{albumHeader.name}</p>
+										<p className="truncate text-base font-semibold leading-tight text-white">{albumHeader.name}</p>
 										{albumHeader.subtitle && (
-											<p className="truncate text-sm text-white/70">{albumHeader.subtitle}</p>
+											<p className="truncate text-xs leading-tight text-white/70">{albumHeader.subtitle}</p>
 										)}
 									</div>
 								</button>
@@ -741,19 +1123,20 @@ export function PhotoViewer({
 								onTouchEnd={(e) => handleButtonTouchEnd(e, () => setIsMenuOpen((v) => !v))}
 								aria-label="More options"
 								aria-expanded={isMenuOpen}
-								className="inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90"
+								className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 							>
 								<EllipsisVertical className="h-4 w-4" />
 							</button>
-							{isMenuOpen && (
-								<div className="absolute right-0 top-[calc(100%+0.5rem)] min-w-[200px] overflow-hidden rounded-xl border border-white/15 bg-black/90 py-1.5 shadow-xl backdrop-blur-md">
+							{menuPresence.rendered && (
+								<div data-lenis-prevent style={menuTransitionStyle(menuPresence.visible)} className="absolute right-0 top-[calc(100%+0.25rem)] max-h-[calc(100dvh-8rem)] min-w-[200px] overflow-y-auto overscroll-contain rounded-lg border border-white/15 bg-black/90 py-2 shadow-xl backdrop-blur-md">
+									<div className="flex flex-col gap-1 px-2">
 									<button
 										type="button"
 										onClick={() => { setIsMenuOpen(false); void handleSave(); }}
 										disabled={isSaving}
-										className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
+										className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
 									>
-										<Download className="h-4 w-4 opacity-80" />
+										<Download className="mr-2 h-4 w-4 opacity-70" />
 										{t("profile_details.save")}
 									</button>
 									{menuActions.map((action) => (
@@ -762,12 +1145,13 @@ export function PhotoViewer({
 											type="button"
 											onClick={() => { setIsMenuOpen(false); void action.onClick(); }}
 											disabled={action.disabled}
-											className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
+											className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm text-white transition hover:bg-white/10 disabled:opacity-50"
 										>
-											<action.icon className="h-4 w-4 opacity-80" />
+											<action.icon className="mr-2 h-4 w-4 opacity-70" />
 											{action.label}
 										</button>
 									))}
+									</div>
 								</div>
 							)}
 						</div>
@@ -778,10 +1162,10 @@ export function PhotoViewer({
 				<>
 					<button
 						type="button"
-						onClick={(e) => { e.stopPropagation(); onClose(); }}
+						onClick={(e) => { e.stopPropagation(); closeAnimated(); }}
 						onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
-						onTouchEnd={(e) => handleButtonTouchEnd(e, onClose)}
-						className={`absolute left-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90 sm:left-5 ${chromeFadeClass}`}
+						onTouchEnd={(e) => handleButtonTouchEnd(e, closeAnimated)}
+						className={`header-icon-btn header-icon-btn--back absolute left-[var(--app-px)] z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.close_photo_viewer")}
 					>
@@ -793,7 +1177,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); void handleSave(); }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, () => void handleSave())}
 						disabled={isSaving}
-						className={`absolute right-3 z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md transition active:scale-90 disabled:opacity-50 sm:right-5 ${chromeFadeClass}`}
+						className={`header-icon-btn absolute right-[var(--app-px)] z-[83] inline-flex items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 disabled:opacity-50 ${chromeFadeClass}`}
 						style={{ top: chromeButtonTop }}
 						aria-label={t("profile_details.save")}
 					>
@@ -833,7 +1217,7 @@ export function PhotoViewer({
 				// right where it does) would sit right underneath/against it instead
 				// of clearing it.
 				<p
-					className={`absolute left-1/2 z-[83] -translate-x-1/2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-md ${chromeFadeClass} ${
+					className={`absolute left-1/2 z-[83] -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md ${chromeFadeClass} ${
 						isCurrentVideo
 							? footerContent
 								? "bottom-[calc(env(safe-area-inset-bottom,0px)+9.25rem)]"
@@ -919,6 +1303,25 @@ export function PhotoViewer({
 			<div
 				ref={trackContainerRef}
 				className="h-full w-full overflow-hidden"
+				style={
+					heroPhase === "measure"
+						? { visibility: "hidden" }
+						: heroPhase === "from" && heroFromStyle
+							? { transformOrigin: "0 0", ...heroFromStyle, transition: "none" }
+							: heroPhase === "to"
+								? {
+										transformOrigin: "0 0",
+										transform: "translate(0px, 0px) scale(1)",
+										clipPath: "inset(0px 0px 0px 0px round 0px)",
+										transition: `transform ${HERO_ANIMATION_MS}ms ${HERO_EASING}, clip-path ${HERO_ANIMATION_MS}ms ${HERO_EASING}`,
+									}
+								: {
+										transform: dismissY !== 0 || isClosing || !isEntered
+											? `translateY(${dismissY}px) scale(${(isClosing || !isEntered) && dismissY === 0 ? 0.94 : 1 - dismissProgress * 0.15})`
+											: undefined,
+										transition: isDismissDragging ? "none" : "transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+									}
+				}
 				onClick={(e) => e.stopPropagation()}
 				onTouchStart={handleTouchStart}
 				onTouchMove={handleTouchMove}
@@ -948,13 +1351,17 @@ export function PhotoViewer({
 							? ("grab" as const)
 							: undefined;
 
+						const zoomTransition = isCurrent && isZoomAnimating
+							? `transform ${ZOOM_ANIMATION_MS}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`
+							: undefined;
 						const zoomStyle =
 							isCurrent && (zoomScale !== 1 || zoomOffset.x !== 0 || zoomOffset.y !== 0)
 								? {
 										transform: `translate(${zoomOffset.x}px, ${zoomOffset.y}px) scale(${zoomScale})`,
+										transition: zoomTransition,
 										touchAction: "none" as const,
 									}
-								: { touchAction: "none" as const };
+								: { transition: zoomTransition, touchAction: "none" as const };
 
 						return (
 							<div
@@ -971,10 +1378,16 @@ export function PhotoViewer({
 								// overflow-hidden lives here so the clip boundary for a
 								// zoomed image/video is the full slide, not some smaller box.
 								className="flex h-full w-screen flex-shrink-0 items-center justify-center overflow-hidden"
-								onClick={onClose}
+								onClick={closeAnimated}
 							>
 								<div
 									className="relative w-full"
+									onDoubleClick={isDesktop && isCurrent && type !== "video" ? (e) => {
+										const rect = mediaRef.current ? getObjectContainRect(mediaRef.current) : null;
+										if (!rect || e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) return;
+										e.stopPropagation();
+										toggleZoomAt(e.clientX, e.clientY);
+									} : undefined}
 									onClick={(e) => {
 										// A desktop drag-to-pan ends with a click firing on
 										// mouseup (unlike touch, where a moved gesture doesn't
@@ -1014,7 +1427,27 @@ export function PhotoViewer({
 												// paused/freshly-swiped-to video) — nothing else forces
 												// chrome back on except an actual pause/end event, so a
 												// hidden-then-swiped-to video must stay tap-revealable.
-												setShowChrome((prev) => !prev);
+												if (type === "video" || !isCurrent) {
+													setShowChrome((prev) => !prev);
+													return;
+												}
+												// Images: a second tap close by within DOUBLE_TAP_MS
+												// zooms instead; otherwise the chrome toggles once
+												// that window has passed.
+												const now = performance.now();
+												const last = lastTapRef.current;
+												if (last && now - last.time < DOUBLE_TAP_MS && Math.hypot(e.clientX - last.x, e.clientY - last.y) < DOUBLE_TAP_SLOP_PX) {
+													clearPendingTap();
+													toggleZoomAt(e.clientX, e.clientY);
+													return;
+												}
+												clearPendingTap();
+												lastTapRef.current = { time: now, x: e.clientX, y: e.clientY };
+												singleTapTimerRef.current = setTimeout(() => {
+													singleTapTimerRef.current = null;
+													lastTapRef.current = null;
+													setShowChrome((prev) => !prev);
+												}, DOUBLE_TAP_MS);
 											}
 										}
 									}}
@@ -1038,7 +1471,7 @@ export function PhotoViewer({
 												</div>
 												<video
 													ref={isCurrent ? (mediaRef as React.RefObject<HTMLVideoElement>) : undefined}
-													src={url}
+													src={proxyMediaUrl(url, { as: "video" })}
 													preload="metadata"
 													playsInline
 													muted={isCurrent ? isVideoMuted : true}
@@ -1082,7 +1515,7 @@ export function PhotoViewer({
 									})() : (
 										<img
 											ref={isCurrent ? (mediaRef as React.RefObject<HTMLImageElement>) : undefined}
-											src={url}
+											src={proxyMediaUrl(url)}
 											alt={alt}
 											loading="eager"
 											draggable={false}
@@ -1091,6 +1524,17 @@ export function PhotoViewer({
 											onMouseDown={isCurrent ? handleMediaMouseDown : undefined}
 										/>
 									)}
+									{type === "image" && renderMediaOverlay ? (() => {
+										const overlay = renderMediaOverlay(photoIndex);
+										return overlay ? (
+											<MediaCornerOverlay
+												zoomScale={isCurrent ? zoomScale : 1}
+												zoomOffset={isCurrent ? zoomOffset : { x: 0, y: 0 }}
+											>
+												{overlay}
+											</MediaCornerOverlay>
+										) : null;
+									})() : null}
 								</div>
 							</div>
 						);
@@ -1106,7 +1550,7 @@ export function PhotoViewer({
 				// width and was forcing the text to wrap.
 				<div
 					className={`absolute left-1/2 z-[83] flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 ${chromeFadeClass}`}
-					style={{ top: `calc(${chromeButtonTop} + 1rem)` }}
+					style={{ top: `calc(${chromeButtonTop} + 1.25rem)` }}
 					onClick={(e) => e.stopPropagation()}
 				>
 					{renderExtraInfo(centerIdx)}

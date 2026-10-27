@@ -7,6 +7,9 @@ import {
 	validateMediaHash,
 } from "../../../utils/media";
 import { formatRelativeTime } from "../../../utils/relativeTime";
+import { hourCycleOptions } from "../../../utils/timeFormat";
+import { ONLINE_ENDING_SOON_MINUTES } from "../gridpage/utils";
+import { sanitizeUploadFile } from "../../../services/uploadSanitize";
 
 export type ChatFiltersDraft = {
 	unreadOnly: boolean;
@@ -147,15 +150,30 @@ export function parseChatFiltersFromLocationState(state: unknown): InboxFilters 
 	};
 }
 
+/** Normalizes the photo/video first (metadata stripped, see uploadSanitize). */
 export async function buildBinaryUpload(file: File): Promise<{
 	body: Uint8Array;
 	contentType: string;
 }> {
-	const fileBytes = new Uint8Array(await file.arrayBuffer());
+	const sanitized = await sanitizeUploadFile(file);
 	return {
-		body: fileBytes,
-		contentType: file.type || "application/octet-stream",
+		body: new Uint8Array(await sanitized.arrayBuffer()),
+		contentType: sanitized.type,
 	};
+}
+
+/** Whole seconds, or 0 when the browser can't read the duration. */
+export function getVideoDurationSeconds(file: File): Promise<number> {
+	return new Promise<number>((resolve) => {
+		const vid = document.createElement("video");
+		vid.preload = "metadata";
+		vid.onloadedmetadata = () => {
+			resolve(isFinite(vid.duration) ? Math.round(vid.duration) : 0);
+			URL.revokeObjectURL(vid.src);
+		};
+		vid.onerror = () => { resolve(0); URL.revokeObjectURL(vid.src); };
+		vid.src = URL.createObjectURL(file);
+	});
 }
 
 const dateTimeFormatterCache = new Map<string, Intl.DateTimeFormat>();
@@ -194,6 +212,7 @@ export function formatMessageTime(
 	return new Date(timestamp).toLocaleTimeString([], {
 		hour: "2-digit",
 		minute: "2-digit",
+		...hourCycleOptions(),
 	});
 }
 
@@ -201,50 +220,72 @@ export function formatFullDateTime(timestamp: number): string {
 	return new Date(timestamp).toLocaleString([], {
 		dateStyle: "medium",
 		timeStyle: "short",
+		...hourCycleOptions(),
 	});
 }
 
+/** Relative time for the "taken on Grindr" badge: now, x mins ago, 1 hour
+ * ago, x hours ago, x days ago, last week, then month and year (August 2026). */
 export function formatTakenOnGrindrTime(
 	timestamp: number,
 	now: number,
 	t: TranslateFn,
 ): string {
-	const diffMs = now - timestamp;
+	const diffMs = Math.max(0, now - timestamp);
 	const minuteMs = 60 * 1000;
+	const hourMs = 60 * minuteMs;
+	const dayMs = 24 * hourMs;
 
 	if (diffMs < minuteMs) {
 		return t("chat.time.now");
 	}
-
-	const msgDate = new Date(timestamp);
-	const nowDate = new Date(now);
-
-	const isSameDay = (d1: Date, d2: Date) =>
-		d1.getFullYear() === d2.getFullYear() &&
-		d1.getMonth() === d2.getMonth() &&
-		d1.getDate() === d2.getDate();
-
-	if (isSameDay(msgDate, nowDate)) {
-		return t("chat.today");
+	if (diffMs < hourMs) {
+		const mins = Math.floor(diffMs / minuteMs);
+		return mins === 1 ? t("chat.time.one_min_ago") : t("chat.time.mins_ago", { count: mins });
 	}
-
-	const yesterday = new Date(now);
-	yesterday.setDate(yesterday.getDate() - 1);
-	if (isSameDay(msgDate, yesterday)) {
-		return t("chat.yesterday");
+	if (diffMs < dayMs) {
+		const hours = Math.floor(diffMs / hourMs);
+		return hours === 1
+			? t("chat.time.one_hour_ago", { defaultValue: "1 hour ago" })
+			: t("chat.time.hours_ago_long", { count: hours, defaultValue: "{{count}} hours ago" });
 	}
-
-	const oneWeekAgo = new Date(now);
-	oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-	if (msgDate > oneWeekAgo) {
+	if (diffMs < 7 * dayMs) {
+		const days = Math.floor(diffMs / dayMs);
+		return days === 1
+			? t("chat.time.one_day_ago", { defaultValue: "1 day ago" })
+			: t("chat.time.days_ago", { count: days, defaultValue: "{{count}} days ago" });
+	}
+	if (diffMs < 14 * dayMs) {
 		return t("chat.time.last_week");
 	}
 
 	const formatter = getDateTimeFormatter(i18n.language, {
-		month: "short",
+		month: "long",
 		year: "numeric",
 	});
-	return formatter.format(msgDate);
+	return formatter.format(new Date(timestamp));
+}
+
+/** Same steps as formatTakenOnGrindrTime, as a sentence: "Taken just now",
+ * "Taken 2 hours ago", "Taken last week", "Taken in August 2026". */
+export function formatTakenOnGrindrSentence(
+	timestamp: number,
+	now: number,
+	t: TranslateFn,
+): string {
+	const diffMs = Math.max(0, now - timestamp);
+	const dayMs = 24 * 60 * 60 * 1000;
+	if (diffMs < 60 * 1000) {
+		return t("chat.time.taken_now", { defaultValue: "Taken just now" });
+	}
+	const time = formatTakenOnGrindrTime(timestamp, now, t);
+	if (diffMs < 7 * dayMs) {
+		return t("chat.time.taken_ago", { time, defaultValue: "Taken {{time}}" });
+	}
+	if (diffMs < 14 * dayMs) {
+		return t("chat.time.taken_last_week", { defaultValue: "Taken last week" });
+	}
+	return t("chat.time.taken_in", { time, defaultValue: "Taken in {{time}}" });
 }
 
 export function formatDateTime24(timestamp: number): string {
@@ -392,6 +433,30 @@ export function getMessagePreviewLabel(message: Message, t: TranslateFn): string
 	}
 }
 
+// Media types' notification wording (the 26.21 app's push texts, shared with
+// the native FCM pipeline via push_notifications.*); anything else uses the
+// regular inbox preview.
+const NOTIFICATION_BODY_KEYS: Record<string, string> = {
+	Image: "push_notifications.chat_image_notification_body",
+	ExpiringImage: "push_notifications.chat_expiring_image_notification_body",
+	Giphy: "push_notifications.chat_gif_notification_body",
+	Gaymoji: "push_notifications.chat_gaymoji_notification_body",
+	Location: "push_notifications.chat_location_notification_body",
+	Audio: "push_notifications.chat_audio_notification_body",
+	Video: "push_notifications.chat_video_notification_body",
+	PrivateVideo: "push_notifications.chat_video_notification_body",
+	NonExpiringVideo: "push_notifications.chat_video_notification_body",
+	Album: "push_notifications.chat_album_notification_body",
+	ExpiringAlbum: "push_notifications.chat_album_notification_body",
+	ExpiringAlbumV2: "push_notifications.chat_album_notification_body",
+	AlbumContentReaction: "push_notifications.chat_album_content_reaction_notification_body",
+};
+
+export function getNotificationBodyLabel(message: Message, t: TranslateFn): string {
+	const key = NOTIFICATION_BODY_KEYS[message.type];
+	return key ? t(key) : getMessagePreviewLabel(message, t);
+}
+
 // Normalizes the various casings/spellings seen in real traffic for
 // VideoCallMessageBody.result (e.g. "Busy" vs "BUSY", "No_Answer" vs
 // "UNANSWERED") into one of a fixed set of outcome keys under
@@ -486,6 +551,26 @@ export function buildPreviewFromMessage(
 		albumId: null,
 		imageHash: null,
 	};
+}
+
+/**
+ * Newest message (input sorted oldest-first) usable as a fallback inbox
+ * preview. A body-less message still counts when its type alone says what it
+ * was — viewed/expired photos and videos lose their body, and a conversation
+ * made up only of those would otherwise find nothing and fall back to "no
+ * messages yet". Unsent body-less messages are skipped.
+ */
+export function findPreviewFallbackMessage<T extends Message>(messages: readonly T[]): T | null {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const message = messages[i];
+		if (message.body && typeof message.body === "object") {
+			return message;
+		}
+		if (!message.unsent && message.type && SELF_EXPLANATORY_PREVIEW_TYPES.has(message.type)) {
+			return message;
+		}
+	}
+	return null;
 }
 
 export function getMessageText(message: UiMessage, t: TranslateFn): string {
@@ -981,11 +1066,21 @@ export type MediaCaptureTarget = {
 	viewOnce: boolean;
 };
 
-// Sender-side code (ChatPage.tsx) uses this exact sentinel for "unlimited"
-// (e.g. `setAttachmentMaxViews(2147483647)`, `views = maxViews ?? 2147483647`).
-// Anything below it — 1 ("view once"), 2 ("view twice"), or any other finite
+/** "Unlimited" videos aren't sent as NonExpiringVideo but as a regular
+ * Video, the same as "repeat" (2 views), with this many views. Counts from
+ * here up read as unlimited. */
+export const MAX_VIDEO_VIEWS = 999_999;
+
+/** Views a video message is sent with, for the expiry picker's maxViews
+ * (1 = once, 2 = repeat, anything above = unlimited, capped). */
+export function videoMessageViews(maxViews: number): number {
+	return Math.min(maxViews, MAX_VIDEO_VIEWS);
+}
+
+// The pickers use 2147483647 for "unlimited" (videos are sent with
+// MAX_VIDEO_VIEWS instead, see videoMessageViews). Anything below
+// MAX_VIDEO_VIEWS — 1 ("view once"), 2 ("view twice"), or any other finite
 // count — is a limited view, not just exactly 1.
-const UNLIMITED_VIEWS = 2_147_483_647;
 
 function isViewLimitedMessage(message: UiMessage): boolean {
 	const body = message.body as Record<string, unknown> | null | undefined;
@@ -995,7 +1090,7 @@ function isViewLimitedMessage(message: UiMessage): boolean {
 	const candidate = maxViews ?? viewsRemaining;
 
 	if (candidate != null) {
-		return candidate > 0 && candidate < UNLIMITED_VIEWS;
+		return candidate > 0 && candidate < MAX_VIDEO_VIEWS;
 	}
 
 	// No explicit view-limit field on the body — fall back to the type string.
@@ -1196,7 +1291,7 @@ export function getParticipantOnlineMeta(
 	onlineUntil: number | null | undefined,
 	nowTimestamp: number,
 	t: TranslateFn,
-): { isOnline: boolean; label: string } {
+): { isOnline: boolean; isEndingSoon?: boolean; label: string } {
 	// lastOnline/onlineUntil of 0 is the server's "unknown/hidden" sentinel,
 	// not a real epoch timestamp — treat it the same as null/undefined,
 	// otherwise it renders as tens of thousands of days ago.
@@ -1219,6 +1314,7 @@ export function getParticipantOnlineMeta(
 		);
 		return {
 			isOnline: true,
+			isEndingSoon: minsLeft <= ONLINE_ENDING_SOON_MINUTES,
 			label: t("browse_page.status_online_left", { count: minsLeft }),
 		};
 	}

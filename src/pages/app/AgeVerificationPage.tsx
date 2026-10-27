@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2, Fingerprint, ScanFace, ShieldCheck } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { LoadingState, ErrorState } from "../../components/ui/states";
@@ -138,11 +138,12 @@ export function AgeVerificationPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-6">
-				<BackToSettings />
-				<h1 className="app-title">{t("age_verification.title")}</h1>
-				<p className="app-subtitle">{t("age_verification.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("age_verification.title")}
+				subtitle={t("age_verification.subtitle")}
+				subtitleClassName="mb-5"
+			/>
 
 			<div className="grid gap-4">
 				{step === "loading-options" && (
@@ -177,7 +178,7 @@ export function AgeVerificationPage() {
 										key={method}
 										type="button"
 										onClick={() => void handleSelectMethod(method)}
-										className="surface-card flex w-full items-center justify-between p-4 text-left transition-transform hover:-translate-y-0.5 sm:p-5"
+										className="native-card flex w-full items-center justify-between p-4 text-left transition-transform hover:-translate-y-0.5 sm:p-5"
 									>
 										<div className="flex items-center gap-3">
 											<div className="rounded-xl bg-[var(--surface-2)] p-2.5">

@@ -1,30 +1,89 @@
-import {
-	BookOpen,
-	FileText,
-	GitBranch,
-	HeartHandshake,
-	LockKeyhole,
-	MessageCircle,
-	Rocket,
-	Send,
-	Shield,
-	Users,
-} from "lucide-react";
-import { useMemo, useState } from "react";
+import { Ban, ChevronRight, Code2, ExternalLink, GitBranch, HeartHandshake, Scale } from "lucide-react";
+import { DiscordIcon, TelegramIcon } from "../../components/icons/BrandIcons";
+import { HeartFilled, LockFilled, MegaphoneFilled } from "../../components/icons/FilledIcons";
+import { useMemo, useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { Card } from "../../components/ui/card";
-import { Badge } from "../../components/ui/chip";
-import { BackToSettings } from "../../components/BackToSettings";
+import semver from "semver";
+import { PageHeader } from "../../components/PageHeader";
+import { VersionAnnouncement } from "../../components/VersionAnnouncement";
 import { usePreferences } from "../../contexts/PreferencesContext";
+import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
 import { triggerSinModeUnlock } from "../../utils/sinModeEasterEgg";
+import { openExternalUrl } from "../../utils/githubIssues";
+import logo from "../../images/freegrind-logo.webp";
+
+type AboutIcon = ComponentType<{ className?: string }>;
 
 const DEV_TAP_TARGET = 7;
+const REPO_URL = "https://github.com/fdev8974/free-grind";
+const DISCORD_URL = "https://discord.gg/cJqTaWPMFF";
+const TELEGRAM_URL = "https://t.me/freegrind";
+
+/**
+ * "What's new" for the running version: its own entry (a pre-release shares
+ * its final version's one), else the newest one released before it.
+ */
+function findCurrentAnnouncement(appVersion: string) {
+	const release = semver.coerce(appVersion)?.version;
+	const exact =
+		VERSION_ANNOUNCEMENTS.find((a) => a.version === appVersion) ??
+		VERSION_ANNOUNCEMENTS.find((a) => a.version === release);
+	if (exact || !release) return exact ?? null;
+	return (
+		VERSION_ANNOUNCEMENTS.filter((a) => semver.valid(a.version) && semver.lte(a.version, release)).sort((a, b) =>
+			semver.rcompare(a.version, b.version),
+		)[0] ?? null
+	);
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+	return <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{children}</p>;
+}
+
+function ProjectRow({
+	icon: Icon,
+	iconClass,
+	label,
+	description,
+	right,
+	onClick,
+}: {
+	icon: AboutIcon;
+	iconClass: string;
+	label: string;
+	description?: string;
+	right?: ReactNode;
+	/** Without it the row is static (no press feedback). */
+	onClick?: () => void;
+}) {
+	const Tag = onClick ? "button" : "div";
+	return (
+		<Tag
+			{...(onClick ? { type: "button" as const, onClick } : {})}
+			className={`flex w-full items-center gap-3 px-4 py-3.5 text-left ${onClick ? "transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]" : ""}`}
+		>
+			<div className={`shrink-0 rounded-2xl p-2.5 ${iconClass}`}>
+				<Icon className="h-5 w-5" />
+			</div>
+			<div className="min-w-0 flex-1">
+				<p className="text-sm font-semibold leading-snug">{label}</p>
+				{description && <p className="mt-0.5 text-xs leading-relaxed text-[var(--text-muted)]">{description}</p>}
+			</div>
+			{right && <span className="flex shrink-0 items-center gap-2 text-[var(--text-muted)]">{right}</span>}
+		</Tag>
+	);
+}
+
+const externalIcon = <ExternalLink className="h-4 w-4 opacity-60" />;
+
 
 export function AboutPage() {
 	const { t } = useTranslation();
 	const { developerMode, setPreferences } = usePreferences();
 	const appVersion = import.meta.env.VITE_APP_VERSION;
+	const announcement = useMemo(() => findCurrentAnnouncement(appVersion), [appVersion]);
+	const [showAnnouncement, setShowAnnouncement] = useState(false);
 	const [devTapCount, setDevTapCount] = useState(0);
 	const [lastDevTapAt, setLastDevTapAt] = useState(0);
 
@@ -56,235 +115,152 @@ export function AboutPage() {
 		}
 	};
 
-	const resourceLinks = useMemo(
-		() => [
-			{
-				title: t("about_page.resources.documentation_title"),
-				href: "https://freegrinddocs.imaoreo.dev",
-				description: t("about_page.resources.documentation_desc"),
-				icon: BookOpen,
-				external: true,
-			},
-			{
-				title: t("about_page.resources.source_code_title"),
-				href: "https://github.com/fdev8974/free-grind",
-				description: t("about_page.resources.source_code_desc"),
-				icon: GitBranch,
-				external: true,
-			},
-			{
-				title: t("about_page.resources.contributing_title"),
-				href: "https://github.com/fdev8974/free-grind/blob/main/CONTRIBUTING.md",
-				description: t("about_page.resources.contributing_desc"),
-				icon: HeartHandshake,
-				external: true,
-			},
-			{
-				title: t("about_page.resources.licence_title"),
-				href: "https://github.com/fdev8974/free-grind/blob/main/LICENSE",
-				description: t("about_page.resources.licence_desc"),
-				icon: FileText,
-				external: true,
-			},
-			{
-				title: t("about_page.resources.discord_title"),
-				href: "https://discord.gg/cJqTaWPMFF",
-				description: t("about_page.resources.discord_desc"),
-				icon: MessageCircle,
-				external: true,
-			},
-			{
-				title: t("about_page.resources.telegram_title"),
-				href: "https://t.me/freegrind",
-				description: t("about_page.resources.telegram_desc"),
-				icon: Send,
-				external: true,
-			},
-		],
-		[t],
-	);
+	if (showAnnouncement && announcement) {
+		return (
+			<div className="app-shell z-[300]">
+				<VersionAnnouncement
+					announcement={announcement}
+					appVersion={announcement.version === semver.coerce(appVersion)?.version ? appVersion : undefined}
+					buttonLabel={t("common.close", { defaultValue: "Close" })}
+					onClose={() => setShowAnnouncement(false)}
+				/>
+			</div>
+		);
+	}
 
 	return (
 		<section className="app-screen">
-			<div className="mx-auto grid w-full max-w-6xl gap-6">
-				<header className="grid gap-4">
-					<BackToSettings />
+			<PageHeader backTo="/settings" title={t("settings.about")} />
 
-					<Card className="overflow-hidden p-0">
-						<div className="grid gap-0 lg:grid-cols-[1.25fr_0.75fr]">
-							<div className="grid gap-5 p-6 sm:p-8">
-								<div className="flex flex-wrap items-center gap-2">
-									<Badge>{t("about_page.badge")}</Badge>
-									<button
-										type="button"
-										onClick={handleVersionTap}
-										className="rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1 text-xs font-semibold text-[var(--text-muted)] transition hover:text-[var(--text)]"
-									>
-										v{appVersion}
-									</button>
-								</div>
-
-								<div className="grid gap-3">
-									<h1 className="app-title max-w-[14ch]">
-										{t("about_page.title")}
-									</h1>
-									<p className="max-w-[68ch] text-sm leading-6 text-[var(--text-muted)] sm:text-base">
-										{t("about_page.description")}
-									</p>
-								</div>
-
-								<div className="grid gap-3 sm:grid-cols-2">
-									<div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-										<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-											{t("about_page.platform")}
-										</p>
-										<p className="mt-1 text-base font-semibold">Tauri + React</p>
-									</div>
-									<div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-										<p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-											{t("about_page.licence")}
-										</p>
-										<p className="mt-1 text-base font-semibold">
-											{t("about_page.licence_value")}
-										</p>
-									</div>
-								</div>
-							</div>
-
-							<div className="grid gap-4 border-t border-[var(--border)] bg-[var(--surface-2)] p-6 sm:p-8 lg:border-l lg:border-t-0">
-								<div className="rounded-2xl bg-[var(--surface)] p-4">
-									<p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-										{t("about_page.maintainer")}
-									</p>
-									<p className="mt-2 text-lg font-semibold leading-snug">
-										Jay Brammeld
-									</p>
-									<p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-										{t("about_page.maintainer_credit")}
-									</p>
-								</div>
-
-								<div className="rounded-2xl bg-[var(--surface)] p-4">
-									<div className="flex items-start gap-3">
-										<div className="rounded-xl bg-[var(--surface-2)] p-2.5 text-[var(--text)]">
-											<Shield className="h-5 w-5" />
-										</div>
-										<p className="text-sm leading-6 text-[var(--text-muted)]">
-											{t("about_page.commercial_note")}
-										</p>
-									</div>
-								</div>
-							</div>
+			<div className="grid gap-6">
+				<div className="native-card overflow-hidden">
+					{/* Tapping the app row 7 times toggles Developer Mode. */}
+					<button
+						type="button"
+						onClick={handleVersionTap}
+						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+					>
+						<div className="shrink-0 rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
+							<img src={logo} alt="" className="h-5 w-5 rounded-md object-cover" draggable={false} />
 						</div>
-					</Card>
-				</header>
-
-				<div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-					<Card className="p-5 sm:p-6">
-						<h2 className="text-lg font-semibold">
-							{t("about_page.principles_title")}
-						</h2>
-						<div className="mt-4 grid gap-3">
-							<div className="rounded-2xl bg-[var(--surface-2)] p-4">
-								<div className="flex items-start gap-3">
-									<LockKeyhole className="mt-0.5 h-4.5 w-4.5 text-[var(--text)]" />
-									<div className="grid gap-1">
-										<p className="text-sm font-semibold">
-											{t("about_page.principles.privacy_title")}
-										</p>
-										<p className="text-sm leading-6 text-[var(--text-muted)]">
-											{t("about_page.principles.privacy_desc")}
-										</p>
-									</div>
-								</div>
-							</div>
-							<div className="rounded-2xl bg-[var(--surface-2)] p-4">
-								<div className="flex items-start gap-3">
-									<Users className="mt-0.5 h-4.5 w-4.5 text-[var(--text)]" />
-									<div className="grid gap-1">
-										<p className="text-sm font-semibold">
-											{t("about_page.principles.community_title")}
-										</p>
-										<p className="text-sm leading-6 text-[var(--text-muted)]">
-											{t("about_page.principles.community_desc")}
-										</p>
-									</div>
-								</div>
-							</div>
-							<div className="rounded-2xl bg-[var(--surface-2)] p-4">
-								<div className="flex items-start gap-3">
-									<Rocket className="mt-0.5 h-4.5 w-4.5 text-[var(--text)]" />
-									<div className="grid gap-1">
-										<p className="text-sm font-semibold">
-											{t("about_page.principles.roadmap_title")}
-										</p>
-										<p className="text-sm leading-6 text-[var(--text-muted)]">
-											{t("about_page.principles.roadmap_desc")}
-										</p>
-									</div>
-								</div>
-							</div>
+						<div className="min-w-0 flex-1">
+							<p className="text-sm font-semibold leading-snug">Free Grind</p>
+							<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+								{t("about_page.tagline", { defaultValue: "The privacy-first, community-built client" })}
+							</p>
 						</div>
-					</Card>
-
-					<Card className="p-5 sm:p-6">
-						<h2 className="text-lg font-semibold">
-							{t("about_page.support_title")}
-						</h2>
-						<div className="mt-4 grid gap-3 text-sm text-[var(--text-muted)]">
-							<p>{t("about_page.support_text")}</p>
-							<a
-								href="https://imaoreo.dev/donate"
-								target="_blank"
-								rel="noreferrer"
-								className="rounded-2xl bg-[var(--surface-2)] px-4 py-3 font-medium text-[var(--text)] transition hover:bg-[color-mix(in_srgb,var(--surface-2)_70%,var(--accent)_30%)]"
-							>
-								imaoreo.dev/donate
-							</a>
-							<a
-								href="https://hloth.dev/donate"
-								target="_blank"
-								rel="noreferrer"
-								className="rounded-2xl bg-[var(--surface-2)] px-4 py-3 font-medium text-[var(--text)] transition hover:bg-[color-mix(in_srgb,var(--surface-2)_70%,var(--accent)_30%)]"
-							>
-								hloth.dev/donate
-							</a>
-						</div>
-					</Card>
+						<span className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
+							v{appVersion}
+						</span>
+					</button>
 				</div>
 
-				<section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-					{resourceLinks.map((resource) => {
-						const Icon = resource.icon;
+				<div>
+					<SectionLabel>{t("about_page.section_principles", { defaultValue: "Why Free Grind" })}</SectionLabel>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<ProjectRow
+							icon={LockFilled}
+							iconClass="bg-emerald-500/15 text-emerald-400"
+							label={t("about_page.highlights.privacy_title", { defaultValue: "Privacy first" })}
+							description={t("about_page.highlights.privacy_desc", { defaultValue: "No tracking, no engagement tricks." })}
+						/>
+						<ProjectRow
+							icon={Code2}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("about_page.highlights.open_source_title", { defaultValue: "Open source" })}
+							description={t("about_page.highlights.open_source_desc", { defaultValue: "All code is public on GitHub." })}
+						/>
+						<ProjectRow
+							icon={Ban}
+							iconClass="bg-amber-500/15 text-amber-400"
+							label={t("about_page.highlights.no_ads_title", { defaultValue: "No ads" })}
+							description={t("about_page.highlights.no_ads_desc", { defaultValue: "A clean interface, nothing in the way." })}
+						/>
+						<ProjectRow
+							icon={HeartFilled}
+							iconClass="bg-rose-500/15 text-rose-400"
+							label={t("about_page.highlights.free_title", { defaultValue: "Free forever" })}
+							description={t("about_page.highlights.free_desc", { defaultValue: "If someone asks you to pay, it's a scam." })}
+						/>
+					</div>
+				</div>
 
-						return (
-							<a
-								key={resource.title}
-								href={resource.href}
-								target={resource.external ? "_blank" : undefined}
-								rel={resource.external ? "noreferrer" : undefined}
-								className="surface-card grid gap-4 p-5 transition-transform duration-150 hover:-translate-y-0.5"
-							>
-								<div className="flex items-start justify-between gap-3">
-									<div className="rounded-2xl bg-[var(--surface-2)] p-3">
-										<Icon className="h-5 w-5" />
-									</div>
-									<span className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-										{resource.external
-											? t("about_page.resources.external")
-											: t("about_page.resources.local")}
-									</span>
-								</div>
-								<div className="grid gap-2">
-									<h2 className="text-base font-semibold">{resource.title}</h2>
-									<p className="text-sm leading-6 text-[var(--text-muted)]">
-										{resource.description}
-									</p>
-								</div>
-							</a>
-						);
-					})}
-				</section>
+				<div>
+					<SectionLabel>{t("about_page.section_community", { defaultValue: "Community" })}</SectionLabel>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						{/* Brand colors as solid tiles on purpose: no color-mix (see accent-tint in index.css). */}
+						<ProjectRow
+							icon={DiscordIcon}
+							iconClass="bg-[#5865F2] text-white"
+							label={t("about_page.resources.discord_title")}
+							description={t("about_page.discord_cta", { defaultValue: "Join the server" })}
+							right={externalIcon}
+							onClick={() => void openExternalUrl(DISCORD_URL)}
+						/>
+						<ProjectRow
+							icon={TelegramIcon}
+							iconClass="bg-[#229ED9] text-white"
+							label={t("about_page.resources.telegram_title")}
+							description={t("about_page.telegram_cta", { defaultValue: "Follow updates" })}
+							right={externalIcon}
+							onClick={() => void openExternalUrl(TELEGRAM_URL)}
+						/>
+					</div>
+				</div>
+
+				<div>
+					<SectionLabel>{t("about_page.section_project", { defaultValue: "Project" })}</SectionLabel>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						{announcement && (
+							<ProjectRow
+								icon={MegaphoneFilled}
+								iconClass="bg-[var(--surface-2)] text-[var(--accent)]"
+								label={t("about_page.whats_new", { defaultValue: "What's New" })}
+								description={t("about_page.whats_new_desc", {
+									defaultValue: "Highlights of version {{version}}",
+									version: announcement.version,
+								})}
+								right={<ChevronRight className="h-4 w-4 opacity-50" />}
+								onClick={() => setShowAnnouncement(true)}
+							/>
+						)}
+						<ProjectRow
+							icon={GitBranch}
+							iconClass="bg-green-500/15 text-green-400"
+							label={t("about_page.resources.source_code_title")}
+							description={t("about_page.resources.source_code_desc")}
+							right={externalIcon}
+							onClick={() => void openExternalUrl(REPO_URL)}
+						/>
+						<ProjectRow
+							icon={HeartHandshake}
+							iconClass="bg-rose-500/15 text-rose-400"
+							label={t("about_page.resources.contributing_title")}
+							description={t("about_page.resources.contributing_desc")}
+							right={externalIcon}
+							onClick={() => void openExternalUrl(`${REPO_URL}/blob/main/CONTRIBUTING.md`)}
+						/>
+						<ProjectRow
+							icon={Scale}
+							iconClass="bg-amber-500/15 text-amber-400"
+							label={t("about_page.resources.licence_title")}
+							description={t("about_page.commercial_note")}
+							right={
+								<>
+									<span className="text-sm font-medium">{t("about_page.licence_value")}</span>
+									{externalIcon}
+								</>
+							}
+							onClick={() => void openExternalUrl(`${REPO_URL}/blob/main/LICENSE`)}
+						/>
+					</div>
+				</div>
+
+				{/* Attribution for the project's founder, who is no longer involved. */}
+				<div className="px-4 pb-2 text-center text-xs leading-relaxed text-[var(--text-muted)]">
+					<p>{t("about_page.founder_credit", { defaultValue: "Originally created by {{name}}.", name: "Jay Brammeld" })}</p>
+					<p className="mt-0.5 opacity-70">{t("about_page.built_with", { defaultValue: "Built with {{stack}}", stack: "Tauri + React" })}</p>
+				</div>
 			</div>
 		</section>
 	);

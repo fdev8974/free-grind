@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../components/ui/button";
 import type { AlbumViewer } from "../../../types/shared-albums";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 type AlbumContent = AlbumViewer["content"][number];
 
@@ -57,7 +58,7 @@ export function AlbumFullscreenOverlay({
 						if (fullScreenItem.contentType?.startsWith("video/")) {
 							return (
 								<video
-									src={mediaUrl}
+									src={proxyMediaUrl(mediaUrl, { as: "video" })}
 									controls
 									autoPlay
 									onClick={(event) => event.stopPropagation()}
@@ -68,7 +69,7 @@ export function AlbumFullscreenOverlay({
 
 						return (
 							<img
-								src={mediaUrl}
+								src={proxyMediaUrl(mediaUrl)}
 								alt={t("shared_albums.content_alt", { index: (fullScreenIndex ?? 0) + 1 })}
 								onClick={(event) => event.stopPropagation()}
 								className="h-full w-full max-h-[92vh] max-w-[92vw] object-contain"

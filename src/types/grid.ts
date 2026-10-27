@@ -31,6 +31,9 @@ export const browseCardSchema = z.object({
 	displayName: z.string().nullable().optional(),
 	age: z.number().nullable().optional(),
 	distanceMeters: z.number().nullable().optional(),
+	// Client-side only: guessed from the neighbouring tiles when the profile
+	// hides its distance and the grid is sorted by distance.
+	estimatedDistanceMeters: z.number().optional(),
 	primaryImageUrl: z.string().nullable().optional(),
 	lastOnline: z.number().nullable().optional(),
 	onlineUntil: z.number().nullable().optional(),

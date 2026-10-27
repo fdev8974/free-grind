@@ -25,14 +25,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  * shows its own install/update confirmation; the outcome comes back through
  * [ApkUpdateResultReceiver].
  *
- * Three targets share this: the app's own self-update, the Google OAuth
- * companion app (see GoogleOAuthApp.kt) and the reCAPTCHA helper (see
- * RecaptchaHelper.kt), both signed with the same key.
- *
  * Progress/outcome is reported through [emit] as `fg:apk-update` window
- * events with a `target` (see [Target.key]) and a `state` of resolving
- * (looking up the release, companion apps only) | downloading | verifying |
- * needs-permission | installing | installed | error (+ `code`).
+ * events with a `target` (see [Target.key]) and a `state` of downloading |
+ * verifying | needs-permission | installing | installed | error (+ `code`).
  */
 object ApkUpdater {
   private const val TAG = "ApkUpdater"
@@ -49,43 +44,16 @@ object ApkUpdater {
       "app",
       "free-grind-update.apk",
       "https://github.com/fdev8974/free-grind/releases/download/",
-    ),
-    GOOGLE_OAUTH(
-      "google-oauth",
-      "free-grind-google-oauth.apk",
-      "https://github.com/fdev8974/free-grind-oauth-app/releases/download/",
-    ),
-    RECAPTCHA(
-      "recaptcha",
-      "free-grind-recaptcha-helper.apk",
-      "https://github.com/fdev8974/free-grind-recaptcha-helper/releases/download/",
     );
 
     fun packageName(context: Context): String = when (this) {
       SELF -> context.packageName
-      GOOGLE_OAUTH -> GoogleOAuthApp.PACKAGE
-      RECAPTCHA -> RecaptchaHelper.PACKAGE
     }
 
     companion object {
       fun of(key: String?): Target? = values().firstOrNull { it.key == key }
     }
   }
-
-  private const val GOOGLE_OAUTH_LATEST_RELEASE =
-    "https://api.github.com/repos/fdev8974/free-grind-oauth-app/releases/latest"
-  private const val RECAPTCHA_LATEST_RELEASE =
-    "https://api.github.com/repos/fdev8974/free-grind-recaptcha-helper/releases/latest"
-
-  /** The helper ships one APK for every ABI, named like this by its CI. */
-  private const val RECAPTCHA_ASSET_SUFFIX = "-android.apk"
-
-  /** Release asset suffix per Android ABI, as the OAuth app's CI names them. */
-  private val ABI_ASSET_SUFFIXES = mapOf(
-    "arm64-v8a" to "-arm64-v8a.apk",
-    "armeabi-v7a" to "-v7a.apk",
-    "x86_64" to "-x86_64.apk",
-  )
 
   private val busy = AtomicBoolean(false)
 
@@ -132,45 +100,17 @@ object ApkUpdater {
     return downloadAndInstall(context, Target.SELF) { url }
   }
 
-  /**
-   * Installs (or updates) the Google OAuth companion app from its latest
-   * GitHub release, picking the APK for this device's ABI. Returns false
-   * while another install is running.
-   */
-  fun downloadAndInstallGoogleOAuthApp(context: Context): Boolean =
-    downloadAndInstall(context, Target.GOOGLE_OAUTH) { target ->
-      resolveLatestReleaseApk(target, GOOGLE_OAUTH_LATEST_RELEASE) { urls ->
-        Build.SUPPORTED_ABIS.firstNotNullOfOrNull { abi ->
-          val suffix = ABI_ASSET_SUFFIXES[abi] ?: return@firstNotNullOfOrNull null
-          urls.firstOrNull { it.endsWith(suffix) }
-        }
-      }
-    }
-
-  /**
-   * Installs (or updates) the reCAPTCHA helper from its latest GitHub
-   * release. Returns false while another install is running.
-   */
-  fun downloadAndInstallRecaptchaHelper(context: Context): Boolean =
-    downloadAndInstall(context, Target.RECAPTCHA) { target ->
-      resolveLatestReleaseApk(target, RECAPTCHA_LATEST_RELEASE) { urls ->
-        urls.firstOrNull { it.endsWith(RECAPTCHA_ASSET_SUFFIX) }
-      }
-    }
-
-  private fun downloadAndInstall(context: Context, target: Target, resolveUrl: (Target) -> String?): Boolean {
+  private fun downloadAndInstall(context: Context, target: Target, resolveUrl: (Target) -> String): Boolean {
     if (!busy.compareAndSet(false, true)) return false
     val appContext = context.applicationContext
     Thread({
       try {
         val url = resolveUrl(target)
-        when {
-          url == null -> Unit // resolveUrl reported why
-          !url.startsWith(target.allowedPrefix) || !url.endsWith(".apk") -> error(target, "untrusted-url", url)
-          else -> {
-            val apk = download(appContext, target, url)
-            if (apk != null && verify(appContext, target, apk)) installVerified(appContext, target, apk)
-          }
+        if (!url.startsWith(target.allowedPrefix) || !url.endsWith(".apk")) {
+          error(target, "untrusted-url", url)
+        } else {
+          val apk = download(appContext, target, url)
+          if (apk != null && verify(appContext, target, apk)) installVerified(appContext, target, apk)
         }
       } catch (t: Throwable) {
         error(target, "failed", t.message)
@@ -197,41 +137,6 @@ object ApkUpdater {
       }
     }, "free-grind-apk-install-${target.key}").start()
     return true
-  }
-
-  /** Looks up the APK [pickAsset] chooses among a companion app's latest release assets. */
-  private fun resolveLatestReleaseApk(
-    target: Target,
-    latestReleaseUrl: String,
-    pickAsset: (List<String>) -> String?,
-  ): String? {
-    event(target, "resolving")
-    val connection = (URL(latestReleaseUrl).openConnection() as HttpURLConnection).apply {
-      connectTimeout = 20_000
-      readTimeout = 30_000
-      setRequestProperty("Accept", "application/vnd.github+json")
-    }
-    val release = try {
-      val status = connection.responseCode
-      if (status !in 200..299) {
-        error(target, "http", "HTTP $status")
-        return null
-      }
-      JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
-    } catch (t: Throwable) {
-      error(target, "network", t.message)
-      return null
-    } finally {
-      connection.disconnect()
-    }
-
-    val assets = release.optJSONArray("assets")
-    val urls = (0 until (assets?.length() ?: 0)).mapNotNull { i ->
-      assets?.optJSONObject(i)?.optString("browser_download_url")?.takeIf { it.isNotEmpty() }
-    }
-    pickAsset(urls)?.let { return it }
-    error(target, "no-asset", Build.SUPPORTED_ABIS.joinToString())
-    return null
   }
 
   private fun download(context: Context, target: Target, url: String): File? {
@@ -350,10 +255,7 @@ object ApkUpdater {
       error(target, "package-mismatch", archive.packageName)
       return false
     }
-    // Every target is signed with this build's key: the self-update by
-    // definition, the companion apps because they only answer (and are only
-    // trusted by) a same-signer Free Grind — see GoogleOAuthApp.isTrusted
-    // and RecaptchaHelper.availability.
+    // The self-update is signed with this build's key by definition.
     val ours = installedInfo(pm, context.packageName)?.let(::signerDigests).orEmpty()
     val theirs = signerDigests(archive)
     // Android would refuse a foreign signer on update too, but only after the

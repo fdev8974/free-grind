@@ -1,45 +1,53 @@
 ---
-title: Signing In with a Token
+title: Sign in
 ---
 
-# Sign In with a Token
+# Sign in
 
-This is the only way to sign into Free Grind using google, facebook, or apple. 
+Free Grind signs in directly with Grindr. Your password goes to Grindr (or Google/Facebook) only, never to a Free Grind server.
 
-## What is the token?
+The sign-in screen offers these methods:
 
-It is a JWT (JSON Web Token) that allows Free Grind to make API requests, This token does NOT contain your password, but does allow the app access to your grindr account.
+## Email and password
 
-The token looks like this:
+Enter the email and password of your Grindr account. If you forgot your password, tap **Forgot password?** and Grindr sends you a reset link.
 
-```
-eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJwcm9maWxlSWQiOiIxMjM0NTYiLCJleHAiOjE3...
-```
+## Sign in with Google
 
-## How to get your token
+For accounts created with Google.
 
-### Web
+1. Choose **Google** and tap **Sign in with Google**.
+2. A Google window opens. Sign in there.
+3. Pick the Google account of your Grindr profile. The window closes by itself and you're signed in.
 
-1. Open [Grindr Web Login](https://web.grindr.com/login) in your browser.
-2. Open the browser's developer tools (usually F12 or right-click and "Inspect").
-3. Go to the "Network" tab and log in to your account.
+This works on every platform. On Android the Google window runs in a built-in browser, because Google refuses the system WebView that the rest of the app uses.
 
-If logging in with third party:
-4. Look for a request to `https://web.grindr.com/v1/third-party/`
+## Sign in with Facebook
 
-If logging in with email and password:
-4. Look for a request to `https://web.grindr.com/v1/api-tokens`
+For accounts created with Facebook.
 
-5. Click on the request then click on response
-6. Look for the `jwt` field in the JSON response. This is your token.
-7. Copy everything in the `jwt` field inside the quotes.
-8. Paste the token into Free Grind.
-9. Login and enjoy!
+1. Choose **Facebook** and tap **Sign in with Facebook**.
+2. A Facebook window opens. Sign in there.
+3. Allow Grindr to use your Facebook account. The window closes by itself and you're signed in.
 
-## Token expiry
+## Sign in on another device (QR code)
 
-Tokens expire after a period of time. If Free Grind shows an authentication error, return here and obtain a fresh token from the Grindr app. Expires after 15 minutes so be quick!
+If you're already signed in on one device, you can move the session to another device without typing your password:
 
-## Privacy note
+1. On the signed-in device, open **Settings** and tap **Sign in on another device**. A QR code appears.
+2. On the new device, tap **Signed in on another device? Use a QR code** on the sign-in screen.
+3. Scan the QR code, or tap **Copy code** on the first device, send the code to the new device and paste it.
 
-Your token is stored locally in your device's secure keychain and is never sent to any Free Grind server. All requests go directly to Grindr's API.
+Some sign-ins can't be moved. In that case, sign in with email and password or Google instead.
+
+## SMS verification
+
+Sometimes Grindr requires an account to verify a phone number before it can sign in. Free Grind then shows a **Verification** screen: enter your phone number, tap **Send code**, and enter the code you receive.
+
+## Create a new account
+
+Tap **Sign up** on the sign-in screen to create a new Grindr account with email and password. This is only available on Android, because it needs captcha verification.
+
+## Multiple profiles
+
+You can add more accounts with **Add Profile** and switch between them without signing out.

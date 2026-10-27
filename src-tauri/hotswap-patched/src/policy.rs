@@ -31,8 +31,9 @@ use std::collections::HashSet;
 pub trait BinaryCachePolicy: Send + Sync + 'static {
     /// Return `true` to discard the cached bundle and fall back to embedded assets.
     ///
-    /// `previous_binary` is `None` until a future release adds persistence
-    /// of the previous binary version.
+    /// `previous_binary` is the binary version that installed the cached
+    /// bundle (`HotswapMeta::installed_with_binary`), or `None` for bundles
+    /// written before that was persisted.
     fn should_discard(
         &self,
         current_binary: &Version,
@@ -56,12 +57,14 @@ pub enum BinaryCachePolicyKind {
     /// Keep the cache as long as the current binary satisfies `min_binary_version`.
     /// Recommended for most apps — opt in via `"binary_cache_policy": "keep_compatible"`.
     KeepCompatible,
-    /// Discard when `current_binary > min_binary_version`.
-    /// This is the default, preserving pre-0.0.2 semantics.
+    /// Discard when the binary was upgraded since the bundle was installed
+    /// (`current_binary > previous_binary`), so a fresh install's embedded
+    /// frontend wins over an older cached bundle. This is the default.
     ///
-    /// Note: this detects "binary newer than min", not actual binary *changes*
-    /// (e.g., rebuild at same version, downgrade). True change detection
-    /// would require persisting the previous binary version (deferred).
+    /// Bundles without a recorded `previous_binary` fall back to the old
+    /// heuristic `current_binary > min_binary_version`. That heuristic alone
+    /// would discard every bundle published with a `min_binary_version` below
+    /// the running binary on each launch, re-downloading it forever.
     #[default]
     DiscardOnUpgrade,
     /// Never discard based on binary version. Only the safety check
@@ -74,12 +77,14 @@ impl BinaryCachePolicy for BinaryCachePolicyKind {
         &self,
         current_binary: &Version,
         cached_meta: &HotswapMeta,
-        _previous_binary: Option<&Version>,
+        previous_binary: Option<&Version>,
     ) -> bool {
         match self {
             BinaryCachePolicyKind::KeepCompatible => false,
             BinaryCachePolicyKind::DiscardOnUpgrade => {
-                if let Ok(required) = Version::parse(&cached_meta.min_binary_version) {
+                if let Some(previous) = previous_binary {
+                    current_binary > previous
+                } else if let Ok(required) = Version::parse(&cached_meta.min_binary_version) {
                     current_binary > &required
                 } else {
                     false
@@ -318,6 +323,7 @@ mod tests {
             confirmed,
             unconfirmed_launch_count: 0,
             channel: None,
+            installed_with_binary: None,
         }
     }
 
@@ -355,6 +361,24 @@ mod tests {
     fn discard_on_upgrade_keeps_on_invalid_semver() {
         let p = BinaryCachePolicyKind::DiscardOnUpgrade;
         assert!(!p.should_discard(&v("2.0.0"), &meta("not-semver", 1, true), None));
+    }
+
+    #[test]
+    fn discard_on_upgrade_keeps_lowered_min_on_same_binary() {
+        // A bundle published with a min below the binary must survive restarts.
+        let p = BinaryCachePolicyKind::DiscardOnUpgrade;
+        let bin = v("1.0.0-beta.2");
+        assert!(!p.should_discard(&bin, &meta("1.0.0-beta.0", 1, true), Some(&bin)));
+    }
+
+    #[test]
+    fn discard_on_upgrade_discards_after_binary_upgrade() {
+        let p = BinaryCachePolicyKind::DiscardOnUpgrade;
+        assert!(p.should_discard(
+            &v("1.0.0-beta.2"),
+            &meta("1.0.0-beta.0", 1, true),
+            Some(&v("1.0.0-beta.1")),
+        ));
     }
 
     #[test]

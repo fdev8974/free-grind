@@ -304,7 +304,8 @@ export async function clearAutomationSeenHistoryForSender(senderId: string): Pro
 function textContainsKeyword(text: string | null | undefined, keywordsCsv: string): boolean {
 	if (!text) return false;
 	const keywords = keywordsCsv
-		.split(",")
+		// Commas or new lines, so a one-word-per-line list works too.
+		.split(/[,\n]/)
 		.map((word) => word.trim().toLowerCase())
 		.filter((word) => word.length > 0);
 	if (keywords.length === 0) return false;

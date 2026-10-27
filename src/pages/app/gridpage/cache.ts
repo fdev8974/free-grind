@@ -130,4 +130,13 @@ export function removeProfileFromBrowseCache(profileId: string) {
 export function clearAllCaches(): void {
 	profileCache.clear();
 	browseCache.clear();
+	// Saved grid scroll offsets (see GridPage/BrowseGrid) aren't keyed by
+	// account either — the next account should start at the top.
+	try {
+		for (const key of Object.keys(sessionStorage)) {
+			if (key.startsWith("grid-scroll-")) sessionStorage.removeItem(key);
+		}
+	} catch {
+		// sessionStorage unavailable — nothing to clear.
+	}
 }

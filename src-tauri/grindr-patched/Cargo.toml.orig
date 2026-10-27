@@ -1,0 +1,67 @@
+[package]
+name = "grindr"
+# `<lib version>+<emulated Grindr app/API version>`. The build-metadata segment
+# after `+` is informational (ignored by Cargo's version resolution) and is kept
+# in lockstep with `APP_VERSION` in `src/headers.rs`.
+version = "0.32.0+26.22.0.192710"
+edition = "2021"
+rust-version = "1.88"
+description = "Unofficial async Rust client for the Grindr API"
+homepage = "https://git.opengrind.org/open-grind/grindr.rs"
+repository = "https://git.opengrind.org/open-grind/grindr.rs"
+readme = "README.md"
+license = "MIT"
+keywords = ["grindr", "api", "client"]
+categories = ["api-bindings"]
+exclude = [
+	".forgejo",
+	".gitignore",
+	".vscode",
+	".editorconfig",
+	"bunfig.toml",
+	"bun.lock*",
+	"package.json",
+	"node_modules",
+]
+
+[dependencies]
+wreq = { version = "0.15", features = ["gzip", "json", "websocket"] }
+bytes = "1"
+http-body = "1"
+http2 = "0.4"
+tower-layer = "0.3"
+tower-service = "0.3"
+tokio = { version = "1", features = [
+	"sync",
+	"time",
+	"rt",
+	"rt-multi-thread",
+	"macros",
+	"net",
+] }
+futures-util = { version = "0.3", default-features = false, features = [
+	"sink",
+	"std",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+jsonwebtoken = "10"
+rand = "0.10"
+uuid = { version = "1", features = ["v4"] }
+thiserror = "2"
+tracing = "0.1"
+p256 = { version = "0.14", features = ["ecdsa", "pkcs8"] }
+ecdsa = { version = "0.17", features = ["der"] }
+spki = { version = "0.8", features = ["alloc"] }
+sha2 = "0.11"
+base64 = "0.22"
+httpdate = "1"
+
+[dev-dependencies]
+http = "1"
+sha2 = "0.11"
+tokio = { version = "1", features = ["test-util", "net"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

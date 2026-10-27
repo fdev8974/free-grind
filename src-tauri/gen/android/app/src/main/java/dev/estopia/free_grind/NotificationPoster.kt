@@ -3,17 +3,18 @@ package dev.estopia.free_grind
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.media.AudioAttributes
 import android.net.Uri
+import android.os.Bundle
+import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
+import androidx.core.app.RemoteInput
 import androidx.core.graphics.drawable.IconCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -36,8 +37,45 @@ object NotificationPoster {
     // cancel using the same (tag, id) pair this class posts with.
     const val NOTIFICATION_INSTANCE_ID = 1
     private const val DEDUP_WINDOW_MS = 45_000L
+    private const val SEEN_PUSH_IDS_MAX = 200
+
+    // Stored on each posted notification so withdrawal pushes
+    // (grindr://unsend, grindr://clear) can find what to cancel.
+    private const val EXTRA_PUSH_NOTIFICATION_ID = "dev.estopia.free_grind.extra.PUSH_NOTIFICATION_ID"
+    private const val EXTRA_SENDER_ID = "dev.estopia.free_grind.extra.SENDER_ID"
+    // Per-line keys on each MessagingStyle.Message of a chat notification
+    // (as open-grind's ConversationNotification does): the dedupe key is the
+    // push's notificationId (FCM) or the messageId (realtime bridge).
+    private const val EXTRA_LINE_KEY = "dev.estopia.free_grind.extra.LINE_KEY"
+    // Marks a line as the user's own inline reply (see NotificationReply.kt).
+    private const val EXTRA_LINE_FROM_ME = "dev.estopia.free_grind.extra.LINE_FROM_ME"
+
+    // Messages kept in one conversation's notification (newest win).
+    private const val CONVERSATION_LINES_MAX = 8
+    private const val PREVIEW_DIR = "notification_previews"
+    private const val PREVIEW_FILES_MAX = 30
+    private const val SYSTEM_UI_PACKAGE = "com.android.systemui"
+
+    // Serializes the read-active → merge → notify cycle; FCM and the JS bridge
+    // (two executor threads) can post into the same conversation at once.
+    private val postLock = Any()
+
+    private data class Line(
+        val key: String,
+        val text: CharSequence,
+        val timestamp: Long,
+        val dataMimeType: String?,
+        val dataUri: Uri?,
+        val fromMe: Boolean = false,
+    )
 
     private val recentlyNotifiedKeys = mutableMapOf<String, Long>()
+    // Grindr has no server-side dedupe and can deliver the same push more
+    // than once; its notificationId is the dedupe key.
+    private val seenPushNotificationIds = object : LinkedHashMap<String, Unit>() {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Unit>?): Boolean =
+            size > SEEN_PUSH_IDS_MAX
+    }
     // Caches decoded sender avatars so repeated notifications from the same
     // person don't re-download the same bitmap (keyed by CDN URL).
     private val avatarCache = android.util.LruCache<String, Bitmap>(10)
@@ -50,14 +88,243 @@ object NotificationPoster {
     private fun shouldSuppressAsDuplicate(key: String): Boolean {
         val now = System.currentTimeMillis()
         recentlyNotifiedKeys.entries.removeAll { now - it.value >= DEDUP_WINDOW_MS }
-        val alreadyNotified = recentlyNotifiedKeys.containsKey(key)
+        // Not refreshed on a hit: a sliding window would swallow every
+        // follow-up as long as they keep arriving less than a window apart.
+        if (recentlyNotifiedKeys.containsKey(key)) return true
         recentlyNotifiedKeys[key] = now
-        return alreadyNotified
+        return false
+    }
+
+    /** True if a push with this notificationId was already handled. */
+    @Synchronized
+    fun isDuplicatePush(notificationId: String): Boolean =
+        seenPushNotificationIds.put(notificationId, Unit) != null
+
+    /**
+     * grindr://unsend — withdraw this push. In a multi-message chat
+     * notification only its own line is removed; the card goes away once
+     * no line is left.
+     */
+    fun withdrawPushNotification(context: Context, notificationId: String) {
+        synchronized(postLock) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            var withdrawn = 0
+            for (posted in notificationManager.activeNotifications) {
+                if (removeLine(context, posted, notificationId)) {
+                    withdrawn++
+                } else if (posted.notification.extras.getString(EXTRA_PUSH_NOTIFICATION_ID) == notificationId) {
+                    withdrawn++
+                    notificationManager.cancel(posted.tag, posted.id)
+                }
+            }
+            Log.d("FCM", "Withdrew $withdrawn notification(s) for notificationId=$notificationId")
+        }
+    }
+
+    /**
+     * A message was unsent (realtime chat.v1.message_sent with unsent=true):
+     * drop its line, or — when it isn't a line we can identify, e.g. one
+     * delivered by FCM and keyed by notificationId — the conversation's
+     * whole notification. Same as open-grind's PushNotifier.dismissConversation.
+     */
+    fun withdrawConversationLine(context: Context, conversationId: String, messageId: String) {
+        synchronized(postLock) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val tag = chatNotificationTag(conversationId)
+            val card = notificationManager.activeNotifications
+                .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID } ?: return
+            if (!removeLine(context, card, messageId)) notificationManager.cancel(card.tag, card.id)
+            Log.d("FCM", "Withdrew unsent message=$messageId from conversation=$conversationId")
+        }
+    }
+
+    /** Re-posts [posted] without the line keyed [key], silently. False if it has no such line. */
+    private fun removeLine(context: Context, posted: StatusBarNotification, key: String): Boolean {
+        val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification)
+            ?: return false
+        val shown = linesOf(style)
+        val lines = shown.filterNot { it.key == key }
+        if (lines == shown) return false
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val peer = style.messages.firstNotNullOfOrNull { it.person }
+        if (lines.isEmpty() || peer == null) {
+            notificationManager.cancel(posted.tag, posted.id)
+            return true
+        }
+        val notification = NotificationCompat.Builder(context, posted.notification)
+            .setStyle(styleOf(style.user, peer, lines))
+            .setWhen(lines.last().timestamp)
+            .setOnlyAlertOnce(true)
+            .build()
+        notificationManager.notify(posted.tag, posted.id, notification)
+        return true
+    }
+
+    private fun linesOf(style: NotificationCompat.MessagingStyle): List<Line> = style.messages.mapNotNull { message ->
+        message.extras.getString(EXTRA_LINE_KEY)?.let { key ->
+            Line(
+                key, message.text ?: "", message.timestamp, message.dataMimeType, message.dataUri,
+                fromMe = message.extras.getBoolean(EXTRA_LINE_FROM_ME, false),
+            )
+        }
+    }
+
+    // Same merge as open-grind's ConversationLines.append: drop keys already
+    // shown, sort by time, keep the newest CONVERSATION_LINES_MAX.
+    private fun appendLines(lines: List<Line>, added: Line): List<Line> {
+        if (lines.any { it.key == added.key }) return lines
+        return (lines + added).sortedBy { it.timestamp }.takeLast(CONVERSATION_LINES_MAX)
+    }
+
+    private fun styleOf(me: Person, peer: Person, lines: List<Line>): NotificationCompat.MessagingStyle =
+        lines.fold(NotificationCompat.MessagingStyle(me).setGroupConversation(false)) { style, line ->
+            style.addMessage(
+                // A null person renders the line as the style's own user ("Me").
+                NotificationCompat.MessagingStyle.Message(line.text, line.timestamp, if (line.fromMe) null else peer).apply {
+                    extras.putString(EXTRA_LINE_KEY, line.key)
+                    if (line.fromMe) extras.putBoolean(EXTRA_LINE_FROM_ME, true)
+                    if (line.dataMimeType != null && line.dataUri != null) setData(line.dataMimeType, line.dataUri)
+                },
+            )
+        }
+
+    /**
+     * Shows an inline reply as the user's own line on the conversation's
+     * card, which also stops System UI's spinner on the reply field. [note]
+     * (e.g. "Sends when you open the app") goes in the header's sub text.
+     */
+    fun appendReplyLine(context: Context, tag: String, key: String, text: String, note: String?) {
+        updateConversationCard(context, tag, note) { lines ->
+            appendLines(lines, Line(key, text, System.currentTimeMillis(), null, null, fromMe = true))
+        }
+    }
+
+    /** The reply keyed [key] couldn't be sent: flag its line. */
+    fun markReplyFailed(context: Context, tag: String, key: String) {
+        val failed = NotificationStrings.text(context, NotificationStrings.REPLY_FAILED)
+        updateConversationCard(context, tag, note = null) { lines ->
+            lines.map { if (it.key == key && it.fromMe) it.copy(text = "⚠ $failed: ${it.text}") else it }
+        }
+    }
+
+    /** Re-posts the card as is (clearing any reply note), e.g. after an empty reply. */
+    fun refreshAfterReply(context: Context, tag: String) {
+        updateConversationCard(context, tag, note = null) { it }
+    }
+
+    private fun updateConversationCard(
+        context: Context,
+        tag: String,
+        note: String?,
+        transform: (List<Line>) -> List<Line>,
+    ) {
+        synchronized(postLock) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val posted = notificationManager.activeNotifications
+                .firstOrNull { it.tag == tag && it.id == NOTIFICATION_INSTANCE_ID } ?: return
+            val style = NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted.notification) ?: return
+            val peer = style.messages.firstNotNullOfOrNull { it.person } ?: return
+            val lines = transform(linesOf(style))
+            if (lines.isEmpty()) return
+            val notification = NotificationCompat.Builder(context, posted.notification)
+                .setStyle(styleOf(style.user, peer, lines))
+                .setWhen(lines.last().timestamp)
+                .setSubText(note)
+                .setOnlyAlertOnce(true)
+                .build()
+            notificationManager.notify(posted.tag, posted.id, notification)
+        }
+    }
+
+    /** grindr://clear?conversationId= — withdraw a conversation's notification. */
+    fun withdrawConversation(context: Context, conversationId: String) {
+        val tag = chatNotificationTag(conversationId)
+        val cancelled = cancelActive(context) { it.tag == tag }
+        Log.d("FCM", "Withdrew $cancelled notification(s) for conversation=$conversationId")
+    }
+
+    /** grindr://clear?profileIds= — withdraw every notification from these senders. */
+    fun withdrawSenders(context: Context, senderIds: Set<String>) {
+        val cancelled = cancelActive(context) { posted ->
+            posted.notification.extras.getString(EXTRA_SENDER_ID) in senderIds ||
+                senderIds.any { posted.tag == "tap:$it" || posted.tag == "chat:sender:$it" }
+        }
+        Log.d("FCM", "Withdrew $cancelled notification(s) for senders=$senderIds")
+    }
+
+    private fun cancelActive(context: Context, matches: (StatusBarNotification) -> Boolean): Int {
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val targets = notificationManager.activeNotifications.filter(matches)
+        targets.forEach { notificationManager.cancel(it.tag, it.id) }
+        return targets.size
+    }
+
+    // Non-chat pushes (see FreeGrindFirebaseMessagingService.buildSystemPushPayload):
+    // one standalone notification each on the activity channel, no
+    // conversation lines or chat actions. FCM-only, so — unlike chat — it isn't
+    // suppressed in the foreground beyond the user's in-app switch.
+    private fun postSystemNotification(context: Context, payload: JSONObject) {
+        if (MainActivity.inForeground && !MainActivity.foregroundNotificationsEnabled) {
+            Log.d("FCM", "Suppressing system notification (foreground notifications disabled)")
+            return
+        }
+        val rawData = payload.optJSONObject("rawData")
+        val label = context.getString(AppDisguise.currentDisguise(context).labelRes)
+        // "" = the app's own name in the original (app_name) → disguise label.
+        val title = payload.optString("systemTitle").trim().ifBlank { label }
+        val text = payload.optString("bodyText").trim()
+        val key = "system:" + (normalizeNullableString(rawData?.optString("notificationId"))
+            ?: "${payload.optString("growthType")}:${payload.optString("senderId")}:$title")
+        val notificationId = key.hashCode()
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(
+            NotificationChannel(
+                AppDisguise.ACTIVITY_CHANNEL_ID,
+                AppDisguise.currentDisguise(context).activityChannelName,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = "Favorites online, profile views and other activity" }
+        )
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            data = Uri.parse("freegrind-notification://open/${Uri.encode(key)}/default")
+            putExtra("push_payload", payload.toString())
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context, notificationId, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val builder = NotificationCompat.Builder(context, AppDisguise.ACTIVITY_CHANNEL_ID)
+            .setSmallIcon(AppDisguise.currentDisguise(context).notificationIconRes)
+            .setColor(Color.TRANSPARENT)
+            .setColorized(false)
+            .setContentTitle(title)
+            .setContentText(text.ifBlank { null })
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setCategory(NotificationCompat.CATEGORY_RECOMMENDATION)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setWhen(payload.optLong("sentAt", 0L).takeIf { it > 0 } ?: System.currentTimeMillis())
+            .addExtras(Bundle().apply {
+                putString(EXTRA_PUSH_NOTIFICATION_ID, normalizeNullableString(rawData?.optString("notificationId")))
+                putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
+            })
+        // Profile-targeted types (favorite/tap/pic recipient online) get the
+        // profile's picture; the rest stay icon-only.
+        loadSenderAvatarBitmap(rawData)?.let { builder.setLargeIcon(scaleBitmapIfNeeded(it, 128)) }
+
+        notificationManager.notify(key, NOTIFICATION_INSTANCE_ID, builder.build())
+        Log.d("FCM", "System notification posted key=$key type=${payload.optString("growthType")}")
     }
 
     fun postNotification(context: Context, payload: JSONObject) {
-        val title = normalizeSenderName(payload.optString("senderName"))
-        val text = payload.optString("bodyText", "Sent you a message")
+        if (payload.optBoolean("isSystem", false)) {
+            postSystemNotification(context, payload)
+            return
+        }
+        val title = normalizeSenderName(context, payload.optString("senderName"))
+        val text = payload.optString("bodyText").ifBlank { NotificationStrings.text(context, NotificationStrings.GENERIC_MESSAGE) }
         val isTap = payload.optBoolean("isTap", false)
         val rawData = payload.optJSONObject("rawData")
         val conversationId = normalizeNullableString(payload.optString("conversationId"))
@@ -70,10 +337,21 @@ object NotificationPoster {
             rawData = rawData,
         )
 
-        if (shouldSuppressAsDuplicate(notificationKey)) {
+        // FCM only covers the background (like open-grind's PushReceiver):
+        // while the app is visible the realtime bridge notifies instead, so
+        // the two channels never deliver the same message twice.
+        val fromRealtime = payload.optString("source") == "realtime"
+        if (!fromRealtime && MainActivity.inForeground) {
+            Log.d("FCM", "Suppressing push notification (app visible, realtime bridge covers it)")
+            return
+        }
+        if (isTap && shouldSuppressAsDuplicate(notificationKey)) {
             Log.d("FCM", "Suppressing notification (already shown via other channel) key=$notificationKey")
             return
         }
+        val timestamp = payload.optLong("sentAt", 0L).takeIf { it > 0 } ?: System.currentTimeMillis()
+        val lineKey = normalizeNullableString(if (fromRealtime) payload.optString("messageId") else rawData?.optString("notificationId"))
+            ?: "t:$timestamp"
 
         // Per-category master switch (NotificationsPage) — this kind of
         // notification is turned off entirely, foreground or not.
@@ -105,29 +383,15 @@ object NotificationPoster {
             return
         }
 
-        // _v2 suffix forces re-creation so the custom sound takes effect on existing installs.
         val channelId = if (isTap) AppDisguise.TAPS_CHANNEL_ID else AppDisguise.CHAT_CHANNEL_ID
-        val channelName = AppDisguise.channelName(context, isTap)
         val notificationId = notificationKey.hashCode()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val soundUri: Uri = Uri.parse(
-            "${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.free_grind_message}"
+        val soundUri = AppDisguise.messageSoundUri(context)
+        notificationManager.createNotificationChannel(
+            AppDisguise.messageChannel(context, AppDisguise.currentDisguise(context), isTap)
         )
-        val audioAttributes = AudioAttributes.Builder()
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-            .build()
-        val channel = NotificationChannel(
-            channelId,
-            channelName,
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = if (isTap) "Notifications for incoming taps" else "Notifications for new chat messages"
-            setSound(soundUri, audioAttributes)
-        }
-        notificationManager.createNotificationChannel(channel)
         Log.d(
             "FCM",
             "Using notification channel=$channelId notificationId=$notificationId key=$notificationKey action=${if (isTap) "taps" else conversationId}",
@@ -135,49 +399,53 @@ object NotificationPoster {
 
         val actionStr = payload.optString("action").ifBlank { null }
 
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            if (actionStr != null) {
-                putExtra("action", actionStr)
+        // openTarget tells PushNotificationBridge where to go: null is the
+        // default (chat, or the sender's profile for taps), "profile" the
+        // "Open profile" action button.
+        fun openIntent(openTarget: String?): PendingIntent {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                // Not CLEAR_TASK: that destroys and recreates the running
+                // MainActivity (and Tauri's WebView) in the same process, which
+                // crashes or leaves a blank app. singleTask + these flags reuse
+                // the existing instance via onNewIntent instead.
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                // PendingIntents differing only in extras are the same one;
+                // a per-notification, per-target data URI keeps each action's
+                // own payload instead of FLAG_UPDATE_CURRENT overwriting it.
+                data = Uri.parse("freegrind-notification://open/${Uri.encode(notificationKey)}/${openTarget ?: "default"}")
+                if (actionStr != null) {
+                    putExtra("action", actionStr)
+                }
+                val opened = if (openTarget == null) payload else JSONObject(payload.toString()).put("openTarget", openTarget)
+                putExtra("push_payload", opened.toString())
             }
-            putExtra("push_payload", payload.toString())
+            return PendingIntent.getActivity(
+                context, notificationId, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
         }
-        val pendingIntent: PendingIntent = PendingIntent.getActivity(
-            context, notificationId, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
+        val pendingIntent = openIntent(null)
 
         val senderAvatarBitmap = getNotificationAvatarBitmap(context, rawData)
         val previewImageUrl = payload.optString("previewImageUrl").trim().ifBlank { null }
-        val previewBitmap = loadMessagePreviewBitmap(previewImageUrl)
+        // Inline preview (picture/gif/gaymoji) rides on its own message line
+        // via setData, so it survives later messages being appended — unlike
+        // a BigPictureStyle, which could only ever show one message.
+        val previewUri = loadMessagePreviewBitmap(previewImageUrl)
+            ?.let { sharePreviewWithSystemUi(context, previewImageUrl!!, it) }
 
         val me = Person.Builder().setName("Me").build()
         val senderIcon = IconCompat.createWithBitmap(senderAvatarBitmap)
         val sender = Person.Builder()
             .setName(title)
+            // Stable identity for Android's conversation ranking, as open-grind sets it.
+            .setKey(normalizeNullableString(payload.optString("senderId")))
             .setIcon(senderIcon)
             .setImportant(true)
             .build()
 
-        // With an image/gif preview available, an expandable BigPictureStyle
-        // shows the actual content instead of a "Sent you a picture"
-        // placeholder. Without one (text, audio, location, video, taps —
-        // or the download simply failed), keep the existing MessagingStyle
-        // conversation bubble.
-        val style: NotificationCompat.Style = if (previewBitmap != null) {
-            NotificationCompat.BigPictureStyle()
-                .bigPicture(previewBitmap)
-                .bigLargeIcon(null as Bitmap?)
-                .setBigContentTitle(title)
-                .setSummaryText(text)
-        } else {
-            NotificationCompat.MessagingStyle(me)
-                .addMessage(text, System.currentTimeMillis(), sender)
-                .setConversationTitle(if (isTap) "Taps" else null)
-        }
-
         val builder = NotificationCompat.Builder(context, channelId)
             // Status-bar icon: monochrome stencil with transparent background only.
-            .setSmallIcon(R.drawable.ic_notification_silhouette)
+            .setSmallIcon(AppDisguise.currentDisguise(context).notificationIconRes)
             .addPerson(sender)
             // Keep the badge overlay neutral and avoid OEM color plates.
             .setColor(Color.TRANSPARENT)
@@ -190,16 +458,88 @@ object NotificationPoster {
             .setContentIntent(pendingIntent)
             .setTicker(text)
             .setSound(soundUri)
-            .setStyle(style)
+            .addExtras(Bundle().apply {
+                // Chat lines carry their own key (EXTRA_LINE_KEY); a
+                // card-level one would make unsend drop the whole card.
+                if (isTap) putString(EXTRA_PUSH_NOTIFICATION_ID, normalizeNullableString(rawData?.optString("notificationId")))
+                putString(EXTRA_SENDER_ID, normalizeNullableString(payload.optString("senderId")))
+            })
 
-        if (previewBitmap != null) {
-            // BigPictureStyle doesn't infer the collapsed title/text from a
-            // Person the way MessagingStyle does — set them explicitly.
-            builder.setContentTitle(title).setContentText(text)
+        // WhatsApp-style action buttons on chat notifications. Taps already
+        // open the sender's profile and have no conversation to open.
+        val senderId = normalizeNullableString(payload.optString("senderId"))
+        if (!isTap && senderId != null) {
+            if (conversationId != null) builder.addAction(replyAction(context, notificationKey, conversationId, senderId))
+            builder
+                .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_CHAT), pendingIntent).build())
+                .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_PROFILE), openIntent("profile")).build())
         }
 
-        notificationManager.notify(notificationKey, NOTIFICATION_INSTANCE_ID, builder.build())
-        Log.d("FCM", "Local notification posted successfully")
+        val added = Line(lineKey, text, timestamp, previewUri?.let { "image/jpeg" }, previewUri)
+        synchronized(postLock) {
+            // Taps stay one line per sender; chat appends to the lines the
+            // conversation's notification is already showing.
+            val shown = if (isTap) emptyList() else notificationManager.activeNotifications
+                .firstOrNull { it.tag == notificationKey && it.id == NOTIFICATION_INSTANCE_ID }
+                ?.let { NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it.notification) }
+                ?.let(::linesOf)
+                .orEmpty()
+            val lines = appendLines(shown, added)
+            if (lines == shown) {
+                Log.d("FCM", "Suppressing notification (line already shown) key=$notificationKey")
+                return
+            }
+            val style = styleOf(me, sender, lines).setConversationTitle(if (isTap) NotificationStrings.text(context, NotificationStrings.TAPS_TITLE) else null)
+            builder.setStyle(style).setWhen(lines.last().timestamp)
+            notificationManager.notify(notificationKey, NOTIFICATION_INSTANCE_ID, builder.build())
+            Log.d("FCM", "Local notification posted successfully key=$notificationKey lines=${lines.size}")
+        }
+    }
+
+    // Inline reply field (handled by NotificationReplyReceiver). The intent
+    // must be mutable so System UI can attach the typed text, hence explicit.
+    private fun replyAction(context: Context, tag: String, conversationId: String, targetProfileId: String): NotificationCompat.Action {
+        val intent = Intent(context, NotificationReplyReceiver::class.java).apply {
+            action = NotificationReply.ACTION_REPLY
+            data = Uri.parse("freegrind-notification://reply/${Uri.encode(tag)}")
+            putExtra(NotificationReply.EXTRA_NOTIFICATION_TAG, tag)
+            putExtra(NotificationReply.EXTRA_CONVERSATION_ID, conversationId)
+            putExtra(NotificationReply.EXTRA_TARGET_PROFILE_ID, targetProfileId)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, tag.hashCode(), intent, PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val remoteInput = RemoteInput.Builder(NotificationReply.KEY_TEXT)
+            .setLabel(NotificationStrings.text(context, NotificationStrings.REPLY_HINT))
+            .build()
+        return NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.REPLY), pendingIntent)
+            .addRemoteInput(remoteInput)
+            .setAllowGeneratedReplies(false)
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+            .setShowsUserInterface(false)
+            .build()
+    }
+
+    // MessagingStyle image lines are rendered by System UI, which can't read
+    // a remote URL or our private files — write the bitmap to cache and grant
+    // System UI read access through the existing FileProvider. Null on any
+    // failure (the line then just shows its "Sent you a picture" text).
+    private fun sharePreviewWithSystemUi(context: Context, url: String, bitmap: Bitmap): Uri? = try {
+        val dir = java.io.File(context.cacheDir, PREVIEW_DIR).apply { mkdirs() }
+        val file = java.io.File(dir, "${Integer.toHexString(url.hashCode())}.jpg")
+        if (!file.exists()) {
+            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+            dir.listFiles()
+                ?.sortedByDescending { it.lastModified() }
+                ?.drop(PREVIEW_FILES_MAX)
+                ?.forEach { it.delete() }
+        }
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        context.grantUriPermission(SYSTEM_UI_PACKAGE, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        uri
+    } catch (error: Exception) {
+        Log.w("FCM", "Failed to share message preview with System UI", error)
+        null
     }
 
     private fun getNotificationAvatarBitmap(context: Context, rawData: JSONObject?): Bitmap {
@@ -435,17 +775,25 @@ object NotificationPoster {
         return trimmed
     }
 
-    fun normalizeSenderName(value: String?): String {
+    fun normalizeSenderName(context: Context, value: String?): String {
         val trimmed = value?.trim().orEmpty()
         if (
             trimmed.isEmpty() ||
             trimmed.equals("null", ignoreCase = true) ||
             trimmed.equals("SOMEONE_TITLE", ignoreCase = true)
         ) {
-            return "Someone"
+            return NotificationStrings.text(context, NotificationStrings.SOMEONE)
         }
         return trimmed
     }
+
+    fun queryParameter(action: String, name: String): String? =
+        action.substringAfter('?', "")
+            .split('&')
+            .firstOrNull { it.substringBefore('=') == name }
+            ?.substringAfter('=', "")
+            ?.let { runCatching { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }.getOrDefault(it) }
+            ?.let(::normalizeNullableString)
 
     fun parseConversationAndSenderFromAction(action: String?): Pair<String?, String?> {
         val normalized = normalizeNullableString(action) ?: return null to null

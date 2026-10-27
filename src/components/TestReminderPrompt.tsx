@@ -9,6 +9,7 @@ import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import { LastTestedMonthPicker } from "./LastTestedMonthPicker";
 import { processDismissCountdown, writeDismissedFlag } from "../utils/appStartDismissCountdown";
+import { fullscreenPrimaryButtonClass } from "./FullscreenPrompt";
 
 const TEST_REMINDER_THRESHOLD_MONTHS = 3;
 const TEST_REMINDER_DISMISS_KEY = "test-reminder-dismissed";
@@ -118,7 +119,7 @@ export function TestReminderGate({ children }: { children: ReactNode }) {
 						type="button"
 						onClick={() => void handleSave()}
 						disabled={!monthValue || isSaving}
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+						className={fullscreenPrimaryButtonClass}
 					>
 						{isSaving ? t("test_reminder.saving") : t("test_reminder.save")}
 					</button>

@@ -1,0 +1,571 @@
+diff -ruN a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml	2026-10-23 23:02:18.884765685 +0200
++++ b/Cargo.toml	2026-10-23 23:01:52.000000000 +0200
+@@ -357,6 +357,7 @@
+     "std",
+     "block2",
+     "objc2-core-foundation",
++    "NSError",
+     "NSURLRequest",
+     "NSURL",
+     "NSString",
+@@ -422,6 +423,9 @@
+ ]
+ default-features = false
+ 
++[lints.rust]
++warnings = { level = "allow", priority = -1 }
++
+ [lints.rust.unexpected_cfgs]
+ level = "warn"
+ priority = 0
+diff -ruN a/src/android/binding.rs b/src/android/binding.rs
+--- a/src/android/binding.rs	2026-10-23 23:02:18.885381980 +0200
++++ b/src/android/binding.rs	2026-10-23 23:01:03.000000000 +0200
+@@ -9,8 +9,8 @@
+ use jni::errors::Result as JniResult;
+ pub use jni::{
+   self,
+-  objects::{GlobalRef, JClass, JMap, JObject, JString},
+-  sys::{jboolean, jint, jobject, jstring},
++  objects::{GlobalRef, JByteArray, JClass, JMap, JObject, JString},
++  sys::{jboolean, jint, jlong, jobject, jstring},
+   JNIEnv,
+ };
+ pub use ndk;
+@@ -22,6 +22,7 @@
+   ASSET_LOADER_DOMAIN, EVAL_CALLBACKS, IPC, ON_LOAD_HANDLER, PERMISSION_HANDLER, REQUEST_HANDLER,
+   TITLE_CHANGE_HANDLER, URL_LOADING_OVERRIDE,
+ };
++pub use super::stream::*;
+ 
+ use crate::{PageLoadEvent, PermissionKind, PermissionResponse};
+ 
+@@ -95,6 +96,17 @@
+       [JString, JString],
+       jboolean
+     );
++    android_fn!($domain, $package, Rust, streamAvailable, [jlong], jint);
++    android_fn!($domain, $package, Rust, streamSkip, [jlong, jlong], jlong);
++    android_fn!(
++      $domain,
++      $package,
++      Rust,
++      streamRead,
++      [jlong, JByteArray, jint, jint],
++      jint
++    );
++    android_fn!($domain, $package, Rust, streamClose, [jlong]);
+   }};
+ }
+ 
+diff -ruN a/src/android/kotlin/proguard-wry.pro b/src/android/kotlin/proguard-wry.pro
+--- a/src/android/kotlin/proguard-wry.pro	2026-10-23 23:02:18.885538532 +0200
++++ b/src/android/kotlin/proguard-wry.pro	2026-10-23 23:01:03.000000000 +0200
+@@ -33,3 +33,8 @@
+ -keep class {{package-unescaped}}.RustWebChromeClient,{{package-unescaped}}.RustWebViewClient {
+   public <init>(...);
+ }
++
++-keep class {{package-unescaped}}.RustInputStream {
++  public <init>(...);
++  public <methods>;
++}
+diff -ruN a/src/android/kotlin/RustInputStream.kt b/src/android/kotlin/RustInputStream.kt
+--- a/src/android/kotlin/RustInputStream.kt	1970-01-01 01:00:00.000000000 +0100
++++ b/src/android/kotlin/RustInputStream.kt	2026-10-23 23:00:40.000000000 +0200
+@@ -0,0 +1,22 @@
++// Copyright 2020-2023 Tauri Programme within The Commons Conservancy
++// SPDX-License-Identifier: Apache-2.0
++// SPDX-License-Identifier: MIT
++
++package {{package}}
++
++import java.io.InputStream
++
++class RustInputStream(private val handle: Long) : InputStream() {
++    override fun available(): Int = Rust.streamAvailable(handle)
++
++    override fun skip(n: Long): Long = Rust.streamSkip(handle, n)
++
++    override fun read(b: ByteArray, off: Int, len: Int): Int = Rust.streamRead(handle, b, off, len)
++
++    override fun read(): Int {
++        val one = ByteArray(1)
++        return if (read(one, 0, 1) == 1) one[0].toInt() and 0xff else -1
++    }
++
++    override fun close() = Rust.streamClose(handle)
++}
+diff -ruN a/src/android/kotlin/Rust.kt b/src/android/kotlin/Rust.kt
+--- a/src/android/kotlin/Rust.kt	2026-10-23 23:02:18.885459828 +0200
++++ b/src/android/kotlin/Rust.kt	2026-10-23 23:01:03.000000000 +0200
+@@ -41,4 +41,9 @@
+     @JvmStatic external fun onEval(webviewId: String, id: Int, result: String)
+ 
+     @JvmStatic external fun handleReceivedTitle(webviewId: String, title: String)
++
++    @JvmStatic external fun streamAvailable(handle: Long): Int
++    @JvmStatic external fun streamSkip(handle: Long, n: Long): Long
++    @JvmStatic external fun streamRead(handle: Long, buffer: ByteArray, offset: Int, length: Int): Int
++    @JvmStatic external fun streamClose(handle: Long)
+ }
+\ No newline at end of file
+diff -ruN a/src/android/kotlin/RustWebViewClient.kt b/src/android/kotlin/RustWebViewClient.kt
+--- a/src/android/kotlin/RustWebViewClient.kt	2026-10-23 23:02:18.885510483 +0200
++++ b/src/android/kotlin/RustWebViewClient.kt	2026-10-23 23:01:03.000000000 +0200
+@@ -44,6 +44,7 @@
+             val rustWebView = view as RustWebView
+             val response = Rust.handleRequest(rustWebView.id, request, rustWebView.isDocumentStartScriptEnabled)
+             if (response != null) {
++                response.responseHeaders?.remove("x-wry-stream")?.let { response.data = RustInputStream(it.toLong()) }
+                 if (response.responseHeaders != null) {
+                     response.responseHeaders["Cache-Control"] = "no-store"
+                 } else {
+diff -ruN a/src/android/mod.rs b/src/android/mod.rs
+--- a/src/android/mod.rs	2026-10-23 23:02:18.885582137 +0200
++++ b/src/android/mod.rs	2026-10-23 23:01:03.000000000 +0200
+@@ -26,6 +26,7 @@
+ };
+ 
+ pub(crate) mod binding;
++pub(crate) mod stream;
+ mod main_pipe;
+ use main_pipe::{
+   activity_id_for_window_manager, first_activity_id, register_activity_proxy, ActivityId,
+diff -ruN a/src/android/stream.rs b/src/android/stream.rs
+--- a/src/android/stream.rs	1970-01-01 01:00:00.000000000 +0100
++++ b/src/android/stream.rs	2026-10-23 23:00:40.000000000 +0200
+@@ -0,0 +1,107 @@
++// Copyright 2020-2023 Tauri Programme within The Commons Conservancy
++// SPDX-License-Identifier: Apache-2.0
++// SPDX-License-Identifier: MIT
++
++use std::{
++  io,
++  panic::{catch_unwind, AssertUnwindSafe},
++};
++
++use jni::{
++  objects::{JByteArray, JClass},
++  sys::{jbyte, jint, jlong, jsize},
++  JNIEnv,
++};
++use crate::stream::{unregister_stream, with_stream};
++
++fn guarded<T>(
++  env: &mut JNIEnv,
++  sentinel: T,
++  body: impl FnOnce(&mut JNIEnv) -> io::Result<T>,
++) -> T {
++  match catch_unwind(AssertUnwindSafe(|| body(env))) {
++    Ok(Ok(value)) => value,
++    Ok(Err(error)) => {
++      throw(env, &error.to_string());
++      sentinel
++    }
++    Err(_) => {
++      throw(env, "stream panicked");
++      sentinel
++    }
++  }
++}
++
++fn throw(env: &mut JNIEnv, message: &str) {
++  if env.exception_check().unwrap_or(true) {
++    return;
++  }
++  let _ = env.throw_new("java/io/IOException", message);
++}
++
++fn read_bounds(capacity: jsize, offset: jint, length: jint) -> io::Result<(jsize, usize)> {
++  match offset.checked_add(length) {
++    Some(end) if offset >= 0 && length >= 0 && end <= capacity => Ok((offset, length as usize)),
++    _ => Err(io::Error::new(
++      io::ErrorKind::InvalidInput,
++      "read range outside the buffer",
++    )),
++  }
++}
++
++fn as_jbytes(bytes: &[u8]) -> &[jbyte] {
++  unsafe { std::slice::from_raw_parts(bytes.as_ptr().cast::<jbyte>(), bytes.len()) }
++}
++
++#[allow(non_snake_case)]
++pub unsafe fn streamAvailable(mut env: JNIEnv, _: JClass, handle: jlong) -> jint {
++  guarded(&mut env, 0, |_| {
++    with_stream(handle as u64, |stream| stream.available()).map(|n| n.min(jint::MAX as u64) as jint)
++  })
++}
++
++#[allow(non_snake_case)]
++pub unsafe fn streamSkip(mut env: JNIEnv, _: JClass, handle: jlong, n: jlong) -> jlong {
++  guarded(&mut env, 0, |_| {
++    if n <= 0 {
++      return Ok(0);
++    }
++    with_stream(handle as u64, |stream| stream.skip(n as u64))
++      .map(|skipped| skipped.min(jlong::MAX as u64) as jlong)
++  })
++}
++
++#[allow(non_snake_case)]
++pub unsafe fn streamRead(
++  mut env: JNIEnv,
++  _: JClass,
++  handle: jlong,
++  buffer: JByteArray,
++  offset: jint,
++  length: jint,
++) -> jint {
++  guarded(&mut env, -1, |env| {
++    let capacity = env.get_array_length(&buffer).map_err(io::Error::other)?;
++    let (offset, length) = read_bounds(capacity, offset, length)?;
++    if length == 0 {
++      return Ok(0);
++    }
++    let mut chunk = vec![0u8; length];
++    let read = with_stream(handle as u64, |stream| stream.read(&mut chunk))?;
++    if read == 0 {
++      return Ok(-1);
++    }
++    env
++      .set_byte_array_region(&buffer, offset, as_jbytes(&chunk[..read]))
++      .map_err(io::Error::other)?;
++    Ok(read as jint)
++  })
++}
++
++#[allow(non_snake_case)]
++pub unsafe fn streamClose(mut env: JNIEnv, _: JClass, handle: jlong) {
++  guarded(&mut env, (), |_| {
++    unregister_stream(handle as u64);
++    Ok(())
++  })
++}
+diff -ruN a/src/lib.rs b/src/lib.rs
+--- a/src/lib.rs	2026-10-23 23:02:18.885648580 +0200
++++ b/src/lib.rs	2026-10-23 23:01:03.000000000 +0200
+@@ -364,6 +364,10 @@
+ }
+ #[cfg(target_os = "android")]
+ pub use android::JniHandle;
++#[cfg(any(target_os = "android", target_os = "macos", target_os = "ios"))]
++mod stream;
++#[cfg(any(target_os = "android", target_os = "macos", target_os = "ios"))]
++pub use stream::{register_stream, unregister_stream, with_stream, ResponseStream, STREAM_HEADER};
+ #[cfg(target_os = "android")]
+ use android::*;
+ 
+diff -ruN a/src/stream.rs b/src/stream.rs
+--- a/src/stream.rs	1970-01-01 01:00:00.000000000 +0100
++++ b/src/stream.rs	2026-10-23 23:00:40.000000000 +0200
+@@ -0,0 +1,71 @@
++// Copyright 2020-2023 Tauri Programme within The Commons Conservancy
++// SPDX-License-Identifier: Apache-2.0
++// SPDX-License-Identifier: MIT
++
++use std::{
++  collections::HashMap,
++  io,
++  sync::{
++    atomic::{AtomicU64, Ordering},
++    Arc, Mutex, MutexGuard, PoisonError,
++  },
++};
++
++use once_cell::sync::Lazy;
++
++/// Response header naming the [`register_stream`] id whose stream becomes the body.
++pub const STREAM_HEADER: &str = "x-wry-stream";
++
++/// A response body with `java.io.InputStream` semantics.
++pub trait ResponseStream: Send {
++  fn available(&mut self) -> io::Result<u64>;
++  fn skip(&mut self, n: u64) -> io::Result<u64>;
++  /// `Ok(0)` is end of stream.
++  fn read(&mut self, buf: &mut [u8]) -> io::Result<usize>;
++  /// Must not block.
++  fn close(&mut self);
++}
++
++type Entry = Arc<Mutex<Box<dyn ResponseStream>>>;
++
++static STREAMS: Lazy<Mutex<HashMap<u64, Entry>>> = Lazy::new(Default::default);
++static NEXT_ID: AtomicU64 = AtomicU64::new(1);
++
++fn streams() -> MutexGuard<'static, HashMap<u64, Entry>> {
++  STREAMS.lock().unwrap_or_else(PoisonError::into_inner)
++}
++
++pub fn register_stream(stream: Box<dyn ResponseStream>) -> u64 {
++  let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
++  streams().insert(id, Arc::new(Mutex::new(stream)));
++  id
++}
++
++pub fn unregister_stream(id: u64) -> bool {
++  let Some(entry) = streams().remove(&id) else {
++    return false;
++  };
++  let closed = entry.try_lock().map(|mut stream| stream.close()).is_ok();
++  if !closed {
++    std::thread::spawn(move || {
++      if let Ok(mut stream) = entry.lock() {
++        stream.close();
++      }
++    });
++  }
++  true
++}
++
++pub fn with_stream<T>(
++  id: u64,
++  body: impl FnOnce(&mut dyn ResponseStream) -> io::Result<T>,
++) -> io::Result<T> {
++  let entry = streams()
++    .get(&id)
++    .cloned()
++    .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "unknown stream"))?;
++  let mut stream = entry
++    .lock()
++    .map_err(|_| io::Error::other("stream poisoned"))?;
++  body(&mut **stream)
++}
+diff -ruN a/src/wkwebview/class/url_scheme_handler.rs b/src/wkwebview/class/url_scheme_handler.rs
+--- a/src/wkwebview/class/url_scheme_handler.rs	2026-10-23 23:02:18.885992905 +0200
++++ b/src/wkwebview/class/url_scheme_handler.rs	2026-10-23 23:01:41.000000000 +0200
+@@ -4,13 +4,15 @@
+ 
+ use std::{
+   borrow::Cow,
++  collections::HashMap,
+   ffi::{c_char, CStr},
+   panic::AssertUnwindSafe,
+   ptr::NonNull,
++  sync::Mutex,
+ };
+ 
+ use http::{
+-  header::{CONTENT_LENGTH, CONTENT_TYPE},
++  header::{CONTENT_LENGTH, CONTENT_TYPE, RANGE},
+   Request, Response as HttpResponse, StatusCode, Version,
+ };
+ use objc2::{
+@@ -19,12 +21,38 @@
+   AllocAnyThread, ClassType, Message,
+ };
+ use objc2_foundation::{
+-  NSData, NSHTTPURLResponse, NSMutableDictionary, NSObject, NSObjectProtocol, NSString, NSURL,
+-  NSUUID,
++  ns_string, NSData, NSError, NSHTTPURLResponse, NSMutableDictionary, NSObject, NSObjectProtocol,
++  NSString, NSURL, NSUUID,
+ };
+ use objc2_web_kit::{WKURLSchemeHandler, WKURLSchemeTask};
++use once_cell::sync::Lazy;
+ 
+-use crate::{wkwebview::WEBVIEW_STATE, RequestAsyncResponder, WryWebView};
++use crate::{
++  stream::{unregister_stream, with_stream, STREAM_HEADER},
++  wkwebview::WEBVIEW_STATE,
++  RequestAsyncResponder, WryWebView,
++};
++
++const STREAM_PIECE: usize = 64 * 1024;
++
++static TASK_STREAMS: Lazy<Mutex<HashMap<usize, u64>>> = Lazy::new(Default::default);
++
++/// Where the body a range request expects begins, which a stream body is skipped to first,
++/// as the Android WebView does for an intercepted range request.
++fn range_start(request: &Request<Vec<u8>>) -> u64 {
++  request
++    .headers()
++    .get(RANGE)
++    .and_then(|value| value.to_str().ok()?.strip_prefix("bytes=")?.split_once('-'))
++    .and_then(|(first, _)| first.parse().ok())
++    .unwrap_or(0)
++}
++
++fn task_streams() -> std::sync::MutexGuard<'static, HashMap<usize, u64>> {
++  TASK_STREAMS
++    .lock()
++    .unwrap_or_else(std::sync::PoisonError::into_inner)
++}
+ 
+ pub fn create(name: &str) -> &AnyClass {
+   unsafe {
+@@ -181,9 +209,78 @@
+       Ok(())
+     }
+ 
++    struct StreamedTask {
++      task: Retained<ProtocolObject<dyn WKURLSchemeTask>>,
++      webview: Retained<WryWebView>,
++      task_key: usize,
++      task_uuid: Retained<NSUUID>,
++      webview_id: String,
++    }
++
++    // The task and webview are only touched through calls WebKit allows from any thread,
++    // and every call is preceded by the same validity checks the buffered path makes.
++    unsafe impl Send for StreamedTask {}
++
++    impl StreamedTask {
++      fn valid(&self) -> crate::Result<()> {
++        check_webview_id_valid(&self.webview_id)?;
++        check_task_is_valid(&self.webview, self.task_key, self.task_uuid.clone())
++      }
++
++      fn deliver(&self, bytes: &[u8]) -> crate::Result<()> {
++        self.valid()?;
++        let data = NSData::with_bytes(bytes);
++        objc2::exception::catch(AssertUnwindSafe(|| unsafe {
++          self.task.didReceiveData(&data);
++        }))
++        .map_err(|_e| crate::Error::CustomProtocolTaskInvalid)
++      }
++
++      fn end(&self, failed: bool) {
++        if self.valid().is_err() {
++          return;
++        }
++        let _ = objc2::exception::catch(AssertUnwindSafe(|| unsafe {
++          if failed {
++            let error = NSError::new(-1, ns_string!("wry.stream"));
++            self.task.didFailWithError(&error);
++          } else {
++            self.task.didFinish();
++          }
++        }));
++        self.webview.remove_custom_task_key(self.task_key);
++      }
++    }
++
++    fn feed_stream(streamed: StreamedTask, id: u64, skip: u64) {
++      task_streams().insert(streamed.task_key, id);
++      std::thread::spawn(move || {
++        let mut piece = vec![0u8; STREAM_PIECE];
++        let mut skipped = 0;
++        while skipped < skip {
++          match with_stream(id, |stream| stream.skip(skip - skipped)) {
++            Ok(0) | Err(_) => break,
++            Ok(n) => skipped += n,
++          }
++        }
++        let failed = skipped < skip
++          || loop {
++            match with_stream(id, |stream| stream.read(&mut piece)) {
++              Ok(0) => break false,
++              Ok(read) if streamed.deliver(&piece[..read]).is_ok() => {}
++              _ => break true,
++            }
++          };
++        task_streams().remove(&streamed.task_key);
++        unregister_stream(id);
++        streamed.end(failed);
++      });
++    }
++
+     // send response
+     match http_request.body(sent_form_body) {
+       Ok(final_request) => {
++        let skip = range_start(&final_request);
+         let webview = webview.retain();
+         let task = task.retain();
+         let responder: Box<dyn FnOnce(HttpResponse<Cow<'static, [u8]>>)> =
+@@ -195,8 +292,16 @@
+               Ok(())
+             };
+ 
++            let stream = sent_response
++              .headers()
++              .get(STREAM_HEADER)
++              .and_then(|value| value.to_str().ok()?.parse::<u64>().ok());
++
+             // Perform an upfront validation
+             if let Err(_e) = validate() {
++              if let Some(id) = stream {
++                unregister_stream(id);
++              }
+               #[cfg(feature = "tracing")]
+               tracing::warn!("Task invalid before sending response: {:?}", _e);
+               return; // If invalid, return early without calling task methods.
+@@ -212,6 +317,8 @@
+               webview_id: &str,
+               url: Retained<NSURL>,
+               sent_response: HttpResponse<Cow<'_, [u8]>>,
++              stream: Option<u64>,
++              skip: u64,
+             ) -> crate::Result<()> {
+               // Validate
+               check_webview_id_valid(webview_id)?;
+@@ -232,13 +339,18 @@
+                   &*NSString::from_str(mime.to_str().unwrap()),
+                 );
+               }
+-              headers.insert(
+-                &*NSString::from_str(CONTENT_LENGTH.as_str()),
+-                &*NSString::from_str(&content_len.to_string()),
+-              );
++              if stream.is_none() {
++                headers.insert(
++                  &*NSString::from_str(CONTENT_LENGTH.as_str()),
++                  &*NSString::from_str(&content_len.to_string()),
++                );
++              }
+ 
+               // add headers
+               for (name, value) in sent_response.headers().iter() {
++                if name.as_str() == STREAM_HEADER {
++                  continue;
++                }
+                 if let Ok(value) = value.to_str() {
+                   headers.insert(
+                     &*NSString::from_str(name.as_str()),
+@@ -267,6 +379,21 @@
+               }))
+               .map_err(|_e| crate::Error::CustomProtocolTaskInvalid)?;
+ 
++              if let Some(id) = stream {
++                feed_stream(
++                  StreamedTask {
++                    task,
++                    webview,
++                    task_key,
++                    task_uuid,
++                    webview_id: webview_id.to_owned(),
++                  },
++                  id,
++                  skip,
++                );
++                return Ok(());
++              }
++
+               let data = match sent_response.into_body() {
+                 Cow::Owned(content) => NSData::from_vec(content),
+                 Cow::Borrowed(content) => NSData::with_bytes(content),
+@@ -308,7 +435,12 @@
+               webview_id,
+               url,
+               sent_response,
++              stream,
++              skip,
+             ) {
++              if let Some(id) = stream {
++                unregister_stream(id);
++              }
+               #[cfg(feature = "tracing")]
+               tracing::error!("Error responding to task: {:?}", _e);
+             }
+@@ -339,5 +471,9 @@
+   webview: &WryWebView,
+   task: &ProtocolObject<dyn WKURLSchemeTask>,
+ ) {
+-  webview.remove_custom_task_key(task.hash());
++  let task_key = task.hash();
++  webview.remove_custom_task_key(task_key);
++  if let Some(id) = task_streams().remove(&task_key) {
++    unregister_stream(id);
++  }
+ }

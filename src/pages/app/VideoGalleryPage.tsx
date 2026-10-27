@@ -1,4 +1,5 @@
-import { ChevronLeft, Film, Images, MessageCircle, Play, RefreshCw, UserRound } from "lucide-react";
+import { Film, Images, MessageCircle, Play, RefreshCw, UserRound } from "lucide-react";
+import { HeaderBackButton } from "../../components/HeaderBackButton";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +18,7 @@ import {
 	getMediaFile,
 } from "../../services/chatDb";
 import { getThumbImageUrl, validateMediaHash } from "../../utils/media";
+import { proxyMediaUrl } from "../../utils/mediaProxy";
 import { limitChatDbBlobRead } from "../../utils/chatDbBlobLimiter";
 import { createLimiter } from "../../utils/concurrencyLimit";
 import { cn } from "../../utils/cn";
@@ -162,7 +164,7 @@ function VideoTile({ item, onClick }: { item: GalleryVideo; onClick: () => void 
 		>
 			{poster ? (
 				<img
-					src={poster}
+					src={proxyMediaUrl(poster)}
 					alt={item.albumName ?? t("video_gallery.video_alt", { defaultValue: "Video" })}
 					loading="lazy"
 					className="h-full w-full object-cover transition group-hover:scale-105"
@@ -197,7 +199,7 @@ export function VideoGalleryPage() {
 	const navigate = useNavigate();
 	const { userId } = useAuth();
 	const { mobileGridColumns } = usePreferences();
-	const minmaxValue = mobileGridColumns === "2" ? "130px" : "100px";
+	const minmaxValue = mobileGridColumns === "2" ? "130px" : mobileGridColumns === "4" ? "80px" : "100px";
 
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -409,6 +411,14 @@ export function VideoGalleryPage() {
 
 	const currentItem = viewerItems?.[viewerIndex] ?? null;
 
+	const openProfile = useCallback(
+		(profileId: number) => {
+			closeViewer();
+			navigate(`/profile/${profileId}`, { state: { returnTo: "/chat/videos" } });
+		},
+		[closeViewer, navigate],
+	);
+
 	const menuActions = useMemo<PhotoViewerMenuAction[]>(() => {
 		if (!currentItem) return [];
 		const actions: PhotoViewerMenuAction[] = [];
@@ -429,17 +439,15 @@ export function VideoGalleryPage() {
 				key: "view-profile",
 				label: t("chat.view_profile"),
 				icon: UserRound,
-				onClick: () => {
-					closeViewer();
-					navigate(`/profile/${profileId}`, { state: { returnTo: "/chat/videos" } });
-				},
+				onClick: () => openProfile(profileId),
 			});
 		}
 		return actions;
-	}, [currentItem, t, closeViewer, navigate]);
+	}, [currentItem, t, closeViewer, navigate, openProfile]);
 
 	const albumHeader = useMemo(() => {
 		if (!currentItem) return undefined;
+		const { profileId } = currentItem;
 		return {
 			avatarUrl: currentItem.profileMediaHash ? getThumbImageUrl(currentItem.profileMediaHash, "75x75") : null,
 			name: currentItem.profileName,
@@ -448,8 +456,9 @@ export function VideoGalleryPage() {
 					? currentItem.albumName ?? t("video_gallery.source_album", { defaultValue: "Album" })
 					: t("video_gallery.source_chat", { defaultValue: "Chat" }),
 			isOnline: false,
+			onClick: profileId != null ? () => openProfile(profileId) : undefined,
 		};
-	}, [currentItem, t]);
+	}, [currentItem, t, openProfile]);
 
 	const handleRefresh = () => {
 		if (isLoading) return;
@@ -475,41 +484,35 @@ export function VideoGalleryPage() {
 
 	return (
 		<>
-			<div className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
+			<div className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}>
 				<header className="pointer-events-none relative z-20 shrink-0">
 					<PageHeaderBackground color="var(--accent)" />
-					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-[var(--app-px)]">
-						<button
-							type="button"
-							onClick={() => navigate("/chat", { replace: true })}
-							className="mt-3 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-						>
-							<ChevronLeft className="h-4 w-4" />
-							{t("nav.inbox")}
-						</button>
-
+					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 sm:px-5">
 						<div className="flex items-center justify-between gap-2">
-							<div className="min-w-0">
-								<h1 className="app-title">{t("video_gallery.title", { defaultValue: "Videos" })}</h1>
-								<p className="app-subtitle">
-									{isLoading
-										? t("video_gallery.loading", { defaultValue: "Loading videos…" })
-										: [
-											t("video_gallery.videos_count", {
-												count: items.length,
-												defaultValue: items.length === 1 ? "{{count}} video" : "{{count}} videos",
-											}),
-											t("shared_albums.people_count", {
-												count: new Set(items.map((item) => item.profileId)).size,
-											}),
-										].join(" · ")}
-								</p>
+							<div className="flex min-w-0 items-center gap-2">
+								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
+								<div className="min-w-0">
+									<h1 className="truncate text-lg font-semibold">{t("video_gallery.title", { defaultValue: "Videos" })}</h1>
+									<p className="app-subtitle">
+										{isLoading
+											? t("video_gallery.loading", { defaultValue: "Loading videos…" })
+											: [
+												t("video_gallery.videos_count", {
+													count: items.length,
+													defaultValue: items.length === 1 ? "{{count}} video" : "{{count}} videos",
+												}),
+												t("shared_albums.people_count", {
+													count: new Set(items.map((item) => item.profileId)).size,
+												}),
+											].join(" · ")}
+									</p>
+								</div>
 							</div>
 							<button
 								type="button"
 								onClick={handleRefresh}
 								disabled={isLoading}
-								className="shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
+								className="header-icon-btn shrink-0 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-50"
 								aria-label={t("shared_albums.refresh")}
 							>
 								<RefreshCw className={`h-5 w-5 ${isLoading ? "animate-spin" : ""}`} />

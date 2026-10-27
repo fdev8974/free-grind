@@ -41,7 +41,7 @@ import { runAutomationRulesForSender } from "../utils/automationRules";
 import { getIncognitoMode, isReadReceiptsHidden } from "../utils/privacy";
 import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
-import { withEntitlementBypass } from "./entitlementBypass";
+import { isPaywallError, withEntitlementBypass } from "./entitlementBypass";
 
 export { ApiFunctionError as ChatApiError };
 
@@ -666,20 +666,42 @@ export function createChatService(
 
 		async shareAlbum(payload: ShareAlbumPayload) {
 			const safePayload = shareAlbumPayloadSchema.parse(payload);
+			const share = async () => {
+				const response = await fetchRest(
+					`/v4/albums/${safePayload.albumId}/shares`,
+					{
+						method: "POST",
+						body: { profiles: safePayload.profiles },
+					},
+				);
+				await assertSuccess(response, t("chat.errors.album_share_failed"));
+			};
+			// Sharing an *expiring* album is paid-only and the Honduras handover
+			// doesn't unlock it, so don't offer the bypass for that — show a clear
+			// paid-only message instead. Non-expiring (INDEFINITE) shares can
+			// still be bypassed.
+			const isExpiringShare = safePayload.profiles.some(
+				(profile) => profile.expirationType !== "INDEFINITE" && profile.expirationType !== 0,
+			);
+			if (isExpiringShare) {
+				await share().catch((error: unknown) => {
+					if (isPaywallError(error)) {
+						throw new Error(
+							t("entitlement_bypass.expiring_album_no_bypass", {
+								defaultValue:
+									"Expiring albums are a paid Grindr feature, and there's no bypass for them.",
+							}),
+						);
+					}
+					throw error;
+				});
+				return;
+			}
 			await withEntitlementBypass(
 				t("entitlement_bypass.reason_album_share", {
 					defaultValue: "Sharing this album requires a Grindr subscription.",
 				}),
-				async () => {
-					const response = await fetchRest(
-						`/v4/albums/${safePayload.albumId}/shares`,
-						{
-							method: "POST",
-							body: { profiles: safePayload.profiles },
-						},
-					);
-					await assertSuccess(response, t("chat.errors.album_share_failed"));
-				},
+				share,
 			);
 		},
 

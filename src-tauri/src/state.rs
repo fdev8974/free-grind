@@ -1,3 +1,4 @@
+use std::sync::atomic::AtomicBool;
 use std::sync::RwLock;
 
 use crate::error::AppError;
@@ -26,6 +27,9 @@ impl ClientTasks {
 pub struct AppState {
     pub client: RwLock<Option<grindr::GrindrClient>>,
     pub tasks: RwLock<ClientTasks>,
+    /// Last foreground state the webview reported via `set_app_active`, so a
+    /// client adopted while backgrounded starts out inactive too.
+    pub app_active: AtomicBool,
 }
 
 impl Default for AppState {
@@ -33,6 +37,7 @@ impl Default for AppState {
         Self {
             client: RwLock::new(None),
             tasks: RwLock::new(ClientTasks::default()),
+            app_active: AtomicBool::new(true),
         }
     }
 }

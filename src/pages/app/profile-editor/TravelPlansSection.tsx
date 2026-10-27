@@ -32,7 +32,7 @@ function TravelPlanSummary({ plan }: { plan: TravelPlan }) {
 					{location ?? t("travel_plans.resolving_location")}
 				</p>
 				{!plan.showOnProfile && (
-					<span className="shrink-0 rounded-full bg-[var(--surface)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
+					<span className="shrink-0 rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]">
 						{t("travel_plans.hidden_badge")}
 					</span>
 				)}
@@ -57,7 +57,7 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 	const hasReachedMax = (travelPlans?.length ?? 0) >= MAX_TRAVEL_PLANS;
 
 	return (
-		<div className="surface-card p-4 sm:p-5">
+		<div className="native-card p-4 sm:p-5">
 			<CategoryHeader
 				title={t("travel_plans.section_title")}
 				description={t("travel_plans.section_desc")}
@@ -68,7 +68,7 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 						onClick={() => setEditingPlan(null)}
 						disabled={numericProfileId == null || hasReachedMax}
 						title={hasReachedMax ? t("travel_plans.max_reached", { max: MAX_TRAVEL_PLANS }) : undefined}
-						className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm font-medium transition-colors hover:border-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-40"
+						className="inline-flex h-9 items-center gap-1.5 rounded-full ink-tint-10 px-3.5 text-sm font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
 					>
 						<Plus className="h-4 w-4" />
 						{t("travel_plans.add")}
@@ -81,22 +81,22 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 					<Loader2 className="h-5 w-5 animate-spin" />
 				</div>
 			) : (travelPlans?.length ?? 0) === 0 ? (
-				<div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[var(--border)] py-8 text-center">
-					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--surface-2)] text-[var(--text-muted)]">
+				<div className="flex flex-col items-center justify-center gap-2 rounded-2xl ink-tint-6 py-8 text-center">
+					<div className="flex h-9 w-9 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
 						<Plane className="h-4 w-4" />
 					</div>
 					<p className="text-sm text-[var(--text-muted)]">{t("travel_plans.empty")}</p>
 				</div>
 			) : (
-				<div className="overflow-hidden rounded-2xl border border-[var(--border)]">
-					{travelPlans!.map((plan, i) => (
+				<div className="overflow-hidden rounded-2xl ink-tint-6 divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)]">
+					{travelPlans!.map((plan) => (
 						<button
 							key={plan.travelPlanId}
 							type="button"
 							onClick={() => setEditingPlan(plan)}
-							className={`flex w-full items-center gap-3 bg-[var(--surface-2)] px-4 py-3.5 text-left transition hover:bg-[var(--surface-3,var(--surface))] ${i > 0 ? "border-t border-[var(--border)]" : ""}`}
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:ink-tint-6"
 						>
-							<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--accent)]">
+							<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--accent)]">
 								<Plane className="h-4 w-4" />
 							</div>
 							<TravelPlanSummary plan={plan} />

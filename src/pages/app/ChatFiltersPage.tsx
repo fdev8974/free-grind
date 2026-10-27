@@ -1,9 +1,10 @@
-import { ChevronLeft } from "lucide-react";
+import { PageHeader } from "../../components/PageHeader";
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getSexualPositionOptions } from "./profile-option-builders";
 import { Slider } from "../../components/ui/range-slider";
+import { Chip } from "../../components/ui/chip";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { formatDistanceForUnits } from "../../utils/units";
 
@@ -136,31 +137,24 @@ export function ChatFiltersPage() {
 	return (
 		<section className="app-screen">
 			<div className="mx-auto w-full max-w-4xl">
-				<header className="mb-4 flex items-center justify-between gap-3">
-					<div className="inline-flex items-center gap-2">
+				<PageHeader
+					onBack={() => navigate(-1)}
+					backLabel={t("chat_filters.back")}
+					title={t("chat_filters.title")}
+					subtitle={t("chat_filters.subtitle")}
+					subtitleClassName="mb-4"
+					actions={
 						<button
 							type="button"
-							onClick={() => navigate(-1)}
-							className="shrink-0 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)]"
-							aria-label={t("chat_filters.back")}
+							onClick={applyAndReturn}
+							className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
 						>
-							<ChevronLeft className="h-4 w-4" />
+							{t("browse_filters.apply")}
 						</button>
-						<div>
-							<h1 className="app-title">{t("chat_filters.title")}</h1>
-							<p className="app-subtitle">{t("chat_filters.subtitle")}</p>
-						</div>
-					</div>
-					<button
-						type="button"
-						onClick={applyAndReturn}
-						className="rounded-lg bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
-					>
-						{t("browse_filters.apply")}
-					</button>
-				</header>
+					}
+				/>
 
-				<div className="surface-card space-y-4 p-4 sm:p-5">
+				<div className="native-card space-y-4 p-4 sm:p-5">
 					<div>
 						<p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
 							{t("browse_filters.quick_filters")}
@@ -169,18 +163,14 @@ export function ChatFiltersPage() {
 							{inboxFilterOptions.map((filter) => {
 								const active = filters[filter.key];
 								return (
-									<button
+									<Chip
 										key={filter.key}
-										type="button"
+										size="sm"
+										selected={Boolean(active)}
 										onClick={() => toggleFilter(filter.key)}
-										className={`rounded-full border px-3 py-1 font-medium transition ${
-											active
-												? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
-												: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
-										}`}
 									>
 										{filter.label}
-									</button>
+									</Chip>
 								);
 							})}
 						</div>
@@ -211,18 +201,14 @@ export function ChatFiltersPage() {
 								{positionFilterOptions.map(({ value: positionId, label }) => {
 								const active = filters.positions.includes(positionId);
 								return (
-									<button
+									<Chip
 										key={positionId}
-										type="button"
+										size="sm"
+										selected={active}
 										onClick={() => togglePosition(positionId)}
-										className={`rounded-full border px-3 py-1 font-medium transition ${
-											active
-												? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
-												: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
-										}`}
 									>
 										{label}
-									</button>
+									</Chip>
 								);
 							})}
 						</div>

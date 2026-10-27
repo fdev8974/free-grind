@@ -1,26 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import i18n from "i18next";
 
 /**
- * In-app APK installs on Android — the native side lives in ApkUpdater.kt
+ * In-app APK self-update on Android — the native side lives in ApkUpdater.kt
  * and reports through `fg:apk-update` window events, tagged with the
- * `target` they belong to: the app's own self-update ("app"), the Google
- * OAuth companion app ("google-oauth") or the reCAPTCHA helper ("recaptcha").
+ * `target` they belong to ("app").
  */
 type ApkUpdateBridge = {
 	downloadApkUpdate?: (url: string) => boolean;
 	installDownloadedApkUpdate?: () => boolean;
-	downloadGoogleOAuthApp?: () => boolean;
-	installDownloadedGoogleOAuthApp?: () => boolean;
-	downloadRecaptchaHelper?: () => boolean;
-	installDownloadedRecaptchaHelper?: () => boolean;
 	canInstallApkUpdates?: () => boolean;
 	openInstallPermissionSettings?: () => boolean;
 };
 
-type ApkInstallTarget = "app" | "google-oauth" | "recaptcha";
+type ApkInstallTarget = "app";
 
 type NativeEvent = { target?: ApkInstallTarget } & (
-	| { state: "resolving" }
 	| { state: "downloading"; received: number; total: number }
 	| { state: "verifying" | "needs-permission" | "installing" | "installed" }
 	| { state: "error"; code: string; message?: string }
@@ -41,40 +36,24 @@ export function isApkUpdateSupported(): boolean {
 	return getBridge() !== null;
 }
 
-export function isGoogleOAuthAppInstallSupported(): boolean {
-	return typeof getBridge()?.downloadGoogleOAuthApp === "function";
-}
-
-export function isRecaptchaHelperInstallSupported(): boolean {
-	return typeof getBridge()?.downloadRecaptchaHelper === "function";
-}
+const APK_UPDATE_ERRORS: Record<string, [key: string, english: string]> = {
+	canceled: ["canceled", "The installation was canceled."],
+	network: ["download", "The download failed. Check your connection and try again."],
+	http: ["download", "The download failed. Check your connection and try again."],
+	incomplete: ["download", "The download failed. Check your connection and try again."],
+	"foreign-signer": ["foreign_signer", "This APK is signed differently from the installed app, so Android can't update it in place."],
+	incompatible: ["foreign_signer", "This APK is signed differently from the installed app, so Android can't update it in place."],
+	downgrade: ["downgrade", "The downloaded version is older than the installed one."],
+	storage: ["storage", "Not enough storage to install the update."],
+	blocked: ["blocked", "Android blocked the installation."],
+	"start-failed": ["start_failed", "Couldn't start the download."],
+	"no-asset": ["no_asset", "There's no download for this device's processor."],
+	conflict: ["conflict", "A differently signed version is already installed. Uninstall it first, then try again."],
+};
 
 export function describeApkUpdateError(code: string): string {
-	switch (code) {
-		case "canceled":
-			return "The installation was canceled.";
-		case "network":
-		case "http":
-		case "incomplete":
-			return "The download failed. Check your connection and try again.";
-		case "foreign-signer":
-		case "incompatible":
-			return "This APK is signed differently from the installed app, so Android can't update it in place.";
-		case "downgrade":
-			return "The downloaded version is older than the installed one.";
-		case "storage":
-			return "Not enough storage to install the update.";
-		case "blocked":
-			return "Android blocked the installation.";
-		case "start-failed":
-			return "Couldn't start the download.";
-		case "no-asset":
-			return "There's no download for this device's processor.";
-		case "conflict":
-			return "A differently signed version is already installed. Uninstall it first, then try again.";
-		default:
-			return "The update couldn't be installed.";
-	}
+	const [key, english] = APK_UPDATE_ERRORS[code] ?? ["generic", "The update couldn't be installed."];
+	return i18n.t(`apk_update.errors.${key}`, { defaultValue: english });
 }
 
 /**
@@ -90,9 +69,7 @@ function useApkInstall(target: ApkInstallTarget, enabled: boolean, installDownlo
 		const handler = (event: Event) => {
 			const detail = (event as CustomEvent<NativeEvent>).detail;
 			if (!detail || (detail.target ?? "app") !== target) return;
-			if (detail.state === "resolving") {
-				setState({ phase: "downloading", progress: null });
-			} else if (detail.state === "downloading") {
+			if (detail.state === "downloading") {
 				setState({
 					phase: "downloading",
 					progress: detail.total > 0 ? Math.min(1, detail.received / detail.total) : null,
@@ -101,6 +78,8 @@ function useApkInstall(target: ApkInstallTarget, enabled: boolean, installDownlo
 				setState({ phase: "error", code: detail.code, message: detail.message });
 			} else {
 				setState({ phase: detail.state });
+
+                
 			}
 		};
 		window.addEventListener("fg:apk-update", handler);
@@ -155,46 +134,6 @@ export function useApkUpdate(apkUrl: string | undefined) {
 			setState({ phase: "error", code: "start-failed" });
 		}
 	}, [apkUrl, setState]);
-
-	return { supported, state, start, installDownloaded, openPermissionSettings };
-}
-
-/** Installs the Google OAuth companion app from its latest release (Android only). */
-export function useGoogleOAuthAppInstall() {
-	const supported = isGoogleOAuthAppInstallSupported();
-	const { state, setState, installDownloaded, openPermissionSettings } = useApkInstall(
-		"google-oauth",
-		supported,
-		() => getBridge()?.installDownloadedGoogleOAuthApp?.(),
-	);
-
-	const start = useCallback(() => {
-		if (getBridge()?.downloadGoogleOAuthApp?.()) {
-			setState({ phase: "downloading", progress: null });
-		} else {
-			setState({ phase: "error", code: "start-failed" });
-		}
-	}, [setState]);
-
-	return { supported, state, start, installDownloaded, openPermissionSettings };
-}
-
-/** Installs the reCAPTCHA helper from its latest release (Android only). */
-export function useRecaptchaHelperInstall() {
-	const supported = isRecaptchaHelperInstallSupported();
-	const { state, setState, installDownloaded, openPermissionSettings } = useApkInstall(
-		"recaptcha",
-		supported,
-		() => getBridge()?.installDownloadedRecaptchaHelper?.(),
-	);
-
-	const start = useCallback(() => {
-		if (getBridge()?.downloadRecaptchaHelper?.()) {
-			setState({ phase: "downloading", progress: null });
-		} else {
-			setState({ phase: "error", code: "start-failed" });
-		}
-	}, [setState]);
 
 	return { supported, state, start, installDownloaded, openPermissionSettings };
 }

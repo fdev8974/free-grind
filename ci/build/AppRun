@@ -1,0 +1,18 @@
+#!/bin/sh
+# Entry point of the Free Grind AppImage (assembled by ci/build/linux.sh). The
+# AppImage doesn't bundle WebKitGTK; say so instead of failing silently.
+bin="$(dirname "$(readlink -f "$0")")/usr/bin/free-grind"
+
+if LD_TRACE_LOADED_OBJECTS=1 "$bin" 2>/dev/null | grep -q 'libwebkit2gtk-4.1.so.0 => not found'; then
+	missing="Free Grind needs WebKitGTK 4.1, which is not installed.
+
+Install libwebkit2gtk-4.1-0 (Debian, Ubuntu), webkit2gtk-4.1 (Arch), webkit2gtk4.1 (Fedora) or libwebkit2gtk-4_1-0 (openSUSE), then start Free Grind again."
+	echo "$missing" >&2
+	zenity --error --no-wrap --text="$missing" 2>/dev/null ||
+		kdialog --error "$missing" 2>/dev/null ||
+		notify-send "Free Grind" "$missing" 2>/dev/null ||
+		true
+	exit 1
+fi
+
+exec "$bin" "$@"

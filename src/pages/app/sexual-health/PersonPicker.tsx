@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, UserRound } from "lucide-react";
+import { Loader2, SearchX, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { Avatar } from "../../../components/ui/avatar";
-import { Button } from "../../../components/ui/button";
-import { LoadingState } from "../../../components/ui/states";
+import { SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { ProfileImage } from "../../../components/ui/profile-image";
+import { SheetSearchInput, SheetSection, SheetTextInput } from "../../../components/ui/sheet-section";
+import { DrawerEmptyState } from "../chat/drawerUi";
 import { listConversations } from "../../../services/chatDb";
 import { getLocalNicknamesForProfiles } from "../../../services/chatContactIndex";
+import { getNicknameRename } from "../../../hooks/useNicknameNameChange";
 import { resolveAvatarSrc } from "../../../services/avatarStore";
 import { getParticipantAvatarUrl } from "../chat/chatUtils";
 
@@ -20,6 +22,8 @@ interface PickerRow {
 	conversationId: string;
 	profileId: string;
 	name: string;
+	/** Their own display name when `name` is a nickname; also searchable. */
+	realName: string | null;
 	avatarSrc: string | null;
 }
 
@@ -58,7 +62,8 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 					nicknames[otherProfileId] ||
 					conversation.entry.data.name ||
 					t("common.unknown_display_name", { defaultValue: "Someone" });
-				return { conversationId: conversation.conversationId, profileId: otherProfileId, name, avatarSrc };
+				const { realName } = getNicknameRename(nicknames[otherProfileId], conversation.entry.data.name, null);
+				return { conversationId: conversation.conversationId, profileId: otherProfileId, name, realName, avatarSrc };
 			});
 			setRows(mapped);
 		})();
@@ -71,27 +76,31 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 		if (!rows) return [];
 		const q = query.trim().toLowerCase();
 		if (!q) return rows;
-		return rows.filter((row) => row.name.toLowerCase().includes(q));
+		return rows.filter(
+			(row) => row.name.toLowerCase().includes(q) || Boolean(row.realName?.toLowerCase().includes(q)),
+		);
 	}, [rows, query]);
 
+	// Free text: just a name, in the sheet's usual field and footer.
 	if (freeTextMode) {
 		return (
-			<div className="grid gap-3">
-				<input
-					type="text"
-					value={freeTextName}
-					onChange={(event) => setFreeTextName(event.target.value)}
-					placeholder={t("sexualHealth.encounter.name_placeholder", { defaultValue: "Their name…" })}
-					className="input-field"
-					autoFocus
-				/>
-				<div className="flex gap-2">
-					<Button variant="secondary" className="flex-1" onClick={() => setFreeTextMode(false)}>
+			<>
+				<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+					<SheetSection title={t("sexualHealth.encounter.someone_not_listed", { defaultValue: "Someone not listed" })}>
+						<SheetTextInput
+							value={freeTextName}
+							onChange={setFreeTextName}
+							placeholder={t("sexualHealth.encounter.name_placeholder", { defaultValue: "Their name…" })}
+							autoFocus
+						/>
+					</SheetSection>
+				</div>
+				<div className={SHEET_FOOTER_CLASS}>
+					<button type="button" onClick={() => setFreeTextMode(false)} className={sheetButtonClass("secondary")}>
 						{t("sexualHealth.encounter.back", { defaultValue: "Back" })}
-					</Button>
-					<Button
-						variant="primary"
-						className="flex-1"
+					</button>
+					<button
+						type="button"
 						disabled={!freeTextName.trim()}
 						onClick={() =>
 							onPick({
@@ -101,33 +110,38 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 								avatarSrc: null,
 							})
 						}
+						className={sheetButtonClass()}
 					>
 						{t("sexualHealth.encounter.continue", { defaultValue: "Continue" })}
-					</Button>
+					</button>
 				</div>
-			</div>
+			</>
 		);
 	}
 
+	// Floating search over the conversation list, like the other picker sheets.
 	return (
-		<div className="grid gap-3">
-			<div className="relative">
-				<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-				<input
-					type="text"
-					value={query}
-					onChange={(event) => setQuery(event.target.value)}
-					placeholder={t("sexualHealth.encounter.search_placeholder", { defaultValue: "Search conversations…" })}
-					className="input-field !pl-9"
-				/>
-			</div>
-			<div className="max-h-72 divide-y divide-[var(--border)] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+		<>
+			<SheetSearchInput
+				floating
+				value={query}
+				onChange={setQuery}
+				placeholder={t("sexualHealth.encounter.search_placeholder", { defaultValue: "Search conversations…" })}
+			/>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto pb-2" data-lenis-prevent>
 				{rows === null ? (
-					<LoadingState compact title={t("sexualHealth.encounter.loading_people", { defaultValue: "Loading…" })} />
-				) : filtered.length === 0 ? (
-					<p className="p-4 text-sm text-[var(--text-muted)]">
-						{t("sexualHealth.encounter.no_matches", { defaultValue: "No matches." })}
-					</p>
+					<div className="flex justify-center py-8 text-[var(--text-muted)]">
+						<Loader2 className="h-5 w-5 animate-spin" />
+					</div>
+				) : filtered.length === 0 && query.trim() ? (
+					<div className="px-4">
+						<DrawerEmptyState
+							icon={<SearchX />}
+							fanned={false}
+							title={t("sexualHealth.encounter.no_matches", { defaultValue: "No matches." })}
+							hint={t("sexualHealth.encounter.no_matches_hint", { defaultValue: "Not in your chats? Add them by name below." })}
+						/>
+					</div>
 				) : (
 					filtered.map((row) => (
 						<button
@@ -141,24 +155,31 @@ export function PersonPicker({ onPick }: PersonPickerProps) {
 									avatarSrc: row.avatarSrc,
 								})
 							}
-							className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
+							className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:ink-tint-6 active:ink-tint-10"
 						>
-							<Avatar src={row.avatarSrc} fallback={row.name} className="h-10 w-10" />
-							<span className="min-w-0 flex-1 truncate text-sm font-medium">{row.name}</span>
+							<div className="h-11 w-11 shrink-0 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
+								<ProfileImage src={row.avatarSrc} alt={row.name} />
+							</div>
+							<span
+								className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text)]"
+								title={row.realName ? t("chat.nicknames.real_name", { name: row.realName }) : undefined}
+							>
+								{row.name}
+							</span>
 						</button>
 					))
 				)}
 				<button
 					type="button"
 					onClick={() => setFreeTextMode(true)}
-					className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm text-[var(--text-muted)] transition hover:bg-[var(--surface-2)]"
+					className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-[var(--accent)] transition-colors hover:ink-tint-6 active:ink-tint-10"
 				>
-					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-[var(--border)]">
-						<UserRound className="h-4 w-4" />
+					<span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full overflow-hidden accent-tint-14">
+						<UserPlus className="h-5 w-5" />
 					</span>
 					{t("sexualHealth.encounter.someone_not_listed", { defaultValue: "Someone not listed" })}
 				</button>
 			</div>
-		</div>
+		</>
 	);
 }

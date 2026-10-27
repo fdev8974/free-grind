@@ -1,11 +1,25 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Download, Images, LayoutGrid, Loader2, Play, X } from "lucide-react";
+import { Download, Images, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { ProfileImage } from "../../../components/ui/profile-image";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
-import { PhotoViewer, type PhotoViewerMedia } from "../../../components/PhotoViewer";
+import { BottomSheet } from "../../../components/ui/bottom-sheet";
+import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
+import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
+import {
+	DRAWER_ICON_BUTTON_CLASS,
+	DRAWER_TILE_CLASS,
+	DrawerBody,
+	DrawerEmptyState,
+	DrawerGrid,
+	DrawerHeader,
+	DrawerMediaPreview,
+	DrawerMediaTile,
+	GroupTileOverlay,
+	useDrawerMediaPreview,
+} from "./drawerUi";
+import { getHeroRectFromElement, PhotoViewer, type HeroRect, type PhotoViewerMedia } from "../../../components/PhotoViewer";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { isIos, saveMediaBytesBatch } from "../../../services/saveMedia";
 import { fetchAndEncode, toDataUri } from "../../../services/mediaStore";
@@ -13,6 +27,7 @@ import { captureAlbum, getLocalAlbum } from "../../../services/albumStore";
 import * as chatDb from "../../../services/chatDb";
 import { extractImageHashFromSignedUrl } from "./chatUtils";
 import { appLog } from "../../../utils/logger";
+import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
 const IMAGE_HASH_KEY_PREFIX = "image:hash:";
 
@@ -32,6 +47,7 @@ async function hashBase64(base64: string): Promise<string> {
 }
 
 type Tab = "received" | "sent";
+const TABS: readonly Tab[] = ["received", "sent"];
 
 type SharedAlbum = {
 	albumId: number;
@@ -83,6 +99,8 @@ export function ChatMediaSheet({
 	const [mediaLoading, setMediaLoading] = useState(true);
 	const [failedCovers, setFailedCovers] = useState<Set<number>>(new Set());
 	const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+	// Where the tapped tile sits, for the viewer's hero open.
+	const [viewerHeroRect, setViewerHeroRect] = useState<HeroRect | null>(null);
 	const [isSavingAll, setIsSavingAll] = useState(false);
 
 	const isMine = (senderId: number | null) => senderId != null && userId != null && Number(senderId) === Number(userId);
@@ -358,164 +376,115 @@ export function ChatMediaSheet({
 		};
 	}, [conversationId, service]);
 
-	const tabs: { id: Tab; label: string; icon: React.ReactNode; count: number; loading: boolean }[] = [
-		{
-			id: "received",
-			label: t("chat.media_sheet.tab_received"),
-			icon: <Images className="h-4 w-4" />,
-			count: receivedMedia.length,
-			loading: mediaLoading,
-		},
-		{
-			id: "sent",
-			label: t("chat.media_sheet.tab_sent"),
-			icon: <Images className="h-4 w-4" />,
-			count: sentMedia.length,
-			loading: mediaLoading,
-		},
+	// Same look as the chat drawer: sliding tabs you can also swipe between,
+	// drawer tiles with press-and-hold peek, and the drawer's empty states.
+	const tabSwipe = useSwipeTabs<Tab>(TABS, tab, setTab);
+	const { preview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
+	// Like the drawer: the grid renders once the sheet has slid in, so
+	// decoding every tile doesn't stall the opening animation.
+	const [hasSlidIn, setHasSlidIn] = useState(false);
+	useEffect(() => {
+		const timer = setTimeout(() => setHasSlidIn(true), 350);
+		return () => clearTimeout(timer);
+	}, []);
+
+	const withCount = (label: string, count: number) => (!mediaLoading && count > 0 ? `${label} · ${count}` : label);
+	const tabs = [
+		{ value: "received" as const, label: withCount(t("chat.media_sheet.tab_received"), receivedMedia.length + albums.length) },
+		{ value: "sent" as const, label: withCount(t("chat.media_sheet.tab_sent"), sentMedia.length) },
 	];
+
+	const showAlbums = tab === "received" && albums.length > 0;
+	const isTabLoading = mediaLoading || (tab === "received" && albumsLoading);
+	const isEmpty = !showAlbums && activeMedia.length === 0;
 
 	const viewerPhotos: PhotoViewerMedia[] = activeMedia.map((m) => ({ url: m.dataUri, type: m.kind }));
 
 	return (
 		<>
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
-			<div className="flex flex-col" style={{ minHeight: "60vh" }}>
-				{/* Header */}
-				<div className="flex items-center justify-between px-4 pb-3">
-					<p className="text-sm font-semibold text-[var(--text)]">{t("chat.media_sheet.title")}</p>
-					<div className="flex items-center gap-2">
-						{activeMedia.length > 0 && (
-							<button
-								type="button"
-								onClick={() => void handleSaveAll()}
-								disabled={isSavingAll}
-								className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-50"
-								aria-label={t("profile_details.save_all")}
-								title={t("profile_details.save_all")}
+		<BottomSheet onClose={onClose} isDesktop={isDesktop} expandable bg={NATIVE_SHEET_BG} panelClassName="px-4">
+			<DrawerHeader
+				title={t("chat.media_sheet.title")}
+				actions={activeMedia.length > 0 ? (
+					<button
+						type="button"
+						onClick={() => void handleSaveAll()}
+						disabled={isSavingAll}
+						className={DRAWER_ICON_BUTTON_CLASS}
+						aria-label={t("profile_details.save_all")}
+						title={t("profile_details.save_all")}
+					>
+						{isSavingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+					</button>
+				) : undefined}
+			/>
+
+			<SlidingTabs<Tab> tabs={tabs} value={tab} onChange={setTab} className="mb-2 shrink-0" />
+
+			<DrawerBody
+				isLoading={!hasSlidIn || (isTabLoading && isEmpty)}
+				isDesktop={isDesktop}
+				gestureProps={tabSwipe}
+				empty={isEmpty ? (
+					<DrawerEmptyState
+						icon={<Images className="h-5 w-5" />}
+						title={t(tab === "sent" ? "chat.media_sheet.sent_empty_title" : "chat.media_sheet.received_empty_title")}
+						hint={t(tab === "sent" ? "chat.media_sheet.sent_empty_desc" : "chat.media_sheet.received_empty_desc")}
+					/>
+				) : undefined}
+			>
+				<DrawerGrid isDesktop={isDesktop}>
+					{showAlbums && albums.map((album) => {
+						const showCover = !!album.coverUrl && !failedCovers.has(album.albumId);
+						return (
+							<div
+								key={`album-${album.albumId}`}
+								role="button"
+								tabIndex={0}
+								onClick={() => void openAlbumViewerById(album.albumId)}
+								onKeyDown={(e) => { if (e.key === "Enter") void openAlbumViewerById(album.albumId); }}
+								className={`${DRAWER_TILE_CLASS} cursor-pointer`}
 							>
-								<Download className="h-4 w-4" />
-							</button>
-						)}
-						<SheetClose className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-							<X className="h-4 w-4" />
-						</SheetClose>
-					</div>
-				</div>
-
-				{/* Tab bar */}
-				<div className="flex border-b border-[var(--border)] px-2 pb-0 pt-1">
-					{tabs.map((tab_item) => (
-						<button
-							key={tab_item.id}
-							type="button"
-							onClick={() => setTab(tab_item.id)}
-							className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition border-b-2 -mb-px ${
-								tab === tab_item.id
-									? "border-[var(--accent)] text-[var(--accent)]"
-									: "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]"
-							}`}
-						>
-							{tab_item.icon}
-							{tab_item.label}
-							{!tab_item.loading && tab_item.count > 0 && (
-								<span className="min-w-[18px] rounded-full bg-[var(--accent)] px-1.5 py-0.5 text-center text-[10px] font-semibold leading-none text-[var(--accent-contrast)]">
-									{tab_item.count}
-								</span>
-							)}
-						</button>
-					))}
-				</div>
-
-				{/* Content */}
-				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4" data-lenis-prevent>
-					{(tab === "received" && albums.length > 0) || activeMedia.length > 0 ? (
-						<div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-							{tab === "received" && albums.map((album) => {
-								const coverFailed = failedCovers.has(album.albumId);
-								const showCover = !!album.coverUrl && !coverFailed;
-								return (
-									<button
-										key={album.albumId}
-										type="button"
-										onClick={() => void openAlbumViewerById(album.albumId)}
-										className="group relative aspect-square overflow-hidden rounded-lg bg-[var(--surface-2)]"
-									>
-										{showCover ? (
-											<img
-												src={album.coverUrl!}
-												alt=""
-												className="absolute inset-0 h-full w-full object-cover scale-110"
-												style={{ filter: "blur(3px)" }}
-												onError={() => setFailedCovers((p) => new Set([...p, album.albumId]))}
-											/>
-										) : (
-											<div className="absolute inset-0 flex items-center justify-center">
-												<LayoutGrid className="h-8 w-8 text-[var(--text-muted)] opacity-40" />
-											</div>
-										)}
-										<div className="absolute inset-0 bg-black/20" />
-										<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 pointer-events-none">
-											<div
-												className="h-7 w-7 overflow-hidden rounded-full ring-2 ring-white/60 sm:h-9 sm:w-9"
-												style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
-											>
-												<ProfileImage src={senderPhotoUrl} />
-											</div>
-											<p className="truncate max-w-full px-1 text-center text-[11px] font-medium leading-tight text-white drop-shadow">
-												{album.albumName ?? `#${album.albumId}`}
-											</p>
-										</div>
-									</button>
-								);
-							})}
-							{activeMedia.map((item, idx) => (
-								<button
-									key={item.mediaKey}
-									type="button"
-									onClick={() => setViewerIndex(idx)}
-									className="group relative aspect-square overflow-hidden rounded-lg bg-[var(--surface-2)]"
-								>
-									{item.kind === "video" ? (
-										<>
-											{/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-											<video
-												src={item.dataUri}
-												muted
-												playsInline
-												className="h-full w-full object-cover transition group-hover:scale-105"
-											/>
-											<div className="absolute inset-0 flex items-center justify-center bg-black/15">
-												<Play className="h-6 w-6 text-white drop-shadow" fill="white" />
-											</div>
-										</>
-									) : (
+								{showCover ? (
+									<>
 										<img
-											src={item.dataUri}
+											src={proxyMediaUrl(album.coverUrl!)}
 											alt=""
-											className="h-full w-full object-cover transition group-hover:scale-105"
+											className="absolute inset-0 h-full w-full scale-110 object-cover"
+											style={{ filter: "blur(3px)" }}
+											onError={() => setFailedCovers((p) => new Set([...p, album.albumId]))}
 										/>
-									)}
-								</button>
-							))}
-						</div>
-					) : mediaLoading || (tab === "received" && albumsLoading) ? (
-						<div className="flex items-center justify-center py-16">
-							<Loader2 className="h-6 w-6 animate-spin text-[var(--text-muted)]" />
-						</div>
-					) : (
-						<div className="flex flex-1 flex-col items-center justify-center gap-3 text-[var(--text-muted)]">
-							<Images className="h-10 w-10 opacity-30" />
-							<p className="text-sm font-medium">
-								{t(tab === "sent" ? "chat.media_sheet.sent_empty_title" : "chat.media_sheet.received_empty_title")}
-							</p>
-							<p className="text-xs opacity-60">
-								{t(tab === "sent" ? "chat.media_sheet.sent_empty_desc" : "chat.media_sheet.received_empty_desc")}
-							</p>
-						</div>
-					)}
-				</div>
-			</div>
+										<div className="absolute inset-0 bg-black/25" />
+									</>
+								) : (
+									<div className="absolute inset-0 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--accent)_45%,var(--surface)),color-mix(in_srgb,var(--accent)_12%,var(--surface)))]" />
+								)}
+								<GroupTileOverlay
+									// Their avatar instead of the drawer's album icon: these are albums shared with you.
+									icon={<ProfileImage src={senderPhotoUrl} className="rounded-full" iconClassName="h-5 w-5" />}
+									name={album.albumName ?? `#${album.albumId}`}
+									counts={{ images: album.contentCount.imageCount, videos: album.contentCount.videoCount }}
+								/>
+							</div>
+						);
+					})}
+					{activeMedia.map((item, idx) => (
+						<DrawerMediaTile
+							key={item.mediaKey}
+							src={item.dataUri}
+							isVideo={item.kind === "video"}
+							onSelect={(tile) => {
+								setViewerHeroRect(getHeroRectFromElement(tile));
+								setViewerIndex(idx);
+							}}
+							previewProps={bindPreview({ src: item.dataUri, isVideo: item.kind === "video" })}
+							consumePreviewClick={consumePreviewClick}
+						/>
+					))}
+				</DrawerGrid>
+			</DrawerBody>
+
+			<DrawerMediaPreview media={preview} />
 		</BottomSheet>
 
 		{viewerIndex !== null && createPortal(
@@ -525,6 +494,7 @@ export function ChatMediaSheet({
 				photos={viewerPhotos}
 				initialIndex={viewerIndex}
 				conversationId={conversationId}
+				heroRect={viewerHeroRect}
 			/>,
 			document.body,
 		)}

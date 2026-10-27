@@ -1,130 +1,23 @@
-FREE-GRIND PERSONAL USE LICENCE (NON-COMMERCIAL)
-Version 1.0
+MIT License
 
 Copyright (c) 2026 Jay Brammeld
-All rights reserved.
+Copyright (c) 2026-present Open Grind Governance (https://opengrind.org/governance)
+Copyright (c) 2026-2026 Viktor Shchelochkov <hi@hloth.dev> (https://hloth.dev)
 
-1. Definitions
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-"Software" means this project, including source code, binaries, assets,
-documentation, and any included files.
-
-"Personal Use" means private, non-commercial use by an individual for
-learning, testing, or personal projects, with no direct or indirect monetary
-benefit.
-
-"Commercial Use" includes, without limitation:
-- use by or for a business, company, organisation, or public body;
-- selling, licensing, or otherwise monetising the Software or derivative works;
-- hosting the Software or derivative works as a paid service;
-- use in any product, service, or content that is sold or monetised.
-
-2. Grant of licence
-
-Subject to compliance with this licence, you are granted a limited,
-non-exclusive, non-transferable, revocable licence to:
-
-- use the Software for Personal Use;
-- copy the Software for Personal Use;
-- modify the Software for Personal Use.
-
-You may redistribute the Software in its original, unmodified form
-for Personal Use only, provided that all copyright and attribution
-notices are retained.
-
-Redistribution of modified versions is not permitted.
-
-3. Attribution and credit requirements
-
-You must keep the original credits intact and clearly visible.
-At minimum, the following credit must be preserved:
-
-"Credits: Jay Brammeld"
-
-This credit must be retained in:
-- source code distributions;
-- any "About" or equivalent in-app credits section;
-- accompanying documentation when documentation is provided.
-
-You must not remove, alter, obscure, or misrepresent ownership notices,
-copyright notices, or attribution text.
-
-4. Commercial rights reserved
-
-All Commercial Use is prohibited unless you have prior written permission from
-the copyright holder.
-
-To request commercial rights, contact: jay@imaoreo.dev
-
-5. Restrictions
-
-You must not, without prior written permission:
-- use the Software in or for any business context;
-- sell, sublicense, lease, rent, or commercially distribute the Software;
-- provide the Software as a paid hosted service;
-- use the Software in monetised products, services, or channels.
-
-6. Termination
-
-This licence terminates automatically if you breach any term of this licence.
-Upon termination, you must immediately stop all use and distribution of the
-Software and destroy all copies in your possession or control including any modified or partial copies.
-
-7. No warranty
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
-
-8. No forks, derivative distribution, or competing versions
-
-You may not create, publish, or make publicly available any copies
-or forks of the Software.
-
-You may not distribute, share, or make available any modified or derivative
-version of the Software to any third party.
-
-All modifications are strictly limited to Personal Use. If you wish to share
-changes, you must do so solely by submitting contributions (e.g. pull requests)
-to the original repository controlled by the copyright holder.
-
-You may not maintain, distribute, or make available any alternative,
-derivative, or competing version of the Software.
-
-You may not use the Software, in whole or in part, as the basis for
-developing or promoting a competing product or service where any part
-of the Software is reused, derived, or incorporated.
-
-9. Limitation of liability
-
-IN NO EVENT SHALL JAY BRAMMELD OR CONTRIBUTORS BE LIABLE FOR ANY CLAIM, DAMAGES,
-OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-10. Entire agreement
-
-This licence constitutes the entire agreement governing your use of the
-Software for Personal Use.
-
-11. Governing law
-
-This licence shall be governed by and construed in accordance with
-the laws of Scotland. Any disputes arising under or in connection
-with this licence shall be subject to the exclusive jurisdiction of
-the Scottish courts.
-
-12. Trademarks
-"Free Grind" and any associated logos or branding are trademarks of Jay Brammeld. You may not use these trademarks without prior written permission.
-
-13. Grindr
-Grindr is a registered trademark of Grindr LLC. This project is an independent, unofficial client and is not affiliated with or endorsed by Grindr LLC in any way.
-
-14. Upstream credit
-This project was originally cloned from open-grind/open-grind at:
-https://git.opengrind.org/open-grind/open-grind
-
-Original upstream project copyright and licence attribution:
-- Copyright (c) 2026-present Open Grind Governance (https://opengrind.org/governance)
-- Copyright (c) 2026-2026 Viktor Shchelochkov <hi@hloth.dev> (https://hloth.dev)
-- Upstream licence: MIT
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

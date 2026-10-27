@@ -46,9 +46,9 @@ function DoseRow({ dose, onDelete }: { dose: PrepDose; onDelete: () => void }) {
 	return (
 		<div
 			ref={ref}
-			className={cn("flex items-center gap-4 border-t border-[var(--surface-2)] py-3 pl-4 pr-4", revealClass)}
+			className={cn("flex items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4", revealClass)}
 		>
-			<div className="h-15 w-15 shrink-0 squircle drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
+			<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
 				<Pill className="h-6 w-6" />
 			</div>
 			<div className="min-w-0 flex-1">
@@ -120,7 +120,7 @@ export function SexualHealthDosesTab({
 		<>
 			{headerSlotEl &&
 				createPortal(
-					<p className="min-h-8 flex items-center truncate text-sm">
+					<>
 						<span className={`font-semibold ${STATUS_TEXT_CLASS[variant]}`}>{label}</span>
 						<span className="text-[var(--text-muted)]">
 							{" · "}
@@ -145,7 +145,7 @@ export function SexualHealthDosesTab({
 								</>
 							)}
 						</span>
-					</p>,
+					</>,
 					headerSlotEl,
 				)}
 
@@ -156,7 +156,7 @@ export function SexualHealthDosesTab({
 					</div>
 				) : doses.length === 0 ? (
 					<SexualHealthEmptyState
-						icon={<Pill className="h-5 w-5 opacity-60" />}
+						icon={<Pill className="h-5 w-5" />}
 						title={t("sexualHealth.doses.empty", { defaultValue: "No doses logged yet" })}
 						description={t("sexualHealth.doses.empty_desc", { defaultValue: "Use the button below to log your first dose." })}
 					/>

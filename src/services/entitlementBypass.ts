@@ -3,8 +3,9 @@
  * ported from open-grind. Grindr decides a session's entitlements from the
  * geohash sent when its token is minted; re-issuing the token from Honduras
  * unlocks paid features (expiring photos, unsending, album sharing) for that
- * token. The Rust `entitlement_bypass` command does the handover and always
- * moves the server-side location back home.
+ * token. The Rust `enter_honduras` command does the handover and leaves the
+ * location there; the paid action runs while still in Honduras (Grindr checks
+ * the location when the action runs), then `leave_honduras` moves back home.
  *
  * Every paid action Grindr refuses stays pending behind a prompt (which warns
  * that this breaks Grindr's TOS and can get the account banned) instead of
@@ -17,8 +18,6 @@ import { ApiFunctionError } from "./apiHelpers";
 import { decodeGeohash, encodeGeohash } from "../utils/geohash";
 import { appLog } from "../utils/logger";
 import i18n from "../i18n";
-
-const RUN_TIMEOUT_MS = 15_000;
 
 const PAYWALL_URNS = new Set(["urn:gr:err:entitlement_limit", "urn:gr:err:tiered_feature"]);
 
@@ -153,28 +152,60 @@ export function awaitEntitlementGrant(): Promise<void> {
 	return granting ?? Promise.resolve();
 }
 
+/**
+ * Moves the server-side location back home if a previous bypass was interrupted
+ * before it could return — a crash, a suspended mobile app, or a failed
+ * move-back can otherwise leave the account stranded in Honduras. Safe to call
+ * anytime (a no-op when nothing is stranded); best-effort and never throws.
+ * Run on app launch and before sign-out.
+ */
+export async function restoreStrandedLocation(): Promise<void> {
+	try {
+		await invoke<void>("restore_stranded_location");
+	} catch (error) {
+		appLog.error("[entitlements] could not restore a stranded location", error);
+	}
+}
+
 async function startBypass(home: string): Promise<void> {
 	const actions = blocked;
 	blocked = [];
-	const grant = invoke<void>("entitlement_bypass", { honduras: randomHondurasGeohash(), home });
-	granting = grant.catch(() => undefined);
+	// Grid fetches wait on `granting` for the whole trip, so none goes out
+	// (and reports Honduras profiles) while the location is parked there.
+	let doneInHonduras!: () => void;
+	granting = new Promise<void>((resolve) => {
+		doneInHonduras = resolve;
+	});
+	let refusedAgain = false;
 	try {
-		await grant;
+		// Move to Honduras and re-issue the session there. The location STAYS in
+		// Honduras until the matching leave_honduras below — Grindr checks the
+		// location when the action runs, not only when the token is minted, so
+		// the retries must happen from Honduras (this is the #446 fix).
+		await invoke<void>("enter_honduras", { honduras: randomHondurasGeohash(), home });
+		await Promise.all(
+			actions.map((action) =>
+				action.retry().then(action.resolve, (error: unknown) => {
+					refusedAgain = true;
+					action.reject(error);
+				}),
+			),
+		);
 	} catch (error) {
+		// enter_honduras itself failed: nothing was entitled, so fail every
+		// waiting action with its original error.
 		for (const action of actions) action.reject(action.error);
 		throw error;
 	} finally {
+		// Always move back home (idempotent even if we never left) and stop
+		// gating grid fetches. A failed move-back keeps the recovery marker so a
+		// later launch or sign-out repairs it.
+		await invoke<void>("leave_honduras", { home }).catch((error: unknown) =>
+			appLog.error("[entitlements] could not move back from Honduras", error),
+		);
 		granting = null;
+		doneInHonduras();
 	}
-	let refusedAgain = false;
-	await Promise.all(
-		actions.map((action) =>
-			action.retry().then(action.resolve, (error: unknown) => {
-				refusedAgain = true;
-				action.reject(error);
-			}),
-		),
-	);
 	if (refusedAgain) {
 		toast.error(
 			i18n.t("entitlement_bypass.still_refused", {
@@ -202,12 +233,9 @@ export async function runEntitlementBypass(): Promise<void> {
 	}));
 	setState({ busy: true });
 	try {
-		await Promise.race([
-			run,
-			new Promise((_, reject) =>
-				window.setTimeout(() => reject(new Error("The bypass timed out")), RUN_TIMEOUT_MS),
-			),
-		]);
+		// No overall timeout here: enter_honduras and leave_honduras are each
+		// time-bounded in Rust, and the hold must last for the whole action.
+		await run;
 	} catch (error) {
 		appLog.error("[entitlements] bypass failed", error);
 		toast.error(

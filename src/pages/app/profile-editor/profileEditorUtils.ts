@@ -18,6 +18,7 @@ export const MAX_PROFILE_PHOTOS = 5;
 export const MAX_PROFILE_TAGS = 10;
 export const MAX_GENDERS = 3;
 export const MAX_TRAVEL_PLANS = 3;
+export const MAX_SPOTIFY_FAVORITES = 5;
 
 /** Media moderation review state, as returned per-item in a profile's `medias` array. */
 export const MEDIA_MODERATION_STATE = {
@@ -33,6 +34,7 @@ export const profileSchema = z.object({
 	age: z.number().nullable().optional(),
 	showAge: z.boolean().optional(),
 	showDistance: z.boolean().optional(),
+	approximateDistance: z.boolean().optional(),
 	height: z.number().nullable().optional(),
 	weight: z.number().nullable().optional(),
 	ethnicity: z.number().nullable().optional(),
@@ -121,12 +123,22 @@ export function getProfilePhotoHash(
 	return null;
 }
 
+/**
+ * GET /v4/me/profile wraps the profile in a one-element `profiles` array;
+ * returns the bare profile object (also accepts an unwrapped one).
+ */
+export function unwrapOwnProfile(raw: unknown): Record<string, any> | null {
+	if (raw && typeof raw === "object" && Array.isArray((raw as { profiles?: unknown }).profiles)) {
+		return (raw as { profiles: Record<string, any>[] }).profiles[0] ?? null;
+	}
+	return (raw as Record<string, any> | null) ?? null;
+}
+
 export interface ProfileDraft {
 	displayName: string;
 	aboutMe: string;
 	profileTagsText: string;
 	showAge: boolean;
-	showDistance: boolean;
 	age: string;
 	height: string;
 	weight: string;
@@ -157,7 +169,6 @@ export const emptyDraft: ProfileDraft = {
 	aboutMe: "",
 	profileTagsText: "",
 	showAge: true,
-	showDistance: true,
 	age: "",
 	height: "",
 	weight: "",
@@ -254,6 +265,53 @@ export async function buildSquareThumbCoords(file: File): Promise<string> {
 	return `${bottom},${left},${right},${top}`;
 }
 
+/** A crop as fractions (0–1) of the image's width/height. */
+export type FractionalCrop = { top: number; left: number; right: number; bottom: number };
+
+/**
+ * thumbCoords for a crop picked on the original photo, in pixels of `file` —
+ * the normalized upload, which is usually downscaled from what was shown.
+ */
+export async function buildThumbCoordsFromFraction(file: File, crop: FractionalCrop): Promise<string> {
+	const bitmap = await createImageBitmap(file);
+	const { width, height } = bitmap;
+	bitmap.close();
+	const px = (fraction: number, size: number) => Math.min(size, Math.max(0, Math.round(fraction * size)));
+	return `${px(crop.bottom, height)},${px(crop.left, width)},${px(crop.right, width)},${px(crop.top, height)}`;
+}
+
+/**
+ * The general upload crop: cuts `crop` out of `file` as a lossless PNG (the
+ * upload normalization re-encodes it anyway). A crop covering the whole image
+ * hands back the original file untouched.
+ */
+export async function cropImageFile(file: File, crop: FractionalCrop): Promise<File> {
+	const bitmap = await createImageBitmap(file);
+	try {
+		const { width, height } = bitmap;
+		const px = (fraction: number, size: number) => Math.min(size, Math.max(0, Math.round(fraction * size)));
+		const left = px(crop.left, width);
+		const top = px(crop.top, height);
+		const cropWidth = px(crop.right, width) - left;
+		const cropHeight = px(crop.bottom, height) - top;
+		if (cropWidth <= 0 || cropHeight <= 0 || (cropWidth === width && cropHeight === height)) {
+			return file;
+		}
+		const canvas = document.createElement("canvas");
+		canvas.width = cropWidth;
+		canvas.height = cropHeight;
+		const ctx = canvas.getContext("2d");
+		if (!ctx) return file;
+		ctx.drawImage(bitmap, left, top, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+		const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+		if (!png) return file;
+		const base = file.name.replace(/\.[^./]*$/, "") || "upload";
+		return new File([png], `${base}.png`, { type: "image/png", lastModified: Date.now() });
+	} finally {
+		bitmap.close();
+	}
+}
+
 export function profileToDraft(
 	profile: z.infer<typeof profileSchema> | null,
 	unitsPreset: UnitsPreset = "world",
@@ -267,7 +325,6 @@ export function profileToDraft(
 		aboutMe: profile.aboutMe ?? "",
 		profileTagsText: (profile.profileTags ?? []).join(", "),
 		showAge: profile.showAge ?? true,
-		showDistance: profile.showDistance ?? true,
 		age: profile.age?.toString() ?? "",
 		// profile.height is returned by the GET endpoint in cm; the editor input
 		// is labeled (and saved) in cm, or total inches for uk/american presets.

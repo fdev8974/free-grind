@@ -54,7 +54,7 @@ export async function addEncounter(input: AddEncounterInput): Promise<Encounter[
 	return rows;
 }
 
-/** Convenience wrapper for the chat-header "I met this person now" entry point. */
+/** Convenience wrapper for the chat-header "We just hooked up" entry point. */
 export async function addEncounterFromConversation(input: {
 	profileId: string;
 	conversationId: string;

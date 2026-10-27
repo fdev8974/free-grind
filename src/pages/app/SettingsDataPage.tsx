@@ -1,38 +1,38 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-	CalendarDays,
 	Download,
 	FileDown,
-	FileUp,
 	Loader2,
-	MessageSquareQuote,
 	RotateCcw,
 	ShieldCheck,
 	Trash2,
 	Upload,
-	X,
 } from "lucide-react";
+import { CalendarDaysFilled, FileUpFilled, MessageSquareQuoteFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
+import { saveTextFile } from "../../services/saveTextFile";
 import { useTranslation } from "react-i18next";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
+import { RowActionPill } from "../../components/ui/row-action-pill";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
-import { BottomSheet, SheetClose } from "../../components/ui/bottom-sheet";
+import { BackupProgressBar } from "../../components/BackupProgressBar";
+import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../components/ui/bottom-sheet";
+import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-fs-api";
-import { BaseDirectory, mkdir, writeFile as writeFsFile } from "@tauri-apps/plugin-fs";
 import * as chatDb from "../../services/chatDb";
 import {
 	BACKUP_CATEGORY_IDS,
+	backupErrorMessage as getErrorMessage,
 	cleanupTempFile,
 	copyPickedFileToTemp,
-	exportBackupToFile,
+	exportBackup,
 	importBackupFile,
 	inspectBackupFile,
-	newExportTempPath,
-	readFileInChunks,
+	pickBackupFileToTempAndroid,
 	type BackupCategoryId,
+	type BackupExportDestination,
 } from "../../services/backupRestore";
 import { loadEncounters } from "../../services/encounters";
 import { encountersToIcs } from "../../services/icsExport";
@@ -48,10 +48,6 @@ function formatBytes(bytes: number): string {
 	const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
 	const value = bytes / 1024 ** exponent;
 	return `${exponent === 0 ? value : value.toFixed(1)} ${units[exponent]}`;
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-	return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function SettingsDataPage() {
@@ -71,7 +67,10 @@ export function SettingsDataPage() {
 	const isDesktop = useDesktopBreakpoint();
 
 	const [exportCategories, setExportCategories] = useState<Set<BackupCategoryId>>(new Set(BACKUP_CATEGORY_IDS));
+	const [exportDestination, setExportDestination] = useState<BackupExportDestination>("downloads");
 	const [showExportCategoryPicker, setShowExportCategoryPicker] = useState(false);
+	// Closes the export picker animated once the export has finished.
+	const exportSheetCloseRef = useRef<(() => void) | null>(null);
 	const [pendingImport, setPendingImport] = useState<{
 		tempPath: string;
 		categories: BackupCategoryId[];
@@ -143,86 +142,28 @@ export function SettingsDataPage() {
 			return false;
 		}
 		setIsExporting(true);
-		const tempPath = await newExportTempPath();
 		try {
-			const fileName = `free-grind-data-${new Date().toISOString().slice(0, 10)}.zip`;
-
-			// The actual SQL read + base64 decode + zip compression all happen
-			// natively in Rust (src-tauri/src/commands/backup.rs) — this just
-			// writes the archive to a scratch file, which the platform-specific
-			// branches below then move to where the user can actually find it.
-			await exportBackupToFile(chatDb.getActiveChatDbFileName(), userId, tempPath, Array.from(exportCategories));
-
-			if (isAndroid()) {
-				// The blob-URL + <a download> trick below doesn't trigger a save on
-				// Android's WebView, so write the export directly via MediaStore instead.
-				const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "application/zip", {
-					isPending: true,
-				});
-				try {
-					const writable = await AndroidFs.openWriteFileStream(uri);
-					const writer = writable.getWriter();
-					try {
-						for await (const chunk of readFileInChunks(tempPath)) {
-							await writer.write(chunk);
-						}
-						await writer.close();
-					} catch (error) {
-						// A write failure already released the stream, so closing it
-						// again would throw and mask the real error below.
-						await writer.abort(error).catch(() => {});
-						throw error;
-					}
-					await AndroidFs.setPublicFilePending(uri, false);
-					await AndroidFs.scanPublicFile(uri);
-				} catch (error) {
-					await AndroidFs.removeFile(uri).catch(() => {});
-					throw error;
-				}
-			} else {
-				// Streams straight to disk instead of loading the whole archive
-				// into memory first.
-				const generator = readFileInChunks(tempPath);
-				const readable = new ReadableStream<Uint8Array>({
-					async pull(controller) {
-						const { value, done } = await generator.next();
-						if (done) {
-							controller.close();
-						} else {
-							controller.enqueue(value);
-						}
-					},
-					async cancel() {
-						await generator.return(undefined);
-					},
-				});
-
-				// iOS has no shared Downloads folder — write into the app's own
-				// Documents dir instead, which Info.plist's UIFileSharingEnabled +
-				// LSSupportsOpeningDocumentsInPlace expose in the Files app under
-				// "On My iPhone/iPad" > Free Grind.
-				const baseDir = isIos() ? BaseDirectory.Document : BaseDirectory.Download;
-				// Must stay under <baseDir>/FreeGrind — the fs:allow-write-file
-				// capability (desktop.json / ios.json) only scopes write access to
-				// that folder, same one saveMedia.ts saves media into on desktop.
-				await mkdir("FreeGrind", { baseDir, recursive: true });
-				await writeFsFile(`FreeGrind/${fileName}`, readable, { baseDir });
-			}
-
+			// The SQL read, base64 decode, zip compression and the copy to the
+			// final location all happen natively (src-tauri/src/commands/backup.rs)
+			// on a worker thread — nothing of the archive crosses the JS bridge.
+			const saved = await exportBackup(chatDb.getActiveChatDbFileName(), userId, Array.from(exportCategories), exportDestination);
+			if (!saved) return false;
 			toast.success(
-				isAndroid()
-					? t("data_backup.export_success", { defaultValue: "Data exported." })
+				exportDestination === "picker"
+					? t("data_backup.export_success_picker", { defaultValue: "Data exported to the chosen location." })
+					: isAndroid()
+						? t("data_backup.export_success", { defaultValue: "Data exported." })
 					: isIos()
 						? t("data_backup.export_success_ios", { defaultValue: "Data exported. Find it in the Files app under On My iPhone/iPad → Free Grind." })
 						: t("data_backup.export_success_desktop", { defaultValue: "Data exported to Downloads/FreeGrind." }),
 			);
 			return true;
 		} catch (error) {
+			appLog.error("[SettingsDataPage] backup export failed", error);
 			toast.error(getErrorMessage(error, t("data_backup.export_failed", { defaultValue: "Failed to export data." })));
 			return false;
 		} finally {
 			setIsExporting(false);
-			await cleanupTempFile(tempPath);
 		}
 	};
 
@@ -234,18 +175,20 @@ export function SettingsDataPage() {
 		);
 	};
 
-	const handleImportFile = async (file: File) => {
+	/** `stage` copies the picked archive to a local scratch path (null = picker cancelled). */
+	const handleImportFile = async (stage: () => Promise<string | null>) => {
 		if (userId == null) {
 			toast.error(t("data_backup.import_no_user", { defaultValue: "You must be signed in to import." }));
 			return;
 		}
 		setIsImporting(true);
-		// Copy the picked file to disk first (streamed, so a large archive
-		// never sits fully in WebView memory), then hand a plain path to
-		// Rust for inspection — only once we know which categories are
-		// actually in the file do we ask the user which of those to restore.
-		const tempPath = await copyPickedFileToTemp(file);
+		// Copy the picked file to disk first, then hand a plain path to Rust
+		// for inspection — only once we know which categories are actually in
+		// the file do we ask the user which of those to restore.
+		let tempPath: string | null = null;
 		try {
+			tempPath = await stage();
+			if (tempPath == null) return;
 			const inspection = await inspectBackupFile(tempPath, userId);
 			if (!inspection.ok) {
 				showImportError(inspection.error);
@@ -254,8 +197,9 @@ export function SettingsDataPage() {
 			}
 			setPendingImport({ tempPath, categories: inspection.categories, selected: new Set(inspection.categories) });
 		} catch (error) {
+			appLog.error("[SettingsDataPage] reading backup file failed", error);
 			toast.error(getErrorMessage(error, t("data_backup.import_failed", { defaultValue: "Failed to import data." })));
-			await cleanupTempFile(tempPath);
+			if (tempPath != null) await cleanupTempFile(tempPath);
 		} finally {
 			setIsImporting(false);
 		}
@@ -299,6 +243,7 @@ export function SettingsDataPage() {
 			setPendingImport(null);
 			window.location.reload();
 		} catch (error) {
+			appLog.error("[SettingsDataPage] backup import failed", error);
 			toast.error(getErrorMessage(error, t("data_backup.import_failed", { defaultValue: "Failed to import data." })));
 		} finally {
 			setIsImporting(false);
@@ -338,38 +283,8 @@ export function SettingsDataPage() {
 		}
 		setIsExportingPhrases(true);
 		try {
-			const bytes = new TextEncoder().encode(`${content}\n`);
 			const fileName = `free-grind-saved-phrases-${new Date().toISOString().slice(0, 10)}.txt`;
-
-			if (isAndroid()) {
-				// Blob-URL + <a download> doesn't trigger a save on Android's WebView
-				// (same reasoning as the other exports on this page), so this writes
-				// via the same open-stream + writer pattern used for the full data
-				// and encounters exports.
-				const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "text/plain", {
-					isPending: true,
-				});
-				try {
-					const writable = await AndroidFs.openWriteFileStream(uri);
-					const writer = writable.getWriter();
-					try {
-						await writer.write(bytes);
-						await writer.close();
-					} catch (error) {
-						await writer.abort(error).catch(() => {});
-						throw error;
-					}
-					await AndroidFs.setPublicFilePending(uri, false);
-					await AndroidFs.scanPublicFile(uri);
-				} catch (error) {
-					await AndroidFs.removeFile(uri).catch(() => {});
-					throw error;
-				}
-			} else {
-				const baseDir = isIos() ? BaseDirectory.Document : BaseDirectory.Download;
-				await mkdir("FreeGrind", { baseDir, recursive: true });
-				await writeFsFile(`FreeGrind/${fileName}`, bytes, { baseDir });
-			}
+			await saveTextFile(fileName, `${content}\n`, "text/plain");
 
 			toast.success(
 				isAndroid()
@@ -418,40 +333,8 @@ export function SettingsDataPage() {
 				toast.error(t("data_backup.encounters_export_empty", { defaultValue: "No logged encounters to export." }));
 				return;
 			}
-			const bytes = new TextEncoder().encode(encountersToIcs(encounters));
 			const fileName = `free-grind-encounters-${new Date().toISOString().slice(0, 10)}.ics`;
-
-			if (isAndroid()) {
-				// Same reasoning as the full data export above: blob-URL + <a download>
-				// doesn't trigger a save on Android's WebView. Writes via the same
-				// open-stream + writer pattern as the full data export below — a
-				// direct AndroidFs.writeFile(uri, bytes) call on a freshly-created
-				// pending MediaStore entry was unreliable on-device even though it
-				// type-checks and works on desktop.
-				const uri = await AndroidFs.createNewPublicFile(AndroidPublicGeneralPurposeDir.Download, `FreeGrind/${fileName}`, "text/calendar", {
-					isPending: true,
-				});
-				try {
-					const writable = await AndroidFs.openWriteFileStream(uri);
-					const writer = writable.getWriter();
-					try {
-						await writer.write(bytes);
-						await writer.close();
-					} catch (error) {
-						await writer.abort(error).catch(() => {});
-						throw error;
-					}
-					await AndroidFs.setPublicFilePending(uri, false);
-					await AndroidFs.scanPublicFile(uri);
-				} catch (error) {
-					await AndroidFs.removeFile(uri).catch(() => {});
-					throw error;
-				}
-			} else {
-				const baseDir = isIos() ? BaseDirectory.Document : BaseDirectory.Download;
-				await mkdir("FreeGrind", { baseDir, recursive: true });
-				await writeFsFile(`FreeGrind/${fileName}`, bytes, { baseDir });
-			}
+			await saveTextFile(fileName, encountersToIcs(encounters), "text/calendar");
 
 			toast.success(
 				isAndroid()
@@ -484,17 +367,15 @@ export function SettingsDataPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<BackToSettings />
-				<h1 className="app-title mb-1">{t("data_backup.title", { defaultValue: "Backup & Restore" })}</h1>
-				<p className="app-subtitle">
-					{t("data_backup.subtitle", { defaultValue: "Manage downloaded media and back up your account's entire data." })}
-				</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("data_backup.title", { defaultValue: "Backup & Restore" })}
+				subtitle={t("data_backup.subtitle", { defaultValue: "Manage downloaded media and back up your account's entire data." })}
+			/>
 
 			<div className="grid gap-8">
 				<div>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<button
 							id="data-export"
 							type="button"
@@ -525,12 +406,18 @@ export function SettingsDataPage() {
 						<button
 							id="data-import"
 							type="button"
-							onClick={() => fileInputRef.current?.click()}
+							onClick={() => {
+								if (isAndroid()) {
+									void handleImportFile(pickBackupFileToTempAndroid);
+								} else {
+									fileInputRef.current?.click();
+								}
+							}}
 							disabled={isImporting}
 							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
 						>
 							<div className="shrink-0 rounded-2xl bg-violet-500/15 p-2.5 text-violet-400">
-								<FileUp className="h-5 w-5" />
+								<FileUpFilled className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
 								<p className="text-sm font-semibold leading-snug">
@@ -556,7 +443,7 @@ export function SettingsDataPage() {
 							onChange={(event) => {
 								const file = event.target.files?.[0];
 								event.target.value = "";
-								if (file) void handleImportFile(file);
+								if (file) void handleImportFile(() => copyPickedFileToTemp(file));
 							}}
 						/>
 
@@ -577,7 +464,7 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.media_storage", { defaultValue: "Media Storage" })}
 						</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<div
 								id="data-storage-used"
 								className={`flex items-center justify-between gap-4 px-4 py-3.5 ${highlightId === "data-storage-used" ? "animate-settings-highlight" : ""}`}
@@ -596,15 +483,16 @@ export function SettingsDataPage() {
 												})}
 									</p>
 								</div>
-								<button
-									type="button"
+								<RowActionPill
+									tone="danger"
 									onClick={() => setShowDeleteConfirm(true)}
-									disabled={isDeleting || isLoadingUsage || (usage?.count ?? 0) === 0}
-									className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+									disabled={isLoadingUsage || (usage?.count ?? 0) === 0}
+									loading={isDeleting}
+									loadingLabel={t("data_backup.delete_all", { defaultValue: "Delete all" })}
 								>
-									{isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+									<Trash2 className="h-3.5 w-3.5" />
 									{t("data_backup.delete_all", { defaultValue: "Delete all" })}
-								</button>
+								</RowActionPill>
 							</div>
 						</div>
 					</div>
@@ -614,7 +502,7 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.phrases_section", { defaultValue: "Saved Phrases" })}
 						</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<button
 								id="data-phrases-export"
 								type="button"
@@ -623,7 +511,7 @@ export function SettingsDataPage() {
 								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${savedPhrases.length === 0 ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-phrases-export" ? "animate-settings-highlight" : ""}`}
 							>
 								<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
-									<MessageSquareQuote className="h-5 w-5" />
+									<MessageSquareQuoteFilled className="h-5 w-5" />
 								</div>
 								<div className="min-w-0 flex-1">
 									<p className="text-sm font-semibold leading-snug">
@@ -685,7 +573,7 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.encounters_section", { defaultValue: "Sexual Encounters" })}
 						</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<button
 								id="data-encounters-export"
 								type="button"
@@ -694,7 +582,7 @@ export function SettingsDataPage() {
 								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isExportingEncounters ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-encounters-export" ? "animate-settings-highlight" : ""}`}
 							>
 								<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
-									<CalendarDays className="h-5 w-5" />
+									<CalendarDaysFilled className="h-5 w-5" />
 								</div>
 								<div className="min-w-0 flex-1">
 									<p className="text-sm font-semibold leading-snug">
@@ -721,7 +609,7 @@ export function SettingsDataPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("data_backup.danger_zone", { defaultValue: "Danger Zone" })}
 					</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<div
 							id="data-reset-all"
 							className={`flex items-center justify-between gap-4 px-4 py-3.5 ${highlightId === "data-reset-all" ? "animate-settings-highlight" : ""}`}
@@ -736,15 +624,15 @@ export function SettingsDataPage() {
 									})}
 								</p>
 							</div>
-							<button
-								type="button"
+							<RowActionPill
+								tone="danger"
 								onClick={() => setShowResetConfirm(true)}
-								disabled={isResetting}
-								className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-3 text-xs font-semibold text-red-400 transition hover:bg-red-500/20 disabled:opacity-50"
+								loading={isResetting}
+								loadingLabel={t("data_backup.reset_all", { defaultValue: "Reset all settings" })}
 							>
-								{isResetting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+								<RotateCcw className="h-3.5 w-3.5" />
 								{t("data_backup.reset_all", { defaultValue: "Reset all settings" })}
-							</button>
+							</RowActionPill>
 						</div>
 					</div>
 				</div>
@@ -781,6 +669,7 @@ export function SettingsDataPage() {
 			{showExportCategoryPicker && (
 				<BottomSheet
 					onClose={() => setShowExportCategoryPicker(false)}
+					closeRef={exportSheetCloseRef}
 					isDesktop={isDesktop}
 					isProcessing={isExporting}
 					panelClassName="max-h-[82dvh]"
@@ -789,20 +678,46 @@ export function SettingsDataPage() {
 						<p className="text-sm font-semibold text-[var(--text)]">
 							{t("data_backup.export_categories_title", { defaultValue: "What do you want to export?" })}
 						</p>
-						<SheetClose
-							disabled={isExporting}
-							className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-60"
-						>
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton disabled={isExporting} />
 					</div>
 					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
 						<BackupCategoryPicker categories={BACKUP_CATEGORY_IDS} selected={exportCategories} onToggle={toggleExportCategory} />
+						<div className="px-4 pt-4">
+							<p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+								{t("data_backup.export_destination_title", { defaultValue: "Save to" })}
+							</p>
+							<div className="flex flex-wrap gap-2">
+								<Chip selected={exportDestination === "downloads"} disabled={isExporting} onClick={() => setExportDestination("downloads")}>
+									{isIos()
+										? t("data_backup.export_destination_device", { defaultValue: "This device" })
+										: t("data_backup.export_destination_downloads", { defaultValue: "Downloads" })}
+								</Chip>
+								<Chip selected={exportDestination === "picker"} disabled={isExporting} onClick={() => setExportDestination("picker")}>
+									{t("data_backup.export_destination_picker", { defaultValue: "Choose location…" })}
+								</Chip>
+							</div>
+							<p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+								{exportDestination === "downloads"
+									? isIos()
+										? t("data_backup.export_destination_device_hint_ios", {
+												defaultValue: "Saved in the Files app under On My iPhone/iPad → Free Grind.",
+											})
+										: t("data_backup.export_destination_downloads_hint", { defaultValue: "Saved to Downloads/FreeGrind on this device." })
+									: isAndroid() || isIos()
+										? t("data_backup.export_destination_picker_hint", {
+												defaultValue: "Pick any folder or cloud storage, e.g. Google Drive (requires the Drive app).",
+											})
+										: t("data_backup.export_destination_picker_hint_desktop", {
+												defaultValue: "Pick any folder, e.g. one synced by Google Drive for desktop.",
+											})}
+							</p>
+						</div>
 					</div>
-					<div className="flex gap-2 px-4 pb-4 pt-2">
+					<BackupProgressBar kind="export" active={isExporting} />
+					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
 						<SheetClose
 							disabled={isExporting}
-							className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+							className={sheetButtonClass("secondary")}
 						>
 							{t("common.cancel", { defaultValue: "Cancel" })}
 						</SheetClose>
@@ -812,12 +727,12 @@ export function SettingsDataPage() {
 								void (async () => {
 									const success = await handleExport();
 									if (success) {
-										setShowExportCategoryPicker(false);
+										exportSheetCloseRef.current?.();
 									}
 								})();
 							}}
 							disabled={isExporting || exportCategories.size === 0}
-							className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+							className={sheetButtonClass()}
 						>
 							{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 							<span>{t("data_backup.export_confirm", { defaultValue: "Export" })}</span>
@@ -832,12 +747,7 @@ export function SettingsDataPage() {
 						<p className="text-sm font-semibold text-[var(--text)]">
 							{t("data_backup.import_categories_title", { defaultValue: "What do you want to restore?" })}
 						</p>
-						<SheetClose
-							disabled={isImporting}
-							className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-60"
-						>
-							<X className="h-4 w-4" />
-						</SheetClose>
+						<SheetCloseButton disabled={isImporting} />
 					</div>
 					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
 						<p className="mb-3 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
@@ -847,10 +757,11 @@ export function SettingsDataPage() {
 						</p>
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleImportCategory} />
 					</div>
-					<div className="flex gap-2 px-4 pb-4 pt-2">
+					<BackupProgressBar kind="import" active={isImporting} />
+					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
 						<SheetClose
 							disabled={isImporting}
-							className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60"
+							className={sheetButtonClass("secondary")}
 						>
 							{t("common.cancel", { defaultValue: "Cancel" })}
 						</SheetClose>
@@ -858,7 +769,7 @@ export function SettingsDataPage() {
 							type="button"
 							onClick={() => void handleConfirmImport()}
 							disabled={isImporting || pendingImport.selected.size === 0}
-							className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+							className={sheetButtonClass()}
 						>
 							{isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
 							<span>{t("data_backup.import_confirm", { defaultValue: "Restore" })}</span>

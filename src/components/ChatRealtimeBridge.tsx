@@ -28,9 +28,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useAuth } from "../contexts/useAuth";
-import { useApi } from "../hooks/useApi";
 import { ChatRealtimeManager, setActiveRealtimeManager } from "../services/chatRealtime";
-import { TauriWebSocket, isTauriRuntime } from "../services/tauriWebSocket";
+import { isTauriRuntime } from "../services/tauriWebSocket";
+import { installAppLifecycle } from "../services/appLifecycle";
 import * as chatLog from "../services/chatLog";
 import {
 	incrementUnreadCountForProfile,
@@ -51,7 +51,7 @@ import { appLog } from "../utils/logger";
 import {
 	getMediaCaptureTarget,
 	getOtherParticipant,
-	getMessagePreviewLabel,
+	getNotificationBodyLabel,
 	getMessageImageUrl,
 	getGaymojiUrl,
 } from "../pages/app/chat/chatUtils";
@@ -59,7 +59,9 @@ import { fetchAndStoreMedia } from "../services/mediaStore";
 import { captureAlbumsForMessages } from "../services/albumStore";
 import { captureReplyPreviewsForMessages } from "../services/replyMediaStore";
 import { getConversation, getDisplayName } from "../services/conversationDirectory";
+import { hasMessage, saveProfileSnapshot } from "../services/chatDb";
 import { runAutomationRulesForSender } from "../utils/automationRules";
+import { looksLikeMessageUpdate } from "../utils/messageUpdates";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useBlockedProfileIds } from "../hooks/queries/useProfileQueries";
 import { isReadReceiptsHidden } from "../utils/privacy";
@@ -69,7 +71,11 @@ import {
 	isForegroundNotificationsEnabled,
 	isTapNotificationsEnabled,
 } from "../utils/notificationSettings";
-import { notifyLocal, clearChatNotifications } from "../services/localNotify";
+import {
+	notifyLocal,
+	clearChatNotifications,
+	withdrawMessageNotification,
+} from "../services/localNotify";
 
 let cachedIsAndroid: boolean | null = null;
 function isAndroidRuntime(): boolean {
@@ -122,6 +128,9 @@ function isAppForeground(): boolean {
 
 export const CHAT_REALTIME_EVENT = "fg:chat-realtime-event";
 export const CHAT_REALTIME_STATUS = "fg:chat-realtime-status";
+// Fired when realtime events may have been missed (socket came back after
+// a drop, or the Rust bridge lagged) — listeners refetch over REST.
+export const CHAT_REALTIME_RESYNC = "fg:chat-realtime-resync";
 export const TAP_RECEIVED_EVENT = "fg:tap-received";
 export const VIEW_RECEIVED_EVENT = "fg:view-received";
 export const TYPING_STATUS_EVENT = "fg:typing-status";
@@ -300,18 +309,19 @@ function extractMessages(envelope: RealtimeEnvelope): Message[] {
 	});
 }
 
+// The chatDb lookup also catches updates the payload alone can't (e.g. us
+// removing our reaction) — anything already stored isn't new.
+async function isMessageUpdate(m: Message, userId: string | number | null | undefined): Promise<boolean> {
+	if (looksLikeMessageUpdate(m, userId)) return true;
+	return hasMessage(m.messageId).catch(() => false);
+}
+
 export function ChatRealtimeBridge() {
 	const { userId, settingsReady } = useAuth();
-	const { callMethod } = useApi();
     const apiFunctions = useApiFunctions();
 	const queryClient = useQueryClient();
 	const location = useLocation();
 	const { t } = useTranslation();
-
-	const callMethodRef = useRef(callMethod);
-	useEffect(() => {
-		callMethodRef.current = callMethod;
-	}, [callMethod]);
 
 	const tRef = useRef(t);
 	useEffect(() => {
@@ -523,7 +533,17 @@ export function ChatRealtimeBridge() {
 		): Promise<"accessible" | "not_found" | "blocked"> => {
 			try {
 				const profile = await apiFunctions.getProfileDetail(profileId);
-				return classifyProfileAccess(profile);
+				const status = classifyProfileAccess(profile);
+				// A profile that just blocked us is often still fully fetchable for
+				// a few seconds before it collapses to the nulled stub — snapshot
+				// it while we can (awaited, so it lands before recordBlockEvent reads
+				// it) so the Block Activity entry can show a name + avatar even for
+				// someone we never had a chat thread with. Mirrors GridProfilePage/
+				// ChatPage, which snapshot on any accessible fetch.
+				if (status === "accessible") {
+					await saveProfileSnapshot(profileId, JSON.stringify(profile)).catch(() => {});
+				}
+				return status;
 			} catch {
 				return "accessible";
 			}
@@ -588,7 +608,7 @@ export function ChatRealtimeBridge() {
 			const conv = getConversation(m.conversationId);
 			const other = conv ? getOtherParticipant(conv, userIdRef.current) : null;
 			const senderName = conv?.data.name?.trim() || tRef.current("common.unknown_display_name");
-			const bodyText = getMessagePreviewLabel(m, tRef.current);
+			const bodyText = getNotificationBodyLabel(m, tRef.current);
 			// Same as the FCM-side native code: inline preview for picture/gif
 			// content, deliberately excluded for ExpiringImage (view-once) and
 			// Video (no thumbnail available).
@@ -611,6 +631,7 @@ export function ChatRealtimeBridge() {
 					conversationId: m.conversationId,
 					senderId: String(m.senderId),
 					messageType: m.type,
+					messageId: m.messageId,
 					previewImageUrl,
 					rawData: {
 						senderProfileImageMediaHash: other?.primaryMediaHash ?? null,
@@ -671,20 +692,22 @@ export function ChatRealtimeBridge() {
 			void notifyLocal({ title: senderName, body: bodyText, group: "taps" });
 		};
 
+		let lastResyncAt = 0;
+		const requestResync = (reason: string) => {
+			const now = Date.now();
+			if (now - lastResyncAt < 2_000) return;
+			lastResyncAt = now;
+			appLog.debug(`[chat-ws:bridge] resync (${reason})`);
+			void queryClient.invalidateQueries({ queryKey: ["interest", "list"] });
+			window.dispatchEvent(new CustomEvent(CHAT_REALTIME_RESYNC));
+		};
+
 		const manager = new ChatRealtimeManager({
-			url: "wss://grindr.mobi/v1/ws",
-			getToken: async () => {
-				try {
-					const tok = await callMethodRef.current("websocket_token");
-					return typeof tok === "string" ? tok : null;
-				} catch {
-					appLog.warn("[chat-ws:bridge] token fetch failed");
-					return null;
-				}
-			},
 			onStatusChange: (status) => {
 				dispatchStatus(status);
 			},
+			onReconnect: () => requestResync("reconnected"),
+			onEventsDropped: () => requestResync("events dropped"),
 			onEvent: async (envelope) => {
 				appLog.debug(`[chat-ws:bridge] onEvent type=${envelope.type} payload=${JSON.stringify(envelope.payload)}`);
 
@@ -820,6 +843,9 @@ export function ChatRealtimeBridge() {
 							)
 						: [];
 					if (ids.length > 0) {
+						// Like open-grind: a deleted conversation takes its
+						// notification with it.
+						for (const id of ids) void clearChatNotifications(id).catch(() => {});
 						const notificationId =
 							typeof envelope.notificationId === "string" ? envelope.notificationId : null;
 						const { systemMessages } = await toggleArchiveOnConversationDelete(
@@ -850,7 +876,14 @@ export function ChatRealtimeBridge() {
 							messageText = msgBody.text;
 						}
 
-						const isIncoming = userIdRef.current != null && Number(m.senderId) !== Number(userIdRef.current);
+						const fromOther = userIdRef.current != null && Number(m.senderId) !== Number(userIdRef.current);
+						if (fromOther && m.unsent) withdrawMessageNotification(m.conversationId, m.messageId);
+						// chat.v1.message_sent also fires when a message is unsent or
+						// reacted to, re-delivering the original message (same
+						// messageId). Reacting to their message would otherwise look
+						// like a new incoming one — notification + unread bump.
+						const isIncoming =
+							fromOther && !(await isMessageUpdate(m, userIdRef.current));
 
 						// --- CUSTOM AUTOMATION RULES ---
 						if (isIncoming && m.senderId) {
@@ -897,8 +930,8 @@ export function ChatRealtimeBridge() {
 							// actually see.
 							const isViewingThisChat =
 								isAppForeground() &&
-								(path === `/app/chat/${m.conversationId}` ||
-									path.startsWith(`/app/chat/${m.conversationId}/`));
+								(path === `/chat/${m.conversationId}` ||
+									path.startsWith(`/chat/${m.conversationId}/`));
 							if (!isViewingThisChat) {
 								await incrementUnreadCountForProfile(
 									String(m.senderId),
@@ -938,36 +971,20 @@ export function ChatRealtimeBridge() {
 					}),
 				);
 			},
-			onRawMessage: (_raw) => {
-				// appLog.debug(`[chat-ws:bridge:raw] ${JSON.stringify(raw)}`);
-			},
 			onParseError: (raw, error) => {
 				appLog.warn("[chat-ws:bridge:parse-error]", { raw, error });
 			},
-			buildSocket: isTauriRuntime()
-				? (url) => new TauriWebSocket(url) as unknown as WebSocket
-				: undefined,
 		});
 
 		manager.start();
 		setActiveRealtimeManager(manager);
 
-		// Handle Foreground/Background shifts on Android
-		const handleVisibilityChange = () => {
-			if (document.visibilityState === "visible") {
-				// appLog.debug("[chat-ws:bridge] app visible; checking connection...");
-				// Restarting the manager is the safest way to ensure a fresh,
-				// functional socket after a potentially long background sleep.
-				manager.stop({ suppressStatus: true });
-				manager.start();
-			}
-		};
-
-		document.addEventListener("visibilitychange", handleVisibilityChange);
+		// Suspend/resume and network changes force a fresh socket on the Rust
+		// side; the manager just sees the resulting close/open.
+		const uninstallLifecycle = installAppLifecycle();
 
 		return () => {
-			// appLog.debug("[chat-ws:bridge] stopping manager");
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			uninstallLifecycle();
 			setActiveRealtimeManager(null);
 			manager.stop({ suppressStatus: true });
 		};

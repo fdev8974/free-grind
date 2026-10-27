@@ -13,6 +13,12 @@ export type AlbumListItem = {
 	isShareable: boolean;
 };
 
+/** Per-album media counts for the chat drawer's album tiles. */
+export type AlbumMediaCount = {
+	images: number;
+	videos: number;
+};
+
 export type AlbumContentItem = {
 	contentId: number;
 	contentType: string | null;

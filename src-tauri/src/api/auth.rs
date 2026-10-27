@@ -202,6 +202,8 @@ pub struct Restriction {
     pub sub_reason: Option<String>,
     /// Whether a timed ban was issued automatically.
     pub automated: Option<bool>,
+    /// Whether the ban agreement of a timed ban has been accepted.
+    pub agreement_completed: Option<bool>,
 }
 
 impl Restriction {
@@ -213,6 +215,7 @@ impl Restriction {
             expires_at: None,
             sub_reason: None,
             automated: None,
+            agreement_completed: None,
         }
     }
 }
@@ -230,6 +233,7 @@ impl From<grindr::Restriction> for Restriction {
                 expires_at: details.expiry_time,
                 sub_reason: details.sub_reason,
                 automated: Some(details.is_automated),
+                agreement_completed: None,
             },
             grindr::Restriction::TrustVendorRejected => Self::simple("trustVendorRejected", None, None),
             grindr::Restriction::Other(raw) => Self::simple("other", None, Some(raw)),
@@ -249,9 +253,9 @@ fn region_str(region: grindr::VerificationRegion) -> &'static str {
 }
 
 // ---------------------------------------------------------------------------
-// Session JWT decoding — only needed to read back the free-form
-// `restrictionReason` of a TRUST_VENDOR_REJECTED session, which grindr.rs
-// doesn't keep. The signature isn't verified (the client doesn't hold the key
+// Session JWT decoding — only needed to read back what grindr.rs doesn't
+// keep: the free-form `restrictionReason` of a TRUST_VENDOR_REJECTED session
+// and a timed ban's `banDetails.isAgreementCompleted`. The signature isn't verified (the client doesn't hold the key
 // and the claim only decides what to show).
 // ---------------------------------------------------------------------------
 
@@ -260,6 +264,15 @@ fn region_str(region: grindr::VerificationRegion) -> &'static str {
 struct JwtClaims {
     #[serde(default)]
     restriction_reason: Option<String>,
+    #[serde(default)]
+    ban_details: Option<JwtBanDetails>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JwtBanDetails {
+    #[serde(default)]
+    is_agreement_completed: Option<bool>,
 }
 
 fn decode_jwt(token: &str) -> Result<JwtClaims, AppError> {
@@ -518,6 +531,58 @@ impl DeviceStorage {
     }
 }
 
+/// Accounts created with this app. Kept with the device identity rather than
+/// in the frontend, so resetting settings or clearing webview data doesn't
+/// clear it; on Windows it is shared by every instance.
+struct SignUpCounter;
+
+const SIGN_UP_LIMIT: u32 = 3;
+const SIGN_UP_COUNT_SLOT: &str = "sign-up-count";
+
+#[cfg(target_os = "windows")]
+fn sign_up_count_path() -> PathBuf {
+    crate::windows_instance::windows_app_data_root_dir()
+        .join("free-grind")
+        .join(format!("{SIGN_UP_COUNT_SLOT}.msgpack"))
+}
+
+impl SignUpCounter {
+    #[cfg(target_os = "windows")]
+    fn read_bytes() -> Result<Option<Vec<u8>>, AppError> {
+        read_file(&sign_up_count_path())
+    }
+
+    #[cfg(target_os = "windows")]
+    fn write_bytes(bytes: &[u8]) -> Result<(), AppError> {
+        write_file(&sign_up_count_path(), bytes)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn read_bytes() -> Result<Option<Vec<u8>>, AppError> {
+        get_slot_bytes(SIGN_UP_COUNT_SLOT)
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn write_bytes(bytes: &[u8]) -> Result<(), AppError> {
+        set_slot_bytes(SIGN_UP_COUNT_SLOT, bytes)
+    }
+
+    fn count() -> Result<u32, AppError> {
+        match Self::read_bytes()? {
+            Some(bytes) => rmp_serde::from_slice(&bytes)
+                .map_err(|e| AppError::Auth(format!("sign-up count decode failed: {e}"))),
+            None => Ok(0),
+        }
+    }
+
+    fn record() -> Result<(), AppError> {
+        let next = Self::count()?.saturating_add(1);
+        let bytes = rmp_serde::to_vec(&next)
+            .map_err(|e| AppError::Auth(format!("sign-up count encode failed: {e}")))?;
+        Self::write_bytes(&bytes)
+    }
+}
+
 /// Device signing keys, one per account: grindr.rs refuses to restore a key
 /// that belongs to a different account than the session's, so a single slot
 /// would lose each account's key on every switch.
@@ -686,16 +751,37 @@ fn session_restriction(session: Option<&grindr::Session>) -> Option<grindr::Rest
 
 /// A session's restriction as the frontend gets it. grindr.rs keeps no reason
 /// for `TRUST_VENDOR_REJECTED`, whose `restrictionReason` is free-form text,
-/// so that one is read back out of the session JWT.
+/// and no agreement state for a timed ban, so those are read back out of the
+/// session JWT.
 fn frontend_restriction(session: Option<&grindr::Session>) -> Option<Restriction> {
     let token = session?.token.as_ref()?;
     let mut restriction = Restriction::from(token.restriction.clone()?);
-    if restriction.kind == "trustVendorRejected" {
-        restriction.reason = decode_jwt(&token.session_id)
-            .ok()
-            .and_then(|claims| claims.restriction_reason);
+    match restriction.kind.as_str() {
+        "trustVendorRejected" => {
+            restriction.reason = decode_jwt(&token.session_id)
+                .ok()
+                .and_then(|claims| claims.restriction_reason);
+        }
+        "timedBan" => {
+            restriction.agreement_completed = decode_jwt(&token.session_id)
+                .ok()
+                .and_then(|claims| claims.ban_details?.is_agreement_completed);
+        }
+        _ => {}
     }
     Some(restriction)
+}
+
+/// Registers a freshly signed-in session in the account switcher before the
+/// command returns. The session-watch task in `spawn_persistence_tasks` does
+/// the same, but asynchronously — the frontend lists the saved accounts right
+/// after `login` resolves and would otherwise miss the account it just added.
+async fn persist_current_session(client: &grindr::GrindrClient) {
+    let session = client.session_receiver().borrow().clone();
+    if let Some(session) = session {
+        let device = client.current_device().await;
+        persist(&session, &device);
+    }
 }
 
 /// A sign-in/refresh result with the restriction taken from the session it
@@ -725,6 +811,18 @@ fn spawn_persistence_tasks(app: &tauri::AppHandle, client: grindr::GrindrClient)
         let mut session_rx = client.session_receiver();
         let mut restriction = session_restriction(session_rx.borrow().as_ref());
         let handle = tauri::async_runtime::spawn(async move {
+            // The loop below only sees *changes*, so a session resumed at
+            // startup would never reach the switcher — e.g. one signed in
+            // before multi-account existed, which then vanished from the
+            // list as soon as another account was added.
+            let initial = session_rx.borrow().clone();
+            if let Some(session) = initial {
+                let device = client.current_device().await;
+                if let Err(e) = AuthStorage::save_account(&session, &device) {
+                    eprintln!("[auth] failed to register account in switcher: {e}");
+                }
+            }
+
             while session_rx.changed().await.is_ok() {
                 // Cloned out before any `.await` below: the `watch::Ref` guard
                 // isn't `Send` and must not live across one.
@@ -791,9 +889,16 @@ pub fn adopt_client(
 ) -> Result<grindr::GrindrClient, AppError> {
     let client = super::client::build_client(device, session)?;
     let state = app.state::<AppState>();
+    client.set_active(state.app_active.load(std::sync::atomic::Ordering::SeqCst));
     if let Some(old_client) = state.set_client(client.clone()) {
+        // Media the previous account loaded (cache, in-flight fetches, open
+        // video streams) must not be served to the next one.
+        let app = app.clone();
         tauri::async_runtime::spawn(async move {
             old_client.sign_out().await;
+            app.state::<crate::media_proxy::MediaProxy>()
+                .forget_everything()
+                .await;
         });
     }
 
@@ -813,17 +918,22 @@ pub async fn login(
     email: String,
     password: String,
     captcha_token: Option<String>,
+    keep_device: Option<bool>,
 ) -> Result<LoginResult, AppError> {
     let client = state.client()?;
 
     // A fresh device identity per login attempt (including re-logins to the
-    // same account) so logins can't be correlated with each other.
-    client
-        .rotate_device(grindr::DeviceInfo::generate())
-        .await
-        .map_err(AppError::from)?;
+    // same account) so logins can't be correlated with each other. The first
+    // sign-in right after create_account keeps the device the account was
+    // created on.
+    if !keep_device.unwrap_or(false) {
+        client
+            .rotate_device(grindr::DeviceInfo::generate())
+            .await
+            .map_err(AppError::from)?;
+    }
 
-    // With a reCAPTCHA token (minted by the Free Grind reCAPTCHA helper)
+    // With a reCAPTCHA token (minted on Android by RecaptchaMintActivity)
     // the crate signs in via /v9/sessions, which accounts with first-party
     // reCAPTCHA require; otherwise via /v8/sessions.
     let result = match captcha_token.as_deref() {
@@ -834,7 +944,169 @@ pub async fn login(
 
     // A key stored for this account belongs to its previous device.
     SigningKeyStorage::delete(&result.profile_id);
+    persist_current_session(&client).await;
     Ok(login_result(&client, result))
+}
+
+#[derive(Serialize)]
+pub struct SignUpQuota {
+    used: u32,
+    limit: u32,
+}
+
+/// How many accounts this app has created, out of how many it allows.
+#[tauri::command]
+pub async fn sign_up_quota() -> Result<SignUpQuota, AppError> {
+    Ok(SignUpQuota {
+        used: SignUpCounter::count()?,
+        limit: SIGN_UP_LIMIT,
+    })
+}
+
+/// First-party account creation with email and password. Returns the new
+/// profile id; the response carries no session, so the caller signs in
+/// afterwards with `login` and `keep_device`.
+#[tauri::command]
+pub async fn create_account(
+    state: tauri::State<'_, AppState>,
+    email: String,
+    password: String,
+    birthday: i64,
+    captcha_token: String,
+    push_token: Option<String>,
+) -> Result<String, AppError> {
+    // Enforced here, not just in the UI. An unreadable count refuses too.
+    if SignUpCounter::count()? >= SIGN_UP_LIMIT {
+        return Err(AppError::SignUpLimitReached);
+    }
+
+    let client = state.client()?;
+
+    let captcha = captcha_token.trim();
+    if captcha.is_empty() {
+        return Err(AppError::Api {
+            code: 400,
+            message: "A reCAPTCHA token is required to create an account".to_owned(),
+        });
+    }
+
+    client
+        .rotate_device(grindr::DeviceInfo::generate())
+        .await
+        .map_err(AppError::from)?;
+
+    let profile_id = client
+        .create_account_with_email(&grindr::NewEmailAccount {
+            email: email.trim(),
+            password: &password,
+            birthday_ms: birthday,
+            captcha_token: captcha,
+            // "" before Android has handed over an FCM token.
+            push_token: push_token.as_deref().map(str::trim).unwrap_or(""),
+            // Never sign up for Grindr's marketing email.
+            opt_in: false,
+        })
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+
+    // The account exists either way; a failed write only loses the count.
+    if let Err(e) = SignUpCounter::record() {
+        eprintln!("[auth] failed to record sign-up: {e}");
+    }
+    Ok(profile_id)
+}
+
+/// Asks Grindr to email a password-reset link to `email`
+/// (`POST /v3/users/forgot-password`). Runs without a session, on a fresh
+/// device identity like the other pre-login calls.
+#[tauri::command]
+pub async fn forgot_password(
+    state: tauri::State<'_, AppState>,
+    email: String,
+) -> Result<(), AppError> {
+    let client = state.client()?;
+    client
+        .rotate_device(grindr::DeviceInfo::generate())
+        .await
+        .map_err(AppError::from)?;
+    client
+        .forgot_password(email.trim())
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SmsCodeResult {
+    code: Option<i32>,
+    message: String,
+}
+
+impl From<grindr::SmsCodeResponse> for SmsCodeResult {
+    fn from(r: grindr::SmsCodeResponse) -> Self {
+        Self {
+            code: r.code,
+            message: r.message,
+        }
+    }
+}
+
+/// Texts a verification code for a profile whose sign-in was refused as
+/// verification required (code 30). Runs on the device of that sign-in
+/// attempt, without a session.
+#[tauri::command]
+pub async fn send_sms_verification_code(
+    state: tauri::State<'_, AppState>,
+    profile_id: String,
+    country_code: String,
+    phone_number: String,
+) -> Result<SmsCodeResult, AppError> {
+    let client = state.client()?;
+    let exchange = client
+        .send_sms_verification_code(&profile_id, country_code.trim(), phone_number.trim())
+        .await;
+    sms_result(exchange, "sendcode", &client)
+}
+
+#[tauri::command]
+pub async fn verify_sms_verification_code(
+    state: tauri::State<'_, AppState>,
+    profile_id: String,
+    country_code: String,
+    phone_number: String,
+    code: String,
+) -> Result<SmsCodeResult, AppError> {
+    let client = state.client()?;
+    let exchange = client
+        .verify_sms_verification_code(
+            &profile_id,
+            country_code.trim(),
+            phone_number.trim(),
+            code.trim(),
+        )
+        .await;
+    sms_result(exchange, "verifycode", &client)
+}
+
+/// Keeps the exchange for `sms_debug_report`, then answers with its result.
+fn sms_result(
+    exchange: Result<grindr::SmsExchange, grindr::GrindrError>,
+    action: &str,
+    client: &grindr::GrindrClient,
+) -> Result<SmsCodeResult, AppError> {
+    let result = match exchange {
+        Ok(exchange) => {
+            super::sms_report::record_exchange(&exchange);
+            exchange.result
+        }
+        Err(error) => {
+            super::sms_report::record_failure(action, &error);
+            Err(error)
+        }
+    };
+    result
+        .map(SmsCodeResult::from)
+        .map_err(|e| AppError::from_client_error(e, client))
 }
 
 /// Whether Grindr has first-party reCAPTCHA enabled (the
@@ -852,13 +1124,45 @@ pub async fn recaptcha_first_party_enabled(
 }
 
 /// Third-party sign-in with a Google OAuth access token, as handed out by the
-/// Free Grind Google OAuth companion app or browser extension. Grindr no longer
+/// Free Grind Google OAuth WebExtension (built into Android's
+/// GoogleOAuthActivity, or the browser extension). Grindr no longer
 /// issues a session JWT for third-party accounts that could be pasted into
 /// a token login, so the provider token is exchanged for a session directly.
 #[tauri::command]
 pub async fn login_with_google(
     state: tauri::State<'_, AppState>,
     token: String,
+) -> Result<LoginResult, AppError> {
+    login_with_third_party(&state, grindr::SessionKind::Google, token.trim()).await
+}
+
+/// Desktop Google sign-in without the extension: opens a Google sign-in
+/// window (see `google_oauth`) and exchanges the resulting access token.
+#[tauri::command]
+pub async fn login_with_google_window(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<LoginResult, AppError> {
+    let token = super::google_oauth::fetch_access_token(&app).await?;
+    login_with_third_party(&state, grindr::SessionKind::Google, &token).await
+}
+
+/// Third-party sign-in with Facebook: opens Facebook's own OAuth dialog in a
+/// separate sign-in window (see `facebook_oauth`) and exchanges the resulting
+/// user access token for a session.
+#[tauri::command]
+pub async fn login_with_facebook(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+) -> Result<LoginResult, AppError> {
+    let token = super::facebook_oauth::fetch_access_token(&app).await?;
+    login_with_third_party(&state, grindr::SessionKind::Facebook, &token).await
+}
+
+async fn login_with_third_party(
+    state: &AppState,
+    kind: grindr::SessionKind,
+    token: &str,
 ) -> Result<LoginResult, AppError> {
     let client = state.client()?;
 
@@ -867,12 +1171,14 @@ pub async fn login_with_google(
         .await
         .map_err(AppError::from)?;
 
-    let result = client
-        .sign_in_with_google(token.trim())
-        .await
-        .map_err(|e| AppError::from_client_error(e, &client))?;
+    let signed_in = match kind {
+        grindr::SessionKind::Facebook => client.sign_in_with_facebook(token).await,
+        _ => client.sign_in_with_google(token).await,
+    };
+    let result = signed_in.map_err(|e| AppError::from_client_error(e, &client))?;
 
     SigningKeyStorage::delete(&result.profile_id);
+    persist_current_session(&client).await;
     Ok(login_result(&client, result))
 }
 
@@ -891,6 +1197,7 @@ pub async fn refresh_token(state: tauri::State<'_, AppState>) -> Result<LoginRes
 #[tauri::command]
 pub async fn logout(app: tauri::AppHandle) -> Result<(), AppError> {
     AuthStorage::clear_session()?;
+    super::facebook_oauth::forget_sign_in_profile(&app).await;
 
     // Rotate the device identity so the next login on this "active" slot
     // can't be correlated with the one that just signed out.
@@ -923,8 +1230,40 @@ pub async fn account_restriction(state: tauri::State<'_, AppState>) -> Result<Op
     Ok(restriction)
 }
 
+/// Accepts the ban agreement Grindr requires once a timed ban has run out,
+/// then refreshes the session: the restriction lives on the session token,
+/// so only a new token tells whether the account is usable again.
 #[tauri::command]
-pub async fn list_saved_accounts() -> Result<Vec<SavedAccountMeta>, AppError> {
+pub async fn accept_ban_agreement(state: tauri::State<'_, AppState>) -> Result<LoginResult, AppError> {
+    let client = state.client()?;
+    // Same locale the L-Locale header carries for this device.
+    let locale = client.current_device().await.locale;
+    let response = client
+        .request(grindr::Method::POST, "/v1/agreements/ban")
+        .json(&serde_json::json!({
+            "version": 1,
+            "locale": locale,
+        }))
+        .send()
+        .await
+        .map_err(|e| AppError::from_client_error(e, &client))?;
+
+    if !(200..300).contains(&response.status) {
+        return Err(AppError::from(grindr::GrindrError::from_response(
+            response.status,
+            &response.body,
+        )));
+    }
+
+    match client.refresh_session().await {
+        Ok(result) => Ok(login_result(&client, result)),
+        Err(grindr::GrindrError::Unauthorized { .. }) => Err(AppError::TokenExpired),
+        Err(e) => Err(AppError::from_client_error(e, &client)),
+    }
+}
+
+#[tauri::command]
+pub async fn list_saved_accounts()-> Result<Vec<SavedAccountMeta>, AppError> {
     AuthStorage::list_saved_accounts()
 }
 
@@ -948,6 +1287,157 @@ pub async fn switch_account(app: tauri::AppHandle, profile_id: String) -> Result
 #[tauri::command]
 pub async fn remove_saved_account(profile_id: String) -> Result<(), AppError> {
     AuthStorage::remove_saved_account(&profile_id)
+}
+
+// ---------------------------------------------------------------------------
+// Account transfer — signs the active account in on another device by QR code
+// (or the same code pasted as text on desktop). There's no Free Grind server
+// to broker it, so the code carries the account's credentials themselves:
+// whoever reads it can sign in as this account. The receiving device mints its
+// own device identity and signing key; the sending device stays signed in.
+// ---------------------------------------------------------------------------
+
+const TRANSFER_CODE_PREFIX: &str = "FGLOGIN1:";
+/// How long a code is accepted after it was created. Only the receiving device
+/// checks it, so it keeps an old screenshot from working, nothing more.
+const TRANSFER_CODE_TTL_SECS: u64 = 10 * 60;
+/// Leeway for a receiving device whose clock runs behind the sender's.
+const TRANSFER_CLOCK_SKEW_SECS: u64 = 5 * 60;
+
+// Error markers for the frontend, matched verbatim (AuthContext.tsx).
+const TRANSFER_CODE_INVALID: &str = "transfer-code-invalid";
+const TRANSFER_CODE_EXPIRED: &str = "transfer-code-expired";
+const TRANSFER_CODE_REVOKED: &str = "transfer-code-revoked";
+const TRANSFER_UNSUPPORTED: &str = "transfer-unsupported";
+
+#[derive(Serialize, Deserialize)]
+struct TransferPayload {
+    credentials: grindr::Credentials,
+    issued_at: u64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TransferCode {
+    code: String,
+    /// `code` as a QR code, an SVG document.
+    qr_svg: String,
+    /// Unix seconds.
+    expires_at: u64,
+}
+
+fn encode_transfer_code(payload: &TransferPayload) -> Result<String, AppError> {
+    use base64::Engine;
+    let bytes = rmp_serde::encode::to_vec_named(payload)
+        .map_err(|e| AppError::Auth(format!("transfer code encode failed: {e}")))?;
+    Ok(format!(
+        "{TRANSFER_CODE_PREFIX}{}",
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
+    ))
+}
+
+fn decode_transfer_code(code: &str) -> Result<TransferPayload, AppError> {
+    use base64::Engine;
+    let invalid = || AppError::Auth(TRANSFER_CODE_INVALID.to_owned());
+    // Pasted text may come with line breaks or stray spaces.
+    let compact: String = code.chars().filter(|c| !c.is_whitespace()).collect();
+    let encoded = compact.strip_prefix(TRANSFER_CODE_PREFIX).ok_or_else(invalid)?;
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(encoded)
+        .map_err(|_| invalid())?;
+    let payload: TransferPayload = rmp_serde::from_slice(&bytes).map_err(|_| invalid())?;
+    if payload.credentials.profile_id.is_none() || payload.credentials.auth_token.is_empty() {
+        return Err(invalid());
+    }
+    Ok(payload)
+}
+
+fn render_qr_svg(code: &str) -> Result<String, AppError> {
+    use qrcode::render::svg;
+    let qr = qrcode::QrCode::with_error_correction_level(code.as_bytes(), qrcode::EcLevel::M)
+        .map_err(|e| AppError::Auth(format!("QR code encode failed: {e}")))?;
+    // Always dark on light, whatever the app theme: scanners expect it.
+    Ok(qr
+        .render::<svg::Color>()
+        .min_dimensions(256, 256)
+        .dark_color(svg::Color("#000000"))
+        .light_color(svg::Color("#ffffff"))
+        .build())
+}
+
+/// A sign-in code for the active account, to scan or paste on another device.
+#[tauri::command]
+pub async fn create_transfer_code(state: tauri::State<'_, AppState>) -> Result<TransferCode, AppError> {
+    let client = state.client()?;
+    let credentials = client
+        .session_receiver()
+        .borrow()
+        .as_ref()
+        .map(|session| session.credentials.clone())
+        .ok_or(AppError::NotSignedIn)?;
+    // A session without a refreshable auth token can't be resumed elsewhere.
+    if credentials.profile_id.is_none() || credentials.auth_token.is_empty() {
+        return Err(AppError::Auth(TRANSFER_UNSUPPORTED.to_owned()));
+    }
+
+    let issued_at = chrono::Utc::now().timestamp() as u64;
+    let code = encode_transfer_code(&TransferPayload {
+        credentials,
+        issued_at,
+    })?;
+    let qr_svg = render_qr_svg(&code)?;
+    Ok(TransferCode {
+        code,
+        qr_svg,
+        expires_at: issued_at + TRANSFER_CODE_TTL_SECS,
+    })
+}
+
+/// Signs in with a code from `create_transfer_code` on another device, then
+/// makes that account the active one here.
+#[tauri::command]
+pub async fn sign_in_with_transfer_code(app: tauri::AppHandle, code: String) -> Result<LoginResult, AppError> {
+    let payload = decode_transfer_code(&code)?;
+    let now = chrono::Utc::now().timestamp() as u64;
+    if now > payload.issued_at + TRANSFER_CODE_TTL_SECS
+        || payload.issued_at > now + TRANSFER_CLOCK_SKEW_SECS
+    {
+        return Err(AppError::Auth(TRANSFER_CODE_EXPIRED.to_owned()));
+    }
+
+    // A device identity of its own, so the account shows up as a second
+    // device instead of one device in two places at once.
+    let session = grindr::Session {
+        credentials: payload.credentials,
+        token: None,
+    };
+    // Minted on a client of its own first: a refused code then leaves the
+    // account signed in here (add-profile mode) untouched.
+    let probe = super::client::build_client(Some(grindr::DeviceInfo::generate()), Some(session))?;
+    let result = match probe.refresh_session().await {
+        Ok(result) => result,
+        Err(grindr::GrindrError::Unauthorized { .. }) => {
+            return Err(AppError::Auth(TRANSFER_CODE_REVOKED.to_owned()));
+        }
+        Err(e) => return Err(AppError::from_client_error(e, &probe)),
+    };
+    let session = probe
+        .session_receiver()
+        .borrow()
+        .clone()
+        .ok_or(AppError::SessionCleared)?;
+    let device = probe.current_device().await;
+    probe.sign_out().await;
+
+    // A key stored for this account belongs to the device it had here before.
+    SigningKeyStorage::delete(&result.profile_id);
+    AuthStorage::set_session(&session)?;
+    let _ = DeviceStorage::save(&device);
+    if let Err(e) = AuthStorage::save_account(&session, &device) {
+        eprintln!("[auth] failed to register account in switcher: {e}");
+    }
+    let client = adopt_client(&app, Some(device), Some(session))?;
+    Ok(login_result(&client, result))
 }
 
 #[tauri::command]
@@ -1191,5 +1681,28 @@ mod tests {
         let restriction = frontend_restriction(Some(&session)).unwrap();
         assert_eq!(restriction.kind, "trustVendorRejected");
         assert_eq!(restriction.reason.as_deref(), Some("Device risk too high"));
+    }
+
+    #[test]
+    fn timed_ban_reads_its_agreement_state_from_the_jwt() {
+        // ... {"exp":9999999999,"profileId":"42","restriction":"TIMED_BAN","banDetails":{"expiryTime":1800000000,"isAgreementCompleted":true}} ...
+        let jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksInByb2ZpbGVJZCI6IjQyIiwicmVzdHJpY3Rpb24iOiJUSU1FRF9CQU4iLCJiYW5EZXRhaWxzIjp7ImV4cGlyeVRpbWUiOjE4MDAwMDAwMDAsImlzQWdyZWVtZW50Q29tcGxldGVkIjp0cnVlfX0.sig";
+        let session = grindr::Session {
+            credentials: grindr::Credentials {
+                email: String::new(),
+                profile_id: Some("42".to_owned()),
+                auth_token: String::new(),
+                kind: grindr::SessionKind::Email,
+                third_party_user_id: None,
+            },
+            token: Some(grindr::SessionToken {
+                session_id: jwt.to_owned(),
+                expires_at: 9_999_999_999,
+                restriction: Some(grindr::Restriction::TimedBan(grindr::BanDetails::default())),
+            }),
+        };
+        let restriction = frontend_restriction(Some(&session)).unwrap();
+        assert_eq!(restriction.kind, "timedBan");
+        assert_eq!(restriction.agreement_completed, Some(true));
     }
 }

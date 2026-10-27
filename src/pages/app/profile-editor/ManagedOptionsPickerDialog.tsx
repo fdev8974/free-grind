@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Search, X } from "lucide-react";
-import { BottomSheet, SheetClose } from "../../../components/ui/bottom-sheet";
-import { Chip } from "../../../components/ui/chip";
+import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { SheetChip, SheetSearchInput } from "../../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
+import { cn } from "../../../utils/cn";
 import type { ManagedOption } from "../GridPage.types";
 
 interface ManagedOptionsPickerDialogProps {
@@ -12,8 +12,13 @@ interface ManagedOptionsPickerDialogProps {
 	noMatchesLabel: string;
 	options: ManagedOption[];
 	selected: number[];
-	max: number;
-	maxMessage: string;
+	/** Omit for an unlimited selection (e.g. a browse filter). */
+	max?: number;
+	maxMessage?: string;
+	/** Label of the footer button that closes the sheet. Selections apply live either way. */
+	confirmLabel: string;
+	/** Active chip / confirm button color — explore mode passes its own. */
+	accentColor?: string;
 	onToggle: (value: number) => void;
 	onClose: () => void;
 }
@@ -26,6 +31,8 @@ export function ManagedOptionsPickerDialog({
 	selected,
 	max,
 	maxMessage,
+	confirmLabel,
+	accentColor = "var(--accent)",
 	onToggle,
 	onClose,
 }: ManagedOptionsPickerDialogProps) {
@@ -42,57 +49,60 @@ export function ManagedOptionsPickerDialog({
 
 	const handleToggle = (value: number) => {
 		const alreadySelected = selected.includes(value);
-		if (!alreadySelected && selected.length >= max) {
-			toast.error(maxMessage);
+		if (!alreadySelected && max !== undefined && selected.length >= max) {
+			if (maxMessage) toast.error(maxMessage);
 			return;
 		}
 		onToggle(value);
 	};
 
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
-			<div className="flex items-center justify-between px-4 pb-3">
-				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
-				<SheetClose className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]">
-					<X className="h-4 w-4" />
-				</SheetClose>
+		<BottomSheet
+			onClose={onClose}
+			expandable
+			isDesktop={isDesktop}
+			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}
+		>
+			<div className="mb-3 flex items-center justify-between gap-3">
+				<h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
+				<SheetCloseButton />
 			</div>
-			<div className="px-4 pb-4">
-				<label className="relative block">
-					<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-					<input
-						type="text"
-						value={query}
-						onChange={(event) => setQuery(event.target.value)}
-						placeholder={searchPlaceholder}
-						className="input-field pl-9 pr-9"
-					/>
-					{query && (
-						<button
-							type="button"
-							onClick={() => setQuery("")}
-							className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-						>
-							<X className="h-4 w-4" />
-						</button>
-					)}
-				</label>
-			</div>
-			<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3" data-lenis-prevent>
+			<SheetSearchInput
+				floating
+				value={query}
+				onChange={setQuery}
+				placeholder={searchPlaceholder}
+				accentColor={accentColor}
+			/>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				{filteredOptions.length > 0 ? (
-					<div className="flex flex-wrap gap-2.5">
-						{filteredOptions.map((option) => {
-							const active = selected.includes(option.value);
-							return (
-								<Chip key={option.value} selected={active} onClick={() => handleToggle(option.value)}>
-									{option.label}
-								</Chip>
-							);
-						})}
+					<div className="flex flex-wrap gap-2">
+						{filteredOptions.map((option) => (
+							<SheetChip
+								key={option.value}
+								active={selected.includes(option.value)}
+								onClick={() => handleToggle(option.value)}
+								accentColor={accentColor}
+							>
+								{option.label}
+							</SheetChip>
+						))}
 					</div>
 				) : (
 					<p className="py-6 text-center text-sm text-[var(--text-muted)]">{noMatchesLabel}</p>
 				)}
+			</div>
+			<div className={SHEET_FOOTER_CLASS}>
+				<SheetClose
+					style={{ backgroundColor: accentColor }}
+					className={cn(
+						sheetButtonClass(),
+						accentColor === "var(--accent)" ? "text-[var(--accent-contrast)]" : "text-white",
+					)}
+				>
+					{confirmLabel}
+				</SheetClose>
 			</div>
 		</BottomSheet>
 	);

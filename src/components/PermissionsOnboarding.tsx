@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, Camera, Check, ChevronRight, Loader2, MapPin, Mic, Monitor, Moon, Sun, X } from "lucide-react";
+import { AlertTriangle, Bell, Camera, Check, ChevronRight, ExternalLink, Loader2, MapPin, Mic, Monitor, Moon, RefreshCcw, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	isPermissionGranted,
@@ -13,10 +13,14 @@ import { isTauriRuntime } from "../services/tauriWebSocket";
 import { getCurrentLocation } from "../services/currentLocation";
 import { appLog } from "../utils/logger";
 import { markOnboardingComplete } from "../utils/onboardingStorage";
+import { useHorizontalSwipe } from "../hooks/useHorizontalSwipe";
+import { GITHUB_OTA_SIGNING_URL, openExternalUrl } from "../utils/githubIssues";
+import { isHotswapAvailable, setHotswapAutoUpdateEnabled } from "../services/hotswap";
 import { usePreferences, ACCENT_PRESETS } from "../contexts/PreferencesContext";
 import type { ColorScheme } from "../contexts/PreferencesContext";
 import { LoadingScreen } from "./LoadingScreen";
 import logo from "../images/freegrind-logo.webp";
+import { fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 
 type PermissionStatus = "idle" | "granted" | "denied" | "unavailable";
 
@@ -86,11 +90,16 @@ function classifyMediaError(
 
 const PERM_STEPS = ["notifications", "location", "microphone", "camera"] as const;
 type PermStep = typeof PERM_STEPS[number];
-type Step = "loading" | "welcome" | "theme" | "accent" | PermStep | "scam";
+type Step = "loading" | "welcome" | "theme" | "accent" | PermStep | "updates" | "scam";
 
-const STEP_ORDER: Step[] = ["welcome", "theme", "accent", "notifications", "location", "microphone", "camera", "scam"];
+// OTA updates only exist in the native app, so the web build skips that step.
+const DOT_STEPS: Step[] = [
+	"theme", "accent", "notifications", "location", "microphone", "camera",
+	...(isHotswapAvailable() ? (["updates"] as const) : []),
+	"scam",
+];
 
-const DOT_STEPS: Step[] = ["theme", "accent", "notifications", "location", "microphone", "camera", "scam"];
+const STEP_ORDER: Step[] = ["welcome", ...DOT_STEPS];
 
 function StepDots({ current }: { current: Step }) {
 	const currentIdx = DOT_STEPS.indexOf(current);
@@ -103,7 +112,7 @@ function StepDots({ current }: { current: Step }) {
 					className="h-1.5 rounded-full transition-all duration-300"
 					style={{
 						width: i === currentIdx ? "24px" : "6px",
-						background: i <= currentIdx ? "var(--accent)" : "var(--border)",
+						background: i <= currentIdx ? "var(--accent)" : "color-mix(in srgb, var(--text) 15%, transparent)",
 					}}
 				/>
 			))}
@@ -125,21 +134,21 @@ function TopDots({ current }: { current: Step }) {
 function StatusBadge({ status, isRequesting }: { status: PermissionStatus; isRequesting?: boolean }) {
 	if (isRequesting) {
 		return (
-			<div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)]">
+			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-2)] shadow-md">
 				<Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--accent)]" />
 			</div>
 		);
 	}
 	if (status === "granted") {
 		return (
-			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-500">
+			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-green-500 shadow-md">
 				<Check className="h-3.5 w-3.5 text-white" />
 			</div>
 		);
 	}
 	if (status === "denied" || status === "unavailable") {
 		return (
-			<div className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)]">
+			<div className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-2)] shadow-md">
 				<X className="h-3.5 w-3.5 text-[var(--text-muted)]" />
 			</div>
 		);
@@ -148,8 +157,10 @@ function StatusBadge({ status, isRequesting }: { status: PermissionStatus; isReq
 }
 
 export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }) {
-	const { colorScheme, accentColor, setPreferences } = usePreferences();
+	const { colorScheme, amoledMode, accentColor, setPreferences } = usePreferences();
 	const [step, setStep] = useState<Step>("loading");
+	// Which side the current step slides in from: 1 = forward, -1 = back.
+	const [direction, setDirection] = useState<1 | -1>(1);
 
 	const [notificationStatus, setNotificationStatus] = useState<PermissionStatus>("idle");
 	const [locationStatus, setLocationStatus] = useState<PermissionStatus>("idle");
@@ -157,6 +168,8 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	const [microphoneDetail, setMicrophoneDetail] = useState<string | null>(null);
 	const [cameraStatus, setCameraStatus] = useState<PermissionStatus>("idle");
 	const [cameraDetail, setCameraDetail] = useState<string | null>(null);
+	// Not a permission, but shown the same way: granted = auto-update on.
+	const [updatesStatus, setUpdatesStatus] = useState<PermissionStatus>("idle");
 
 	const [isRequesting, setIsRequesting] = useState(false);
 
@@ -218,12 +231,32 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		})();
 	}, [step]);
 
+	const stepIdx = STEP_ORDER.indexOf(step);
+
 	const advance = () => {
-		const idx = STEP_ORDER.indexOf(step);
-		if (idx !== -1 && idx < STEP_ORDER.length - 1) {
-			setStep(STEP_ORDER[idx + 1]);
+		if (stepIdx !== -1 && stepIdx < STEP_ORDER.length - 1) {
+			setDirection(1);
+			setStep(STEP_ORDER[stepIdx + 1]);
 		}
 	};
+
+	const back = () => {
+		if (stepIdx > 0) {
+			setDirection(-1);
+			setStep(STEP_ORDER[stepIdx - 1]);
+		}
+	};
+
+	// Swiping forward is the same as the step's Continue/Skip, so it's left out
+	// where the step still needs an explicit choice (updates) or finishes (scam).
+	const canSwipeNext = !isRequesting
+		&& (step === "welcome" || step === "theme" || step === "accent" || (PERM_STEPS as readonly Step[]).includes(step)
+			|| (step === "updates" && updatesStatus !== "idle"));
+	const swipe = useHorizontalSwipe({
+		onNext: canSwipeNext ? advance : undefined,
+		onPrev: !isRequesting && stepIdx > 0 ? back : undefined,
+	});
+	const pageClass = direction > 0 ? "animate-step-in-next" : "animate-step-in-prev";
 
 	const requestNotifications = async () => {
 		if (!isTauriRuntime()) { setNotificationStatus("granted"); return; }
@@ -288,7 +321,13 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		try {
 			const bridge = getAndroidBridge();
 			if (bridge?.checkMicrophonePermission) {
-				navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
+				// Only here to trigger the WebView's permission prompt — stop the
+				// stream right away, otherwise it keeps the mic open for the rest
+				// of the session.
+				navigator.mediaDevices
+					.getUserMedia({ audio: true })
+					.then((stream) => stream.getTracks().forEach((t) => t.stop()))
+					.catch(() => {});
 				const granted = await pollBridgePermission(() => bridge.checkMicrophonePermission!());
 				setMicrophoneStatus(granted ? "granted" : "denied");
 				setMicrophoneDetail(null);
@@ -313,7 +352,12 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		try {
 			const bridge = getAndroidBridge();
 			if (bridge?.checkCameraPermission) {
-				navigator.mediaDevices.getUserMedia({ video: true }).catch(() => {});
+				// Same as the mic above: a leftover stream would keep the camera
+				// busy, and Android then fails the video call's own capture.
+				navigator.mediaDevices
+					.getUserMedia({ video: true })
+					.then((stream) => stream.getTracks().forEach((t) => t.stop()))
+					.catch(() => {});
 				const granted = await pollBridgePermission(() => bridge.checkCameraPermission!());
 				setCameraStatus(granted ? "granted" : "denied");
 				setCameraDetail(null);
@@ -345,9 +389,9 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	if (step === "welcome") {
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<div
-						className="flex flex-1 flex-col items-center justify-center px-8 text-center"
+						key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}
 						style={{
 							paddingTop: "max(48px, env(safe-area-inset-top))",
 							paddingBottom: "max(48px, calc(env(safe-area-inset-bottom) + 80px))",
@@ -367,7 +411,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Get Started
 							<ChevronRight className="h-4 w-4" />
@@ -380,41 +424,38 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 
 	// ── Theme ────────────────────────────────────────────────────────────────
 	if (step === "theme") {
-		const options: { value: ColorScheme; label: string; sub: string; icon: typeof Sun; previewBg: string; previewFg: string }[] = [
-			{ value: "system", label: "System", sub: "Follows your device", icon: Monitor, previewBg: "linear-gradient(135deg, #eceff4 50%, #1f2835 50%)", previewFg: "#96a2b6" },
-			{ value: "light",  label: "Light",  sub: "Always light",        icon: Sun,     previewBg: "#eceff4",  previewFg: "#6d28d9" },
-			{ value: "dark",   label: "Dark",   sub: "Always dark",         icon: Moon,    previewBg: "#1f2835",  previewFg: "#96a2b6" },
+		// AMOLED isn't a color scheme of its own: it's dark plus the pure-black flag.
+		const options: { key: string; value: ColorScheme; amoled: boolean; label: string; sub: string; icon: typeof Sun; previewBg: string; previewFg: string }[] = [
+			{ key: "system", value: "system", amoled: false, label: "System", sub: "Follows your device", icon: Monitor, previewBg: "linear-gradient(135deg, #eceff4 50%, #1f2835 50%)", previewFg: "#96a2b6" },
+			{ key: "light",  value: "light",  amoled: false, label: "Light",  sub: "Always light",        icon: Sun,     previewBg: "#eceff4",  previewFg: "#6d28d9" },
+			{ key: "dark",   value: "dark",   amoled: false, label: "Dark",   sub: "Always dark",         icon: Moon,    previewBg: "#1f2835",  previewFg: "#96a2b6" },
+			{ key: "amoled", value: "dark",   amoled: true,  label: "AMOLED", sub: "Pure black for OLED screens", icon: Moon, previewBg: "#000000", previewFg: "#96a2b6" },
 		];
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<TopDots current="theme" />
 
-					<div className="flex flex-1 flex-col justify-center px-6">
+					<div key={step} className={`flex flex-1 flex-col justify-center px-6 ${pageClass}`}>
 						<div className="mb-7 text-center">
 							<h2 className="text-xl font-bold text-[var(--text)]">Choose Your Theme</h2>
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
 						</div>
 
 						<div className="flex flex-col gap-2.5">
-							{options.map(({ value, label, sub, icon: Icon, previewBg, previewFg }) => {
-								const active = colorScheme === value;
+							{options.map(({ key, value, amoled, label, sub, icon: Icon, previewBg, previewFg }) => {
+								const active = colorScheme === value && (value !== "dark" || amoledMode === amoled);
 								return (
 									<button
-										key={value}
+										key={key}
 										type="button"
-										onClick={() => setPreferences({ colorScheme: value })}
-										className="flex items-center gap-4 rounded-xl border p-4 text-left transition-all"
-										style={{
-											borderColor: active ? "var(--accent)" : "var(--border)",
-											background: active
-												? "color-mix(in srgb, var(--accent) 8%, var(--surface-2))"
-												: "var(--surface-2)",
-										}}
+										onClick={() => setPreferences({ colorScheme: value, amoledMode: amoled })}
+										className={`flex items-center gap-4 rounded-2xl p-4 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] native-card ${active ? "accent-tint-18" : "hover:brightness-110"}`}
 									>
 										<div
 											className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-											style={{ background: previewBg }}
+											// Inset hairline so the black AMOLED swatch doesn't vanish on a black page.
+											style={{ background: previewBg, boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent)" }}
 										>
 											<Icon className="h-5 w-5" style={{ color: previewFg }} />
 										</div>
@@ -427,7 +468,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 										<div
 											className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all"
 											style={{
-												borderColor: active ? "var(--accent)" : "var(--border)",
+												borderColor: active ? "var(--accent)" : "color-mix(in srgb, var(--text) 25%, transparent)",
 												background: active ? "var(--accent)" : "transparent",
 											}}
 										>
@@ -446,7 +487,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Continue
 							<ChevronRight className="h-4 w-4" />
@@ -461,18 +502,18 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	if (step === "accent") {
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<TopDots current="accent" />
 
-					<div className="flex flex-1 flex-col justify-center px-6">
+					<div key={step} className={`flex flex-1 flex-col justify-center px-6 ${pageClass}`}>
 						<div className="mb-7 text-center">
 							<h2 className="text-xl font-bold text-[var(--text)]">Pick Your Color</h2>
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
 						</div>
 
-						{/* Same height as the theme step's three option rows, so the
+						{/* Same height as the theme step's four option rows, so the
 						    title doesn't jump between the two steps. */}
-						<div className="mx-auto grid h-[266px] grid-cols-4 content-start gap-4 pt-16">
+						<div className="mx-auto grid h-[358px] grid-cols-4 content-start gap-4 pt-16">
 							{ACCENT_PRESETS.map((preset) => {
 								const active = accentColor === preset.color;
 								return (
@@ -503,7 +544,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Continue
 							<ChevronRight className="h-4 w-4" />
@@ -514,19 +555,98 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 		);
 	}
 
+	// ── Automatic Updates ────────────────────────────────────────────────────
+	if (step === "updates") {
+		const choose = (enabled: boolean) => {
+			setHotswapAutoUpdateEnabled(enabled);
+			setUpdatesStatus(enabled ? "granted" : "denied");
+		};
+		const settled = updatesStatus !== "idle";
+		return (
+			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
+					<TopDots current="updates" />
+
+					<div key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}>
+						<div className="relative mb-6">
+							<div className={fullscreenIconTileClass}>
+								<RefreshCcw className="h-9 w-9" />
+							</div>
+							<div className="absolute -right-2 -top-2">
+								<StatusBadge status={updatesStatus} />
+							</div>
+						</div>
+						<h2 className="text-xl font-bold text-[var(--text)]">Automatic Updates</h2>
+						<div className="flex min-h-24 flex-col items-center">
+							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
+								Automatically downloads the newest app interface built by GitHub Actions and reloads as soon as it's available. Only updates signed with our key are installed. When off, you'll be asked before each update.
+							</p>
+							<button
+								type="button"
+								onClick={() => void openExternalUrl(GITHUB_OTA_SIGNING_URL)}
+								className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline"
+							>
+								More about that
+								<ExternalLink className="h-3 w-3" />
+							</button>
+							{updatesStatus === "denied" && (
+								<p className="mt-2 text-xs text-[var(--text-muted)]">
+									You can turn this on in Settings later.
+								</p>
+							)}
+						</div>
+					</div>
+
+					<div
+						className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
+						style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
+					>
+						{settled ? (
+							<button
+								type="button"
+								onClick={advance}
+								className={fullscreenPrimaryButtonClass}
+							>
+								Continue
+								<ChevronRight className="h-4 w-4" />
+							</button>
+						) : (
+							<>
+								<button
+									type="button"
+									onClick={() => choose(true)}
+									className={fullscreenPrimaryButtonClass}
+								>
+									Turn On
+								</button>
+								<button
+									type="button"
+									onClick={() => choose(false)}
+									className={fullscreenSecondaryButtonClass}
+								>
+									Ask me each time
+								</button>
+							</>
+						)}
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	// ── Scam Warning ──────────────────────────────────────────────────────────
 	if (step === "scam") {
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-				<div className="fs-card-inner fs-card-lg flex flex-col">
+				<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 					<TopDots current="scam" />
 
-					<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-						<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-amber-400/40 bg-amber-400/10">
-							<AlertTriangle className="h-9 w-9 text-amber-500" />
+					<div key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}>
+						<div className="mb-6 flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xl shadow-amber-500/25">
+							<AlertTriangle className="h-9 w-9" />
 						</div>
 						<h2 className="text-xl font-bold text-[var(--text)]">Caution</h2>
-						<div className="flex h-24 flex-col items-center overflow-hidden">
+						<div className="flex min-h-24 flex-col items-center">
 							<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 								Free Grind is free — and always will be. If someone sold you access or is asking you to pay, it's a scam. Don't pay, and report it.
 							</p>
@@ -540,7 +660,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={handleDone}
-							className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110"
+							className={fullscreenPrimaryButtonClass}
 						>
 							Got it
 							<ChevronRight className="h-4 w-4" />
@@ -593,13 +713,13 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 
 	return (
 		<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
-			<div className="fs-card-inner fs-card-lg flex flex-col">
+			<div className="fs-card-inner fs-card-lg flex flex-col" {...swipe}>
 				<TopDots current={step} />
 
-				<div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+				<div key={step} className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}>
 					<div className="relative mb-6">
-						<div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--surface-2)] border border-[var(--border)]">
-							<Icon className="h-9 w-9 text-[var(--accent)]" />
+						<div className={fullscreenIconTileClass}>
+							<Icon className="h-9 w-9" />
 						</div>
 						<div className="absolute -right-2 -top-2">
 							<StatusBadge status={status} isRequesting={isRequesting} />
@@ -607,7 +727,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 					</div>
 
 					<h2 className="text-xl font-bold text-[var(--text)]">{cfg.title}</h2>
-					<div className="flex h-24 flex-col items-center overflow-hidden">
+					<div className="flex min-h-24 flex-col items-center">
 						<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">
 							{cfg.description}
 						</p>
@@ -632,7 +752,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						type="button"
 						onClick={settled ? advance : cfg.onRequest}
 						disabled={isRequesting}
-						className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3.5 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
+						className={fullscreenPrimaryButtonClass}
 					>
 						{settled ? (
 							<>Continue <ChevronRight className="h-4 w-4" /></>
@@ -646,7 +766,7 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 						<button
 							type="button"
 							onClick={advance}
-							className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)]"
+							className={fullscreenSecondaryButtonClass}
 						>
 							Skip for now
 						</button>

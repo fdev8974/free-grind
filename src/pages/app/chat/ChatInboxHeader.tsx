@@ -1,5 +1,7 @@
-import { Clapperboard, Images, Loader2, Mail, Pill, Search, SlidersHorizontal, Star, X } from "lucide-react";
+import { Loader2, Search, Star, X } from "lucide-react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
+import { ImagesFilled, MailFilled, PillFilled, VideosFilled } from "../../../components/icons/FilledIcons";
 import { type CSSProperties, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -127,35 +129,35 @@ export function ChatInboxHeader({
 							{!isDesktop && !isSearchOpen && <ChatSyncHeaderCaption userId={userId} />}
 						</div>
 
-						<div className="flex shrink-0 items-center gap-0.5">
+						<div className="-my-2 flex shrink-0 items-center gap-0.5">
 							{!isSearchOpen && showSexualHealth && (
 								<button
 									type="button"
 									onClick={() => navigate("/settings/sexual-health", { state: { from: "inbox" } })}
-									className="rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("sexualHealth.title", { defaultValue: "Sexual Health" })}
 								>
-									<Pill className="h-5 w-5" />
+									<PillFilled className="h-5 w-5" />
 								</button>
 							)}
 							{!isSearchOpen && showVideoGallery && (
 								<button
 									type="button"
 									onClick={() => navigate("/chat/videos")}
-									className="rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("video_gallery.open", { defaultValue: "Videos" })}
 								>
-									<Clapperboard className="h-5 w-5" />
+									<VideosFilled className="h-5 w-5" />
 								</button>
 							)}
 							{!isSearchOpen && (
 								<button
 									type="button"
 									onClick={() => navigate("/chat/albums")}
-									className="-mr-1 rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+									className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 									aria-label={t("chat.tabs.albums")}
 								>
-									<Images className="h-5 w-5" />
+									<ImagesFilled className="h-5 w-5" />
 								</button>
 							)}
 							<button
@@ -164,7 +166,7 @@ export function ChatInboxHeader({
 									if (isSearchOpen) { onSetIsSearchOpen(false); onSetSearchQuery(""); }
 									else onSetIsSearchOpen(true);
 								}}
-								className="rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+								className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
 								aria-label={isSearchOpen ? t("common.close") : t("chat.open_search")}
 							>
 								{isSearchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
@@ -182,16 +184,21 @@ export function ChatInboxHeader({
 										onSetFiltersDraft(buildChatFiltersDraft(inboxFilters, { pinnedFilter, archivedFilter, hiddenFilter }, needsReplyOnly));
 										onSetIsFiltersOpen(true);
 									}}
+									title={t("right_now.filters")}
+									aria-label={t("right_now.filters")}
 									className={cn(
-										"inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all active:scale-95",
+										"inline-flex shrink-0 items-center justify-center gap-1.5 py-2 text-sm font-bold transition-all active:scale-95",
+										// Icon-only keeps the text line height so it matches the label pills.
+										hasActiveInboxFilters && activeFilterCount > 0 ? "px-3" : "px-[11px]",
 										hasActiveInboxFilters
 											? "rounded-full border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/40"
 											: "glass-pill text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
 									)}
 									style={!hasActiveInboxFilters ? { "--pill-color": "var(--accent)" } as CSSProperties : undefined}
 								>
-									<SlidersHorizontal className="h-3.5 w-3.5" />
-									{t("right_now.filters")}
+									<span className="flex h-5 items-center">
+										<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
+									</span>
 									{hasActiveInboxFilters && activeFilterCount > 0 && (
 										<span className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--accent-contrast)] px-1 text-[9px] font-bold text-[var(--accent)]">
 											{activeFilterCount}
@@ -200,13 +207,13 @@ export function ChatInboxHeader({
 								</button>
 
 								<FilterPill
-									icon={<Mail className="h-3.5 w-3.5" />}
+									icon={<MailFilled className="h-3.5 w-3.5" />}
 									label={t("chat_filters.options.unread")}
 									active={Boolean(inboxFilters.unreadOnly)}
 									onClick={onToggleUnreadOnly}
 								/>
 								<FilterPill
-									icon={<Star className={`h-3.5 w-3.5 ${inboxFilters.favoritesOnly ? "fill-current" : ""}`} />}
+									icon={<Star className="h-3.5 w-3.5 fill-current" />}
 									label={t("browse_filters.options.favorites")}
 									active={Boolean(inboxFilters.favoritesOnly)}
 									onClick={onToggleFavoritesOnly}

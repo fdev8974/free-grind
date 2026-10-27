@@ -1,32 +1,27 @@
 import {
-	ArrowDown,
-	ArrowLeftRight,
-	ArrowUp,
-	ArrowUpDown,
-	Calendar,
-	ChevronsDown,
-	ChevronsUp,
+	Pencil,
 	Compass,
 	ExternalLink,
-	Flame,
 	Globe,
 	Hash,
 	Heart,
-	Home,
-	MapPin,
 	MessageCircle,
 	MessageSquare,
-	type LucideIcon,
+	Music,
 	Plane,
 	Ruler,
 	Scale,
 	Search,
 	Shield,
-	ShieldCheck,
 	Sparkles,
 	Syringe,
+	MapPin,
 	User,
+	ShieldCheck,
+	Flame,
+	Calendar,
 } from "lucide-react";
+import { HomeFilled, MapPinFilled } from "../../../../components/icons/FilledIcons";
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
@@ -45,6 +40,7 @@ import { reverseGeocodeCityDistrictForGeohash } from "../geocoding";
 import { getProfileImageUrl, getThumbImageUrl } from "../../../../utils/media";
 import { resolveAvatarSrc } from "../../../../services/avatarStore";
 import { ProfileImage } from "../../../../components/ui/profile-image";
+import { Chip } from "../../../../components/ui/chip";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { TapSelector } from "./TapSelector";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
@@ -53,10 +49,25 @@ import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { formatTravelDateRange } from "../utils";
 import { decodeGeohash } from "../../../../utils/geohash";
 import { appLog } from "../../../../utils/logger";
+import { SEXUAL_POSITION_ICONS } from "../../profile-option-builders";
 import { isIos } from "../../../../services/saveMedia";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { useProfileSpotifyFavorites } from "../../../../hooks/queries/useProfileQueries";
+import { proxyMediaUrl } from "../../../../utils/mediaProxy";
+import { haptic } from "../../../../utils/haptics";
+import { PRIVACY_BLUR_CLASS, PRIVACY_BLUR_TRANSITION_CLASS, useProfilePhotoPrivacy } from "../../../../hooks/useProfilePhotoPrivacy";
+import { useBlurReveal } from "../../../../hooks/useBlurReveal";
 
 type LabelMap = Record<number, string>;
+
+// Profile-written text (About, Right Now): shown in full, line breaks kept,
+// long words/links wrapped instead of running off the card.
+const INSTAGRAM_ICON_PATH = "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z";
+const X_ICON_PATH = "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.26 5.632L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z";
+const FACEBOOK_ICON_PATH = "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z";
+
+const PROFILE_TEXT_CLASS =
+	"whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--text)] [overflow-wrap:anywhere] select-text";
 
 function TravelPlanRow({
 	plan,
@@ -131,7 +142,7 @@ type ProfileDetailsContentProps = {
 	estimatedCreatedAt: string;
 	travelPlans?: TravelPlan[];
 	profileStatusLabel: string;
-	profileStatusLevel: "online" | "recent" | "offline";
+	profileStatusLevel: "online" | "ending_soon" | "recent" | "offline";
 	ownTags?: string[];
 	profileDistance: number | null;
 	chatContactStatus: ChatContactIndexRecord | null;
@@ -165,7 +176,10 @@ type ProfileDetailsContentProps = {
 	relationshipStatusLabels: LabelMap;
 	extraTopSection?: ReactNode;
 	hidePicturesSection?: boolean;
-	onDragDeltaChange?: (delta: number) => void;
+	/** Display-only copy (e.g. a swipe preview): skips its own data fetches. */
+	isPreview?: boolean;
+	/** The content sits on a native card (the desktop modal) rather than the page. */
+	isOnCard?: boolean;
 	isChatLinkedProfile?: boolean;
 };
 
@@ -216,18 +230,33 @@ export function ProfileDetailsContent({
 	relationshipStatusLabels,
 	extraTopSection,
 	hidePicturesSection = false,
-	onDragDeltaChange,
+	isPreview = false,
+	isOnCard = false,
 	isChatLinkedProfile = false,
 }: ProfileDetailsContentProps) {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 	// Only chat partners get their photos locally cached (see avatarStore.ts) —
 	// ordinary Grid/Browse viewing stays uncached to avoid storing every photo
 	// of every profile a user swipes past.
 	const photoSrc = (hash: string, size: "1024x1024" | "320x320") => {
 		const url = size === "1024x1024" ? getProfileImageUrl(hash, size) : getThumbImageUrl(hash, size);
-		return resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url;
+		return proxyMediaUrl(resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url);
 	};
 	const { unitsPreset } = usePreferences();
+	// Safe-for-work mode shows the default-profile placeholder instead of the photos.
+	const photoPrivacy = useProfilePhotoPrivacy();
+	const visiblePhotoHashes = photoPrivacy === "hide" ? [] : activeProfilePhotoHashes;
+	// Blurred photos: the first tap unblurs one, the next opens it (like chat media).
+	const photoReveal = useBlurReveal(photoPrivacy === "blur");
+	const photoTapProps = (hash: string, index: number) => ({
+		onClick: () => {
+			if (photoReveal.revealOnTap(hash)) return;
+			openPhotoViewer(index);
+		},
+		...photoReveal.hoverProps(hash),
+	});
+	const { data: spotifyFavorites } = useProfileSpotifyFavorites(activeProfile.profileId, !isPreview);
+	const favoriteSongs = spotifyFavorites ?? [];
 	const hasChatHistory = Boolean(chatContactStatus?.hasChatted) || (chatContactStatus?.unreadCount ?? 0) > 0;
 	const lastMessageLabel = formatRelativeTime(chatContactStatus?.lastMessageTimestamp ?? null);
 	const visibleTravelPlans = useMemo(
@@ -250,12 +279,17 @@ export function ProfileDetailsContent({
 	// post (rightNowPosted) and would otherwise render an empty box.
 	const hasRightNowDetail = hasRightNow && Boolean(rightNowTextTrimmed);
 	const isRightNowHosting = activeProfile.rightNow === "HOSTING";
+	const socialNetworks = activeProfile.socialNetworks;
+	const socialLinks = [
+		{ key: "instagram", handle: socialNetworks?.instagram?.userId, url: `https://instagram.com/${socialNetworks?.instagram?.userId}`, iconPath: INSTAGRAM_ICON_PATH },
+		{ key: "twitter", handle: socialNetworks?.twitter?.userId, url: `https://x.com/${socialNetworks?.twitter?.userId}`, iconPath: X_ICON_PATH },
+		{ key: "facebook", handle: socialNetworks?.facebook?.userId, url: `https://facebook.com/${socialNetworks?.facebook?.userId}`, iconPath: FACEBOOK_ICON_PATH },
+	].filter((link): link is typeof link & { handle: string } => Boolean(link.handle));
+	const rightNowPostedLabel = hasRightNow ? formatRelativeTime(activeProfile.rightNowPosted ?? null) : null;
 
 	const renderPhotoCreatedBadge = (_hash: string) => null;
 
-	const [dragDelta, setDragDelta] = useState(0);
 	const [tapBurst, setTapBurst] = useState<{ key: number; emoji: string } | null>(null);
-	const isDraggingRef = useRef(false);
 
 	const handleTapWithBurst = (profileId: string, tapIdArg?: number) => {
 		const id = tapIdArg ?? 1;
@@ -269,9 +303,22 @@ export function ProfileDetailsContent({
 	const onPhotoIndexChangeRef = useRef(onPhotoIndexChange);
 	onPhotoIndexChangeRef.current = onPhotoIndexChange;
 
+	// The drag offset goes onto the carousel as CSS variables that its slides
+	// read, rather than state — no re-render per frame of finger movement.
+	const setCarouselDrag = (el: HTMLElement, dy: number | null) => {
+		if (dy === null) {
+			el.style.removeProperty("--carousel-drag");
+			el.style.removeProperty("--carousel-transition");
+			return;
+		}
+		el.style.setProperty("--carousel-drag", `${dy}px`);
+		el.style.setProperty("--carousel-transition", "none");
+	};
+
 	useEffect(() => {
-		setDragDelta(0);
-	}, [activeProfile?.profileId]);
+		const el = mobileCarouselRef.current;
+		if (el) setCarouselDrag(el, null);
+	}, [activeProfile?.profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	useEffect(() => {
 		const el = mobileCarouselRef.current;
@@ -285,7 +332,6 @@ export function ProfileDetailsContent({
 			startX = e.touches[0].clientX;
 			decided = false;
 			navigating = false;
-			isDraggingRef.current = false;
 			lastDeltaRef.current = 0;
 		};
 
@@ -302,7 +348,6 @@ export function ProfileDetailsContent({
 				// only take over when not at a boundary
 				if ((dy < 0 && idx < total - 1) || (dy > 0 && idx > 0)) {
 					navigating = true;
-					isDraggingRef.current = true;
 					e.preventDefault();
 				}
 				// at boundary: fall through, page scrolls normally
@@ -311,47 +356,40 @@ export function ProfileDetailsContent({
 			if (!navigating) return;
 			e.preventDefault();
 			lastDeltaRef.current = dy;
-			setDragDelta(dy);
-			onDragDeltaChange?.(dy);
+			setCarouselDrag(el, dy);
 		};
 
 		const onEnd = () => {
-			isDraggingRef.current = false;
 			if (!navigating) return;
 			navigating = false;
 			const dy = lastDeltaRef.current;
 			const idx = currentIndexRef.current;
 			const total = activeProfilePhotoHashes.length;
 			if (dy < -60 && idx < total - 1) {
+				haptic(8);
 				onPhotoIndexChangeRef.current?.(idx + 1);
 			} else if (dy > 60 && idx > 0) {
+				haptic(8);
 				onPhotoIndexChangeRef.current?.(idx - 1);
 			}
 			lastDeltaRef.current = 0;
-			setDragDelta(0);
-			onDragDeltaChange?.(0);
+			setCarouselDrag(el, null);
 		};
 
 		el.addEventListener('touchstart', onStart, { passive: true });
 		el.addEventListener('touchmove', onMove, { passive: false });
 		el.addEventListener('touchend', onEnd, { passive: true });
+		el.addEventListener('touchcancel', onEnd, { passive: true });
 		return () => {
+			el.removeEventListener('touchcancel', onEnd);
 			el.removeEventListener('touchstart', onStart);
 			el.removeEventListener('touchmove', onMove);
 			el.removeEventListener('touchend', onEnd);
 		};
 	}, [activeProfilePhotoHashes.length, showMobileCarousel, isDesktopLike]);
 
-	const positionIconMap: Record<number, LucideIcon> = {
-		1: ArrowUp,        // Top
-		2: ArrowDown,      // Bottom
-		3: ArrowUpDown,    // Versatile
-		4: ChevronsDown,   // Vers Bottom
-		5: ChevronsUp,     // Vers Top
-		6: ArrowLeftRight, // Side
-	};
 	const PositionIcon = activeProfile?.sexualPosition != null
-		? (positionIconMap[activeProfile.sexualPosition] ?? Compass)
+		? (SEXUAL_POSITION_ICONS[activeProfile.sexualPosition] ?? Compass)
 		: null;
 
 
@@ -364,9 +402,9 @@ export function ProfileDetailsContent({
 					</span>
 				</div>
 			)}
-			{!hidePicturesSection && (activeProfilePhotoHashes.length > 0 || !isDesktopLike) && (
+			{!hidePicturesSection && (visiblePhotoHashes.length > 0 || !isDesktopLike) && (
 			<div>
-				{activeProfilePhotoHashes.length > 0 ? (
+				{visiblePhotoHashes.length > 0 ? (
 					<>
 						{showMobileCarousel && !isDesktopLike ? (
 							<>
@@ -375,39 +413,42 @@ export function ProfileDetailsContent({
 										ref={mobileCarouselRef}
 										className="relative h-[min(78dvh,calc(100vw*1.55))] overflow-hidden"
 									>
-										{activeProfilePhotoHashes.map((hash, index) => (
+										{visiblePhotoHashes.map((hash, index) => (
 											<div
 												key={hash}
 												style={{
-													transform: `translateY(calc(${(index - mobileCarouselPhotoIndex) * 100}% + ${dragDelta}px))`,
-													transition: isDraggingRef.current ? 'none' : 'transform 300ms ease-out',
+													transform: `translateY(calc(${(index - mobileCarouselPhotoIndex) * 100}% + var(--carousel-drag, 0px)))`,
+													transition: "var(--carousel-transition, transform 300ms ease-out)",
 												}}
-												className="absolute inset-0"
+												className="absolute inset-0 overflow-hidden"
 											>
 												<button
 													type="button"
-													onClick={() => openPhotoViewer(index)}
+													{...photoTapProps(hash, index)}
 													className="absolute inset-0 z-10"
 													aria-label={t("profile_details.open_photo", { index: index + 1 })}
 												/>
 												<img
 													src={photoSrc(hash, "1024x1024")}
 													alt={t("profile_details.photo_alt", { name: activeProfileName })}
-													className="h-full w-full object-cover"
+													className={`h-full w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${photoReveal.isBlurred(hash) ? PRIVACY_BLUR_CLASS : ""}`}
 												/>
 												{renderPhotoCreatedBadge(hash)}
 											</div>
 										))}
 										<div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-36 bg-gradient-to-b from-black/65 to-transparent" />
 									</div>
-									{activeProfilePhotoHashes.length > 1 && (
+									{visiblePhotoHashes.length > 1 && (
 										<div className="absolute right-3 inset-y-0 z-20 flex flex-col items-center justify-center">
 											<div className="flex flex-col items-center gap-1.5 rounded-full bg-black/30 px-[5px] py-[10px] backdrop-blur-sm">
-												{activeProfilePhotoHashes.map((hash, index) => (
+												{visiblePhotoHashes.map((hash, index) => (
 													<button
 														key={`${hash}-dot`}
 														type="button"
-														onClick={() => onPhotoIndexChange?.(index)}
+														onClick={() => {
+															if (index !== mobileCarouselPhotoIndex) haptic(8);
+															onPhotoIndexChange?.(index);
+														}}
 														className="flex items-center justify-center p-1.5 -m-1.5"
 														aria-label={t("profile_details.open_photo", { index: index + 1 })}
 													>
@@ -422,11 +463,11 @@ export function ProfileDetailsContent({
 								</div>
 
 								<div className="hidden grid-cols-3 gap-2 sm:grid sm:grid-cols-4 @3xl:grid-cols-6">
-									{activeProfilePhotoHashes.map((hash, index) => (
+									{visiblePhotoHashes.map((hash, index) => (
 										<button
 											type="button"
 											key={hash}
-											onClick={() => openPhotoViewer(index)}
+											{...photoTapProps(hash, index)}
 											className="overflow-hidden rounded-xl border border-[var(--border)]"
 											aria-label={t("profile_details.open_photo", { index: index + 1 })}
 										>
@@ -434,7 +475,7 @@ export function ProfileDetailsContent({
 												<img
 													src={photoSrc(hash, "320x320")}
 													alt={t("profile_details.photo_alt", { name: activeProfileName })}
-													className="aspect-square w-full object-cover"
+													className={`aspect-square w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${photoReveal.isBlurred(hash) ? PRIVACY_BLUR_CLASS : ""}`}
 												/>
 												{renderPhotoCreatedBadge(hash)}
 											</div>
@@ -444,11 +485,11 @@ export function ProfileDetailsContent({
 							</>
 						) : (
 							<div className="grid grid-cols-3 gap-2 sm:grid-cols-4 @3xl:grid-cols-6">
-								{activeProfilePhotoHashes.map((hash, index) => (
+								{visiblePhotoHashes.map((hash, index) => (
 									<button
 										type="button"
 										key={hash}
-										onClick={() => openPhotoViewer(index)}
+										{...photoTapProps(hash, index)}
 										className="overflow-hidden rounded-xl border border-[var(--border)]"
 										aria-label={t("profile_details.open_photo", { index: index + 1 })}
 									>
@@ -456,7 +497,7 @@ export function ProfileDetailsContent({
 											<img
 												src={photoSrc(hash, "320x320")}
 												alt={t("profile_details.photo_alt", { name: activeProfileName })}
-												className="aspect-square w-full object-cover"
+												className={`aspect-square w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${photoReveal.isBlurred(hash) ? PRIVACY_BLUR_CLASS : ""}`}
 											/>
 											{renderPhotoCreatedBadge(hash)}
 										</div>
@@ -506,6 +547,7 @@ export function ProfileDetailsContent({
 								<span className="flex items-center gap-1.5">
 									<span className={`h-2 w-2 rounded-full ${
 										profileStatusLevel === "online" ? "bg-emerald-400"
+										: profileStatusLevel === "ending_soon" ? "bg-amber-400"
 										: "bg-[var(--text-muted)]/40"
 									}`} />
 									{profileStatusLabel}
@@ -515,7 +557,7 @@ export function ProfileDetailsContent({
 								<span className="flex items-center gap-1 font-semibold" style={{ color: "var(--right-now)" }}>
 									{isRightNowHosting ? (
 										<>
-											<Home className="h-3.5 w-3.5" />
+											<HomeFilled className="h-3.5 w-3.5" />
 											{t("right_now.hosting")}
 										</>
 									) : (
@@ -528,13 +570,13 @@ export function ProfileDetailsContent({
 							)}
 							{profileDistance !== undefined && profileDistance !== null && (
 								<span className="flex items-center gap-1">
-									<MapPin className="h-3.5 w-3.5" />
+									<MapPinFilled className="h-3.5 w-3.5" />
 									{formatDistance(profileDistance, t, unitsPreset)}
 								</span>
 							)}
 							{activeProfile.isNew && (
 								<span className="flex items-center gap-1 font-semibold text-[var(--accent)]">
-									<Sparkles className="h-3.5 w-3.5" />
+									<Sparkles className="h-3.5 w-3.5 fill-current" />
 									{t("profile_details.recently_joined")}
 								</span>
 							)}
@@ -584,7 +626,10 @@ export function ProfileDetailsContent({
 					<div className="mt-3 flex items-center justify-center gap-4 py-1">
 						<button
 							type="button"
-							onClick={() => onMessageProfile(messageProfileId)}
+							onClick={() => {
+								haptic(10);
+								onMessageProfile(messageProfileId);
+							}}
 							className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] shadow transition hover:bg-[var(--surface)]"
 							aria-label={t("profile_details.message")}
 						>
@@ -615,16 +660,18 @@ export function ProfileDetailsContent({
 								className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.1em]"
 								style={{ color: "var(--right-now)" }}
 							>
-								{t("profile_details.right_now")}
+								{isRightNowHosting ? <HomeFilled className="h-3.5 w-3.5" /> : <RightNowIcon className="h-3.5 w-3.5" />}
+								{isRightNowHosting ? t("right_now.hosting") : t("profile_details.right_now")}
+								{rightNowPostedLabel && (
+									<span className="font-medium normal-case tracking-normal text-[var(--text-muted)]">· {rightNowPostedLabel}</span>
+								)}
 							</p>
+							{/* Same card as the About text, tinted in the Right Now color. */}
 							<div
-								className="rounded-xl px-4 py-3"
-								style={{
-									backgroundColor: "color-mix(in srgb, var(--right-now), transparent 88%)",
-									border: "1px solid color-mix(in srgb, var(--right-now), transparent 70%)",
-								}}
+								className="rounded-2xl px-4 py-3"
+								style={{ backgroundColor: "color-mix(in srgb, var(--right-now) 14%, var(--surface-2))" }}
 							>
-								<p className="whitespace-pre-wrap text-base leading-relaxed text-[var(--text)] select-text">{rightNowTextTrimmed}</p>
+								<p className={PROFILE_TEXT_CLASS}>{rightNowTextTrimmed}</p>
 							</div>
 						</div>
 					)}
@@ -640,20 +687,17 @@ export function ProfileDetailsContent({
 										(own) => own.toLowerCase() === tag.toLowerCase(),
 									);
 									return (
-										<button
+										<Chip
 											key={tag}
-											type="button"
+											size="sm"
+											// The card color on the page; on a card that would vanish, so the tint.
+											fill={isOnCard ? "tint" : "card"}
+											selected={isMatch}
 											onClick={() => onTagClick?.(tag)}
-											className={`rounded-full border px-3 py-1.5 text-sm transition-opacity ${
-												onTagClick ? "cursor-pointer hover:opacity-80" : ""
-											} ${
-												isMatch
-												? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] font-semibold"
-												: "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]"
-											}`}
+											className={onTagClick ? undefined : "cursor-default"}
 										>
 											{tag}
-										</button>
+										</Chip>
 									);
 								})}
 							</div>
@@ -665,10 +709,9 @@ export function ProfileDetailsContent({
 							<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 								{t("profile_details.about")}
 							</p>
-							<div className="rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
-								<p className="whitespace-pre-wrap text-base leading-relaxed text-[var(--text)] select-text">
-									{activeProfile.aboutMe?.trim()}
-								</p>
+							{/* Native card (like SheetCard): no border, the full text as written. */}
+							<div className="rounded-2xl bg-[var(--surface-2)] px-4 py-3">
+								<p className={PROFILE_TEXT_CLASS}>{activeProfile.aboutMe?.trim()}</p>
 							</div>
 						</div>
 					)}
@@ -860,55 +903,83 @@ export function ProfileDetailsContent({
 							<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 								{t("profile_details.social")}
 							</p>
-							<div className="grid gap-2">
-								{activeProfile.socialNetworks?.instagram?.userId && (
-									<a
-										href={`https://instagram.com/${activeProfile.socialNetworks.instagram.userId}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 transition hover:border-[var(--accent)]"
-									>
-										<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]">
-											<path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-										</svg>
-										<span className="text-sm font-medium text-[var(--text)]">{activeProfile.socialNetworks.instagram.userId}</span>
-										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									</a>
-								)}
-								{activeProfile.socialNetworks?.twitter?.userId && (
-									<a
-										href={`https://x.com/${activeProfile.socialNetworks.twitter.userId}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 transition hover:border-[var(--accent)]"
-									>
-										<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]">
-											<path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.26 5.632L18.245 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"/>
-										</svg>
-										<span className="text-sm font-medium text-[var(--text)]">{activeProfile.socialNetworks.twitter.userId}</span>
-										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									</a>
-								)}
-								{activeProfile.socialNetworks?.facebook?.userId && (
-									<a
-										href={`https://facebook.com/${activeProfile.socialNetworks.facebook.userId}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 transition hover:border-[var(--accent)]"
-									>
-										<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]">
-											<path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-										</svg>
-										<span className="text-sm font-medium text-[var(--text)]">{activeProfile.socialNetworks.facebook.userId}</span>
-										<ExternalLink className="ml-auto h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-									</a>
-								)}
+							{/* One native list card (like the private notes): a row per network,
+							    inset dividers, opened through the opener like the Spotify songs. */}
+							<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+								{socialLinks.map((link, index) => (
+									<div key={link.key}>
+										{index > 0 && <div className="ml-11 h-px bg-[var(--border)]" />}
+										<button
+											type="button"
+											onClick={() => {
+												openUrl(link.url).catch((error) => appLog.error("Failed to open social link", error));
+											}}
+											className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition active:bg-[var(--surface)]"
+										>
+											<svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-[var(--text-muted)]" aria-hidden="true">
+												<path d={link.iconPath} />
+											</svg>
+											<span className="min-w-0 flex-1 truncate text-[15px] text-[var(--text)]">{link.handle}</span>
+											<ExternalLink className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+										</button>
+									</div>
+								))}
 							</div>
 						</div>
 					)}
 				</div>
 				)}
 			</div>
+			)}
+
+			{favoriteSongs.length > 0 && (
+				<div className="px-3">
+					<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+						{t("profile_details.spotify.title")}
+					</p>
+					<div className="grid grid-cols-5 gap-2">
+						{favoriteSongs.map((song) => {
+							const artistLabel = song.artists.join(", ");
+							return (
+								<button
+									key={song.id}
+									type="button"
+									disabled={!song.externalUrl}
+									onClick={() => {
+										if (song.externalUrl) {
+											void openUrl(song.externalUrl);
+										}
+									}}
+									className="group min-w-0 text-left disabled:cursor-default"
+								>
+									<span className="relative block aspect-square w-full overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-2)] transition group-hover:border-[var(--accent)] group-enabled:group-hover:shadow-lg">
+										{song.albumImageUrl ? (
+											<img
+												src={song.albumImageUrl}
+												alt=""
+												loading="lazy"
+												className="h-full w-full object-cover"
+											/>
+										) : (
+											<span className="flex h-full w-full items-center justify-center bg-[var(--surface-3)]">
+												<Music className="h-5 w-5 text-[var(--text-muted)]" />
+											</span>
+										)}
+										{song.externalUrl && (
+											<span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 opacity-0 transition group-hover:opacity-100">
+												<ExternalLink className="h-3 w-3 text-white" />
+											</span>
+										)}
+									</span>
+									<span className="mt-1 block truncate text-xs font-medium text-[var(--text)]">{song.name}</span>
+									{artistLabel && (
+										<span className="block truncate text-[10px] leading-tight text-[var(--text-muted)]">{artistLabel}</span>
+									)}
+								</button>
+							);
+						})}
+					</div>
+				</div>
 			)}
 
 			<div className="px-3">
@@ -921,6 +992,7 @@ export function ProfileDetailsContent({
 						onClick={async () => {
 							try {
 								await navigator.clipboard.writeText(String(activeProfile.profileId));
+								haptic(10);
 								toast.success(t("profile_details.profile_id_copied"));
 							} catch (error) {
 								appLog.error("Failed to copy profile ID to clipboard", error);
@@ -935,6 +1007,14 @@ export function ProfileDetailsContent({
 						<Calendar className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 						<p className="text-sm text-[var(--text-muted)]">{t("profile_details.estimated_joined", { date: estimatedCreatedAt })}</p>
 					</div>
+					{typeof activeProfile.lastUpdatedTime === "number" && activeProfile.lastUpdatedTime > 0 && (
+						<div className="flex items-center gap-2.5">
+							<Pencil className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+							<p className="text-sm text-[var(--text-muted)]">
+								{t("profile_details.last_updated", { date: new Date(activeProfile.lastUpdatedTime).toLocaleDateString(i18n.language) })}
+							</p>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

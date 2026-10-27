@@ -2,11 +2,77 @@ mod api;
 mod commands;
 mod error;
 mod instance_lock;
+mod media;
+mod media_proxy;
 mod state;
 mod storage;
 mod windows_instance;
 
 use crate::state::AppState;
+
+/// The app window; the media proxy refuses every other webview.
+pub(crate) const MAIN_WINDOW_LABEL: &str = "main";
+
+/// Tells the frontend this binary serves `fgmedia:` before any of its
+/// scripts run. An OTA bundle can land on an older binary without the proxy,
+/// and src/utils/mediaProxy.ts then keeps loading media directly.
+fn media_proxy_flag<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+    tauri::plugin::Builder::<R, ()>::new("fg-media-proxy")
+        .js_init_script("window.__FG_MEDIA_PROXY__ = true;".to_owned())
+        .build()
+}
+
+/// Builds the main window, deferred on Linux (`create: false` in
+/// tauri.linux.conf.json) so it can load the media proxy's GStreamer source
+/// for <video>. An empty library means build.rs couldn't compile it; video
+/// then goes through the proxy's buffered path like on Windows.
+#[cfg(target_os = "linux")]
+fn create_linux_main_window(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::Manager;
+
+    let extensions = app
+        .path()
+        .resource_dir()?
+        .join(media_proxy::WEBKIT_EXTENSIONS);
+    let has_extension = std::fs::metadata(extensions.join("libfgmedia.so"))
+        .is_ok_and(|meta| meta.len() > 0);
+    if has_extension {
+        // WebKit only hands URI schemes on this list to GStreamer's own
+        // sources; read by the web process, which starts with the window.
+        let var = "WEBKIT_GST_ALLOWED_URI_PROTOCOLS";
+        let allowed = std::env::var(var).unwrap_or_default();
+        if !allowed.split(',').any(|entry| entry.trim() == media_proxy::SCHEME) {
+            let joined = if allowed.trim().is_empty() {
+                media_proxy::SCHEME.to_owned()
+            } else {
+                format!("{allowed},{}", media_proxy::SCHEME)
+            };
+            std::env::set_var(var, joined);
+        }
+    } else {
+        eprintln!("[media] no video extension in {}, video is buffered", extensions.display());
+    }
+
+    let deferred: Vec<_> = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .filter(|window| !window.create)
+        .cloned()
+        .collect();
+    for window in deferred {
+        let mut builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &window)?;
+        if has_extension {
+            builder = builder.extensions_path(&extensions);
+        }
+        let window = builder.build()?;
+        if has_extension {
+            media_proxy::serve_element_opens(&window);
+        }
+    }
+    Ok(())
+}
 
 /// Loads a persisted device identity + active session (if any) and builds the
 /// initial `grindr::GrindrClient` synchronously (`GrindrClient::new` needs no
@@ -81,10 +147,19 @@ pub fn run() {
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_sql::Builder::default().build())
             .plugin(tauri_plugin_opener::init())
+            .plugin(tauri_plugin_dialog::init())
+            .plugin(api::facebook_oauth::plugin())
+            .plugin(api::google_oauth::plugin())
             .manage(AppState::default())
+            .manage(media_proxy::MediaProxy::default())
+            .plugin(media_proxy_flag())
+            .register_asynchronous_uri_scheme_protocol(media_proxy::SCHEME, media_proxy::handle)
             .setup(|app| {
                 let app_handle = app.handle().clone();
                 init_client(&app_handle);
+
+                #[cfg(target_os = "linux")]
+                create_linux_main_window(app)?;
 
                 #[cfg(target_os = "linux")]
                 {
@@ -160,6 +235,8 @@ pub fn run() {
             })
             .invoke_handler(tauri::generate_handler![
                 api::runtime::runtime_context,
+                api::runtime::webview_version,
+                api::runtime::app_commit_hash,
                 api::runtime::create_child_instance,
                 api::runtime::list_child_instances,
                 api::runtime::rename_child_instance,
@@ -167,29 +244,48 @@ pub fn run() {
                 api::runtime::launch_child_instance,
                 api::auth::login,
                 api::auth::login_with_google,
+                api::auth::login_with_facebook,
+                api::auth::login_with_google_window,
+                api::auth::sign_up_quota,
+                api::auth::create_account,
+                api::auth::forgot_password,
+                api::auth::send_sms_verification_code,
+                api::auth::verify_sms_verification_code,
+                api::sms_report::sms_debug_report,
                 api::auth::recaptcha_first_party_enabled,
                 api::auth::refresh_token,
                 api::auth::logout,
                 api::auth::auth_state,
                 api::auth::account_restriction,
-                api::entitlements::entitlement_bypass,
+                api::auth::accept_ban_agreement,
+                api::entitlements::enter_honduras,
+                api::entitlements::leave_honduras,
+                api::entitlements::restore_stranded_location,
                 api::auth::websocket_token,
                 api::auth::sync_push_token,
                 api::auth::list_saved_accounts,
                 api::auth::switch_account,
                 api::auth::remove_saved_account,
+                api::auth::create_transfer_code,
+                api::auth::sign_in_with_transfer_code,
                 api::rest::request,
+                api::rest::fetch_external,
+                media_proxy::media_failure,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,
-                api::websocket::ws_disconnect,
                 api::websocket::ws_status,
+                api::websocket::ws_reconnect,
+                api::websocket::set_app_active,
                 api::websocket::ws_log_event,
                 commands::fingerprint::check_fingerprint,
                 commands::backup::export_backup_to_file,
                 commands::backup::import_backup_from_file,
                 commands::backup::inspect_backup_file,
+                commands::backup::copy_file_to_android_uri,
+                commands::backup::copy_android_uri_to_file,
                 commands::media_upload::upload_profile_image,
                 commands::media_upload::upload_chat_media,
+                commands::media_sanitize::sanitize_upload_media,
             ])
             .build(context)
             .expect("error while running tauri application");
@@ -233,27 +329,40 @@ pub fn run() {
             .plugin(tauri_plugin_fs::init())
             .plugin(tauri_plugin_http::init())
             .plugin(tauri_plugin_sql::Builder::default().build())
-            .plugin(tauri_plugin_opener::init());
+            .plugin(tauri_plugin_opener::init())
+            .plugin(api::facebook_oauth::plugin())
+            .plugin(api::google_oauth::plugin())
+            .plugin(tauri_plugin_barcode_scanner::init());
 
         #[cfg(target_os = "ios")]
         let builder = builder
             .plugin(tauri_plugin_ios_photos::init())
+            .plugin(tauri_plugin_dialog::init())
             .plugin(tauri_plugin_ios_keyboard_fix::init())
             .plugin(tauri_plugin_ios_app_disguise::init());
 
         #[cfg(target_os = "android")]
-        let builder = builder.plugin(tauri_plugin_android_fs::init());
+        let builder = builder
+            .plugin(tauri_plugin_android_fs::init())
+            .plugin(media::photo::plugin());
 
         builder
             .manage(AppState::default())
+            .manage(media_proxy::MediaProxy::default())
+            .plugin(media_proxy_flag())
+            .register_asynchronous_uri_scheme_protocol(media_proxy::SCHEME, media_proxy::handle)
             .setup(|app| {
                 use tauri::Manager;
+                // Native binary version, which can lag behind an OTA-updated frontend.
+                eprintln!("Free Grind binary {} starting", app.package_info().version);
                 let app_handle = app.handle().clone();
                 init_client(&app_handle);
                 Ok(())
             })
             .invoke_handler(tauri::generate_handler![
                 api::runtime::runtime_context,
+                api::runtime::webview_version,
+                api::runtime::app_commit_hash,
                 api::runtime::create_child_instance,
                 api::runtime::list_child_instances,
                 api::runtime::rename_child_instance,
@@ -261,29 +370,48 @@ pub fn run() {
                 api::runtime::launch_child_instance,
                 api::auth::login,
                 api::auth::login_with_google,
+                api::auth::login_with_facebook,
+                api::auth::login_with_google_window,
+                api::auth::sign_up_quota,
+                api::auth::create_account,
+                api::auth::forgot_password,
+                api::auth::send_sms_verification_code,
+                api::auth::verify_sms_verification_code,
+                api::sms_report::sms_debug_report,
                 api::auth::recaptcha_first_party_enabled,
                 api::auth::refresh_token,
                 api::auth::logout,
                 api::auth::auth_state,
                 api::auth::account_restriction,
-                api::entitlements::entitlement_bypass,
+                api::auth::accept_ban_agreement,
+                api::entitlements::enter_honduras,
+                api::entitlements::leave_honduras,
+                api::entitlements::restore_stranded_location,
                 api::auth::websocket_token,
                 api::auth::sync_push_token,
                 api::auth::list_saved_accounts,
                 api::auth::switch_account,
                 api::auth::remove_saved_account,
+                api::auth::create_transfer_code,
+                api::auth::sign_in_with_transfer_code,
                 api::rest::request,
+                api::rest::fetch_external,
+                media_proxy::media_failure,
                 api::websocket::ws_connect,
                 api::websocket::ws_send,
-                api::websocket::ws_disconnect,
                 api::websocket::ws_status,
+                api::websocket::ws_reconnect,
+                api::websocket::set_app_active,
                 api::websocket::ws_log_event,
                 commands::fingerprint::check_fingerprint,
                 commands::backup::export_backup_to_file,
                 commands::backup::import_backup_from_file,
                 commands::backup::inspect_backup_file,
+                commands::backup::copy_file_to_android_uri,
+                commands::backup::copy_android_uri_to_file,
                 commands::media_upload::upload_profile_image,
                 commands::media_upload::upload_chat_media,
+                commands::media_sanitize::sanitize_upload_media,
             ])
             .run(context)
             .expect("error while running tauri application");

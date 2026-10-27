@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { sheetButtonClass } from "../../components/ui/bottom-sheet";
 import {
 	RefreshCw,
 	Save,
@@ -13,12 +14,24 @@ import { useAuth } from "../../contexts/useAuth";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { useManagedGenders, useManagedPronouns, useManagedTagCategories } from "../../hooks/queries/useProfileQueries";
+import {
+	useManagedGenders,
+	useManagedPronouns,
+	useManagedTagCategories,
+	useMySettings,
+	useProfileSpotifyFavorites,
+	useUpdateSpotifyFavorites,
+} from "../../hooks/queries/useProfileQueries";
+import type { SpotifyTrack } from "../../services/spotify";
+import { BannedTermsError } from "../../services/apiHelpers";
+import type { MySettings } from "../../types/api-functions";
 import { validateMediaHash } from "../../utils/media";
+import { sanitizeUploadFile } from "../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../utils/tags";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { BottomDrawer } from "../../components/ui/bottom-drawer";
-import { ToggleRow } from "../../components/ui/toggle-row";
+import { MediaToolButton, TakenOnGrindrToolIcon } from "./chat/drawerUi";
+import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
 import freegrindLogo from "../../images/freegrind-logo.webp";
 import {
 	getBodyTypeOptions,
@@ -32,8 +45,11 @@ import {
 	getSexualPositionOptions,
 	getTribeOptions,
 	getVaccineOptions,
+	buildGenderOptions,
+	getPrimaryGenderIds,
 } from "./profile-option-builders";
 import { ProfileEditorFormSections, type ToggleMultiValueKey } from "./profile-editor/ProfileEditorFormSections";
+import { sameTrackIds } from "./profile-editor/SpotifyFavoritesSection";
 import { ProfilePictureDrawer, type ProfilePoolImage } from "./profile-editor/ProfilePictureDrawer";
 import {
 	MAX_GENDERS,
@@ -42,6 +58,9 @@ import {
 	MEDIA_MODERATION_STATE,
 	type ProfileDraft,
 	buildSquareThumbCoords,
+	buildThumbCoordsFromFraction,
+	cropImageFile,
+	type FractionalCrop,
 	emptyDraft,
 	parseMonthInput,
 	parseNullableInteger,
@@ -50,6 +69,7 @@ import {
 	normalizeTagList,
 	profileSchema,
 	profileToDraft,
+	unwrapOwnProfile,
 } from "./profile-editor/profileEditorUtils";
 
 // Grindr caps how many of each of these a profile can carry — enforced
@@ -60,11 +80,6 @@ const MULTI_VALUE_MAX: Partial<Record<ToggleMultiValueKey, number>> = {
 	grindrTribes: 3,
 	tribesImInto: 3,
 };
-
-// The curated inline quick-pick order (man, cis man, trans man, woman, cis
-// woman, trans woman, non-binary) — genderId is stable across the API, unlike
-// displayGroup ordering, which the server doesn't otherwise rank.
-const DEFAULT_GENDER_ORDER = [1, 4, 5, 2, 6, 7, 3];
 
 export function ProfileEditorPage() {
 	const { t, i18n } = useTranslation();
@@ -94,6 +109,11 @@ export function ProfileEditorPage() {
 	const [deletingPoolHash, setDeletingPoolHash] = useState<string | null>(null);
 	const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
 	const [pendingPhotoTakenOnGrindr, setPendingPhotoTakenOnGrindr] = useState(false);
+	// Two steps: "crop" cuts the uploaded photo itself (free aspect), then
+	// "thumbnail" picks the square thumbnail region on the cropped result.
+	const [photoUploadStep, setPhotoUploadStep] = useState<"crop" | "thumbnail">("crop");
+	const [croppedPhotoFile, setCroppedPhotoFile] = useState<File | null>(null);
+	const [isCroppingPhoto, setIsCroppingPhoto] = useState(false);
 	const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
 	const [photoCrop, setPhotoCrop] = useState<Crop | undefined>(undefined);
 	const [photoCompletedCrop, setPhotoCompletedCrop] = useState<PixelCrop | undefined>(undefined);
@@ -101,33 +121,31 @@ export function ProfileEditorPage() {
 	const photoImgRef = useRef<HTMLImageElement | null>(null);
 	const isDesktop = useDesktopBreakpoint();
 
+	const photoPreviewFile = photoUploadStep === "thumbnail" ? croppedPhotoFile : pendingPhotoFile;
 	useEffect(() => {
-		if (!pendingPhotoFile) {
+		if (!photoPreviewFile) {
 			setPhotoPreviewUrl(null);
 			setPhotoCrop(undefined);
 			setPhotoCompletedCrop(undefined);
 			return;
 		}
-		const url = URL.createObjectURL(pendingPhotoFile);
+		const url = URL.createObjectURL(photoPreviewFile);
 		setPhotoPreviewUrl(url);
 		setPhotoCrop(undefined);
 		setPhotoCompletedCrop(undefined);
 		return () => URL.revokeObjectURL(url);
-	}, [pendingPhotoFile]);
+	}, [photoPreviewFile]);
 
-	// Square-only — this crop no longer produces the uploaded file (see
-	// confirmPendingPhotoUpload), it only picks the thumbnail region, which the
-	// server always renders as a square. Seeds photoCompletedCrop immediately
-	// (not just photoCrop) so confirming without dragging still has a valid
-	// pixel rect to derive thumbCoords from — react-image-crop only fires its
+	// The crop step starts on the whole image (free aspect); the thumbnail step
+	// is square-only — the server always renders thumbnails as squares. Seeds
+	// photoCompletedCrop immediately (not just photoCrop) so confirming without
+	// dragging still has a valid pixel rect — react-image-crop only fires its
 	// own onComplete after a user-driven drag.
 	const handlePhotoImageLoad = useCallback((event: React.SyntheticEvent<HTMLImageElement>) => {
 		const { width, height } = event.currentTarget;
-		const percentCrop = centerCrop(
-			makeAspectCrop({ unit: "%", width: 90 }, 1, width, height),
-			width,
-			height,
-		);
+		const percentCrop: Crop = photoUploadStep === "crop"
+			? { unit: "%", x: 0, y: 0, width: 100, height: 100 }
+			: centerCrop(makeAspectCrop({ unit: "%", width: 90 }, 1, width, height), width, height);
 		setPhotoCrop(percentCrop);
 		setPhotoCompletedCrop({
 			unit: "px",
@@ -136,7 +154,7 @@ export function ProfileEditorPage() {
 			width: (percentCrop.width / 100) * width,
 			height: (percentCrop.height / 100) * height,
 		});
-	}, []);
+	}, [photoUploadStep]);
 
 	// Tracks each photo's last-seen moderation state across reloads, so a
 	// background poll can toast when one changes (e.g. pending -> approved)
@@ -154,27 +172,8 @@ export function ProfileEditorPage() {
 		[managedTagCategories],
 	);
 
-	// sortFilter ranks most genders (ascending = intended order); the rest
-	// (sortFilter === null) just sort to the end, no special grouping.
-	const genderOptions = useMemo(() => {
-		const sorted = [...(managedGenders ?? [])].sort((a, b) => {
-			const left = a.sortFilter ?? Number.POSITIVE_INFINITY;
-			const right = b.sortFilter ?? Number.POSITIVE_INFINITY;
-			return left - right;
-		});
-		return sorted.map((item) => ({ value: item.genderId, label: item.gender }));
-	}, [managedGenders]);
-
-	const defaultGenderIds = useMemo(() => {
-		const groupOneIds = new Set(
-			(managedGenders ?? [])
-				.filter((item) => item.displayGroup === 1)
-				.map((item) => item.genderId),
-		);
-		const ordered = DEFAULT_GENDER_ORDER.filter((id) => groupOneIds.has(id));
-		const extra = [...groupOneIds].filter((id) => !DEFAULT_GENDER_ORDER.includes(id));
-		return [...ordered, ...extra];
-	}, [managedGenders]);
+	const genderOptions = useMemo(() => buildGenderOptions(managedGenders), [managedGenders]);
+	const defaultGenderIds = useMemo(() => getPrimaryGenderIds(managedGenders), [managedGenders]);
 
 	const pronounOptions = useMemo(() => {
 		if (!userId) return [];
@@ -253,10 +252,7 @@ export function ProfileEditorPage() {
 			// /v7/profiles/:id — that's a different read path used for viewing
 			// other people's profiles, and can lag behind writes made here.
 			const raw = await apiFunctions.getMyOwnProfile();
-			const rawProfileObject =
-				raw && typeof raw === "object" && Array.isArray((raw as { profiles?: unknown }).profiles)
-					? ((raw as { profiles: Record<string, any>[] }).profiles[0] ?? null)
-					: (raw as Record<string, any> | null);
+			const rawProfileObject = unwrapOwnProfile(raw);
 			const parsed = profileSchema.parse(rawProfileObject);
 			setProfile(parsed);
 			setRawProfile(rawProfileObject);
@@ -331,7 +327,33 @@ export function ProfileEditorPage() {
 		[draft, savedDraft],
 	);
 
-	const hasChanges = hasProfileChanges;
+	// Favorite songs live on their own endpoint but save and reset together
+	// with the rest of the draft. null = untouched, so the saved list shows.
+	const ownProfileId = profile?.profileId ?? userId;
+	const spotifyProfileId = ownProfileId != null ? String(ownProfileId) : null;
+	const { data: savedSpotifyTracks, isLoading: isLoadingSpotify } = useProfileSpotifyFavorites(spotifyProfileId);
+	const updateSpotifyFavorites = useUpdateSpotifyFavorites(spotifyProfileId);
+	const [spotifyDraft, setSpotifyDraft] = useState<SpotifyTrack[] | null>(null);
+	const spotifyTracks = spotifyDraft ?? savedSpotifyTracks ?? [];
+	const hasSpotifyChanges = spotifyDraft !== null && !sameTrackIds(spotifyDraft, savedSpotifyTracks ?? []);
+
+	// Map / Right Now prefs are account settings (/v3/me/prefs/settings), not
+	// profile fields, but they're edited and saved along with the draft.
+	const { data: mySettings } = useMySettings();
+	const [settingsDraft, setSettingsDraft] = useState<Partial<MySettings>>({});
+	const settingsForEditor = mySettings ? { ...mySettings, ...settingsDraft } : undefined;
+	const changedSettings = useMemo(() => {
+		if (!mySettings) return {};
+		return Object.fromEntries(
+			Object.entries(settingsDraft).filter(([key, value]) => mySettings[key as keyof MySettings] !== value),
+		) as Partial<MySettings>;
+	}, [mySettings, settingsDraft]);
+	const hasSettingsChanges = Object.keys(changedSettings).length > 0;
+	const handleSettingsChange = useCallback((patch: Partial<MySettings>) => {
+		setSettingsDraft((current) => ({ ...current, ...patch }));
+	}, []);
+
+	const hasChanges = hasProfileChanges || hasSpotifyChanges || hasSettingsChanges;
 
 	const tagList = useMemo(
 		() => normalizeTagList(draft.profileTagsText),
@@ -379,6 +401,23 @@ export function ProfileEditorPage() {
 		return map;
 	}, [profile?.medias]);
 
+	// Text the server rejected for banned terms, with the terms it named. The
+	// error shows (and blocks saving) until that field's text is changed.
+	const [rejectedText, setRejectedText] = useState<{
+		displayName?: { value: string; terms: string[] };
+		aboutMe?: { value: string; terms: string[] };
+	}>({});
+	const bannedTermsMessage = useCallback(
+		(terms: string[]) =>
+			terms.length > 0
+				? t("profile_editor.errors.banned_terms", {
+						defaultValue: "Contains words that aren't allowed: {{terms}}",
+						terms: terms.join(", "),
+					})
+				: t("profile_editor.errors.banned_terms_unknown", { defaultValue: "Contains words that aren't allowed." }),
+		[t],
+	);
+
 	const displayNameError = useMemo(() => {
 		const value = draft.displayName.trim();
 		if (!value) {
@@ -389,16 +428,24 @@ export function ProfileEditorPage() {
 			return t("profile_editor.errors.display_name_length");
 		}
 
+		if (rejectedText.displayName && value === rejectedText.displayName.value) {
+			return bannedTermsMessage(rejectedText.displayName.terms);
+		}
+
 		return null;
-	}, [draft.displayName, t]);
+	}, [draft.displayName, rejectedText.displayName, bannedTermsMessage, t]);
 
 	const aboutMeError = useMemo(() => {
 		if (draft.aboutMe.length > 255) {
 			return t("profile_editor.errors.about_me_length");
 		}
 
+		if (rejectedText.aboutMe && draft.aboutMe.trim() === rejectedText.aboutMe.value) {
+			return bannedTermsMessage(rejectedText.aboutMe.terms);
+		}
+
 		return null;
-	}, [draft.aboutMe, t]);
+	}, [draft.aboutMe, rejectedText.aboutMe, bannedTermsMessage, t]);
 
 	const canSave = hasChanges && !isSaving && !displayNameError && !aboutMeError && !tagsError;
 
@@ -450,7 +497,6 @@ export function ProfileEditorPage() {
 				addIfChanged("displayName", "displayName", (v) => v.trim());
 				addIfChanged("aboutMe", "aboutMe", (v) => v.trim() || null);
 				addIfChanged("showAge", "showAge");
-				addIfChanged("showDistance", "showDistance");
 				addIfChanged("age", "age", parseNullableInteger);
 				addIfChanged("height", "height", (v) => parseNullableHeightToCm(v, unitsPreset));
 				addIfChanged("weight", "weight", (v) => parseNullableWeightToGrams(v, unitsPreset));
@@ -527,6 +573,19 @@ export function ProfileEditorPage() {
 				}
 			}
 
+			if (hasSettingsChanges) {
+				await apiFunctions.updateMySettings(changedSettings);
+				queryClient.setQueryData(["my-settings"], { ...mySettings, ...changedSettings });
+				setSettingsDraft({});
+			}
+
+			if (hasSpotifyChanges && spotifyDraft) {
+				await updateSpotifyFavorites.mutateAsync(spotifyDraft.map((track) => track.id));
+				// Show the saved list right away instead of the stale cache until the refetch.
+				queryClient.setQueryData(["spotify-favorites", spotifyProfileId], spotifyDraft);
+				setSpotifyDraft(null);
+			}
+
 			// Keeps the grid/chat header avatar, account switcher, and the HIV
 			// test reminder in sync with whatever just changed here, instead of
 			// waiting out useMyOwnProfile's 5-minute staleTime.
@@ -534,6 +593,13 @@ export function ProfileEditorPage() {
 
 			toast.success(t("profile_editor.toasts.updated"));
 		} catch (error) {
+			if (error instanceof BannedTermsError) {
+				const { displayName, aboutMe } = error.fields;
+				setRejectedText({
+					displayName: displayName ? { value: draft.displayName.trim(), terms: displayName } : undefined,
+					aboutMe: aboutMe ? { value: draft.aboutMe.trim(), terms: aboutMe } : undefined,
+				});
+			}
 			const message =
 				error instanceof Error
 					? error.message
@@ -612,6 +678,8 @@ export function ProfileEditorPage() {
 		}
 
 		setPendingPhotoTakenOnGrindr(false);
+		setPhotoUploadStep("crop");
+		setCroppedPhotoFile(null);
 		setPendingPhotoFile(file);
 	};
 
@@ -636,6 +704,7 @@ export function ProfileEditorPage() {
 		}
 	}, [isPhotoDrawerOpen, loadPoolImages]);
 
+	const photoDrawerCloseRef = useRef<(() => void) | null>(null);
 	const handleAddSelectedImages = useCallback(
 		async (hashes: string[]) => {
 			const newHashes = hashes.filter(
@@ -653,7 +722,9 @@ export function ProfileEditorPage() {
 				[...profilePhotoHashes, ...newHashes.slice(0, remainingSlots)],
 				{ successMessage: t("profile_editor.toasts.photo_added") },
 			);
-			setIsPhotoDrawerOpen(false);
+			// Animated close; falls back to unmounting if the drawer is already gone.
+			if (photoDrawerCloseRef.current) photoDrawerCloseRef.current();
+			else setIsPhotoDrawerOpen(false);
 		},
 		[profilePhotoHashes, persistProfilePhotos, t],
 	);
@@ -699,13 +770,18 @@ export function ProfileEditorPage() {
 		setPendingPhotoFile(null);
 	};
 
-	const uploadPhotoFile = async (file: File, thumbCoordsOverride?: string) => {
+	const uploadPhotoFile = async (file: File, crop?: FractionalCrop) => {
 		setIsUploadingPhoto(true);
 
 		try {
-			const body = new Uint8Array(await file.arrayBuffer());
-			const thumbCoords = thumbCoordsOverride ?? (await buildSquareThumbCoords(file));
-			const contentType = file.type || "application/octet-stream";
+			// Metadata stripped and downscaled (see uploadSanitize); thumbCoords
+			// are in the normalized photo's pixels.
+			const upload = await sanitizeUploadFile(file);
+			const body = new Uint8Array(await upload.arrayBuffer());
+			const thumbCoords = crop
+				? await buildThumbCoordsFromFraction(upload, crop)
+				: await buildSquareThumbCoords(upload);
+			const contentType = upload.type;
 
 			// Primary: the media upload (signed /v5 for in-app captures, unsigned
 			// /v4 otherwise — picked Rust-side). Fallback: the older, unsigned
@@ -780,25 +856,39 @@ export function ProfileEditorPage() {
 		}
 	};
 
-	// The crop selection is only used to tell the server which square region
-	// to render the thumbnail from (thumbCoords) — the uploaded file itself is
-	// always the original, unmodified image, never client-side cropped.
+	const getFractionalPhotoCrop = (): FractionalCrop | undefined => {
+		const img = photoImgRef.current;
+		if (!photoCompletedCrop?.width || !photoCompletedCrop.height || !img) return undefined;
+		return {
+			left: photoCompletedCrop.x / img.width,
+			top: photoCompletedCrop.y / img.height,
+			right: (photoCompletedCrop.x + photoCompletedCrop.width) / img.width,
+			bottom: (photoCompletedCrop.y + photoCompletedCrop.height) / img.height,
+		};
+	};
+
+	// Step 1 cuts the photo itself (client-side, see cropImageFile). Step 2's
+	// selection is only used to tell the server which square region of that
+	// cropped photo to render the thumbnail from (thumbCoords).
 	const confirmPendingPhotoUpload = async () => {
 		if (!pendingPhotoFile) return;
 
-		let thumbCoords: string | undefined;
-		if (photoCompletedCrop?.width && photoCompletedCrop.height && photoImgRef.current) {
-			const img = photoImgRef.current;
-			const scaleX = img.naturalWidth / img.width;
-			const scaleY = img.naturalHeight / img.height;
-			const left = Math.round(photoCompletedCrop.x * scaleX);
-			const top = Math.round(photoCompletedCrop.y * scaleY);
-			const right = Math.round((photoCompletedCrop.x + photoCompletedCrop.width) * scaleX);
-			const bottom = Math.round((photoCompletedCrop.y + photoCompletedCrop.height) * scaleY);
-			thumbCoords = `${bottom},${left},${right},${top}`;
+		if (photoUploadStep === "crop") {
+			const crop = getFractionalPhotoCrop();
+			setIsCroppingPhoto(true);
+			try {
+				setCroppedPhotoFile(crop ? await cropImageFile(pendingPhotoFile, crop) : pendingPhotoFile);
+			} catch {
+				// Webview can't decode it (e.g. HEIC outside Apple) — upload uncropped.
+				setCroppedPhotoFile(pendingPhotoFile);
+			} finally {
+				setIsCroppingPhoto(false);
+			}
+			setPhotoUploadStep("thumbnail");
+			return;
 		}
 
-		await uploadPhotoFile(pendingPhotoFile, thumbCoords);
+		await uploadPhotoFile(croppedPhotoFile ?? pendingPhotoFile, getFractionalPhotoCrop());
 	};
 
 	// Removing a photo here only unlinks it from the profile's active slots
@@ -827,25 +917,28 @@ export function ProfileEditorPage() {
 
 	const handleResetDraft = () => {
 		setDraft(savedDraft);
+		setSpotifyDraft(null);
+		setSettingsDraft({});
 	};
 
 	return (
 		<section className="app-screen">
 			<div className="mx-auto grid w-full max-w-[1180px] gap-6">
-				<header>
-					<BackToSettings />
-					<h1 className="app-title mb-1">{t("profile_editor.title")}</h1>
-					<p className="app-subtitle">{t("profile_editor.subtitle")}</p>
-				</header>
+				<PageHeader
+					backTo="/settings"
+					title={t("profile_editor.title")}
+					subtitle={t("profile_editor.subtitle")}
+					subtitleClassName="-mt-4 mb-0"
+				/>
 
 				{isLoadingProfile && !profile ? (
-					<div className="surface-card p-5 sm:p-6">
+					<div className="native-card p-5 sm:p-6">
 						<p className="text-sm font-medium text-[var(--text-muted)]">
 							{t("profile_editor.loading")}
 						</p>
 					</div>
 				) : profileError && !profile ? (
-					<div className="surface-card p-5 sm:p-6">
+					<div className="native-card p-5 sm:p-6">
 						<p className="text-sm font-semibold">
 							{t("profile_editor.error_load")}
 						</p>
@@ -875,6 +968,9 @@ export function ProfileEditorPage() {
 								onRemovePhoto={handleRemovePhoto}
 								onReorderPhotos={handleReorderPhotos}
 								profileId={profile?.profileId ?? userId}
+								spotifyTracks={spotifyTracks}
+								isLoadingSpotify={isLoadingSpotify}
+								onSpotifyChange={setSpotifyDraft}
 								ethnicityOptions={ethnicityOptions}
 								bodyTypeOptions={bodyTypeOptions}
 								positionOptions={positionOptions}
@@ -883,6 +979,8 @@ export function ProfileEditorPage() {
 								lookingForOptions={lookingForOptions}
 								meetAtOptions={meetAtOptions}
 								nsfwOptions={nsfwOptions}
+								settings={settingsForEditor}
+								onSettingsChange={handleSettingsChange}
 								genderOptions={genderOptions}
 								defaultGenderIds={defaultGenderIds}
 								pronounOptions={pronounOptions}
@@ -896,24 +994,31 @@ export function ProfileEditorPage() {
 
 				{hasChanges && !(isLoadingProfile && !profile) && !(profileError && !profile) && (
 					<div
-						className="fixed inset-x-0 z-40 flex justify-center px-4"
-						style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px))" }}
+						className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4 pb-3 pt-10 [&>*]:pointer-events-auto"
+						style={{
+							// Flush on the nav bar's measured height (published by NavBar).
+							bottom: "var(--nav-height, calc(env(safe-area-inset-bottom, 0px) + 80px))",
+							// Same idea as the sheets' floating footer: the page darkens towards
+							// the buttons, so they stand out from the cards scrolling behind.
+							background: "linear-gradient(to top, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 55%, transparent)",
+						}}
 					>
-						<div
-							className="animate-badge-in flex items-center gap-1.5 rounded-full border border-[var(--border)] p-1.5 shadow-xl"
-							style={{
-								backgroundColor: "rgba(22, 29, 39, 0.9)",
-								background: "color-mix(in srgb, var(--surface) 92%, transparent)",
-								backdropFilter: "blur(16px)",
-							}}
-						>
+						{/* Two floating buttons like the sheets' footer, no shared pill around them. */}
+						<div className="animate-badge-in flex items-center gap-2.5">
 							<button
 								type="button"
 								onClick={handleResetDraft}
 								disabled={isSaving}
 								aria-label={t("profile_editor.actions.reset")}
 								title={t("profile_editor.actions.reset")}
-								className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40"
+								className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[var(--text)] transition-transform duration-150 active:scale-[0.94] disabled:cursor-not-allowed disabled:opacity-50"
+								style={{
+									background: "color-mix(in srgb, color-mix(in srgb, var(--text) 16%, var(--bg)) 90%, transparent)",
+									// Inset hairline + drop shadow, so the glass edge reads on dark cards.
+									boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--text) 10%, transparent), 0 8px 24px rgba(0,0,0,0.35)",
+									backdropFilter: "blur(16px)",
+									WebkitBackdropFilter: "blur(16px)",
+								}}
 							>
 								<RefreshCw className="h-[18px] w-[18px]" />
 							</button>
@@ -921,10 +1026,10 @@ export function ProfileEditorPage() {
 								type="button"
 								onClick={handleSaveProfile}
 								disabled={!canSave}
-								className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--accent)] px-5 font-semibold text-[var(--accent-contrast)] transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+								className={`${sheetButtonClass()} flex-none px-6`}
 								style={{
 									boxShadow: canSave
-										? "0 8px 20px -6px color-mix(in srgb, var(--accent), transparent 45%)"
+										? "0 8px 24px -6px color-mix(in srgb, var(--accent), transparent 40%)"
 										: undefined,
 								}}
 							>
@@ -942,14 +1047,32 @@ export function ProfileEditorPage() {
 					title={t("profile_editor.photo_upload.title")}
 					onClose={cancelPendingPhotoUpload}
 					onConfirm={() => void confirmPendingPhotoUpload()}
-					confirmLabel={t("profile_editor.photo_upload.confirm")}
-					isProcessing={isUploadingPhoto}
+					confirmLabel={photoUploadStep === "crop"
+						? t("profile_editor.photo_upload.next", { defaultValue: "Next" })
+						: t("profile_editor.photo_upload.confirm")}
+					isProcessing={isUploadingPhoto || isCroppingPhoto}
 					isDesktop={isDesktop}
+					bg={NATIVE_SHEET_BG}
+					footerLeft={photoUploadStep === "thumbnail" ? (
+						<button
+							type="button"
+							onClick={() => setPhotoUploadStep("crop")}
+							disabled={isUploadingPhoto}
+							className={sheetButtonClass("secondary")}
+						>
+							{t("profile_editor.photo_upload.back", { defaultValue: "Back" })}
+						</button>
+					) : undefined}
 				>
+					<p className="px-4 pb-2 text-xs text-[var(--text-muted)]">
+						{photoUploadStep === "crop"
+							? t("profile_editor.photo_upload.crop_hint", { defaultValue: "Crop your photo" })
+							: t("profile_editor.photo_upload.thumbnail_hint", { defaultValue: "Choose the thumbnail shown in the grid" })}
+					</p>
 					<div className="flex min-h-0 flex-1 flex-col">
 						<div className="min-h-0 flex-1 overflow-y-auto">
 							{photoPreviewUrl && (
-								<div className="px-3 pb-3">
+								<div className="px-4 pb-3">
 									<div className="flex justify-center">
 										<style>{`
 											@keyframes photo-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
@@ -962,10 +1085,11 @@ export function ProfileEditorPage() {
 											.photo-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
 											.photo-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
 										`}</style>
-										<div className="relative rounded-xl border border-[var(--border)] overflow-hidden">
+										<div data-sheet-no-drag className="relative overflow-hidden rounded-2xl">
 											<ReactCrop
+												key={photoUploadStep}
 												crop={photoCrop}
-												aspect={1}
+												aspect={photoUploadStep === "thumbnail" ? 1 : undefined}
 												onChange={(c) => { setIsDraggingPhotoCrop(true); setPhotoCrop(c); }}
 												onComplete={(c) => { setIsDraggingPhotoCrop(false); setPhotoCompletedCrop(c); }}
 												ruleOfThirds={isDraggingPhotoCrop}
@@ -983,7 +1107,7 @@ export function ProfileEditorPage() {
 													onLoad={handlePhotoImageLoad}
 												/>
 											</ReactCrop>
-											{pendingPhotoTakenOnGrindr && photoCrop && (
+											{photoUploadStep === "thumbnail" && pendingPhotoTakenOnGrindr && photoCrop && (
 												<div
 													className="absolute inline-flex items-center gap-1.5 pointer-events-none"
 													style={{
@@ -1003,15 +1127,14 @@ export function ProfileEditorPage() {
 								</div>
 							)}
 						</div>
-						<div className="shrink-0 px-3 pb-3 pt-2">
-							<div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
-								<ToggleRow
-									checked={pendingPhotoTakenOnGrindr}
-									onChange={setPendingPhotoTakenOnGrindr}
-									label={t("profile_editor.photo_upload.taken_on_grindr")}
-									description={t("profile_editor.photo_upload.taken_on_grindr_description")}
-								/>
-							</div>
+						{/* Below the preview, like the chat upload's tool buttons. */}
+						<div className="flex shrink-0 items-center justify-center gap-3 px-4 pb-3 pt-1">
+							<MediaToolButton
+								icon={<TakenOnGrindrToolIcon active={pendingPhotoTakenOnGrindr} />}
+								label={t("profile_editor.photo_upload.taken_on_grindr")}
+								active={pendingPhotoTakenOnGrindr}
+								onClick={() => setPendingPhotoTakenOnGrindr(!pendingPhotoTakenOnGrindr)}
+							/>
 						</div>
 					</div>
 				</BottomDrawer>
@@ -1030,6 +1153,7 @@ export function ProfileEditorPage() {
 					onDeleteImage={handleDeletePoolImage}
 					onUploadFile={handleDrawerUploadFile}
 					onClose={() => setIsPhotoDrawerOpen(false)}
+					closeRef={photoDrawerCloseRef}
 					isDesktop={isDesktop}
 				/>
 			) : null}

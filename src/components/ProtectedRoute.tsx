@@ -3,8 +3,10 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreBackupOffer } from "./RestoreBackupOffer";
+import { LegalAgreementsGate } from "./LegalAgreementsPrompt";
+import { AccountWarningsGate } from "./AccountWarningsPrompt";
 import * as chatDb from "../services/chatDb";
-import { hasOfferedRestore, markRestoreOffered } from "../utils/restoreOfferStorage";
+import { hasOfferedRestore, markRestoreOffered, REPLAY_RESTORE_OFFER_EVENT } from "../utils/restoreOfferStorage";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 	const { userId, isLoading, settingsReady } = useAuth();
@@ -40,6 +42,12 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 		};
 	}, [settingsReady, userId]);
 
+	useEffect(() => {
+		const handleReplay = () => setShowRestoreOffer(true);
+		window.addEventListener(REPLAY_RESTORE_OFFER_EVENT, handleReplay);
+		return () => window.removeEventListener(REPLAY_RESTORE_OFFER_EVENT, handleReplay);
+	}, []);
+
 	if (isLoading) {
 		return <LoadingScreen />;
 	}
@@ -52,5 +60,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 		return <RestoreBackupOffer userId={userId} onDone={() => setShowRestoreOffer(false)} />;
 	}
 
-	return children;
+	return (
+		<LegalAgreementsGate userId={userId}>
+			<AccountWarningsGate userId={userId}>{children}</AccountWarningsGate>
+		</LegalAgreementsGate>
+	);
 }

@@ -1,1 +1,1 @@
-export type SignInMethod = "google" | "password";
+export type SignInMethod = "google" | "facebook" | "password";

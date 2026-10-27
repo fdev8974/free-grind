@@ -7,6 +7,7 @@ import {
 	type UnitsPreset,
 } from "../../../utils/units";
 import { formatRelativeTime } from "../../../utils/relativeTime";
+import { hourCycleOptions } from "../../../utils/timeFormat";
 
 type AccountCreationAnchor = {
 	time: number;
@@ -32,6 +33,8 @@ const ACCOUNT_CREATION_ANCHORS: readonly AccountCreationAnchor[] = [
 	{ time: 1738065780, id: 730248000 },
 	{ time: 1739059200, id: 733779000 },
 	{ time: 1741564800, id: 744008000 },
+	{ time: 1779660000, id: 901631500 },
+	{ time: 1791816200, id: 927729800 },
 ];
 
 function parseProfileId(profileId: string | number | null | undefined): number | null {
@@ -130,6 +133,7 @@ export function formatProfilePhotoCreatedAt(
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
+		...hourCycleOptions(),
 	});
 
 	return formatter.format(new Date(timestamp));
@@ -168,8 +172,23 @@ export function isCurrentlyOnline(
 	return onlineUntil > Date.now();
 }
 
+/** Online indicators turn amber once a profile's online window has this many minutes or fewer left. */
+export const ONLINE_ENDING_SOON_MINUTES = 5;
+
+export function isOnlineEndingSoon(
+	onlineUntil: number | null | undefined,
+	nowTimestamp: number = Date.now(),
+): boolean {
+	if (typeof onlineUntil !== "number" || !Number.isFinite(onlineUntil) || onlineUntil <= nowTimestamp) {
+		return false;
+	}
+	return Math.ceil((onlineUntil - nowTimestamp) / (60 * 1000)) <= ONLINE_ENDING_SOON_MINUTES;
+}
+
 export type OnlineStatusMeta = {
 	isOnline: boolean;
+	/** Online, but with ONLINE_ENDING_SOON_MINUTES or fewer left. */
+	isEndingSoon?: boolean;
 	labelKey: string;
 	count?: number;
 	/** @deprecated Use labelKey and t() instead */
@@ -204,6 +223,7 @@ export function getOnlineStatusMeta(
 		);
 		return {
 			isOnline: true,
+			isEndingSoon: minsLeft <= ONLINE_ENDING_SOON_MINUTES,
 			labelKey: "browse_page.status_online_left",
 			count: minsLeft,
 			label: `Online (${minsLeft}m left)`,

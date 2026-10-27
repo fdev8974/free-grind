@@ -46,7 +46,20 @@ pub enum AppError {
     /// (`banned_image` / `banned_video`, 422 problem body) or the device-key
     /// signature (`timestamp_drift` / `nonce_replayed`).
     MediaRejected { status: u16, reason: String },
+    /// Upload normalization refused a file before it was sent; the message
+    /// is one of `media::codes`.
+    Media(String),
     Unauthorized { code: i32, message: String },
+    /// Sign-in refused until the account verifies a phone number by SMS
+    /// (Grindr code 30); `profile_id` comes from the response body.
+    #[serde(rename_all = "camelCase")]
+    VerificationRequired {
+        code: i32,
+        message: String,
+        profile_id: Option<String>,
+        /// The whole response body, for the SMS page's debug report.
+        body: String,
+    },
     Banned(BanInfo),
     RateLimited,
     RequestBlocked,
@@ -55,6 +68,8 @@ pub enum AppError {
     NotInitialized,
     Backup(String),
     TokenExpired,
+    /// This app already created as many accounts as it allows.
+    SignUpLimitReached,
 }
 
 impl fmt::Display for AppError {
@@ -69,8 +84,12 @@ impl fmt::Display for AppError {
             AppError::MediaRejected { status, reason } => {
                 write!(f, "Media rejected ({status}): {reason}")
             }
+            AppError::Media(code) => write!(f, "Media error: {code}"),
             AppError::Unauthorized { code, message } => {
                 write!(f, "Unauthorized ({code}): {message}")
+            }
+            AppError::VerificationRequired { message, .. } => {
+                write!(f, "Verification required: {message}")
             }
             AppError::Banned(info) => write!(f, "Banned ({}): {}", info.kind, info.message),
             AppError::RateLimited => write!(f, "Rate limited"),
@@ -82,6 +101,7 @@ impl fmt::Display for AppError {
             AppError::NotInitialized => write!(f, "GrindrClient not initialized"),
             AppError::Backup(msg) => write!(f, "Backup error: {msg}"),
             AppError::TokenExpired => write!(f, "Session token expired"),
+            AppError::SignUpLimitReached => write!(f, "Sign-up limit reached"),
         }
     }
 }
@@ -97,6 +117,18 @@ impl From<grindr::GrindrError> for AppError {
             grindr::GrindrError::Api { code, message } => AppError::Api { code, message },
             grindr::GrindrError::Unauthorized { code, message } => {
                 AppError::Unauthorized { code, message }
+            }
+            grindr::GrindrError::VerificationRequired {
+                profile_id,
+                message,
+                body,
+            } => {
+                AppError::VerificationRequired {
+                    code: 30,
+                    message,
+                    profile_id,
+                    body,
+                }
             }
             grindr::GrindrError::Banned(info) => AppError::Banned(info.into()),
             grindr::GrindrError::RateLimited => AppError::RateLimited,

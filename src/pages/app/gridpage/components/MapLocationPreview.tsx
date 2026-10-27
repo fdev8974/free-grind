@@ -10,6 +10,8 @@ type Props = {
 	zoom?: number;
 	/** Draws a translucent accuracy circle of this radius (meters) around the pin. */
 	radiusMeters?: number;
+	/** false leaves out the pin marker, e.g. for a thumbnail too small for it (the caller draws its own). */
+	marker?: boolean;
 };
 
 const ACCURACY_SOURCE_ID = "accuracy-circle";
@@ -86,6 +88,7 @@ export function MapLocationPreview({
 	interactive = false,
 	zoom = 15,
 	radiusMeters,
+	marker = true,
 }: Props) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const mapRef = useRef<any>(null);
@@ -122,7 +125,7 @@ export function MapLocationPreview({
 					syncAccuracyCircle(map, current.lat, current.lon, current.radiusMeters);
 				});
 
-				markerRef.current = new maplibregl.Marker({ element: createPinMarkerElement(), anchor: "bottom" })
+				if (marker) markerRef.current = new maplibregl.Marker({ element: createPinMarkerElement(), anchor: "bottom" })
 					.setLngLat([start.lon, start.lat])
 					.addTo(map);
 
@@ -145,7 +148,7 @@ export function MapLocationPreview({
 				mapRef.current = null;
 			}
 		};
-	}, [scheme, interactive, zoom]);
+	}, [scheme, interactive, zoom, marker]);
 
 	useEffect(() => {
 		const map = mapRef.current;

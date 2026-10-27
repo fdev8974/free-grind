@@ -15,7 +15,7 @@ import { fetchAndEncode, toDataUri } from "./mediaStore";
 import { getMessageAlbumCoverUrl, getMessageAlbumId } from "../pages/app/chat/chatUtils";
 import { ApiFunctionError } from "./apiHelpers";
 import type { UiMessage } from "../types/chat-page";
-import type { AlbumContentItem } from "../types/chat-page";
+import type { AlbumContentItem, AlbumMediaCount } from "../types/chat-page";
 import type { AlbumDetailsResponse } from "../types/chat-service";
 import type { StoredAlbumMedia } from "../types/chat-db";
 import { appLog } from "../utils/logger";
@@ -81,6 +81,11 @@ const albumCoverCache = new Map<number, string>();
 // a full album capture (updateAlbumCacheState) and, when that never
 // happened, by captureAlbumContentThumbFromMessage below.
 const albumContentThumbCache = new Map<string, string>();
+// Per-album image/video counts and names from whatever's in chatDb, so the
+// chat bubble can show "12 photos · 3 videos" + the album's name
+// synchronously, the same way it reads the cover above.
+const albumMediaCountCache = new Map<number, AlbumMediaCount>();
+const albumNameCache = new Map<number, string>();
 // De-dupes concurrent captureAlbumContentThumbFromMessage calls for the same item.
 const contentThumbCaptureInFlight = new Set<string>();
 
@@ -129,6 +134,11 @@ function updateAlbumCacheState(albumId: number, media: StoredAlbumMedia[]): void
 		}
 	}
 
+	if (media.length > 0) {
+		const videos = media.filter((m) => m.contentType?.startsWith("video/")).length;
+		albumMediaCountCache.set(albumId, { images: media.length - videos, videos });
+	}
+
 	const fullyCaptured = media.length > 0 && media.every((m) => m.dataBase64);
 	if (fullyCaptured) {
 		capturedAlbumIds.add(albumId);
@@ -164,6 +174,23 @@ export function isAlbumKnownRevoked(albumId: number): boolean {
 /** Synchronous read of the cached cover image, or null if not cached (yet). */
 export function getCachedAlbumCoverUri(albumId: number): string | null {
 	return albumCoverCache.get(albumId) ?? null;
+}
+
+/** Synchronous read of the locally-known image/video counts, or null if nothing's cached (yet). */
+export function getCachedAlbumMediaCount(albumId: number): AlbumMediaCount | null {
+	return albumMediaCountCache.get(albumId) ?? null;
+}
+
+/** Synchronous read of the locally-known album name, or null if unknown. */
+export function getCachedAlbumName(albumId: number): string | null {
+	return albumNameCache.get(albumId) ?? null;
+}
+
+function setCachedAlbumName(albumId: number, albumName: string | null | undefined): void {
+	const name = albumName?.trim();
+	if (name) {
+		albumNameCache.set(albumId, name);
+	}
 }
 
 /** Subscribe to in-memory album-cache updates; returns an unsubscribe function. */
@@ -233,6 +260,8 @@ export async function deleteLocalAlbum(albumId: number): Promise<void> {
 	});
 	capturedAlbumIds.delete(albumId);
 	albumCoverCache.delete(albumId);
+	albumMediaCountCache.delete(albumId);
+	albumNameCache.delete(albumId);
 	knownGoneAlbumIds.delete(albumId);
 	for (const ids of profileIdToAlbumIds.values()) {
 		ids.delete(albumId);
@@ -277,6 +306,7 @@ export function ensureAlbumCacheChecked(albumId: number): void {
 		try {
 			// The blurred chat-bubble preview (preferred cover source) first.
 			const album = await limitChatDbBlobRead(() => chatDb.getAlbum(String(albumId)));
+			setCachedAlbumName(albumId, album?.albumName);
 			if (album?.previewCoverBase64 && !albumCoverCache.has(albumId)) {
 				albumCoverCache.set(
 					albumId,
@@ -470,6 +500,7 @@ export async function captureAlbum(params: CaptureAlbumParams): Promise<void> {
 		sharedViaMessageId,
 	});
 	addProfileAlbumMapping(ownerProfileId, albumId);
+	setCachedAlbumName(albumId, albumName);
 
 	const existing = await chatDb.getAlbumMedia(String(albumId));
 	const existingById = new Map(existing.map((m) => [m.contentId, m] as const));

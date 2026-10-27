@@ -12,7 +12,7 @@ export function LoadingState({
 	compact?: boolean;
 }) {
 	return (
-		<Card className={compact ? "p-4" : "p-5 sm:p-6"}>
+		<Card variant="native" className={compact ? "p-4" : "p-5 sm:p-6"}>
 			<div className="flex items-center gap-3">
 				<Loader2 className="h-4 w-4 animate-spin text-[var(--text-muted)]" />
 				<div>
@@ -36,9 +36,9 @@ export function EmptyState({
 	action?: React.ReactNode;
 }) {
 	return (
-		<Card className="p-5 sm:p-6">
+		<Card variant="native" className="p-5 sm:p-6">
 			<div className="flex items-start gap-3">
-				<div className="rounded-xl bg-[var(--surface-2)] p-2.5">
+				<div className="rounded-xl ink-tint-8 p-2.5">
 					<Inbox className="h-4 w-4 text-[var(--text-muted)]" />
 				</div>
 				<div className="grid gap-2">
@@ -65,9 +65,9 @@ export function ErrorState({
 	retryLabel?: string;
 }) {
 	return (
-		<Card className="p-5 sm:p-6">
+		<Card variant="native" className="p-5 sm:p-6">
 			<div className="flex items-start gap-3">
-				<div className="rounded-xl bg-[color-mix(in_srgb,var(--surface)_70%,#fca5a5_30%)] p-2.5">
+				<div className="rounded-xl bg-red-500/12 p-2.5 text-red-500">
 					<AlertCircle className="h-4 w-4" />
 				</div>
 				<div className="grid gap-2">

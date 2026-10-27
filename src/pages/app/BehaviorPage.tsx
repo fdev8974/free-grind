@@ -1,11 +1,16 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, ExternalLink, Images, LayoutGrid, MapPin, Sun, Timer, Trash2 } from "lucide-react";
-import { BackToSettings } from "../../components/BackToSettings";
+import { ArrowDownWideNarrow, Ban, CornerDownLeft, ExternalLink, MoveHorizontal, SwitchCamera, Video } from "lucide-react";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
+import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
-import { Chip } from "../../components/ui/chip";
+import { RightNowIcon } from "../../components/icons/RightNowIcon";
+import { SelectRow } from "../../components/ui/select-row";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
+import { getTapEmoji, tapLabel } from "./interest/interestUtils";
+import { isAndroid, isIos } from "../../services/saveMedia";
 import {
 	SKIP_BLOCK_CONFIRM_KEY,
 	SKIP_DELETE_CONVERSATION_CONFIRM_KEY,
@@ -16,15 +21,22 @@ import {
 } from "../../utils/blockConfirm";
 
 const ALBUM_EXPIRATION_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"] as const;
+const DOUBLE_TAP_TAP_TYPES = [0, 1, 2] as const;
+type DoubleTapTapType = (typeof DOUBLE_TAP_TAP_TYPES)[number];
+type DoubleTapChoice = "off" | "chat" | `tap-${DoubleTapTapType}`;
 
 // Wake Lock support varies by webview, not by platform: WebView2 (Windows)
 // and the Android/iOS system webviews support it, WebKitGTK (Linux desktop)
 // doesn't — so gate on the actual API instead of assuming desktop vs. mobile.
+// Desktop webcams have a single camera, so front/back only exists on phones.
+const isMobilePlatform = isAndroid() || isIos();
+
 const isKeepScreenOnSupported = typeof navigator !== "undefined" && "wakeLock" in navigator;
 
 export function BehaviorPage() {
 	const { t } = useTranslation();
 	const highlightId = useSettingsHighlight();
+	const isDesktop = useDesktopBreakpoint();
 	const {
 		defaultExpiringPhotos,
 		defaultAlbumExpirationType,
@@ -32,8 +44,17 @@ export function BehaviorPage() {
 		sortDrawerMediaByFrequency,
 		keepScreenOn,
 		autoFocusLocationSearch,
+		autoFocusRightNowText,
+		doubleTapTapType,
+		doubleTapAction,
+		chatRowSwipeActions,
+		mobileEnterToSend,
+		startCallsWithCameraOn,
+		defaultCallCamera,
 		setPreferences,
 	} = usePreferences();
+	const doubleTapChoice: DoubleTapChoice =
+		doubleTapTapType === null ? "off" : doubleTapAction === "chat" ? "chat" : `tap-${doubleTapTapType as DoubleTapTapType}`;
 	const albumExpirationLabels: Record<(typeof ALBUM_EXPIRATION_OPTIONS)[number], string> = {
 		INDEFINITE: t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" }),
 		ONCE: t("chat_drawer.expiry.once", { defaultValue: "Once" }),
@@ -49,14 +70,14 @@ export function BehaviorPage() {
 
 	return (
 		<section className="app-screen">
-			<header className="mb-7">
-				<BackToSettings />
-				<h1 className="app-title mb-1">{t("settings.behavior")}</h1>
-				<p className="app-subtitle">{t("behavior.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings.behavior")}
+				subtitle={t("behavior.subtitle")}
+			/>
 
 			<div className="grid gap-6">
-				<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+				<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 					<ToggleRow
 						id="behavior-confirm-block"
 						highlighted={highlightId === "behavior-confirm-block"}
@@ -73,7 +94,7 @@ export function BehaviorPage() {
 					<ToggleRow
 						id="behavior-confirm-delete-conversation"
 						highlighted={highlightId === "behavior-confirm-delete-conversation"}
-						icon={<Trash2 className="h-5 w-5" />}
+						icon={<Trash2Filled className="h-5 w-5" />}
 						iconClass="bg-red-500/15 text-red-400"
 						label={t("customizability.confirm_before_delete_conversation")}
 						description={t("customizability.confirm_before_delete_conversation_desc")}
@@ -101,51 +122,102 @@ export function BehaviorPage() {
 				</div>
 
 				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.chats")}</p>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<ToggleRow
+							id="behavior-chat-row-swipe-actions"
+							highlighted={highlightId === "behavior-chat-row-swipe-actions"}
+							icon={<MoveHorizontal className="h-5 w-5" />}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("behavior.chat_row_swipe_actions")}
+							description={t("behavior.chat_row_swipe_actions_desc")}
+							checked={chatRowSwipeActions}
+							onChange={(checked) => void setPreferences({ chatRowSwipeActions: checked })}
+						/>
+						{/* Enter always sends on desktop, so this only matters on mobile. */}
+						{!isDesktop && <ToggleRow
+							id="behavior-mobile-enter-to-send"
+							highlighted={highlightId === "behavior-mobile-enter-to-send"}
+							icon={<CornerDownLeft className="h-5 w-5" />}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("behavior.mobile_enter_to_send", { defaultValue: "Enter to Send on Mobile" })}
+							description={t("behavior.mobile_enter_to_send_desc", {
+								defaultValue: "The Enter key on your phone's keyboard sends the message instead of starting a new line.",
+							})}
+							checked={mobileEnterToSend}
+							onChange={(checked) => void setPreferences({ mobileEnterToSend: checked })}
+						/>}
+					</div>
+				</div>
+
+				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.video_calls", { defaultValue: "Video Calls" })}</p>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<ToggleRow
+							id="behavior-start-calls-with-camera-on"
+							highlighted={highlightId === "behavior-start-calls-with-camera-on"}
+							icon={<Video className="h-5 w-5" />}
+							iconClass="bg-emerald-500/15 text-emerald-400"
+							label={t("behavior.start_calls_with_camera_on", { defaultValue: "Start Calls with Camera On" })}
+							description={t("behavior.start_calls_with_camera_on_desc", {
+								defaultValue: "Your camera is turned on as soon as a video call connects. When off, calls start with your camera off and you turn it on yourself.",
+							})}
+							checked={startCallsWithCameraOn}
+							onChange={(checked) => void setPreferences({ startCallsWithCameraOn: checked })}
+						/>
+						{isMobilePlatform && <SelectRow
+							id="behavior-default-call-camera"
+							highlighted={highlightId === "behavior-default-call-camera"}
+							icon={<SwitchCamera className="h-5 w-5" />}
+							iconClass="bg-emerald-500/15 text-emerald-400"
+							label={t("behavior.default_call_camera", { defaultValue: "Default Camera" })}
+							description={t("behavior.default_call_camera_desc", {
+								defaultValue: "The camera a video call starts with. You can still switch during the call.",
+							})}
+							value={defaultCallCamera}
+							onChange={(option) => void setPreferences({ defaultCallCamera: option })}
+							options={[
+								{ value: "user", label: t("behavior.call_camera_front", { defaultValue: "Front" }) },
+								{ value: "environment", label: t("behavior.call_camera_back", { defaultValue: "Back" }) },
+							]}
+						/>}
+					</div>
+				</div>
+
+				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.disappearing_media")}</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="behavior-default-expiring-photos"
 							highlighted={highlightId === "behavior-default-expiring-photos"}
-							icon={<Timer className="h-5 w-5" />}
+							icon={<TimerFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("behavior.default_expiring_photos")}
 							description={t("behavior.default_expiring_photos_desc")}
 							checked={defaultExpiringPhotos}
 							onChange={(checked) => void setPreferences({ defaultExpiringPhotos: checked })}
 						/>
-						<div
+						<SelectRow
 							id="behavior-default-album-expiration"
-							className={`flex items-start gap-3 px-4 py-3.5 ${highlightId === "behavior-default-album-expiration" ? "animate-settings-highlight" : ""}`}
-						>
-							<div className="rounded-2xl p-2.5 shrink-0 bg-violet-500/15 text-violet-400">
-								<Images className="h-5 w-5" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="text-sm font-semibold">{t("behavior.default_album_expiration")}</p>
-								<p className="mt-0.5 text-xs text-[var(--text-muted)]">{t("behavior.default_album_expiration_desc")}</p>
-								<div className="mt-3 flex flex-wrap gap-2">
-									{ALBUM_EXPIRATION_OPTIONS.map((option) => (
-										<Chip
-											key={option}
-											selected={defaultAlbumExpirationType === option}
-											onClick={() => void setPreferences({ defaultAlbumExpirationType: option })}
-										>
-											{albumExpirationLabels[option]}
-										</Chip>
-									))}
-								</div>
-							</div>
-						</div>
+							highlighted={highlightId === "behavior-default-album-expiration"}
+							icon={<ImagesFilled className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("behavior.default_album_expiration")}
+							description={t("behavior.default_album_expiration_desc")}
+							value={defaultAlbumExpirationType}
+							onChange={(option) => void setPreferences({ defaultAlbumExpirationType: option })}
+							options={ALBUM_EXPIRATION_OPTIONS.map((option) => ({ value: option, label: albumExpirationLabels[option] }))}
+						/>
 					</div>
 				</div>
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.album_viewing")}</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="behavior-open-album-as-bottom-sheet"
 							highlighted={highlightId === "behavior-open-album-as-bottom-sheet"}
-							icon={<LayoutGrid className="h-5 w-5" />}
+							icon={<LayoutGridFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("behavior.open_album_as_bottom_sheet")}
 							description={t("behavior.open_album_as_bottom_sheet_desc")}
@@ -157,7 +229,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.media_drawer")}</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="behavior-sort-drawer-media-by-frequency"
 							highlighted={highlightId === "behavior-sort-drawer-media-by-frequency"}
@@ -172,12 +244,43 @@ export function BehaviorPage() {
 				</div>
 
 				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.grid", { defaultValue: "Grid" })}</p>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<SelectRow
+							id="behavior-double-tap-tap-type"
+							highlighted={highlightId === "behavior-double-tap-tap-type"}
+							icon={<FlameFilled className="h-5 w-5" />}
+							iconClass="bg-orange-500/15 text-orange-400"
+							label={t("behavior.double_tap_action", { defaultValue: "Double Tap Action" })}
+							description={t("behavior.double_tap_action_desc", {
+								defaultValue: "Double tap a profile in the grid to send a tap or open the chat directly. Turn off to open profiles instantly on a single tap.",
+							})}
+							value={doubleTapChoice}
+							onChange={(choice) => {
+								if (choice === "off") void setPreferences({ doubleTapTapType: null });
+								// Off is stored as a null tap type, so keep a tap type around while chat is picked.
+								else if (choice === "chat") void setPreferences({ doubleTapTapType: doubleTapTapType ?? 1, doubleTapAction: "chat" });
+								else void setPreferences({ doubleTapTapType: Number(choice.slice("tap-".length)) as DoubleTapTapType, doubleTapAction: "tap" });
+							}}
+							options={[
+								{ value: "off", label: t("behavior.double_tap_off", { defaultValue: "Off" }) },
+								...DOUBLE_TAP_TAP_TYPES.map((tapType) => ({
+									value: `tap-${tapType}` as const,
+									label: `${getTapEmoji(tapType)} ${tapLabel(tapType, t)}`,
+								})),
+								{ value: "chat", label: `💬 ${t("behavior.double_tap_open_chat", { defaultValue: "Open Chat" })}` },
+							]}
+						/>
+					</div>
+				</div>
+
+				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.location")}</p>
-					<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="behavior-auto-focus-location-search"
 							highlighted={highlightId === "behavior-auto-focus-location-search"}
-							icon={<MapPin className="h-5 w-5" />}
+							icon={<MapPinFilled className="h-5 w-5" />}
 							iconClass="bg-rose-500/15 text-rose-400"
 							label={t("behavior.auto_focus_location_search")}
 							description={t("behavior.auto_focus_location_search_desc")}
@@ -187,14 +290,32 @@ export function BehaviorPage() {
 					</div>
 				</div>
 
+				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("right_now.title")}</p>
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<ToggleRow
+							id="behavior-auto-focus-right-now-text"
+							highlighted={highlightId === "behavior-auto-focus-right-now-text"}
+							icon={<RightNowIcon className="h-5 w-5" />}
+							iconClass="bg-[var(--right-now)]/15 text-[var(--right-now)]"
+							label={t("behavior.auto_focus_right_now_text", { defaultValue: "Auto-Focus Session Text" })}
+							description={t("behavior.auto_focus_right_now_text_desc", {
+								defaultValue: "Automatically focus the text field and open the keyboard when starting or editing a Right Now session.",
+							})}
+							checked={autoFocusRightNowText}
+							onChange={(checked) => void setPreferences({ autoFocusRightNowText: checked })}
+						/>
+					</div>
+				</div>
+
 				{isKeepScreenOnSupported && (
 					<div>
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.display")}</p>
-						<div className="surface-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 							<ToggleRow
 								id="behavior-keep-screen-on"
 								highlighted={highlightId === "behavior-keep-screen-on"}
-								icon={<Sun className="h-5 w-5" />}
+								icon={<SunFilled className="h-5 w-5" />}
 								iconClass="bg-amber-500/15 text-amber-400"
 								label={t("behavior.keep_screen_on")}
 								description={t("behavior.keep_screen_on_desc")}

@@ -465,6 +465,31 @@ async function getDb(): Promise<Database> {
 					)
 				`);
 
+				// Collections: local-only, named groups of drawer media — the
+				// server has no such concept. media_ids_json keeps the drawer media
+				// ids in send order; ids that have since been deleted from the
+				// drawer are just skipped at send time, not pruned here.
+				await db.execute(`
+					CREATE TABLE IF NOT EXISTS drawer_collections (
+						id TEXT PRIMARY KEY,
+						name TEXT NOT NULL,
+						media_ids_json TEXT NOT NULL DEFAULT '[]',
+						created_at INTEGER NOT NULL,
+						updated_at INTEGER NOT NULL
+					)
+				`);
+				// Briefly shipped as local_drawer_albums in a test build — carry
+				// any rows over once, then drop the old table.
+				try {
+					await db.execute(`
+						INSERT OR IGNORE INTO drawer_collections (id, name, media_ids_json, created_at, updated_at)
+						SELECT id, name, media_ids_json, created_at, updated_at FROM local_drawer_albums
+					`);
+					await db.execute("DROP TABLE local_drawer_albums");
+				} catch {
+					// never existed / already migrated
+				}
+
 				await db.execute(`
 					CREATE TABLE IF NOT EXISTS block_events (
 						id TEXT PRIMARY KEY,
@@ -869,6 +894,41 @@ export async function backfillOtherProfileId(
 	});
 }
 
+/**
+ * Creates a minimal placeholder conversation row if (and only if) none exists
+ * yet, so the durable block_state column and the archived flag have somewhere
+ * to live for a conversation we only ever learned about from a
+ * chat.v1.conversation.delete event — e.g. being blocked by a profile we never
+ * had an actual chat thread with. Both block_state and archived are UPDATE-only
+ * columns (setBlockState/setConversationArchived no-op without a row), so the
+ * "who blocked whom" state — and therefore correct later unblock detection —
+ * would otherwise be lost entirely. Never overwrites an existing row. The
+ * participant list is intentionally empty; the other profile's name/avatar, if
+ * ever resolved, come from the profile snapshot cache (see recordBlockEvent).
+ */
+export async function ensureConversationRow(
+	conversationId: string,
+	otherProfileId: string | null,
+): Promise<void> {
+	const db = await getDb();
+	const now = Date.now();
+
+	await executeWithLockRetry(db, "ensure-conversation-row", async () => {
+		await db.execute(
+			`
+			INSERT INTO conversations (
+				conversation_id, other_profile_id, name, participants_json,
+				last_activity_timestamp, unread_count, pinned, muted, favorite,
+				preview_json, archived, archived_reason, archived_at,
+				last_seen_in_inbox_at, created_at, updated_at
+			) VALUES ($1, $2, '', '[]', $3, 0, 0, 0, 0, NULL, 0, NULL, NULL, NULL, $3, $3)
+			ON CONFLICT(conversation_id) DO NOTHING
+			`,
+			[conversationId, otherProfileId, now],
+		);
+	});
+}
+
 export async function setConversationArchived(
 	conversationId: string,
 	archived: boolean,
@@ -959,6 +1019,110 @@ export async function incrementDrawerMediaSendCount(mediaId: number): Promise<vo
 			[mediaId, Date.now()],
 		);
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Drawer collections
+// ---------------------------------------------------------------------------
+
+export interface StoredDrawerCollection {
+	id: string;
+	name: string;
+	/** Drawer media ids, in the order they get sent. */
+	mediaIds: number[];
+}
+
+type DrawerCollectionRow = { id: string; name: string; media_ids_json: string };
+
+// Lets open lists (chat drawer, settings) follow changes made elsewhere,
+// e.g. a collection emptied by deleting its last media from another sheet.
+const drawerCollectionListeners = new Set<() => void>();
+
+export function subscribeToDrawerCollections(listener: () => void): () => void {
+	drawerCollectionListeners.add(listener);
+	return () => {
+		drawerCollectionListeners.delete(listener);
+	};
+}
+
+function notifyDrawerCollectionsChanged(): void {
+	for (const listener of drawerCollectionListeners) listener();
+}
+
+function parseMediaIds(json: string): number[] {
+	try {
+		const parsed: unknown = JSON.parse(json);
+		return Array.isArray(parsed) ? parsed.filter((id): id is number => typeof id === "number") : [];
+	} catch {
+		return [];
+	}
+}
+
+export async function getDrawerCollections(): Promise<StoredDrawerCollection[]> {
+	const db = await getDb();
+	const rows = await db.select<DrawerCollectionRow[]>(
+		"SELECT id, name, media_ids_json FROM drawer_collections ORDER BY created_at ASC",
+	);
+	return rows.map((row) => ({ id: row.id, name: row.name, mediaIds: parseMediaIds(row.media_ids_json) }));
+}
+
+export async function upsertDrawerCollection(
+	input: StoredDrawerCollection,
+): Promise<StoredDrawerCollection[]> {
+	const db = await getDb();
+	const now = Date.now();
+
+	await executeWithLockRetry(db, "upsert-drawer-collection", async () => {
+		await db.execute(
+			`
+			INSERT INTO drawer_collections (id, name, media_ids_json, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $4)
+			ON CONFLICT(id) DO UPDATE SET name = $2, media_ids_json = $3, updated_at = $4
+			`,
+			[input.id, input.name, JSON.stringify(input.mediaIds), now],
+		);
+	});
+
+	notifyDrawerCollectionsChanged();
+	return getDrawerCollections();
+}
+
+export async function deleteDrawerCollection(id: string): Promise<StoredDrawerCollection[]> {
+	const db = await getDb();
+
+	await executeWithLockRetry(db, "delete-drawer-collection", async () => {
+		await db.execute("DELETE FROM drawer_collections WHERE id = $1", [id]);
+	});
+
+	notifyDrawerCollectionsChanged();
+	return getDrawerCollections();
+}
+
+/** For media deleted from the drawer: drops it from every collection and
+ * deletes the collections it leaves empty. */
+export async function removeMediaFromDrawerCollections(mediaId: number): Promise<StoredDrawerCollection[]> {
+	const collections = await getDrawerCollections();
+	const affected = collections.filter((collection) => collection.mediaIds.includes(mediaId));
+	if (affected.length === 0) return collections;
+
+	const db = await getDb();
+	const now = Date.now();
+	await executeWithLockRetry(db, "remove-media-from-drawer-collections", async () => {
+		for (const collection of affected) {
+			const remaining = collection.mediaIds.filter((id) => id !== mediaId);
+			if (remaining.length === 0) {
+				await db.execute("DELETE FROM drawer_collections WHERE id = $1", [collection.id]);
+			} else {
+				await db.execute(
+					"UPDATE drawer_collections SET media_ids_json = $2, updated_at = $3 WHERE id = $1",
+					[collection.id, JSON.stringify(remaining), now],
+				);
+			}
+		}
+	});
+
+	notifyDrawerCollectionsChanged();
+	return getDrawerCollections();
 }
 
 /** Unhides a conversation only if it's currently hidden, reporting whether it
@@ -1399,6 +1563,7 @@ export async function insertSystemMessage(
 	conversationId: string,
 	type: SystemMessageType,
 	timestamp: number = Date.now(),
+	otherProfileId?: string | null,
 ): Promise<Message> {
 	const message: Message = {
 		messageId: `local-system:${type}:${conversationId}:${timestamp}`,
@@ -1424,6 +1589,7 @@ export async function insertSystemMessage(
 			conversationId,
 			type === "SystemBlocked" ? "blocked" : "unblocked",
 			timestamp,
+			otherProfileId,
 		);
 	}
 
@@ -1437,20 +1603,58 @@ export async function insertSystemMessage(
  * blocked us can later become fully unresolvable (deleted/banned, or its
  * conversation ages out of the live inbox), which would otherwise leave the
  * history page unable to show who it even was.
+ *
+ * `otherProfileIdFallback` covers being blocked by a profile we never had an
+ * actual chat thread with: there's no local conversation to read from, but the
+ * conversation id a chat.v1.conversation.delete carries still identifies the
+ * other profile (see deriveOtherProfileIdFromConversationId). When the
+ * conversation is missing (or has no name/avatar yet), the profile snapshot
+ * cache fills them in — it's written from any live fetch that still resolved to
+ * a real profile, including the block detection's own brief fetch in the
+ * seconds right after the block (a blocked profile is often still fetchable
+ * then, before it collapses to the nulled stub classifyProfileAccess detects).
  */
 async function recordBlockEvent(
 	conversationId: string,
 	eventType: BlockEventType,
 	timestamp: number,
+	otherProfileIdFallback?: string | null,
 ): Promise<void> {
 	const conversation = await getConversation(conversationId);
-	const otherProfileId = conversation?.otherProfileId ?? null;
+	const otherProfileId = conversation?.otherProfileId ?? otherProfileIdFallback ?? null;
 	const otherParticipant =
 		conversation?.entry.data.participants.find(
 			(p) => String(p.profileId) === otherProfileId,
 		) ?? conversation?.entry.data.participants[0] ?? null;
-	const displayName = conversation?.entry.data.name?.trim() || null;
-	const avatarMediaHash = otherParticipant?.primaryMediaHash ?? null;
+	let displayName = conversation?.entry.data.name?.trim() || null;
+	let avatarMediaHash = otherParticipant?.primaryMediaHash ?? null;
+
+	if ((!displayName || !avatarMediaHash) && otherProfileId) {
+		const snapshot = await getProfileSnapshot(otherProfileId).catch(() => null);
+		if (snapshot) {
+			try {
+				const parsed = JSON.parse(snapshot.data) as {
+					displayName?: string | null;
+					profileImageMediaHash?: string | null;
+				};
+				// Guard against persisting the blocked/gone stub's placeholder
+				// display name ("4"/"3") as if it were a real name.
+				if (
+					!displayName &&
+					parsed.displayName &&
+					parsed.displayName !== "4" &&
+					parsed.displayName !== "3"
+				) {
+					displayName = parsed.displayName;
+				}
+				if (!avatarMediaHash && parsed.profileImageMediaHash) {
+					avatarMediaHash = parsed.profileImageMediaHash;
+				}
+			} catch {
+				// Malformed snapshot — leave name/avatar unresolved.
+			}
+		}
+	}
 
 	const id = `${conversationId}:${eventType}:${timestamp}`;
 	const db = await getDb();
@@ -1495,6 +1699,15 @@ export async function listBlockEvents(): Promise<StoredBlockEvent[]> {
 		"SELECT * FROM block_events ORDER BY timestamp DESC",
 	);
 	return rows.map(rowToStoredBlockEvent);
+}
+
+export async function hasMessage(messageId: string): Promise<boolean> {
+	const db = await getDb();
+	const rows = await db.select<{ found: number }[]>(
+		"SELECT 1 AS found FROM messages WHERE message_id = $1 LIMIT 1",
+		[messageId],
+	);
+	return rows.length > 0;
 }
 
 export async function getMessages(conversationId: string): Promise<StoredMessage[]> {
@@ -1602,6 +1815,32 @@ export async function searchMessages(
 	}
 
 	return results;
+}
+
+/**
+ * Every `${albumId}:${albumContentId}` this account has 🔥-reacted to — read
+ * from its own persisted AlbumContentReaction messages, so the album viewer
+ * can show the reaction as already sent, the way a profile shows a sent tap.
+ */
+export async function listSentAlbumContentReactionKeys(senderId: number): Promise<string[]> {
+	const db = await getDb();
+	const rows = await db.select<{ body_json: string | null }[]>(
+		"SELECT body_json FROM messages WHERE type = 'AlbumContentReaction' AND sender_id = $1 AND unsent = 0",
+		[senderId],
+	);
+	const keys: string[] = [];
+	for (const row of rows) {
+		if (!row.body_json) continue;
+		try {
+			const body = JSON.parse(row.body_json) as { albumId?: unknown; albumContentId?: unknown } | null;
+			if (typeof body?.albumId === "number" && typeof body.albumContentId === "number") {
+				keys.push(`${body.albumId}:${body.albumContentId}`);
+			}
+		} catch {
+			// Malformed body — nothing to key it by.
+		}
+	}
+	return keys;
 }
 
 export async function setMessageLocalHistory(
@@ -1826,7 +2065,10 @@ export async function getMediaFileByMessageId(
 ): Promise<StoredMediaFile | null> {
 	const db = await getDb();
 	const rows = await db.select<MediaFileRow[]>(
-		"SELECT * FROM media_files WHERE message_id = $1 LIMIT 1",
+		// Only 'ok' rows: an expired signed URL leaves a 'failed' row for the
+		// same message under a different media_key, which LIMIT 1 would
+		// otherwise happily pick over the one that actually has the bytes.
+		"SELECT * FROM media_files WHERE message_id = $1 AND fetch_status = 'ok' ORDER BY fetched_at DESC LIMIT 1",
 		[messageId],
 	);
 	const row = rows[0];
@@ -1914,6 +2156,15 @@ export async function getAllReceivedChatVideos(userId: number | null): Promise<S
 			AND mf.fetch_status = 'ok'
 			AND mf.conversation_id IS NOT NULL
 			AND mf.media_key NOT LIKE 'drawer:%'
+			-- One message's video can be stored under several keys (video:media:<id>
+			-- while the body still carried mediaId, video:msg:<messageId> once it
+			-- didn't), so only the first-fetched copy per message is listed.
+			AND mf.media_key = (
+				SELECT mf2.media_key FROM media_files mf2
+				WHERE mf2.message_id = mf.message_id AND mf2.kind = 'video' AND mf2.fetch_status = 'ok'
+				ORDER BY mf2.fetched_at, mf2.media_key
+				LIMIT 1
+			)
 			${userId != null ? "AND m.sender_id != $1" : ""}
 		ORDER BY timestamp DESC
 		`,
@@ -2126,6 +2377,21 @@ export async function getAlbumMedia(albumId: string): Promise<StoredAlbumMedia[]
 		[albumId],
 	);
 	return rows.map(rowToStoredAlbumMedia);
+}
+
+/** Photo and video counts of every stored album, keyed by album id — read
+ * without loading any media bytes (unlike getAlbumMedia). */
+export async function getAlbumMediaCounts(): Promise<Map<string, { imageCount: number; videoCount: number }>> {
+	const db = await getDb();
+	const rows = await db.select<{ album_id: string; total: number; videos: number | null }[]>(
+		"SELECT album_id, COUNT(*) AS total, SUM(CASE WHEN content_type LIKE 'video/%' THEN 1 ELSE 0 END) AS videos FROM album_media GROUP BY album_id",
+	);
+	return new Map(
+		rows.map((row) => {
+			const videos = Number(row.videos ?? 0);
+			return [String(row.album_id), { imageCount: Number(row.total) - videos, videoCount: videos }] as const;
+		}),
+	);
 }
 
 type AlbumVideoRow = {

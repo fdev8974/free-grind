@@ -19,22 +19,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish-ota:
-    runs-on: ubuntu-latest
+  # The bundle is built twice, on separate runners, in the pinned container
+  # (ci/build); only a bundle both builds agree on gets signed and published.
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        builder: [1, 2]
+    runs-on: ubuntu-24.04
+    outputs:
+      channel: ${{ steps.ota-meta.outputs.channel }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install frontend dependencies
-        run: bun install --frozen-lockfile
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Resolve OTA metadata
         id: ota-meta
+        env:
+          INPUT_CHANNEL: ${{ github.event.inputs.channel }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            channel="${{ github.event.inputs.channel }}"
+            channel="$INPUT_CHANNEL"
           else
             case "${GITHUB_REF_NAME}" in
               development)
@@ -49,11 +55,55 @@ jobs:
 
           echo "channel=${channel}" >> "$GITHUB_OUTPUT"
 
-      - name: Build, sign and publish OTA bundle to surge.sh
+      - name: Build the bundle in the pinned container
         env:
+          # The bundle's default channel must be the channel it's served from.
+          FG_CHANNEL: ${{ steps.ota-meta.outputs.channel }}
+          FG_CONTAINER_ENGINE: docker
+        run: sh ci/build/run.sh frontend
+
+      - name: Upload build output
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ota-frontend-${{ matrix.builder }}
+          path: out/frontend
+          retention-days: 3
+          if-no-files-found: error
+
+  publish-ota:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # History lets publish-ota.mjs find the oldest compatible binary.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Download both builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ota-frontend-*
+          path: builds
+
+      - name: Compare the builds
+        run: sh ci/compare.sh verified builds/ota-frontend-1 builds/ota-frontend-2
+
+      - name: Sign and publish the OTA bundle to surge.sh
+        env:
+          OTA_BUNDLE: verified/frontend.tar.gz
           HOTSWAP_PRIVATE_KEY: ${{ secrets.HOTSWAP_PRIVATE_KEY }}
           HOTSWAP_PRIVATE_KEY_PASSWORD: ${{ secrets.HOTSWAP_PRIVATE_KEY_PASSWORD }}
           SURGE_LOGIN: ${{ secrets.SURGE_LOGIN }}
           SURGE_TOKEN: ${{ secrets.SURGE_TOKEN }}
-          OTA_NOTES: Automated OTA upload for ${{ github.sha }} on ${{ steps.ota-meta.outputs.channel }}
-        run: bun run scripts/publish-ota.mjs --channel "${{ steps.ota-meta.outputs.channel }}"
+          OTA_CHANNEL: ${{ needs.build.outputs.channel }}
+          OTA_NOTES: Automated OTA upload for ${{ github.sha }} on ${{ needs.build.outputs.channel }}
+        run: bun run scripts/publish-ota.mjs --channel "$OTA_CHANNEL"

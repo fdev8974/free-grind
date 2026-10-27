@@ -1,9 +1,12 @@
 import { useAuth } from "../../contexts/useAuth";
-import { MapPin, Navigation, SlidersHorizontal, ListFilter, Star, Plane, Search, Eye, EyeOff, Check, Loader2, RefreshCw, Settings, X } from "lucide-react";
+import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, UserSearch, ChevronRight } from "lucide-react";
+import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
+import { EyeOffFilled, LocateApproximateFilled, LocateFixedFilled, MapPinFilled, UserFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useApiFunctions } from "../../hooks/useApiFunctions";
+import { useScrollRowFade } from "../../hooks/useScrollRowFade";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { encodeGeohash } from "../../utils/geohash";
@@ -13,7 +16,8 @@ import { usePreferences } from "../../contexts/PreferencesContext";
 import { useExploreMode } from "../../contexts/ExploreModeContext";
 import { type BrowseCard, type ProfileDetail } from "./GridPage.types";
 import { BrowseGrid } from "./gridpage/components/BrowseGrid";
-import { mergeBrowseCardImages } from "./gridpage/utils";
+import { GridTileContextMenu } from "./gridpage/components/GridTileContextMenu";
+import { getDisplayName, mergeBrowseCardImages } from "./gridpage/utils";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { ProfileDetailsModal } from "./gridpage/components/ProfileDetailsModal";
 import {
@@ -23,8 +27,7 @@ import {
 	setCachedBrowseCards,
 	setCachedProfileDetail,
 } from "./gridpage/cache";
-import { setSavedAccountDisplayName, setSavedAccountPhotoHash, getSavedAccountProfile } from "../../services/savedAccountProfiles";
-import { Avatar } from "../../components/ui/avatar";
+import { setSavedAccountDisplayName, setSavedAccountPhotoHash } from "../../services/savedAccountProfiles";
 import {
 	type BrowseSortOption,
 	getCachedBrowseFiltersDraft,
@@ -34,17 +37,22 @@ import {
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FilterPill } from "../../components/ui/FilterPill";
+import { SelectSheet, type SelectSheetOption } from "../../components/ui/select-sheet";
 import { useBrowseFilters } from "./gridpage/hooks/useBrowseFilters";
 import { useTapProfile } from "./gridpage/hooks/useTapProfile";
+import { useGridTapStatus } from "./gridpage/hooks/useGridTapStatus";
+import { GridGesturesIntro, hasSeenGridGesturesIntro, markGridGesturesIntroSeen } from "./gridpage/components/GridGesturesIntro";
 import { useLocateProfile } from "./gridpage/hooks/useLocateProfile";
+import { isLocateEnabled } from "../../utils/optionalFeatures";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useManagedGenders, useManagedPronouns, useBlockedProfileIds, useBlockProfile, useUnblockProfile, useMyOwnProfile } from "../../hooks/queries/useProfileQueries";
 import { useQueryClient } from "@tanstack/react-query";
-import { getProfilePhotoHash } from "./profile-editor/profileEditorUtils";
+import { getProfilePhotoHash, unwrapOwnProfile } from "./profile-editor/profileEditorUtils";
 import {
 	getChatContactIndexForProfiles,
 	getLocalNicknamesForProfiles,
 	indexChatContactRecordsByProfileId,
+	setLocalNicknameForProfile,
 	upsertChatContactIndexFromGrid,
 } from "../../services/chatContactIndex";
 import type { ChatContactIndexRecord } from "../../types/chat-contact-index";
@@ -53,20 +61,58 @@ import { getIncognitoMode } from "../../utils/privacy";
 import { setGridPageActive } from "./gridpage/activeState";
 import { GRID_REFRESH_INTERVAL_MS } from "../../components/gridRefreshInterval";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
+import { PromptDialog } from "../../components/ui/prompt-dialog";
 import { cn } from "../../utils/cn";
 import { DEMO_CARDS, DEMO_CHAT_STATUS, SHOW_DEMO_DATA } from "./gridpage/demoData";
 import { BrowseFiltersOverlay } from "./BrowseFiltersOverlay";
-import { LocationOverlay, type ExploreLocation, EXPLORE_COLOR } from "./LocationOverlay";
+import { LocationOverlay, type ExploreLocation } from "./LocationOverlay";
+import { useIsRightNowLive } from "../../hooks/useIsRightNowLive";
 import type { BrowseFiltersDraft } from "./browse-filters-storage";
 import { SKIP_BLOCK_CONFIRM_KEY, isBlockConfirmSkipped } from "../../utils/blockConfirm";
 import * as chatDb from "../../services/chatDb";
 import { hideProfile as hideProfileLocally, unhideProfile as unhideProfileLocally, GRID_HIDE_STATE_EVENT, type GridHideStateChangeDetail } from "../../services/profileHide";
+import { usePresence } from "../../hooks/usePresence";
+import {
+	acknowledgeNicknameRename,
+	getNicknameRename,
+	useSeenDisplayNames,
+	type NicknameRename,
+} from "../../hooks/useNicknameNameChange";
 
 const EXPLORE_LOCATION_STORAGE_KEY = "grid_explore_location_v1";
+
+// Explore is per profile (each has its own real location), so the stored
+// explore location is keyed by account.
+function exploreLocationStorageKey(userId: number | null | undefined): string {
+	return `${EXPLORE_LOCATION_STORAGE_KEY}:${userId ?? "anonymous"}`;
+}
+
+function readStoredExploreLocation(userId: number | null | undefined): ExploreLocation {
+	if (typeof window === "undefined") return null;
+	try {
+		// Pre-per-profile builds stored one app-wide entry; drop it so it can't
+		// show up for whichever profile happens to be active.
+		sessionStorage.removeItem(EXPLORE_LOCATION_STORAGE_KEY);
+		const raw = sessionStorage.getItem(exploreLocationStorageKey(userId));
+		return raw ? (JSON.parse(raw) as ExploreLocation) : null;
+	} catch {
+		return null;
+	}
+}
 // The local displayname filter ("Lokale Filter" > nicknameFilter) matches
 // only against already-loaded cards, so a narrow/rare name would otherwise
 // keep auto-pagination running indefinitely trying to find more matches.
 const NICKNAME_FILTER_MAX_PAGES = 7;
+
+type DistanceMode = "precise" | "approximate" | "hidden";
+
+// Overrides for the grid while a public Right Now session is live (see GridPage's root).
+const RIGHT_NOW_LIVE_VARS = {
+	"--accent": "var(--right-now)",
+	"--accent-contrast": "#fff",
+	"--accent-readable": "var(--right-now)",
+	"--explore": "var(--right-now)",
+} as React.CSSProperties;
 
 // Guards the initial auto-location refresh below to once per actual app
 // launch. This has to be a module-level variable, not sessionStorage — the
@@ -83,7 +129,7 @@ export function GridPage() {
 	const BROWSE_LOAD_TIMEOUT_MS = 15000;
 	const TAP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-	const { userId, savedAccounts, switchAccount, settingsReady } = useAuth();
+	const { userId, settingsReady } = useAuth();
 	const apiFunctions = useApiFunctions();
 	const {
 		geohash,
@@ -92,6 +138,7 @@ export function GridPage() {
 		setPreferences,
 		isLoading: isLoadingPreferences,
 		showDebugInfo,
+		showGridTapStatus,
 	} = usePreferences();
 	const navigate = useNavigate();
 	const location = useLocation();
@@ -120,24 +167,24 @@ export function GridPage() {
 	// without touching the real geohash (preferences.geohash / nearbyGeoHash).
 	// Kept out of PreferencesContext and out of localStorage on purpose —
 	// this is meant to be temporary, so it only survives sessionStorage
-	// (same tab, until the app fully restarts), not a real preference.
-	const [exploreLocation, setExploreLocationRaw] = useState<ExploreLocation>(() => {
-		if (typeof window === "undefined") return null;
-		try {
-			const raw = sessionStorage.getItem(EXPLORE_LOCATION_STORAGE_KEY);
-			return raw ? (JSON.parse(raw) as ExploreLocation) : null;
-		} catch {
-			return null;
-		}
-	});
+	// (same tab, until the app fully restarts), not a real preference. Stored
+	// per profile, and swapped when the active account changes.
+	const [exploreLocation, setExploreLocationRaw] = useState<ExploreLocation>(() => readStoredExploreLocation(userId));
+	const exploreUserIdRef = useRef(userId);
+	useEffect(() => {
+		if (exploreUserIdRef.current === userId) return;
+		exploreUserIdRef.current = userId;
+		setExploreLocationRaw(readStoredExploreLocation(userId));
+	}, [userId]);
 	const setExploreLocation = useCallback((next: ExploreLocation) => {
 		setExploreLocationRaw(next);
 		if (typeof window === "undefined") return;
 		try {
+			const key = exploreLocationStorageKey(exploreUserIdRef.current);
 			if (next) {
-				sessionStorage.setItem(EXPLORE_LOCATION_STORAGE_KEY, JSON.stringify(next));
+				sessionStorage.setItem(key, JSON.stringify(next));
 			} else {
-				sessionStorage.removeItem(EXPLORE_LOCATION_STORAGE_KEY);
+				sessionStorage.removeItem(key);
 			}
 		} catch {
 			// ignore — worst case explore resets on next load
@@ -148,6 +195,7 @@ export function GridPage() {
 	// way isRightNow does for --right-now. Reset on unmount so navigating away
 	// from Grid reverts the accent even though exploreLocation itself persists.
 	const { setIsExploreActive } = useExploreMode();
+	const isRightNowLive = useIsRightNowLive();
 	useEffect(() => {
 		setIsExploreActive(exploreLocation !== null);
 		return () => setIsExploreActive(false);
@@ -165,18 +213,6 @@ export function GridPage() {
 	const [isActiveProfileBlockedByOther, setIsActiveProfileBlockedByOther] = useState(false);
 	const [isLoadingActiveProfile, setIsLoadingActiveProfile] = useState(false);
 	const [activeProfileError, setActiveProfileError] = useState<string | null>(null);
-	const [isProfileSearchOpen, setIsProfileSearchOpen] = useState(false);
-	const [profileSearchInput, setProfileSearchInput] = useState("");
-	const profileSearchDialogRef = useRef<HTMLDialogElement | null>(null);
-	useEffect(() => {
-		const dialog = profileSearchDialogRef.current;
-		if (!dialog) return;
-		if (isProfileSearchOpen) {
-			if (!dialog.open) dialog.showModal();
-		} else if (dialog.open) {
-			dialog.close();
-		}
-	}, [isProfileSearchOpen]);
 
 	const { data: managedGenders } = useManagedGenders();
 	const { data: managedPronouns } = useManagedPronouns();
@@ -188,7 +224,13 @@ export function GridPage() {
 
 	const profileImageHash = useMemo(() => getProfilePhotoHash(myProfile), [myProfile]);
 	const ownDisplayName = myProfile?.displayName ?? null;
-	const showDistance = myProfile?.showDistance ?? true;
+	// Same three modes as the official app's "Distance & Visibility" screen.
+	const distanceMode: DistanceMode = !(myProfile?.showDistance ?? true)
+		? "hidden"
+		: myProfile?.approximateDistance
+			? "approximate"
+			: "precise";
+	const DistanceModeIcon = distanceMode === "approximate" ? LocateApproximateFilled : LocateFixedFilled;
 
 	const genderOptions = useMemo(() => {
 		return managedGenders?.map((item) => ({
@@ -264,9 +306,10 @@ export function GridPage() {
 	const [favoriteNotes, setFavoriteNotes] = useState<Array<{ notes: string; phoneNumber: string; counterpartyId: string }>>([]);
 	const [isFetchingNotes, setIsFetchingNotes] = useState(false);
 	const [hasAttemptedFetchNotes, setHasAttemptedFetchNotes] = useState(false);
-	const [isTogglingDistance, setIsTogglingDistance] = useState(false);
+	const [isDistanceSheetOpen, setIsDistanceSheetOpen] = useState(false);
 
 	const isDesktop = useDesktopBreakpoint();
+	const [hasSeenGesturesIntro, setHasSeenGesturesIntro] = useState(hasSeenGridGesturesIntro);
 
 	const handleFetchNotes = useCallback(async () => {
 		if (isFetchingNotes || hasAttemptedFetchNotes) return;
@@ -293,6 +336,7 @@ export function GridPage() {
 		heightCmMax,
 		weightGramsMin,
 		weightGramsMax,
+		genders,
 		tribes,
 		lookingFor,
 		relationshipStatuses,
@@ -309,6 +353,7 @@ export function GridPage() {
 		hasActiveBrowseFilters,
 		clearBrowseFilters,
 		nicknameFilter,
+		setNicknameFilter,
 		applyDraft,
 	} = useBrowseFilters(getCachedBrowseFiltersDraft() ?? getDefaultBrowseFiltersDraft());
 
@@ -357,15 +402,53 @@ export function GridPage() {
 
 	const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 	const [isLocationOpen, setIsLocationOpen] = useState(false);
-	const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
-	const [switchingProfileId, setSwitchingProfileId] = useState<string | null>(null);
-	const accountSwitcherRef = useRef<HTMLDivElement>(null);
+	const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
+	// Quick access to the local displayname filter (same state as the one in
+	// the filters overlay). Stays visible while a name is set so it's obvious
+	// why the grid is narrowed down.
+	const [isNameSearchOpen, setIsNameSearchOpen] = useState(false);
+	const showNameSearch = isNameSearchOpen || Boolean(nicknameFilter);
+	// The same field also opens a profile by ID: any purely numeric entry is
+	// taken as an ID (IDs come in every length, old ones are short), offered
+	// below the field, and doesn't filter the grid by name, which would only
+	// page through it for a match that can't exist.
+	const profileIdQuery = /^\d+$/.test(nicknameFilter.trim()) ? nicknameFilter.trim() : null;
+	const effectiveNicknameFilter = profileIdQuery ? "" : nicknameFilter;
+
+	// Fades the quick-filter row's right edge while more chips are off-screen.
+	const chipRowFade = useScrollRowFade();
+
+	// Distance/age/popularity sorts need the viewer's own position, so explore
+	// mode only offers the ones that still make sense (see the reset effect above).
+	const sortOptions = useMemo<{ value: BrowseSortOption; label: string }[]>(
+		() => [
+			// Distance is the default sort, so it carries the "Default" label;
+			// raw server order is offered as "Original".
+			...(exploreLocation
+				? []
+				: [{ value: "distance" as const, label: t("browse_filters.sort.default") }]),
+			{ value: "default", label: t("browse_filters.sort.original", { defaultValue: "Original" }) },
+			...(exploreLocation
+				? []
+				: [
+					{ value: "age-asc" as const, label: t("browse_filters.sort.youngest") },
+					{ value: "age-desc" as const, label: t("browse_filters.sort.oldest") },
+					{ value: "popular" as const, label: t("browse_filters.sort.popular") },
+				]),
+			{ value: "name", label: t("browse_filters.sort.name_az") },
+		],
+		[exploreLocation, t],
+	);
+	// Explore mode has no distance sort, so server order is its default there.
+	const isDefaultSort = sortBy === (exploreLocation ? "default" : "distance");
 
 	const {
 		tappingProfileId,
 		resolvedTapVisualState,
 		hasSentTapRecently,
+		canTapProfile,
 		handleTapProfile,
+		tapVisualStates,
 	} = useTapProfile({
 		activeProfile,
 		setActiveProfile,
@@ -373,6 +456,7 @@ export function GridPage() {
 		tap: apiFunctions.tap,
 		TAP_WINDOW_MS,
 	});
+	const tapStatusByProfileId = useGridTapStatus(TAP_WINDOW_MS, tapVisualStates);
 
 	useEffect(() => {
 		isMountedRef.current = true;
@@ -391,48 +475,55 @@ export function GridPage() {
 		setSavedAccountDisplayName(String(userId), ownDisplayName);
 	}, [userId, myProfile, profileImageHash, ownDisplayName]);
 
-	const handleToggleDistance = useCallback(async () => {
-		if (isTogglingDistance) return;
-		const next = !showDistance;
-		queryClient.setQueryData(["my-own-profile"], (current: typeof myProfile) =>
-			current ? { ...current, showDistance: next } : current,
-		);
-		setIsTogglingDistance(true);
-		try {
-			await apiFunctions.updateMyProfile({ showDistance: next });
-		} catch {
-			queryClient.setQueryData(["my-own-profile"], (current: typeof myProfile) =>
-				current ? { ...current, showDistance: !next } : current,
-			);
-			toast.error(t("browse_page.errors.toggle_distance_failed", { defaultValue: "Could not update distance setting." }));
-		} finally {
-			setIsTogglingDistance(false);
-		}
-	}, [apiFunctions, isTogglingDistance, showDistance, queryClient, t]);
-
-	useEffect(() => {
-		if (!isAccountSwitcherOpen) return;
-		const handler = (e: MouseEvent) => {
-			if (accountSwitcherRef.current && !accountSwitcherRef.current.contains(e.target as Node)) {
-				setIsAccountSwitcherOpen(false);
-			}
+	// Mirrors the official app: the mode goes onto the profile
+	// (showDistance + approximateDistance), and approximateDistance is also
+	// written to the account settings. Rejects on failure so the sheet stays open.
+	// The profile write has to be the full PUT /v3.1/me/profile — PATCH /v4
+	// ignores approximateDistance — so the current profile is fetched fresh and
+	// sent back whole with just these two fields changed.
+	const handleSelectDistanceMode = useCallback(async (mode: DistanceMode) => {
+		const fields = {
+			showDistance: mode !== "hidden",
+			approximateDistance: mode === "approximate",
 		};
-		document.addEventListener("mousedown", handler);
-		return () => document.removeEventListener("mousedown", handler);
-	}, [isAccountSwitcherOpen]);
-
-	const handleSwitchAccount = async (profileId: string) => {
-		setSwitchingProfileId(profileId);
+		const previous = queryClient.getQueryData<typeof myProfile>(["my-own-profile"]);
+		queryClient.setQueryData(["my-own-profile"], (current: typeof myProfile) =>
+			current ? { ...current, ...fields } : current,
+		);
 		try {
-			await switchAccount(profileId);
-			setIsAccountSwitcherOpen(false);
-			navigate("/");
+			const current = unwrapOwnProfile(await apiFunctions.getMyOwnProfile());
+			if (!current) throw new Error("Own profile unavailable");
+			await apiFunctions.replaceMyProfile({ ...current, ...fields });
+			await apiFunctions.updateMySettings({ approximateDistance: fields.approximateDistance });
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : "Failed to switch account.");
-		} finally {
-			setSwitchingProfileId(null);
+			queryClient.setQueryData(["my-own-profile"], previous);
+			toast.error(t("browse_page.errors.toggle_distance_failed", { defaultValue: "Could not update distance setting." }));
+			throw error;
 		}
-	};
+	}, [apiFunctions, queryClient, t]);
+
+	const distanceOptions = useMemo<SelectSheetOption<DistanceMode>[]>(() => [
+		{
+			value: "precise",
+			icon: LocateFixedFilled,
+			iconClassName: "accent-tint-15 text-[var(--accent)]",
+			label: t("browse_page.share_distance.precise", { defaultValue: "Precise" }),
+			description: t("browse_page.share_distance.precise_desc", { defaultValue: "Exact distance, e.g. \"250 m away\"." }),
+		},
+		{
+			value: "approximate",
+			icon: LocateApproximateFilled,
+			iconClassName: "bg-sky-500/15 text-sky-400",
+			label: t("browse_page.share_distance.approximate", { defaultValue: "Approximate" }),
+			description: t("browse_page.share_distance.approximate_desc", { defaultValue: "Rounded, e.g. \"< 5 km away\"." }),
+		},
+		{
+			value: "hidden",
+			icon: EyeOffFilled,
+			label: t("browse_page.share_distance.hidden", { defaultValue: "Hidden" }),
+			description: t("browse_page.share_distance.hidden_desc", { defaultValue: "No distance shown. Your position in others' grid still hints at roughly how far away you are." }),
+		},
+	], [t]);
 
 	const browseCacheKey = useMemo(() => {
 		if (!geohash) {
@@ -742,6 +833,32 @@ export function GridPage() {
 		setHasRestoredScroll(false);
 	}, [browseCacheKey]);
 
+	// Jump back to the top whenever filters/sort/search change — the grid is
+	// reordered, so the old offset points at unrelated profiles. Also drop the
+	// saved offset for the new cache key so BrowseGrid doesn't restore it.
+	const gridOrderKey = useMemo(
+		() => JSON.stringify([browseRequestFilters, browseFilters, sortBy, effectiveNicknameFilter, searchTerm]),
+		[browseRequestFilters, browseFilters, sortBy, effectiveNicknameFilter, searchTerm],
+	);
+	const prevGridOrderKeyRef = useRef(gridOrderKey);
+	useEffect(() => {
+		if (prevGridOrderKeyRef.current === gridOrderKey) return;
+		prevGridOrderKeyRef.current = gridOrderKey;
+		if (browseCacheKey) {
+			sessionStorage.removeItem(`grid-scroll-${browseCacheKey}`);
+		}
+		feedContainerRef.current?.scrollTo({ top: 0 });
+	}, [gridOrderKey, browseCacheKey]);
+
+	// Same on an account switch while the grid stays mounted (the saved
+	// offsets themselves are dropped by clearAllCaches on account change).
+	const prevUserIdRef = useRef(userId);
+	useEffect(() => {
+		if (prevUserIdRef.current === userId) return;
+		prevUserIdRef.current = userId;
+		feedContainerRef.current?.scrollTo({ top: 0 });
+	}, [userId]);
+
 	// Scroll restore + header-snap now lives inside BrowseGrid (see its
 	// hasRestoredScroll/onRestoredScrollChange props) — with the grid
 	// virtualized, only BrowseGrid knows the real (measured) row size needed
@@ -884,7 +1001,7 @@ export function GridPage() {
 
 	const handleLoadMoreCards = async () => {
 		if (!geohash || !nextPage || isLoadingMoreCards) return;
-		if (nicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES) return;
+		if (effectiveNicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES) return;
 		setIsLoadingMoreCards(true);
 		let cancelled = false;
 		try {
@@ -988,14 +1105,6 @@ export function GridPage() {
 		};
 	}, [activeProfileId]);
 
-	const profilePhotoUrl = useMemo(() => {
-		if (!profileImageHash) {
-			return null;
-		}
-
-		return getThumbImageUrl(profileImageHash, "75x75");
-	}, [profileImageHash]);
-
 	const selfCardImageUrl = useMemo(
 		() => profileImageHash ? getThumbImageUrl(profileImageHash, "320x320") : null,
 		[profileImageHash],
@@ -1026,25 +1135,41 @@ export function GridPage() {
 				.sort((a, b) => a.distanceMeters! - b.distanceMeters!);
 			let nextWithDistance = 0;
 			results = allCards.map((card) => card.distanceMeters == null ? card : withDistance[nextWithDistance++]);
+			// The server orders by real distance even for hidden ones, so the
+			// nearest visible distances before and after bracket the hidden one.
+			// Estimate before filtering so the neighbours are the true ones.
+			results = results.map((card, index) => {
+				if (card.distanceMeters != null) return card;
+				let before: number | undefined;
+				for (let i = index - 1; i >= 0 && before === undefined; i--) {
+					before = results[i].distanceMeters ?? undefined;
+				}
+				let after: number | undefined;
+				for (let i = index + 1; i < results.length && after === undefined; i++) {
+					after = results[i].distanceMeters ?? undefined;
+				}
+				const estimate = before != null && after != null ? (before + after) / 2 : (before ?? after);
+				return estimate == null ? card : { ...card, estimatedDistanceMeters: estimate };
+			});
 		} else {
 			results = [...allCards].sort((a, b) => {
-				if (sortBy === "age-asc") {
-					const ageA = a.age ?? Infinity;
-					const ageB = b.age ?? Infinity;
-					return ageA - ageB;
-				}
-				if (sortBy === "age-desc") {
-					const ageA = a.age ?? -Infinity;
-					const ageB = b.age ?? -Infinity;
-					return ageB - ageA;
+				if (sortBy === "age-asc" || sortBy === "age-desc") {
+					// Profiles without an age always go last. Never subtract
+					// Infinity from Infinity here: NaN breaks the comparator
+					// and leaves the whole list partially unsorted.
+					if (a.age == null || b.age == null) {
+						return (a.age == null ? 1 : 0) - (b.age == null ? 1 : 0);
+					}
+					return sortBy === "age-asc" ? a.age - b.age : b.age - a.age;
 				}
 				if (sortBy === "popular") {
 					const popA = a.isPopular ? 1 : 0;
 					const popB = b.isPopular ? 1 : 0;
 					if (popA !== popB) return popB - popA;
-					const distA = a.distanceMeters ?? Infinity;
-					const distB = b.distanceMeters ?? Infinity;
-					return distA - distB;
+					if (a.distanceMeters == null || b.distanceMeters == null) {
+						return (a.distanceMeters == null ? 1 : 0) - (b.distanceMeters == null ? 1 : 0);
+					}
+					return a.distanceMeters - b.distanceMeters;
 				}
 				if (sortBy === "name") {
 					const nameA = a.displayName ?? "";
@@ -1063,8 +1188,8 @@ export function GridPage() {
 			results = results.filter((card) => card.isVisiting === true);
 		}
 
-		if (nicknameFilter) {
-			const lower = nicknameFilter.toLowerCase();
+		if (effectiveNicknameFilter) {
+			const lower = effectiveNicknameFilter.toLowerCase();
 			results = results.filter((card) =>
 				card.displayName?.toLowerCase().includes(lower),
 			);
@@ -1094,7 +1219,7 @@ export function GridPage() {
 		}
 
 		return results;
-	}, [cards, sortBy, showDebugInfo, hiddenProfileIds, browseFilters.isVisiting, nicknameFilter, searchTerm, favoriteNotes, selfCard]);
+	}, [cards, sortBy, showDebugInfo, hiddenProfileIds, browseFilters.isVisiting, effectiveNicknameFilter, searchTerm, favoriteNotes, selfCard]);
 
 	const selectedBrowseCard = useMemo(() => {
 		if (!activeProfileId) {
@@ -1144,6 +1269,21 @@ export function GridPage() {
 		return hashes;
 	}, [activeProfile]);
 
+	// Grid tile double tap sends the tap type chosen in Behavior settings.
+	// Returns whether the tap goes out so the tile only plays its burst
+	// animation when it actually does; a blocked tap still runs through
+	// handleTapProfile for the "already tapped" toast.
+	const handleDoubleTapProfile = (profileId: string, tapId: number) => {
+		// The sent-taps list also knows about taps from earlier sessions/devices.
+		if (tapStatusByProfileId[profileId]?.sent != null) {
+			toast(t("browse_page.toasts.tap_limit"));
+			return false;
+		}
+		const willSend = canTapProfile(profileId);
+		void handleTapProfile(profileId, tapId);
+		return willSend;
+	};
+
 	const handleSelectProfile = (profileId: string) => {
 		if (window.matchMedia("(max-width: 639px)").matches) {
 			navigate(`/profile/${profileId}`, {
@@ -1156,6 +1296,12 @@ export function GridPage() {
 		}
 
 		setActiveProfileId(profileId);
+	};
+
+	const openProfileFromSearch = (profileId: string) => {
+		setNicknameFilter("");
+		setIsNameSearchOpen(false);
+		handleSelectProfile(profileId);
 	};
 
 	const handleMessageProfile = (profileId: string) => {
@@ -1172,7 +1318,9 @@ export function GridPage() {
 		toast.success(t("browse_page.toasts.tag_filter_applied", { tag }));
 	};
 
-	const { isLocatingProfile, handleTriangleProfile, locateSheet } = useLocateProfile({ isDesktop });
+	const { handleTriangleProfile, locateLabelFor } = useLocateProfile();
+	// Read on mount like ProfileDetailsModal does; toggled in Optional Features.
+	const [showLocate] = useState(isLocateEnabled);
 
 	const performBlockProfile = useCallback(
 		async (targetProfileId: string) => {
@@ -1281,7 +1429,7 @@ export function GridPage() {
 						}
 						return {
 							...card,
-							isFavorite: !currentlyFavorite,
+							favorite: !currentlyFavorite,
 						};
 					}),
 				);
@@ -1314,6 +1462,71 @@ export function GridPage() {
 		[apiFunctions, mutatingFavoriteProfileId, t],
 	);
 
+	const seenDisplayNamesByProfileId = useSeenDisplayNames(
+		cards.map((card) => ({
+			profileId: card.profileId,
+			nickname: localNicknamesByProfileId[card.profileId],
+			displayName: card.displayName,
+		})),
+	);
+	// Read from the stable menu handler below without re-creating it (and
+	// re-rendering every tile) whenever a name map changes.
+	const nicknameMapsRef = useRef({ localNicknamesByProfileId, seenDisplayNamesByProfileId });
+	nicknameMapsRef.current = { localNicknamesByProfileId, seenDisplayNamesByProfileId };
+
+	const [tileContextMenu, setTileContextMenu] = useState<{ card: BrowseCard; x: number; y: number; rename: NicknameRename } | null>(null);
+	const tileMenuPresence = usePresence(tileContextMenu);
+	const renderedTileMenu = tileMenuPresence.rendered;
+	const handleOpenTileContextMenu = useCallback((card: BrowseCard, x: number, y: number) => {
+		const maps = nicknameMapsRef.current;
+		const rename = getNicknameRename(
+			maps.localNicknamesByProfileId[card.profileId],
+			card.displayName,
+			maps.seenDisplayNamesByProfileId[card.profileId],
+		);
+		// The menu shows the rename, so it counts as seen; the menu keeps the
+		// captured `rename` while it's open.
+		if (rename.previousName && rename.realName) {
+			acknowledgeNicknameRename(card.profileId, rename.realName);
+		}
+		setTileContextMenu({ card, x, y, rename });
+	}, []);
+	const handleCloseTileContextMenu = useCallback(() => setTileContextMenu(null), []);
+
+	const handleLocalNicknameChange = useCallback((profileId: string, nickname: string | null) => {
+		setLocalNicknamesByProfileId((previous) => {
+			const next = { ...previous };
+			if (nickname) next[profileId] = nickname;
+			else delete next[profileId];
+			return next;
+		});
+	}, []);
+
+	// The tile menu's "Set nickname" — same local nickname (and prompt) as the
+	// profile modal's actions menu; an empty value clears it.
+	const [nicknamePromptCard, setNicknamePromptCard] = useState<BrowseCard | null>(null);
+	const [isSavingNickname, setIsSavingNickname] = useState(false);
+
+	const handleSaveTileNickname = useCallback(
+		async (value: string) => {
+			if (!nicknamePromptCard) return;
+			const profileId = nicknamePromptCard.profileId;
+			const normalized = value.trim() || null;
+			setIsSavingNickname(true);
+			try {
+				await setLocalNicknameForProfile(profileId, normalized);
+				handleLocalNicknameChange(profileId, normalized);
+				toast.success(normalized ? t("chat.nicknames.saved") : t("chat.nicknames.cleared"));
+				setNicknamePromptCard(null);
+			} catch (error) {
+				toast.error(error instanceof Error ? error.message : t("chat.nicknames.save_failed"));
+			} finally {
+				setIsSavingNickname(false);
+			}
+		},
+		[handleLocalNicknameChange, nicknamePromptCard, t],
+	);
+
 	const handleCancelProfileConfirm = useCallback(() => {
 		if (isBlockingProfile || isUnblockingProfile) {
 			return;
@@ -1344,7 +1557,9 @@ export function GridPage() {
 	const isIncognitoActive = getIncognitoMode();
 
 	return (
-		<>
+		// While a public Right Now session is live, the grid takes on Right Now
+		// colors over everything — the user's accent and explore's blue alike.
+		<div className="contents" style={isRightNowLive ? RIGHT_NOW_LIVE_VARS : undefined}>
 			{showDebugInfo && debugLoadSource && !SHOW_DEMO_DATA && (
 				<div
 					className={cn(
@@ -1386,95 +1601,14 @@ export function GridPage() {
 				refreshingLabel={t("browse_page.refreshing_feed")}
 			>
 				<header ref={headerRef} className="relative z-20 flex shrink-0 flex-col pb-2 pointer-events-none">
-					<PageHeaderBackground color={exploreLocation ? EXPLORE_COLOR : "var(--accent)"} />
+					<PageHeaderBackground color={exploreLocation ? "var(--explore)" : "var(--accent)"} />
 					<div className="pointer-events-auto px-[var(--app-px)] sm:px-4">
 					<div>
 						<div>
 							<div className="mb-1 flex items-center gap-2">
-								<div ref={accountSwitcherRef} className="relative shrink-0">
-									<button
-										type="button"
-										onClick={() => {
-											if (savedAccounts.length <= 1) {
-												navigate("/settings");
-											} else {
-												setIsAccountSwitcherOpen((v) => !v);
-											}
-										}}
-										className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full ring-2 ring-transparent transition-all hover:ring-[var(--border)] hover:brightness-110 active:scale-95"
-										aria-label={t("browse_page.open_settings")}
-										aria-expanded={isAccountSwitcherOpen}
-										title={t("browse_page.settings")}
-									>
-										<Avatar
-											src={profilePhotoUrl}
-											alt={t("browse_page.your_profile_photo")}
-											className="h-full w-full"
-										/>
-									</button>
-									{isAccountSwitcherOpen && (
-									<div className="absolute left-0 top-full z-50 mt-2 w-max min-w-[14rem] max-w-[calc(100vw-2*var(--app-px))] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-150">
-										<div className="flex flex-col gap-1">
-											{savedAccounts.map((account) => {
-												const isActive = userId != null && String(userId) === account.profileId;
-												const isSwitching = switchingProfileId === account.profileId;
-												const savedProfile = getSavedAccountProfile(account.profileId);
-												return (
-													<button
-														key={account.profileId}
-														type="button"
-														onClick={() => void handleSwitchAccount(account.profileId)}
-														disabled={isActive || isSwitching}
-														className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default"
-													>
-														<div className="relative h-10 w-10 shrink-0">
-															<Avatar
-																src={savedProfile.photoHash ? getThumbImageUrl(savedProfile.photoHash, "75x75") : null}
-																alt=""
-																className="h-full w-full rounded-full border-0"
-															/>
-															{isSwitching && (
-																<div className="absolute inset-0 flex items-center justify-center rounded-full bg-[var(--surface)]/80">
-																	<Loader2 className="h-4 w-4 animate-spin text-[var(--accent)]" />
-																</div>
-															)}
-															{isActive && (
-																<div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent)] text-white ring-2 ring-[var(--surface)]">
-																	<Check className="h-2.5 w-2.5" strokeWidth={3} />
-																</div>
-															)}
-														</div>
-														<div className="min-w-0 flex-1">
-															<p className="truncate text-sm font-semibold leading-snug text-[var(--text)]">
-																{savedProfile.displayName || t("settings.account_unnamed", { defaultValue: "Someone" })}
-															</p>
-															{account.email && (
-																<p className="truncate text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-																	{account.email}
-																</p>
-															)}
-														</div>
-													</button>
-												);
-											})}
-										</div>
-										<div className="-mx-3 mt-2 border-t border-[var(--border)] px-3 pt-2">
-											<button
-												type="button"
-												onClick={() => { setIsAccountSwitcherOpen(false); navigate("/settings"); }}
-												className="flex w-full items-center justify-center gap-1.5 rounded-sm py-1.5 text-xs font-semibold text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-											>
-												<Settings className="h-3.5 w-3.5" />
-												{t("browse_page.settings")}
-											</button>
-										</div>
-									</div>
-								)}
-								</div>
-
 								<div
 									className="glass-pill inline-flex h-12 w-full items-center overflow-hidden transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_26%,transparent)] has-[button:active]:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_38%,transparent)]"
-									style={{ "--pill-color": exploreLocation ? EXPLORE_COLOR : "var(--accent)" } as React.CSSProperties}
+									style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
 								>
 									<button
 										type="button"
@@ -1484,16 +1618,16 @@ export function GridPage() {
 										<div
 											className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
 											style={{
-												backgroundColor: exploreLocation ? EXPLORE_COLOR : "var(--accent)",
-												boxShadow: `0 1px 8px 0 ${exploreLocation ? EXPLORE_COLOR : "var(--accent)"}4d`,
+												backgroundColor: exploreLocation ? "var(--explore)" : "var(--accent)",
+												boxShadow: `0 1px 8px 0 color-mix(in srgb, ${exploreLocation ? "var(--explore)" : "var(--accent)"} 30%, transparent)`,
 											}}
 										>
 											{exploreLocation ? (
 												<Search className="h-3.5 w-3.5" />
 											) : useAutoLocation ? (
-												<Navigation className="h-3.5 w-3.5" />
+												<Navigation className="h-3.5 w-3.5 fill-current" />
 											) : (
-												<MapPin className="h-3.5 w-3.5" />
+												<MapPinFilled className="h-3.5 w-3.5" />
 											)}
 										</div>
 										<div className="min-w-0 flex-1">
@@ -1523,43 +1657,157 @@ export function GridPage() {
 									<div className="mx-1 h-6 w-px bg-[var(--border)] opacity-40" />
 									<button
 										type="button"
-										onClick={(e) => { e.stopPropagation(); void handleToggleDistance(); }}
-										disabled={isTogglingDistance}
-										title={showDistance ? t("browse_page.distance_visible", { defaultValue: "Distance visible to others" }) : t("browse_page.distance_hidden", { defaultValue: "Distance hidden from others" })}
-										className="group flex h-12 shrink-0 flex-col items-center justify-center gap-[3px] pl-3 pr-4 transition active:scale-90 disabled:opacity-50"
+										onClick={(e) => { e.stopPropagation(); setIsDistanceSheetOpen(true); }}
+										title={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
+										aria-label={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
+										className="group flex h-12 shrink-0 items-center justify-center pl-3 pr-4 transition active:scale-90"
 									>
-										{showDistance
-											? <Eye className={`h-3.5 w-3.5 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
-											: <EyeOff
+										{distanceMode === "hidden"
+											? <EyeOffFilled
 													className={cn(
-														"h-3.5 w-3.5 transition-colors text-[var(--text-muted)]",
+														"h-4 w-4 transition-colors text-[var(--text-muted)]",
 														exploreLocation ? "group-hover:text-[var(--explore)]" : "group-hover:text-[var(--accent)]",
 													)}
 												/>
+											: <DistanceModeIcon className={`h-4 w-4 transition-colors ${exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"}`} />
 										}
-										<span
-											className={cn(
-												"block text-center text-[7px] font-bold uppercase leading-none transition-colors",
-												showDistance
-													? exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]"
-													: exploreLocation
-														? "text-[var(--text-muted)] group-hover:text-[var(--explore)]"
-														: "text-[var(--text-muted)] group-hover:text-[var(--accent)]",
-											)}
-										>
-											dist
-										</span>
 									</button>
 								</div>
+								<button
+									type="button"
+									// Don't steal focus from the name input: its onBlur would close
+									// the field and this click would immediately reopen it.
+									onMouseDown={(e) => e.preventDefault()}
+									onClick={() => {
+										if (showNameSearch && !nicknameFilter) {
+											setIsNameSearchOpen(false);
+										} else {
+											setIsNameSearchOpen(true);
+										}
+									}}
+									title={t("browse_filters.local_filters.name_title")}
+									aria-label={t("browse_filters.local_filters.name_title")}
+									className={cn(
+										"inline-flex h-12 w-12 shrink-0 items-center justify-center transition-all active:scale-95",
+										effectiveNicknameFilter
+											? exploreLocation
+												? "rounded-full border border-[var(--explore)] bg-[var(--explore)] text-white shadow-lg shadow-[var(--explore)]/40"
+												: "rounded-full border border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/40"
+											: exploreLocation
+												? "glass-pill text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
+												: "glass-pill text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
+									)}
+									style={
+										!effectiveNicknameFilter
+											? ({ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties)
+											: undefined
+									}
+								>
+									<UserSearchFilled className="h-4 w-4" />
+								</button>
 							</div>
 
-							<div className="-mx-[var(--app-px)] overflow-x-auto pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+							{showNameSearch && (
+								<div className="pt-2">
+									<div
+										className="glass-pill relative flex h-10 items-center"
+										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
+									>
+										<UserSearch
+											className={cn(
+												"pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2",
+												exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]",
+											)}
+										/>
+										<input
+											type="text"
+											autoFocus={isNameSearchOpen && !nicknameFilter}
+											value={nicknameFilter}
+											onChange={(e) => setNicknameFilter(e.target.value)}
+											onBlur={() => { if (!nicknameFilter) setIsNameSearchOpen(false); }}
+											placeholder={t("grid.name_or_id_placeholder")}
+											enterKeyHint={profileIdQuery ? "go" : "search"}
+											className="h-full w-full bg-transparent pl-9 pr-8 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
+											onKeyDown={(e) => {
+												if (e.key === "Enter" && profileIdQuery) {
+													openProfileFromSearch(profileIdQuery);
+													return;
+												}
+												if (e.key === "Escape" || e.key === "Enter") {
+													e.currentTarget.blur();
+												}
+											}}
+										/>
+										<button
+											type="button"
+											// Keep focus off the input so its onBlur doesn't close the
+											// field before this click lands.
+											onMouseDown={(e) => e.preventDefault()}
+											onClick={() => { setNicknameFilter(""); setIsNameSearchOpen(false); }}
+											aria-label={t("browse_filters.clear_all")}
+											className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--text-muted)] hover:text-[var(--text)]"
+										>
+											<X className="h-3.5 w-3.5" />
+										</button>
+									</div>
+									{profileIdQuery && (
+										<button
+											type="button"
+											// Keep focus on the input (its onBlur would otherwise run first).
+											onMouseDown={(e) => e.preventDefault()}
+											onClick={() => openProfileFromSearch(profileIdQuery)}
+											className={cn(
+												"glass-pill mt-2 flex h-10 w-full items-center gap-2.5 px-3 text-left text-sm transition active:scale-[0.98]",
+												exploreLocation ? "text-[var(--explore)]" : "text-[var(--accent)]",
+											)}
+											style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
+										>
+											<UserFilled className="h-4 w-4 shrink-0" />
+											<span className="min-w-0 flex-1 truncate font-semibold">
+												{t("grid.open_profile_id", { id: profileIdQuery })}
+											</span>
+											<ChevronRight className="h-4 w-4 shrink-0 opacity-70" />
+										</button>
+									)}
+								</div>
+							)}
+
+							<div
+								ref={chipRowFade.ref}
+								onScroll={chipRowFade.onScroll}
+								className="-mx-[var(--app-px)] overflow-x-auto pb-1 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+							>
 								<div className="flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">
 									<button
 										type="button"
-										onClick={() => setIsFiltersOpen(true)}
+										onClick={() => setIsSortSheetOpen(true)}
+										title={t("browse_page.sort")}
+										aria-label={t("browse_page.sort")}
 										className={cn(
-											"inline-flex shrink-0 items-center gap-1.5 px-4 py-2 text-sm font-bold transition-all active:scale-95",
+											"glass-pill inline-flex shrink-0 items-center gap-1.5 text-sm font-bold transition-all active:scale-95",
+											// Icon-only keeps the text line height so it matches the label pills.
+											isDefaultSort ? "justify-center px-[11px] py-2" : "px-4 py-2",
+											exploreLocation
+												? "text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
+												: "text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
+										)}
+										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
+									>
+										<span className="flex h-5 items-center">
+											<ArrowUpDown className="h-3.5 w-3.5 shrink-0" />
+										</span>
+										{!isDefaultSort && (sortOptions.find((option) => option.value === sortBy)?.label ?? sortOptions[0].label)}
+									</button>
+
+									<button
+										type="button"
+										onClick={() => setIsFiltersOpen(true)}
+										title={t("right_now.filters")}
+										aria-label={t("right_now.filters")}
+										className={cn(
+											"inline-flex shrink-0 items-center justify-center gap-1.5 py-2 text-sm font-bold transition-all active:scale-95",
+											// Icon-only keeps the text line height so it matches the label pills.
+											hasActiveBrowseFilters ? "px-3" : "px-[11px]",
 											hasActiveBrowseFilters
 												? exploreLocation
 													? "rounded-full border border-[var(--explore)] bg-[var(--explore)] text-white shadow-lg shadow-[var(--explore)]/40"
@@ -1574,8 +1822,9 @@ export function GridPage() {
 												: undefined
 										}
 									>
-										<SlidersHorizontal className="h-3.5 w-3.5" />
-										{t("right_now.filters")}
+										<span className="flex h-5 items-center">
+											<PhosphorSlidersHorizontal weight="fill" className="h-3.5 w-3.5" />
+										</span>
 										{hasActiveBrowseFilters ? (
 											<span
 												className={cn(
@@ -1588,33 +1837,9 @@ export function GridPage() {
 										) : null}
 									</button>
 
-									<div
-										className={cn(
-											"glass-pill relative inline-flex items-center justify-center py-2 pl-4 pr-2 text-sm font-bold transition-colors",
-											exploreLocation
-												? "text-[var(--explore)] hover:border-[var(--explore)]/60 hover:bg-[var(--explore)]/20"
-												: "text-[var(--accent)] hover:border-[var(--accent)]/60 hover:bg-[var(--accent)]/20",
-										)}
-										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
-									>
-										<ListFilter className="mr-1.5 h-4 w-4 shrink-0" />
-										<select
-											value={sortBy}
-											onChange={(e) => setSortBy(e.target.value as BrowseSortOption)}
-											className="appearance-none bg-transparent cursor-pointer outline-none w-full h-full pr-3 pl-2"
-										>
-											<option value="default">{t("browse_filters.sort.default")}</option>
-											{!exploreLocation && <option value="distance">{t("browse_filters.sort.distance")}</option>}
-											{!exploreLocation && <option value="age-asc">{t("browse_filters.sort.youngest")}</option>}
-											{!exploreLocation && <option value="age-desc">{t("browse_filters.sort.oldest")}</option>}
-											{!exploreLocation && <option value="popular">{t("browse_filters.sort.popular")}</option>}
-											<option value="name">{t("browse_filters.sort.name_az")}</option>
-										</select>
-									</div>
-
 									{!exploreLocation && (
 										<FilterPill
-											icon={<Star className={`h-3.5 w-3.5 ${browseFilters.favorites ? "fill-current" : ""}`} />}
+											icon={<Star className="h-3.5 w-3.5 fill-current" />}
 											label={t("browse_filters.options.favorites")}
 											active={Boolean(browseFilters.favorites)}
 											onClick={() =>
@@ -1641,7 +1866,7 @@ export function GridPage() {
 									/>
 
 									<FilterPill
-										icon={<Plane className={`h-3.5 w-3.5 ${browseFilters.isVisiting ? "fill-current" : ""}`} />}
+										icon={<Plane className="h-3.5 w-3.5 fill-current" />}
 										label={t("profile_details.visiting")}
 										active={Boolean(browseFilters.isVisiting)}
 										onClick={() =>
@@ -1681,14 +1906,6 @@ export function GridPage() {
 											{t("browse_filters.clear_all")}
 										</button>
 									) : null}
-
-									<FilterPill
-										icon={<Search className="h-3.5 w-3.5" />}
-										label={t("grid.open_profile_by_id", { defaultValue: "Open Profile by ID" })}
-										active={false}
-										onClick={() => { setProfileSearchInput(""); setIsProfileSearchOpen(true); }}
-										color={exploreLocation ? "explore" : "accent"}
-									/>
 
 									{isDesktop && (
 										<FilterPill
@@ -1752,7 +1969,7 @@ export function GridPage() {
 				<FeedScrollContainer ref={feedContainerRef}>
 					<div
 						className={cn(
-							"transition-opacity duration-0",
+							"transition-opacity duration-0 pb-[calc(env(safe-area-inset-bottom,0px)+120px)]",
 							hasSavedScroll && !hasRestoredScroll && cards.length > 0 && !isLoadingCards
 								? "opacity-0"
 								: "opacity-100",
@@ -1772,9 +1989,14 @@ export function GridPage() {
 									: chatContactIndexByProfileId
 							}
 							localNicknamesByProfileId={localNicknamesByProfileId}
+							seenDisplayNamesByProfileId={seenDisplayNamesByProfileId}
+							tapStatusByProfileId={showGridTapStatus ? tapStatusByProfileId : undefined}
 							onSelectProfile={handleSelectProfile}
+							onDoubleTapProfile={handleDoubleTapProfile}
 							onMessageProfile={handleMessageProfile}
-							hasMore={nextPage !== null && !(nicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}
+							onOpenContextMenu={handleOpenTileContextMenu}
+							hidePopular={sortBy === "distance"}
+							hasMore={nextPage !== null && !(effectiveNicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}
 							isLoadingMore={isLoadingMoreCards}
 							onLoadMore={() => {
 								void handleLoadMoreCards();
@@ -1788,6 +2010,48 @@ export function GridPage() {
 					</div>
 				</FeedScrollContainer>
 			</PullToRefreshContainer>
+
+			{/* First run: introduce the tile gestures once a location is set and
+				there are real profiles on screen to try them on. */}
+			{!hasSeenGesturesIntro && geohash && !isLocationMissing && !isLoadingCards && cards.length > 0 && (
+				<GridGesturesIntro
+					isDesktop={isDesktop}
+					onConfirm={() => {
+						markGridGesturesIntroSeen();
+						setHasSeenGesturesIntro(true);
+					}}
+				/>
+			)}
+
+			{renderedTileMenu && (
+				<GridTileContextMenu
+					visible={tileMenuPresence.visible}
+					x={renderedTileMenu.x}
+					y={renderedTileMenu.y}
+					isDesktop={isDesktop}
+					title={
+						localNicknamesByProfileId[renderedTileMenu.card.profileId]?.trim() ||
+						getDisplayName(renderedTileMenu.card) ||
+						t("common.unknown_display_name")
+					}
+					isFavorite={renderedTileMenu.card.favorite === true}
+					hasNickname={Boolean(localNicknamesByProfileId[renderedTileMenu.card.profileId])}
+					nicknameRename={renderedTileMenu.rename}
+					onClose={handleCloseTileContextMenu}
+					onMessage={() => handleMessageProfile(renderedTileMenu.card.profileId)}
+					onToggleFavorite={() =>
+						void handleToggleFavoriteProfile(
+							renderedTileMenu.card.profileId,
+							renderedTileMenu.card.favorite === true,
+						)
+					}
+					onEditNickname={() => setNicknamePromptCard(renderedTileMenu.card)}
+					onHide={() => handleHideProfile(renderedTileMenu.card.profileId)}
+					onBlock={() => void handleBlockProfile(renderedTileMenu.card.profileId)}
+					onLocate={showLocate ? () => handleTriangleProfile(String(renderedTileMenu.card.profileId)) : undefined}
+					locateLabel={locateLabelFor(renderedTileMenu.card.profileId)}
+				/>
+			)}
 
 			<ProfileDetailsModal
 				isOpen={Boolean(activeProfileId)}
@@ -1808,7 +2072,7 @@ export function GridPage() {
 				isBlocked={activeProfileId ? blockedProfileIds.has(activeProfileId) : false}
 				isBlockedByOther={isActiveProfileBlockedByOther}
 				isBlockingProfile={isBlockingProfile || isUnblockingProfile}
-				isLocatingProfile={isLocatingProfile}
+				locateLabel={locateLabelFor(activeProfileId)}
 				onTapProfile={handleTapProfile}
 				isTappingProfile={Boolean(tappingProfileId && tappingProfileId === activeProfileId)}
 				isTapBlocked={hasSentTapRecently}
@@ -1820,19 +2084,32 @@ export function GridPage() {
 				activeProfilePhotoHashes={activeProfilePhotoHashes}
 				chatContactStatus={selectedProfileChatContact}
 				localNickname={selectedProfileLocalNickname}
-				onLocalNicknameChange={(profileId, nickname) => {
-					setLocalNicknamesByProfileId((previous) => {
-						const next = { ...previous };
-						if (nickname) next[profileId] = nickname;
-						else delete next[profileId];
-						return next;
-					});
-				}}
+				onLocalNicknameChange={handleLocalNicknameChange}
 				genderOptions={genderOptions}
 				pronounOptions={pronounOptions}
 			/>
 
-			{locateSheet}
+			{(() => {
+				const nicknameCardProfileId = nicknamePromptCard?.profileId;
+				const existingNickname = nicknameCardProfileId ? localNicknamesByProfileId[nicknameCardProfileId] : undefined;
+				const actualName = nicknamePromptCard ? getDisplayName(nicknamePromptCard) : "";
+				return (
+					<PromptDialog
+						isOpen={nicknamePromptCard !== null}
+						title={existingNickname ? t("chat.nicknames.edit") : t("chat.nicknames.set")}
+						message={t("chat.nicknames.prompt")}
+						defaultValue={existingNickname || actualName}
+						placeholder={actualName || undefined}
+						confirmLabel={t("common.save", { defaultValue: "Save" })}
+						cancelLabel={t("chat.actions.cancel")}
+						onConfirm={handleSaveTileNickname}
+						onCancel={() => setNicknamePromptCard(null)}
+						isProcessing={isSavingNickname}
+						allowEmpty
+						rows={1}
+					/>
+				);
+			})()}
 
 			<ConfirmDialog
 				isOpen={pendingProfileConfirm !== null}
@@ -1854,6 +2131,35 @@ export function GridPage() {
 					onClose={() => setIsLocationOpen(false)}
 					exploreLocation={exploreLocation}
 					onSetExploreLocation={setExploreLocation}
+					isDesktop={isDesktop}
+				/>
+			)}
+
+			{isSortSheetOpen && (
+				<SelectSheet
+					title={t("browse_page.sort")}
+					value={sortBy}
+					options={sortOptions}
+					onSelect={setSortBy}
+					onClose={() => setIsSortSheetOpen(false)}
+					isDesktop={isDesktop}
+					accentColor={exploreLocation ? "var(--explore)" : undefined}
+					accentContrast={exploreLocation ? "#fff" : undefined}
+				/>
+			)}
+
+			{isDistanceSheetOpen && (
+				<SelectSheet
+					title={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
+					description={t("browse_page.share_distance.description", { defaultValue: "Choose how your distance appears to others." })}
+					value={myProfile ? distanceMode : null}
+					options={distanceOptions}
+					onSelect={handleSelectDistanceMode}
+					onClose={() => setIsDistanceSheetOpen(false)}
+					isDesktop={isDesktop}
+					disabled={!myProfile}
+					accentColor={exploreLocation ? "var(--explore)" : undefined}
+					accentContrast={exploreLocation ? "#fff" : undefined}
 				/>
 			)}
 
@@ -1868,6 +2174,7 @@ export function GridPage() {
 						heightCmMax,
 						weightGramsMin,
 						weightGramsMax,
+						genders,
 						tribes,
 						lookingFor,
 						relationshipStatuses,
@@ -1879,62 +2186,13 @@ export function GridPage() {
 						nicknameFilter,
 					} satisfies BrowseFiltersDraft}
 					onClose={() => setIsFiltersOpen(false)}
-					onApply={(draft) => {
-						applyDraft(draft);
-						setIsFiltersOpen(false);
-					}}
+					// The sheet closes itself (animated, popping its history entry) after applying.
+					onApply={applyDraft}
 					isExploreActive={Boolean(exploreLocation)}
+					isDesktop={isDesktop}
 				/>
 			)}
 
-			<dialog
-				ref={profileSearchDialogRef}
-				className="fixed left-1/2 top-1/2 m-0 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
-				onClick={(e) => { if (e.target === profileSearchDialogRef.current) setIsProfileSearchOpen(false); }}
-				onKeyDown={(e) => { if (e.key === "Escape") setIsProfileSearchOpen(false); }}
-			>
-				<form
-					onSubmit={(e) => {
-						e.preventDefault();
-						const id = profileSearchInput.trim();
-						if (!id) return;
-						setIsProfileSearchOpen(false);
-						handleSelectProfile(id);
-					}}
-					className="p-4"
-				>
-					<p className="text-sm font-semibold text-[var(--text)]">Open Profile by ID</p>
-					<p className="mt-1 text-sm leading-relaxed text-[var(--text-muted)]">
-						Got a profile ID from a link? Paste it here to jump straight to that profile.
-					</p>
-					<input
-						autoFocus
-						type="number"
-						inputMode="numeric"
-						value={profileSearchInput}
-						onChange={(e) => setProfileSearchInput(e.target.value)}
-						placeholder="123456789"
-						className="input-field mt-4"
-					/>
-					<div className="mt-4 flex gap-2">
-						<button
-							type="button"
-							onClick={() => setIsProfileSearchOpen(false)}
-							className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm font-medium text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)]"
-						>
-							Cancel
-						</button>
-						<button
-							type="submit"
-							disabled={!profileSearchInput.trim()}
-							className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)] bg-[var(--accent)] px-4 text-sm font-semibold text-[var(--accent-contrast)] transition hover:brightness-110 disabled:opacity-60"
-						>
-							<Search className="h-4 w-4" />
-							Open Profile
-						</button>
-					</div>
-				</form>
-			</dialog>
-		</>
+		</div>
 	);
 }

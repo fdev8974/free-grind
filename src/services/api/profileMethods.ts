@@ -9,6 +9,7 @@ import {
 import type {
 	ManagedGender,
 	ManagedPronoun,
+	MySettings,
 	ProfileImageUploadResult,
 } from "../../types/api-functions";
 import type { RestFetcher } from "../../types/chat-service";
@@ -18,11 +19,18 @@ import { travelPlansResponseSchema, type TravelPlan, type TravelPlanPayload } fr
 import { homeLocationSchema, type HomeLocation } from "../../types/home-location";
 import type { ProfileReportRequest } from "../../types/reports";
 import { invoke } from "@tauri-apps/api/core";
-import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "../apiHelpers";
+import {
+	ApiFunctionError,
+	assertSuccess,
+	BannedTermsError,
+	mediaUploadErrorToApiFunctionError,
+	parseBannedTerms,
+	parseJsonSafe,
+} from "../apiHelpers";
 import { awaitEntitlementGrant } from "../entitlementBypass";
 import { getIncognitoMode, isRecordProfileViewsEnabled } from "../../utils/privacy";
 import { appLog } from "../../utils/logger";
-import { isRecaptchaHelperAvailable, mintRecaptchaToken } from "../recaptcha";
+import { isRecaptchaAvailable, mintRecaptchaToken } from "../recaptcha";
 
 export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, options?: { defaultValue?: string }) => string) {
 	return {
@@ -84,12 +92,12 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 
 		/**
 		 * Files a report with Grindr's moderation. Like Open Grind: v5 with a
-		 * reCAPTCHA token when the reCAPTCHA helper can mint one, otherwise —
-		 * or when v5 refuses it with a 4xx — the ungated v3.1 endpoint.
+		 * reCAPTCHA token when one can be minted (Android), otherwise — or
+		 * when v5 refuses it with a 4xx — the ungated v3.1 endpoint.
 		 */
 		async reportProfile(profileId: string, report: ProfileReportRequest): Promise<{ ok: true }> {
 			const id = encodeURIComponent(profileId);
-			if (isRecaptchaHelperAvailable()) {
+			if (isRecaptchaAvailable()) {
 				const captchaToken = await mintRecaptchaToken("report").catch((error) => {
 					appLog.warn("[Report] reCAPTCHA token unavailable, using v3.1", error);
 					return null;
@@ -203,6 +211,7 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 				heightCmMax?: number;
 				weightGramsMin?: number;
 				weightGramsMax?: number;
+				genders?: string;
 				tribes?: string;
 				lookingFor?: string;
 				relationshipStatuses?: string;
@@ -256,6 +265,7 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			if (typeof params.filters?.weightGramsMax === "number") {
 				queryParams.set("weightGramsMax", String(params.filters.weightGramsMax));
 			}
+			if (params.filters?.genders) queryParams.set("genders", params.filters.genders);
 			if (params.filters?.tribes) queryParams.set("tribes", params.filters.tribes);
 			if (params.filters?.lookingFor)
 				queryParams.set("lookingFor", params.filters.lookingFor);
@@ -446,6 +456,30 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			return { ok: true };
 		},
 
+		// Account-level prefs (incognito, hideViewedMe, approximateDistance,
+		// viewRightNowNsfw, …), returned as a flat object.
+		async getMySettings(): Promise<MySettings> {
+			const response = await fetchRest("/v3/me/prefs/settings");
+			await assertSuccess(response, t("api.errors.load_profile"));
+			const payload = (await parseJsonSafe(response)) as Record<string, unknown> | null;
+			return {
+				viewRightNowNsfw: payload?.viewRightNowNsfw === true,
+				showOnMap: payload?.showOnMap === true,
+				mapLocationFuzzRadius: typeof payload?.mapLocationFuzzRadius === "number" ? payload.mapLocationFuzzRadius : null,
+			};
+		},
+
+		// Fields left out stay untouched, so callers send only what changed —
+		// the official app's distance screen sends just `approximateDistance`.
+		async updateMySettings(settings: Partial<MySettings> & { approximateDistance?: boolean }): Promise<{ ok: true }> {
+			const response = await fetchRest("/v3/me/prefs/settings", {
+				method: "PUT",
+				body: { settings },
+			});
+			await assertSuccess(response, t("api.errors.save_profile"));
+			return { ok: true };
+		},
+
 		// PATCH /v4/me/profile silently ignores explicit `null` values meant to
 		// clear a field (e.g. resetting bodyType/ethnicity to "not set"). Doing a
 		// full replace avoids that partial-merge behavior.
@@ -454,7 +488,21 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 				method: "PUT",
 				body: payload,
 			});
-			await assertSuccess(response, t("api.errors.save_profile"));
+			try {
+				await assertSuccess(response, t("api.errors.save_profile"));
+			} catch (error) {
+				const banned = error instanceof ApiFunctionError && error.status === 400 ? parseBannedTerms(error.payload) : null;
+				if (banned) {
+					throw new BannedTermsError(
+						t("api.errors.profile_banned_terms", {
+							defaultValue: "Your profile contains words that aren't allowed. Nothing was saved.",
+						}),
+						(error as ApiFunctionError).payload,
+						banned,
+					);
+				}
+				throw error;
+			}
 			return { ok: true };
 		},
 

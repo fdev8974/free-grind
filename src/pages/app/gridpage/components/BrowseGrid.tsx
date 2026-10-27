@@ -1,8 +1,11 @@
 import type { BrowseCard } from "../../GridPage.types";
 import { BrowseCardTile } from "./BrowseCardTile";
+import type { GridTapStatus } from "../hooks/useGridTapStatus";
+import { useGridRowMetrics } from "../hooks/useGridRowMetrics";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { cn } from "../../../../utils/cn";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { useTranslation } from "react-i18next";
 import { Ghost, MapPin } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -13,18 +16,27 @@ import {
 import { Button } from "../../../../components/ui/button";
 import { getAsyncState } from "../../../../hooks/useAsyncViewState";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
+import type { SeenDisplayName } from "../../../../hooks/useNicknameNameChange";
 
-function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; mobileColumns: "2" | "3" }) {
-	const count = isDesktop ? 30 : mobileColumns === "2" ? 16 : 24;
+// Min track width per mobile column setting; auto-fill then yields exactly
+// that many columns until the 250px cap kicks in on wide screens.
+const MOBILE_MIN_TRACK: Record<"2" | "3" | "4", string> = {
+	"2": "33.4%",
+	"3": "25.1%",
+	"4": "20.1%",
+};
+
+export function mobileGridTemplate(columns: "2" | "3" | "4") {
+	return `repeat(auto-fill, minmax(clamp(${MOBILE_MIN_TRACK[columns]}, 15vw, 250px), 1fr))`;
+}
+
+function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; mobileColumns: "2" | "3" | "4" }) {
+	const count = isDesktop ? 30 : Number(mobileColumns) * 8;
 	return (
 		<div
 			className={cn("w-full grid", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px")}
 			style={{
-				gridTemplateColumns: isDesktop
-					? "repeat(6, minmax(0, 1fr))"
-					: mobileColumns === "2"
-						? "repeat(auto-fill, minmax(clamp(33.4%, 15vw, 250px), 1fr))"
-						: "repeat(auto-fill, minmax(clamp(25.1%, 15vw, 250px), 1fr))",
+				gridTemplateColumns: isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileColumns),
 			}}
 		>
 			{Array.from({ length: count }).map((_, i) => (
@@ -48,8 +60,6 @@ function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; 
 	);
 }
 
-type RowMetrics = { columnCount: number; rowSizePx: number };
-
 type BrowseGridProps = {
 	isLoadingCards: boolean;
 	cardsError: string | null;
@@ -60,8 +70,14 @@ type BrowseGridProps = {
 	cards: BrowseCard[];
 	chatContactIndexByProfileId?: Record<string, ChatContactIndexRecord>;
 	localNicknamesByProfileId?: Record<string, string>;
+	/** Display names last seen behind a nickname, to flag renames on the tile. */
+	seenDisplayNamesByProfileId?: Record<string, SeenDisplayName>;
+	tapStatusByProfileId?: Record<string, GridTapStatus>;
 	onSelectProfile: (profileId: string) => void;
+	onDoubleTapProfile?: (profileId: string, tapId: number) => boolean;
 	onMessageProfile: (profileId: string) => void;
+	onOpenContextMenu?: (card: BrowseCard, x: number, y: number) => void;
+	hidePopular?: boolean;
 	hasMore?: boolean;
 	isLoadingMore?: boolean;
 	onLoadMore?: () => void;
@@ -88,8 +104,13 @@ export function BrowseGrid({
 	cards,
 	chatContactIndexByProfileId,
 	localNicknamesByProfileId,
+	seenDisplayNamesByProfileId,
+	tapStatusByProfileId,
 	onSelectProfile,
+	onDoubleTapProfile,
 	onMessageProfile,
+	onOpenContextMenu,
+	hidePopular,
 	hasMore,
 	isLoadingMore,
 	onLoadMore,
@@ -101,84 +122,16 @@ export function BrowseGrid({
 }: BrowseGridProps) {
 	const { t } = useTranslation();
 	const { mobileGridColumns } = usePreferences();
-	const [isDesktop, setIsDesktop] = useState(() => {
-		if (typeof window === "undefined") {
-			return false;
-		}
-		return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-	});
+	const isDesktop = useDesktopBreakpoint();
 
-	useEffect(() => {
-		if (typeof window === "undefined") {
-			return;
-		}
-
-		const query = window.matchMedia("(hover: hover) and (pointer: fine)");
-		const update = () => setIsDesktop(query.matches);
-
-		update();
-		query.addEventListener("change", update);
-		return () => query.removeEventListener("change", update);
-	}, []);
-
-	const gridTemplateColumns = isDesktop
-		? "repeat(6, minmax(0, 1fr))"
-		: mobileGridColumns === "2"
-			? "repeat(auto-fill,  minmax(clamp(33.4%, 15vw, 250px), 1fr))"
-			: "repeat(auto-fill,  minmax(clamp(25.1%, 15vw, 250px), 1fr))";
+	const gridTemplateColumns = isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileGridColumns);
 	const gridClassName = cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px");
 
-	// Column count and row height (tiles are always square, see BrowseCardTile)
-	// aren't knowable from JS in advance — the mobile template uses
-	// auto-fill/clamp() percentages the browser resolves at layout time. So
-	// we read them back off a live, always-mounted (but invisible) probe grid
-	// that shares the exact same template/className as a real row, rather
-	// than re-deriving the CSS math (which would drift from actual layout on
-	// odd viewport widths).
-	const probeElRef = useRef<HTMLDivElement | null>(null);
-	const probeObserverRef = useRef<ResizeObserver | null>(null);
-	const [rowMetrics, setRowMetrics] = useState<RowMetrics>(() => ({
-		columnCount: isDesktop ? 6 : mobileGridColumns === "2" ? 3 : 4,
-		rowSizePx: 140,
-	}));
-
-	const measureProbe = useCallback((el: HTMLDivElement) => {
-		const style = window.getComputedStyle(el);
-		const tracks = style.gridTemplateColumns.split(" ").filter(Boolean);
-		const columnCount = tracks.length;
-		const columnWidthPx = parseFloat(tracks[0] ?? "0");
-		const rowGapPx = parseFloat(style.rowGap || "0");
-		if (columnCount > 0 && columnWidthPx > 0) {
-			const rowSizePx = columnWidthPx + rowGapPx;
-			setRowMetrics((prev) =>
-				prev.columnCount === columnCount && prev.rowSizePx === rowSizePx
-					? prev
-					: { columnCount, rowSizePx },
-			);
-		}
-	}, []);
-
-	const probeRefCallback = useCallback(
-		(el: HTMLDivElement | null) => {
-			probeObserverRef.current?.disconnect();
-			probeObserverRef.current = null;
-			probeElRef.current = el;
-			if (!el) {
-				return;
-			}
-			measureProbe(el);
-			const observer = new ResizeObserver(() => measureProbe(el));
-			observer.observe(el);
-			probeObserverRef.current = observer;
-		},
-		[measureProbe],
+	const { rowMetrics, probeRef: probeRefCallback } = useGridRowMetrics(
+		gridTemplateColumns,
+		gridClassName,
+		isDesktop ? 6 : Number(mobileGridColumns),
 	);
-
-	useEffect(() => {
-		if (probeElRef.current) {
-			measureProbe(probeElRef.current);
-		}
-	}, [gridTemplateColumns, gridClassName, measureProbe]);
 
 	const rows = useMemo(() => {
 		const columnCount = rowMetrics.columnCount;
@@ -192,7 +145,10 @@ export function BrowseGrid({
 	const rowVirtualizer = useVirtualizer({
 		count: rows.length,
 		getScrollElement: () => scrollContainerRef.current,
-		estimateSize: () => rowMetrics.rowSizePx,
+		// Rows are measured (measureElement below), so the row spacing is
+		// exactly the grid gap instead of an estimate of tile height + gap.
+		estimateSize: () => rowMetrics.rowSizePx - rowMetrics.rowGapPx,
+		gap: rowMetrics.rowGapPx,
 		overscan: 3,
 		getItemKey: (index) => rows[index]?.[0]?.profileId ?? index,
 	});
@@ -317,7 +273,7 @@ export function BrowseGrid({
 
 	if (viewState === "loading") {
 		return (
-			<BrowseGridSkeleton isDesktop={isDesktop} mobileColumns={mobileGridColumns as "2" | "3"} />
+			<BrowseGridSkeleton isDesktop={isDesktop} mobileColumns={mobileGridColumns} />
 		);
 	}
 
@@ -367,6 +323,7 @@ export function BrowseGrid({
 						<div
 							key={virtualRow.key}
 							data-index={virtualRow.index}
+							ref={rowVirtualizer.measureElement}
 							className={cn(gridClassName, "absolute inset-x-0 top-0")}
 							style={{
 								gridTemplateColumns,
@@ -379,9 +336,14 @@ export function BrowseGrid({
 									card={card}
 									chatContactStatus={chatContactIndexByProfileId?.[card.profileId] ?? null}
 									localNickname={localNicknamesByProfileId?.[card.profileId]}
+									seenDisplayName={seenDisplayNamesByProfileId?.[card.profileId]}
+									tapStatus={tapStatusByProfileId?.[card.profileId]}
 									onSelectProfile={onSelectProfile}
+									onDoubleTapProfile={onDoubleTapProfile}
 									onMessageProfile={onMessageProfile}
+									onOpenContextMenu={onOpenContextMenu}
 									isDesktop={isDesktop}
+									hidePopular={hidePopular}
 								/>
 							))}
 						</div>

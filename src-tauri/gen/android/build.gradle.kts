@@ -13,6 +13,8 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // GeckoView (Google sign-in, see GoogleOAuthActivity.kt)
+        maven("https://maven.mozilla.org/maven2/")
     }
 }
 

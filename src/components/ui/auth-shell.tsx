@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
+import { cn } from "../../utils/cn";
 import freeGrindLogo from "../../images/freegrind-logo.webp";
 
 export function AuthShell({
@@ -7,11 +8,17 @@ export function AuthShell({
 	subtitle,
 	children,
 	footer,
+	toolbar,
+	gestureProps,
 }: {
 	title: string;
 	subtitle: string;
 	children: ReactNode;
 	footer?: ReactNode;
+	/** Pinned between the header and the scrolling form, e.g. a method switcher. */
+	toolbar?: ReactNode;
+	/** Touch handlers for the scrolling form, e.g. useSwipeTabs for the toolbar's tabs. */
+	gestureProps?: HTMLAttributes<HTMLDivElement>;
 }) {
 	return (
 		<div className="fs-card-outer">
@@ -36,8 +43,21 @@ export function AuthShell({
 					<p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--text-muted)]">{subtitle}</p>
 				</div>
 
+				{toolbar ? <div className="animate-fade-in relative shrink-0 px-6">{toolbar}</div> : null}
+
 				{/* Form */}
-				<div className="animate-fade-in relative flex flex-1 flex-col overflow-y-auto px-6">
+				<div
+					className={cn(
+						"animate-fade-in relative flex min-h-0 flex-1 flex-col overflow-y-auto px-6",
+						// Content fades out under the pinned toolbar instead of being cut off hard.
+						toolbar
+							? "pt-5 [mask-image:linear-gradient(to_bottom,transparent,black_20px)]"
+							: // Room for the inputs' focus outline, which the scroll container would clip.
+								"pt-1",
+					)}
+					data-lenis-prevent
+					{...gestureProps}
+				>
 					<div className="flex-1">{children}</div>
 					{footer ? (
 						<div

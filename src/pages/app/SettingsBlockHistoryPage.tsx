@@ -2,14 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 import { ShieldCheck, ShieldOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BackToSettings } from "../../components/BackToSettings";
+import { PageHeader } from "../../components/PageHeader";
 import { PullToRefreshContainer } from "./components/PullToRefreshContainer";
 import { ProfileImage } from "../../components/ui/profile-image";
-import { EmptyState, ErrorState } from "../../components/ui/states";
+import { ErrorState } from "../../components/ui/states";
+import { DrawerEmptyState } from "./chat/drawerUi";
 import { listBlockEvents } from "../../services/chatDb";
 import type { StoredBlockEvent } from "../../types/chat-db";
 import { resolveAvatarSrc } from "../../services/avatarStore";
 import { getParticipantAvatarUrl } from "./chat/chatUtils";
+import { hourCycleOptions } from "../../utils/timeFormat";
 
 function formatEventTimestamp(timestamp: number): string {
 	return new Date(timestamp).toLocaleString(undefined, {
@@ -18,6 +20,7 @@ function formatEventTimestamp(timestamp: number): string {
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
+		...hourCycleOptions(),
 	});
 }
 
@@ -56,21 +59,21 @@ export function SettingsBlockHistoryPage() {
 			isDisabled={isLoading}
 			refreshingLabel={t("settings_block_history.refreshing")}
 		>
-			<header className="mb-7">
-				<BackToSettings />
-				<h1 className="app-title mb-1">{t("settings_block_history.title")}</h1>
-				<p className="app-subtitle">{t("settings_block_history.subtitle")}</p>
-			</header>
+			<PageHeader
+				backTo="/settings"
+				title={t("settings_block_history.title")}
+				subtitle={t("settings_block_history.subtitle")}
+			/>
 
 			<div className="grid gap-6">
 				{isLoading ? (
-					<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+					<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 						{Array.from({ length: 4 }).map((_, i) => (
 							<div key={i} className="flex items-center gap-3 px-4 py-3">
-								<div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-[var(--surface-2)]" />
+								<div className="h-11 w-11 shrink-0 animate-pulse rounded-full overflow-hidden ink-tint-10" />
 								<div className="min-w-0 flex-1 space-y-1.5">
-									<div className="h-3.5 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
-									<div className="h-3 w-24 animate-pulse rounded-full bg-[var(--surface-2)]" />
+									<div className="h-3.5 w-28 animate-pulse rounded-full ink-tint-10" />
+									<div className="h-3 w-24 animate-pulse rounded-full ink-tint-10" />
 								</div>
 							</div>
 						))}
@@ -82,9 +85,11 @@ export function SettingsBlockHistoryPage() {
 						onRetry={() => void load()}
 					/>
 				) : !events || events.length === 0 ? (
-					<EmptyState
+					<DrawerEmptyState
+						icon={<ShieldCheck />}
+						fanned={false}
 						title={t("settings_block_history.empty")}
-						description={t("settings_block_history.empty_desc")}
+						hint={t("settings_block_history.empty_desc")}
 					/>
 				) : (
 					<div>
@@ -92,11 +97,11 @@ export function SettingsBlockHistoryPage() {
 							<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 								{t("settings_block_history.section_label")}
 							</p>
-							<span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
+							<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
 								{events.length}
 							</span>
 						</div>
-						<div className="surface-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 							{events.map((event) => {
 								const displayName =
 									event.displayName || t("settings_block_history.name_fallback");
@@ -108,8 +113,9 @@ export function SettingsBlockHistoryPage() {
 								const rowClassName = "flex w-full items-center gap-3 px-4 py-3 text-left";
 								const content = (
 									<>
-										<div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+										<div className="relative h-11 w-11 shrink-0 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 											<ProfileImage
+												className="bg-slate-500/15 text-slate-400"
 												src={avatarSrc}
 												alt={t("profile_details.photo_alt", { name: displayName })}
 											/>
@@ -121,7 +127,7 @@ export function SettingsBlockHistoryPage() {
 											</p>
 										</div>
 										<span
-											className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold ${
+											className={`inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs font-semibold ${
 												isBlocked
 													? "bg-red-500/10 text-red-400"
 													: "bg-emerald-500/10 text-emerald-400"

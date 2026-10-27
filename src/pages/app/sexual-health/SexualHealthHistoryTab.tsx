@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import { Clock, MessageSquare, Pill, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -53,17 +54,17 @@ function HistoryRow({
 			ref={ref}
 			onClick={item.kind === "encounter" ? () => onEditEncounter(item.encounter) : undefined}
 			className={cn(
-				"flex items-center gap-4 border-t border-[var(--surface-2)] py-3 pl-4 pr-4 transition-colors",
+				"flex items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 transition-colors",
 				item.kind === "encounter" && "cursor-pointer hover:bg-[var(--surface-2)]/50",
 				revealClass,
 			)}
 		>
 			{item.kind === "dose" ? (
-				<div className="h-15 w-15 shrink-0 squircle drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
+				<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
 					<Pill className="h-6 w-6" />
 				</div>
 			) : (
-				<div className="h-15 w-15 shrink-0 squircle drop-shadow-sm bg-[var(--surface-2)]">
+				<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm bg-[var(--surface-2)]">
 					<ProfileImage src={avatarSrc} alt={item.encounter.displayName} />
 				</div>
 			)}
@@ -103,11 +104,8 @@ function HistoryRow({
 	);
 }
 
-// headerSlotEl is accepted for a consistent prop signature across list
-// tabs, but this tab has nothing left to pin there now that the filter is
-// gone and logging moved to the floating action button.
 export function SexualHealthHistoryTab({
-	headerSlotEl: _headerSlotEl,
+	headerSlotEl,
 	fabSlotEl,
 }: {
 	headerSlotEl: HTMLDivElement | null;
@@ -160,13 +158,21 @@ export function SexualHealthHistoryTab({
 
 	return (
 		<div>
+			{headerSlotEl && !isLoading &&
+				createPortal(
+					[
+						t("sexualHealth.history.subtitle_encounters", { count: encounters.length }),
+						t("sexualHealth.history.subtitle_doses", { count: doses.length }),
+					].join(" · "),
+					headerSlotEl,
+				)}
 			{isLoading ? (
 				<div className="px-[var(--app-px)]">
 					<LoadingState title={t("sexualHealth.history.loading", { defaultValue: "Loading history…" })} />
 				</div>
 			) : items.length === 0 ? (
 				<SexualHealthEmptyState
-					icon={<Clock className="h-5 w-5 opacity-60" />}
+					icon={<Clock className="h-5 w-5" />}
 					title={t("sexualHealth.history.empty", { defaultValue: "No history yet" })}
 					description={t("sexualHealth.history.empty_desc", {
 						defaultValue: "Log a dose or an encounter and it will show up here.",
@@ -203,10 +209,7 @@ export function SexualHealthHistoryTab({
 			{isLogSheetOpen && (
 				<EncounterLogSheet
 					onClose={() => setIsLogSheetOpen(false)}
-					onLogged={() => {
-						setIsLogSheetOpen(false);
-						reload();
-					}}
+					onLogged={reload}
 				/>
 			)}
 
@@ -217,14 +220,8 @@ export function SexualHealthHistoryTab({
 						editingEncounter.profileId != null ? avatarByProfileId[editingEncounter.profileId] ?? null : null
 					}
 					onClose={() => setEditingEncounter(null)}
-					onLogged={() => {
-						setEditingEncounter(null);
-						reload();
-					}}
-					onDeleted={() => {
-						setEditingEncounter(null);
-						reload();
-					}}
+					onLogged={reload}
+					onDeleted={reload}
 				/>
 			)}
 		</div>

@@ -16,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Mic, MicOff, PhoneOff, SwitchCamera, Video, VideoOff } from "lucide-react";
 import { useAuth } from "../contexts/useAuth";
+import { usePreferences } from "../contexts/PreferencesContext";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import {
@@ -29,6 +30,7 @@ import {
 	type VideoCallIncomingDetail,
 	type VideoCallEndedDetail,
 } from "./ChatRealtimeBridge";
+import type { IRemoteVideoTrack } from "agora-rtc-sdk-ng";
 import { AgoraCallSession, WebRtcUnsupportedError, isWebRtcSupported } from "../services/agoraCall";
 import { getProfileImageUrl } from "../utils/media";
 import { appLog } from "../utils/logger";
@@ -102,6 +104,7 @@ export function VideoCallManager() {
 	const apiFunctions = useApiFunctions();
 	const { t } = useTranslation();
 	const { data: ownProfile } = useMyOwnProfile(true);
+	const { startCallsWithCameraOn, defaultCallCamera } = usePreferences();
 	// Front/back camera switching only makes sense on phones — desktop
 	// webcams have no "environment"-facing device for setDevice() to find.
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
@@ -174,10 +177,25 @@ export function VideoCallManager() {
 		userIdRef.current = userId;
 	}, [userId]);
 
+	const startCallsWithCameraOnRef = useRef(startCallsWithCameraOn);
+	useEffect(() => {
+		startCallsWithCameraOnRef.current = startCallsWithCameraOn;
+	}, [startCallsWithCameraOn]);
+
+	const defaultCallCameraRef = useRef(defaultCallCamera);
+	useEffect(() => {
+		defaultCallCameraRef.current = defaultCallCamera;
+	}, [defaultCallCamera]);
+
 	const sessionRef = useRef<AgoraCallSession | null>(null);
 	const closingRef = useRef(false);
 	const localVideoRef = useRef<HTMLDivElement | null>(null);
 	const remoteVideoRef = useRef<HTMLDivElement | null>(null);
+	// The remote track can arrive before the "active" layout (and so
+	// remoteVideoRef's div) exists — e.g. on the callee side, the caller is
+	// already publishing when we join — so it's kept here and attached once
+	// the tiles mount.
+	const remoteVideoTrackRef = useRef<IRemoteVideoTrack | null>(null);
 
 	// Agora token keep-alive — the initial token is only valid for maxSeconds
 	// (60s in the documented example), so a long call needs it periodically
@@ -247,6 +265,7 @@ export function VideoCallManager() {
 		try {
 			await sessionRef.current?.leave();
 			sessionRef.current = null;
+			remoteVideoTrackRef.current = null;
 			const channelId = callInfoRef.current?.channelId;
 			if (channelId) {
 				await apiFunctionsRef.current.leaveVideoCall(channelId).catch(() => {});
@@ -291,12 +310,20 @@ export function VideoCallManager() {
 		// entirely — checking here first means we never even construct it, and
 		// everything that follows is safely inside the try/catch instead of a
 		// bare `new AgoraCallSession(...)` above it that could throw uncaught.
+		let session: AgoraCallSession | null = null;
 		try {
 			if (!isWebRtcSupported()) {
 				throw new WebRtcUnsupportedError();
 			}
-			const session = new AgoraCallSession({
+			const withCamera = startCallsWithCameraOnRef.current;
+			setCameraOff(!withCamera);
+			// Their avatar until a video track actually arrives — they may have
+			// started with the camera off too, and then never publish one.
+			setRemoteCameraOff(true);
+			session = new AgoraCallSession({
 				onRemoteVideoTrack: (track) => {
+					remoteVideoTrackRef.current = track;
+					setRemoteCameraOff(false);
 					if (remoteVideoRef.current) track.play(remoteVideoRef.current);
 				},
 				onRemoteAudioTrack: () => {
@@ -308,15 +335,22 @@ export function VideoCallManager() {
 				onRemoteVideoMuteChanged: (muted) => {
 					setRemoteCameraOff(muted);
 				},
-			});
-			await session.join(channelId, token, userIdRef.current);
+			}, isAndroid() || isIos() ? defaultCallCameraRef.current : null);
+			// Set before joining so a call that ends mid-join (declined, hung
+			// up, failed publish) still has a session for endCall to leave —
+			// otherwise the camera opened by join() is never released.
 			sessionRef.current = session;
+			await session.join(channelId, token, userIdRef.current, withCamera);
+			if (sessionRef.current !== session) return;
 			const localTrack = session.getLocalVideoTrack();
 			if (localTrack && localVideoRef.current) {
 				localTrack.play(localVideoRef.current);
 			}
 			if (!waitForRemoteJoin) setPhase("active");
 		} catch (error) {
+			// Already ended (and cleaned up) while joining — the failure is
+			// just the aborted join, not something to report.
+			if (session && sessionRef.current !== session) return;
 			appLog.warn("[video-call] failed to join Agora session", error);
 			toast.error(
 				error instanceof WebRtcUnsupportedError
@@ -326,6 +360,25 @@ export function VideoCallManager() {
 			await endCallRef.current();
 		}
 	}, []);
+
+	// The video tiles only render once phase is "active", but join() runs
+	// while still on the ringing screen — so any track that was ready before
+	// the tiles mounted gets attached here instead.
+	useEffect(() => {
+		if (phase !== "active") return;
+		try {
+			const localTrack = sessionRef.current?.getLocalVideoTrack();
+			if (localTrack && !localTrack.isPlaying && localVideoRef.current) {
+				localTrack.play(localVideoRef.current);
+			}
+			const remoteTrack = remoteVideoTrackRef.current;
+			if (remoteTrack && !remoteTrack.isPlaying && remoteVideoRef.current) {
+				remoteTrack.play(remoteVideoRef.current);
+			}
+		} catch (error) {
+			appLog.warn("[video-call] failed to attach video tracks", error);
+		}
+	}, [phase]);
 
 	// Outgoing call, triggered from ChatThreadPanel's header menu.
 	const handleStartOutgoing = useCallback(
@@ -511,12 +564,28 @@ export function VideoCallManager() {
 		});
 	}, []);
 
-	const handleToggleCamera = useCallback(() => {
-		setCameraOff((prev) => {
-			sessionRef.current?.setCameraMuted(!prev);
-			return !prev;
-		});
-	}, []);
+	// Async since turning the camera on for the first time opens it (see
+	// AgoraCallSession.setCameraMuted) — ignore taps until that's done.
+	const cameraToggleBusyRef = useRef(false);
+	const handleToggleCamera = useCallback(async () => {
+		const session = sessionRef.current;
+		if (!session || cameraToggleBusyRef.current) return;
+		cameraToggleBusyRef.current = true;
+		const nextOff = !cameraOff;
+		try {
+			await session.setCameraMuted(nextOff);
+			setCameraOff(nextOff);
+			const localTrack = session.getLocalVideoTrack();
+			if (!nextOff && localTrack && !localTrack.isPlaying && localVideoRef.current) {
+				localTrack.play(localVideoRef.current);
+			}
+		} catch (error) {
+			appLog.warn("[video-call] toggling camera failed", error);
+			toast.error(tRef.current("video_call.permission_denied"));
+		} finally {
+			cameraToggleBusyRef.current = false;
+		}
+	}, [cameraOff]);
 
 	const handleSwitchCamera = useCallback(async () => {
 		try {
@@ -702,7 +771,7 @@ export function VideoCallManager() {
 						</button>
 						<button
 							type="button"
-							onClick={handleToggleCamera}
+							onClick={() => void handleToggleCamera()}
 							aria-label={t(cameraOff ? "video_call.camera_on" : "video_call.camera_off")}
 							className={controlButtonClass}
 						>
