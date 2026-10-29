@@ -2611,7 +2611,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									: undefined
 							}
 						>
-						<div className={!isDesktop ? "mx-auto grid h-12 w-full max-w-4xl grid-cols-5 px-[calc(0.75rem+1px+0.375rem)]" : "flex items-center justify-between gap-2"}>
+						<div className={!isDesktop ? "mx-auto grid h-12 w-full max-w-4xl grid-cols-5 px-[calc(0.75rem+1px+0.375rem)]" : "flex items-center justify-evenly gap-2"}>
 							<button
 								type="button"
 								onPointerDown={composerActionHaptic}

@@ -107,7 +107,7 @@ export function ChatInboxHeader({
 		<header className="relative z-20 shrink-0 pointer-events-none">
 				<PageHeaderBackground color="var(--accent)" />
 
-				<div className={`pointer-events-auto flex flex-col gap-3 mx-auto w-full px-[var(--app-px)] ${isDesktop ? "max-w-6xl" : ""}`}>
+				<div className={`pointer-events-auto flex flex-col gap-3 mx-auto w-full px-[var(--app-px)]`}>
 
 					{/* Row 1: title + icon buttons */}
 					<div className="flex items-center justify-between gap-2">
