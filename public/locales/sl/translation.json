@@ -536,14 +536,14 @@
     },
     "browse_page": {
         "share_distance": {
-            "title": "",
-            "description": "",
-            "precise": "",
-            "precise_desc": "",
-            "approximate": "",
-            "approximate_desc": "",
-            "hidden": "",
-            "hidden_desc": ""
+            "title": "Deli razdaljo",
+            "description": "Izberi, kako drugi vidijo tvojo razdaljo.",
+            "precise": "Natančno",
+            "precise_desc": "Točna razdalja, npr. \"250 m stran\".",
+            "approximate": "Približno",
+            "approximate_desc": "Zaokroženo, npr. \"< 5 km stran\".",
+            "hidden": "Skrito",
+            "hidden_desc": "Razdalja ni prikazana. Tvoj položaj v Gridu drugih še vedno približno izda, kako daleč si."
         },
         "title": "Brskaj po profilih",
         "subtitle": "Odkrij ljudi v bližini in začni klepet neposredno iz glavnega vira.",
@@ -776,17 +776,17 @@
         "completion_signals": "Nastavljenih {{count}}/{{total}} podatkov profila",
         "sections": {
             "map": {
-                "title": "",
-                "description": "",
-                "show_on_map": "",
-                "show_on_map_desc": "",
-                "location_randomizer": "",
-                "location_randomizer_desc": "",
-                "radius_default": "",
-                "radius_m": "",
-                "radius_ft": "",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": ""
+                "title": "Zemljevid in Right Now",
+                "description": "Nastavitve računa za zemljevid in Right Now.",
+                "show_on_map": "Prikaži me na zemljevidu",
+                "show_on_map_desc": "Tvoj profil je prikazan na zemljevidu, vedno zamaknjen od tvoje dejanske lokacije.",
+                "location_randomizer": "Naključna lokacija",
+                "location_randomizer_desc": "Zaradi zasebnosti je tvoja lokacija na zemljevidu zamaknjena znotraj tega polmera in se posodablja, ko se premikaš.",
+                "radius_default": "Privzeto",
+                "radius_m": "Polmer ~{{value}} m",
+                "radius_ft": "Polmer ~{{value}} ft",
+                "view_right_now_nsfw": "Eksplicitne slike v Right Now",
+                "view_right_now_nsfw_desc": "Vklopi prikaz eksplicitne spolne in druge vsebine za odrasle v Right Now."
             },
             "pictures": {
                 "title": "Slike",
@@ -931,8 +931,8 @@
             "photo_added": "Fotografija dodana v profil"
         },
         "errors": {
-            "banned_terms": "",
-            "banned_terms_unknown": "",
+            "banned_terms": "Vsebuje nedovoljene besede: {{terms}}",
+            "banned_terms_unknown": "Vsebuje nedovoljene besede.",
             "display_name_length": "Prikazno ime ne sme biti daljše od 15 znakov.",
             "about_me_length": "O meni mora imeti manj kot 255 znakov.",
             "max_selection": "Izbereš lahko največ {{count}}."
@@ -1000,7 +1000,15 @@
         "show_sensitive_content_warning": "Opozorilo o občutljivi vsebini",
         "show_sensitive_content_warning_desc": "Prikaži opozorilni zaslon pred odpiranjem albuma, ki bi lahko vseboval občutljivo vsebino.",
         "blur_grid_profile_pictures": "Zamegli profilne slike v mreži",
-        "blur_grid_profile_pictures_desc": "Zamegli profilne slike vseh v mreži, uporabno za diskretno brskanje v javnosti."
+        "blur_grid_profile_pictures_desc": "Zamegli profilne slike vseh v mreži, uporabno za diskretno brskanje v javnosti.",
+        "safe_for_work_mode": "Način Safe for Work",
+        "safe_for_work_mode_desc": "Skrije vse profilne slike v aplikaciji za nadomestno sliko in zamegli vse medije (klepeti, albumi, Right Now). Nadomesti posamezne možnosti zameglitve.",
+        "blur_profile_pictures": "Zamegli profilne slike povsod",
+        "blur_profile_pictures_desc": "Zamegli profilne slike v celotni aplikaciji: Grid, klepeti, profili, Right Now in drugo. Na profilu enkrat tapni fotografijo za prikaz (na računalniku premik miške).",
+        "blur_album_media": "Zamegli predoglede albumov",
+        "blur_album_media_desc": "Zamegli fotografije in videoposnetke v predogledu albuma. Tapni enkrat za prikaz (na računalniku premik miške).",
+        "blur_right_now_media": "Zamegli medije Right Now",
+        "blur_right_now_media_desc": "Zamegli fotografije, priložene objavam Right Now, v viru in na zemljevidu. Tapni enkrat za prikaz (na računalniku premik miške)."
     },
     "customizability": {
         "subtitle": "Prilagodi videz in občutek aplikacije.",
@@ -1063,9 +1071,9 @@
         "visual_effects": "Vizualni učinki",
         "browse_grid_mobile": "Mreža brskanja (mobilno)",
         "browse_grid_mobile_desc": "Izberi, koliko profilov se prikaže v vrstici mreže na mobilnih napravah.",
-        "views_display_desc": "",
-        "views_display_grid": "",
-        "views_display_list": "",
+        "views_display_desc": "Prikaži oglede profila kot mrežo ploščic z 2–4 stolpci ali kot seznam, kot pri tapih.",
+        "views_display_grid": "Mreža ploščic",
+        "views_display_list": "Seznam",
         "views_grid_layout": "Postavitev ogledov",
         "columns_2": "2 stolpca",
         "columns_3": "3 stolpci",
@@ -1073,6 +1081,8 @@
         "chat_section": "Stran klepeta",
         "drawer_layout": "Razdeli galerijo na kategorije",
         "drawer_layout_desc": "Prikaže medije, albume in zbirke v ločenih zavihkih namesto vsega na eni strani.",
+        "compact_composer": "Kompaktna vrstica za sporočila",
+        "compact_composer_desc": "Gumb galerije in meni + z ostalimi dejanji postavi v polje za sporočilo namesto v vrstico pod njim.",
         "reveal_effect": {
             "title": "Učinek razkritja",
             "description": "Učinek razkritja animira elemente med pomikanjem navzdol. Lahko ga izklopiš ali spremeniš jakost.",
@@ -1143,7 +1153,14 @@
         "chat_row_swipe_actions": "Dejanja s potegom na seznamu klepetov",
         "chat_row_swipe_actions_desc": "Povleci klepet v desno, da ga pripneš, ali v levo, da ga izbrišeš. Dolg pritisk še vedno odpre vsa dejanja.",
         "mobile_enter_to_send": "Enter za pošiljanje na telefonu",
-        "mobile_enter_to_send_desc": "Tipka Enter na tipkovnici telefona pošlje sporočilo, namesto da začne novo vrstico."
+        "mobile_enter_to_send_desc": "Tipka Enter na tipkovnici telefona pošlje sporočilo, namesto da začne novo vrstico.",
+        "video_calls": "Videoklici",
+        "start_calls_with_camera_on": "Začni klice z vklopljeno kamero",
+        "start_calls_with_camera_on_desc": "Kamera se vklopi takoj, ko se videoklic poveže. Ko je izklopljeno, se klici začnejo z izklopljeno kamero in jo vklopiš sam.",
+        "default_call_camera": "Privzeta kamera",
+        "default_call_camera_desc": "Kamera, s katero se začne videoklic. Med klicem jo lahko še vedno zamenjaš.",
+        "call_camera_front": "Sprednja",
+        "call_camera_back": "Zadnja"
     },
     "notifications_page": {
         "subtitle": "Izberi, katera obvestila prejemaš in ali se prikazujejo, ko je aplikacija odprta.",
@@ -1427,7 +1444,9 @@
         "favorite": "Dodaj med priljubljene",
         "unfavorite": "Odstrani iz priljubljenih",
         "no_conversations_match": "Noben pogovor se ne ujema s tvojimi filtri.",
+        "no_conversations_match_hint": "Spremeni ali počisti filtre.",
         "no_conversations": "Še ni pogovorov.",
+        "no_conversations_hint": "Klepeti, ki jih začneš ali prejmeš, bodo prikazani tukaj.",
         "no_messages_yet": "Še ni sporočil.",
         "pin": "Pripni",
         "unpin": "Odpni",
@@ -1462,12 +1481,14 @@
             "error_search": "Iskanje ni uspelo.",
             "retry": "Poskusi znova",
             "no_results": "Ni najdenih GIF-ov.",
+            "no_results_hint": "Poskusi z drugim iskalnim izrazom.",
             "recent_empty": "Ni nedavno poslanih GIF-ov.",
             "recent_empty_hint": "GIF-i, ki jih pošlješ, se bodo prikazali tukaj.",
             "send_confirm": "Pošlji GIF?"
         },
         "drawer_unavailable": "Za uporabo galerije najprej pošlji sporočilo",
         "attach_media": "Priloži medij",
+        "more_actions": "Več",
         "drop_to_attach": "Spusti za prilaganje",
         "cancel_recording": "Podrsaj levo za preklic",
         "stop_recording": "Ustavi snemanje",
@@ -1645,7 +1666,9 @@
             "prompt": "Nastavi lokalni vzdevek za ta profil. Pusti prazno za izbris.",
             "saved": "Vzdevek shranjen",
             "cleared": "Vzdevek izbrisan",
-            "save_failed": "Shranjevanje vzdevka ni uspelo"
+            "save_failed": "Shranjevanje vzdevka ni uspelo",
+            "real_name": "Ime profila: {{name}}",
+            "real_name_changed": "Preimenovano: {{previous}} → {{name}}"
         },
         "errors": {
             "load_albums": "Nalaganje albumov ni uspelo",
@@ -2147,7 +2170,7 @@
     },
     "api": {
         "errors": {
-            "profile_banned_terms": "",
+            "profile_banned_terms": "Tvoj profil vsebuje nedovoljene besede. Nič ni bilo shranjeno.",
             "load_views": "Nalaganje ogledov ni uspelo",
             "load_taps": "Nalaganje tapov ni uspelo",
             "invalid_profile_id": "Neveljaven ID profila",
@@ -2223,7 +2246,9 @@
         "placeholder": "Išči po lokalno shranjenih sporočilih",
         "loading": "Nalaganje iskalnega indeksa...",
         "min_chars": "Za iskanje vpiši vsaj 2 znaka.",
+        "prompt_title": "Išči po sporočilih",
         "no_messages_found": "Ni ujemajočih se sporočil.",
+        "no_messages_found_hint": "Poskusi z drugim iskalnim izrazom.",
         "error_load_inbox": "Nalaganje prejetih ni uspelo"
     },
     "pull_to_refresh": {
@@ -2267,6 +2292,7 @@
         "delete_confirm_message": "S tem ga takoj odstraniš s profila."
     },
     "common": {
+        "scroll_to_top": "Na vrh",
         "clear": "Počisti",
         "back": "Nazaj",
         "cancel": "Prekliči",
@@ -3077,10 +3103,10 @@
         "generic_message": "Ti je poslal sporočilo",
         "open_chat": "Odpri klepet",
         "open_profile": "Odpri profil",
-        "reply": "",
-        "reply_hint": "",
-        "reply_queued": "",
-        "reply_failed": "",
+        "reply": "Odgovori",
+        "reply_hint": "Sporočilo",
+        "reply_queued": "Pošlje se, ko odpreš aplikacijo",
+        "reply_failed": "Ni poslano",
         "taps_title": "Tapi",
         "tap_notification_body": "Te je tapnil",
         "chat_image_notification_body": "Ti je poslal sliko",
@@ -3132,5 +3158,20 @@
         "right_now_request_approved_notification_body": "Sprejeta zahteva {{arg1}}",
         "coupon_auto_applied_title": "Čestitamo",
         "coupon_auto_applied_body": "Brezplačen mesec {{arg1}} je tvoj"
+    },
+    "version_announcement": {
+        "title": "Novo v Free Grind",
+        "version": "Različica {{version}}",
+        "continue": "Nadaljuj",
+        "skip": "Preskoči",
+        "got_it": "Razumem",
+        "test_build_title": "Testna različica",
+        "test_build_desc": "To je testna različica pred končno izdajo, zato lahko pričakuješ kakšno napako. Napake, prijavljene zdaj, bodo odpravljene, preden posodobitev dobijo vsi.",
+        "prerelease": {
+            "alpha": "Alfa",
+            "beta": "Beta",
+            "rc": "Release Candidate",
+            "other": "Predizdaja"
+        }
     }
 }

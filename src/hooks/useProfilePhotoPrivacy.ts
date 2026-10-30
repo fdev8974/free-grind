@@ -22,6 +22,11 @@ export const PRIVACY_BLUR_TRANSITION_CLASS = "transition duration-300 ease-out";
 export const PRIVACY_HOVER_REVEAL_CLASS =
 	"hover:blur-none hover:scale-100 group-hover/reveal:blur-none group-hover/reveal:scale-100";
 
+/** Slight zoom on a tile's photo while the tile (`group/reveal`) is hovered,
+ * like the album previews. Pass it as the ProfileImage className: it comes
+ * after PRIVACY_HOVER_REVEAL_CLASS there and wins over its scale-100. */
+export const TILE_HOVER_ZOOM_CLASS = "hover:scale-105 group-hover/reveal:scale-105";
+
 /** The media blur settings in effect: safe-for-work mode blurs all of it,
  * whatever the single toggles say (the settings page hides them then). */
 export function useMediaBlur(): { chat: boolean; album: boolean; rightNow: boolean } {

@@ -1,8 +1,9 @@
 import { Archive, BellOff, Check, CheckCheck, EyeOff, ListFilter, Loader2, MessageCircle, PencilLine, Pin, Star, Trash2 } from "lucide-react";
 import { BellOffFilled, EyeOffFilled, HomeFilled, LocateFixedFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
+import { ScrollToTopButton } from "../../../components/ui/ScrollToTopButton";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChatSearchPanel } from "./ChatSearchPanel";
 import { DrawerEmptyState } from "./drawerUi";
@@ -868,6 +869,14 @@ export function ChatInboxPanel({
 		setDeleteConfirmState({ conversation, isArchived });
 	};
 
+	// Element in state too, for the back-to-top pill's scroll listener. Stable
+	// callback: an inline one would hand the ref null and back on every render.
+	const [inboxListEl, setInboxListEl] = useState<HTMLDivElement | null>(null);
+	const setInboxListRef = useCallback((node: HTMLDivElement | null) => {
+		inboxListRef.current = node;
+		setInboxListEl(node);
+	}, [inboxListRef]);
+
 	const markUserScroll = () => {
 		lastScrollAtRef.current = Date.now();
 	};
@@ -977,7 +986,7 @@ export function ChatInboxPanel({
 					style={!isDesktop ? { marginTop: `-${FEED_HEADER_OFFSET}` } : undefined}
 				>
 					<div
-						ref={inboxListRef}
+						ref={setInboxListRef}
 						onScroll={markUserScroll}
 						data-lenis-prevent
 						className="h-full overflow-y-auto"
@@ -1093,6 +1102,8 @@ export function ChatInboxPanel({
 							)}
 						</div>
 					</div>
+					{/* Desktop inbox is a narrow column: keep the pill centered there too. */}
+					<ScrollToTopButton target={inboxListEl} className="rail:left-1/2 rail:right-auto rail:-translate-x-1/2" />
 				</div>
 			)}
 

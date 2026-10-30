@@ -531,14 +531,14 @@
     },
     "browse_page": {
         "share_distance": {
-            "title": "",
-            "description": "",
-            "precise": "",
-            "precise_desc": "",
-            "approximate": "",
-            "approximate_desc": "",
-            "hidden": "",
-            "hidden_desc": ""
+            "title": "Дели удаљеност",
+            "description": "Изаберите како други виде вашу удаљеност.",
+            "precise": "Прецизно",
+            "precise_desc": "Тачна удаљеност, нпр. „250 m далеко”.",
+            "approximate": "Приближно",
+            "approximate_desc": "Заокружено, нпр. „< 5 km далеко”.",
+            "hidden": "Скривено",
+            "hidden_desc": "Удаљеност се не приказује. Ваша позиција у мрежи других ипак отприлике одаје колико сте далеко."
         },
         "title": "Преглед профила",
         "subtitle": "Откријте људе у близини и започните чет из главног фида.",
@@ -771,17 +771,17 @@
         "completion_signals": "Попуњено {{count}}/{{total}} ставки профила",
         "sections": {
             "map": {
-                "title": "",
-                "description": "",
-                "show_on_map": "",
-                "show_on_map_desc": "",
-                "location_randomizer": "",
-                "location_randomizer_desc": "",
-                "radius_default": "",
-                "radius_m": "",
-                "radius_ft": "",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": ""
+                "title": "Мапа и Right Now",
+                "description": "Подешавања налога за мапу и Right Now.",
+                "show_on_map": "Прикажи ме на мапи",
+                "show_on_map_desc": "Ваш профил се појављује на мапи, увек померен од ваше стварне локације.",
+                "location_randomizer": "Насумична локација",
+                "location_randomizer_desc": "Ради ваше приватности, локација на мапи се помера унутар овог радијуса и ажурира се док се крећете.",
+                "radius_default": "Подразумевано",
+                "radius_m": "Радијус ~{{value}} m",
+                "radius_ft": "Радијус ~{{value}} ft",
+                "view_right_now_nsfw": "Експлицитне слике у Right Now",
+                "view_right_now_nsfw_desc": "Укључите приказ експлицитног сексуалног и другог садржаја за одрасле у Right Now."
             },
             "pictures": {
                 "title": "Фотографије",
@@ -926,8 +926,8 @@
             "photo_added": "Фотографија је додата на профил"
         },
         "errors": {
-            "banned_terms": "",
-            "banned_terms_unknown": "",
+            "banned_terms": "Садржи речи које нису дозвољене: {{terms}}",
+            "banned_terms_unknown": "Садржи речи које нису дозвољене.",
             "display_name_length": "Име за приказ не може бити дуже од 15 знакова.",
             "about_me_length": "Поље „О мени“ мора имати мање од 255 знакова.",
             "max_selection": "Можете изабрати највише {{count}}."
@@ -993,7 +993,15 @@
         "show_sensitive_content_warning": "Упозорење о осетљивом садржају",
         "show_sensitive_content_warning_desc": "Прикажи екран упозорења пре отварања албума који би могао садржати осетљив садржај.",
         "blur_grid_profile_pictures": "Замагли профилне слике у мрежи",
-        "blur_grid_profile_pictures_desc": "Замагли свачију профилну слику у мрежи, корисно за дискретно прегледање на јавном месту."
+        "blur_grid_profile_pictures_desc": "Замагли свачију профилну слику у мрежи, корисно за дискретно прегледање на јавном месту.",
+        "safe_for_work_mode": "Safe for Work режим",
+        "safe_for_work_mode_desc": "Сакрива све профилне слике у апликацији иза замене и замагљује све медије (четови, албуми, Right Now). Замењује појединачне опције замагљивања.",
+        "blur_profile_pictures": "Замагли профилне слике свуда",
+        "blur_profile_pictures_desc": "Замагљује профилне слике у целој апликацији: мрежа, четови, профили, Right Now и друго. На профилу једном додирните фотографију за приказ (на рачунару прелазак мишем).",
+        "blur_album_media": "Замагли прегледе албума",
+        "blur_album_media_desc": "Замагљује фотографије и видео записе у прегледу албума. Додирните једном за приказ (на рачунару прелазак мишем).",
+        "blur_right_now_media": "Замагли Right Now медије",
+        "blur_right_now_media_desc": "Замагљује фотографије приложене Right Now објавама, у фиду и на мапи. Додирните једном за приказ (на рачунару прелазак мишем)."
     },
     "customizability": {
         "subtitle": "Прилагодите изглед и осећај апликације.",
@@ -1056,9 +1064,9 @@
         "visual_effects": "Визуелни ефекти",
         "browse_grid_mobile": "Мрежа прегледа (мобилни)",
         "browse_grid_mobile_desc": "Изаберите колико профила се приказује по реду у мрежи на мобилном.",
-        "views_display_desc": "",
-        "views_display_grid": "",
-        "views_display_list": "",
+        "views_display_desc": "Прикажите прегледе профила као мрежу плочица са 2–4 колоне или као листу, као код тапова.",
+        "views_display_grid": "Мрежа плочица",
+        "views_display_list": "Листа",
         "views_grid_layout": "Распоред прегледа",
         "columns_2": "2 колоне",
         "columns_3": "3 колоне",
@@ -1066,6 +1074,8 @@
         "chat_section": "Страница чета",
         "drawer_layout": "Подели фиоку по категоријама",
         "drawer_layout_desc": "Приказује медије, албуме и колекције у одвојеним картицама уместо свега на једној страници.",
+        "compact_composer": "Компактна трака за поруке",
+        "compact_composer_desc": "Дугме галерије и + мени са осталим радњама смешта у поље за поруку уместо у траку испод њега.",
         "reveal_effect": {
             "title": "Ефекат појављивања",
             "description": "Ефекат појављивања анимира ставке док скролујете надоле. Можете га искључити или променити интензитет.",
@@ -1136,7 +1146,14 @@
         "chat_row_swipe_actions": "Радње превлачењем у листи четова",
         "chat_row_swipe_actions_desc": "Превуците чет удесно да га закачите или улево да га обришете. Дуги притисак и даље отвара све радње.",
         "mobile_enter_to_send": "Enter за слање на телефону",
-        "mobile_enter_to_send_desc": "Тастер Enter на тастатури телефона шаље поруку уместо да започне нови ред."
+        "mobile_enter_to_send_desc": "Тастер Enter на тастатури телефона шаље поруку уместо да започне нови ред.",
+        "video_calls": "Видео позиви",
+        "start_calls_with_camera_on": "Започни позиве са укљученом камером",
+        "start_calls_with_camera_on_desc": "Ваша камера се укључује чим се видео позив повеже. Када је искључено, позиви почињу са искљученом камером и сами је укључујете.",
+        "default_call_camera": "Подразумевана камера",
+        "default_call_camera_desc": "Камера којом почиње видео позив. Током позива и даље можете да је промените.",
+        "call_camera_front": "Предња",
+        "call_camera_back": "Задња"
     },
     "notifications_page": {
         "subtitle": "Изаберите која обавештења добијате и да ли се приказују док је апликација отворена.",
@@ -1420,7 +1437,9 @@
         "favorite": "Додај у омиљене",
         "unfavorite": "Уклони из омиљених",
         "no_conversations_match": "Ниједан разговор не одговара филтерима.",
+        "no_conversations_match_hint": "Промените или обришите филтере.",
         "no_conversations": "Још нема разговора.",
+        "no_conversations_hint": "Четови које започнете или примите појавиће се овде.",
         "no_messages_yet": "Још нема порука.",
         "pin": "Закачи",
         "unpin": "Откачи",
@@ -1455,12 +1474,14 @@
             "error_search": "Претрага није успела.",
             "retry": "Покушај поново",
             "no_results": "Нема пронађених GIF-ова.",
+            "no_results_hint": "Покушајте са другим појмом за претрагу.",
             "recent_empty": "Нема недавно послатих GIF-ова.",
             "recent_empty_hint": "GIF-ови које пошаљете појавиће се овде.",
             "send_confirm": "Послати GIF?"
         },
         "drawer_unavailable": "Прво пошаљите поруку да бисте користили фиоку",
         "attach_media": "Приложи медије",
+        "more_actions": "Још",
         "drop_to_attach": "Отпустите да приложите",
         "cancel_recording": "Превуците лево да откажете",
         "stop_recording": "Заустави снимање",
@@ -1634,7 +1655,9 @@
             "prompt": "Поставите локални надимак за овај профил. Оставите празно да обришете.",
             "saved": "Надимак је сачуван",
             "cleared": "Надимак је обрисан",
-            "save_failed": "Чување надимка није успело"
+            "save_failed": "Чување надимка није успело",
+            "real_name": "Име профила: {{name}}",
+            "real_name_changed": "Преименовано: {{previous}} → {{name}}"
         },
         "errors": {
             "load_albums": "Учитавање албума није успело",
@@ -2130,7 +2153,7 @@
     },
     "api": {
         "errors": {
-            "profile_banned_terms": "",
+            "profile_banned_terms": "Ваш профил садржи речи које нису дозвољене. Ништа није сачувано.",
             "load_views": "Учитавање прегледа није успело",
             "load_taps": "Учитавање тапова није успело",
             "invalid_profile_id": "Неисправан ID профила",
@@ -2206,7 +2229,9 @@
         "placeholder": "Претражите локално сачуване поруке",
         "loading": "Учитавање индекса претраге...",
         "min_chars": "Унесите бар 2 знака за претрагу.",
+        "prompt_title": "Претражите поруке",
         "no_messages_found": "Нема порука које одговарају.",
+        "no_messages_found_hint": "Покушајте са другим појмом за претрагу.",
         "error_load_inbox": "Учитавање сандучета није успело"
     },
     "pull_to_refresh": {
@@ -2250,6 +2275,7 @@
         "delete_confirm_message": "Ово га одмах уклања са вашег профила."
     },
     "common": {
+        "scroll_to_top": "На врх",
         "clear": "Обриши",
         "back": "Назад",
         "cancel": "Откажи",
@@ -3047,10 +3073,10 @@
         "generic_message": "Послао Вам је поруку",
         "open_chat": "Отвори чет",
         "open_profile": "Отвори профил",
-        "reply": "",
-        "reply_hint": "",
-        "reply_queued": "",
-        "reply_failed": "",
+        "reply": "Одговори",
+        "reply_hint": "Порука",
+        "reply_queued": "Шаље се када отворите апликацију",
+        "reply_failed": "Није послато",
         "taps_title": "Тапови",
         "tap_notification_body": "Тапнуо Вас је",
         "chat_image_notification_body": "Послао Вам је слику",
@@ -3102,5 +3128,20 @@
         "right_now_request_approved_notification_body": "Захтев за {{arg1}} је прихваћен",
         "coupon_auto_applied_title": "Честитамо",
         "coupon_auto_applied_body": "Бесплатан месец {{arg1}} је Ваш"
+    },
+    "version_announcement": {
+        "title": "Ново у Free Grind-у",
+        "version": "Верзија {{version}}",
+        "continue": "Настави",
+        "skip": "Прескочи",
+        "got_it": "Разумем",
+        "test_build_title": "Тестна верзија",
+        "test_build_desc": "Ово је тестна верзија пре коначног издања, па очекујте понеку грешку. Грешке пријављене сада биће исправљене пре него што сви добију ажурирање.",
+        "prerelease": {
+            "alpha": "Алфа",
+            "beta": "Бета",
+            "rc": "Release Candidate",
+            "other": "Претходно издање"
+        }
     }
 }

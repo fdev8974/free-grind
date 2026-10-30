@@ -2254,6 +2254,7 @@
     "delete_confirm_message": "This removes it from your profile immediately."
   },
   "common": {
+    "scroll_to_top": "Back to top",
     "clear": "Clear",
     "back": "Back",
     "cancel": "Cancel",

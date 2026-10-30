@@ -530,14 +530,14 @@
     },
     "browse_page": {
         "share_distance": {
-            "title": "",
-            "description": "",
-            "precise": "",
-            "precise_desc": "",
-            "approximate": "",
-            "approximate_desc": "",
-            "hidden": "",
-            "hidden_desc": ""
+            "title": "Partilhar distância",
+            "description": "Escolha como a sua distância aparece aos outros.",
+            "precise": "Precisa",
+            "precise_desc": "Distância exata, ex.: \"a 250 m\".",
+            "approximate": "Aproximada",
+            "approximate_desc": "Arredondada, ex.: \"a < 5 km\".",
+            "hidden": "Oculta",
+            "hidden_desc": "Nenhuma distância é mostrada. A sua posição na grelha dos outros ainda dá uma ideia aproximada de quão longe está."
         },
         "title": "Ver perfis",
         "subtitle": "Descubra pessoas perto de você e participe de conversas a partir do feed principal.",
@@ -768,17 +768,17 @@
         "completion_signals": "Conjunto de sinais de perfil {{count}}/{{total}}",
         "sections": {
             "map": {
-                "title": "",
-                "description": "",
-                "show_on_map": "",
-                "show_on_map_desc": "",
-                "location_randomizer": "",
-                "location_randomizer_desc": "",
-                "radius_default": "",
-                "radius_m": "",
-                "radius_ft": "",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": ""
+                "title": "Mapa e Right Now",
+                "description": "Definições da conta para o mapa e o Right Now.",
+                "show_on_map": "Mostrar-me no mapa",
+                "show_on_map_desc": "O seu perfil aparece no mapa, sempre deslocado da sua localização real.",
+                "location_randomizer": "Localização aleatória",
+                "location_randomizer_desc": "Para sua privacidade, a sua localização no mapa é deslocada dentro deste raio e atualizada à medida que se desloca.",
+                "radius_default": "Predefinido",
+                "radius_m": "Raio de ~{{value}} m",
+                "radius_ft": "Raio de ~{{value}} ft",
+                "view_right_now_nsfw": "Imagens explícitas no Right Now",
+                "view_right_now_nsfw_desc": "Aceite ver conteúdo sexual explícito e outros conteúdos adultos no Right Now."
             },
             "pictures": {
                 "title": "Fotos",
@@ -923,8 +923,8 @@
             "photo_added": "Foto adicionada ao perfil"
         },
         "errors": {
-            "banned_terms": "",
-            "banned_terms_unknown": "",
+            "banned_terms": "Contém palavras não permitidas: {{terms}}",
+            "banned_terms_unknown": "Contém palavras não permitidas.",
             "display_name_length": "O nome de exibição deve ter no máximo 15 caracteres.",
             "about_me_length": "A seção \"Sobre mim\" deve ter no máximo 255 caracteres.",
             "max_selection": "Você pode selecionar até {{count}}."
@@ -991,7 +991,15 @@
         "show_sensitive_content_warning": "Aviso de conteúdo sensível",
         "show_sensitive_content_warning_desc": "Exiba uma ecrã de aviso antes de abrir um álbum que possa conter conteúdo sensível.",
         "blur_grid_profile_pictures": "Desfocar fotos de perfil na grelha",
-        "blur_grid_profile_pictures_desc": "Desfoque as fotos de perfil de todos na grelha; útil para navegar discretamente em público."
+        "blur_grid_profile_pictures_desc": "Desfoque as fotos de perfil de todos na grelha; útil para navegar discretamente em público.",
+        "safe_for_work_mode": "Modo Safe for Work",
+        "safe_for_work_mode_desc": "Oculta todas as fotos de perfil da aplicação atrás de um marcador e desfoca toda a multimédia (conversas, álbuns, Right Now). Substitui as opções individuais de desfocagem.",
+        "blur_profile_pictures": "Desfocar fotos de perfil em todo o lado",
+        "blur_profile_pictures_desc": "Desfoca as fotos de perfil em toda a aplicação: grelha, conversas, perfis, Right Now e mais. Num perfil, toque uma vez numa foto para a revelar (passe o rato no computador).",
+        "blur_album_media": "Desfocar pré-visualizações de álbuns",
+        "blur_album_media_desc": "Desfoca as fotos e vídeos na pré-visualização de álbuns. Toque uma vez para revelar (passe o rato no computador).",
+        "blur_right_now_media": "Desfocar multimédia do Right Now",
+        "blur_right_now_media_desc": "Desfoca as fotos anexadas a publicações do Right Now, no feed e no mapa. Toque uma vez para revelar (passe o rato no computador)."
     },
     "customizability": {
         "subtitle": "Personalize a aparência e a experiência do utilizador do aplicação.",
@@ -1054,9 +1062,9 @@
         "visual_effects": "Efeitos visuais",
         "browse_grid_mobile": "Navegar em grelha (dispositivos móveis)",
         "browse_grid_mobile_desc": "Ajuste quantos perfis aparecem por linha em dispositivos móveis.",
-        "views_display_desc": "",
-        "views_display_grid": "",
-        "views_display_list": "",
+        "views_display_desc": "Mostre as visualizações de perfil como uma grelha de 2 a 4 colunas ou como uma lista, tal como os taps.",
+        "views_display_grid": "Grelha",
+        "views_display_list": "Lista",
         "views_grid_layout": "Layout de visualizações",
         "columns_2": "2 colunas",
         "columns_3": "3 colunas",
@@ -1064,6 +1072,8 @@
         "chat_section": "Página de chat",
         "drawer_layout": "Dividir a pasta em categorias",
         "drawer_layout_desc": "Mostra multimédia, álbuns e coleções em abas separadas em vez de tudo em uma página.",
+        "compact_composer": "Barra de mensagem compacta",
+        "compact_composer_desc": "Coloca o botão da galeria e um menu + com as outras ações dentro do campo de mensagem, em vez de uma barra por baixo.",
         "reveal_effect": {
             "title": "Efeito de Revelação",
             "description": "O efeito de revelação anima os itens conforme você rola a página para baixo. Você pode desativá-lo ou alterar sua intensidade.",
@@ -1134,7 +1144,14 @@
         "chat_row_swipe_actions": "Ações de deslizar na lista de chats",
         "chat_row_swipe_actions_desc": "Deslize um chat para a direita para fixá-lo ou para a esquerda para excluí-lo. Manter premido continua abrindo todas as ações.",
         "mobile_enter_to_send": "Enter para enviar no telemóvel",
-        "mobile_enter_to_send_desc": "A tecla Enter do teclado do telemóvel envia a mensagem em vez de começar uma nova linha."
+        "mobile_enter_to_send_desc": "A tecla Enter do teclado do telemóvel envia a mensagem em vez de começar uma nova linha.",
+        "video_calls": "Videochamadas",
+        "start_calls_with_camera_on": "Iniciar chamadas com a câmara ligada",
+        "start_calls_with_camera_on_desc": "A sua câmara é ligada assim que uma videochamada é estabelecida. Quando desativado, as chamadas começam com a câmara desligada e é o utilizador que a liga.",
+        "default_call_camera": "Câmara predefinida",
+        "default_call_camera_desc": "A câmara com que uma videochamada começa. Pode continuar a trocar durante a chamada.",
+        "call_camera_front": "Frontal",
+        "call_camera_back": "Traseira"
     },
     "notifications_page": {
         "subtitle": "Escolha quais notificações você recebe e se elas aparecem enquanto o aplicação está aberto.",
@@ -1416,7 +1433,9 @@
         "favorite": "Favorito",
         "unfavorite": "Remover dos favoritos",
         "no_conversations_match": "Nenhuma conversa corresponde aos seus filtros.",
+        "no_conversations_match_hint": "Altere ou limpe os seus filtros.",
         "no_conversations": "Ainda não houve conversas.",
+        "no_conversations_hint": "As conversas que iniciar ou receber aparecerão aqui.",
         "no_messages_yet": "Ainda não há mensagens.",
         "pin": "Fixar",
         "unpin": "Desafixar",
@@ -1451,12 +1470,14 @@
             "error_search": "Falha na busca.",
             "retry": "Tentar novamente",
             "no_results": "Nenhum GIF encontrado.",
+            "no_results_hint": "Experimente outro termo de pesquisa.",
             "recent_empty": "Nenhum GIF enviado recentemente.",
             "recent_empty_hint": "Os GIFs que você enviar aparecerão aqui.",
             "send_confirm": "Enviar GIF?"
         },
         "drawer_unavailable": "Envie uma mensagem primeiro para usar o menu",
         "attach_media": "Anexar multimédia",
+        "more_actions": "Mais",
         "drop_to_attach": "Solte para anexar",
         "cancel_recording": "Deslize para a esquerda para cancelar",
         "stop_recording": "Parar gravação",
@@ -1630,7 +1651,9 @@
             "prompt": "Defina um apelido local para este perfil. Deixe em branco para apagar.",
             "saved": "Apelido guardado",
             "cleared": "Apelido removido",
-            "save_failed": "Falha ao guardar o apelido"
+            "save_failed": "Falha ao guardar o apelido",
+            "real_name": "Nome do perfil: {{name}}",
+            "real_name_changed": "Renomeado: {{previous}} → {{name}}"
         },
         "errors": {
             "load_albums": "Falha ao carregar os álbuns",
@@ -2128,7 +2151,7 @@
     },
     "api": {
         "errors": {
-            "profile_banned_terms": "",
+            "profile_banned_terms": "O seu perfil contém palavras não permitidas. Nada foi guardado.",
             "load_views": "Falha ao carregar as visualizações",
             "load_taps": "Falha ao carregar os toques",
             "invalid_profile_id": "ID de perfil inválido",
@@ -2204,7 +2227,9 @@
         "placeholder": "Pesquisar conversas, mensagens, perfis",
         "loading": "A carregar índice de pesquisa...",
         "min_chars": "Digite pelo menos 2 caracteres para pesquisar.",
+        "prompt_title": "Pesquise as suas mensagens",
         "no_messages_found": "Nenhuma mensagem correspondente foi encontrada no cache indexado.",
+        "no_messages_found_hint": "Experimente outro termo de pesquisa.",
         "error_load_inbox": "Falha ao carregar a caixa de entrada"
     },
     "pull_to_refresh": {
@@ -2248,6 +2273,7 @@
         "delete_confirm_message": "Isso a remove do seu perfil imediatamente."
     },
     "common": {
+        "scroll_to_top": "Voltar ao topo",
         "clear": "Limpar",
         "back": "Voltar",
         "cancel": "Cancelar",
@@ -3049,10 +3075,10 @@
         "generic_message": "Enviou uma mensagem para você",
         "open_chat": "Abrir chat",
         "open_profile": "Abrir perfil",
-        "reply": "",
-        "reply_hint": "",
-        "reply_queued": "",
-        "reply_failed": "",
+        "reply": "Responder",
+        "reply_hint": "Mensagem",
+        "reply_queued": "Será enviada quando abrir a aplicação",
+        "reply_failed": "Não enviada",
         "taps_title": "Taps",
         "tap_notification_body": "Enviou um tap para você",
         "chat_image_notification_body": "Enviou uma foto para você",
@@ -3104,5 +3130,20 @@
         "right_now_request_approved_notification_body": "Solicitação de {{arg1}} aceita",
         "coupon_auto_applied_title": "Parabéns",
         "coupon_auto_applied_body": "Um mês grátis de {{arg1}} é seu"
+    },
+    "version_announcement": {
+        "title": "Novidades no Free Grind",
+        "version": "Versão {{version}}",
+        "continue": "Continuar",
+        "skip": "Ignorar",
+        "got_it": "Percebi",
+        "test_build_title": "Versão de teste",
+        "test_build_desc": "Esta é uma versão de teste antes do lançamento final, por isso podem surgir alguns problemas. Os erros comunicados agora serão corrigidos antes de todos receberem a atualização.",
+        "prerelease": {
+            "alpha": "Alfa",
+            "beta": "Beta",
+            "rc": "Release Candidate",
+            "other": "Pré-lançamento"
+        }
     }
 }

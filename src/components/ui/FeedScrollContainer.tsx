@@ -1,13 +1,18 @@
-import React, { forwardRef, useCallback } from "react";
+import React, { forwardRef, useCallback, useState } from "react";
 import { cn } from "../../utils/cn";
+import { ScrollToTopButton } from "./ScrollToTopButton";
 import { FEED_HEADER_OFFSET, FEED_MASK_GRADIENT_STOP } from "../../config/design-config";
 
 interface FeedScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> {
 	children: React.ReactNode;
+	/** Floating "back to top" pill once the feed is scrolled a screen down. Default on. */
+	showScrollToTop?: boolean;
 }
 
 export const FeedScrollContainer = forwardRef<HTMLDivElement, FeedScrollContainerProps>(
-	({ children, className, ...props }, ref) => {
+	({ children, className, showScrollToTop = true, ...props }, ref) => {
+		const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
+
 		// Memoized so its identity is stable across re-renders — an inline ref
 		// callback gets a new identity every render, and React responds to that
 		// by calling the old one with null then the new one with the node, on
@@ -16,6 +21,7 @@ export const FeedScrollContainer = forwardRef<HTMLDivElement, FeedScrollContaine
 		// null and back on every re-render of this component.
 		const setRefs = useCallback(
 			(node: HTMLDivElement | null) => {
+				setScrollEl(node);
 				if (typeof ref === "function") {
 					ref(node);
 				} else if (ref) {
@@ -54,6 +60,7 @@ export const FeedScrollContainer = forwardRef<HTMLDivElement, FeedScrollContaine
 						{children}
 					</div>
 				</div>
+				{showScrollToTop && <ScrollToTopButton target={scrollEl} />}
 			</div>
 		);
 	}

@@ -16,6 +16,7 @@ import type { ChatContactIndexRecord } from "../../../../types/chat-contact-inde
 import { useRevealOnScroll } from "../../../../hooks/useRevealOnScroll";
 import { memo, useEffect, useRef, useState } from "react";
 import { haptic } from "../../../../utils/haptics";
+import { TILE_HOVER_ZOOM_CLASS } from "../../../../hooks/useProfilePhotoPrivacy";
 import { TileFlameBurst } from "./TileFlameBurst";
 import type { GridTapStatus } from "../hooks/useGridTapStatus";
 
@@ -236,7 +237,7 @@ export const BrowseCardTile = memo(function BrowseCardTile({
 						placeholder="silhouette"
 						className={cn(
 							// Demo cards stay blurred, also while hovered.
-							isDemoCard && "blur-md scale-110 hover:blur-md hover:scale-110"
+							isDemoCard ? "blur-md scale-110 hover:blur-md hover:scale-110" : TILE_HOVER_ZOOM_CLASS
 						)}
 					/>
 

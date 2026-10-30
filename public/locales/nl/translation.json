@@ -524,14 +524,14 @@
     },
     "browse_page": {
         "share_distance": {
-            "title": "",
-            "description": "",
-            "precise": "",
-            "precise_desc": "",
-            "approximate": "",
-            "approximate_desc": "",
-            "hidden": "",
-            "hidden_desc": ""
+            "title": "Afstand delen",
+            "description": "Kies hoe anderen je afstand zien.",
+            "precise": "Exact",
+            "precise_desc": "Precieze afstand, bijv. \"250 m verderop\".",
+            "approximate": "Ongeveer",
+            "approximate_desc": "Afgerond, bijv. \"< 5 km verderop\".",
+            "hidden": "Verborgen",
+            "hidden_desc": "Er wordt geen afstand getoond. Je positie in het Grid van anderen verraadt nog wel ongeveer hoe ver weg je bent."
         },
         "title": "Profielen bekijken",
         "subtitle": "Ontdek mensen bij jou in de buurt en begin direct vanuit de feed een chat.",
@@ -760,17 +760,17 @@
         "completion_signals": "{{count}}/{{total}} profielkenmerken ingesteld",
         "sections": {
             "map": {
-                "title": "",
-                "description": "",
-                "show_on_map": "",
-                "show_on_map_desc": "",
-                "location_randomizer": "",
-                "location_randomizer_desc": "",
-                "radius_default": "",
-                "radius_m": "",
-                "radius_ft": "",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": ""
+                "title": "Kaart & Right Now",
+                "description": "Accountinstellingen voor de kaart en Right Now.",
+                "show_on_map": "Toon mij op de kaart",
+                "show_on_map_desc": "Je profiel verschijnt op de kaart, altijd verschoven ten opzichte van je echte locatie.",
+                "location_randomizer": "Locatie willekeurig verschuiven",
+                "location_randomizer_desc": "Voor je privacy wordt je locatie op de kaart binnen deze straal verschoven en bijgewerkt als je beweegt.",
+                "radius_default": "Standaard",
+                "radius_m": "Straal van ~{{value}} m",
+                "radius_ft": "Straal van ~{{value}} ft",
+                "view_right_now_nsfw": "Expliciete afbeeldingen in Right Now",
+                "view_right_now_nsfw_desc": "Kies ervoor om expliciete seksuele en andere content voor volwassenen te zien in Right Now."
             },
             "pictures": {
                 "title": "Foto's",
@@ -915,8 +915,8 @@
             "photo_added": "Foto aan profiel toegevoegd"
         },
         "errors": {
-            "banned_terms": "",
-            "banned_terms_unknown": "",
+            "banned_terms": "Bevat woorden die niet zijn toegestaan: {{terms}}",
+            "banned_terms_unknown": "Bevat woorden die niet zijn toegestaan.",
             "display_name_length": "Weergavenaam mag niet langer zijn dan 15 tekens.",
             "about_me_length": "Over mij moet korter zijn dan 255 tekens.",
             "max_selection": "Je kunt er maximaal {{count}} kiezen."
@@ -982,7 +982,15 @@
         "show_sensitive_content_warning": "Waarschuwing voor gevoelige inhoud",
         "show_sensitive_content_warning_desc": "Toon een waarschuwingsscherm voordat je een album opent dat gevoelige inhoud kan bevatten.",
         "blur_grid_profile_pictures": "Profielfoto's in Grid vervagen",
-        "blur_grid_profile_pictures_desc": "Vervaag ieders profielfoto in het Grid, handig om discreet rond te kijken in het openbaar."
+        "blur_grid_profile_pictures_desc": "Vervaag ieders profielfoto in het Grid, handig om discreet rond te kijken in het openbaar.",
+        "safe_for_work_mode": "Safe for Work-modus",
+        "safe_for_work_mode_desc": "Verbergt alle profielfoto's in de app achter een placeholder en vervaagt alle media (chats, albums, Right Now). Vervangt de afzonderlijke vervagingsopties.",
+        "blur_profile_pictures": "Profielfoto's overal vervagen",
+        "blur_profile_pictures_desc": "Vervaagt profielfoto's in de hele app: Grid, chats, profielen, Right Now en meer. Tik op een profiel één keer op een foto om hem te tonen (hover op desktop).",
+        "blur_album_media": "Albumvoorbeelden vervagen",
+        "blur_album_media_desc": "Vervaagt foto's en video's in het albumvoorbeeld. Tik één keer om te tonen (hover op desktop).",
+        "blur_right_now_media": "Right Now-media vervagen",
+        "blur_right_now_media_desc": "Vervaagt foto's bij Right Now-posts, in de feed en op de kaart. Tik één keer om te tonen (hover op desktop)."
     },
     "customizability": {
         "subtitle": "Personaliseer het uiterlijk van de app.",
@@ -1045,9 +1053,9 @@
         "visual_effects": "Visuele effecten",
         "browse_grid_mobile": "Grid (mobiel)",
         "browse_grid_mobile_desc": "Kies hoeveel profielen er per rij in het Grid op mobiel verschijnen.",
-        "views_display_desc": "",
-        "views_display_grid": "",
-        "views_display_list": "",
+        "views_display_desc": "Toon profielweergaven als tegelraster met 2–4 kolommen of als lijst zoals taps.",
+        "views_display_grid": "Tegelraster",
+        "views_display_list": "Lijst",
         "views_grid_layout": "Indeling weergaven",
         "columns_2": "2 kolommen",
         "columns_3": "3 kolommen",
@@ -1055,6 +1063,8 @@
         "chat_section": "Chatpagina",
         "drawer_layout": "Galerij opsplitsen in categorieën",
         "drawer_layout_desc": "Toont media, albums en collecties in aparte tabbladen in plaats van alles op één pagina.",
+        "compact_composer": "Compacte berichtenbalk",
+        "compact_composer_desc": "Zet de galerijknop en een +-menu met de overige acties in het berichtveld in plaats van in een balk eronder.",
         "reveal_effect": {
             "title": "Onthullingseffect",
             "description": "Het onthullingseffect animeert items terwijl je naar beneden scrolt. Je kunt het uitschakelen of de intensiteit aanpassen.",
@@ -1125,7 +1135,14 @@
         "chat_row_swipe_actions": "Veegacties in de chatlijst",
         "chat_row_swipe_actions_desc": "Veeg een chat naar rechts om hem vast te zetten of naar links om hem te verwijderen. Lang drukken opent nog steeds alle acties.",
         "mobile_enter_to_send": "Enter om te verzenden op mobiel",
-        "mobile_enter_to_send_desc": "De Enter-toets op het toetsenbord van je telefoon verstuurt het bericht in plaats van een nieuwe regel te beginnen."
+        "mobile_enter_to_send_desc": "De Enter-toets op het toetsenbord van je telefoon verstuurt het bericht in plaats van een nieuwe regel te beginnen.",
+        "video_calls": "Videogesprekken",
+        "start_calls_with_camera_on": "Gesprekken starten met camera aan",
+        "start_calls_with_camera_on_desc": "Je camera gaat aan zodra een videogesprek verbonden is. Als dit uit staat, starten gesprekken met je camera uit en zet je hem zelf aan.",
+        "default_call_camera": "Standaardcamera",
+        "default_call_camera_desc": "De camera waarmee een videogesprek start. Tijdens het gesprek kun je nog steeds wisselen.",
+        "call_camera_front": "Voor",
+        "call_camera_back": "Achter"
     },
     "notifications_page": {
         "subtitle": "Kies welke meldingen je krijgt en of ze verschijnen terwijl de app open is.",
@@ -1405,7 +1422,9 @@
         "favorite": "Favoriet",
         "unfavorite": "Uit favorieten",
         "no_conversations_match": "Geen gesprekken komen overeen met je filters.",
+        "no_conversations_match_hint": "Wijzig of wis je filters.",
         "no_conversations": "Nog geen gesprekken.",
+        "no_conversations_hint": "Chats die je start of ontvangt verschijnen hier.",
         "no_messages_yet": "Nog geen berichten.",
         "pin": "Vastzetten",
         "unpin": "Losmaken",
@@ -1440,12 +1459,14 @@
             "error_search": "Zoeken mislukt.",
             "retry": "Opnieuw proberen",
             "no_results": "Geen GIFs gevonden.",
+            "no_results_hint": "Probeer een andere zoekterm.",
             "recent_empty": "Geen recent verzonden GIFs.",
             "recent_empty_hint": "GIFs die je verstuurt verschijnen hier.",
             "send_confirm": "GIF sturen?"
         },
         "drawer_unavailable": "Stuur eerst een bericht om de galerij te gebruiken",
         "attach_media": "Media bijvoegen",
+        "more_actions": "Meer",
         "drop_to_attach": "Loslaten om bij te voegen",
         "cancel_recording": "Schuif naar links om te annuleren",
         "stop_recording": "Opname stoppen",
@@ -1615,7 +1636,9 @@
             "prompt": "Stel een lokale bijnaam in voor dit profiel. Laat leeg om te wissen.",
             "saved": "Bijnaam opgeslagen",
             "cleared": "Bijnaam gewist",
-            "save_failed": "Bijnaam opslaan mislukt"
+            "save_failed": "Bijnaam opslaan mislukt",
+            "real_name": "Profielnaam: {{name}}",
+            "real_name_changed": "Hernoemd: {{previous}} → {{name}}"
         },
         "errors": {
             "load_albums": "Albums laden mislukt",
@@ -2109,7 +2132,7 @@
     },
     "api": {
         "errors": {
-            "profile_banned_terms": "",
+            "profile_banned_terms": "Je profiel bevat woorden die niet zijn toegestaan. Er is niets opgeslagen.",
             "load_views": "Weergaven laden mislukt",
             "load_taps": "Taps laden mislukt",
             "invalid_profile_id": "Ongeldig profiel-ID",
@@ -2185,7 +2208,9 @@
         "placeholder": "Zoek in je lokaal opgeslagen berichten",
         "loading": "Zoekindex laden...",
         "min_chars": "Typ minstens 2 tekens om te zoeken.",
+        "prompt_title": "Doorzoek je berichten",
         "no_messages_found": "Geen overeenkomende berichten gevonden.",
+        "no_messages_found_hint": "Probeer een andere zoekterm.",
         "error_load_inbox": "Inbox laden mislukt"
     },
     "pull_to_refresh": {
@@ -2229,6 +2254,7 @@
         "delete_confirm_message": "Hiermee wordt hij direct van je profiel verwijderd."
     },
     "common": {
+        "scroll_to_top": "Naar boven",
         "clear": "Wissen",
         "back": "Terug",
         "cancel": "Annuleren",
@@ -3021,10 +3047,10 @@
         "generic_message": "Heeft je een bericht gestuurd",
         "open_chat": "Chat openen",
         "open_profile": "Profiel openen",
-        "reply": "",
-        "reply_hint": "",
-        "reply_queued": "",
-        "reply_failed": "",
+        "reply": "Beantwoorden",
+        "reply_hint": "Bericht",
+        "reply_queued": "Wordt verstuurd als je de app opent",
+        "reply_failed": "Niet verstuurd",
         "taps_title": "Taps",
         "tap_notification_body": "Heeft je getapt",
         "chat_image_notification_body": "Heeft je een foto gestuurd",
@@ -3076,5 +3102,20 @@
         "right_now_request_approved_notification_body": "{{arg1}}-verzoek geaccepteerd",
         "coupon_auto_applied_title": "Gefeliciteerd",
         "coupon_auto_applied_body": "Een gratis maand {{arg1}} is van jou"
+    },
+    "version_announcement": {
+        "title": "Nieuw in Free Grind",
+        "version": "Versie {{version}}",
+        "continue": "Doorgaan",
+        "skip": "Overslaan",
+        "got_it": "Begrepen",
+        "test_build_title": "Testversie",
+        "test_build_desc": "Dit is een testversie vóór de definitieve release, dus er kan hier en daar nog iets haperen. Bugs die nu gemeld worden, zijn opgelost voordat iedereen de update krijgt.",
+        "prerelease": {
+            "alpha": "Alfa",
+            "beta": "Bèta",
+            "rc": "Release Candidate",
+            "other": "Voorlopige versie"
+        }
     }
 }

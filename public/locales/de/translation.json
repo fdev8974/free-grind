@@ -524,14 +524,14 @@
     },
     "browse_page": {
         "share_distance": {
-            "title": "",
-            "description": "",
-            "precise": "",
-            "precise_desc": "",
-            "approximate": "",
-            "approximate_desc": "",
-            "hidden": "",
-            "hidden_desc": ""
+            "title": "Entfernung teilen",
+            "description": "Wähle, wie deine Entfernung für andere angezeigt wird.",
+            "precise": "Genau",
+            "precise_desc": "Exakte Entfernung, z. B. „250 m entfernt“.",
+            "approximate": "Ungefähr",
+            "approximate_desc": "Gerundet, z. B. „< 5 km entfernt“.",
+            "hidden": "Verborgen",
+            "hidden_desc": "Keine Entfernung sichtbar. Deine Position im Grid anderer verrät trotzdem ungefähr, wie weit du weg bist."
         },
         "title": "Profile durchsuchen",
         "subtitle": "Entdecke Leute in deiner Nähe und springe direkt aus dem Feed in Chats.",
@@ -760,17 +760,17 @@
         "completion_signals": "{{count}}/{{total}} Profilsignale gesetzt",
         "sections": {
             "map": {
-                "title": "",
-                "description": "",
-                "show_on_map": "",
-                "show_on_map_desc": "",
-                "location_randomizer": "",
-                "location_randomizer_desc": "",
-                "radius_default": "",
-                "radius_m": "",
-                "radius_ft": "",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": ""
+                "title": "Karte & Right Now",
+                "description": "Kontoeinstellungen für die Karte und Right Now.",
+                "show_on_map": "Mich auf der Karte zeigen",
+                "show_on_map_desc": "Dein Profil erscheint auf der Karte, immer versetzt zu deinem tatsächlichen Standort.",
+                "location_randomizer": "Standort-Zufallsversatz",
+                "location_randomizer_desc": "Zu deinem Schutz wird dein Standort auf der Karte innerhalb dieses Radius versetzt und aktualisiert sich, wenn du dich bewegst.",
+                "radius_default": "Standard",
+                "radius_m": "~{{value}} m Radius",
+                "radius_ft": "~{{value}} ft Radius",
+                "view_right_now_nsfw": "Explizite Bilder in Right Now",
+                "view_right_now_nsfw_desc": "Explizite sexuelle und andere Inhalte für Erwachsene in Right Now anzeigen."
             },
             "pictures": {
                 "title": "Bilder",
@@ -915,8 +915,8 @@
             "photo_added": "Foto zum Profil hinzugefügt"
         },
         "errors": {
-            "banned_terms": "",
-            "banned_terms_unknown": "",
+            "banned_terms": "Enthält nicht erlaubte Wörter: {{terms}}",
+            "banned_terms_unknown": "Enthält nicht erlaubte Wörter.",
             "display_name_length": "Der Anzeigename darf nicht länger als 15 Zeichen sein.",
             "about_me_length": "Über mich muss unter 255 Zeichen bleiben.",
             "max_selection": "Du kannst maximal {{count}} auswählen."
@@ -1053,9 +1053,9 @@
         "visual_effects": "Visuelle Effekte",
         "browse_grid_mobile": "Übersichts-Raster (Mobil)",
         "browse_grid_mobile_desc": "Anzahl der Profile pro Reihe auf dem Handy anpassen.",
-        "views_display_desc": "",
-        "views_display_grid": "",
-        "views_display_list": "",
+        "views_display_desc": "Profilaufrufe als Kachelraster mit 2–4 Spalten oder als Liste wie bei Taps anzeigen.",
+        "views_display_grid": "Kachelraster",
+        "views_display_list": "Liste",
         "views_grid_layout": "Layout der Aufrufe",
         "columns_2": "2 Spalten",
         "columns_3": "3 Spalten",
@@ -2132,7 +2132,7 @@
     },
     "api": {
         "errors": {
-            "profile_banned_terms": "",
+            "profile_banned_terms": "Dein Profil enthält nicht erlaubte Wörter. Es wurde nichts gespeichert.",
             "load_views": "Ansichten konnten nicht geladen werden",
             "load_taps": "Taps konnten nicht geladen werden",
             "invalid_profile_id": "Ungültige Profil-ID",
@@ -2254,6 +2254,7 @@
         "delete_confirm_message": "Er wird sofort von deinem Profil entfernt."
     },
     "common": {
+        "scroll_to_top": "Nach oben",
         "clear": "Leeren",
         "back": "Zurück",
         "cancel": "Abbrechen",
@@ -3046,10 +3047,10 @@
         "generic_message": "Hat dir eine Nachricht geschickt",
         "open_chat": "Chat öffnen",
         "open_profile": "Profil öffnen",
-        "reply": "",
-        "reply_hint": "",
-        "reply_queued": "",
-        "reply_failed": "",
+        "reply": "Antworten",
+        "reply_hint": "Nachricht",
+        "reply_queued": "Wird gesendet, sobald du die App öffnest",
+        "reply_failed": "Nicht gesendet",
         "taps_title": "Taps",
         "tap_notification_body": "Hat dich getappt",
         "chat_image_notification_body": "Hat dir ein Bild geschickt",

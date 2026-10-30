@@ -530,14 +530,14 @@
     },
     "browse_page": {
         "share_distance": {
-            "title": "",
-            "description": "",
-            "precise": "",
-            "precise_desc": "",
-            "approximate": "",
-            "approximate_desc": "",
-            "hidden": "",
-            "hidden_desc": ""
+            "title": "Partager la distance",
+            "description": "Choisissez comment votre distance s'affiche pour les autres.",
+            "precise": "Précise",
+            "precise_desc": "Distance exacte, p. ex. « à 250 m ».",
+            "approximate": "Approximative",
+            "approximate_desc": "Arrondie, p. ex. « à < 5 km ».",
+            "hidden": "Masquée",
+            "hidden_desc": "Aucune distance affichée. Votre position dans la grille des autres donne quand même une idée approximative de votre éloignement."
         },
         "title": "Explorer les profils",
         "subtitle": "Découvrez des personnes à proximité et accédez aux chats depuis la grille.",
@@ -768,17 +768,17 @@
         "completion_signals": "{{count}}/{{total}} champs du profil remplis",
         "sections": {
             "map": {
-                "title": "",
-                "description": "",
-                "show_on_map": "",
-                "show_on_map_desc": "",
-                "location_randomizer": "",
-                "location_randomizer_desc": "",
-                "radius_default": "",
-                "radius_m": "",
-                "radius_ft": "",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": ""
+                "title": "Carte et Right Now",
+                "description": "Paramètres du compte pour la carte et Right Now.",
+                "show_on_map": "M'afficher sur la carte",
+                "show_on_map_desc": "Votre profil apparaît sur la carte, toujours décalé par rapport à votre position réelle.",
+                "location_randomizer": "Position aléatoire",
+                "location_randomizer_desc": "Pour votre confidentialité, votre position sur la carte est décalée dans ce rayon et se met à jour quand vous vous déplacez.",
+                "radius_default": "Par défaut",
+                "radius_m": "Rayon d'env. {{value}} m",
+                "radius_ft": "Rayon d'env. {{value}} ft",
+                "view_right_now_nsfw": "Images explicites dans Right Now",
+                "view_right_now_nsfw_desc": "Acceptez de voir du contenu sexuel explicite et d'autres contenus pour adultes dans Right Now."
             },
             "pictures": {
                 "title": "Photos",
@@ -923,8 +923,8 @@
             "photo_added": "Photo ajoutée au profil"
         },
         "errors": {
-            "banned_terms": "",
-            "banned_terms_unknown": "",
+            "banned_terms": "Contient des mots non autorisés : {{terms}}",
+            "banned_terms_unknown": "Contient des mots non autorisés.",
             "display_name_length": "Le nom d'affichage ne peut pas dépasser 15 caractères.",
             "about_me_length": "La description doit comporter moins de 255 caractères.",
             "max_selection": "Vous pouvez sélectionner jusqu'à {{count}}."
@@ -991,7 +991,15 @@
         "show_sensitive_content_warning": "Avertissement concernant du contenu sensible",
         "show_sensitive_content_warning_desc": "Afficher un écran d'avertissement avant d'ouvrir un album susceptible de contenir du contenu sensible.",
         "blur_grid_profile_pictures": "Flouter les photos de profil dans la grille",
-        "blur_grid_profile_pictures_desc": "Floutez les photos de profil de tout le monde sur la grille ; pratique pour naviguer discrètement en public."
+        "blur_grid_profile_pictures_desc": "Floutez les photos de profil de tout le monde sur la grille ; pratique pour naviguer discrètement en public.",
+        "safe_for_work_mode": "Mode Safe for Work",
+        "safe_for_work_mode_desc": "Masque toutes les photos de profil de l'app derrière un espace réservé et floute tous les médias (discussions, albums, Right Now). Remplace les options de floutage individuelles.",
+        "blur_profile_pictures": "Flouter les photos de profil partout",
+        "blur_profile_pictures_desc": "Floute les photos de profil dans toute l'app : grille, discussions, profils, Right Now et plus. Sur un profil, touchez une photo une fois pour l'afficher (survol sur ordinateur).",
+        "blur_album_media": "Flouter les aperçus d'albums",
+        "blur_album_media_desc": "Floute les photos et vidéos dans l'aperçu des albums. Touchez une fois pour afficher (survol sur ordinateur).",
+        "blur_right_now_media": "Flouter les médias Right Now",
+        "blur_right_now_media_desc": "Floute les photos jointes aux posts Right Now, dans le fil et sur la carte. Touchez une fois pour afficher (survol sur ordinateur)."
     },
     "customizability": {
         "subtitle": "Personnalisez l'apparence de l'application.",
@@ -1054,9 +1062,9 @@
         "visual_effects": "Effets visuels",
         "browse_grid_mobile": "Grille d'exploration (Mobile)",
         "browse_grid_mobile_desc": "Ajuster le nombre de profils affichés par ligne sur mobile.",
-        "views_display_desc": "",
-        "views_display_grid": "",
-        "views_display_list": "",
+        "views_display_desc": "Affichez les vues de profil sous forme de grille de 2 à 4 colonnes ou de liste comme les taps.",
+        "views_display_grid": "Grille",
+        "views_display_list": "Liste",
         "views_grid_layout": "Disposition des vues",
         "columns_2": "2 Colonnes",
         "columns_3": "3 Colonnes",
@@ -1064,6 +1072,8 @@
         "chat_section": "Page de discussion",
         "drawer_layout": "Diviser le dossier multimédia en catégories",
         "drawer_layout_desc": "Affiche les médias, albums et collections dans des onglets séparés au lieu de tout sur une seule page.",
+        "compact_composer": "Barre de message compacte",
+        "compact_composer_desc": "Place le bouton de la galerie et un menu + avec les autres actions dans le champ de saisie, au lieu d'une barre en dessous.",
         "reveal_effect": {
             "title": "Effet de révélation",
             "description": "L'effet de révélation anime les éléments lorsque vous faites défiler vers le bas. Vous pouvez le désactiver ou modifier son intensité.",
@@ -1134,7 +1144,14 @@
         "chat_row_swipe_actions": "Actions par balayage dans la liste des discussions",
         "chat_row_swipe_actions_desc": "Balayez une discussion vers la droite pour l'épingler ou vers la gauche pour la supprimer. Un appui long ouvre toujours toutes les actions.",
         "mobile_enter_to_send": "Entrée pour envoyer sur mobile",
-        "mobile_enter_to_send_desc": "La touche Entrée du clavier de votre téléphone envoie le message au lieu de créer une nouvelle ligne."
+        "mobile_enter_to_send_desc": "La touche Entrée du clavier de votre téléphone envoie le message au lieu de créer une nouvelle ligne.",
+        "video_calls": "Appels vidéo",
+        "start_calls_with_camera_on": "Démarrer les appels caméra activée",
+        "start_calls_with_camera_on_desc": "Votre caméra s'allume dès qu'un appel vidéo est connecté. Si désactivé, les appels démarrent caméra éteinte et vous l'allumez vous-même.",
+        "default_call_camera": "Caméra par défaut",
+        "default_call_camera_desc": "La caméra avec laquelle démarre un appel vidéo. Vous pouvez toujours changer pendant l'appel.",
+        "call_camera_front": "Avant",
+        "call_camera_back": "Arrière"
     },
     "notifications_page": {
         "subtitle": "Choisissez les notifications que vous recevez et si elles s'affichent lorsque l'application est ouverte.",
@@ -1416,7 +1433,9 @@
         "favorite": "Favori",
         "unfavorite": "Retirer des favoris",
         "no_conversations_match": "Aucune conversation ne correspond à vos filtres.",
+        "no_conversations_match_hint": "Modifiez ou réinitialisez vos filtres.",
         "no_conversations": "Vous n'avez aucune conversation pour le moment.",
+        "no_conversations_hint": "Les discussions que vous lancez ou recevez apparaîtront ici.",
         "no_messages_yet": "Aucun message pour le moment.",
         "pin": "Épingler",
         "unpin": "Désépingler",
@@ -1451,12 +1470,14 @@
             "error_search": "Échec de la recherche.",
             "retry": "Réessayer",
             "no_results": "Aucun GIF trouvé.",
+            "no_results_hint": "Essayez un autre terme de recherche.",
             "recent_empty": "Aucun GIF envoyé récemment.",
             "recent_empty_hint": "Les GIFs que vous envoyez apparaîtront ici.",
             "send_confirm": "Envoyer le GIF ?"
         },
         "drawer_unavailable": "Envoyez d'abord un message pour utiliser le volet multimédia",
         "attach_media": "Joindre un média",
+        "more_actions": "Plus",
         "drop_to_attach": "Déposer pour attacher",
         "cancel_recording": "Glisser à gauche pour annuler",
         "stop_recording": "Arrêter l'enregistrement",
@@ -1630,7 +1651,9 @@
             "prompt": "Définissez un surnom local pour ce profil. Laissez vide pour l'effacer.",
             "saved": "Surnom enregistré",
             "cleared": "Surnom effacé",
-            "save_failed": "Erreur lors de l'enregistrement du surnom"
+            "save_failed": "Erreur lors de l'enregistrement du surnom",
+            "real_name": "Nom du profil : {{name}}",
+            "real_name_changed": "Renommé : {{previous}} → {{name}}"
         },
         "errors": {
             "load_albums": "Erreur lors du chargement des albums",
@@ -2128,7 +2151,7 @@
     },
     "api": {
         "errors": {
-            "profile_banned_terms": "",
+            "profile_banned_terms": "Votre profil contient des mots non autorisés. Rien n'a été enregistré.",
             "load_views": "Erreur lors du chargement des vues",
             "load_taps": "Erreur lors du chargement des Taps",
             "invalid_profile_id": "ID de profil invalide",
@@ -2204,7 +2227,9 @@
         "placeholder": "Rechercher dans vos messages stockés localement",
         "loading": "Chargement de l'index de recherche...",
         "min_chars": "Tapez au moins 2 caractères pour rechercher.",
+        "prompt_title": "Rechercher dans vos messages",
         "no_messages_found": "Aucun message correspondant trouvé.",
+        "no_messages_found_hint": "Essayez un autre terme de recherche.",
         "error_load_inbox": "Erreur lors du chargement de la messagerie"
     },
     "pull_to_refresh": {
@@ -2248,6 +2273,7 @@
         "delete_confirm_message": "Cela le supprime immédiatement de votre profil."
     },
     "common": {
+        "scroll_to_top": "Haut de page",
         "clear": "Effacer",
         "back": "Retour",
         "cancel": "Annuler",
@@ -3049,10 +3075,10 @@
         "generic_message": "Vous a envoyé un message",
         "open_chat": "Ouvrir la discussion",
         "open_profile": "Ouvrir le profil",
-        "reply": "",
-        "reply_hint": "",
-        "reply_queued": "",
-        "reply_failed": "",
+        "reply": "Répondre",
+        "reply_hint": "Message",
+        "reply_queued": "Envoyé à l'ouverture de l'app",
+        "reply_failed": "Non envoyé",
         "taps_title": "Taps",
         "tap_notification_body": "Vous a envoyé un tap",
         "chat_image_notification_body": "Vous a envoyé une photo",
@@ -3104,5 +3130,20 @@
         "right_now_request_approved_notification_body": "Demande {{arg1}} acceptée",
         "coupon_auto_applied_title": "Félicitations",
         "coupon_auto_applied_body": "Un mois gratuit de {{arg1}} vous est offert"
+    },
+    "version_announcement": {
+        "title": "Nouveautés de Free Grind",
+        "version": "Version {{version}}",
+        "continue": "Continuer",
+        "skip": "Passer",
+        "got_it": "Compris",
+        "test_build_title": "Version de test",
+        "test_build_desc": "Il s'agit d'une version de test avant la version finale, attendez-vous donc à quelques imperfections. Les bugs signalés maintenant seront corrigés avant que tout le monde la reçoive.",
+        "prerelease": {
+            "alpha": "Alpha",
+            "beta": "Bêta",
+            "rc": "Release Candidate",
+            "other": "Préversion"
+        }
     }
 }

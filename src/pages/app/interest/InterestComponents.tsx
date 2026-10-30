@@ -10,7 +10,7 @@ import { formatDistance, isOnlineEndingSoon } from "../gridpage/utils";
 import { useRevealOnScroll } from "../../../hooks/useRevealOnScroll";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { usePreferences } from "../../../contexts/PreferencesContext";
-import { useProfilePhotoPrivacy } from "../../../hooks/useProfilePhotoPrivacy";
+import { TILE_HOVER_ZOOM_CLASS, useProfilePhotoPrivacy } from "../../../hooks/useProfilePhotoPrivacy";
 import type { BrowseCard } from "../GridPage.types";
 import { IconTabs, type IconTabConfig } from "../../../components/ui/icon-tabs";
 
@@ -260,7 +260,9 @@ export const InterestViewTile = memo(function InterestViewTile({
 							placeholder="silhouette"
 							className={cn(
 								// Locked tiles keep their light blur, also while hovered.
-								isLocked && (photoPrivacy === "blur" ? "hover:blur-[3px] hover:scale-105 group-hover/reveal:blur-[3px] group-hover/reveal:scale-105" : "blur-[3px] scale-105"),
+								isLocked
+									? (photoPrivacy === "blur" ? "hover:blur-[3px] hover:scale-105 group-hover/reveal:blur-[3px] group-hover/reveal:scale-105" : "blur-[3px] scale-105")
+									: TILE_HOVER_ZOOM_CLASS,
 							)}
 						/>
 

@@ -34,7 +34,7 @@ export function ProfileImage({ src, alt, className, iconClassName, privacyScope 
 	if (placeholder === "silhouette") {
 		return (
 			<div
-				className={cn("flex h-full w-full items-center justify-center text-[var(--placeholder-tile-icon)]", className)}
+				className={cn("flex h-full w-full items-center justify-center text-[var(--placeholder-tile-icon)]", PRIVACY_BLUR_TRANSITION_CLASS, className)}
 				style={{ background: "linear-gradient(to bottom, var(--placeholder-tile-top), var(--placeholder-tile-bottom))" }}
 			>
 				<UserFilled className={cn("h-[42%] w-[42%] opacity-35", iconClassName)} />

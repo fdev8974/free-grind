@@ -548,14 +548,14 @@
     },
     "browse_page": {
         "share_distance": {
-            "title": "",
-            "description": "",
-            "precise": "",
-            "precise_desc": "",
-            "approximate": "",
-            "approximate_desc": "",
-            "hidden": "",
-            "hidden_desc": ""
+            "title": "مشاركة المسافة",
+            "description": "اختار المسافة بتاعتك تظهر للناس إزاي.",
+            "precise": "بالظبط",
+            "precise_desc": "المسافة بالظبط، مثلًا \"على بعد 250 م\".",
+            "approximate": "تقريبية",
+            "approximate_desc": "مقرّبة، مثلًا \"على بعد أقل من 5 كم\".",
+            "hidden": "مخفية",
+            "hidden_desc": "مفيش مسافة بتظهر. بس مكانك في شبكة الناس التانية لسه بيدّي فكرة تقريبية انت بعيد قد إيه."
         },
         "title": "تصفح البروفايلات الشخصية",
         "subtitle": "اكتشف أشخاصًا بالقرب منك وانضم إلى الشات من الصفحة الرئيسية.",
@@ -788,17 +788,17 @@
         "completion_signals": "{{count}}/{{total}} من بيانات البروفايل متظبطة",
         "sections": {
             "map": {
-                "title": "",
-                "description": "",
-                "show_on_map": "",
-                "show_on_map_desc": "",
-                "location_randomizer": "",
-                "location_randomizer_desc": "",
-                "radius_default": "",
-                "radius_m": "",
-                "radius_ft": "",
-                "view_right_now_nsfw": "",
-                "view_right_now_nsfw_desc": ""
+                "title": "الخريطة و Right Now",
+                "description": "إعدادات الحساب للخريطة و Right Now.",
+                "show_on_map": "ظهّرني على الخريطة",
+                "show_on_map_desc": "البروفايل بتاعك بيظهر على الخريطة، ودايمًا متزحزح عن مكانك الحقيقي.",
+                "location_randomizer": "مكان عشوائي",
+                "location_randomizer_desc": "عشان خصوصيتك، مكانك على الخريطة بيتزحزح جوه المسافة دي وبيتحدّث وانت بتتحرك.",
+                "radius_default": "الافتراضي",
+                "radius_m": "نطاق ~{{value}} م",
+                "radius_ft": "نطاق ~{{value}} قدم",
+                "view_right_now_nsfw": "صور صريحة في Right Now",
+                "view_right_now_nsfw_desc": "وافق إنك تشوف محتوى جنسي صريح ومحتوى تاني للكبار في Right Now."
             },
             "pictures": {
                 "title": "الصور",
@@ -943,8 +943,8 @@
             "photo_added": "تمت إضافة صورة إلى البروفايل"
         },
         "errors": {
-            "banned_terms": "",
-            "banned_terms_unknown": "",
+            "banned_terms": "فيه كلمات مش مسموح بيها: {{terms}}",
+            "banned_terms_unknown": "فيه كلمات مش مسموح بيها.",
             "display_name_length": "لا يمكن أن يتجاوز اسم العرض 15 حرفًا.",
             "about_me_length": "يجب ألا يتجاوز قسم \"نبذة عني\" 255 حرفًا.",
             "max_selection": "يمكنك تحديد ما يصل إلى {{count}}."
@@ -1010,7 +1010,15 @@
         "show_sensitive_content_warning": "تحذير بشأن محتوى حساس",
         "show_sensitive_content_warning_desc": "اعرض شاشة تحذير قبل فتح ألبوم قد يحتوي على محتوى حساس.",
         "blur_grid_profile_pictures": "تمويه صور البروفايل في الشبكة",
-        "blur_grid_profile_pictures_desc": "بتشويش صورة البروفايل للجميع على الشبكة، وهو أمر مفيد للتصفح بشكل سري في الأماكن العامة."
+        "blur_grid_profile_pictures_desc": "بتشويش صورة البروفايل للجميع على الشبكة، وهو أمر مفيد للتصفح بشكل سري في الأماكن العامة.",
+        "safe_for_work_mode": "وضع Safe for Work",
+        "safe_for_work_mode_desc": "بيخبّي صور البروفايل لكل الناس في التطبيق ورا صورة بديلة وبيغبّش كل الميديا (الشاتات، الألبومات، Right Now). بيحل محل اختيارات التغبيش المنفصلة.",
+        "blur_profile_pictures": "غبّش صور البروفايل في كل حتة",
+        "blur_profile_pictures_desc": "بيغبّش صور البروفايل في التطبيق كله: الشبكة، الشاتات، البروفايلات، Right Now وغيرهم. في البروفايل دوس على الصورة مرة عشان تظهر (على الكمبيوتر عدّي بالماوس).",
+        "blur_album_media": "غبّش معاينة الألبومات",
+        "blur_album_media_desc": "بيغبّش الصور والفيديوهات في معاينة الألبوم. دوس مرة عشان تظهر (على الكمبيوتر عدّي بالماوس).",
+        "blur_right_now_media": "غبّش ميديا Right Now",
+        "blur_right_now_media_desc": "بيغبّش الصور اللي في بوستات Right Now، في الفيد وعلى الخريطة. دوس مرة عشان تظهر (على الكمبيوتر عدّي بالماوس)."
     },
     "customizability": {
         "subtitle": "بتخصيص مظهر الطبّق وتجربة استخدامه.",
@@ -1073,9 +1081,9 @@
         "visual_effects": "التأثيرات المرئية",
         "browse_grid_mobile": "تصفح الشبكة (الجوال)",
         "browse_grid_mobile_desc": "اضبط عدد البروفايلات الشخصية التي تظهر في كل صف على الهاتف المحمول",
-        "views_display_desc": "",
-        "views_display_grid": "",
-        "views_display_list": "",
+        "views_display_desc": "اعرض مشاهدات البروفايل كشبكة مربعات من 2 لـ 4 أعمدة أو كقايمة زي التابس.",
+        "views_display_grid": "شبكة مربعات",
+        "views_display_list": "قايمة",
         "views_grid_layout": "تخطيط المشاهدات",
         "columns_2": "عمودان",
         "columns_3": "3 أعمدة",
@@ -1083,6 +1091,8 @@
         "chat_section": "صفحة الشات",
         "drawer_layout": "قسّم الوسائط لفئات",
         "drawer_layout_desc": "يعرض الوسائط والألبومات والمجموعات في تابات منفصلة بدل ما كله يبقى في صفحة واحدة.",
+        "compact_composer": "شريط رسايل مضغوط",
+        "compact_composer_desc": "بيحط زرار المعرض وقايمة + فيها باقي الأوامر جوه خانة الرسالة بدل شريط تحتها.",
         "reveal_effect": {
             "title": "تأثير الكشف",
             "description": "يُظهر تأثير الكشف العناصر أثناء التمرير لأسفل. يمكنك تعطيله أو تغيير شدته.",
@@ -1153,7 +1163,14 @@
         "chat_row_swipe_actions": "أكشنز السحب في قايمة الشاتات",
         "chat_row_swipe_actions_desc": "اسحب الشات يمين عشان تثبّته أو شمال عشان تمسحه. الضغطة الطويلة لسه بتفتح كل الأكشنز.",
         "mobile_enter_to_send": "Enter للإرسال على الموبايل",
-        "mobile_enter_to_send_desc": "زرار Enter في كيبورد الموبايل بيبعت الرسالة بدل ما يبدأ سطر جديد."
+        "mobile_enter_to_send_desc": "زرار Enter في كيبورد الموبايل بيبعت الرسالة بدل ما يبدأ سطر جديد.",
+        "video_calls": "مكالمات الفيديو",
+        "start_calls_with_camera_on": "ابدأ المكالمات والكاميرا شغالة",
+        "start_calls_with_camera_on_desc": "الكاميرا بتاعتك بتشتغل أول ما مكالمة الفيديو تتوصل. لو مقفول، المكالمات بتبدأ والكاميرا مقفولة وانت اللي بتشغلها.",
+        "default_call_camera": "الكاميرا الافتراضية",
+        "default_call_camera_desc": "الكاميرا اللي مكالمة الفيديو بتبدأ بيها. تقدر تغيّرها برضه وانت في المكالمة.",
+        "call_camera_front": "الأمامية",
+        "call_camera_back": "الخلفية"
     },
     "notifications_page": {
         "subtitle": "اختار الإشعارات التي تريد تلقيها، وما إذا كانت ستظهر أثناء فتح الطبّق.",
@@ -1441,7 +1458,9 @@
         "favorite": "المفضلة",
         "unfavorite": "لا تفضيلات",
         "no_conversations_match": "مفيش محادثات تتطابق مع معايير الدور الخاصة بك.",
+        "no_conversations_match_hint": "غيّر الفلاتر أو امسحها.",
         "no_conversations": "لم تُجرَ أي محادثات حتى دلوقتي.",
+        "no_conversations_hint": "الشاتات اللي تبدأها أو توصلك هتظهر هنا.",
         "no_messages_yet": "مفيش رسائل حتى دلوقتي.",
         "pin": "تثبيت",
         "unpin": "لا تثبيت",
@@ -1476,12 +1495,14 @@
             "error_search": "فشل الدور",
             "retry": "إعادة المحاولة",
             "no_results": "مفيش صور متحركه",
+            "no_results_hint": "جرّب كلمة بحث تانية.",
             "recent_empty": "مفيش صور GIF مرسلة مؤخراً.",
             "recent_empty_hint": "ستظهر صور GIF التي ترسلها هنا.",
             "send_confirm": "ارسل صوره متحركه"
         },
         "drawer_unavailable": "أرسل رسالة أولاً لاستخدام الدرج",
         "attach_media": "إرفاق الوسائط",
+        "more_actions": "المزيد",
         "drop_to_attach": "بإسقاطها للتثبيت",
         "cancel_recording": "اسحب لليسار للإلغاء",
         "stop_recording": "أوقف التسجيل",
@@ -1659,7 +1680,9 @@
             "prompt": "بتعيين اسم مستعار محلي لهذا البروفايل. اتركه فارغًا للمسح.",
             "saved": "تم حفظ الاسم المستعار",
             "cleared": "تم مسح الاسم المستعار",
-            "save_failed": "فشل حفظ الاسم المستعار"
+            "save_failed": "فشل حفظ الاسم المستعار",
+            "real_name": "اسم البروفايل: {{name}}",
+            "real_name_changed": "اتغيّر الاسم: {{previous}} → {{name}}"
         },
         "errors": {
             "load_albums": "فشل تحميل الألبومات",
@@ -2153,7 +2176,7 @@
     },
     "api": {
         "errors": {
-            "profile_banned_terms": "",
+            "profile_banned_terms": "البروفايل بتاعك فيه كلمات مش مسموح بيها. ماتحفظش حاجة.",
             "load_views": "فشل تحميل المشاهدات",
             "load_taps": "فشل تحميل الصنابير",
             "invalid_profile_id": "رقم بروفايل غلط",
@@ -2229,7 +2252,9 @@
         "placeholder": "دور في الرسائل المخزنة محليًا",
         "loading": "بيحمّل فهرس البحث...",
         "min_chars": "اكتب حرفين على الأقل عشان تدور.",
+        "prompt_title": "دوّر في رسايلك",
         "no_messages_found": "مفيش رسائل مطابقة.",
+        "no_messages_found_hint": "جرّب كلمة بحث تانية.",
         "error_load_inbox": "فشل load inbox"
     },
     "pull_to_refresh": {
@@ -2273,6 +2298,7 @@
         "delete_confirm_message": "تم"
     },
     "common": {
+        "scroll_to_top": "ارجع لفوق",
         "clear": "مسح",
         "back": "رجوع",
         "cancel": "إلغاء",
@@ -3093,10 +3119,10 @@
         "generic_message": "بعتلك رسالة",
         "open_chat": "افتح الشات",
         "open_profile": "افتح البروفايل",
-        "reply": "",
-        "reply_hint": "",
-        "reply_queued": "",
-        "reply_failed": "",
+        "reply": "رد",
+        "reply_hint": "رسالة",
+        "reply_queued": "هتتبعت لما تفتح التطبيق",
+        "reply_failed": "ماتبعتتش",
         "taps_title": "التابات",
         "tap_notification_body": "بعتلك تاب",
         "chat_image_notification_body": "بعتلك صورة",
@@ -3148,5 +3174,20 @@
         "right_now_request_approved_notification_body": "طلب {{arg1}} اتقبل",
         "coupon_auto_applied_title": "مبروك",
         "coupon_auto_applied_body": "شهر مجاني من {{arg1}} بقى بتاعك"
+    },
+    "version_announcement": {
+        "title": "الجديد في Free Grind",
+        "version": "الإصدار {{version}}",
+        "continue": "كمّل",
+        "skip": "تخطّي",
+        "got_it": "تمام",
+        "test_build_title": "نسخة تجريبية",
+        "test_build_desc": "دي نسخة تجريبية قبل الإصدار النهائي، فممكن يكون فيها شوية مشاكل. المشاكل اللي تتبلّغ دلوقتي هتتصلّح قبل ما الكل ياخد التحديث.",
+        "prerelease": {
+            "alpha": "ألفا",
+            "beta": "بيتا",
+            "rc": "Release Candidate",
+            "other": "نسخة تجريبية مبكرة"
+        }
     }
 }
