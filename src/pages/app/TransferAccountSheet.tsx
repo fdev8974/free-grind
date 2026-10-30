@@ -130,7 +130,13 @@ export function TransferAccountSheet({ isDesktop, onClose }: { isDesktop: boolea
 	const remainingFraction = shown ? remainingMs / Math.max(1, shown.hideAt - shown.shownAt) : 0;
 
 	return (
-		<BottomSheet onClose={onClose} isDesktop={isDesktop} bg={NATIVE_SHEET_BG} panelClassName="max-h-[92dvh] px-4">
+		<BottomSheet
+			onClose={onClose}
+			isDesktop={isDesktop}
+			expandable
+			bg={NATIVE_SHEET_BG}
+			panelClassName={isDesktop ? "max-h-[92dvh] px-4" : "px-4"}
+		>
 			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
 				<p className="text-sm font-semibold text-[var(--text)]">
 					{t("account_transfer.title", { defaultValue: "Sign in on another device" })}
