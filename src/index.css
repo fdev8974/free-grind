@@ -1361,7 +1361,7 @@
 	}
 
 	/* Accent tint for cards: the card and everything inside built on
-	   --surface/--surface-2/--border (selected rows, chat bubbles, composer,
+	   --surface/--surface-2 (selected rows, chat bubbles, composer,
 	   menus, icon tiles) is tinted a few percent toward the accent, so cards sit
 	   in the same color family as the header glow, filter chips and active nav
 	   item instead of the palette's plain grey-blue. The tinted values are
@@ -1373,7 +1373,6 @@
 		:root {
 			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, var(--surface));
 			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
-			--card-tint-border: color-mix(in srgb, var(--accent) 14%, var(--border));
 		}
 		:root[data-scheme="dark"][data-amoled="true"] {
 			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
@@ -1384,7 +1383,6 @@
 			--card-bg: var(--card-tint-bg);
 			--surface: var(--card-tint-bg);
 			--surface-2: var(--card-tint-surface-2);
-			--border: var(--card-tint-border);
 		}
 		.native-card,
 		.native-card-fill,
@@ -1402,7 +1400,6 @@
 				--card-bg: var(--card-tint-bg);
 				--surface: var(--card-tint-bg);
 				--surface-2: var(--card-tint-surface-2);
-				--border: var(--card-tint-border);
 			}
 			:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
 			:root:not([data-scheme="light"])[data-amoled="true"] .native-card-fill,
