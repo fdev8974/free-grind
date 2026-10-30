@@ -542,16 +542,19 @@ export function NavBar() {
 			)}
 			style={{ "--nav-system-inset": `${systemNavInset}px` } as React.CSSProperties}
 		>
-			{/* Transparent style, no card: a dark fade rising from the screen edge
-			    (like the profile footer actions) keeps the icons readable over the
-			    content. It reaches above the bar without adding to its height
+			{/* Floating styles: a dark fade rising from the screen edge (like the
+			    profile footer actions) sets the bar off from the content. Strong for
+			    the transparent style, where it alone keeps the icons readable; lighter
+			    behind the card. It reaches above the bar without adding to its height
 			    (--nav-height). */}
-			{!rail && transparent && (
+			{!rail && !fullWidth && (
 				<div
 					aria-hidden
-					className="pointer-events-none absolute inset-x-0 -top-16 bottom-0"
+					className={cn("pointer-events-none absolute inset-x-0 bottom-0", transparent ? "-top-24" : "-top-12")}
 					style={{
-						background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.5) 70%, transparent 100%)",
+						background: transparent
+							? "linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.95) 45%, rgba(0,0,0,0.7) 72%, transparent 100%)"
+							: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.2) 70%, transparent 100%)",
 					}}
 				/>
 			)}
