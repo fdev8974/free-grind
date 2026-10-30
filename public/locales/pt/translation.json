@@ -788,6 +788,8 @@
                 "view_right_now_nsfw_desc": "Aceite ver conteúdo sexual explícito e outros conteúdos adultos no Right Now."
             },
             "pictures": {
+                "reorder_hint_touch": "Mantém premida uma foto e arrasta para mudar a ordem. A primeira é a tua foto principal.",
+                "reorder_hint_mouse": "Arrasta uma foto para mudar a ordem. A primeira é a tua foto principal.",
                 "title": "Fotos",
                 "description": "Adicione e organize suas fotos",
                 "usage": "{{count}}/{{total}} fotos usadas",

@@ -13,12 +13,14 @@ import {
 	Eye,
 	Flame,
 	Globe,
+	Hand,
 	Hash,
 	Heart,
 	Images,
 	Map as MapIcon,
 	MapPin,
 	MessageSquare,
+	Move,
 	Plus,
 	Ruler,
 	Scale,
@@ -368,11 +370,23 @@ export function ProfileEditorFormSections({
 				</FieldSectionAction>
 			}
 			footer={
-				<p className="mt-2 px-1 text-xs text-[var(--text-muted)]">
-					{photos.isSaving
-						? t("profile_editor.sections.pictures.saving")
-						: t("profile_editor.sections.pictures.footer")}
-				</p>
+				// The app's footnote style under a section (muted icon + text, as in
+				// the sexual health sheets), here naming the reorder gesture.
+				<div className="mt-2 flex gap-2.5 px-1">
+					{isDesktop
+						? <Move className="mt-px h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-60" />
+						: <Hand className="mt-px h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-60" />}
+					<p className="text-xs leading-relaxed text-[var(--text-muted)] opacity-80">
+						{photos.isSaving
+							? t("profile_editor.sections.pictures.saving")
+							: photos.hashes.length > 1
+								// How to reorder — long press on touch, plain drag with a mouse.
+								? t(isDesktop
+									? "profile_editor.sections.pictures.reorder_hint_mouse"
+									: "profile_editor.sections.pictures.reorder_hint_touch")
+								: t("profile_editor.sections.pictures.footer")}
+					</p>
+				</div>
 			}
 		>
 			<div className="p-3">
@@ -807,8 +821,8 @@ export function ProfileEditorFormSections({
 					<div className="grid min-w-0 gap-6">{secondStack}</div>
 				</div>
 			) : (
-				// Same spacing as the profile view's sections.
-				<div className="grid gap-8">
+				// Same spacing and side inset as the profile view's sections.
+				<div className="grid gap-8 px-3">
 					{firstStack}
 					{secondStack}
 				</div>

@@ -788,6 +788,8 @@
                 "view_right_now_nsfw_desc": "Uključi prikaz eksplicitnog seksualnog i drugog sadržaja za odrasle u Right Now."
             },
             "pictures": {
+                "reorder_hint_touch": "Zadrži i povuci fotografiju da promijeniš redoslijed. Prva je tvoja glavna fotografija.",
+                "reorder_hint_mouse": "Povuci fotografiju da promijeniš redoslijed. Prva je tvoja glavna fotografija.",
                 "title": "Slike",
                 "description": "Dodaj i rasporedi svoje fotografije",
                 "usage": "Iskorišteno {{count}}/{{total}} fotografija",

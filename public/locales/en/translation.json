@@ -780,6 +780,8 @@
         "view_right_now_nsfw_desc": "Opt in to seeing explicit sexual and other adult content in Right Now."
       },
       "pictures": {
+        "reorder_hint_touch": "Hold and drag a photo to change the order. The first one is your main photo.",
+        "reorder_hint_mouse": "Drag a photo to change the order. The first one is your main photo.",
         "title": "Pictures",
         "description": "Upload and arrange your photos",
         "usage": "{{count}}/{{total}} photos used",

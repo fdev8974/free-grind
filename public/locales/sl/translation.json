@@ -796,6 +796,8 @@
                 "view_right_now_nsfw_desc": "Vklopi prikaz eksplicitne spolne in druge vsebine za odrasle v Right Now."
             },
             "pictures": {
+                "reorder_hint_touch": "Pridrži in povleci fotografijo, da spremeniš vrstni red. Prva je tvoja glavna fotografija.",
+                "reorder_hint_mouse": "Povleci fotografijo, da spremeniš vrstni red. Prva je tvoja glavna fotografija.",
                 "title": "Slike",
                 "description": "Naloži in uredi svoje fotografije",
                 "usage": "Uporabljenih {{count}}/{{total}} fotografij",

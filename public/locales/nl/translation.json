@@ -780,6 +780,8 @@
                 "view_right_now_nsfw_desc": "Kies ervoor om expliciete seksuele en andere content voor volwassenen te zien in Right Now."
             },
             "pictures": {
+                "reorder_hint_touch": "Houd een foto ingedrukt en sleep om de volgorde te wijzigen. De eerste is je hoofdfoto.",
+                "reorder_hint_mouse": "Sleep een foto om de volgorde te wijzigen. De eerste is je hoofdfoto.",
                 "title": "Foto's",
                 "description": "Voeg foto's toe en orden ze",
                 "usage": "{{count}}/{{total}} foto's gebruikt",

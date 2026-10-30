@@ -780,6 +780,8 @@
                 "view_right_now_nsfw_desc": "Explizite sexuelle und andere Inhalte für Erwachsene in Right Now anzeigen."
             },
             "pictures": {
+                "reorder_hint_touch": "Halte ein Foto gedrückt und zieh es, um die Reihenfolge zu ändern. Das erste ist dein Hauptbild.",
+                "reorder_hint_mouse": "Zieh ein Foto, um die Reihenfolge zu ändern. Das erste ist dein Hauptbild.",
                 "title": "Bilder",
                 "description": "Lade Fotos hoch und sortiere sie",
                 "usage": "{{count}}/{{total}} Fotos verwendet",
