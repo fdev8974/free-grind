@@ -4,7 +4,7 @@ import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactElement, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { ScrollToTopButton } from "../../../components/ui/ScrollToTopButton";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { measureElement, useVirtualizer } from "@tanstack/react-virtual";
 import { ChatSearchPanel } from "./ChatSearchPanel";
 import { DrawerEmptyState } from "./drawerUi";
 import { ChatInboxHeader, type ChatInboxHeaderProps } from "./ChatInboxHeader";
@@ -53,6 +53,12 @@ import {
 // Quiet period after the last scroll event before the rows in view are
 // reported for revalidation — a fling only revalidates where it stops.
 const SCROLL_IDLE_MS = 400;
+
+// Measured row heights per layout, module-level so they survive remounts —
+// see the virtualizer's estimateSize below.
+type RowSizes = { byId: Map<string, number>; typical: number };
+const desktopRowSizes: RowSizes = { byId: new Map(), typical: 82 };
+const mobileRowSizes: RowSizes = { byId: new Map(), typical: 82 };
 
 /** Footer bar below the chat list's scroll area (not inside it) — reads as
  * part of the list (same border/background as a conversation row) rather
@@ -918,14 +924,33 @@ export function ChatInboxPanel({
 	// Virtualized rows — the list can hold the user's entire local chat
 	// history (see inboxSync.ts's background sync), potentially thousands of
 	// conversations, so only what's actually in view (plus a small overscan
-	// buffer) is ever mounted. estimateSize is a rough guess at a row's
-	// resting height; measureElement (wired below, on each row's wrapper)
-	// corrects it once a row's real height is known, so variable-height rows
-	// (wrapping preview text, badges, etc.) still lay out correctly.
+	// buffer) is ever mounted. measureElement (wired below, on each row's
+	// wrapper) corrects estimateSize once a row's real height is known, so
+	// variable-height rows (wrapping preview text, badges, etc.) still lay
+	// out correctly. The estimate is each row's last measured height (or the
+	// last height measured at all), kept across remounts: after a scroll
+	// restore deep into the list, every row above has never been measured in
+	// this instance, and each estimate miss makes the virtualizer rewrite
+	// scrollTop on first measurement, shifting content while scrolling up.
+	const filteredConversationsRef = useRef(filteredConversations);
+	filteredConversationsRef.current = filteredConversations;
+	const rowSizes = isDesktop ? desktopRowSizes : mobileRowSizes;
 	const rowVirtualizer = useVirtualizer({
 		count: filteredConversations.length,
 		getScrollElement: () => inboxListRef.current,
-		estimateSize: () => 82,
+		estimateSize: (index) => {
+			const conversationId = filteredConversations[index]?.data.conversationId;
+			return (conversationId != null ? rowSizes.byId.get(conversationId) : undefined) ?? rowSizes.typical;
+		},
+		measureElement: (element, entry, instance) => {
+			const size = measureElement(element, entry, instance);
+			const conversationId = filteredConversationsRef.current[instance.indexFromElement(element)]?.data.conversationId;
+			if (conversationId != null && size > 0) {
+				rowSizes.byId.set(conversationId, size);
+				rowSizes.typical = size;
+			}
+			return size;
+		},
 		overscan: 8,
 		getItemKey: (index) => filteredConversations[index]?.data.conversationId ?? index,
 	});
@@ -955,8 +980,6 @@ export function ChatInboxPanel({
 	// confirmed show it (isInboxRightNowFresh reads module state).
 	useSyncExternalStore(subscribeInboxFreshness, getInboxFreshnessVersion);
 
-	const filteredConversationsRef = useRef(filteredConversations);
-	filteredConversationsRef.current = filteredConversations;
 	const onInboxScrollIdleRef = useRef(onInboxScrollIdle);
 	onInboxScrollIdleRef.current = onInboxScrollIdle;
 	const scrollIdleTimerRef = useRef<number | null>(null);
