@@ -109,6 +109,17 @@ function sheetBgColor(bgClass: string): string {
 	return match ? match[1].replace(/_/g, " ") : "var(--surface)";
 }
 
+const SUPPORTS_COLOR_MIX = typeof CSS !== "undefined" && CSS.supports("color", "color-mix(in srgb, red, blue)");
+
+/** The sheet's fill with a light accent tint, like the cards. Mixed into
+ * --sheet-bg itself (not laid over the panel) so the footer fade and the
+ * tinted sheet buttons match it. Only for a plain `bg-[...]` fill, and only
+ * with color-mix support: without it the var() would leave the panel see-through. */
+function tintedSheetBg(bgClass: string): string | null {
+	if (!SUPPORTS_COLOR_MIX || !/(?:^|\s)bg-\[/.test(bgClass)) return null;
+	return `color-mix(in srgb, ${sheetBgColor(bgClass)} 95%, var(--accent))`;
+}
+
 // The press scale is gentler than on the compact footer controls (0.96):
 // these pills are flex-1 and often full width, and a scale shrinks a wide
 // button by many more pixels than a narrow one.
@@ -123,6 +134,11 @@ const SHEET_BUTTON_VARIANTS = {
 	// content, a transparent tint looked washed out and barely visible.
 	/** Soft neutral fill. */
 	secondary: "bg-[color-mix(in_srgb,var(--text)_12%,var(--sheet-bg,var(--surface)))] text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--text)_16%,var(--sheet-bg,var(--surface)))] active:bg-[color-mix(in_srgb,var(--text)_20%,var(--sheet-bg,var(--surface)))]",
+	/** A light accent tint, e.g. Cancel beside a filled or red confirm. The
+	 * sheet color comes first in the mix: the build falls back to the first
+	 * color where color-mix is unsupported, and accent text on solid accent
+	 * would vanish. */
+	accent: "bg-[color-mix(in_srgb,var(--sheet-bg,var(--surface))_86%,var(--accent))] text-[var(--accent-readable)] hover:bg-[color-mix(in_srgb,var(--sheet-bg,var(--surface))_80%,var(--accent))] active:bg-[color-mix(in_srgb,var(--sheet-bg,var(--surface))_74%,var(--accent))]",
 	destructive: "bg-[color-mix(in_srgb,#ef4444_18%,var(--sheet-bg,var(--surface)))] text-red-500 hover:bg-[color-mix(in_srgb,#ef4444_26%,var(--sheet-bg,var(--surface)))]",
 	warning: "bg-[color-mix(in_srgb,#f97316_18%,var(--sheet-bg,var(--surface)))] text-orange-500 hover:bg-[color-mix(in_srgb,#f97316_26%,var(--sheet-bg,var(--surface)))]",
 } as const;
@@ -572,11 +588,12 @@ export function BottomSheet({
 				/>
 				<div
 					ref={panelRef}
-					className={`relative flex flex-col ${bg} overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl border-x border-t border-[var(--border)] shadow-2xl" : "w-full rounded-t-[24px] shadow-[0_-1px_4px_rgba(0,0,0,0.25),0_-10px_36px_rgba(0,0,0,0.5)]"} ${panelClassName}`}
+					className={`relative flex flex-col ${bg} overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl shadow-[0_-1px_6px_rgba(0,0,0,0.2),0_-8px_40px_rgba(0,0,0,0.45)]" : "w-full rounded-t-[24px] shadow-[0_-1px_4px_rgba(0,0,0,0.25),0_-10px_36px_rgba(0,0,0,0.5)]"} ${panelClassName}`}
 					// transform, height and transition are set by applyLayout.
 					style={{
 						willChange: "transform",
-						"--sheet-bg": sheetBgColor(bg),
+						"--sheet-bg": tintedSheetBg(bg) ?? sheetBgColor(bg),
+						backgroundColor: tintedSheetBg(bg) ? "var(--sheet-bg)" : undefined,
 						// Extends SHEET_BLEED past the screen edge so the open/settle overshoot
 						// never shows a gap under the sheet.
 						marginBottom: -SHEET_BLEED,

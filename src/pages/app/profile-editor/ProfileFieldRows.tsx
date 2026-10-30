@@ -12,8 +12,9 @@ type Option = { value: number; label: string };
 /** A lucide icon or one of the app's own (e.g. brand marks), drawn in currentColor. */
 export type FieldIcon = ComponentType<{ className?: string }>;
 
-/** Hover fill for a clickable row — one step off the surface-2 card it sits on. */
-export const FIELD_ROW_HOVER_CLASS = "hover:bg-[var(--surface)] active:bg-[var(--surface)]";
+/** Hover fill for a clickable row: the accent mixed into the surface-2 card it
+ * sits on (FieldSection sets --hover-base); pressing adds a bit more accent. */
+export const FIELD_ROW_HOVER_CLASS = "hover-fill";
 
 /** Small caps heading (plus an optional action on the right) above one card
  * of divided rows, styled like the profile view's lists. `footer` sits under the card. */
@@ -37,7 +38,7 @@ export function FieldSection({
 				{action}
 			</div>
 			{/* The profile view's list card. */}
-			<div className="overflow-hidden divide-y divide-[var(--border)] rounded-2xl bg-[var(--surface-2)]">
+			<div className="overflow-hidden divide-y divide-[var(--border)] rounded-2xl bg-[var(--surface-2)] [--hover-base:var(--surface-2)]">
 				{children}
 			</div>
 			{footer}

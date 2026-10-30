@@ -165,14 +165,18 @@ function AlertConfirmDialog({
 	return (
 		<dialog
 			ref={dialogRef}
-			className="fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-2xl backdrop:bg-black/45"
+			// Borderless, so a soft shadow lifts it off the dimmed page.
+			className="fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-2xl bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] p-0 text-[var(--text)] shadow-[0_2px_8px_rgba(0,0,0,0.25),0_12px_48px_rgba(0,0,0,0.5)] backdrop:bg-black/45"
 			onClick={(event) => {
 				if (event.target === dialogRef.current && !isProcessing) {
 					onCancel();
 				}
 			}}
 		>
-			<div className="p-4">
+			{/* Light accent tint over the fill, like the cards. As an overlay
+			    (accent-tint) rather than a color-mix fill: the build's fallback for
+			    a color-mix with the accent first would paint the dialog solid accent. */}
+			<div className="accent-tint-6 rounded-[inherit] p-4">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
 				<p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{message}</p>
 
@@ -187,7 +191,7 @@ function AlertConfirmDialog({
 								disabled={isProcessing}
 								className="peer absolute inset-0 z-10 m-0 cursor-pointer opacity-0 disabled:cursor-not-allowed"
 							/>
-							<span className="absolute inset-0 rounded-full border border-[var(--border)] bg-[var(--surface)] transition-colors peer-checked:border-transparent peer-checked:bg-[var(--accent)] peer-disabled:opacity-60" />
+							<span className="absolute inset-0 rounded-full bg-[color-mix(in_srgb,var(--sheet-bg,var(--surface))_82%,var(--accent))] transition-colors peer-checked:bg-[var(--accent)] peer-disabled:opacity-60" />
 							<span className="absolute left-1 h-5 w-5 rounded-full bg-[var(--text)] transition-transform peer-checked:translate-x-5 peer-checked:bg-[var(--accent-contrast)]" />
 						</span>
 					</label>
@@ -198,7 +202,7 @@ function AlertConfirmDialog({
 						type="button"
 						onClick={onCancel}
 						disabled={isProcessing}
-						className={sheetButtonClass("secondary")}
+						className={sheetButtonClass("accent")}
 					>
 						{cancelLabel}
 					</button>

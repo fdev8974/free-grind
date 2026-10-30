@@ -1335,11 +1335,14 @@
 	   Outer corners keep the card radius, inner corners are tight, so the
 	   group still reads as one block. Shares the card's tokens (see the
 	   .native-card rules below), so rows built on --surface-2 look the same. */
+	/* The gap must stay a whole number of device pixels at the usual display
+	   scales (125/150/175/200 %), or the rounding makes every gap a little
+	   different: 4px is (5/6/7/8 device px), 3px isn't (3.75 px at 125 %). */
 	.native-group {
 		--card-bg: var(--surface);
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: 4px;
 	}
 	.native-group > * {
 		background: var(--card-bg);
@@ -1868,16 +1871,23 @@ dialog::backdrop {
 /* Hover fill for rows and menu items: the accent mixed into the surface, so
  * hovering reads in the same color family as selected states. Only on
  * hover-capable pointers (desktop), like Tailwind's own hover variant, so a tap
- * on touch doesn't leave a sticky fill behind. The mix goes through a custom
+ * on touch doesn't leave a sticky fill behind; the pressed fill applies everywhere. The mix goes through a custom
  * property: written directly, the build adds an unguarded solid var(--accent)
- * fallback (see accent-tint below). Without color-mix there's no hover fill. */
+ * fallback (see accent-tint below). Without color-mix there's no hover fill.
+ * The accent is mixed into --hover-base, inherited from the container: lists
+ * on a --surface-2 fill set it to that, so the hover doesn't drop darker. */
 @utility hover-fill {
-	--hover-fill: color-mix(in srgb, var(--accent) 12%, var(--surface));
-	@media (hover: hover) {
-		@supports (color: color-mix(in srgb, red, blue)) {
+	--hover-fill: color-mix(in srgb, var(--accent) 12%, var(--hover-base, var(--surface)));
+	--press-fill: color-mix(in srgb, var(--accent) 20%, var(--hover-base, var(--surface)));
+	@supports (color: color-mix(in srgb, red, blue)) {
+		@media (hover: hover) {
 			&:hover {
 				background-color: var(--hover-fill);
 			}
+		}
+		/* Pressed: a step more accent, on touch too, instead of a darker fill. */
+		&:active {
+			background-color: var(--press-fill);
 		}
 	}
 }

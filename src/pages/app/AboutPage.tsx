@@ -62,7 +62,7 @@ function ProjectRow({
 	return (
 		<Tag
 			{...(onClick ? { type: "button" as const, onClick } : {})}
-			className={`flex w-full items-center gap-3 px-4 py-3.5 text-left ${onClick ? "transition-colors hover-fill active:bg-[var(--surface-2)]" : ""}`}
+			className={`flex w-full items-center gap-3 px-4 py-3.5 text-left ${onClick ? "transition-colors hover-fill" : ""}`}
 		>
 			<div className={`shrink-0 rounded-2xl p-2.5 ${iconClass}`}>
 				<Icon className="h-5 w-5" />
@@ -139,7 +139,7 @@ export function AboutPage() {
 					<button
 						type="button"
 						onClick={handleVersionTap}
-						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
+						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill"
 					>
 						<div className="shrink-0 rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
 							<img src={logo} alt="" className="h-5 w-5 rounded-md object-cover" draggable={false} />

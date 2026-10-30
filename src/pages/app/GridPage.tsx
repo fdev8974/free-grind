@@ -357,6 +357,25 @@ export function GridPage() {
 		applyDraft,
 	} = useBrowseFilters(getCachedBrowseFiltersDraft() ?? getDefaultBrowseFiltersDraft());
 
+	// The sort from before entering explore, restored on leaving it, since the
+	// effect below drops location-based sorts while exploring. Declared first so
+	// it still sees the sort from before that effect resets it. Entering explore
+	// straight from a reload leaves nothing to restore, so it falls back to the
+	// default (distance) sort.
+	const preExploreSortRef = useRef<BrowseSortOption | null>(null);
+	const wasExploringRef = useRef(exploreLocation !== null);
+	useEffect(() => {
+		const isExploring = exploreLocation !== null;
+		if (isExploring === wasExploringRef.current) return;
+		wasExploringRef.current = isExploring;
+		if (isExploring) {
+			preExploreSortRef.current = sortBy;
+		} else {
+			setSortBy(preExploreSortRef.current ?? "distance");
+			preExploreSortRef.current = null;
+		}
+	}, [exploreLocation, sortBy, setSortBy]);
+
 	// Favorites/Right Now filters and distance/age/popular sorts all rely on
 	// the real location (or real-time presence), neither of which apply to a
 	// browsed-away explore location — hide their pills/options (above) and

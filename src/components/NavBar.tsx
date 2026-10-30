@@ -769,7 +769,7 @@ export function NavBar() {
 										type="button"
 										onClick={() => void handleSwitchAccount(account.profileId)}
 										disabled={isActive || isSwitching}
-										className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)] disabled:cursor-default"
+										className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover-fill disabled:cursor-default"
 									>
 										<div className="relative h-10 w-10 shrink-0">
 											<Avatar

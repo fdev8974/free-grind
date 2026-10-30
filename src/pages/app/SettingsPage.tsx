@@ -588,7 +588,7 @@ export function SettingsPage() {
 				{right ?? <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />}
 			</>
 		);
-		const cls = `flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${disabled ? "opacity-50 cursor-not-allowed" : "hover-fill active:bg-[var(--surface-2)]"}`;
+		const cls = `flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${disabled ? "opacity-50 cursor-not-allowed" : "hover-fill"}`;
 		return onClick ? (
 			<button type="button" onClick={onClick} disabled={disabled} className={cls}>
 				{inner}
@@ -743,7 +743,7 @@ export function SettingsPage() {
 												}
 												navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route);
 											}}
-											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
+											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill"
 										>
 											<div className={`rounded-2xl p-2.5 shrink-0 ${entry.iconClass}`}>
 												<entry.icon className="h-5 w-5" />
@@ -778,7 +778,7 @@ export function SettingsPage() {
 										: undefined;
 									const activeProfile = userId != null ? getSavedAccountProfile(String(userId)) : null;
 									return (
-										<div className="flex items-center gap-1 transition-colors hover-fill active:bg-[var(--surface-2)]">
+										<div className="flex items-center gap-1 transition-colors hover-fill">
 											<button
 												type="button"
 												onClick={openOwnProfileEditor}
@@ -826,7 +826,7 @@ export function SettingsPage() {
 										const isRemoving = removingProfileId === account.profileId;
 										const savedProfile = getSavedAccountProfile(account.profileId);
 										return (
-											<div key={account.profileId} className="flex items-center gap-1 transition-colors hover-fill active:bg-[var(--surface-2)]">
+											<div key={account.profileId} className="flex items-center gap-1 transition-colors hover-fill">
 												<button
 													type="button"
 													onClick={() => void handleSwitchAccount(account.profileId)}
@@ -869,7 +869,7 @@ export function SettingsPage() {
 								<button
 									type="button"
 									onClick={() => navigate("/auth/sign-in?mode=add-profile")}
-									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill"
 								>
 									<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5 shrink-0">
 										<UserPlusFilled className="h-5 w-5" />
@@ -1061,7 +1061,7 @@ export function SettingsPage() {
 									type="button"
 									onClick={() => void handleCheckUpdates()}
 									disabled={isCheckingUpdates || isSwitchingChannel}
-									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)] disabled:cursor-default disabled:hover:bg-transparent"
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill disabled:cursor-default disabled:hover:bg-transparent"
 								>
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">

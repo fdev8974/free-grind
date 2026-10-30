@@ -409,7 +409,7 @@ export function SettingsTranslationPage() {
 											<button
 												type="button"
 												onClick={() => void openExternalUrl(step.url!)}
-												className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
+												className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover-fill"
 											>
 												{content}
 												<ExternalLink className="mt-1.5 h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />

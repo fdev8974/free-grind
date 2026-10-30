@@ -36,7 +36,7 @@ export function SheetActionRow({ action }: { action: SheetAction }) {
 		<SheetClose
 			onClick={action.onSelect}
 			disabled={action.disabled}
-			className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover-fill active:bg-[var(--surface-2)] disabled:opacity-50"
+			className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover-fill disabled:opacity-50"
 		>
 			<div
 				className={cn(

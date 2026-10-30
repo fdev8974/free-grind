@@ -2251,9 +2251,11 @@ export function ProfileDetailsModal({
 			>
 				<div
 					// Frosted like the other headers (86% + blur) instead of turning fully solid.
+					// Inline it's in the card's own fill, set off by a soft shadow instead of a
+					// divider line (the neutral border didn't match the tinted card).
 					ref={headerBgRef}
 					// Opacity is driven by the scroll handler above.
-					className={`absolute inset-0 opacity-0 backdrop-blur-xl ${variant === "page" ? "bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "bg-[color-mix(in_srgb,var(--surface-2)_86%,transparent)]"}${inlineScrolled ? " border-b border-[var(--border)]/60" : ""}`}
+					className={`absolute inset-0 opacity-0 backdrop-blur-xl ${variant === "page" ? "bg-[color-mix(in_srgb,var(--bg)_86%,transparent)]" : "bg-[color-mix(in_srgb,var(--card-bg,var(--surface))_86%,transparent)]"}${inlineScrolled ? " shadow-[0_6px_16px_-8px_rgba(0,0,0,0.45)]" : ""}`}
 					aria-hidden="true"
 				/>
 				<div className="pointer-events-auto relative flex w-full items-center gap-3">
@@ -2751,8 +2753,9 @@ export function ProfileDetailsModal({
 				<div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
 					{!isModalSplit ? renderInlineLayout() : (
 						<>
-							{/* Solid split-mode header */}
-							<div className="flex shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface-2)] p-3">
+							{/* Solid split-mode header, set off from the content by its surface-2
+							    fill alone (a neutral divider clashed with the tinted card). */}
+							<div className="flex shrink-0 items-center gap-3 bg-[var(--surface-2)] p-3">
 								<div className="flex w-full items-center gap-3">
 									<button type="button" onClick={onClose} className="header-icon-btn header-icon-btn--back shrink-0 rounded-xl text-[var(--text-muted)] transition-colors hover:text-[var(--text)]" aria-label={t("profile_details.close_profile_details")}>
 										<ChevronLeft className="h-4 w-4" />
