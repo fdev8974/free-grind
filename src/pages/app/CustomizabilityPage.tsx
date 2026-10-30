@@ -526,6 +526,7 @@ export function CustomizabilityPage() {
 								options={[
 									{ value: "taps", label: t("customizability.interest_show_taps") },
 									{ value: "views", label: t("customizability.interest_show_views") },
+									{ value: "sent", label: t("customizability.interest_show_sent") },
 								]}
 							/>
 							{/* Mobile only: desktop always shows interest as tiles. */}

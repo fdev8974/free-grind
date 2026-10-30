@@ -89,10 +89,11 @@ export function InterestPage() {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const [searchParams, setSearchParams] = useSearchParams();
-	const defaultSetting = window.localStorage.getItem("fg-interest-default-tab") === "views" ? "views" : "taps";
-	const lastActiveTab = window.localStorage.getItem("fg-interest-last-tab");
 	const isValidTab = (value: string | null): value is InterestTab =>
 		value === "taps" || value === "views" || value === "sent";
+	const storedDefault = window.localStorage.getItem("fg-interest-default-tab");
+	const defaultSetting: InterestTab = isValidTab(storedDefault) ? storedDefault : "taps";
+	const lastActiveTab = window.localStorage.getItem("fg-interest-last-tab");
 	// Falls back to the last tab the user actually looked at (not just their configured default),
 	// since navigating back to /interest (e.g. via the bottom nav) drops the ?tab= param entirely.
 	const fallbackTab: InterestTab = isValidTab(lastActiveTab) ? lastActiveTab : defaultSetting;
@@ -551,7 +552,7 @@ export function InterestPage() {
 	}, []);
 
 	const tabOrder: InterestTab[] = useMemo(
-		() => (defaultSetting === "views" ? ["views", "taps", "sent"] : ["taps", "views", "sent"]),
+		() => [defaultSetting, ...(["taps", "views", "sent"] as const).filter((tab) => tab !== defaultSetting)],
 		[defaultSetting],
 	);
 
