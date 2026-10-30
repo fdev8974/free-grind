@@ -1360,6 +1360,58 @@
 		}
 	}
 
+	/* Accent tint for cards: the card and everything inside built on
+	   --surface/--surface-2/--border (selected rows, chat bubbles, composer,
+	   menus, icon tiles) is tinted a few percent toward the accent, so cards sit
+	   in the same color family as the header glow, filter chips and active nav
+	   item instead of the palette's plain grey-blue. The tinted values are
+	   computed on :root, since a card can't mix its own inherited --surface into
+	   a new --surface. The selectors mirror the AMOLED card rules above so they
+	   win over them. Gated on color-mix: without it the var() chain would leave
+	   cards transparent instead of falling back to the untinted rules. */
+	@supports (color: color-mix(in srgb, red, blue)) {
+		:root {
+			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, var(--surface));
+			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+			--card-tint-border: color-mix(in srgb, var(--accent) 14%, var(--border));
+		}
+		:root[data-scheme="dark"][data-amoled="true"] {
+			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
+			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+		}
+		.native-card,
+		:root[data-scheme="dark"][data-amoled="true"] .native-card {
+			--card-bg: var(--card-tint-bg);
+			--surface: var(--card-tint-bg);
+			--surface-2: var(--card-tint-surface-2);
+			--border: var(--card-tint-border);
+		}
+		.native-card,
+		.native-card-fill,
+		:root[data-scheme="dark"][data-amoled="true"] .native-card,
+		:root[data-scheme="dark"][data-amoled="true"] .native-card-fill,
+		:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
+			background: var(--card-tint-bg);
+		}
+		@media (prefers-color-scheme: dark) {
+			:root:not([data-scheme="light"])[data-amoled="true"] {
+				--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
+				--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+			}
+			:root:not([data-scheme="light"])[data-amoled="true"] .native-card {
+				--card-bg: var(--card-tint-bg);
+				--surface: var(--card-tint-bg);
+				--surface-2: var(--card-tint-surface-2);
+				--border: var(--card-tint-border);
+			}
+			:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
+			:root:not([data-scheme="light"])[data-amoled="true"] .native-card-fill,
+			:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
+				background: var(--card-tint-bg);
+			}
+		}
+	}
+
 	.no-touch-callout {
 		-webkit-touch-callout: none;
 		-webkit-user-select: none;

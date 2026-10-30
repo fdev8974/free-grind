@@ -623,7 +623,7 @@ function ChatConversationRow({
 				style={{ touchAction: "pan-y" }}
 				className={`group/reveal no-touch-callout relative flex cursor-pointer items-center gap-4 text-left transition ${
 					isDesktop
-						? `rounded-xl px-3 py-2.5 ${isSelected ? "bg-[var(--surface-2)]" : "hover:bg-[color-mix(in_srgb,var(--surface-2)_55%,transparent)]"}`
+						? `rounded-xl px-3 py-2.5 ${isSelected ? "accent-tint-14" : "hover:bg-[color-mix(in_srgb,var(--surface-2)_55%,transparent)]"}`
 						: "border-b border-[var(--surface-2)] px-4 py-3"
 				}`}
 			>
