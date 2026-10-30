@@ -5,18 +5,21 @@ import { cn } from "../../utils/cn";
 import { ToggleRow } from "./toggle-row";
 
 /** A labelled group inside a bottom sheet: small muted heading (plus an
- * optional current value on the right) above its content — same look as the
- * location sheet's sections. */
+ * optional current value, or a small control via `action`, on the right)
+ * above its content — same look as the location sheet's sections. */
 export function SheetSection({
 	title,
 	value,
 	badge,
+	action,
 	className,
 	children,
 }: {
 	title: string;
 	value?: string;
 	badge?: ReactNode;
+	/** A small control for the whole section (e.g. a SheetSegmented), right of the title. */
+	action?: ReactNode;
 	className?: string;
 	children: ReactNode;
 }) {
@@ -28,9 +31,48 @@ export function SheetSection({
 					{badge}
 				</div>
 				{value ? <span className="shrink-0 text-xs font-semibold tabular-nums text-[var(--text)]">{value}</span> : null}
+				{action}
 			</div>
 			{children}
 		</section>
+	);
+}
+
+/** Compact segmented control for a SheetSection's `action` slot: one soft
+ * pill, the chosen option filled with the accent. */
+export function SheetSegmented<T extends string>({
+	value,
+	options,
+	onChange,
+	disabled,
+}: {
+	value: T;
+	options: { value: T; label: string }[];
+	onChange: (value: T) => void;
+	disabled?: boolean;
+}) {
+	return (
+		<div role="radiogroup" className="inline-flex shrink-0 rounded-full ink-tint-8 p-0.5">
+			{options.map((option) => {
+				const active = option.value === value;
+				return (
+					<button
+						key={option.value}
+						type="button"
+						role="radio"
+						aria-checked={active}
+						disabled={disabled}
+						onClick={() => onChange(option.value)}
+						className={cn(
+							"rounded-full px-2.5 py-0.5 text-xs font-semibold transition disabled:cursor-default",
+							active ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "text-[var(--text-muted)] hover:text-[var(--text)]",
+						)}
+					>
+						{option.label}
+					</button>
+				);
+			})}
+		</div>
 	);
 }
 
@@ -98,10 +140,10 @@ export function SheetChip({
 }
 
 /** Look of a plain form field in a sheet (date, time, multi-line note):
- * surface-2 fill, thin border, accent border while focused. Add the height
+ * surface-2 fill, borderless at rest (like the cards), accent border while focused. Add the height
  * and padding at the call site (e.g. "h-11 px-3", or "px-4 py-3 resize-none"). */
 export const SHEET_FIELD_CLASS =
-	"w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]";
+	"w-full rounded-xl border border-transparent bg-[var(--surface-2)] text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]";
 
 /** Container for list-style rows in a sheet section: the sheet's own (accent
  * tinted) fill lifted by a touch of the text color, like the resting chips,
@@ -285,7 +327,7 @@ export function SheetTextInput({
 				disabled={disabled}
 				autoFocus={autoFocus}
 				className={cn(
-					"h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--chip-accent)] disabled:opacity-60",
+					"h-11 w-full rounded-xl border border-transparent bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--chip-accent)] disabled:opacity-60",
 					trailing ? "pr-10" : undefined,
 				)}
 			/>

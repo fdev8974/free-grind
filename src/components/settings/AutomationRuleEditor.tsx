@@ -21,7 +21,7 @@ import {
 import { NATIVE_SHEET_BG } from "../ui/action-sheet";
 import { ControlledBottomSheet } from "../ui/controlled-sheet";
 import { SelectSheet } from "../ui/select-sheet";
-import { SHEET_FIELD_CLASS, SheetChip, SheetSection, SheetTextInput } from "../ui/sheet-section";
+import { SHEET_FIELD_CLASS, SHEET_GROUP_CLASS, SheetChip, SheetSection, SheetSegmented, SheetTextInput } from "../ui/sheet-section";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { cn } from "../../utils/cn";
 
@@ -38,7 +38,8 @@ function RuleItemCard({
 	children: ReactNode;
 }) {
 	return (
-		<div className="flex items-start gap-3 rounded-2xl bg-[var(--surface-2)] p-3">
+		// A tile of the SHEET_GROUP_CLASS list around it, which gives it its fill and corners.
+		<div className="flex items-start gap-3 p-3">
 			<div className={cn("shrink-0 rounded-2xl p-2.5", iconClass)}>{icon}</div>
 			<div className="min-w-0 flex-1 self-center">{children}</div>
 			{onRemove && (
@@ -60,7 +61,7 @@ function AddItemButton({ label, onClick }: { label: string; onClick: () => void 
 		<button
 			type="button"
 			onClick={onClick}
-			className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--text)_20%,transparent)] px-4 py-3 text-sm font-semibold text-[var(--accent)] transition hover:ink-tint-6 active:scale-[0.99]"
+			className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[color-mix(in_srgb,var(--sheet-bg,var(--surface))_55%,var(--accent))] px-4 py-3 text-sm font-semibold text-[var(--accent)] transition hover:accent-tint-8 active:scale-[0.99]"
 		>
 			<Plus className="h-4 w-4" />
 			{label}
@@ -355,22 +356,22 @@ export function AutomationRuleEditor({
 					</div>
 				</SheetSection>
 
-				<SheetSection title={t("settings_automation.conditions_label")}>
+				<SheetSection
+					title={t("settings_automation.conditions_label")}
+					// All/Any applies to the whole list, so it sits in the heading
+					// rather than as a row of chips among the conditions.
+					action={draft.conditions.length > 1 ? (
+						<SheetSegmented
+							value={draft.matchMode}
+							disabled={draft.locked}
+							onChange={(mode) => setDraft(draft && { ...draft, matchMode: mode })}
+							options={(["all", "any"] as const).map((mode) => ({ value: mode, label: t(`settings_automation.match_mode_${mode}`) }))}
+						/>
+					) : undefined}
+				>
 					<div className="grid gap-2">
-						{draft.conditions.length > 1 && (
-							<div className="flex gap-2">
-								{(["all", "any"] as const).map((mode) => (
-									<SheetChip
-										key={mode}
-										size="sm"
-										active={draft.matchMode === mode}
-										onClick={() => !draft.locked && setDraft(draft && { ...draft, matchMode: mode })}
-									>
-										{t(`settings_automation.match_mode_${mode}`)}
-									</SheetChip>
-								))}
-							</div>
-						)}
+						{draft.conditions.length > 0 && (
+						<div className={SHEET_GROUP_CLASS}>
 						{draft.conditions.map((condition, index) => {
 							const onRemove = removeIfUnlocked(() => removeCondition(index));
 
@@ -422,7 +423,7 @@ export function AutomationRuleEditor({
 												onChange={(e) => updateCondition(index, { keywords: e.target.value })}
 												placeholder={t("settings_automation.condition_keywords_placeholder")}
 												rows={2}
-												className={cn(SHEET_FIELD_CLASS, "mt-2 resize-y bg-[var(--surface)] px-3 py-2.5")}
+												className={cn(SHEET_FIELD_CLASS, "mt-2 resize-y bg-[var(--sheet-bg,var(--surface))] px-3 py-2.5")}
 											/>
 										)}
 									</RuleItemCard>
@@ -464,6 +465,8 @@ export function AutomationRuleEditor({
 								</RuleItemCard>
 							);
 						})}
+						</div>
+						)}
 
 						{!draft.locked && availableConditionKinds.length > 0 && (
 							<AddItemButton label={t("settings_automation.add_condition")} onClick={() => setPicker("condition")} />
@@ -473,6 +476,8 @@ export function AutomationRuleEditor({
 
 				<SheetSection title={t("settings_automation.actions_label")}>
 					<div className="grid gap-2">
+						{draft.actions.length > 0 && (
+						<div className={SHEET_GROUP_CLASS}>
 						{draft.actions.map((action, index) => {
 							const Icon = actionIcon(action.type);
 							const album = action.type === "share_album"
@@ -514,7 +519,7 @@ export function AutomationRuleEditor({
 											onChange={(e) => updateAction(index, { text: e.target.value })}
 											placeholder={t("settings_automation.action_send_message_placeholder")}
 											rows={3}
-											className={cn(SHEET_FIELD_CLASS, "mt-2 resize-y bg-[var(--surface)] px-3 py-2.5")}
+											className={cn(SHEET_FIELD_CLASS, "mt-2 resize-y bg-[var(--sheet-bg,var(--surface))] px-3 py-2.5")}
 										/>
 									)}
 									{action.type === "share_album" && (
@@ -522,7 +527,7 @@ export function AutomationRuleEditor({
 											<button
 												type="button"
 												onClick={() => setPicker({ albumOf: index })}
-												className="mt-2 flex h-10 w-full items-center justify-between gap-2 rounded-xl bg-[var(--surface)] px-3 text-left text-sm text-[var(--text)] transition hover:ink-tint-6"
+												className="mt-2 flex h-10 w-full items-center justify-between gap-2 rounded-xl bg-[var(--sheet-bg,var(--surface))] px-3 text-left text-sm text-[var(--text)] transition hover:ink-tint-6"
 											>
 												<span className="truncate">{album?.albumName || album?.albumId || action.albumId}</span>
 												<ChevronDown className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
@@ -536,6 +541,8 @@ export function AutomationRuleEditor({
 								</RuleItemCard>
 							);
 						})}
+						</div>
+						)}
 
 						{!draft.locked && (
 							<AddItemButton label={t("settings_automation.add_action")} onClick={() => setPicker("action")} />
