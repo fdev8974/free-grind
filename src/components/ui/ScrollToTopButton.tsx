@@ -27,7 +27,9 @@ export function ScrollToTopButton({ target, className }: { target: HTMLElement |
 			aria-label={t("common.scroll_to_top")}
 			tabIndex={isVisible ? 0 : -1}
 			className={cn(
-				"glass-pill absolute z-30 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-[var(--text)] shadow-lg transition-all duration-200 active:scale-95",
+				// Above the bottom nav (z-50), whose dark fade reaches up over this
+				// spot, but below sheets/drawers and their backdrops (z-[60]).
+				"glass-pill absolute z-[55] inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-[var(--text)] shadow-lg transition-all duration-200 active:scale-95",
 				"bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.75rem)] left-1/2 -translate-x-1/2",
 				"rail:bottom-[var(--page-bottom)] rail:left-auto rail:right-6 rail:translate-x-0",
 				isVisible ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0",
