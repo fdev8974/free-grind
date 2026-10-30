@@ -1,7 +1,7 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, CircleDashed } from "lucide-react";
 import { SelectSheet } from "../../../components/ui/select-sheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
@@ -143,12 +143,15 @@ export function SingleSelectField({
 	label,
 	value,
 	options,
+	optionIcons,
 	onChange,
 }: {
 	icon?: FieldIcon;
 	label: string;
 	value: string;
 	options: Option[];
+	/** Per-option icons in the sheet (e.g. the roles' icons, as in the browse filters). */
+	optionIcons?: Partial<Record<number, FieldIcon>>;
 	onChange: (value: string) => void;
 }) {
 	const { t } = useTranslation();
@@ -166,8 +169,13 @@ export function SingleSelectField({
 					title={label}
 					value={value}
 					options={[
-						{ value: "", label: t("profile_editor.sections.states.not_set") },
-						...options.map((option) => ({ value: String(option.value), label: option.label })),
+						// With option icons, "Not set" gets a neutral one so the labels line up.
+						{ value: "", label: t("profile_editor.sections.states.not_set"), icon: optionIcons ? CircleDashed : undefined },
+						...options.map((option) => ({
+							value: String(option.value),
+							label: option.label,
+							icon: optionIcons?.[option.value],
+						})),
 					]}
 					onSelect={onChange}
 					onClose={() => setIsOpen(false)}

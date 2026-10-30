@@ -13,7 +13,6 @@ import {
 	Eye,
 	Flame,
 	Globe,
-	GripVertical,
 	Hash,
 	Heart,
 	Images,
@@ -28,9 +27,9 @@ import {
 	ShieldCheck,
 	Syringe,
 	Tag,
-	Trash2,
 	User,
 	UserRound,
+	X,
 	type LucideIcon,
 } from "lucide-react";
 import {
@@ -102,8 +101,11 @@ function SortablePhotoSlot({
 	onRemovePhoto,
 	t,
 }: SortablePhotoSlotProps) {
+	const isBusy = isSavingPhotos || isUploadingPhoto;
+	// The whole tile is the drag handle (mouse: after 8px, touch: long press —
+	// see the sensors below), so it needs no grip of its own.
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-		useSortable({ id: hash });
+		useSortable({ id: hash, disabled: isBusy });
 
 	const style: React.CSSProperties = {
 		transform: CSS.Transform.toString(transform),
@@ -113,75 +115,59 @@ function SortablePhotoSlot({
 	const isPrimary = slotIndex === 0;
 	const isPending = moderation?.state === MEDIA_MODERATION_STATE.PENDING;
 	const isRejected = moderation?.state === MEDIA_MODERATION_STATE.REJECTED;
+	// One pill style for every tile label: primary, pending, rejected.
+	const pillClass = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm";
 
 	return (
 		<div
 			ref={setNodeRef}
 			style={style}
+			{...attributes}
+			{...listeners}
 			className={[
-				"relative aspect-square overflow-hidden rounded-2xl bg-[var(--surface-2)]",
-				isDragging ? "opacity-40" : "",
+				"group relative aspect-square touch-manipulation overflow-hidden rounded-2xl bg-[var(--surface-2)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+				isBusy ? "" : "cursor-grab active:cursor-grabbing",
+				isDragging ? "z-10 opacity-60" : "",
 			].join(" ")}
 		>
 			<img
 				src={proxyMediaUrl(getThumbImageUrl(hash, "320x320"))}
 				alt={`Profile photo ${slotIndex + 1}`}
+				draggable={false}
 				className={`h-full w-full object-cover ${isRejected ? "opacity-50 grayscale" : ""}`}
 			/>
 
-			{/* Bottom gradient for legibility */}
-			<div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
-
-			{/* Moderation state badge */}
 			{(isPending || isRejected) && (
-				<div className="absolute left-2 top-2">
-					<span
-						title={moderation?.reason ?? undefined}
-						className={[
-							"inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white shadow-sm",
-							isRejected ? "bg-red-500/90" : "bg-amber-500/90",
-						].join(" ")}
-					>
-						{isRejected ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-						{isRejected
-							? t("profile_editor.sections.pictures.rejected")
-							: t("profile_editor.sections.pictures.pending_moderation")}
-					</span>
-				</div>
-			)}
-
-			{/* Primary badge / slot number */}
-			<div className="absolute bottom-2 left-2">
-				{isPrimary ? (
-					<span className="rounded-md bg-[var(--accent)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white shadow-sm">
-						{t("profile_editor.sections.pictures.primary")}
-					</span>
-				) : (
-					<span className="rounded-md bg-black/40 px-2 py-0.5 text-[10px] font-semibold text-white/80">
-						#{slotIndex + 1}
-					</span>
-				)}
-			</div>
-
-			{/* Drag handle */}
-			{!isSavingPhotos && !isUploadingPhoto && (
-				<div
-					{...attributes}
-					{...listeners}
-					className="absolute right-2 top-2 cursor-grab touch-none rounded-lg bg-black/40 p-1.5 text-white backdrop-blur-sm active:cursor-grabbing"
+				<span
+					title={moderation?.reason ?? undefined}
+					className={`absolute left-1.5 top-1.5 ${pillClass} ${isRejected ? "bg-red-500/90" : "bg-amber-500/90"}`}
 				>
-					<GripVertical className="h-3.5 w-3.5" />
-				</div>
+					{isRejected ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+					{isRejected
+						? t("profile_editor.sections.pictures.rejected")
+						: t("profile_editor.sections.pictures.pending_moderation")}
+				</span>
 			)}
 
-			{/* Delete button */}
+			{isPrimary && (
+				<span className={`absolute bottom-1.5 left-1.5 ${pillClass} bg-[var(--accent)]`}>
+					{t("profile_editor.sections.pictures.primary")}
+				</span>
+			)}
+
+			{/* Small round remove button, like removing a song; it never starts a drag. */}
 			<button
 				type="button"
 				onClick={() => void onRemovePhoto(hash)}
-				disabled={isSavingPhotos || isUploadingPhoto}
-				className="absolute bottom-2 right-2 rounded-lg bg-black/40 p-1.5 text-white/80 backdrop-blur-sm transition-colors hover:bg-red-500/80 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+				onPointerDown={(event) => event.stopPropagation()}
+				onTouchStart={(event) => event.stopPropagation()}
+				onKeyDown={(event) => event.stopPropagation()}
+				disabled={isBusy}
+				aria-label={t("profile_editor.sections.pictures.remove")}
+				title={t("profile_editor.sections.pictures.remove")}
+				className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-40"
 			>
-				<Trash2 className="h-3.5 w-3.5" />
+				<X className="h-3.5 w-3.5" />
 			</button>
 		</div>
 	);
@@ -629,6 +615,7 @@ export function ProfileEditorFormSections({
 				label={t("profile_editor.sections.states.position")}
 				value={draft.sexualPosition}
 				options={options.position}
+				optionIcons={SEXUAL_POSITION_ICONS}
 				onChange={(value) => onDraftChange("sexualPosition", value)}
 			/>
 			<TextField
