@@ -16,8 +16,8 @@ export type FieldIcon = ComponentType<{ className?: string }>;
  * sits on (FieldSection sets --hover-base); pressing adds a bit more accent. */
 export const FIELD_ROW_HOVER_CLASS = "hover-fill";
 
-/** Small caps heading (plus an optional action on the right) above one card
- * of divided rows, styled like the profile view's lists. `footer` sits under the card. */
+/** Small caps heading (plus an optional action on the right) above a group of
+ * row tiles, like the settings lists. `footer` sits under the group. */
 export function FieldSection({
 	title,
 	action,
@@ -37,8 +37,9 @@ export function FieldSection({
 				<h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">{title}</h3>
 				{action}
 			</div>
-			{/* The profile view's list card. */}
-			<div className="overflow-hidden divide-y divide-[var(--border)] rounded-2xl bg-[var(--surface-2)] [--hover-base:var(--surface-2)]">
+			{/* One tile per row, like the settings lists, in the surface-2 fill the
+			    rows always had; their hover mixes into that same fill. */}
+			<div className="native-group [--card-bg:var(--surface-2)] [--hover-base:var(--card-bg)]">
 				{children}
 			</div>
 			{footer}
@@ -143,8 +144,7 @@ export function SingleSelectField({
 	return (
 		<>
 			<PickerRow icon={icon} label={label} value={selectedLabel} onClick={() => setIsOpen(true)} />
-			{/* Portaled out of the card: inside its divide-y list the overlay would
-			    pick up the divider border. */}
+			{/* Portaled out of the group, so the sheet doesn't become a tile of it. */}
 			{isOpen && createPortal(
 				<SelectSheet
 					title={label}

@@ -195,6 +195,26 @@ export function NavBar() {
 		setIsAccountSwitcherOpen(false);
 	}, [location.pathname]);
 
+	// Rail: the switcher sits just right of the profile tab's pill (avatar +
+	// label, highlighted while open), bottom edges level, measured from the tab
+	// itself rather than offset from the rail's edges.
+	const [railSwitcherPos, setRailSwitcherPos] = useState<{ left: number; bottom: number } | null>(null);
+	useLayoutEffect(() => {
+		if (!rail || !isAccountSwitcherOpen) {
+			setRailSwitcherPos(null);
+			return;
+		}
+		const measure = () => {
+			const tab = navRef.current?.querySelector("[data-nav-account-tab]");
+			if (!tab) return;
+			const rect = tab.getBoundingClientRect();
+			setRailSwitcherPos({ left: rect.right + 8, bottom: window.innerHeight - rect.bottom });
+		};
+		measure();
+		window.addEventListener("resize", measure);
+		return () => window.removeEventListener("resize", measure);
+	}, [rail, isAccountSwitcherOpen]);
+
 	const handleSwitchAccount = async (profileId: string) => {
 		setSwitchingProfileId(profileId);
 		try {
@@ -747,16 +767,17 @@ export function NavBar() {
 					</TabsList>
 				</Tabs>
 
-				{isAccountSwitcherOpen && (
+				{isAccountSwitcherOpen && (!rail || railSwitcherPos) && (
 					<div
 						ref={accountSwitcherRef}
 						className={cn(
-							"absolute z-50 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg menu-surface p-3 animate-in fade-in zoom-in-95 duration-150",
-							// Rail: opens to the right of the profile tab at the bottom.
+							"z-50 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg menu-surface p-3 animate-in fade-in zoom-in-95 duration-150",
+							// Rail: right of the rail, level with the avatar (railSwitcherPos).
 							rail
-								? "bottom-3 left-full ml-2 slide-in-from-left-2"
-								: cn("bottom-full mb-2 slide-in-from-bottom-2", fullWidth ? "right-3" : "right-0"),
+								? "fixed slide-in-from-left-2"
+								: cn("absolute bottom-full mb-2 slide-in-from-bottom-2", fullWidth ? "right-3" : "right-0"),
 						)}
+						style={rail && railSwitcherPos ? { left: railSwitcherPos.left, bottom: railSwitcherPos.bottom } : undefined}
 					>
 						<div className="flex flex-col gap-1">
 							{savedAccounts.map((account) => {
