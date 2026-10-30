@@ -895,9 +895,9 @@
             "social": {
                 "title": "Društvene mreže",
                 "description": "Javna korisnička imena",
-                "instagram": "Insta korisničko ime",
-                "twitter": "X korisničko ime",
-                "facebook": "Facebook korisničko ime",
+                "instagram": "Instagram",
+                "twitter": "X",
+                "facebook": "Facebook",
                 "placeholder": "korisničko ime"
             },
             "other": {

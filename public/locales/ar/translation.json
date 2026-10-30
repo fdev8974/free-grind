@@ -919,9 +919,9 @@
             "social": {
                 "title": "اجتماعي",
                 "description": "المعرفات العامة وأسماء المستخدمين",
-                "instagram": "حساب انستجرام",
-                "twitter": "حساب تويتر",
-                "facebook": "حساب الفيسبوك",
+                "instagram": "Instagram",
+                "twitter": "X",
+                "facebook": "Facebook",
                 "placeholder": "اسم المستخدم"
             },
             "other": {

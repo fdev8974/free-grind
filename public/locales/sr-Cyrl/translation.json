@@ -898,9 +898,9 @@
             "social": {
                 "title": "Друштвене мреже",
                 "description": "Јавни налози и корисничка имена",
-                "instagram": "Instagram корисничко име",
-                "twitter": "X налог",
-                "facebook": "Facebook корисничко име",
+                "instagram": "Instagram",
+                "twitter": "X",
+                "facebook": "Facebook",
                 "placeholder": "корисничко име"
             },
             "other": {

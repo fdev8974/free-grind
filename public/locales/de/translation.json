@@ -887,9 +887,9 @@
             "social": {
                 "title": "Soziales",
                 "description": "Öffentliche Handles und Benutzernamen",
-                "instagram": "Insta-Benutzername",
-                "twitter": "X-Handle",
-                "facebook": "Facebook-Benutzername",
+                "instagram": "Instagram",
+                "twitter": "X",
+                "facebook": "Facebook",
                 "placeholder": "Benutzername"
             },
             "other": {

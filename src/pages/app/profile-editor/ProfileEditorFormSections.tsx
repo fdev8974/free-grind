@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import {
 	AlertTriangle,
 	AlignLeft,
-	AtSign,
 	Bell,
 	Cake,
 	Calendar,
@@ -73,6 +72,7 @@ import {
 	ToggleField,
 } from "./ProfileFieldRows";
 import { SEXUAL_POSITION_ICONS } from "../profile-option-builders";
+import { FacebookIcon, InstagramIcon, XIcon } from "../../../components/icons/BrandIcons";
 import {
 	MAX_PROFILE_PHOTOS,
 	MAX_PROFILE_TAGS,
@@ -414,9 +414,10 @@ export function ProfileEditorFormSections({
 		</FieldSection>
 	);
 
-	// The sections below follow the profile view's order and headings (Tags,
-	// About, Expectations, Health | Stats, Trips, Social, songs, account), with
-	// its field icons, so editing reads like the profile it changes.
+	// The sections below use the profile view's headings and field icons, so
+	// editing reads like the profile it changes. Order follows it too (Expectations,
+	// Health | Stats, Trips, Social, songs, account), except About comes before
+	// Tags, so name and bio lead.
 	const tagsSection = (
 		<FieldSection title={t("profile_details.tags")}>
 			{/* The picks as chips; editing happens in the picker. */}
@@ -677,10 +678,14 @@ export function ProfileEditorFormSections({
 
 	const socialSection = (
 		<FieldSection title={t("profile_details.social")}>
-			{(["instagram", "twitter", "facebook"] as const).map((network) => (
+			{([
+				["instagram", InstagramIcon],
+				["twitter", XIcon],
+				["facebook", FacebookIcon],
+			] as const).map(([network, NetworkIcon]) => (
 				<TextField
 					key={network}
-					icon={AtSign}
+					icon={NetworkIcon}
 					label={t(`profile_editor.sections.social.${network}`)}
 					value={draft[network]}
 					onChange={(value) => onDraftChange(network, value)}
@@ -761,8 +766,8 @@ export function ProfileEditorFormSections({
 	const firstStack = (
 		<>
 			{picturesSection}
-			{tagsSection}
 			{aboutSection}
+			{tagsSection}
 			{expectationsSection}
 			{healthSection}
 		</>

@@ -1,11 +1,9 @@
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Check } from "lucide-react";
-import { sheetButtonClass } from "../../../components/ui/bottom-sheet";
-import { cn } from "../../../utils/cn";
+import { Check, RefreshCw, Save } from "lucide-react";
+import { SHEET_FOOTER_ICON_BUTTON_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { ProfileEditorFormSections } from "./ProfileEditorFormSections";
 import { ProfilePhotoFlows } from "./ProfilePhotoFlows";
-import { ProfileEditorHeaderActions } from "./ProfileEditorSaveActions";
 import { useProfileEditor } from "./useProfileEditor";
 
 /** Edit mode of your own profile view: the editor's sections in place of the
@@ -58,20 +56,37 @@ export function OwnProfileEditPanel({
 		<>
 			<ProfileEditorFormSections editor={editor} layout="panel" />
 			{/* Pinned to the bottom of the profile's scroll area, edge to edge (out of
-			    the host's p-4 / sm:p-5), over a fade of whatever it sits on: the modal
-			    card (--card-bg) or the page. */}
+			    the host's p-4 / sm:p-5), over the same dark fade as the profile view's
+			    message bar. Laid out like a bottom sheet's footer: a full-width
+			    primary button, reset as the small round button beside it. */}
 			<div
-				className="pointer-events-none sticky bottom-0 z-10 -mx-4 mt-6 flex justify-center px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] pt-10 sm:-mx-5 sm:px-5 [&>*]:pointer-events-auto"
-				style={{ background: "linear-gradient(to top, color-mix(in srgb, var(--card-bg, var(--bg)) 92%, transparent) 0%, color-mix(in srgb, var(--card-bg, var(--bg)) 70%, transparent) 55%, transparent)" }}
+				className="pointer-events-none sticky bottom-0 z-10 -mx-4 mt-6 flex gap-2.5 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] pt-20 sm:-mx-5 sm:px-5 [&>*]:pointer-events-auto"
+				style={{ background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.7) 45%, transparent 100%)" }}
 			>
 				{editor.hasChanges ? (
-					<ProfileEditorHeaderActions {...editor} handleSaveProfile={handleSave} className="animate-badge-in" />
+					<>
+						<button
+							type="button"
+							onClick={editor.handleResetDraft}
+							disabled={editor.isSaving}
+							aria-label={t("profile_editor.actions.reset")}
+							title={t("profile_editor.actions.reset")}
+							className={SHEET_FOOTER_ICON_BUTTON_CLASS}
+						>
+							<RefreshCw className="h-[18px] w-[18px]" />
+						</button>
+						<button
+							type="button"
+							onClick={() => void handleSave()}
+							disabled={!editor.canSave}
+							className={sheetButtonClass()}
+						>
+							<Save className="h-4 w-4" />
+							{editor.isSaving ? t("profile_editor.actions.saving") : t("profile_editor.actions.save")}
+						</button>
+					</>
 				) : (
-					<button
-						type="button"
-						onClick={onDone}
-						className={cn(sheetButtonClass(), "h-10 flex-none px-6 text-sm")}
-					>
+					<button type="button" onClick={onDone} className={sheetButtonClass()}>
 						<Check className="h-4 w-4" />
 						{t("common.done")}
 					</button>

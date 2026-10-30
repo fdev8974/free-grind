@@ -887,9 +887,9 @@
             "social": {
                 "title": "Sociaal",
                 "description": "Openbare gebruikersnamen",
-                "instagram": "Insta-gebruikersnaam",
-                "twitter": "X-gebruikersnaam",
-                "facebook": "Facebook-gebruikersnaam",
+                "instagram": "Instagram",
+                "twitter": "X",
+                "facebook": "Facebook",
                 "placeholder": "gebruikersnaam"
             },
             "other": {

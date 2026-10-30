@@ -1,13 +1,16 @@
-import { createContext, useContext, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useLayoutEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { SelectSheet } from "../../../components/ui/select-sheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
 import { ManagedOptionsPickerDialog } from "./ManagedOptionsPickerDialog";
 
 type Option = { value: number; label: string };
+
+/** A lucide icon or one of the app's own (e.g. brand marks), drawn in currentColor. */
+export type FieldIcon = ComponentType<{ className?: string }>;
 
 /** "card": native cards on the page (profile editor page). "profile": the
  * surface-2 list cards of the profile view, for its edit mode. */
@@ -89,7 +92,7 @@ export function FieldSectionAction({
 const ROW_CLASS = "flex min-h-12 w-full items-center gap-3 px-4 py-2.5 text-left";
 
 /** Leading row icon, the muted 16px glyph the profile view puts before its fields. */
-function RowIcon({ icon: Icon }: { icon?: LucideIcon }) {
+function RowIcon({ icon: Icon }: { icon?: FieldIcon }) {
 	return Icon ? <Icon className="h-4 w-4 shrink-0 text-[var(--text-muted)]" /> : null;
 }
 
@@ -101,7 +104,7 @@ export function PickerRow({
 	onClick,
 	disabled,
 }: {
-	icon?: LucideIcon;
+	icon?: FieldIcon;
 	label: string;
 	/** Empty / null shows the "Not set" placeholder. */
 	value: ReactNode;
@@ -142,7 +145,7 @@ export function SingleSelectField({
 	options,
 	onChange,
 }: {
-	icon?: LucideIcon;
+	icon?: FieldIcon;
 	label: string;
 	value: string;
 	options: Option[];
@@ -187,7 +190,7 @@ export function MultiSelectField({
 	search,
 	unavailableLabel,
 }: {
-	icon?: LucideIcon;
+	icon?: FieldIcon;
 	label: string;
 	values: number[];
 	options: Option[];
@@ -242,7 +245,7 @@ export function ToggleField({
 	checked,
 	onChange,
 }: {
-	icon?: LucideIcon;
+	icon?: FieldIcon;
 	label: string;
 	description?: string;
 	checked: boolean;
@@ -287,7 +290,7 @@ export function TextField({
 	counter,
 	error,
 }: {
-	icon?: LucideIcon;
+	icon?: FieldIcon;
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -330,7 +333,7 @@ export function TextAreaField({
 	counter,
 	error,
 }: {
-	icon?: LucideIcon;
+	icon?: FieldIcon;
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -339,6 +342,29 @@ export function TextAreaField({
 	counter?: string;
 	error?: string | null;
 }) {
+	// Always as tall as its text (never scrolls inside): reset, then take the
+	// content height — before paint, so typing never flickers. Width changes
+	// re-wrap the text, so those re-measure too.
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	useLayoutEffect(() => {
+		const el = textareaRef.current;
+		if (!el) return;
+		const fit = () => {
+			el.style.height = "auto";
+			el.style.height = `${el.scrollHeight}px`;
+		};
+		fit();
+		if (!("ResizeObserver" in window)) return;
+		let lastWidth = el.clientWidth;
+		const observer = new ResizeObserver(() => {
+			if (el.clientWidth === lastWidth) return;
+			lastWidth = el.clientWidth;
+			fit();
+		});
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [value]);
+
 	return (
 		<label className="block cursor-text px-4 py-3">
 			<span className="flex items-center gap-3">
@@ -347,12 +373,13 @@ export function TextAreaField({
 				{counter && <span className="text-xs tabular-nums text-[var(--text-muted)] opacity-70">{counter}</span>}
 			</span>
 			<textarea
+				ref={textareaRef}
 				value={value}
 				maxLength={maxLength}
 				onChange={(event) => onChange(event.target.value)}
 				placeholder={placeholder}
 				rows={3}
-				className="mt-2 block min-h-20 w-full resize-y bg-transparent text-sm leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] placeholder:opacity-60"
+				className="mt-2 block min-h-20 w-full resize-none overflow-hidden bg-transparent text-sm leading-relaxed text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] placeholder:opacity-60"
 			/>
 			{error && <span className="mt-1 block text-xs text-red-400">{error}</span>}
 		</label>

@@ -895,9 +895,9 @@
             "social": {
                 "title": "Réseaux sociaux",
                 "description": "Identifiants et noms d'utilisateur publics",
-                "instagram": "Nom d'utilisateur Instagram",
-                "twitter": "Nom d'utilisateur X (Twitter)",
-                "facebook": "Nom d'utilisateur Facebook",
+                "instagram": "Instagram",
+                "twitter": "X",
+                "facebook": "Facebook",
                 "placeholder": "Nom d'utilisateur"
             },
             "other": {

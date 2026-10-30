@@ -903,9 +903,9 @@
             "social": {
                 "title": "Družbena omrežja",
                 "description": "Javna uporabniška imena",
-                "instagram": "Uporabniško ime Insta",
-                "twitter": "Uporabniško ime X",
-                "facebook": "Uporabniško ime Facebook",
+                "instagram": "Instagram",
+                "twitter": "X",
+                "facebook": "Facebook",
                 "placeholder": "uporabniško ime"
             },
             "other": {
