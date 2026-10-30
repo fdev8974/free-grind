@@ -601,7 +601,7 @@ function ChatConversationRow({
 				className={`group/reveal no-touch-callout relative flex cursor-pointer items-center gap-4 text-left transition ${
 					isDesktop
 						? `rounded-xl px-3 py-2.5 ${isSelected ? "bg-[var(--surface-2)]" : "hover:bg-[color-mix(in_srgb,var(--surface-2)_55%,transparent)]"}`
-						: "px-4 py-3"
+						: "border-b border-[var(--surface-2)] px-4 py-3"
 				}`}
 			>
 					<button
@@ -1000,7 +1000,7 @@ export function ChatInboxPanel({
 							{isLoadingInbox ? (
 								<div className="flex flex-col">
 									{Array.from({ length: 12 }).map((_, i) => (
-										<div key={i} className={`flex items-center gap-4 ${isDesktop ? "mx-2 my-0.5 px-3 py-2.5" : "px-4 py-3"}`}>
+										<div key={i} className={`flex items-center gap-4 ${isDesktop ? "mx-2 my-0.5 px-3 py-2.5" : "border-b border-[var(--surface-2)] px-4 py-3"}`}>
 											<div className={`${isDesktop ? "h-13 w-13" : "h-15 w-15"} shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]`} />
 											<div className="flex flex-1 flex-col gap-2">
 												<div className="flex items-center justify-between gap-3">
