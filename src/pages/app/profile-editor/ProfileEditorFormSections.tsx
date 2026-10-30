@@ -292,6 +292,9 @@ export function ProfileEditorFormSections({
 		spotifyTracks,
 		isLoadingSpotify,
 		setSpotifyDraft,
+		travelPlans,
+		isLoadingTravelPlans,
+		setTravelDraft,
 		settings,
 		handleSettingsChange: onSettingsChange,
 		photos,
@@ -775,7 +778,12 @@ export function ProfileEditorFormSections({
 	const secondStack = (
 		<>
 			{statsSection}
-			<TravelPlansSection profileId={profileId} />
+			<TravelPlansSection
+				plans={travelPlans}
+				isLoading={isLoadingTravelPlans}
+				disabled={profileId == null}
+				onChange={setTravelDraft}
+			/>
 			{socialSection}
 			<SpotifyFavoritesSection
 				tracks={spotifyTracks}

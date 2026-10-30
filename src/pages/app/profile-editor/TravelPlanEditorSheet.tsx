@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { ChevronRight, Loader2, MapPin, Trash2 } from "lucide-react";
-import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
+import { ChevronRight, MapPin, Trash2 } from "lucide-react";
 import { reverseGeocodeGeohash } from "../gridpage/geocoding";
-import {
-	useCreateTravelPlan,
-	useDeleteTravelPlan,
-	useUpdateTravelPlan,
-} from "../../../hooks/queries/useProfileQueries";
 import { encodeGeohash, decodeGeohash } from "../../../utils/geohash";
 import type { TravelPlan } from "../../../types/travel";
 import { formatDateInput, parseDateInput } from "./profileEditorUtils";
@@ -28,12 +22,18 @@ import { cn } from "../../../utils/cn";
 type SelectedLocation = { lat: number; lon: number; label: string };
 
 type TravelPlanEditorSheetProps = {
-	profileId: number;
+	/** null = adding a new trip. */
 	plan: TravelPlan | null;
+	/** The edited (or new) trip — goes into the profile draft, saved with the profile. */
+	onSubmit: (plan: TravelPlan) => void;
+	/** Removes the trip from the draft; only offered when editing one. */
+	onDelete?: () => void;
 	onClose: () => void;
 };
 
-export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEditorSheetProps) {
+/** Edits one trip of the profile draft. Nothing is sent from here: the
+ * profile's save applies all trip changes at once (see useProfileEditor). */
+export function TravelPlanEditorSheet({ plan, onSubmit, onDelete, onClose }: TravelPlanEditorSheetProps) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
 	const isEditing = plan != null;
@@ -47,13 +47,6 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 	const [endDate, setEndDate] = useState(() => formatDateInput(plan?.endDate ?? null));
 	const [notes, setNotes] = useState(plan?.notes ?? "");
 	const [showOnProfile, setShowOnProfile] = useState(plan?.showOnProfile ?? true);
-	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-	const createTravelPlan = useCreateTravelPlan();
-	const updateTravelPlan = useUpdateTravelPlan();
-	const deleteTravelPlan = useDeleteTravelPlan();
-	const isSaving = createTravelPlan.isPending || updateTravelPlan.isPending;
-	const isDeleting = deleteTravelPlan.isPending;
 
 	// Pre-fill the selected location from the existing plan's geohash, resolving a readable label.
 	useEffect(() => {
@@ -91,7 +84,7 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 		});
 	};
 
-	const handleSave = async () => {
+	const handleSave = () => {
 		if (!selectedLocation) {
 			toast.error(t("travel_plans.error_no_location"));
 			return;
@@ -107,49 +100,22 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 			return;
 		}
 
-		const geohash = encodeGeohash(selectedLocation.lat, selectedLocation.lon);
-		const trimmedNotes = notes.trim() || null;
-
-		try {
-			if (isEditing && plan) {
-				await updateTravelPlan.mutateAsync({
-					travelPlanId: plan.travelPlanId,
-					profileId,
-					geohash,
-					startDate: startMs,
-					endDate: endMs,
-					showOnProfile,
-					notes: trimmedNotes,
-				});
-				toast.success(t("travel_plans.toast_updated"));
-			} else {
-				await createTravelPlan.mutateAsync({
-					profileId,
-					geohash,
-					startDate: startMs,
-					endDate: endMs,
-					showOnProfile,
-					notes: trimmedNotes,
-				});
-				toast.success(t("travel_plans.toast_created"));
-			}
-			handleClose();
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : t("travel_plans.error_save_failed"));
-		}
+		onSubmit({
+			// New trips get a temporary negative id until the profile is saved.
+			travelPlanId: plan?.travelPlanId ?? -Date.now(),
+			profileId: plan?.profileId,
+			geohash: encodeGeohash(selectedLocation.lat, selectedLocation.lon),
+			startDate: startMs,
+			endDate: endMs,
+			showOnProfile,
+			notes: notes.trim() || null,
+		});
+		handleClose();
 	};
 
-	const handleDelete = async () => {
-		if (!plan) return;
-		try {
-			await deleteTravelPlan.mutateAsync({ travelPlanId: plan.travelPlanId, profileId });
-			toast.success(t("travel_plans.toast_deleted"));
-			handleClose();
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : t("travel_plans.error_delete_failed"));
-		} finally {
-			setShowDeleteConfirm(false);
-		}
+	const handleDelete = () => {
+		onDelete?.();
+		handleClose();
 	};
 
 	return (
@@ -159,7 +125,6 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 				closeRef={closeRef}
 				expandable
 				isDesktop={isDesktop}
-				isProcessing={isSaving || isDeleting}
 				bg={NATIVE_SHEET_BG}
 				panelClassName={isDesktop ? "max-h-[88dvh] px-4" : "px-4"}
 			>
@@ -240,24 +205,24 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 				</div>
 
 				<div className={SHEET_FOOTER_CLASS}>
-					{isEditing && (
+					{/* Removing only drops it from the draft (reset brings it back), so no confirm. */}
+					{isEditing && onDelete && (
 						<button
 							type="button"
-							onClick={() => setShowDeleteConfirm(true)}
-							disabled={isDeleting}
+							onClick={handleDelete}
 							aria-label={t("travel_plans.delete")}
+							title={t("travel_plans.delete")}
 							className={cn(SHEET_FOOTER_ICON_BUTTON_CLASS, "bg-red-500/12 text-red-500 hover:bg-red-500/20 hover:text-red-500")}
 						>
-							{isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+							<Trash2 className="h-4 w-4" />
 						</button>
 					)}
 					<button
 						type="button"
-						onClick={() => void handleSave()}
-						disabled={isSaving}
+						onClick={handleSave}
 						className={sheetButtonClass()}
 					>
-						{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : t("travel_plans.save")}
+						{t("common.done", { defaultValue: "Done" })}
 					</button>
 				</div>
 			</BottomSheet>
@@ -270,18 +235,6 @@ export function TravelPlanEditorSheet({ profileId, plan, onClose }: TravelPlanEd
 					isDesktop={isDesktop}
 				/>
 			)}
-
-			<ConfirmDialog
-				isOpen={showDeleteConfirm}
-				title={t("travel_plans.delete_confirm_title")}
-				message={t("travel_plans.delete_confirm_message")}
-				confirmLabel={t("travel_plans.delete")}
-				cancelLabel={t("common.cancel")}
-				confirmTone="danger"
-				isProcessing={isDeleting}
-				onConfirm={() => void handleDelete()}
-				onCancel={() => setShowDeleteConfirm(false)}
-			/>
 		</>
 	);
 }

@@ -55,9 +55,9 @@ export function SpotifyFavoritesSection({ tracks, isLoading, disabled, onChange 
 					type="button"
 					onClick={() => setPickerOpen(true)}
 					disabled={disabled}
-					className={`flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition ${rowHoverClass} disabled:cursor-not-allowed disabled:opacity-50`}
+					className={`flex w-full items-center gap-3 p-3 pr-4 text-left transition ${rowHoverClass} disabled:cursor-not-allowed disabled:opacity-50`}
 				>
-					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md ink-tint-8 text-[var(--text-muted)]">
+					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
 						<Plus className="h-4 w-4" />
 					</span>
 					<span className="text-sm text-[var(--text-muted)]">{t("profile_editor.spotify.empty")}</span>
@@ -68,16 +68,16 @@ export function SpotifyFavoritesSection({ tracks, isLoading, disabled, onChange 
 						.filter((part) => part && part.trim().length > 0)
 						.join(" · ");
 					return (
-						<div key={track.id} className="flex items-center gap-3 px-4 py-2.5">
+						<div key={track.id} className="flex items-center gap-3 p-3 pr-2">
 							{track.albumImageUrl ? (
 								<img
 									src={track.albumImageUrl}
 									alt=""
 									loading="lazy"
-									className="h-10 w-10 shrink-0 rounded-md object-cover"
+									className="h-9 w-9 shrink-0 rounded-xl object-cover"
 								/>
 							) : (
-								<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md ink-tint-10">
+								<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-10">
 									<Music className="h-4 w-4 text-[var(--text-muted)]" />
 								</span>
 							)}

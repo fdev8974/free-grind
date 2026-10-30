@@ -14,7 +14,12 @@ import {
 	useMySettings,
 	useProfileSpotifyFavorites,
 	useUpdateSpotifyFavorites,
+	useTravelPlans,
+	useCreateTravelPlan,
+	useUpdateTravelPlan,
+	useDeleteTravelPlan,
 } from "../../../hooks/queries/useProfileQueries";
+import type { TravelPlan } from "../../../types/travel";
 import type { SpotifyTrack } from "../../../services/spotify";
 import { BannedTermsError } from "../../../services/apiHelpers";
 import type { MySettings } from "../../../types/api-functions";
@@ -59,6 +64,13 @@ import {
 	profileToDraft,
 	unwrapOwnProfile,
 } from "./profileEditorUtils";
+
+/** Same trips with the same details, in the same order. */
+function sameTravelPlans(a: TravelPlan[], b: TravelPlan[]) {
+	const key = (plan: TravelPlan) =>
+		[plan.travelPlanId, plan.geohash, plan.startDate, plan.endDate, plan.showOnProfile, plan.notes ?? null].join("|");
+	return a.length === b.length && a.every((plan, i) => key(plan) === key(b[i]));
+}
 
 // Grindr caps how many of each of these a profile can carry — enforced
 // client-side here since the multi-select toggle is the only way to add one.
@@ -328,6 +340,17 @@ export function useProfileEditor() {
 	const spotifyTracks = spotifyDraft ?? savedSpotifyTracks ?? [];
 	const hasSpotifyChanges = spotifyDraft !== null && !sameTrackIds(spotifyDraft, savedSpotifyTracks ?? []);
 
+	// Trips too: edited as a draft (null = untouched), applied on save as the
+	// deletes / updates / creates that turn the saved list into the draft.
+	const travelProfileId = ownProfileId != null ? Number(ownProfileId) : null;
+	const { data: savedTravelPlans, isLoading: isLoadingTravelPlans } = useTravelPlans(travelProfileId);
+	const createTravelPlan = useCreateTravelPlan();
+	const updateTravelPlan = useUpdateTravelPlan();
+	const deleteTravelPlan = useDeleteTravelPlan();
+	const [travelDraft, setTravelDraft] = useState<TravelPlan[] | null>(null);
+	const travelPlans = travelDraft ?? savedTravelPlans ?? [];
+	const hasTravelChanges = travelDraft !== null && !sameTravelPlans(travelDraft, savedTravelPlans ?? []);
+
 	// Map / Right Now prefs are account settings (/v3/me/prefs/settings), not
 	// profile fields, but they're edited and saved along with the draft.
 	const { data: mySettings } = useMySettings();
@@ -344,7 +367,7 @@ export function useProfileEditor() {
 		setSettingsDraft((current) => ({ ...current, ...patch }));
 	}, []);
 
-	const hasChanges = hasProfileChanges || hasSpotifyChanges || hasSettingsChanges;
+	const hasChanges = hasProfileChanges || hasSpotifyChanges || hasTravelChanges || hasSettingsChanges;
 
 	const tagList = useMemo(
 		() => normalizeTagList(draft.profileTagsText),
@@ -576,6 +599,33 @@ export function useProfileEditor() {
 				// Show the saved list right away instead of the stale cache until the refetch.
 				queryClient.setQueryData(["spotify-favorites", spotifyProfileId], spotifyDraft);
 				setSpotifyDraft(null);
+			}
+
+			if (hasTravelChanges && travelDraft && travelProfileId != null) {
+				const saved = savedTravelPlans ?? [];
+				const draftIds = new Set(travelDraft.map((plan) => plan.travelPlanId));
+				for (const plan of saved) {
+					if (!draftIds.has(plan.travelPlanId)) {
+						await deleteTravelPlan.mutateAsync({ travelPlanId: plan.travelPlanId, profileId: travelProfileId });
+					}
+				}
+				for (const plan of travelDraft) {
+					const payload = {
+						profileId: travelProfileId,
+						geohash: plan.geohash,
+						startDate: plan.startDate,
+						endDate: plan.endDate,
+						showOnProfile: plan.showOnProfile,
+						notes: plan.notes ?? null,
+					};
+					const before = saved.find((item) => item.travelPlanId === plan.travelPlanId);
+					if (!before) {
+						await createTravelPlan.mutateAsync(payload);
+					} else if (!sameTravelPlans([before], [plan])) {
+						await updateTravelPlan.mutateAsync({ ...payload, travelPlanId: plan.travelPlanId });
+					}
+				}
+				setTravelDraft(null);
 			}
 
 			// Keeps the grid/chat header avatar, account switcher, and the HIV
@@ -912,6 +962,7 @@ export function useProfileEditor() {
 	const handleResetDraft = () => {
 		setDraft(savedDraft);
 		setSpotifyDraft(null);
+		setTravelDraft(null);
 		setSettingsDraft({});
 	};
 
@@ -951,6 +1002,9 @@ export function useProfileEditor() {
 		spotifyTracks,
 		isLoadingSpotify,
 		setSpotifyDraft,
+		travelPlans,
+		isLoadingTravelPlans,
+		setTravelDraft,
 		settings: settingsForEditor,
 		handleSettingsChange,
 		hasChanges,

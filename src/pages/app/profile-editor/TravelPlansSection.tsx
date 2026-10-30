@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { ChevronRight, Loader2, Plane, Plus } from "lucide-react";
 import { FieldSection, FieldSectionAction, useFieldRowHoverClass } from "./ProfileFieldRows";
 import { TravelPlanEditorSheet } from "./TravelPlanEditorSheet";
-import { useTravelPlans } from "../../../hooks/queries/useProfileQueries";
 import { reverseGeocodeCityDistrictForGeohash } from "../gridpage/geocoding";
 import { formatTravelDateRange } from "../gridpage/utils";
 import { MAX_TRAVEL_PLANS } from "./profileEditorUtils";
@@ -46,19 +45,28 @@ function TravelPlanSummary({ plan }: { plan: TravelPlan }) {
 }
 
 type TravelPlansSectionProps = {
-	profileId?: string | number | null;
+	/** The editor's draft; saved with the rest of the profile from its save bar. */
+	plans: TravelPlan[];
+	isLoading: boolean;
+	disabled: boolean;
+	onChange: (plans: TravelPlan[]) => void;
 };
 
-export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
+export function TravelPlansSection({ plans, isLoading, disabled, onChange }: TravelPlansSectionProps) {
 	const { t } = useTranslation();
 	const rowHoverClass = useFieldRowHoverClass();
-	const numericProfileId = profileId != null ? Number(profileId) : null;
-	const { data: travelPlans, isLoading } = useTravelPlans(numericProfileId);
 	// undefined = sheet closed; null = creating a new plan; TravelPlan = editing that plan
 	const [editingPlan, setEditingPlan] = useState<TravelPlan | null | undefined>(undefined);
-	const hasReachedMax = (travelPlans?.length ?? 0) >= MAX_TRAVEL_PLANS;
+	const planCount = plans.length;
+	const hasReachedMax = planCount >= MAX_TRAVEL_PLANS;
 
-	const planCount = travelPlans?.length ?? 0;
+	const handleSubmit = (next: TravelPlan) => {
+		onChange(
+			plans.some((plan) => plan.travelPlanId === next.travelPlanId)
+				? plans.map((plan) => (plan.travelPlanId === next.travelPlanId ? next : plan))
+				: [...plans, next],
+		);
+	};
 
 	return (
 		<FieldSection
@@ -66,7 +74,7 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 			action={planCount > 0 ? (
 				<FieldSectionAction
 					onClick={() => setEditingPlan(null)}
-					disabled={numericProfileId == null || hasReachedMax}
+					disabled={disabled || hasReachedMax}
 					title={hasReachedMax ? t("travel_plans.max_reached", { max: MAX_TRAVEL_PLANS }) : undefined}
 				>
 					<Plus className="h-3.5 w-3.5" />
@@ -85,8 +93,8 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 				<button
 					type="button"
 					onClick={() => setEditingPlan(null)}
-					disabled={numericProfileId == null}
-					className={`flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition ${rowHoverClass} disabled:cursor-not-allowed disabled:opacity-50`}
+					disabled={disabled}
+					className={`flex w-full items-center gap-3 p-3 pr-4 text-left transition ${rowHoverClass} disabled:cursor-not-allowed disabled:opacity-50`}
 				>
 					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
 						<Plus className="h-4 w-4" />
@@ -94,12 +102,12 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 					<span className="text-sm text-[var(--text-muted)]">{t("travel_plans.empty", { max: MAX_TRAVEL_PLANS })}</span>
 				</button>
 			) : (
-				travelPlans!.map((plan) => (
+				plans.map((plan) => (
 					<button
 						key={plan.travelPlanId}
 						type="button"
 						onClick={() => setEditingPlan(plan)}
-						className={`flex w-full items-center gap-3 px-4 py-3 text-left transition ${rowHoverClass}`}
+						className={`flex w-full items-center gap-3 p-3 pr-4 text-left transition ${rowHoverClass}`}
 					>
 						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--accent)]">
 							<Plane className="h-4 w-4" />
@@ -111,10 +119,13 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 			)}
 
 			{/* Portaled out of the divided card, like the other row pickers. */}
-			{editingPlan !== undefined && numericProfileId != null && createPortal(
+			{editingPlan !== undefined && createPortal(
 				<TravelPlanEditorSheet
-					profileId={numericProfileId}
 					plan={editingPlan}
+					onSubmit={handleSubmit}
+					onDelete={editingPlan
+						? () => onChange(plans.filter((plan) => plan.travelPlanId !== editingPlan.travelPlanId))
+						: undefined}
 					onClose={() => setEditingPlan(undefined)}
 				/>,
 				document.body,
