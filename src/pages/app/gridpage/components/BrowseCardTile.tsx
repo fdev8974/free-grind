@@ -14,7 +14,7 @@ import { ProfileImage } from "../../../../components/ui/profile-image";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { useRevealOnScroll } from "../../../../hooks/useRevealOnScroll";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { haptic } from "../../../../utils/haptics";
 import { TileFlameBurst } from "./TileFlameBurst";
 import type { GridTapStatus } from "../hooks/useGridTapStatus";
@@ -43,7 +43,10 @@ type BrowseCardTileProps = {
 	hidePopular?: boolean;
 };
 
-export function BrowseCardTile({
+// Memoized: the virtualizer re-renders BrowseGrid on every scroll event, and
+// without this every mounted tile (6 columns plus overscan on desktop) would
+// re-render with it although its props haven't changed.
+export const BrowseCardTile = memo(function BrowseCardTile({
 	card,
 	chatContactStatus,
 	localNickname,
@@ -230,6 +233,7 @@ export function BrowseCardTile({
 						src={card.primaryImageUrl}
 						alt={t("browse_page.profile_photo_alt", { name })}
 						privacyScope="grid"
+						placeholder="silhouette"
 						className={cn(
 							// Demo cards stay blurred, also while hovered.
 							isDemoCard && "blur-md scale-110 hover:blur-md hover:scale-110"
@@ -386,4 +390,4 @@ export function BrowseCardTile({
 			</button>
 		</div>
 	);
-}
+});

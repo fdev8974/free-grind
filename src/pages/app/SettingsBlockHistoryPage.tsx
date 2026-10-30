@@ -54,7 +54,8 @@ export function SettingsBlockHistoryPage() {
 
 	return (
 		<PullToRefreshContainer
-			className="app-screen"
+			className="app-screen flex flex-col"
+			contentClassName="flex flex-1 flex-col"
 			onRefresh={load}
 			isDisabled={isLoading}
 			refreshingLabel={t("settings_block_history.refreshing")}
@@ -65,7 +66,8 @@ export function SettingsBlockHistoryPage() {
 				subtitle={t("settings_block_history.subtitle")}
 			/>
 
-			<div className="grid gap-6">
+			{/* Fills the rest of the screen so the empty state can sit centered in it. */}
+			<div className={`grid flex-1 gap-6 ${!isLoading && !error && (!events || events.length === 0) ? "content-center" : "content-start"}`}>
 				{isLoading ? (
 					<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
 						{Array.from({ length: 4 }).map((_, i) => (

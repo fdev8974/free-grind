@@ -22,7 +22,8 @@ export function ProtectedLayout() {
 	const shouldHideNavbar = (isChatConversationRoute || isProfileRoute) && !isChatDualPane;
 
 	return (
-		<div className="relative">
+		// Desktop: room for NavBar's left rail (--nav-rail-width is unset otherwise).
+		<div className="relative pl-[var(--nav-rail-width,0px)]">
 			<Outlet />
 			{!shouldHideNavbar ? <NavBar /> : null}
 		</div>

@@ -1,6 +1,7 @@
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useEffect, useMemo, useState } from "react";
 import { Columns2, Columns3, Columns4, Languages, LayoutGrid, List, PanelBottom, Ruler, Type, Vibrate } from "lucide-react";
-import { ClockFilled, FlameFilled, ImagesFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
+import { ClockFilled, FlameFilled, ImagesFilled, MessageCircleFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -72,6 +73,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 export function CustomizabilityPage() {
 	const { i18n, t } = useTranslation();
 	const highlightId = useSettingsHighlight();
+	const isDesktop = useDesktopBreakpoint();
 	const {
 		colorScheme,
 		amoledMode,
@@ -83,6 +85,7 @@ export function CustomizabilityPage() {
 		revealEffectStrength,
 		showGridTapStatus,
 		splitDrawerCategories,
+		compactComposer,
 		setPreferences,
 	} = usePreferences();
 	const [customHex, setCustomHex] = useState(accentColor);
@@ -508,6 +511,8 @@ export function CustomizabilityPage() {
 									{ value: "views", label: t("customizability.interest_show_views") },
 								]}
 							/>
+							{/* Mobile only: desktop always shows interest as tiles. */}
+							{!isDesktop && (
 							<SelectRow
 								id="cust-views-grid"
 								highlighted={highlightId === "cust-views-grid"}
@@ -536,6 +541,7 @@ export function CustomizabilityPage() {
 										: [{ value: "grid", label: t("customizability.views_display_grid"), icon: LayoutGrid }]),
 								]}
 							/>
+							)}
 						</div>
 					</div>
 				)}
@@ -543,7 +549,7 @@ export function CustomizabilityPage() {
 				{/* CHAT */}
 				<div>
 					<SectionLabel>{t("customizability.chat_section", { defaultValue: "Chat Page" })}</SectionLabel>
-					<div className="native-card overflow-hidden">
+					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
 						<ToggleRow
 							id="cust-drawer-layout"
 							highlighted={highlightId === "cust-drawer-layout"}
@@ -555,6 +561,18 @@ export function CustomizabilityPage() {
 							})}
 							checked={splitDrawerCategories}
 							onChange={(checked) => void setPreferences({ splitDrawerCategories: checked })}
+						/>
+						<ToggleRow
+							id="cust-compact-composer"
+							highlighted={highlightId === "cust-compact-composer"}
+							icon={<MessageCircleFilled className="h-5 w-5" />}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("customizability.compact_composer", { defaultValue: "Compact Message Bar" })}
+							description={t("customizability.compact_composer_desc", {
+								defaultValue: "Put the media drawer button and a + menu with the other actions inside the message field instead of a row below it.",
+							})}
+							checked={compactComposer}
+							onChange={(checked) => void setPreferences({ compactComposer: checked })}
 						/>
 					</div>
 				</div>
@@ -622,6 +640,7 @@ export function CustomizabilityPage() {
 							value={selectedLocale}
 							onChange={(val) => void handleLocaleChange(val)}
 							options={SUPPORTED_LOCALE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+							expandable
 						/>
 						<SelectRow
 							id="cust-units"

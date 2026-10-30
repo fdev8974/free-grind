@@ -7023,7 +7023,7 @@ export function ChatPage() {
 							{...sharedInboxHeaderProps}
 							isDesktop={true}
 						/>
-						<div className="flex-1 min-h-0 mx-auto w-full px-3 pb-[calc(env(safe-area-inset-bottom,0px)+104px)] grid grid-cols-[360px_minmax(0,1fr)] grid-rows-[1fr] gap-3">
+						<div className="flex-1 min-h-0 mx-auto w-full px-[var(--app-px)] pb-[var(--app-px)] grid grid-cols-[360px_minmax(0,1fr)] grid-rows-[1fr] gap-3">
 							{renderInbox}
 							{renderThread}
 						</div>

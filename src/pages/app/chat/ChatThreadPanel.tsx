@@ -386,7 +386,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { chat: blurChatMedia } = useMediaBlur();
 	useAvatarCache();
     const apiFunctions = useApiFunctions();
-	const { unitsPreset, geohash, amoledMode, mobileEnterToSend } = usePreferences();
+	const { unitsPreset, geohash, amoledMode, mobileEnterToSend, compactComposer } = usePreferences();
 	const enterSends = props.isDesktop || mobileEnterToSend;
 	const effectiveColorScheme = useEffectiveColorScheme();
 	// AMOLED on mobile: the bottom bar blends into the black page so the saved
@@ -455,6 +455,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const closeReportDialog = useCallback(() => setIsReportDialogOpen(false), []);
 	const [showSexualHealth] = useState(isSexualHealthEnabled);
 	const [isGiphyPickerOpen, setIsGiphyPickerOpen] = useState(false);
+	// Compact composer: the "+" menu inside the input pill holding the other actions.
+	const [isComposerMenuOpen, setIsComposerMenuOpen] = useState(false);
 	const [newPhraseInput, setNewPhraseInput] = useState("");
 	const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
 	const [isComposerFocused, setIsComposerFocused] = useState(false);
@@ -1086,6 +1088,66 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 			toast.error(t("chat.errors.invalid_location", { defaultValue: "Invalid location format" }));
 		}
 	};
+
+	// The composer's actions, shown as the row below the input or, with the compact
+	// composer, as the drawer button + "+" menu inside it.
+	const composerActions: {
+		key: "giphy" | "attach" | "drawer" | "location" | "phrases";
+		icon: React.ReactNode;
+		label: string;
+		onClick: () => void;
+		disabled?: boolean;
+	}[] = [
+		{
+			key: "giphy",
+			icon: <StickerFilled className="h-5 w-5" />,
+			label: t("chat.giphy.button_label"),
+			onClick: () => {
+				setIsGiphyPickerOpen((prev) => !prev);
+				if (isDrawerOpen) toggleDrawer();
+			},
+		},
+		{
+			key: "attach",
+			icon: <CameraPlusFilled className="h-5 w-5" />,
+			label: t("chat.attach_media"),
+			onClick: () => {
+				attachmentInputRef.current?.click();
+				if (isDrawerOpen) toggleDrawer();
+				if (pendingLocationShare) handleLocationShareRequest();
+			},
+			disabled: isUploadingAttachment,
+		},
+		{
+			key: "drawer",
+			icon: <ImagesFilled className="h-5 w-5" />,
+			label: t("chat.drawer_label"),
+			onClick: () => {
+				toggleDrawer();
+				if (pendingLocationShare) handleLocationShareRequest();
+			},
+			disabled: !selectedConversation && !targetProfileId,
+		},
+		{
+			key: "location",
+			icon: <MapPinFilled className="h-5 w-5" />,
+			label: t("chat.share_location_label", { defaultValue: "Share Location" }),
+			onClick: () => {
+				handleLocationShareRequest();
+				if (isDrawerOpen) toggleDrawer();
+			},
+		},
+		{
+			key: "phrases",
+			icon: <MessageSquareQuoteFilled className="h-5 w-5" />,
+			label: t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" }),
+			onClick: () => setIsSavedPhrasesOpen((prev) => !prev),
+		},
+	];
+	// Gap below the input field, room for the action row. Without that row (compact
+	// composer, desktop) the panel's own padding is the bottom inset, same as the sides.
+	const composerFieldMb = compactComposer && isDesktop ? "mb-0" : "mb-2";
+	const drawerAction = composerActions.find((action) => action.key === "drawer")!;
 
 	const onFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -2067,20 +2129,19 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 				/>
 				)
 			) : (
-				<div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-					<div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface-2)] text-[var(--text-muted)]">
-						<MessageCircleOff className="h-6 w-6 opacity-50" />
-					</div>
-					<div>
-						<p className="text-sm font-medium text-[var(--text-muted)]">{t("chat.new_conversation.no_messages_yet", { defaultValue: "No messages yet" })}</p>
-						<p className="mt-1 text-xs text-[var(--text-muted)] opacity-70">{t("chat.new_conversation.send_first_message_hint", { defaultValue: "Send a message below to start the conversation." })}</p>
-					</div>
+				<div className="flex flex-1 flex-col justify-center">
+					<DrawerEmptyState
+						icon={<MessageCircleOff />}
+						fanned={false}
+						title={t("chat.new_conversation.no_messages_yet", { defaultValue: "No messages yet" })}
+						hint={t("chat.new_conversation.send_first_message_hint", { defaultValue: "Send a message below to start the conversation." })}
+					/>
 				</div>
 			)}
 
 					{isArchived ? (
 						<div
-					className={`${!isDesktop ? `shrink-0 px-[var(--app-px)] py-3 ${mobileComposerBg}` : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 bg-[var(--surface)]"}`}
+					className={`${!isDesktop ? `shrink-0 px-[var(--app-px)] py-3 ${mobileComposerBg}` : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)]"}`}
 							style={
 								!isDesktop
 									? { paddingBottom: mobileKeyboardInset > 0 ? "12px" : "max(12px, env(safe-area-inset-bottom))" }
@@ -2122,7 +2183,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							if (target.closest("textarea, input, [data-composer-actions]")) return;
 							event.preventDefault();
 						} : undefined}
-						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-[35] px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)]"}
+						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-[35] px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 sm:pt-4 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)]"}
 					>
 						{(isUploadingAttachment || uploadProgress > 0) && (
 							<div
@@ -2365,7 +2426,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						})() : null}
 
 						{props.pendingAudioBlob ? (
-							<div className={`mb-2 flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 rounded-[25px] border border-transparent ${PENDING_AUDIO_FILL_CLASS} ${
+							<div className={`${composerFieldMb} flex items-center gap-2 overflow-hidden py-1 pl-1 pr-1 rounded-[25px] border border-transparent ${PENDING_AUDIO_FILL_CLASS} ${
 								selectedConversation && replyTargetMessage ? "rounded-t-none" : ""
 							}`}>
 								{/* No fixed height: like the composer it's border + py-1 + its h-10/h-8
@@ -2397,9 +2458,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								</button>
 							</div>
 						) : null}
-						{!props.pendingAudioBlob && <div className={`flex ${isRecording ? "items-center" : "items-end"} gap-2 rounded-[25px] border py-1 mb-2 transition-colors ${
-							// No outline, state is shown through the fill instead.
-							isRecording ? "pl-1 pr-1" : "pl-3 pr-1"
+						{!props.pendingAudioBlob && <div className={`relative flex ${isRecording ? "items-center" : "items-end"} gap-2 rounded-[25px] border py-1 ${composerFieldMb} transition-colors ${
+							// No outline, state is shown through the fill instead. The compact
+							// composer's buttons take the recording icon's slot on the left.
+							isRecording || compactComposer ? "pl-1 pr-1" : "pl-3 pr-1"
 						} border-transparent ${composerFillClass(isRecording, recordingMs)} ${
 							// A reply preview sits on top as the same field's first row.
 							selectedConversation && replyTargetMessage ? "rounded-t-none" : ""
@@ -2438,6 +2500,58 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								)}
 								</>
 							) : (
+								<>
+								{compactComposer && (
+									<div data-composer-actions className="flex shrink-0 items-center gap-0.5">
+										<button
+											type="button"
+											onPointerDown={composerActionHaptic}
+											onClick={() => setIsComposerMenuOpen((prev) => !prev)}
+											className={`inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:text-[var(--text)] ${isComposerMenuOpen ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}
+											aria-label={t("chat.more_actions", { defaultValue: "More" })}
+											aria-expanded={isComposerMenuOpen}
+										>
+											<Plus className={`h-5 w-5 transition-transform duration-200 ${isComposerMenuOpen ? "rotate-45" : ""}`} />
+										</button>
+										<button
+											type="button"
+											onPointerDown={composerActionHaptic}
+											onClick={() => { setIsComposerMenuOpen(false); drawerAction.onClick(); }}
+											disabled={drawerAction.disabled}
+											className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40"
+											aria-label={drawerAction.label}
+											title={drawerAction.label}
+										>
+											{drawerAction.icon}
+										</button>
+										{isComposerMenuOpen && (
+											<>
+												<button
+													type="button"
+													aria-hidden="true"
+													tabIndex={-1}
+													className="fixed inset-0 z-40 cursor-default"
+													onClick={() => setIsComposerMenuOpen(false)}
+												/>
+												<div className="absolute bottom-full left-0 z-50 mb-2 min-w-[220px] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-2xl">
+													{composerActions.filter((action) => action.key !== "drawer").map((action) => (
+														<button
+															key={action.key}
+															type="button"
+															onPointerDown={composerActionHaptic}
+															onClick={() => { setIsComposerMenuOpen(false); action.onClick(); }}
+															disabled={action.disabled}
+															className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+														>
+															<span className="text-[var(--accent)]">{action.icon}</span>
+															{action.label}
+														</button>
+													))}
+												</div>
+											</>
+										)}
+									</div>
+								)}
 								<textarea
 									ref={textareaRef}
 									value={draft}
@@ -2500,6 +2614,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									className={`flex-1 bg-transparent py-2.5 text-sm leading-5 text-[var(--text)] placeholder-[var(--text-muted)] outline-none resize-none disabled:opacity-60`}
 									style={{ fieldSizing: "content", maxHeight: "115px" } as React.CSSProperties}
 								/>
+								</>
 							)}
 							{isRecording && (isDesktop || !showRecordCircle) ? (
 								<button
@@ -2617,73 +2732,25 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									: undefined
 							}
 						>
+						{/* Compact composer: the actions live in the input pill; the wrapper stays for its bottom inset. */}
+						{!compactComposer && (
 						<div className={!isDesktop ? "mx-auto grid h-12 w-full max-w-4xl grid-cols-5 px-[calc(0.75rem+1px+0.375rem)]" : "flex items-center justify-evenly gap-2"}>
-							<button
-								type="button"
-								onPointerDown={composerActionHaptic}
-								onClick={() => {
-									setIsGiphyPickerOpen((prev) => !prev);
-									if (isDrawerOpen) toggleDrawer();
-								}}
-								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
-								aria-label={t("chat.giphy.button_label")}
-								title={t("chat.giphy.button_label")}
-							>
-								<StickerFilled className="h-5 w-5" />
-							</button>
-							<button
-								type="button"
-								onPointerDown={composerActionHaptic}
-								onClick={() => {
-									attachmentInputRef.current?.click();
-									if (isDrawerOpen) toggleDrawer();
-									if (pendingLocationShare) handleLocationShareRequest();
-								}}
-								disabled={isUploadingAttachment}
-								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-60`}
-								aria-label={t("chat.attach_media")}
-								title={t("chat.attach_media")}
-							>
-								<CameraPlusFilled className="h-5 w-5" />
-							</button>
-							<button
-								type="button"
-								onPointerDown={composerActionHaptic}
-								onClick={() => {
-									toggleDrawer();
-									if (pendingLocationShare) handleLocationShareRequest();
-								}}
-								disabled={!selectedConversation && !targetProfileId}
-								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:border-[var(--accent)] hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed`}
-								aria-label={t("chat.drawer_label")}
-								title={t("chat.drawer_label")}
-							>
-								<ImagesFilled className="h-5 w-5" />
-							</button>
-							<button
-								type="button"
-								onPointerDown={composerActionHaptic}
-								onClick={() => {
-									handleLocationShareRequest();
-									if (isDrawerOpen) toggleDrawer();
-								}}
-								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
-								aria-label={t("chat.share_location_label", { defaultValue: "Share Location" })}
-								title={t("chat.share_location_label", { defaultValue: "Share Location" })}
-							>
-								<MapPinFilled className="h-5 w-5" />
-							</button>
-							<button
-								type="button"
-								onPointerDown={composerActionHaptic}
-								onClick={() => setIsSavedPhrasesOpen((prev) => !prev)}
-								className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60`}
-								aria-label={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
-								title={t("chat.saved_phrases_label", { defaultValue: "Saved Phrases" })}
-							>
-								<MessageSquareQuoteFilled className="h-5 w-5" />
-							</button>
-
+							{composerActions.map((action) => (
+								<button
+									key={action.key}
+									type="button"
+									onPointerDown={composerActionHaptic}
+									onClick={action.onClick}
+									disabled={action.disabled}
+									className={`${!isDesktop ? "h-full w-full" : "h-9 w-9"} inline-flex items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:cursor-not-allowed disabled:opacity-40`}
+									aria-label={action.label}
+									title={action.label}
+								>
+									{action.icon}
+								</button>
+							))}
+						</div>
+						)}
 							<input
 								type="file"
 								ref={attachmentInputRef}
@@ -2691,7 +2758,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								accept="image/*,video/*"
 								className="hidden"
 							/>
-						</div>
 						</div>
 
 

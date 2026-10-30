@@ -46,7 +46,7 @@ function DoseRow({ dose, onDelete }: { dose: PrepDose; onDelete: () => void }) {
 	return (
 		<div
 			ref={ref}
-			className={cn("flex items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4", revealClass)}
+			className={cn("flex items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 rail:pl-[var(--app-px)] rail:pr-[var(--app-px)]", revealClass)}
 		>
 			<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm flex items-center justify-center bg-[var(--surface-2)] text-[var(--text-muted)]">
 				<Pill className="h-6 w-6" />

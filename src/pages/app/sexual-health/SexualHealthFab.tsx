@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { ActionPill } from "../../../components/ui/action-pill";
+import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 
 interface SexualHealthFabProps {
 	slotEl: HTMLDivElement | null;
@@ -21,8 +23,13 @@ interface SexualHealthFabProps {
  * be confined to the scroll container's box and end up stuck behind the
  * app's fixed bottom nav bar instead of floating above it. */
 export function SexualHealthFab({ slotEl, onClick, icon, label, disabled }: SexualHealthFabProps) {
+	const isDesktop = useDesktopBreakpoint();
 	if (!slotEl) {
 		return null;
+	}
+	// Desktop: a labelled pill centered at the bottom instead of the round button.
+	if (isDesktop) {
+		return createPortal(<ActionPill icon={icon} label={label} onClick={onClick} disabled={disabled} />, slotEl);
 	}
 	return createPortal(
 		<div className="flex h-20 w-20 select-none items-center justify-center">

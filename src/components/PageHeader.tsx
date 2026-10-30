@@ -53,14 +53,26 @@ export function PageHeader({
 			<header
 				className={cn(
 					"page-header sticky top-0 z-30 -mx-[var(--app-px)] px-[var(--app-px)] pb-4",
-					!subtitle && "mb-4",
+					subtitle ? "rail:mb-6" : "mb-4",
 					className,
 				)}
 			>
-				{/* Full-bleed (100vw, centred) so the bar spans the window on desktop rather than
-				    stopping at the page's max-width; the overshoot is clipped by html's overflow-x. */}
+				{/* Desktop nav rail: no bar, which would either run behind the rail or stop
+				    hard at it. The content just fades out into the page background under the
+				    header, like the tab pages' scroll containers. */}
 				<div
-					className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 border-b border-[var(--border)]/60"
+					className="page-backdrop pointer-events-none absolute inset-x-0 top-0 -bottom-6 hidden rail:block"
+					style={{
+						opacity: progress,
+						maskImage: "linear-gradient(to bottom, black 70%, transparent)",
+						WebkitMaskImage: "linear-gradient(to bottom, black 70%, transparent)",
+					}}
+					aria-hidden="true"
+				/>
+				{/* Full-bleed (100vw, centred) so the bar spans the window rather than stopping
+				    at the page's max-width; the overshoot is clipped by html's overflow-x. */}
+				<div
+					className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 border-b border-[var(--border)]/60 rail:hidden"
 					// Same frosted glass as the bottom NavBar and the chat composer.
 					style={{
 						opacity: progress,
@@ -72,16 +84,32 @@ export function PageHeader({
 				/>
 				{/* Row is exactly one tab-header title line tall; the taller buttons overflow it
 				    symmetrically, so their centres land on --header-icon-center like the Inbox icons. */}
-				<div className="relative flex h-[var(--header-row-h)] items-center gap-2">
-					{handleBack && <HeaderBackButton onClick={handleBack} label={backLabel} />}
-					<div className="flex min-w-0 flex-1 items-center gap-2">
+				{/* Grid so the desktop subtitle below can share the title's column. With a
+				    subtitle, desktop stacks title + subtitle as one block with the buttons
+				    centred on it, like the Sexual Health / Videos headers. */}
+				<div className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2">
+					{handleBack ? (
+						<div className={cn("flex h-[var(--header-row-h)] items-center", subtitle && "rail:row-span-2")}>
+							<HeaderBackButton onClick={handleBack} label={backLabel} />
+						</div>
+					) : <span />}
+					<div className={cn("flex h-[var(--header-row-h)] min-w-0 items-center gap-2", subtitle && "rail:h-auto", !handleBack && "-ml-2")}>
 						<h1 className="min-w-0 truncate text-lg font-semibold">{title}</h1>
 						{titleAccessory}
 					</div>
-					{actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}
+					{actions ? (
+						<div className={cn("flex h-[var(--header-row-h)] shrink-0 items-center gap-1", subtitle && "rail:row-span-2")}>{actions}</div>
+					) : <span className={cn(subtitle && "rail:row-span-2")} />}
+					{/* Desktop: the subtitle sits in the header right under the title, so it
+					    stays visible while the page scrolls. */}
+					{subtitle && (
+						<p className={cn("app-subtitle col-start-2 hidden rail:block", !handleBack && "-ml-2")}>
+							{subtitle}
+						</p>
+					)}
 				</div>
 			</header>
-			{subtitle && <p className={cn("app-subtitle mb-6 mt-1", subtitleClassName)}>{subtitle}</p>}
+			{subtitle && <p className={cn("app-subtitle mb-6 mt-1 rail:hidden", subtitleClassName)}>{subtitle}</p>}
 		</>
 	);
 }

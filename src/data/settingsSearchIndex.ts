@@ -103,7 +103,8 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 		},
 		{
 			id: "nav-transfer-account",
-			route: "/settings/transfer-account",
+			route: "/settings",
+			anchor: "transfer-account",
 			label: t("account_transfer.title", { defaultValue: "Sign in on another device" }),
 			description: t("account_transfer.settings_desc", { defaultValue: "Show a QR code to sign this account in elsewhere" }),
 			section: "Profile",
@@ -189,6 +190,16 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			section: "Look & Feel",
 			icon: Images,
 			iconClass: "bg-violet-500/15 text-violet-400",
+		},
+		{
+			id: "cust-compact-composer",
+			route: "/settings/customizability",
+			anchor: "cust-compact-composer",
+			label: t("customizability.compact_composer", { defaultValue: "Compact Message Bar" }),
+			description: t("customizability.compact_composer_desc", { defaultValue: "Put the media drawer button and a + menu with the other actions inside the message field instead of a row below it." }),
+			section: "Look & Feel",
+			icon: MessageCircle,
+			iconClass: "bg-sky-500/15 text-sky-400",
 		},
 		{
 			id: "cust-reveal-effect",

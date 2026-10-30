@@ -994,7 +994,7 @@ export function ProfileEditorPage() {
 
 				{hasChanges && !(isLoadingProfile && !profile) && !(profileError && !profile) && (
 					<div
-						className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4 pb-3 pt-10 [&>*]:pointer-events-auto"
+						className="pointer-events-none fixed left-[var(--nav-rail-width,0px)] right-0 z-40 flex justify-center px-4 pb-3 pt-10 [&>*]:pointer-events-auto"
 						style={{
 							// Flush on the nav bar's measured height (published by NavBar).
 							bottom: "var(--nav-height, calc(env(safe-area-inset-bottom, 0px) + 80px))",

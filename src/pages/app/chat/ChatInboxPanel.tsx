@@ -1,10 +1,11 @@
-import { Archive, BellOff, Check, CheckCheck, EyeOff, Loader2, MessageCircle, PencilLine, Pin, Star, Trash2 } from "lucide-react";
+import { Archive, BellOff, Check, CheckCheck, EyeOff, ListFilter, Loader2, MessageCircle, PencilLine, Pin, Star, Trash2 } from "lucide-react";
 import { BellOffFilled, EyeOffFilled, HomeFilled, LocateFixedFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ChatSearchPanel } from "./ChatSearchPanel";
+import { DrawerEmptyState } from "./drawerUi";
 import { ChatInboxHeader, type ChatInboxHeaderProps } from "./ChatInboxHeader";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -570,7 +571,7 @@ function ChatConversationRow({
 	const readReceiptsHidden = isReadReceiptsHidden(conversation.data.conversationId);
 
 	return (
-		<div ref={ref} className={`relative overflow-hidden ${revealClass}`}>
+		<div ref={ref} className={`relative overflow-hidden ${isDesktop ? "px-2 py-0.5" : ""} ${revealClass}`}>
 			<div className="pointer-events-none absolute inset-0 flex items-center justify-between px-6">
 				<div
 					ref={pinIconRef}
@@ -595,13 +596,12 @@ function ChatConversationRow({
 				onTouchEnd={handleTouchEnd}
 				onTouchMove={handleTouchMove}
 				onTouchCancel={handleTouchCancel}
-				style={{
-					touchAction: "pan-y",
-					...(isSelected
-						? { borderLeft: "2px solid var(--accent)", paddingLeft: "14px" }
-						: { paddingLeft: "16px" }),
-				}}
-				className="group/reveal no-touch-callout relative flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pr-4 text-left transition"
+				style={{ touchAction: "pan-y" }}
+				className={`group/reveal no-touch-callout relative flex cursor-pointer items-center gap-4 text-left transition ${
+					isDesktop
+						? `rounded-xl px-3 py-2.5 ${isSelected ? "bg-[var(--surface-2)]" : "hover:bg-[color-mix(in_srgb,var(--surface-2)_55%,transparent)]"}`
+						: "px-4 py-3"
+				}`}
 			>
 					<button
 						type="button"
@@ -613,7 +613,7 @@ function ChatConversationRow({
 						}}
 						className="relative shrink-0 disabled:cursor-default disabled:opacity-80"
 					>
-						<div className="h-15 w-15 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
+						<div className={`${isDesktop ? "h-13 w-13" : "h-15 w-15"} rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm`}>
 							<ProfileImage
 								src={resolveAvatarSrc(
 									otherParticipant?.primaryMediaHash,
@@ -987,12 +987,12 @@ export function ChatInboxPanel({
 							WebkitMaskImage: `linear-gradient(to bottom, transparent, black ${FEED_MASK_GRADIENT_STOP})`,
 						} : undefined}
 					>
-						<div className={!isDesktop ? "pb-[calc(env(safe-area-inset-bottom,0px)+120px)]" : ""}>
+						<div className={!isDesktop ? "pb-[calc(env(safe-area-inset-bottom,0px)+120px)]" : "py-1.5"}>
 							{isLoadingInbox ? (
 								<div className="flex flex-col">
 									{Array.from({ length: 12 }).map((_, i) => (
-										<div key={i} className="flex items-center gap-4 border-b border-[var(--surface-2)] py-3 px-4">
-											<div className="h-15 w-15 shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]" />
+										<div key={i} className={`flex items-center gap-4 ${isDesktop ? "mx-2 my-0.5 px-3 py-2.5" : "px-4 py-3"}`}>
+											<div className={`${isDesktop ? "h-13 w-13" : "h-15 w-15"} shrink-0 rounded-full overflow-hidden animate-pulse bg-[var(--surface-2)]`} />
 											<div className="flex flex-1 flex-col gap-2">
 												<div className="flex items-center justify-between gap-3">
 													<div className="h-3 w-28 animate-pulse rounded-full bg-[var(--surface-2)]" />
@@ -1015,14 +1015,21 @@ export function ChatInboxPanel({
 									</button>
 								</div>
 							) : filteredConversations.length === 0 ? (
-								<div className="flex flex-col items-center justify-center gap-3 p-6 text-center text-[var(--text-muted)]">
-									<MessageCircle className="h-8 w-8" />
-									<p className="text-sm">
-										{hasActiveInboxFilters
-											? t("chat.no_conversations_match")
-											: t("chat.no_conversations")}
-									</p>
-								</div>
+								hasActiveInboxFilters ? (
+									<DrawerEmptyState
+										icon={<ListFilter />}
+										fanned={false}
+										title={t("chat.no_conversations_match")}
+										hint={t("chat.no_conversations_match_hint", { defaultValue: "Try changing or clearing your filters." })}
+									/>
+								) : (
+									<DrawerEmptyState
+										icon={<MessageCircle />}
+										fanned={false}
+										title={t("chat.no_conversations")}
+										hint={t("chat.no_conversations_hint", { defaultValue: "Chats you start or receive will show up here." })}
+									/>
+								)
 							) : (
 								<>
 									<div

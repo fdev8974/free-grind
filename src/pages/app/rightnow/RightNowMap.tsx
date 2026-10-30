@@ -30,6 +30,8 @@ type Props = {
 	fitKey: string;
 	/** Height (px) covered by the page header at the top of the map. */
 	topInset: number;
+	/** Width (px) covered by the desktop nav rail at the left of the map. */
+	leftInset?: number;
 	/** Receives "frame all markers" so the page header can offer it as a pill. */
 	recenterRef?: MutableRefObject<(() => void) | null>;
 };
@@ -313,7 +315,7 @@ function markerSignature(item: RightNowMapItem, label: string, photoFilter: Mark
 	return [item.lat, item.lon, photo?.url ?? "", photo?.blur ?? false, item.hosting, isOnline(item), label].join("|");
 }
 
-export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset, recenterRef }: Props) {
+export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset, leftInset = 0, recenterRef }: Props) {
 	const { t } = useTranslation();
 	const { geohash, unitsPreset } = usePreferences();
 	const { rightNow: blurRightNowMedia } = useMediaBlur();
@@ -343,6 +345,8 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 	itemsRef.current = items;
 	const topInsetRef = useRef(topInset);
 	topInsetRef.current = topInset;
+	const leftInsetRef = useRef(leftInset);
+	leftInsetRef.current = leftInset;
 	const onSelectKeyRef = useRef(onSelectKey);
 	onSelectKeyRef.current = onSelectKey;
 	// fitKey the map was last framed for; null until the first markers arrive.
@@ -371,7 +375,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 			map.easeTo({
 				center: [current[0].lon, current[0].lat],
 				zoom: 14,
-				padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current },
+				padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current, left: FIT_PADDING.left + leftInsetRef.current },
 				duration,
 			});
 			return;
@@ -379,7 +383,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 		const bounds = new maplibregl.LngLatBounds();
 		for (const item of current) bounds.extend([item.lon, item.lat]);
 		map.fitBounds(bounds, {
-			padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current },
+			padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current, left: FIT_PADDING.left + leftInsetRef.current },
 			maxZoom: FIT_MAX_ZOOM,
 			duration,
 		});
@@ -512,7 +516,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 				const bounds = new maplibregl.LngLatBounds();
 				for (const item of group.items) bounds.extend([item.lon, item.lat]);
 				map.fitBounds(bounds, {
-					padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current },
+					padding: { ...FIT_PADDING, top: FIT_PADDING.top + topInsetRef.current, left: FIT_PADDING.left + leftInsetRef.current },
 					// Never stop short of the level where clustering ends.
 					maxZoom: Math.max(CLUSTER_MAX_ZOOM, map.getZoom() + 2),
 					duration: 400,

@@ -487,7 +487,7 @@ export function VideoGalleryPage() {
 			<div className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}>
 				<header className="pointer-events-none relative z-20 shrink-0">
 					<PageHeaderBackground color="var(--accent)" />
-					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 sm:px-5">
+					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 sm:px-5 rail:max-w-none rail:px-[var(--app-px)]">
 						<div className="flex items-center justify-between gap-2">
 							<div className="flex min-w-0 items-center gap-2">
 								<HeaderBackButton onClick={() => navigate("/chat", { replace: true })} label={t("nav.inbox")} />
@@ -545,7 +545,7 @@ export function VideoGalleryPage() {
 				</header>
 
 				<FeedScrollContainer>
-					<div className="mx-auto w-full max-w-6xl px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)]">
+					<div className="mx-auto w-full max-w-6xl rail:max-w-none px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[var(--page-bottom)]">
 						{isLoading ? (
 							<div
 								className="grid gap-3"

@@ -28,6 +28,7 @@ import { haptic } from "../utils/haptics";
 import { Avatar } from "./ui/avatar";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import { getProfilePhotoHash } from "../pages/app/profile-editor/profileEditorUtils";
+import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { getThumbImageUrl } from "../utils/media";
 import { getSavedAccountProfile } from "../services/savedAccountProfiles";
 import { looksLikeMessageUpdate } from "../utils/messageUpdates";
@@ -118,6 +119,8 @@ export function NavBar() {
 	// A live (public) Right Now session takes the grid tab's color over everything, explore included.
 	const isRightNowLive = useIsRightNowLive();
 	const { hideLabels, fullWidth } = useNavStyle();
+	// Desktop: vertical rail on the left instead of the bottom bar.
+	const rail = useDesktopBreakpoint();
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
@@ -454,12 +457,22 @@ export function NavBar() {
 
 	// Publish the bar's rendered height (safe-area padding included) as
 	// --nav-height, so floating UI (FABs, map cards) can sit right above it
-	// regardless of full-width/floating style or hidden labels.
+	// regardless of full-width/floating style or hidden labels. The desktop
+	// rail takes no bottom space; it flags the root instead (data-nav="rail"),
+	// which sets --nav-rail-width for ProtectedLayout's left offset.
 	const navRef = useRef<HTMLElement>(null);
 	useLayoutEffect(() => {
 		const nav = navRef.current;
 		if (!nav) return;
 		const root = document.documentElement;
+		if (rail) {
+			root.style.setProperty("--nav-height", "0px");
+			root.dataset.nav = "rail";
+			return () => {
+				root.style.removeProperty("--nav-height");
+				delete root.dataset.nav;
+			};
+		}
 		const publish = () => root.style.setProperty("--nav-height", `${nav.offsetHeight}px`);
 		publish();
 		const observer = "ResizeObserver" in window ? new ResizeObserver(publish) : null;
@@ -468,7 +481,7 @@ export function NavBar() {
 			observer?.disconnect();
 			root.style.removeProperty("--nav-height");
 		};
-	}, []);
+	}, [rail]);
 
 	// Floating bar: keep the same gap below it as on its sides, like iOS, and
 	// let it overlap the gesture-handle / home-indicator area. Only a tall
@@ -502,45 +515,66 @@ export function NavBar() {
 		<nav
 			ref={navRef}
 			className={cn(
-				"fixed inset-x-0 bottom-0",
+				rail
+					? // No fill or border: the tabs sit on the page background like the
+						// page headers, so the header glow runs behind them and only the
+						// content is shown as cards. Top padding = the page headers' own
+						// (--header-top), so the first tab lines up with the page title;
+						// bottom padding = the pages' --page-bottom, so the profile tab ends
+						// level with the page content.
+						"fixed inset-y-0 left-0 w-[var(--nav-rail-width)] pt-[var(--header-top)] pb-[var(--page-bottom)]"
+					: "fixed inset-x-0 bottom-0",
 				// While the account switcher is open, lift the bar (and the switcher
 				// inside it) above the pages' floating action buttons (z-[60]).
 				isAccountSwitcherOpen ? "z-[65]" : "z-50",
-				!fullWidth && "px-3 pb-[calc(var(--nav-system-inset)+0.75rem)] md:px-4 md:pb-[calc(var(--nav-system-inset)+1rem)]",
+				!rail && !fullWidth && "px-3 pb-[calc(var(--nav-system-inset)+0.75rem)] md:px-4 md:pb-[calc(var(--nav-system-inset)+1rem)]",
 			)}
 			style={{ "--nav-system-inset": `${systemNavInset}px` } as React.CSSProperties}
 		>
+			{/* No solid bar: a dark fade rising from the screen edge (like the profile
+			    footer actions) keeps the icons readable over the content. It reaches
+			    above the bar without adding to its height (--nav-height). */}
+			{!rail && (
+				<div
+					aria-hidden
+					className="pointer-events-none absolute inset-x-0 -top-16 bottom-0"
+					style={{
+						background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.5) 70%, transparent 100%)",
+					}}
+				/>
+			)}
 			{/* Mobile app: full-width bar that extends under the system navigation
 			    bar (edge-to-edge), with the safe-area inset as inner padding.
-			    Desktop/web: floating rounded card. */}
+			    Opted-in floating style: rounded capsule. Desktop: left rail. */}
 			<div
 				className={cn(
 					"relative",
-					fullWidth
-						? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
-						: // Capsule shape; extra side padding keeps the outer tabs off the curve.
-							"mx-auto w-full max-w-4xl rounded-full border border-[var(--border)] px-3 py-1.5",
+					rail
+						? "h-full"
+						: fullWidth
+							? "w-full pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
+							: // Capsule shape; extra side padding keeps the outer tabs off the curve.
+								"mx-auto w-full max-w-4xl rounded-full px-3 py-1.5",
 				)}
-				style={{
-					backgroundColor: "rgba(22, 29, 39, 0.8)",
-					background: "color-mix(in srgb, var(--surface) 80%, transparent)",
-					backdropFilter: "blur(24px)",
-					WebkitBackdropFilter: "blur(24px)",
-				}}
 			>
 				<Tabs
 					value={activeTab}
 					onValueChange={handleTabChange}
+					orientation={rail ? "vertical" : "horizontal"}
 					// Keep the tabs at their previous centered width; only the
 					// background spans the full screen on mobile.
-					className={cn(fullWidth && "mx-auto w-full max-w-4xl px-[calc(0.75rem+1px+0.375rem)]")}
+					className={cn(rail ? "h-full" : fullWidth && "mx-auto w-full max-w-4xl px-[calc(0.75rem+1px+0.375rem)]")}
 				>
 					<TabsList
 						className={cn(
-							"grid w-full bg-transparent p-0",
-							gridColsClass,
-							// Mobile app without labels: keep icon size, shrink the bar instead.
-							hideLabels ? "h-12" : "h-16 md:h-[4.1rem]",
+							rail
+								? "flex h-full w-full flex-col items-stretch justify-start gap-1 bg-transparent px-2 py-0"
+								: cn(
+										"grid w-full bg-transparent p-0",
+										gridColsClass,
+										// Mobile app without labels: keep icon size, shrink the bar instead.
+										hideLabels ? "h-12" : "h-16 md:h-[4.1rem]",
+									),
 						)}
 					>
 						{navItems.map((item) => {
@@ -606,9 +640,19 @@ export function NavBar() {
 									}}
 									className={cn(
 										isSwitcherTab && "select-none [-webkit-touch-callout:none]",
-										"flex h-full flex-col items-center justify-center gap-1 rounded-xl text-[var(--text-muted)] transition-colors duration-150 hover:text-[var(--text)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] md:gap-1.5",
+										"flex h-full flex-col items-center justify-center gap-1 rounded-xl transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)] md:gap-1.5",
 										// No filled pill (full-width and floating alike), highlight via text color only.
 										"data-[state=active]:bg-transparent data-[state=active]:shadow-none",
+										rail
+											? // Rail: stacked icon + label, tinted pill for the active tab; the
+												// profile tab sits at the bottom like in desktop messengers.
+												cn(
+													"h-auto w-full flex-none px-1 py-2.5 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
+													"data-[state=active]:bg-[color-mix(in_srgb,currentColor_12%,transparent)]",
+													item.value === "settings" && "mt-auto",
+												)
+											: // Always on the dark fade: light icons with a shadow, in either theme.
+												"text-white/90 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)] hover:text-white",
 										item.value === "right-now" || (item.value === "browse" && isRightNowLive)
 											? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
 											: item.value === "browse" && isExploreActive
@@ -662,10 +706,10 @@ export function NavBar() {
 											</span>
 										) : null}
 									</div>
-									{hideLabels ? (
+									{hideLabels && !rail ? (
 										<span className="sr-only">{item.label}</span>
 									) : (
-										<span className="text-xs md:text-[0.8rem]">
+										<span className={rail ? "w-full whitespace-normal break-words text-center text-[0.7rem] leading-tight" : "text-xs md:text-[0.8rem]"}>
 											{item.label}
 										</span>
 									)}
@@ -679,8 +723,11 @@ export function NavBar() {
 					<div
 						ref={accountSwitcherRef}
 						className={cn(
-							"absolute bottom-full z-50 mb-2 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-150",
-							fullWidth ? "right-3" : "right-0",
+							"absolute z-50 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 duration-150",
+							// Rail: opens to the right of the profile tab at the bottom.
+							rail
+								? "bottom-3 left-full ml-2 slide-in-from-left-2"
+								: cn("bottom-full mb-2 slide-in-from-bottom-2", fullWidth ? "right-3" : "right-0"),
 						)}
 					>
 						<div className="flex flex-col gap-1">

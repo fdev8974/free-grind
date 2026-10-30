@@ -22,6 +22,7 @@ import {
 	SCROLL_RESTORATION_TIMEOUT_MS,
 } from "../../config/ui-constants";
 import { cn } from "../../utils/cn";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
 import { usePreferences } from "../../contexts/PreferencesContext";
@@ -97,8 +98,11 @@ export function InterestPage() {
 	const fallbackTab: InterestTab = isValidTab(lastActiveTab) ? lastActiveTab : defaultSetting;
 	const tabParam = searchParams.get("tab");
 	const activeTab: InterestTab = isValidTab(tabParam) ? tabParam : fallbackTab;
-	// Views render as a tile grid by default; "list" shows them as rows like taps.
-	const isViewsGrid = activeTab === "views" && window.localStorage.getItem("fg-interest-views-layout") !== "list";
+	// Desktop: every tab is a tile grid. Mobile: views render as a tile grid by
+	// default ("list" in the settings shows them as rows like taps).
+	const isDesktop = useDesktopBreakpoint();
+	const isViewsGrid =
+		isDesktop || (activeTab === "views" && window.localStorage.getItem("fg-interest-views-layout") !== "list");
 
 	useEffect(() => {
 		window.localStorage.setItem("fg-interest-last-tab", activeTab);
@@ -530,10 +534,15 @@ export function InterestPage() {
 				return;
 			}
 			navigate(`/profile/${profileId}`, {
-				state: { returnTo: `${location.pathname}${location.search}` },
+				state: {
+					returnTo: `${location.pathname}${location.search}`,
+					// Desktop: profile modal over the page (see App.tsx), so closing it
+					// doesn't reload Interest — same as inbox and Right Now.
+					...(isDesktop ? { backgroundLocation: location } : {}),
+				},
 			});
 		},
-		[navigate, location.pathname, location.search, isProfileBlocked],
+		[navigate, location, isDesktop, isProfileBlocked],
 	);
 
 	const handleTouchStart = useCallback((event: TouchEvent<HTMLDivElement>) => {
@@ -614,9 +623,10 @@ export function InterestPage() {
 			spinnerColor="var(--accent)"
 		>
 			{/* Header */}
-			<header className="relative z-20 flex shrink-0 flex-col pb-3 pointer-events-none">
+			{/* pb-4: same gap between the tab pill and the feed as Right Now / Inbox. */}
+			<header className="relative z-20 flex shrink-0 flex-col pb-4 pointer-events-none">
 				<PageHeaderBackground color="var(--accent)" />
-				<div className="pointer-events-auto flex flex-col gap-3 mx-auto w-full max-w-4xl">
+				<div className="pointer-events-auto flex flex-col gap-3 mx-auto w-full max-w-4xl rail:max-w-none">
 					<div className="px-[var(--app-px)] flex items-center justify-between">
 						<h1 className="app-title">{t("interest_page.title")}</h1>
 						{developerMode && showDebugInfo && (
@@ -630,7 +640,7 @@ export function InterestPage() {
 					</div>
 
 					<div className="flex flex-col gap-3">
-						<div className="flex h-12 items-center justify-between pl-[var(--app-px)] pr-4 -mt-1">
+						<div className="flex items-center justify-between pl-[var(--app-px)] pr-4">
 							<InterestTabs
 								activeTab={activeTab}
 								tabs={tabConfigs}
@@ -646,7 +656,7 @@ export function InterestPage() {
 				onTouchStart={handleTouchStart}
 				onTouchEnd={handleTouchEnd}
 			>
-				<div className="mx-auto w-full max-w-4xl pb-[calc(env(safe-area-inset-bottom,0px)+120px)] px-0">
+				<div className="mx-auto w-full max-w-4xl rail:max-w-none pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[var(--page-bottom)] px-0">
 					{(isLoading && (activeItems.length === 0 || isDemoLoading)) ? (
 						isViewsGrid ? (
 							<InterestViewsGridSkeleton />
@@ -686,6 +696,7 @@ export function InterestPage() {
 											now={nowTimestamp}
 											isProfileBlocked={isProfileBlocked}
 											scrollContainerRef={feedContainerRef}
+											mode={activeTab}
 										/>
 									) : displayedItems.map((item) => (
 										<InterestRow

@@ -175,10 +175,11 @@ export function ChatInboxHeader({
 					</div>
 
 					{/* Row 2: filter pills. The scroller clips the pills' shadow-2xl; pb-16/-mb-12
-					    gives it room without changing layout, and pointer-events stay on the row
-					    so the extra strip doesn't swallow taps on the list below. */}
+					    (and pt-1/-mt-1 above) give it room without changing layout, so the pills
+					    sit exactly where Right Now's / Interest's do. pointer-events stay on the
+					    row so the extra strip doesn't swallow taps on the list below. */}
 					{!isSearchOpen && (
-						<div className="pointer-events-none -mx-[var(--app-px)] -mb-12 overflow-x-auto pb-16 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+						<div className="pointer-events-none -mx-[var(--app-px)] -mt-1 -mb-12 overflow-x-auto pb-16 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 							<div className="pointer-events-auto flex min-w-max items-center gap-2 px-[var(--app-px)]">
 								<button
 									type="button"
@@ -248,11 +249,12 @@ export function ChatInboxHeader({
 						</div>
 					)}
 
-					{/* Row 2: search input */}
+					{/* Row 2: search input. Same box as the pill row it replaces (a 38px pill,
+					    16px net below), so opening search doesn't shift the list. */}
 					{isSearchOpen && (
 						<div className="flex flex-col gap-2 pb-4">
 							<div
-								className="glass-pill relative flex h-10 items-center"
+								className="glass-pill relative flex h-[38px] items-center"
 								style={{ "--pill-color": "var(--accent)" } as CSSProperties}
 							>
 								<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />

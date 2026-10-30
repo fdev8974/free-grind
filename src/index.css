@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Desktop nav rail is shown (NavBar sets data-nav on the root): pages drop
+   their centered max-width there and use the full width like grid and inbox. */
+@custom-variant rail (:root[data-nav="rail"] &);
+
 @theme {
 	--color-accent: var(--accent);
 
@@ -378,6 +382,11 @@
 		--text-muted: #606a79;
 		--border: #d7dce3;
 		--accent-readable: #6d28d9;
+		/* Photo-less tile placeholder (see ProfileImage "silhouette"). Light mode
+		   gets its own mid-grey so empty tiles don't glare white among photos. */
+		--placeholder-tile-top: #c4cad3;
+		--placeholder-tile-bottom: #aab2be;
+		--placeholder-tile-icon: #ffffff;
 
 		/* Header Glow (Light) */
 		--header-glow-mix-1: 0%;
@@ -430,6 +439,9 @@
 			--text-muted: var(--dark-text-muted);
 			--border: var(--dark-border);
 			--accent-readable: var(--dark-accent-readable);
+			--placeholder-tile-top: var(--dark-surface-2);
+			--placeholder-tile-bottom: var(--dark-surface);
+			--placeholder-tile-icon: var(--dark-text-muted);
 
 			--header-glow-mix-1: var(--dark-glow-1);
 			--header-glow-mix-2: var(--dark-glow-2);
@@ -453,6 +465,9 @@
 		--text-muted: var(--dark-text-muted);
 		--border: var(--dark-border);
 		--accent-readable: var(--dark-accent-readable);
+		--placeholder-tile-top: var(--dark-surface-2);
+		--placeholder-tile-bottom: var(--dark-surface);
+		--placeholder-tile-icon: var(--dark-text-muted);
 
 		--header-glow-mix-1: var(--dark-glow-1);
 		--header-glow-mix-2: var(--dark-glow-2);
@@ -571,6 +586,13 @@
 
 		*::-webkit-scrollbar-corner {
 			background: transparent;
+		}
+
+		/* A page's feed reserves this scrollbar's 10px gutter (FeedScrollContainer);
+		   its header above takes the same inset, so header and feed content end at
+		   the same right edge. */
+		.app-screen:has([data-feed-scroll]) header:not([data-feed-scroll] header) {
+			padding-right: 10px;
 		}
 	}
 
@@ -1049,6 +1071,30 @@
 		z-index: -1;
 	}
 
+	/* Opaque copy of the page background (--bg plus the .app-shell glows above,
+	   their opacity baked into the stops), pinned to the viewport so it lines up
+	   seamlessly with the real one. Lets content fade out under a header without
+	   a visible box. Keep in sync with .app-shell::before/::after. */
+	.page-backdrop {
+		background:
+			radial-gradient(
+				circle at 14% -10% in oklab,
+				color-mix(in oklab, var(--app-accent-gradient, var(--accent)), transparent 88%) 0%,
+				color-mix(in oklab, var(--app-accent-gradient, var(--accent)), transparent 94.6%) 14%,
+				color-mix(in oklab, var(--app-accent-gradient, var(--accent)), transparent 98.56%) 26%,
+				transparent 40%
+			),
+			radial-gradient(
+				circle at 90% -20% in oklab,
+				color-mix(in oklab, var(--surface-2), transparent 54%) 0%,
+				color-mix(in oklab, var(--surface-2), transparent 81.6%) 16%,
+				color-mix(in oklab, var(--surface-2), transparent 96.32%) 32%,
+				transparent 46%
+			),
+			var(--bg);
+		background-attachment: fixed;
+	}
+
 
 	.app-screen {
 		min-height: 100dvh;
@@ -1072,6 +1118,32 @@
 		.app-screen {
 			padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
 		}
+	}
+
+	/* Desktop nav rail (NavBar sets data-nav): content is offset to its right
+	   (ProtectedLayout) and needs no room for a bottom bar. */
+	:root[data-nav="rail"] {
+		--nav-rail-width: 92px;
+		/* Bottom inset of page content, the same as the top one (--header-top
+		   without the safe area); feeds use it instead of their bottom-bar room. */
+		--page-bottom: clamp(14px, 2.2vw, 28px);
+	}
+	:root[data-nav="rail"] .app-screen {
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--page-bottom));
+	}
+	/* Sub pages (PageHeader + content) drop the centered max-width too, so their
+	   header and cards start at the rail like the tab pages. */
+	:root[data-nav="rail"] .app-screen:not(.w-full) {
+		width: 100%;
+	}
+	/* Full-width screens clip x-overflow, which would cut the page header glow
+	   off at the rail. Pull them back under the (transparent) rail and pad
+	   their content out again, so the glow runs to the window edge. Important,
+	   since these screens also carry the !px-0 utility. */
+	:root[data-nav="rail"] .app-screen.w-full {
+		width: calc(100% + var(--nav-rail-width)) !important;
+		margin-left: calc(-1 * var(--nav-rail-width)) !important;
+		padding-left: var(--nav-rail-width) !important;
 	}
 
 
@@ -1249,9 +1321,19 @@
 	   text-color mix lost). That card is then about as light as surface-2
 	   itself, so inside it --surface-2 steps up one level: icon tiles, avatar
 	   placeholders, progress tracks and hovers built on it stay visible. */
+	/* --card-bg exposes the card's actual fill (AMOLED differs from --surface),
+	   for fades that have to end in it, e.g. a photo fading into the card. */
 	.native-card {
+		--card-bg: var(--surface);
 		border-radius: 20px;
-		background: var(--surface);
+		background: var(--card-bg);
+	}
+	/* Desktop (same query as useDesktopBreakpoint): hairline border matching
+	   the dividers, so cards stand apart from the page without a shadow. */
+	@media (hover: hover) and (pointer: fine) {
+		.native-card {
+			border: 1px solid var(--border);
+		}
 	}
 	/* Just the card's fill (incl. AMOLED below), e.g. for chips sitting on the page. */
 	.native-card-fill {
@@ -1263,6 +1345,7 @@
 		background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 	}
 	:root[data-scheme="dark"][data-amoled="true"] .native-card {
+		--card-bg: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 		--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
 	}
 	@media (prefers-color-scheme: dark) {
@@ -1272,6 +1355,7 @@
 			background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 		}
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-card {
+			--card-bg: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 			--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
 		}
 	}
@@ -1498,6 +1582,7 @@
   /* The centered fs-card is itself var(--surface), so a .native-card inside
      it would vanish there; step it up a level instead. */
   .fs-card-inner .native-card {
+    --card-bg: var(--surface-2);
     background: var(--surface-2);
   }
   .fs-card-inner::before {

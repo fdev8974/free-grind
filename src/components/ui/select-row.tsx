@@ -16,6 +16,7 @@ export function SelectRow<T extends string>({
 	options,
 	id,
 	highlighted,
+	expandable,
 }: {
 	icon: ReactNode;
 	iconClass: string;
@@ -26,6 +27,8 @@ export function SelectRow<T extends string>({
 	options: SelectSheetOption<T>[];
 	id?: string;
 	highlighted?: boolean;
+	/** For long option lists, see SelectSheet's `expandable`. */
+	expandable?: boolean;
 }) {
 	const isDesktop = useDesktopBreakpoint();
 	const [isOpen, setIsOpen] = useState(false);
@@ -58,6 +61,7 @@ export function SelectRow<T extends string>({
 					onSelect={onChange}
 					onClose={() => setIsOpen(false)}
 					isDesktop={isDesktop}
+					expandable={expandable}
 				/>,
 				document.body,
 			)}

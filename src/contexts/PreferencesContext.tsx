@@ -182,6 +182,8 @@ const preferencesSchema = z.object({
 	showAlbumSensitiveContentWarning: z.boolean().default(true),
 	openAlbumAsBottomSheet: z.boolean().default(false),
 	splitDrawerCategories: z.boolean().default(true),
+	// Chat composer: the action buttons sit inside the input pill (WhatsApp-style) instead of in a row below.
+	compactComposer: z.boolean().default(false),
 	sortDrawerMediaByFrequency: z.boolean().default(true),
 	keepScreenOn: z.boolean().default(false),
 	autoFocusLocationSearch: z.boolean().default(false),
@@ -244,6 +246,7 @@ type PreferencesAction =
 	| { type: "SET_SHOW_ALBUM_SENSITIVE_CONTENT_WARNING"; payload: boolean }
 	| { type: "SET_OPEN_ALBUM_AS_BOTTOM_SHEET"; payload: boolean }
 	| { type: "SET_SPLIT_DRAWER_CATEGORIES"; payload: boolean }
+	| { type: "SET_COMPACT_COMPOSER"; payload: boolean }
 	| { type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY"; payload: boolean }
 	| { type: "SET_KEEP_SCREEN_ON"; payload: boolean }
 	| { type: "SET_DOUBLE_TAP_TAP_TYPE"; payload: number | null }
@@ -317,6 +320,8 @@ function preferencesReducer(
 			return { ...state, openAlbumAsBottomSheet: action.payload };
 		case "SET_SPLIT_DRAWER_CATEGORIES":
 			return { ...state, splitDrawerCategories: action.payload };
+		case "SET_COMPACT_COMPOSER":
+			return { ...state, compactComposer: action.payload };
 		case "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY":
 			return { ...state, sortDrawerMediaByFrequency: action.payload };
 		case "SET_KEEP_SCREEN_ON":
@@ -470,6 +475,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		showAlbumSensitiveContentWarning: true,
 		openAlbumAsBottomSheet: false,
 		splitDrawerCategories: true,
+		compactComposer: false,
 		sortDrawerMediaByFrequency: true,
 		keepScreenOn: false,
 		autoFocusLocationSearch: false,
@@ -525,6 +531,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_SHOW_ALBUM_SENSITIVE_CONTENT_WARNING", payload: parsed.showAlbumSensitiveContentWarning });
 					dispatch({ type: "SET_OPEN_ALBUM_AS_BOTTOM_SHEET", payload: parsed.openAlbumAsBottomSheet });
 					dispatch({ type: "SET_SPLIT_DRAWER_CATEGORIES", payload: parsed.splitDrawerCategories });
+					dispatch({ type: "SET_COMPACT_COMPOSER", payload: parsed.compactComposer });
 					dispatch({ type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY", payload: parsed.sortDrawerMediaByFrequency });
 					dispatch({ type: "SET_KEEP_SCREEN_ON", payload: parsed.keepScreenOn });
 					dispatch({ type: "SET_RIGHT_NOW_REMAINING", payload: parsed.rightNowRemaining });
@@ -658,6 +665,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				showAlbumSensitiveContentWarning: currentState.showAlbumSensitiveContentWarning,
 				openAlbumAsBottomSheet: currentState.openAlbumAsBottomSheet,
 				splitDrawerCategories: currentState.splitDrawerCategories,
+				compactComposer: currentState.compactComposer,
 				sortDrawerMediaByFrequency: currentState.sortDrawerMediaByFrequency,
 				keepScreenOn: currentState.keepScreenOn,
 				autoFocusLocationSearch: currentState.autoFocusLocationSearch,
@@ -760,6 +768,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.splitDrawerCategories !== undefined) {
 				dispatch({ type: "SET_SPLIT_DRAWER_CATEGORIES", payload: newValues.splitDrawerCategories });
+			}
+			if (newValues.compactComposer !== undefined) {
+				dispatch({ type: "SET_COMPACT_COMPOSER", payload: newValues.compactComposer });
 			}
 			if (newValues.sortDrawerMediaByFrequency !== undefined) {
 				dispatch({ type: "SET_SORT_DRAWER_MEDIA_BY_FREQUENCY", payload: newValues.sortDrawerMediaByFrequency });
@@ -890,6 +901,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					showAlbumSensitiveContentWarning: preferences.showAlbumSensitiveContentWarning,
 					openAlbumAsBottomSheet: preferences.openAlbumAsBottomSheet,
 					splitDrawerCategories: preferences.splitDrawerCategories,
+					compactComposer: preferences.compactComposer,
 					sortDrawerMediaByFrequency: preferences.sortDrawerMediaByFrequency,
 					keepScreenOn: preferences.keepScreenOn,
 					rightNowRemaining: preferences.rightNowRemaining,
@@ -940,6 +952,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		showAlbumSensitiveContentWarning: state.showAlbumSensitiveContentWarning,
 		openAlbumAsBottomSheet: state.openAlbumAsBottomSheet,
 		splitDrawerCategories: state.splitDrawerCategories,
+		compactComposer: state.compactComposer,
 		sortDrawerMediaByFrequency: state.sortDrawerMediaByFrequency,
 		keepScreenOn: state.keepScreenOn,
 		autoFocusLocationSearch: state.autoFocusLocationSearch,

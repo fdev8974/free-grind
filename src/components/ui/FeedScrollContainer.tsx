@@ -1,9 +1,6 @@
-import React, { forwardRef, useCallback, useEffect, useRef } from "react";
-import Lenis from "lenis";
+import React, { forwardRef, useCallback } from "react";
 import { cn } from "../../utils/cn";
 import { FEED_HEADER_OFFSET, FEED_MASK_GRADIENT_STOP } from "../../config/design-config";
-import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { SMOOTH_SCROLL_CONFIG } from "../../config/scroll-config";
 
 interface FeedScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> {
 	children: React.ReactNode;
@@ -11,9 +8,6 @@ interface FeedScrollContainerProps extends React.HTMLAttributes<HTMLDivElement> 
 
 export const FeedScrollContainer = forwardRef<HTMLDivElement, FeedScrollContainerProps>(
 	({ children, className, ...props }, ref) => {
-		const isDesktop = useDesktopBreakpoint();
-		const innerRef = useRef<HTMLDivElement | null>(null);
-
 		// Memoized so its identity is stable across re-renders — an inline ref
 		// callback gets a new identity every render, and React responds to that
 		// by calling the old one with null then the new one with the node, on
@@ -22,7 +16,6 @@ export const FeedScrollContainer = forwardRef<HTMLDivElement, FeedScrollContaine
 		// null and back on every re-render of this component.
 		const setRefs = useCallback(
 			(node: HTMLDivElement | null) => {
-				innerRef.current = node;
 				if (typeof ref === "function") {
 					ref(node);
 				} else if (ref) {
@@ -32,34 +25,6 @@ export const FeedScrollContainer = forwardRef<HTMLDivElement, FeedScrollContaine
 			[ref],
 		);
 
-		useEffect(() => {
-			if (!isDesktop || !innerRef.current || !SMOOTH_SCROLL_CONFIG.enabled) {
-				return;
-			}
-
-			const lenis = new Lenis({
-				wrapper: innerRef.current,
-				content: innerRef.current.firstElementChild as HTMLElement,
-				lerp: SMOOTH_SCROLL_CONFIG.lerp,
-				duration: SMOOTH_SCROLL_CONFIG.duration,
-				wheelMultiplier: SMOOTH_SCROLL_CONFIG.wheelMultiplier,
-				touchMultiplier: SMOOTH_SCROLL_CONFIG.touchMultiplier,
-				smoothWheel: true,
-			});
-
-			let rafId: number;
-			function raf(time: number) {
-				lenis.raf(time);
-				rafId = requestAnimationFrame(raf);
-			}
-			rafId = requestAnimationFrame(raf);
-
-			return () => {
-				lenis.destroy();
-				cancelAnimationFrame(rafId);
-			};
-		}, [isDesktop]);
-
 		return (
 			<div
 				className="relative flex-1 min-h-0"
@@ -67,8 +32,17 @@ export const FeedScrollContainer = forwardRef<HTMLDivElement, FeedScrollContaine
 			>
 				<div
 					ref={setRefs}
+					// Native scrolling only: keeps the global Lenis (SmoothScroll) from
+					// hijacking the wheel here. A per-feed Lenis used to sit on this
+					// element too, but this attribute disabled it anyway — all it still
+					// did was run a rAF loop every frame and hold a non-passive wheel
+					// listener, which made every wheel tick wait on the main thread
+					// (busy re-rendering the virtualized grid) and the desktop grid stutter.
 					data-lenis-prevent
-					className={cn("h-full overflow-y-auto", className)}
+					// Marks the page's feed for index.css, whose page headers get the same
+					// right inset as this scrollbar's (always reserved) gutter.
+					data-feed-scroll
+					className={cn("h-full overflow-y-auto [scrollbar-gutter:stable]", className)}
 					style={{
 						paddingTop: FEED_HEADER_OFFSET,
 						maskImage: `linear-gradient(to bottom, transparent, black ${FEED_MASK_GRADIENT_STOP})`,

@@ -223,7 +223,7 @@ function AppointmentRow({
 			ref={ref}
 			onClick={onEdit}
 			className={cn(
-				"flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 transition-colors hover:bg-[var(--surface-2)]/50",
+				"flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 rail:pl-[var(--app-px)] rail:pr-[var(--app-px)] transition-colors hover:bg-[var(--surface-2)]/50",
 				revealClass,
 			)}
 		>

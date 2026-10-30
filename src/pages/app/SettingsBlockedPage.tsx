@@ -157,7 +157,8 @@ export function SettingsBlockedPage() {
 
 	return (
 		<PullToRefreshContainer
-			className="app-screen"
+			className="app-screen flex flex-col"
+			contentClassName="flex flex-1 flex-col"
 			onRefresh={() => refetchIds()}
 			isDisabled={isLoading}
 			refreshingLabel={t("settings_blocked.refreshing")}
@@ -168,7 +169,8 @@ export function SettingsBlockedPage() {
 				subtitle={t("settings_blocked.subtitle")}
 			/>
 
-			<div className="grid gap-6">
+			{/* Fills the rest of the screen so the empty state can sit centered in it. */}
+			<div className={`grid flex-1 gap-6 ${!isLoading && !error && blockedProfiles.length === 0 ? "content-center" : "content-start"}`}>
 				{isLoading ? (
 					<div>
 						<div className="mb-2 flex items-center gap-2 px-1">

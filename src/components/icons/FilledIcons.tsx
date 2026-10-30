@@ -174,7 +174,8 @@ export function UserSearchFilled(props: IconProps) {
 				<circle cx="10" cy="7" r="4" />
 				<path d="M3 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2z" />
 			</g>
-			<circle cx="17" cy="17" r="3" />
+			{/* Hollow lens: a filled one read as a solid blob next to the person. */}
+			<circle cx="17" cy="17" r="3" fill="none" />
 			<path d="m21 21-1.9-1.9" fill="none" />
 		</FilledSvg>
 	);

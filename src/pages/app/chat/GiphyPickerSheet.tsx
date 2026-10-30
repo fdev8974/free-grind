@@ -1,4 +1,4 @@
-import { Check, Clock, Loader2, Send, Sticker, TrendingUp } from "lucide-react";
+import { Check, Clock, Loader2, SearchX, Send, Sticker, TrendingUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
@@ -306,8 +306,14 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 				/>
 			)}
 
-			{/* Content */}
-			<div ref={contentRef} className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1" data-lenis-prevent {...tabSwipe}>
+			{/* Content — on mouse devices the 10px scrollbar gutter comes out of the
+			    right padding, so the grid ends at the same edge as the search pill. */}
+			<div
+				ref={contentRef}
+				className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-1 [scrollbar-gutter:stable] [@media(hover:hover)_and_(pointer:fine)]:pr-[calc(1rem-10px)]"
+				data-lenis-prevent
+				{...tabSwipe}
+			>
 				{tab === "trending" ? (
 					isLoading ? (
 						<GifGridSkeleton />
@@ -323,9 +329,11 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 							</button>
 						</div>
 					) : gifs.length === 0 ? (
-						<div className="flex items-center justify-center py-12">
-							<p className="text-sm text-[var(--text-muted)]">{t("chat.giphy.no_results")}</p>
-						</div>
+						<DrawerEmptyState
+							icon={<SearchX className="h-5 w-5" />}
+							title={t("chat.giphy.no_results")}
+							hint={t("chat.giphy.no_results_hint", { defaultValue: "Try a different search term." })}
+						/>
 					) : (
 						<GifGrid gifs={gifs} selectedId={selectedGif?.id ?? null} onToggle={handleToggle} />
 					)

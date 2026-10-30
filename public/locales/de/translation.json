@@ -1063,6 +1063,8 @@
         "chat_section": "Chat-Seite",
         "drawer_layout": "Galerie in Kategorien aufteilen",
         "drawer_layout_desc": "Zeigt Medien, Alben und Sammlungen in getrennten Tabs statt alles auf einer Seite.",
+        "compact_composer": "Kompakte Nachrichtenleiste",
+        "compact_composer_desc": "Galerie-Button und ein +-Menü mit den übrigen Aktionen direkt im Eingabefeld statt in einer Leiste darunter.",
         "reveal_effect": {
             "title": "Reveal-Effekt",
             "description": "Der Reveal-Effekt animiert Elemente beim Scrollen. Du kannst ihn deaktivieren oder die Intensität anpassen.",
@@ -1420,7 +1422,9 @@
         "favorite": "Favorisieren",
         "unfavorite": "Entfavorisieren",
         "no_conversations_match": "Keine Unterhaltungen entsprechen deinen Filtern.",
+        "no_conversations_match_hint": "Ändere deine Filter oder setze sie zurück.",
         "no_conversations": "Noch keine Unterhaltungen.",
+        "no_conversations_hint": "Chats, die du startest oder bekommst, erscheinen hier.",
         "no_messages_yet": "Noch keine Nachrichten.",
         "pin": "Anpinnen",
         "unpin": "Loslösen",
@@ -1455,12 +1459,14 @@
             "error_search": "Suche fehlgeschlagen.",
             "retry": "Erneut versuchen",
             "no_results": "Keine GIFs gefunden.",
+            "no_results_hint": "Versuch es mit einem anderen Suchbegriff.",
             "recent_empty": "Keine zuletzt gesendeten GIFs.",
             "recent_empty_hint": "Gesendete GIFs erscheinen hier.",
             "send_confirm": "GIF senden?"
         },
         "drawer_unavailable": "Sende eine Nachricht um die Galerie zu öffnen.",
         "attach_media": "Medien anhängen",
+        "more_actions": "Mehr",
         "drop_to_attach": "Zum Anhängen ablegen",
         "cancel_recording": "Nach links wischen zum Abbrechen",
         "stop_recording": "Aufnahme stoppen",
@@ -2202,7 +2208,9 @@
         "placeholder": "In lokal gespeicherten Nachrichten suchen",
         "loading": "Suchindex wird geladen...",
         "min_chars": "Gib mindestens 2 Zeichen ein, um zu suchen.",
+        "prompt_title": "Nachrichten durchsuchen",
         "no_messages_found": "Keine passenden Nachrichten gefunden.",
+        "no_messages_found_hint": "Versuch es mit einem anderen Suchbegriff.",
         "error_load_inbox": "Laden des Posteingangs fehlgeschlagen"
     },
     "pull_to_refresh": {

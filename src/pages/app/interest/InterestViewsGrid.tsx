@@ -7,7 +7,7 @@ import { mobileGridTemplate } from "../gridpage/components/BrowseGrid";
 import { useGridRowMetrics } from "../gridpage/hooks/useGridRowMetrics";
 import type { BrowseCard } from "../GridPage.types";
 import { InterestViewTile } from "./InterestComponents";
-import type { InterestItem } from "./interestUtils";
+import type { InterestItem, InterestTab } from "./interestUtils";
 
 export function useViewsGridLayout() {
 	const { mobileViewsGridColumns: mobileGridColumns } = usePreferences();
@@ -29,6 +29,7 @@ export function InterestViewsGrid({
 	now,
 	isProfileBlocked,
 	scrollContainerRef,
+	mode = "views",
 }: {
 	items: InterestItem[];
 	browseCardsById: Map<string, BrowseCard>;
@@ -36,6 +37,7 @@ export function InterestViewsGrid({
 	now: number;
 	isProfileBlocked: (profileId: string) => boolean;
 	scrollContainerRef: RefObject<HTMLDivElement | null>;
+	mode?: InterestTab;
 }) {
 	const { isDesktop, mobileGridColumns, gridTemplateColumns, gridClassName } = useViewsGridLayout();
 	const { rowMetrics, probeRef } = useGridRowMetrics(
@@ -109,6 +111,7 @@ export function InterestViewsGrid({
 								now={now}
 								isBlocked={isProfileBlocked(item.profileId)}
 								isDesktop={isDesktop}
+								mode={mode}
 							/>
 						))}
 					</div>

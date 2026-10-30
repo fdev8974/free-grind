@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState, memo, type ComponentType } from "react";
-import { Ban, History, MoveHorizontal, Check, RefreshCw, Star, Navigation } from "lucide-react";
+import { memo } from "react";
+import { Ban, History, MoveHorizontal, Check, Star, Navigation } from "lucide-react";
 import { ClockFilled, EyeFilled, HomeFilled, LockFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { getThumbImageUrl } from "../../../utils/media";
@@ -12,144 +12,11 @@ import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useProfilePhotoPrivacy } from "../../../hooks/useProfilePhotoPrivacy";
 import type { BrowseCard } from "../GridPage.types";
+import { IconTabs, type IconTabConfig } from "../../../components/ui/icon-tabs";
 
-export type InterestTabConfig = {
-	key: InterestTab;
-	label: string;
-	icon: ComponentType<{ className?: string }>;
-	/** Total shown next to the label while the tab is active; omitted = no count. */
-	total?: number;
-	/** New items since last seen — a dot on the icon while the tab is inactive. */
-	unread?: number;
-	/** Shows a spinner in place of the total while it refreshes. */
-	isRefreshing?: boolean;
-	/** Tooltip for the total. */
-	totalTitle?: string;
-};
+export type InterestTabConfig = IconTabConfig<InterestTab>;
 
-/** Segmented control: the active tab expands into an accent pill with icon,
- * label and total; inactive tabs collapse to just their icon. */
-export const InterestTabs = memo(function InterestTabs({
-	activeTab,
-	tabs,
-	onTabClick,
-}: {
-	activeTab: InterestTab;
-	tabs: InterestTabConfig[];
-	onTabClick: (tab: InterestTab) => void;
-}) {
-	const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
-	const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
-	const [isReady, setIsReady] = useState(false);
-
-	const totalsKey = tabs.map((tab) => `${tab.total ?? ""}:${tab.isRefreshing ? 1 : 0}`).join(",");
-
-	// Index of the currently active tab in the visual array
-	const activeIndex = Math.max(tabs.findIndex((tab) => tab.key === activeTab), 0);
-
-	// Sync indicator with the active tab's position and size in real-time
-	useLayoutEffect(() => {
-		const activeEl = tabsRef.current[activeIndex];
-		if (!activeEl) return;
-
-		const updateIndicator = () => {
-			setIndicatorStyle({
-				left: activeEl.offsetLeft,
-				width: activeEl.offsetWidth,
-			});
-		};
-
-		// Initial measurement
-		updateIndicator();
-
-		// The active tab grows/shrinks as its label and total animate in, and
-		// neighbouring tabs shift with it — keep the pill glued to it throughout.
-		const resizeObserver = new ResizeObserver(() => {
-			updateIndicator();
-		});
-
-		// border-box: padding changes must count too, not just the content box.
-		resizeObserver.observe(activeEl, { box: "border-box" });
-
-		if (!isReady) {
-			requestAnimationFrame(() => {
-				requestAnimationFrame(() => setIsReady(true));
-			});
-		}
-
-		return () => resizeObserver.disconnect();
-	}, [activeIndex, isReady, totalsKey]);
-
-	return (
-		<div className="glass-pill relative inline-flex items-center gap-0.5 p-1">
-			{/*
-				The Sliding Pill:
-				- Transitions width and position based on the measured active tab.
-				- This creates a natural "stretch" look as it moves.
-			*/}
-			<div
-				className={cn(
-					"absolute top-1 bottom-1 rounded-full bg-[var(--accent)] shadow-sm",
-					isReady ? "transition-all duration-300 ease-out" : "transition-none"
-				)}
-				style={{
-					width: indicatorStyle.width,
-					left: indicatorStyle.left,
-				}}
-			/>
-
-			{tabs.map((tab, i) => {
-				const isActive = activeIndex === i;
-				const Icon = tab.icon;
-				const hasUnread = !isActive && (tab.unread ?? 0) > 0;
-				return (
-					<button
-						key={tab.key}
-						ref={(el) => { tabsRef.current[i] = el; }}
-						type="button"
-						onClick={() => onTabClick(tab.key)}
-						aria-label={tab.label}
-						aria-pressed={isActive}
-						className={cn(
-							// Only colour/scale animate: an animated padding would leave the pill measuring a
-							// mid-transition width. The sliding pill itself carries the motion.
-							"relative z-10 flex h-9 items-center justify-center rounded-full transition-[color,transform] duration-300 ease-out active:scale-95",
-							isActive
-								? "gap-2 pl-3.5 pr-1.5 text-[var(--accent-contrast)]"
-								: "w-10 text-[var(--text-muted)] hover:text-[var(--text)]",
-						)}
-					>
-						<span className="relative flex shrink-0">
-							<Icon className="h-[1.15rem] w-[1.15rem]" />
-							{hasUnread && (
-								<span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-[var(--accent)] ring-2 ring-[var(--surface)]" />
-							)}
-						</span>
-						{isActive && (
-							<>
-								<span className="whitespace-nowrap text-sm font-bold">{tab.label}</span>
-								{tab.total != null && (
-									<span
-										className="relative flex h-6 min-w-[1.75rem] items-center justify-center rounded-full bg-white/20 px-2 text-xs font-bold tabular-nums"
-										title={tab.totalTitle}
-									>
-										<span className={cn("transition-opacity duration-300", tab.isRefreshing ? "opacity-0" : "opacity-100")}>
-											{tab.total}
-										</span>
-										{tab.isRefreshing && (
-											<RefreshCw className="absolute h-3 w-3 animate-spin" />
-										)}
-									</span>
-								)}
-							</>
-						)}
-						{!isActive && hasUnread && <span className="sr-only">{tab.unread}</span>}
-					</button>
-				);
-			})}
-		</div>
-	);
-});
+export const InterestTabs = memo(IconTabs<InterestTab>);
 
 const emojiColorMap: Record<number, string> = {
 	0: "255, 200, 0", // 👋
@@ -315,9 +182,10 @@ export const InterestRow = memo(function InterestRow({
 
 const TILE_ICON_SHADOW = "drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)]";
 
-/** Grid-style tile for the views tab, modelled on the browse grid's
- * BrowseCardTile: view count top-left, presence top-right, name and
- * time bottom-left, favorite bottom-right. `browseCard` is the profile as last
+/** Grid-style tile for the views tab (and, on desktop, taps/sent), modelled on
+ * the browse grid's BrowseCardTile: view count or tap emoji top-left, presence
+ * top-right, name and time (plus distance for taps) bottom-left, favorite
+ * bottom-right. `browseCard` is the profile as last
  * seen in the browse grid (if ever), which is the only source for age and
  * favorite since the views endpoint doesn't carry them. */
 export const InterestViewTile = memo(function InterestViewTile({
@@ -327,6 +195,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 	now,
 	isBlocked = false,
 	isDesktop = false,
+	mode = "views",
 }: {
 	item: InterestItem;
 	browseCard?: BrowseCard;
@@ -334,8 +203,11 @@ export const InterestViewTile = memo(function InterestViewTile({
 	now: number;
 	isBlocked?: boolean;
 	isDesktop?: boolean;
+	mode?: InterestTab;
 }) {
 	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
+	const tapColor = emojiColorMap[item.tapType ?? -1] || "255, 200, 0";
 	const photoPrivacy = useProfilePhotoPrivacy("grid");
 	const { ref, revealClass } = useRevealOnScroll();
 	const imageSrc = item.imageHash ? getThumbImageUrl(item.imageHash, "320x320") : null;
@@ -385,6 +257,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 							src={imageSrc}
 							alt={displayName ?? ""}
 							privacyScope="grid"
+							placeholder="silhouette"
 							className={cn(
 								// Locked tiles keep their light blur, also while hovered.
 								isLocked && (photoPrivacy === "blur" ? "hover:blur-[3px] hover:scale-105 group-hover/reveal:blur-[3px] group-hover/reveal:scale-105" : "blur-[3px] scale-105"),
@@ -401,14 +274,34 @@ export const InterestViewTile = memo(function InterestViewTile({
 
 						<div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/70 via-black/25 to-transparent" />
 
-						{/* Top-left: view count */}
-						<span
-							className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm"
-							title={t("interest_page.total_viewed_count")}
-						>
-							<EyeFilled className="h-3 w-3" />
-							<span className="tabular-nums">{item.viewCount || 1}</span>
-						</span>
+						{/* Top-left: view count, or the tap emoji (with mutual / read mark) */}
+						{mode === "views" ? (
+							<span
+								className="absolute left-2 top-2 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm"
+								title={t("interest_page.total_viewed_count")}
+							>
+								<EyeFilled className="h-3 w-3" />
+								<span className="tabular-nums">{item.viewCount || 1}</span>
+							</span>
+						) : !isPrivate ? (
+							<span className="absolute left-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 backdrop-blur-sm">
+								<span
+									className="select-none text-lg leading-none"
+									style={{ filter: `drop-shadow(0 0 3px rgba(${tapColor}, 0.55))` }}
+								>
+									{getTapEmoji(item.tapType)}
+								</span>
+								{(mode === "taps" && item.isMutual) || (mode === "sent" && item.isRead) ? (
+									<span
+										className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full text-white shadow-md"
+										style={{ backgroundColor: `rgb(${tapColor})` }}
+										title={mode === "taps" ? t("interest_page.mutual_tap_tooltip") : t("interest_page.sent_read_tooltip")}
+									>
+										{mode === "taps" ? <MoveHorizontal className="h-2.5 w-2.5" /> : <Check className="h-2.5 w-2.5" />}
+									</span>
+								) : null}
+							</span>
+						) : null}
 
 						{/* Top-right: presence */}
 						<div className="absolute right-2 top-2 z-10 flex h-5 items-center gap-1">
@@ -435,6 +328,12 @@ export const InterestViewTile = memo(function InterestViewTile({
 								<p className={cn("flex items-center gap-1 text-[11px] font-semibold text-white/80", displayName && "mt-0.5")}>
 									<ClockFilled className="h-3 w-3 shrink-0" />
 									<span className="truncate">{formatTimestamp(item.timestamp, t, now)}</span>
+									{mode === "taps" && item.distanceMeters != null && (
+										<span className="ml-1.5 flex shrink-0 items-center gap-1">
+											<Navigation className="h-3 w-3 fill-current" />
+											<span className="tabular-nums">{formatDistance(item.distanceMeters, t, unitsPreset)}</span>
+										</span>
+									)}
 								</p>
 							</div>
 							{(isFavorite || isRecovered || isPrivate) && (

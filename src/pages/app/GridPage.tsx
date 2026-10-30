@@ -1602,7 +1602,7 @@ export function GridPage() {
 			>
 				<header ref={headerRef} className="relative z-20 flex shrink-0 flex-col pb-2 pointer-events-none">
 					<PageHeaderBackground color={exploreLocation ? "var(--explore)" : "var(--accent)"} />
-					<div className="pointer-events-auto px-[var(--app-px)] sm:px-4">
+					<div className="pointer-events-auto px-[var(--app-px)] sm:px-4 rail:px-[var(--app-px)]">
 					<div>
 						<div>
 							<div className="mb-1 flex items-center gap-2">
@@ -1971,7 +1971,7 @@ export function GridPage() {
 				<FeedScrollContainer ref={feedContainerRef}>
 					<div
 						className={cn(
-							"transition-opacity duration-0 pb-[calc(env(safe-area-inset-bottom,0px)+120px)]",
+							"transition-opacity duration-0 pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[var(--page-bottom)]",
 							hasSavedScroll && !hasRestoredScroll && cards.length > 0 && !isLoadingCards
 								? "opacity-0"
 								: "opacity-100",

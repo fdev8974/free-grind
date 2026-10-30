@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useLogoutToNextAccount } from "../../hooks/useLogoutToNextAccount";
 import { getVersion } from "@tauri-apps/api/app";
 import { invoke } from "@tauri-apps/api/core";
@@ -58,6 +58,7 @@ import {
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { hasDemoProfileImages, isDemoProfileImagesEnabled, setDemoProfileImagesEnabled } from "../../utils/demoProfileImages";
 import { UpdateChannelSheet } from "./UpdateChannelSheet";
+import { TransferAccountSheet } from "./TransferAccountSheet";
 import { FingerprintCheckSheet } from "./settings-dev/DiagnosticsSheets";
 import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
 import { ControlledBottomSheet } from "../../components/ui/controlled-sheet";
@@ -360,7 +361,16 @@ export function SettingsPage() {
 	const [isFingerprintSheetOpen, setIsFingerprintSheetOpen] = useState(false);
 	const [isPreviewsSheetOpen, setIsPreviewsSheetOpen] = useState(false);
 	const [isChannelSheetOpen, setIsChannelSheetOpen] = useState(false);
+	const [isTransferSheetOpen, setIsTransferSheetOpen] = useState(false);
 	const isDesktop = useDesktopBreakpoint();
+	const location = useLocation();
+
+	// The settings search links to the transfer sheet as /settings#transfer-account.
+	useEffect(() => {
+		if (location.hash !== "#transfer-account") return;
+		navigate("/settings", { replace: true });
+		setIsTransferSheetOpen(true);
+	}, [location.hash, navigate]);
 	const [updateChannel, setUpdateChannel] =
 		useState<HotswapChannel>(getCurrentHotswapChannel());
 	const visibleChannels = getHotswapChannels();
@@ -642,7 +652,7 @@ export function SettingsPage() {
 			    accent glow over its own scroll container. Reached from the bottom nav, so no back button. */}
 			<header className="relative z-20 flex shrink-0 flex-col pb-3 pointer-events-none">
 				<PageHeaderBackground color="var(--accent)" />
-				<div className="pointer-events-auto mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--app-px)]">
+				<div className="pointer-events-auto mx-auto flex w-full max-w-[var(--content-max)] rail:max-w-none flex-col gap-3 px-[var(--app-px)]">
 					<div className="flex items-center justify-between gap-2">
 						<div className="min-w-0">
 							<h1 className="app-title">{t("settings.title")}</h1>
@@ -699,7 +709,7 @@ export function SettingsPage() {
 
 			{/* Same scroll container as Interest / Right Now: fades content out under the header. */}
 			<FeedScrollContainer>
-				<div className="mx-auto w-full max-w-[var(--content-max)] px-[var(--app-px)] pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px))]">
+				<div className="mx-auto w-full max-w-[var(--content-max)] rail:max-w-none px-[var(--app-px)] pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px))] rail:pb-[var(--page-bottom)]">
 					{searchQuery.trim() ? (
 						<div className="grid gap-6">
 							{searchResults.length === 0 ? (
@@ -776,7 +786,7 @@ export function SettingsPage() {
 											</button>
 											<button
 												type="button"
-												onClick={() => navigate("/settings/transfer-account")}
+												onClick={() => setIsTransferSheetOpen(true)}
 												aria-label={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
 												title={t("account_transfer.title", { defaultValue: "Sign in on another device" })}
 												className="shrink-0 rounded-full p-2.5 text-[var(--text-muted)] transition hover:ink-tint-10 hover:text-[var(--text)]"
@@ -1234,6 +1244,10 @@ export function SettingsPage() {
 				}}
 				onCancel={() => setLogoutConfirmTarget(null)}
 			/>
+
+			{isTransferSheetOpen && (
+				<TransferAccountSheet isDesktop={isDesktop} onClose={() => setIsTransferSheetOpen(false)} />
+			)}
 
 			{isChannelSheetOpen && (
 				<UpdateChannelSheet

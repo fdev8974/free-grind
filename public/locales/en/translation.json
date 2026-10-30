@@ -1063,6 +1063,8 @@
     "chat_section": "Chat Page",
     "drawer_layout": "Split Media Drawer into Categories",
     "drawer_layout_desc": "Show media, albums and collections in separate tabs instead of all on one page.",
+    "compact_composer": "Compact Message Bar",
+    "compact_composer_desc": "Put the media drawer button and a + menu with the other actions inside the message field instead of a row below it.",
     "reveal_effect": {
       "title": "Reveal Effect",
       "description": "The reveal effect animates items as you scroll down. You can disable it or change its intensity.",
@@ -1420,7 +1422,9 @@
     "favorite": "Favorite",
     "unfavorite": "Unfavorite",
     "no_conversations_match": "No conversations match your filters.",
+    "no_conversations_match_hint": "Try changing or clearing your filters.",
     "no_conversations": "No conversations yet.",
+    "no_conversations_hint": "Chats you start or receive will show up here.",
     "no_messages_yet": "No messages yet.",
     "pin": "Pin",
     "unpin": "Unpin",
@@ -1455,12 +1459,14 @@
       "error_search": "Search failed.",
       "retry": "Retry",
       "no_results": "No GIFs found.",
+      "no_results_hint": "Try a different search term.",
       "recent_empty": "No recently sent GIFs.",
       "recent_empty_hint": "GIFs you send will appear here.",
       "send_confirm": "Send GIF?"
     },
     "drawer_unavailable": "Send a message first to use the drawer",
     "attach_media": "Attach media",
+    "more_actions": "More",
     "drop_to_attach": "Drop to attach",
     "cancel_recording": "Slide left to cancel",
     "stop_recording": "Stop recording",
@@ -2202,7 +2208,9 @@
     "placeholder": "Search your locally stored messages",
     "loading": "Loading search index...",
     "min_chars": "Type at least 2 characters to search.",
+    "prompt_title": "Search your messages",
     "no_messages_found": "No message matches found.",
+    "no_messages_found_hint": "Try a different search term.",
     "error_load_inbox": "Failed to load inbox"
   },
   "pull_to_refresh": {
