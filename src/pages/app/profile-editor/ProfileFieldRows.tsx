@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, type LucideIcon } from "lucide-react";
 import { SelectSheet } from "../../../components/ui/select-sheet";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
@@ -9,8 +9,25 @@ import { ManagedOptionsPickerDialog } from "./ManagedOptionsPickerDialog";
 
 type Option = { value: number; label: string };
 
-/** Settings-style group: small caps heading (plus an optional action on the
- * right) above one native card of divided rows. `footer` sits under the card. */
+/** "card": native cards on the page (profile editor page). "profile": the
+ * surface-2 list cards of the profile view, for its edit mode. */
+export type FieldStyle = "card" | "profile";
+
+const FieldStyleContext = createContext<FieldStyle>("card");
+
+export function FieldStyleProvider({ value, children }: { value: FieldStyle; children: ReactNode }) {
+	return <FieldStyleContext.Provider value={value}>{children}</FieldStyleContext.Provider>;
+}
+
+/** Hover fill for a clickable row — one step off the card it sits on. */
+export function useFieldRowHoverClass() {
+	return useContext(FieldStyleContext) === "profile"
+		? "hover:bg-[var(--surface)] active:bg-[var(--surface)]"
+		: "hover:bg-[var(--surface-2)]";
+}
+
+/** Small caps heading (plus an optional action on the right) above one card
+ * of divided rows. `footer` sits under the card. */
 export function FieldSection({
 	title,
 	action,
@@ -24,13 +41,21 @@ export function FieldSection({
 	className?: string;
 	children: ReactNode;
 }) {
+	const style = useContext(FieldStyleContext);
 	return (
 		<section className={cn("min-w-0", className)}>
-			<div className="mb-2 flex min-h-7 items-center justify-between gap-3 px-1">
+			<div className={cn("mb-2 flex min-h-7 items-center justify-between gap-3", style === "card" && "px-1")}>
 				<h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">{title}</h3>
 				{action}
 			</div>
-			<div className="native-card overflow-hidden divide-y divide-[var(--border)]">{children}</div>
+			<div
+				className={cn(
+					"overflow-hidden divide-y divide-[var(--border)]",
+					style === "profile" ? "rounded-2xl bg-[var(--surface-2)]" : "native-card",
+				)}
+			>
+				{children}
+			</div>
 			{footer}
 		</section>
 	);
@@ -61,15 +86,22 @@ export function FieldSectionAction({
 	);
 }
 
-const ROW_CLASS = "flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left";
+const ROW_CLASS = "flex min-h-12 w-full items-center gap-3 px-4 py-2.5 text-left";
+
+/** Leading row icon, the muted 16px glyph the profile view puts before its fields. */
+function RowIcon({ icon: Icon }: { icon?: LucideIcon }) {
+	return Icon ? <Icon className="h-4 w-4 shrink-0 text-[var(--text-muted)]" /> : null;
+}
 
 /** Row that shows the current value and opens a picker. */
 export function PickerRow({
+	icon,
 	label,
 	value,
 	onClick,
 	disabled,
 }: {
+	icon?: LucideIcon;
 	label: string;
 	/** Empty / null shows the "Not set" placeholder. */
 	value: ReactNode;
@@ -77,19 +109,21 @@ export function PickerRow({
 	disabled?: boolean;
 }) {
 	const { t } = useTranslation();
+	const hoverClass = useFieldRowHoverClass();
 	const isEmpty = value == null || value === "";
 	return (
 		<button
 			type="button"
 			onClick={onClick}
 			disabled={disabled}
-			className={cn(ROW_CLASS, "transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50")}
+			className={cn(ROW_CLASS, "transition disabled:cursor-not-allowed disabled:opacity-50", hoverClass)}
 		>
+			<RowIcon icon={icon} />
 			<span className="shrink-0 text-sm font-medium text-[var(--text)]">{label}</span>
 			<span
 				className={cn(
-					"min-w-0 flex-1 truncate text-right text-sm",
-					isEmpty ? "text-[var(--text-muted)] opacity-60" : "text-[var(--text-muted)]",
+					"min-w-0 flex-1 truncate text-right text-sm text-[var(--text-muted)]",
+					isEmpty && "opacity-60",
 				)}
 			>
 				{isEmpty ? t("profile_editor.sections.states.not_set") : value}
@@ -102,11 +136,13 @@ export function PickerRow({
 /** Pick one option (or "Not set") from a SelectSheet. Draft values are the
  * option's number as a string, "" for not set. */
 export function SingleSelectField({
+	icon,
 	label,
 	value,
 	options,
 	onChange,
 }: {
+	icon?: LucideIcon;
 	label: string;
 	value: string;
 	options: Option[];
@@ -119,7 +155,7 @@ export function SingleSelectField({
 
 	return (
 		<>
-			<PickerRow label={label} value={selectedLabel} onClick={() => setIsOpen(true)} />
+			<PickerRow icon={icon} label={label} value={selectedLabel} onClick={() => setIsOpen(true)} />
 			{/* Portaled out of the card: inside its divide-y list the overlay would
 			    pick up the divider border. */}
 			{isOpen && createPortal(
@@ -143,6 +179,7 @@ export function SingleSelectField({
 
 /** Pick any number of options from a chip sheet; the row lists the picks. */
 export function MultiSelectField({
+	icon,
 	label,
 	values,
 	options,
@@ -150,6 +187,7 @@ export function MultiSelectField({
 	search,
 	unavailableLabel,
 }: {
+	icon?: LucideIcon;
 	label: string;
 	values: number[];
 	options: Option[];
@@ -169,6 +207,7 @@ export function MultiSelectField({
 	if (options.length === 0 && unavailableLabel) {
 		return (
 			<div className={ROW_CLASS}>
+				<RowIcon icon={icon} />
 				<span className="shrink-0 text-sm font-medium text-[var(--text)]">{label}</span>
 				<span className="min-w-0 flex-1 truncate text-right text-sm text-[var(--text-muted)] opacity-60">{unavailableLabel}</span>
 			</div>
@@ -177,7 +216,7 @@ export function MultiSelectField({
 
 	return (
 		<>
-			<PickerRow label={label} value={summary} onClick={() => setIsOpen(true)} />
+			<PickerRow icon={icon} label={label} value={summary} onClick={() => setIsOpen(true)} />
 			{isOpen && createPortal(
 				<ManagedOptionsPickerDialog
 					title={label}
@@ -195,8 +234,50 @@ export function MultiSelectField({
 	);
 }
 
+/** On/off row with the app's switch (same look as ToggleRow), plus a leading icon. */
+export function ToggleField({
+	icon,
+	label,
+	description,
+	checked,
+	onChange,
+}: {
+	icon?: LucideIcon;
+	label: string;
+	description?: string;
+	checked: boolean;
+	onChange: (checked: boolean) => void;
+}) {
+	return (
+		<label className={cn(ROW_CLASS, "cursor-pointer", description && "items-start")}>
+			{description ? <span className="mt-0.5"><RowIcon icon={icon} /></span> : <RowIcon icon={icon} />}
+			<span className="min-w-0 flex-1">
+				<span className="block text-sm font-medium text-[var(--text)]">{label}</span>
+				{description && <span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-muted)]">{description}</span>}
+			</span>
+			<span
+				className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center"
+				style={{
+					"--toggle-active": "var(--accent)",
+					"--toggle-thumb-active": "var(--accent-contrast)",
+				} as CSSProperties}
+			>
+				<input
+					type="checkbox"
+					checked={checked}
+					onChange={(event) => onChange(event.target.checked)}
+					className="peer absolute inset-0 z-10 m-0 cursor-pointer opacity-0"
+				/>
+				<span className="absolute inset-0 rounded-full border border-[var(--border)] bg-[var(--surface)] transition-colors peer-checked:border-transparent peer-checked:bg-[var(--toggle-active)]" />
+				<span className="absolute left-1 h-5 w-5 rounded-full bg-[var(--text)] transition-transform peer-checked:translate-x-5 peer-checked:bg-[var(--toggle-thumb-active)]" />
+			</span>
+		</label>
+	);
+}
+
 /** Single-line text typed straight into the row, right-aligned. */
 export function TextField({
+	icon,
 	label,
 	value,
 	onChange,
@@ -206,6 +287,7 @@ export function TextField({
 	counter,
 	error,
 }: {
+	icon?: LucideIcon;
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -219,6 +301,7 @@ export function TextField({
 	return (
 		<div>
 			<label className={cn(ROW_CLASS, "cursor-text")}>
+				<RowIcon icon={icon} />
 				<span className="shrink-0 text-sm font-medium text-[var(--text)]">{label}</span>
 				<input
 					type={numeric ? "number" : "text"}
@@ -238,6 +321,7 @@ export function TextField({
 
 /** Multi-line text under its label, full row width. */
 export function TextAreaField({
+	icon,
 	label,
 	value,
 	onChange,
@@ -246,6 +330,7 @@ export function TextAreaField({
 	counter,
 	error,
 }: {
+	icon?: LucideIcon;
 	label: string;
 	value: string;
 	onChange: (value: string) => void;
@@ -256,8 +341,9 @@ export function TextAreaField({
 }) {
 	return (
 		<label className="block cursor-text px-4 py-3">
-			<span className="flex items-center justify-between gap-3">
-				<span className="text-sm font-medium text-[var(--text)]">{label}</span>
+			<span className="flex items-center gap-3">
+				<RowIcon icon={icon} />
+				<span className="flex-1 text-sm font-medium text-[var(--text)]">{label}</span>
 				{counter && <span className="text-xs tabular-nums text-[var(--text-muted)] opacity-70">{counter}</span>}
 			</span>
 			<textarea

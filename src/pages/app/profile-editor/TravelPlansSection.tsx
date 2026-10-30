@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, Loader2, Plane, Plus } from "lucide-react";
-import { FieldSection, FieldSectionAction } from "./ProfileFieldRows";
+import { FieldSection, FieldSectionAction, useFieldRowHoverClass } from "./ProfileFieldRows";
 import { TravelPlanEditorSheet } from "./TravelPlanEditorSheet";
 import { useTravelPlans } from "../../../hooks/queries/useProfileQueries";
 import { reverseGeocodeCityDistrictForGeohash } from "../gridpage/geocoding";
@@ -51,6 +51,7 @@ type TravelPlansSectionProps = {
 
 export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 	const { t } = useTranslation();
+	const rowHoverClass = useFieldRowHoverClass();
 	const numericProfileId = profileId != null ? Number(profileId) : null;
 	const { data: travelPlans, isLoading } = useTravelPlans(numericProfileId);
 	// undefined = sheet closed; null = creating a new plan; TravelPlan = editing that plan
@@ -85,7 +86,7 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 					type="button"
 					onClick={() => setEditingPlan(null)}
 					disabled={numericProfileId == null}
-					className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+					className={`flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition ${rowHoverClass} disabled:cursor-not-allowed disabled:opacity-50`}
 				>
 					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
 						<Plus className="h-4 w-4" />
@@ -98,7 +99,7 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 						key={plan.travelPlanId}
 						type="button"
 						onClick={() => setEditingPlan(plan)}
-						className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
+						className={`flex w-full items-center gap-3 px-4 py-3 text-left transition ${rowHoverClass}`}
 					>
 						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--accent)]">
 							<Plane className="h-4 w-4" />

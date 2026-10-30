@@ -2,7 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Loader2, Music, Plus, X } from "lucide-react";
-import { FieldSection, FieldSectionAction } from "./ProfileFieldRows";
+import { FieldSection, FieldSectionAction, useFieldRowHoverClass } from "./ProfileFieldRows";
 import { SpotifySongPickerDialog } from "./SpotifySongPickerDialog";
 import type { SpotifyTrack } from "../../../services/spotify";
 import { MAX_SPOTIFY_FAVORITES } from "./profileEditorUtils";
@@ -20,6 +20,7 @@ export const sameTrackIds = (a: SpotifyTrack[], b: SpotifyTrack[]) =>
 
 export function SpotifyFavoritesSection({ tracks, isLoading, disabled, onChange }: SpotifyFavoritesSectionProps) {
 	const { t } = useTranslation();
+	const rowHoverClass = useFieldRowHoverClass();
 	const [pickerOpen, setPickerOpen] = useState(false);
 
 	const removeTrack = (id: string) => {
@@ -30,7 +31,7 @@ export function SpotifyFavoritesSection({ tracks, isLoading, disabled, onChange 
 
 	return (
 		<FieldSection
-			title={t("profile_editor.spotify.title")}
+			title={t("profile_details.spotify.title")}
 			action={tracks.length > 0 ? (
 				<FieldSectionAction
 					onClick={() => setPickerOpen(true)}
@@ -54,7 +55,7 @@ export function SpotifyFavoritesSection({ tracks, isLoading, disabled, onChange 
 					type="button"
 					onClick={() => setPickerOpen(true)}
 					disabled={disabled}
-					className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
+					className={`flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition ${rowHoverClass} disabled:cursor-not-allowed disabled:opacity-50`}
 				>
 					<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md ink-tint-8 text-[var(--text-muted)]">
 						<Plus className="h-4 w-4" />
