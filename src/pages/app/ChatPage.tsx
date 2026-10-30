@@ -78,6 +78,17 @@ import {
 	indexMessages,
 	searchMessagesLocal,
 } from "./chat/cache";
+import {
+	INBOX_REVALIDATE_AFTER_MS,
+	INBOX_RIGHT_NOW_MAX_AGE_MS,
+	getInboxFilterKey,
+	getInboxSnapshot,
+	recordLiveInboxPage,
+	setInboxSnapshot,
+} from "./chat/inboxFreshness";
+import { useInboxRevalidation } from "./chat/useInboxRevalidation";
+import { hasCompletedFullInboxSync } from "../../services/inboxSync";
+import { useInboxSyncStatus } from "../../hooks/useInboxSyncStatus";
 import { ChatInboxPanel } from "./chat/ChatInboxPanel";
 import { ChatInboxHeader } from "./chat/ChatInboxHeader";
 import { ChatFiltersOverlay } from "./chat/ChatFiltersOverlay";
@@ -159,6 +170,21 @@ const OFFLINE_INBOX_FALLBACK_LIMIT = 100;
 // live API's actual page size (~190 conversations/page) so scrolling
 // behaves the same either way.
 const LOCAL_INBOX_PAGE_SIZE = 190;
+
+// Filters that change the /v4/inbox request itself (pinned/archived/hidden
+// are applied client-side only). While any is active the list has to come
+// from the server page by page — chatDb can't evaluate them.
+function hasServerInboxFilters(filters: InboxFilters): boolean {
+	return (
+		Boolean(filters.unreadOnly) ||
+		Boolean(filters.chemistryOnly) ||
+		Boolean(filters.favoritesOnly) ||
+		Boolean(filters.rightNowOnly) ||
+		Boolean(filters.onlineNowOnly) ||
+		(filters.positions?.length ?? 0) > 0 ||
+		filters.distanceMeters != null
+	);
+}
 // Synthetic, locally-generated block/unblock markers (see
 // chatDb.insertSystemMessage) — never real chat activity, so excluded
 // wherever "the newest message" is used to drive a conversation's
@@ -405,6 +431,7 @@ export function ChatPage() {
 	const selectedConversationUnreadCountRef = useRef(0);
 	// Per-conversation result of loadInbox's server-side preview fallback,
 	// keyed by the lastActivityTimestamp it was fetched for.
+	const inFlightInboxRequestsRef = useRef(new Map<string, Promise<unknown>>());
 	const remotePreviewFallbackRef = useRef(
 		new Map<string, { activity: number; preview: ConversationEntry["data"]["preview"] }>(),
 	);
@@ -412,7 +439,17 @@ export function ChatPage() {
 	const lastMessageIdRef = useRef<string | null>(null);
 	const conversationsWithPendingUnreadRef = useRef(new Set<string>());
 
-	const [conversations, setConversations] = useState<ConversationEntry[]>([]);
+	// Last unfiltered list from a previous mount (see inboxFreshness.ts) —
+	// rendered immediately so the inbox's scroll position can be restored
+	// before anything async lands; rows are revalidated as they come into view.
+	const [conversations, setConversations] = useState<ConversationEntry[]>(
+		() => getInboxSnapshot(userId) ?? [],
+	);
+	// True while the list holds every locally known conversation (from chatDb,
+	// once inboxSync has done a full walk) instead of server pages loaded in
+	// order — there's nothing left to page in, and polls/revalidation merge
+	// into it rather than defining it.
+	const inboxCacheModeRef = useRef(getInboxSnapshot(userId) != null);
 	// The canonical source of truth for archived chats' display data — holds
 	// the full entry directly rather than just an id, so archived chats render
 	// independently of whatever `conversations` (the live-inbox mirror)
@@ -427,7 +464,7 @@ export function ChatPage() {
 		archivedConversationsRef.current = archivedConversations;
 	}, [archivedConversations]);
 	const [nextPage, setNextPage] = useState<number | null>(null);
-	const [isLoadingInbox, setIsLoadingInbox] = useState(true);
+	const [isLoadingInbox, setIsLoadingInbox] = useState(() => getInboxSnapshot(userId) == null);
 	const [isLoadingMoreInbox, setIsLoadingMoreInbox] = useState(false);
 	const [inboxError, setInboxError] = useState<string | null>(null);
 	const [inboxFilters, setInboxFilters] = useState<InboxFilters>({});
@@ -1481,31 +1518,116 @@ export function ChatPage() {
 		};
 	}, [settingsReady]);
 
+	// Cache-first inbox: once inboxSync has walked the whole inbox, render
+	// every conversation from chatDb right away instead of paging /v4/inbox in
+	// order — so the list has its full height (scroll restoration works at any
+	// depth) without walking N pages first. Rows are then revalidated as they
+	// scroll into view (useInboxRevalidation below); volatile fields stay
+	// hidden until that happens (see inboxFreshness.ts). Re-runs when server
+	// filters are cleared (a filtered response replaced the list) and when a
+	// sync finishes (a first full walk may have just completed).
+	const hasActiveServerInboxFilters = hasServerInboxFilters(activeInboxFilters);
+	const isInboxSyncDone = useInboxSyncStatus(userId).phase === "done";
+	useEffect(() => {
+		if (!settingsReady || userId == null || hasActiveServerInboxFilters) {
+			inboxCacheModeRef.current = false;
+			return;
+		}
+		let cancelled = false;
+		void (async () => {
+			if (!(await hasCompletedFullInboxSync())) {
+				inboxCacheModeRef.current = false;
+				return;
+			}
+			const stored = await chatDb.listConversations();
+			// Same fallback as the archived hydration above, only for the few
+			// rows whose stored preview is unhelpful.
+			const entries = await Promise.all(
+				stored.map(async (c) => {
+					if (!isPreviewUnhelpful(c.entry.data.preview)) {
+						return c.entry;
+					}
+					const message = findPreviewFallbackMessage(await chatDb.getMessages(c.conversationId));
+					return message
+						? { ...c.entry, data: { ...c.entry.data, preview: buildPreviewFromMessage(message, t) } }
+						: c.entry;
+				}),
+			);
+			if (cancelled) {
+				return;
+			}
+			inboxCacheModeRef.current = true;
+			setConversations((previous) => {
+				// Entries already in state came from a live response (or were
+				// patched since), so they win over the stored copy — unless that
+				// state is an older snapshot and the background sync has stored
+				// newer activity since.
+				const byId = new Map(entries.map((entry) => [entry.data.conversationId, entry] as const));
+				for (const entry of previous) {
+					const stored = byId.get(entry.data.conversationId);
+					if (
+						!stored ||
+						(entry.data.lastActivityTimestamp ?? 0) >= (stored.data.lastActivityTimestamp ?? 0)
+					) {
+						byId.set(entry.data.conversationId, entry);
+					}
+				}
+				return [...byId.values()].sort((a, b) => {
+					if (a.data.pinned && !b.data.pinned) return -1;
+					if (b.data.pinned && !a.data.pinned) return 1;
+					return (b.data.lastActivityTimestamp ?? 0) - (a.data.lastActivityTimestamp ?? 0);
+				});
+			});
+			setNextPage(null);
+			setIsLoadingInbox(false);
+			appLog.debug(`[ChatPage] hydrated ${entries.length} conversation(s) from chatDb`);
+		})().catch((error) => {
+			appLog.warn("[ChatPage] failed to hydrate inbox from chatDb", error);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [settingsReady, userId, hasActiveServerInboxFilters, isInboxSyncDone, t]);
+
+	useEffect(() => {
+		if (userId != null && inboxCacheModeRef.current && !hasActiveServerInboxFilters) {
+			setInboxSnapshot(userId, conversations);
+		}
+	}, [conversations, userId, hasActiveServerInboxFilters]);
+
 	const loadInbox = useCallback(
 		async ({
 			page,
 			replace,
 			silent,
-		}: { page: number; replace: boolean; silent?: boolean }) => {
-			if (replace) {
-				if (!silent) {
-					setIsLoadingInbox(true);
+			revalidate,
+		}: {
+			page: number;
+			replace: boolean;
+			silent?: boolean;
+			// Background refresh of a page already shown (useInboxRevalidation):
+			// merges like "load more" but touches no loading/error/pagination state.
+			revalidate?: boolean;
+		}) => {
+			if (!revalidate) {
+				if (replace) {
+					// Never swap a complete (cache-mode) list for the skeleton — that
+					// would also throw away its scroll position.
+					const isShowingFullList =
+						inboxCacheModeRef.current && !hasServerInboxFilters(activeInboxFiltersRef.current);
+					if (!silent && !isShowingFullList) {
+						setIsLoadingInbox(true);
+					}
+					setInboxError(null);
+				} else {
+					setIsLoadingMoreInbox(true);
 				}
-				setInboxError(null);
-			} else {
-				setIsLoadingMoreInbox(true);
 			}
 
 			try {
 				const filters = activeInboxFiltersRef.current;
-				const hasActiveServerFilters =
-					filters.unreadOnly ||
-					filters.chemistryOnly ||
-					filters.favoritesOnly ||
-					filters.rightNowOnly ||
-					filters.onlineNowOnly ||
-					(filters.positions?.length ?? 0) > 0 ||
-					filters.distanceMeters != null;
+				const hasActiveServerFilters = hasServerInboxFilters(filters);
+				const isCacheMode = inboxCacheModeRef.current && !hasActiveServerFilters;
 
 				// Every page — including "load more" while scrolling — always goes
 				// live to /v4/inbox instead of paging through chatDb, so
@@ -1516,9 +1638,24 @@ export function ChatPage() {
 				// after a block/unblock) but that's still known locally keeps
 				// showing up, sorted into place by lastActivityTimestamp, instead
 				// of silently disappearing just because pagination went live.
-				const response = await service.listConversations({
+				// A revalidation of a page that's already being fetched (e.g. the
+				// first scroll-idle report racing the initial page-1 load) just
+				// waits for that request — its own caller merges and records it.
+				const requestKey = `${getInboxFilterKey(filters)}#${page}`;
+				const inFlight = inFlightInboxRequestsRef.current.get(requestKey);
+				if (revalidate && inFlight) {
+					await inFlight.catch(() => {});
+					return;
+				}
+				const request = service.listConversations({
 					page,
 					filters,
+				});
+				inFlightInboxRequestsRef.current.set(requestKey, request);
+				const response = await request.finally(() => {
+					if (inFlightInboxRequestsRef.current.get(requestKey) === request) {
+						inFlightInboxRequestsRef.current.delete(requestKey);
+					}
 				});
 
 				if (userId != null) {
@@ -1625,9 +1762,10 @@ export function ChatPage() {
 				// every page, not just a full refresh — the same "permanently
 				// dropped" risk applies whether this is page 1 or a "load more"
 				// page, since pagination no longer falls back to chatDb on its
-				// own (see above).
+				// own (see above). Skipped in cache mode: the list already holds
+				// everything chatDb has, and recovery only ever fills gaps.
 				let recoveredEntries: ConversationEntry[] = [];
-				if (!hasActiveServerFilters) {
+				if (!hasActiveServerFilters && !isCacheMode) {
 					const responseIds = new Set(
 						response.entries.map((entry) => entry.data.conversationId),
 					);
@@ -1818,6 +1956,17 @@ export function ChatPage() {
 						);
 					});
 				});
+				// Same tick as the setConversations above, so a row never shows
+				// as fresh while still holding its cached data.
+				if (userId != null) {
+					recordLiveInboxPage(
+						userId,
+						getInboxFilterKey(filters),
+						page,
+						response.entries,
+						response.nextPage != null,
+					);
+				}
 
 				// The live API sometimes returns a null preview for a conversation
 				// whose last message was unsent server-side, even though we have
@@ -1882,7 +2031,9 @@ export function ChatPage() {
 					});
 				}
 
-				setNextPage(response.nextPage ?? null);
+				if (!revalidate) {
+					setNextPage(isCacheMode ? null : (response.nextPage ?? null));
+				}
 				if (replace && response.entries.length > 0) {
 					setSelectedDesktopConversationId((previous) =>
 						// A selection already made (e.g. via the targetProfileId lookup,
@@ -1894,11 +2045,23 @@ export function ChatPage() {
 					);
 				}
 			} catch (error) {
+				// The rows are already on screen — a failed background refresh just
+				// leaves them stale until the next scroll stop retries.
+				if (revalidate) {
+					appLog.debug("[ChatPage] inbox revalidation failed", { page, error });
+					return;
+				}
 				// A real HTTP error response (ChatApiError) should still surface as
 				// an error — only fall back to the local DB when the request never
 				// got an HTTP response at all (no connectivity).
 				if (!(error instanceof ChatApiError)) {
 					try {
+						if (inboxCacheModeRef.current && !hasServerInboxFilters(activeInboxFiltersRef.current)) {
+							// Already showing every locally known conversation.
+							setNextPage(null);
+							setInboxError(null);
+							return;
+						}
 						const stored = await chatDb.listConversations({ includeArchived: true });
 						if (replace) {
 							setConversations(
@@ -1929,8 +2092,10 @@ export function ChatPage() {
 					error instanceof Error ? error.message : t("chat.errors.load_inbox");
 				setInboxError(message);
 			} finally {
-				setIsLoadingInbox(false);
-				setIsLoadingMoreInbox(false);
+				if (!revalidate) {
+					setIsLoadingInbox(false);
+					setIsLoadingMoreInbox(false);
+				}
 			}
 		},
 		[service, targetProfileId, t, userId],
@@ -4319,6 +4484,27 @@ export function ChatPage() {
 
 		void loadInbox({ page: nextPage, replace: false });
 	};
+
+	const revalidateInbox = useInboxRevalidation({
+		userId,
+		conversationsRef,
+		getFilterKey: () => getInboxFilterKey(activeInboxFiltersRef.current),
+		fetchPage: (page) => loadInbox({ page, replace: false, revalidate: true }),
+	});
+	const visibleInboxIdsRef = useRef<string[]>([]);
+	const handleInboxScrollIdle = useCallback(
+		(visibleConversationIds: string[]) => {
+			visibleInboxIdsRef.current = visibleConversationIds;
+			revalidateInbox(visibleConversationIds, INBOX_REVALIDATE_AFTER_MS);
+		},
+		[revalidateInbox],
+	);
+	// Rows left in view without scrolling would otherwise age past
+	// INBOX_RIGHT_NOW_MAX_AGE_MS and lose their rightNow badge — refresh them
+	// shortly before that, at most once per that window.
+	useEffect(() => {
+		revalidateInbox(visibleInboxIdsRef.current, INBOX_RIGHT_NOW_MAX_AGE_MS - INBOX_REVALIDATE_AFTER_MS);
+	}, [nowTimestamp, revalidateInbox]);
 
 	const togglePinConversation = useCallback(
 		async (conversationId: string, isPinned: boolean) => {
@@ -6855,6 +7041,7 @@ export function ChatPage() {
 			inboxListRef={inboxListRef}
 			onRefreshInbox={() => loadInbox({ page: 1, replace: true })}
 			onLoadMoreInbox={handleLoadMoreInbox}
+			onInboxScrollIdle={handleInboxScrollIdle}
 			onSelectConversation={handleSelectConversation}
 			onOpenConversationById={openConversationById}
 			onViewProfile={(profileId) => openProfile(profileId, "/chat")}

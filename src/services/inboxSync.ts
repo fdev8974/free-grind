@@ -118,6 +118,14 @@ let currentToken = 0;
 const inFlightByUser = new Map<number, Promise<void>>();
 
 /**
+ * Whether the active chatDb holds the whole inbox — i.e. the initial full
+ * walk has finished at least once, so the chat list can be rendered from it.
+ */
+export async function hasCompletedFullInboxSync(): Promise<boolean> {
+	return (await chatDb.getSetting<boolean>(INBOX_SYNC_DONE_SETTING_KEY)) === true;
+}
+
+/**
  * Starts (or reuses an already-running) inbox sync for `userId`. Safe — and
  * intended — to call on every profile load: the first run for a profile
  * does a full walk, every run after is incremental (see module docstring).

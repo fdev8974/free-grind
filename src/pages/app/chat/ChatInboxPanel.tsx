@@ -1,7 +1,7 @@
 import { Archive, BellOff, Check, CheckCheck, EyeOff, ListFilter, Loader2, MessageCircle, PencilLine, Pin, Star, Trash2 } from "lucide-react";
 import { BellOffFilled, EyeOffFilled, HomeFilled, LocateFixedFilled, Trash2Filled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
-import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactElement, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { ScrollToTopButton } from "../../../components/ui/ScrollToTopButton";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -41,6 +41,17 @@ import { FEED_HEADER_OFFSET, FEED_MASK_GRADIENT_STOP } from "../../../config/des
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { getNicknameRename, useSeenDisplayNames, type SeenDisplayName } from "../../../hooks/useNicknameNameChange";
+import {
+	getInboxFreshnessVersion,
+	getInboxScrollAnchor,
+	isInboxRightNowFresh,
+	setInboxScrollAnchor,
+	subscribeInboxFreshness,
+} from "./inboxFreshness";
+
+// Quiet period after the last scroll event before the rows in view are
+// reported for revalidation — a fling only revalidates where it stops.
+const SCROLL_IDLE_MS = 400;
 
 /** Footer bar below the chat list's scroll area (not inside it) — reads as
  * part of the list (same border/background as a conversation row) rather
@@ -111,6 +122,8 @@ type ChatInboxPanelProps = ChatInboxHeaderProps & {
 	showHeader: boolean;
 	onRefreshInbox: () => Promise<void>;
 	onLoadMoreInbox: () => void;
+	// Ids of the rows in view once scrolling settles (and after the list changes).
+	onInboxScrollIdle?: (visibleConversationIds: string[]) => void;
 	onSelectConversation: (conversation: ConversationEntry) => void;
 	onOpenConversationById: (conversationId: string) => void;
 	onViewProfile: (profileId: number) => void;
@@ -135,6 +148,8 @@ type ChatConversationRowProps = {
 	isTyping: boolean;
 	isArchived: boolean;
 	isDesktop: boolean;
+	// False while the row's rightNow is only known from cache (see inboxFreshness.ts).
+	showRightNow: boolean;
 	onSelectConversation: (c: ConversationEntry) => void;
 	onViewProfile: (profileId: number) => void;
 	onOpenContextMenu: (conversation: ConversationEntry, isArchived: boolean, x: number, y: number) => void;
@@ -381,6 +396,7 @@ function ChatConversationRow({
 	isTyping,
 	isArchived,
 	isDesktop,
+	showRightNow,
 	onSelectConversation,
 	onViewProfile,
 	onOpenContextMenu,
@@ -667,12 +683,12 @@ function ChatConversationRow({
 										<Star className="h-3.5 w-3.5 shrink-0 fill-current text-[var(--accent)]" />
 									</span>
 								)}
-								{conversation.data.rightNow === "HOSTING" && (
+								{showRightNow && conversation.data.rightNow === "HOSTING" && (
 									<span title={t("right_now.hosting")}>
 										<HomeFilled className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 									</span>
 								)}
-								{conversation.data.rightNow === "NOT_HOSTING" && (
+								{showRightNow && conversation.data.rightNow === "NOT_HOSTING" && (
 									<span title={t("right_now.not_hosting", { defaultValue: "Right Now" })}>
 										<RightNowIcon className="h-3.5 w-3.5 shrink-0 text-[var(--right-now)]" />
 									</span>
@@ -747,6 +763,7 @@ export function ChatInboxPanel({
 	onSetFiltersDraft,
 	onRefreshInbox,
 	onLoadMoreInbox,
+	onInboxScrollIdle,
 	onSelectConversation,
 	onOpenConversationById,
 	onViewProfile,
@@ -877,8 +894,10 @@ export function ChatInboxPanel({
 		setInboxListEl(node);
 	}, [inboxListRef]);
 
-	const markUserScroll = () => {
+	const handleListScroll = () => {
 		lastScrollAtRef.current = Date.now();
+		saveScrollAnchor();
+		scheduleScrollIdleReport();
 	};
 
 	useEffect(() => {
@@ -930,6 +949,88 @@ export function ChatInboxPanel({
 		lastRequestedPageRef.current = nextPage;
 		onLoadMoreInbox();
 	}, [lastVirtualItemIndex, filteredConversations.length, isLoadingMoreInbox, nextPage, onLoadMoreInbox]);
+
+	// Re-render when a live response lands, so rows whose rightNow it just
+	// confirmed show it (isInboxRightNowFresh reads module state).
+	useSyncExternalStore(subscribeInboxFreshness, getInboxFreshnessVersion);
+
+	const filteredConversationsRef = useRef(filteredConversations);
+	filteredConversationsRef.current = filteredConversations;
+	const onInboxScrollIdleRef = useRef(onInboxScrollIdle);
+	onInboxScrollIdleRef.current = onInboxScrollIdle;
+	const scrollIdleTimerRef = useRef<number | null>(null);
+	const scheduleScrollIdleReport = useCallback(() => {
+		if (scrollIdleTimerRef.current != null) {
+			window.clearTimeout(scrollIdleTimerRef.current);
+		}
+		scrollIdleTimerRef.current = window.setTimeout(() => {
+			scrollIdleTimerRef.current = null;
+			// range is the rows actually in view, without overscan.
+			const range = rowVirtualizer.range;
+			if (!range || !inboxListRef.current) {
+				return;
+			}
+			const ids: string[] = [];
+			for (let index = range.startIndex; index <= range.endIndex; index += 1) {
+				const conversation = filteredConversationsRef.current[index];
+				if (conversation) {
+					ids.push(conversation.data.conversationId);
+				}
+			}
+			onInboxScrollIdleRef.current?.(ids);
+		}, SCROLL_IDLE_MS);
+	}, [inboxListRef, rowVirtualizer]);
+	useEffect(
+		() => () => {
+			if (scrollIdleTimerRef.current != null) {
+				window.clearTimeout(scrollIdleTimerRef.current);
+			}
+		},
+		[],
+	);
+	useEffect(() => {
+		if (!isLoadingInbox && !isSearchOpen) {
+			scheduleScrollIdleReport();
+		}
+	}, [filteredConversations.length, isLoadingInbox, isSearchOpen, scheduleScrollIdleReport]);
+
+	// Scroll position survives remounts (mobile unmounts the inbox while a
+	// thread is open; leaving /chat unmounts the whole page) as an anchor row
+	// plus offset rather than a raw scrollTop, so rows added above it in the
+	// meantime don't shift what's shown. Not saved until the restore below
+	// has run, so the initial scrollTop of 0 can't clobber it.
+	const hasRestoredScrollRef = useRef(false);
+	const saveScrollAnchor = () => {
+		const el = inboxListRef.current;
+		if (!el || userId == null || !hasRestoredScrollRef.current) {
+			return;
+		}
+		const item = el.scrollTop > 0 ? rowVirtualizer.getVirtualItemForOffset(el.scrollTop) : undefined;
+		const conversation = item ? filteredConversations[item.index] : undefined;
+		setInboxScrollAnchor(
+			userId,
+			item && conversation
+				? { conversationId: conversation.data.conversationId, offset: el.scrollTop - item.start }
+				: null,
+		);
+	};
+	useLayoutEffect(() => {
+		if (hasRestoredScrollRef.current || isLoadingInbox || isSearchOpen || filteredConversations.length === 0) {
+			return;
+		}
+		hasRestoredScrollRef.current = true;
+		const anchor = getInboxScrollAnchor(userId);
+		if (!anchor) {
+			return;
+		}
+		const index = filteredConversations.findIndex(
+			(conversation) => conversation.data.conversationId === anchor.conversationId,
+		);
+		const start = index >= 0 ? rowVirtualizer.measurementsCache[index]?.start : undefined;
+		if (start != null) {
+			rowVirtualizer.scrollToOffset(start + anchor.offset);
+		}
+	}, [filteredConversations, isLoadingInbox, isSearchOpen, rowVirtualizer, userId]);
 
 	return (
 		<PullToRefreshContainer
@@ -987,7 +1088,7 @@ export function ChatInboxPanel({
 				>
 					<div
 						ref={setInboxListRef}
-						onScroll={markUserScroll}
+						onScroll={handleListScroll}
 						data-lenis-prevent
 						className="h-full overflow-y-auto"
 						style={!isDesktop ? {
@@ -1077,6 +1178,11 @@ export function ChatInboxPanel({
 														isTyping={typingConversationIds?.has(conversation.data.conversationId) ?? false}
 														isArchived={archivedConversationIds.has(conversation.data.conversationId)}
 														isDesktop={isDesktop}
+														showRightNow={isInboxRightNowFresh(
+															userId,
+															conversation.data.conversationId,
+															nowTimestamp,
+														)}
 														onSelectConversation={onSelectConversation}
 														onViewProfile={onViewProfile}
 														onOpenActionSheet={(c, isArchived, title) =>
