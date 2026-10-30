@@ -68,6 +68,7 @@ import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
+import { FullscreenPortal } from "../../components/FullscreenPrompt";
 import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
 import { OutdatedVersionPromptView, fetchLatestRelease, isOlderVersion, type ReleaseInfo } from "../../components/OutdatedVersionPrompt";
 import { AccountStatusPromptView } from "../../components/AccountStatusPrompt";
@@ -599,50 +600,50 @@ export function SettingsPage() {
 
 	if (previewAnnouncement && LATEST_ANNOUNCEMENT) {
 		return (
-			<div className="app-shell z-[300]">
+			<FullscreenPortal className="z-[300]">
 				<VersionAnnouncement
 					announcement={LATEST_ANNOUNCEMENT}
 					buttonLabel={t("common.close", { defaultValue: "Close" })}
 					onClose={() => setPreviewAnnouncement(false)}
 				/>
-			</div>
+			</FullscreenPortal>
 		);
 	}
 
 	if (appUpdateRelease) {
 		return (
-			<div className="app-shell z-[110]">
+			<FullscreenPortal className="z-[110]">
 				<OutdatedVersionPromptView
 					appVersion={nativeVersion ?? frontendVersion}
 					releaseInfo={appUpdateRelease}
 					onDismiss={() => setAppUpdateRelease(null)}
 					manual
 				/>
-			</div>
+			</FullscreenPortal>
 		);
 	}
 
 	if (previewAccountStatus) {
 		return (
-			<div className="app-shell z-[110]">
+			<FullscreenPortal className="z-[110]">
 				<AccountStatusPromptView
 					status={previewAccountStatus}
 					onSignOut={() => setPreviewAccountStatus(null)}
 					onAcceptBanAgreement={async () => setPreviewAccountStatus(null)}
 				/>
-			</div>
+			</FullscreenPortal>
 		);
 	}
 
 	if (previewOutdatedPrompt) {
 		return (
-			<div className="app-shell z-[110]">
+			<FullscreenPortal className="z-[110]">
 				<OutdatedVersionPromptView
 					appVersion={import.meta.env.VITE_APP_VERSION}
 					releaseInfo={PREVIEW_RELEASE_INFO}
 					onDismiss={() => setPreviewOutdatedPrompt(false)}
 				/>
-			</div>
+			</FullscreenPortal>
 		);
 	}
 

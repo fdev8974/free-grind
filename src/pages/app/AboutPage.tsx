@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import semver from "semver";
 import { PageHeader } from "../../components/PageHeader";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
+import { FullscreenPortal } from "../../components/FullscreenPrompt";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
 import { triggerSinModeUnlock } from "../../utils/sinModeEasterEgg";
@@ -117,14 +118,14 @@ export function AboutPage() {
 
 	if (showAnnouncement && announcement) {
 		return (
-			<div className="app-shell z-[300]">
+			<FullscreenPortal className="z-[300]">
 				<VersionAnnouncement
 					announcement={announcement}
 					appVersion={announcement.version === semver.coerce(appVersion)?.version ? appVersion : undefined}
 					buttonLabel={t("common.close", { defaultValue: "Close" })}
 					onClose={() => setShowAnnouncement(false)}
 				/>
-			</div>
+			</FullscreenPortal>
 		);
 	}
 

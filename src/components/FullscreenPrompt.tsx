@@ -1,5 +1,16 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
+
+/**
+ * App-shell backdrop for a full-screen prompt a routed page shows in place of
+ * itself (settings previews, About's announcement). Portaled to <body> so it
+ * covers the whole window: inside ProtectedLayout it would start right of the
+ * desktop nav rail, leaving the rail visible beside/through the prompt.
+ */
+export function FullscreenPortal({ className = "", children }: { className?: string; children: ReactNode }) {
+	return createPortal(<div className={`app-shell fixed inset-0 ${className}`}>{children}</div>, document.body);
+}
 
 /**
  * Full-page prompt in the same fs-card shell as TokenExpiredPrompt and
