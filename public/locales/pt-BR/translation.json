@@ -2241,7 +2241,7 @@
         "section_desc": "Conte aos outros para onde você vai e quando.",
         "add": "Adicionar viagem",
         "max_reached": "Você pode adicionar até {{max}} viagens.",
-        "empty": "Nenhuma viagem ainda.",
+        "empty": "Adicione até {{max}} viagens",
         "hidden_badge": "Oculta",
         "resolving_location": "Obtendo localização…",
         "add_title": "Adicionar viagem",

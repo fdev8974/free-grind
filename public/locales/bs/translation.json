@@ -2241,7 +2241,7 @@
         "section_desc": "Javi drugima kamo ideš i kada.",
         "add": "Dodaj putovanje",
         "max_reached": "Možeš dodati najviše {{max}} putovanja.",
-        "empty": "Još nema putovanja.",
+        "empty": "Dodaj do {{max}} putovanja",
         "hidden_badge": "Skriveno",
         "resolving_location": "Određivanje lokacije…",
         "add_title": "Dodaj putovanje",

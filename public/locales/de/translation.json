@@ -2230,7 +2230,7 @@
         "section_desc": "Lass andere wissen, wohin und wann du reist.",
         "add": "Trip hinzufügen",
         "max_reached": "Du kannst bis zu {{max}} Reisen hinzufügen.",
-        "empty": "Noch keine Trips.",
+        "empty": "Füge bis zu {{max}} Reisen hinzu",
         "hidden_badge": "Versteckt",
         "resolving_location": "Ort wird ermittelt…",
         "add_title": "Trip hinzufügen",

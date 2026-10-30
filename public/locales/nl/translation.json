@@ -2222,7 +2222,7 @@
         "section_desc": "Laat anderen weten waar je heen gaat en wanneer.",
         "add": "Reis toevoegen",
         "max_reached": "Je kunt maximaal {{max}} reizen toevoegen.",
-        "empty": "Nog geen reizen.",
+        "empty": "Voeg tot {{max}} reizen toe",
         "hidden_badge": "Verborgen",
         "resolving_location": "Locatie bepalen…",
         "add_title": "Reis toevoegen",

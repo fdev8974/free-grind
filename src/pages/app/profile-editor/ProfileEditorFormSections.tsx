@@ -312,683 +312,692 @@ export function ProfileEditorFormSections({
 
 	return (
 		<div className="grid gap-5">
-			{/* Pictures */}
-			<div className="native-card p-4 sm:p-5">
-				<CategoryHeader
-					title={t("profile_editor.sections.pictures.title")}
-					description={t("profile_editor.sections.pictures.description")}
-					icon={Camera}
-					action={
-						(() => {
-							const uploadDisabled = isUploadingPhoto || isSavingPhotos || profilePhotoHashes.length >= MAX_PROFILE_PHOTOS;
-							return (
-								<button
-									type="button"
-									onClick={onOpenPhotoDrawer}
-									disabled={uploadDisabled}
-									className={[
-										"inline-flex min-h-9 items-center gap-1.5 rounded-full ink-tint-10 px-3.5 py-2 text-sm font-semibold transition-[transform,background-color] duration-150",
-										uploadDisabled
-											? "cursor-not-allowed opacity-40"
-											: "cursor-pointer hover:ink-tint-14 active:scale-[0.97]",
-									].join(" ")}
-								>
-									{isUploadingPhoto
-										? t("profile_editor.sections.pictures.uploading")
-										: t("profile_editor.sections.pictures.add")}
-									<span className="ml-1 rounded-full ink-tint-10 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
-										{profilePhotoHashes.length}/{MAX_PROFILE_PHOTOS}
-									</span>
-								</button>
-							);
-						})()
-					}
-				/>
-				<div className="grid gap-4">
-					<DndContext
-						sensors={sensors}
-						onDragStart={handleDndDragStart}
-						onDragOver={handleDndDragOver}
-						onDragEnd={handleDndDragEnd}
-						onDragCancel={() => { setActiveId(null); setOverId(null); }}
-					>
-						<SortableContext items={profilePhotoHashes} strategy={rectSortingStrategy}>
-							<div className={`grid gap-3 ${isDesktop ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-3"}`}>
-								{profilePhotoHashes.map((hash) => (
-									<SortablePhotoSlot
-										key={hash}
-										hash={hash}
-										slotIndex={liveOrder.indexOf(hash)}
-										moderation={photoModerationByHash?.get(hash)}
-										isSavingPhotos={isSavingPhotos}
-										isUploadingPhoto={isUploadingPhoto}
-										onRemovePhoto={onRemovePhoto}
-										t={t}
-									/>
-								))}
-								{Array.from({ length: MAX_PROFILE_PHOTOS - profilePhotoHashes.length }).map((_, i) => (
-									<button
-										key={`empty-${i}`}
-										type="button"
-										onClick={onOpenPhotoDrawer}
-										className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl ink-tint-8 text-[var(--text-muted)] transition-[transform,color] duration-150 hover:ink-tint-12 hover:text-[var(--accent)] active:scale-[0.98]"
-									>
-										<Plus className="h-6 w-6" />
-										<span className="text-xs font-medium">
-											{t("profile_editor.sections.pictures.add")}
-										</span>
-									</button>
-								))}
-							</div>
-						</SortableContext>
-					</DndContext>
-
-					{isSavingPhotos ? (
-						<p className="text-xs text-[var(--text-muted)]">
-							{t("profile_editor.sections.pictures.saving")}
-						</p>
-					) : null}
-				</div>
-			</div>
-
-			{/* Profile / Basic Info */}
-			<div className="native-card p-4 sm:p-5">
-				<CategoryHeader
-					title={t("profile_editor.sections.profile.title")}
-					description={t("profile_editor.sections.profile.description")}
-					icon={Sparkles}
-				/>
-				<div className="grid gap-5">
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-							{t("profile_editor.sections.profile.display_name")}
-						</label>
-						<input
-							type="text"
-							maxLength={15}
-							value={draft.displayName}
-							onChange={(event) => onDraftChange("displayName", event.target.value)}
-							className="input-field"
-							placeholder={t("profile_editor.sections.profile.display_name_placeholder")}
-						/>
-						<p className={`mt-2 text-xs sm:text-sm ${displayNameError ? "text-red-400" : "text-[var(--text-muted)]"}`}>
-							{displayNameError ??
-								t("profile_editor.sections.profile.char_count", {
-									count: draft.displayName.trim().length || 0,
-									total: 15,
-								})}
-						</p>
-					</div>
-
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-							{t("profile_editor.sections.profile.about_me")}
-						</label>
-						<div className="relative">
-							<textarea
-								value={draft.aboutMe}
-								maxLength={255}
-								onChange={(event) => onDraftChange("aboutMe", event.target.value)}
-								className="input-field min-h-32 resize-y pb-6"
-								placeholder={t("profile_editor.sections.profile.about_me_placeholder")}
-							/>
-							<div className="pointer-events-none absolute bottom-2.5 right-3 text-[10px] font-medium text-[var(--text-muted)] opacity-70">
-								{t("profile_editor.sections.profile.char_count", {
-									count: draft.aboutMe.length,
-									total: 255,
-								})}
-							</div>
-						</div>
-						{aboutMeError && (
-							<p className="mt-2 text-xs text-red-400 sm:text-sm">{aboutMeError}</p>
-						)}
-					</div>
-
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
-							{t("profile_editor.sections.profile.my_tags")}
-						</label>
-						{tagsError && (
-							<p className="mb-2 text-xs text-red-400 sm:text-sm">{tagsError}</p>
-						)}
-						<div className="flex flex-wrap gap-2">
-							{tagList.map((tag) => (
-								<SheetChip
-									key={tag}
-									active
-									onClick={() =>
-										onDraftChange(
-											"profileTagsText",
-											toggleProfileTagText(draft.profileTagsText, tag),
-										)
-									}
-								>
-									<span className="inline-flex items-center gap-1.5">
-										{tagLabelByKey.get(tag) ?? tag}
-										<X className="h-3.5 w-3.5" />
-									</span>
-								</SheetChip>
-							))}
-							<SheetMoreButton onClick={() => setIsTagsDialogOpen(true)}>
-								{tagList.length > 0
-									? t("profile_editor.sections.profile.my_tags_manage")
-									: t("profile_editor.sections.profile.no_tags_added")}
-							</SheetMoreButton>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Stats / States */}
-			<div className="native-card p-4 sm:p-5">
-				<CategoryHeader
-					title={t("profile_editor.sections.states.title")}
-					description={t("profile_editor.sections.states.description")}
-					icon={Ruler}
-				/>
-				<div className="grid gap-4">
-					{/* Age toggle + field — separate plain rows, no shared box */}
-					<ToggleRow
-						checked={draft.showAge}
-						onChange={(checked) => onDraftChange("showAge", checked)}
-						label={t("profile_editor.sections.states.show_age")}
-						description={t("profile_editor.sections.states.show_age_desc")}
-						labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-						padding=""
-					/>
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.states.age")}
-						</label>
-						<input
-							type="number"
-							inputMode="numeric"
-							value={draft.age}
-							onChange={(event) => onDraftChange("age", event.target.value)}
-							className="input-field"
-							placeholder="—"
-						/>
-					</div>
-
-					{/* Height + Weight */}
-					<div className="grid grid-cols-2 gap-2 sm:gap-3">
-						<div>
-							<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.states.height")}
-							</label>
-							<input
-								type="number"
-								inputMode="numeric"
-								value={draft.height}
-								onChange={(event) => onDraftChange("height", event.target.value)}
-								className="input-field"
-								placeholder={t(
-									isImperialHeight
-										? "profile_editor.sections.states.height_placeholder_in"
-										: "profile_editor.sections.states.height_placeholder",
-								)}
-							/>
-						</div>
-						<div>
-							<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.states.weight")}
-							</label>
-							<input
-								type="number"
-								inputMode="numeric"
-								value={draft.weight}
-								onChange={(event) => onDraftChange("weight", event.target.value)}
-								className="input-field"
-								placeholder={t(
-									isImperialWeight
-										? "profile_editor.sections.states.weight_placeholder_lb"
-										: "profile_editor.sections.states.weight_placeholder",
-								)}
-							/>
-						</div>
-					</div>
-
-					{/* Ethnicity + Body Type */}
-					<div className="grid gap-4 sm:grid-cols-2">
-						<div>
-							<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.states.ethnicity")}
-							</label>
-							<select
-								value={draft.ethnicity}
-								onChange={(event) => onDraftChange("ethnicity", event.target.value)}
-								className="input-field"
-							>
-								<option value="">{t("profile_editor.sections.states.not_set")}</option>
-								{ethnicityOptions.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-						</div>
-						<div>
-							<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.states.body_type")}
-							</label>
-							<select
-								value={draft.bodyType}
-								onChange={(event) => onDraftChange("bodyType", event.target.value)}
-								className="input-field"
-							>
-								<option value="">{t("profile_editor.sections.states.not_set")}</option>
-								{bodyTypeOptions.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-						</div>
-					</div>
-
-					{/* Relationship Status */}
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.states.relationship_status")}
-						</label>
-						<select
-							value={draft.relationshipStatus}
-							onChange={(event) => onDraftChange("relationshipStatus", event.target.value)}
-							className="input-field"
-						>
-							<option value="">{t("profile_editor.sections.states.not_set")}</option>
-							{relationshipStatusOptions.map((option) => (
-								<option key={option.value} value={option.value}>
-									{option.label}
-								</option>
-							))}
-						</select>
-					</div>
-
-					{/* Role/Position — separated from the stats above by a thin divider, not its own box */}
-					<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
-						<ToggleRow
-							checked={draft.showPosition}
-							onChange={(checked) => onDraftChange("showPosition", checked)}
-							label={t("profile_editor.sections.states.show_position")}
-							description={t("profile_editor.sections.states.show_position_desc")}
-							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-							padding=""
-						/>
-						<div>
-							<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.states.position")}
-							</label>
-							<select
-								value={draft.sexualPosition}
-								onChange={(event) => onDraftChange("sexualPosition", event.target.value)}
-								className="input-field"
-							>
-								<option value="">{t("profile_editor.sections.states.not_set")}</option>
-								{positionOptions.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-						</div>
-					</div>
-
-					{/* Tribes — separated by a thin divider, not its own box */}
-					<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
-						<ToggleRow
-							checked={draft.showTribes}
-							onChange={(checked) => onDraftChange("showTribes", checked)}
-							label={t("profile_editor.sections.states.show_tribes")}
-							description={t("profile_editor.sections.states.show_tribes_desc")}
-							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-							padding=""
-						/>
-						<div>
-							<p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.states.tribes")}
-							</p>
-							<ChipGroup
-								options={tribeOptions}
-								selected={draft.grindrTribes}
-								onToggle={(value) => onToggleMultiValue("grindrTribes", value)}
-							/>
-						</div>
-						<div>
-							<p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.states.tribes_im_into")}
-							</p>
-							<ChipGroup
-								options={tribeOptions}
-								selected={draft.tribesImInto}
-								onToggle={(value) => onToggleMultiValue("tribesImInto", value)}
-							/>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<TravelPlansSection profileId={profileId} />
-
-			{/* Expectations */}
-			<div className="native-card p-4 sm:p-5">
-				<CategoryHeader
-					title={t("profile_editor.sections.expectations.title")}
-					description={t("profile_editor.sections.expectations.description")}
-					icon={Sparkles}
-				/>
-				<div className="grid gap-4">
-					<div>
-						<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.expectations.looking_for")}
-						</p>
-						<ChipGroup
-							options={lookingForOptions}
-							selected={draft.lookingFor}
-							onToggle={(value) => onToggleMultiValue("lookingFor", value)}
-						/>
-					</div>
-					<div>
-						<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.expectations.meet_at")}
-						</p>
-						<ChipGroup
-							options={meetAtOptions}
-							selected={draft.meetAt}
-							onToggle={(value) => onToggleMultiValue("meetAt", value)}
-						/>
-					</div>
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.expectations.accept_nsfw")}
-						</label>
-						<select
-							value={draft.nsfw}
-							onChange={(event) => onDraftChange("nsfw", event.target.value)}
-							className="input-field"
-						>
-							<option value="">{t("profile_editor.sections.states.not_set")}</option>
-							{nsfwOptions.map((option) => (
-								<option key={option.value} value={option.value}>
-									{option.label}
-								</option>
-							))}
-						</select>
-					</div>
-				</div>
-			</div>
-
-			{/* Identity */}
-			<div className="native-card p-4 sm:p-5">
-				<CategoryHeader
-					title={t("profile_editor.sections.identity.title")}
-					description={t("profile_editor.sections.identity.description")}
-					icon={BadgeInfo}
-				/>
-				<div className="grid gap-4">
-					<div>
-						<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.identity.gender")}
-						</p>
-						{genderOptions.length > 0 ? (
-							<div className="flex flex-wrap gap-2">
-								{[
-									...defaultGenderIds,
-									...draft.genders.filter((value) => !defaultGenderIds.includes(value)),
-								].map((value) => {
-									const option = genderOptions.find((item) => item.value === value);
-									if (!option) return null;
-									const active = draft.genders.includes(value);
+			{/* Wide windows: two fixed stacks (not CSS columns, so cards never jump
+			    between columns while editing), pictures on top of the left one so
+			    the photo row stays compact; narrower, they stack in page order. */}
+			<div className="grid gap-5 min-[1400px]:grid-cols-2 min-[1400px]:items-start">
+				<div className="grid min-w-0 gap-5">
+					{/* Pictures */}
+					<div className="native-card p-4 sm:p-5">
+						<CategoryHeader
+							title={t("profile_editor.sections.pictures.title")}
+							description={t("profile_editor.sections.pictures.description")}
+							icon={Camera}
+							action={
+								(() => {
+									const uploadDisabled = isUploadingPhoto || isSavingPhotos || profilePhotoHashes.length >= MAX_PROFILE_PHOTOS;
 									return (
-										<SheetChip
-											key={value}
-											active={active}
-											onClick={() => onToggleMultiValue("genders", value)}
+										<button
+											type="button"
+											onClick={onOpenPhotoDrawer}
+											disabled={uploadDisabled}
+											className={[
+												"inline-flex min-h-9 items-center gap-1.5 rounded-full ink-tint-10 px-3.5 py-2 text-sm font-semibold transition-[transform,background-color] duration-150",
+												uploadDisabled
+													? "cursor-not-allowed opacity-40"
+													: "cursor-pointer hover:ink-tint-14 active:scale-[0.97]",
+											].join(" ")}
 										>
-											{option.label}
-										</SheetChip>
+											{isUploadingPhoto
+												? t("profile_editor.sections.pictures.uploading")
+												: t("profile_editor.sections.pictures.add")}
+											<span className="ml-1 rounded-full ink-tint-10 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-[var(--text-muted)]">
+												{profilePhotoHashes.length}/{MAX_PROFILE_PHOTOS}
+											</span>
+										</button>
 									);
-								})}
-								<SheetMoreButton onClick={() => setIsGenderDialogOpen(true)}>
-									{t("profile_editor.sections.identity.gender_more")}
-								</SheetMoreButton>
-							</div>
-						) : (
-							<p className="text-sm text-[var(--text-muted)]">
-								{t("profile_editor.sections.identity.gender_unavailable")}
-							</p>
-						)}
-					</div>
-					<div>
-						<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.identity.pronouns")}
-						</p>
-						{pronounOptions.length > 0 ? (
-							<ChipGroup
-								options={pronounOptions}
-								selected={draft.pronouns}
-								onToggle={(value) => onToggleMultiValue("pronouns", value)}
-							/>
-						) : (
-							<p className="text-sm text-[var(--text-muted)]">
-								{t("profile_editor.sections.identity.pronouns_unavailable")}
-							</p>
-						)}
-					</div>
-				</div>
-			</div>
-
-			{/* Health */}
-			<div className="native-card p-4 sm:p-5">
-				<CategoryHeader
-					title={t("profile_editor.sections.health.title")}
-					description={t("profile_editor.sections.health.description")}
-					icon={ShieldPlus}
-				/>
-				<div className="grid gap-4">
-					<div className="grid gap-4 md:grid-cols-2">
-						<div>
-							<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.health.hiv_status")}
-							</label>
-							<select
-								value={draft.hivStatus}
-								onChange={(event) => onDraftChange("hivStatus", event.target.value)}
-								className="input-field"
+								})()
+							}
+						/>
+						<div className="grid gap-4">
+							<DndContext
+								sensors={sensors}
+								onDragStart={handleDndDragStart}
+								onDragOver={handleDndDragOver}
+								onDragEnd={handleDndDragEnd}
+								onDragCancel={() => { setActiveId(null); setOverId(null); }}
 							>
-								<option value="">{t("profile_editor.sections.states.not_set")}</option>
-								{hivStatusOptions.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</select>
-						</div>
-						<div>
-							<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-								{t("profile_editor.sections.health.last_tested")}
-							</label>
-							<LastTestedMonthPicker
-								value={draft.lastTestedDate}
-								onChange={(next) => onDraftChange("lastTestedDate", next)}
-								notSetLabel={t("profile_editor.sections.states.not_set")}
-							/>
+								<SortableContext items={profilePhotoHashes} strategy={rectSortingStrategy}>
+									<div className={`grid gap-3 ${isDesktop ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-3"} rail:grid-cols-5`}>
+										{profilePhotoHashes.map((hash) => (
+											<SortablePhotoSlot
+												key={hash}
+												hash={hash}
+												slotIndex={liveOrder.indexOf(hash)}
+												moderation={photoModerationByHash?.get(hash)}
+												isSavingPhotos={isSavingPhotos}
+												isUploadingPhoto={isUploadingPhoto}
+												onRemovePhoto={onRemovePhoto}
+												t={t}
+											/>
+										))}
+										{Array.from({ length: MAX_PROFILE_PHOTOS - profilePhotoHashes.length }).map((_, i) => (
+											<button
+												key={`empty-${i}`}
+												type="button"
+												onClick={onOpenPhotoDrawer}
+												className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl ink-tint-8 text-[var(--text-muted)] transition-[transform,color] duration-150 hover:ink-tint-12 hover:text-[var(--accent)] active:scale-[0.98]"
+											>
+												<Plus className="h-6 w-6" />
+												<span className="text-xs font-medium">
+													{t("profile_editor.sections.pictures.add")}
+												</span>
+											</button>
+										))}
+									</div>
+								</SortableContext>
+							</DndContext>
+
+							{isSavingPhotos ? (
+								<p className="text-xs text-[var(--text-muted)]">
+									{t("profile_editor.sections.pictures.saving")}
+								</p>
+							) : null}
 						</div>
 					</div>
 
-					{isTestOverdue && (
-						<div className="flex items-start gap-2.5 rounded-2xl bg-amber-500/12 px-3.5 py-3">
-							<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-							<p className="text-xs leading-relaxed text-amber-400 sm:text-sm">
-								{t("profile_editor.sections.health.test_reminder")}
-							</p>
+					{/* Profile / Basic Info */}
+					<div className="native-card p-4 sm:p-5">
+						<CategoryHeader
+							title={t("profile_editor.sections.profile.title")}
+							description={t("profile_editor.sections.profile.description")}
+							icon={Sparkles}
+						/>
+						<div className="grid gap-5">
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+									{t("profile_editor.sections.profile.display_name")}
+								</label>
+								<input
+									type="text"
+									maxLength={15}
+									value={draft.displayName}
+									onChange={(event) => onDraftChange("displayName", event.target.value)}
+									className="input-field"
+									placeholder={t("profile_editor.sections.profile.display_name_placeholder")}
+								/>
+								<p className={`mt-2 text-xs sm:text-sm ${displayNameError ? "text-red-400" : "text-[var(--text-muted)]"}`}>
+									{displayNameError ??
+										t("profile_editor.sections.profile.char_count", {
+											count: draft.displayName.trim().length || 0,
+											total: 15,
+										})}
+								</p>
+							</div>
+
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+									{t("profile_editor.sections.profile.about_me")}
+								</label>
+								<div className="relative">
+									<textarea
+										value={draft.aboutMe}
+										maxLength={255}
+										onChange={(event) => onDraftChange("aboutMe", event.target.value)}
+										className="input-field min-h-32 resize-y pb-6"
+										placeholder={t("profile_editor.sections.profile.about_me_placeholder")}
+									/>
+									<div className="pointer-events-none absolute bottom-2.5 right-3 text-[10px] font-medium text-[var(--text-muted)] opacity-70">
+										{t("profile_editor.sections.profile.char_count", {
+											count: draft.aboutMe.length,
+											total: 255,
+										})}
+									</div>
+								</div>
+								{aboutMeError && (
+									<p className="mt-2 text-xs text-red-400 sm:text-sm">{aboutMeError}</p>
+								)}
+							</div>
+
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
+									{t("profile_editor.sections.profile.my_tags")}
+								</label>
+								{tagsError && (
+									<p className="mb-2 text-xs text-red-400 sm:text-sm">{tagsError}</p>
+								)}
+								<div className="flex flex-wrap gap-2">
+									{tagList.map((tag) => (
+										<SheetChip
+											key={tag}
+											active
+											onClick={() =>
+												onDraftChange(
+													"profileTagsText",
+													toggleProfileTagText(draft.profileTagsText, tag),
+												)
+											}
+										>
+											<span className="inline-flex items-center gap-1.5">
+												{tagLabelByKey.get(tag) ?? tag}
+												<X className="h-3.5 w-3.5" />
+											</span>
+										</SheetChip>
+									))}
+									<SheetMoreButton onClick={() => setIsTagsDialogOpen(true)}>
+										{tagList.length > 0
+											? t("profile_editor.sections.profile.my_tags_manage")
+											: t("profile_editor.sections.profile.no_tags_added")}
+									</SheetMoreButton>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Stats / States */}
+					<div className="native-card p-4 sm:p-5">
+						<CategoryHeader
+							title={t("profile_editor.sections.states.title")}
+							description={t("profile_editor.sections.states.description")}
+							icon={Ruler}
+						/>
+						<div className="grid gap-4">
+							{/* Age toggle + field — separate plain rows, no shared box */}
+							<ToggleRow
+								checked={draft.showAge}
+								onChange={(checked) => onDraftChange("showAge", checked)}
+								label={t("profile_editor.sections.states.show_age")}
+								description={t("profile_editor.sections.states.show_age_desc")}
+								labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+								padding=""
+							/>
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.states.age")}
+								</label>
+								<input
+									type="number"
+									inputMode="numeric"
+									value={draft.age}
+									onChange={(event) => onDraftChange("age", event.target.value)}
+									className="input-field"
+									placeholder="—"
+								/>
+							</div>
+
+							{/* Height + Weight */}
+							<div className="grid grid-cols-2 gap-2 sm:gap-3">
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.states.height")}
+									</label>
+									<input
+										type="number"
+										inputMode="numeric"
+										value={draft.height}
+										onChange={(event) => onDraftChange("height", event.target.value)}
+										className="input-field"
+										placeholder={t(
+											isImperialHeight
+												? "profile_editor.sections.states.height_placeholder_in"
+												: "profile_editor.sections.states.height_placeholder",
+										)}
+									/>
+								</div>
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.states.weight")}
+									</label>
+									<input
+										type="number"
+										inputMode="numeric"
+										value={draft.weight}
+										onChange={(event) => onDraftChange("weight", event.target.value)}
+										className="input-field"
+										placeholder={t(
+											isImperialWeight
+												? "profile_editor.sections.states.weight_placeholder_lb"
+												: "profile_editor.sections.states.weight_placeholder",
+										)}
+									/>
+								</div>
+							</div>
+
+							{/* Ethnicity + Body Type */}
+							<div className="grid gap-4 sm:grid-cols-2">
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.states.ethnicity")}
+									</label>
+									<select
+										value={draft.ethnicity}
+										onChange={(event) => onDraftChange("ethnicity", event.target.value)}
+										className="input-field"
+									>
+										<option value="">{t("profile_editor.sections.states.not_set")}</option>
+										{ethnicityOptions.map((option) => (
+											<option key={option.value} value={option.value}>
+												{option.label}
+											</option>
+										))}
+									</select>
+								</div>
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.states.body_type")}
+									</label>
+									<select
+										value={draft.bodyType}
+										onChange={(event) => onDraftChange("bodyType", event.target.value)}
+										className="input-field"
+									>
+										<option value="">{t("profile_editor.sections.states.not_set")}</option>
+										{bodyTypeOptions.map((option) => (
+											<option key={option.value} value={option.value}>
+												{option.label}
+											</option>
+										))}
+									</select>
+								</div>
+							</div>
+
+							{/* Relationship Status */}
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.states.relationship_status")}
+								</label>
+								<select
+									value={draft.relationshipStatus}
+									onChange={(event) => onDraftChange("relationshipStatus", event.target.value)}
+									className="input-field"
+								>
+									<option value="">{t("profile_editor.sections.states.not_set")}</option>
+									{relationshipStatusOptions.map((option) => (
+										<option key={option.value} value={option.value}>
+											{option.label}
+										</option>
+									))}
+								</select>
+							</div>
+
+							{/* Role/Position — separated from the stats above by a thin divider, not its own box */}
+							<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
+								<ToggleRow
+									checked={draft.showPosition}
+									onChange={(checked) => onDraftChange("showPosition", checked)}
+									label={t("profile_editor.sections.states.show_position")}
+									description={t("profile_editor.sections.states.show_position_desc")}
+									labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+									padding=""
+								/>
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.states.position")}
+									</label>
+									<select
+										value={draft.sexualPosition}
+										onChange={(event) => onDraftChange("sexualPosition", event.target.value)}
+										className="input-field"
+									>
+										<option value="">{t("profile_editor.sections.states.not_set")}</option>
+										{positionOptions.map((option) => (
+											<option key={option.value} value={option.value}>
+												{option.label}
+											</option>
+										))}
+									</select>
+								</div>
+							</div>
+
+							{/* Tribes — separated by a thin divider, not its own box */}
+							<div className="grid gap-4 border-t border-[color-mix(in_srgb,var(--text)_8%,transparent)] pt-4">
+								<ToggleRow
+									checked={draft.showTribes}
+									onChange={(checked) => onDraftChange("showTribes", checked)}
+									label={t("profile_editor.sections.states.show_tribes")}
+									description={t("profile_editor.sections.states.show_tribes_desc")}
+									labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+									padding=""
+								/>
+								<div>
+									<p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.states.tribes")}
+									</p>
+									<ChipGroup
+										options={tribeOptions}
+										selected={draft.grindrTribes}
+										onToggle={(value) => onToggleMultiValue("grindrTribes", value)}
+									/>
+								</div>
+								<div>
+									<p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.states.tribes_im_into")}
+									</p>
+									<ChipGroup
+										options={tribeOptions}
+										selected={draft.tribesImInto}
+										onToggle={(value) => onToggleMultiValue("tribesImInto", value)}
+									/>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<TravelPlansSection profileId={profileId} />
+				</div>
+
+				<div className="grid min-w-0 gap-5">
+					{/* Expectations */}
+					<div className="native-card p-4 sm:p-5">
+						<CategoryHeader
+							title={t("profile_editor.sections.expectations.title")}
+							description={t("profile_editor.sections.expectations.description")}
+							icon={Sparkles}
+						/>
+						<div className="grid gap-4">
+							<div>
+								<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.expectations.looking_for")}
+								</p>
+								<ChipGroup
+									options={lookingForOptions}
+									selected={draft.lookingFor}
+									onToggle={(value) => onToggleMultiValue("lookingFor", value)}
+								/>
+							</div>
+							<div>
+								<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.expectations.meet_at")}
+								</p>
+								<ChipGroup
+									options={meetAtOptions}
+									selected={draft.meetAt}
+									onToggle={(value) => onToggleMultiValue("meetAt", value)}
+								/>
+							</div>
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.expectations.accept_nsfw")}
+								</label>
+								<select
+									value={draft.nsfw}
+									onChange={(event) => onDraftChange("nsfw", event.target.value)}
+									className="input-field"
+								>
+									<option value="">{t("profile_editor.sections.states.not_set")}</option>
+									{nsfwOptions.map((option) => (
+										<option key={option.value} value={option.value}>
+											{option.label}
+										</option>
+									))}
+								</select>
+							</div>
+						</div>
+					</div>
+
+					{/* Identity */}
+					<div className="native-card p-4 sm:p-5">
+						<CategoryHeader
+							title={t("profile_editor.sections.identity.title")}
+							description={t("profile_editor.sections.identity.description")}
+							icon={BadgeInfo}
+						/>
+						<div className="grid gap-4">
+							<div>
+								<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.identity.gender")}
+								</p>
+								{genderOptions.length > 0 ? (
+									<div className="flex flex-wrap gap-2">
+										{[
+											...defaultGenderIds,
+											...draft.genders.filter((value) => !defaultGenderIds.includes(value)),
+										].map((value) => {
+											const option = genderOptions.find((item) => item.value === value);
+											if (!option) return null;
+											const active = draft.genders.includes(value);
+											return (
+												<SheetChip
+													key={value}
+													active={active}
+													onClick={() => onToggleMultiValue("genders", value)}
+												>
+													{option.label}
+												</SheetChip>
+											);
+										})}
+										<SheetMoreButton onClick={() => setIsGenderDialogOpen(true)}>
+											{t("profile_editor.sections.identity.gender_more")}
+										</SheetMoreButton>
+									</div>
+								) : (
+									<p className="text-sm text-[var(--text-muted)]">
+										{t("profile_editor.sections.identity.gender_unavailable")}
+									</p>
+								)}
+							</div>
+							<div>
+								<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.identity.pronouns")}
+								</p>
+								{pronounOptions.length > 0 ? (
+									<ChipGroup
+										options={pronounOptions}
+										selected={draft.pronouns}
+										onToggle={(value) => onToggleMultiValue("pronouns", value)}
+									/>
+								) : (
+									<p className="text-sm text-[var(--text-muted)]">
+										{t("profile_editor.sections.identity.pronouns_unavailable")}
+									</p>
+								)}
+							</div>
+						</div>
+					</div>
+
+					{/* Health */}
+					<div className="native-card p-4 sm:p-5">
+						<CategoryHeader
+							title={t("profile_editor.sections.health.title")}
+							description={t("profile_editor.sections.health.description")}
+							icon={ShieldPlus}
+						/>
+						<div className="grid gap-4">
+							<div className="grid gap-4 md:grid-cols-2">
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.health.hiv_status")}
+									</label>
+									<select
+										value={draft.hivStatus}
+										onChange={(event) => onDraftChange("hivStatus", event.target.value)}
+										className="input-field"
+									>
+										<option value="">{t("profile_editor.sections.states.not_set")}</option>
+										{hivStatusOptions.map((option) => (
+											<option key={option.value} value={option.value}>
+												{option.label}
+											</option>
+										))}
+									</select>
+								</div>
+								<div>
+									<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+										{t("profile_editor.sections.health.last_tested")}
+									</label>
+									<LastTestedMonthPicker
+										value={draft.lastTestedDate}
+										onChange={(next) => onDraftChange("lastTestedDate", next)}
+										notSetLabel={t("profile_editor.sections.states.not_set")}
+									/>
+								</div>
+							</div>
+
+							{isTestOverdue && (
+								<div className="flex items-start gap-2.5 rounded-2xl bg-amber-500/12 px-3.5 py-3">
+									<AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+									<p className="text-xs leading-relaxed text-amber-400 sm:text-sm">
+										{t("profile_editor.sections.health.test_reminder")}
+									</p>
+								</div>
+							)}
+
+							<ToggleRow
+								checked={!testReminderDisabled}
+								onChange={(checked) => void setPreferences({ testReminderDisabled: !checked })}
+								label={t("profile_editor.sections.health.test_reminder_toggle")}
+								description={t("profile_editor.sections.health.test_reminder_toggle_desc")}
+								labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+								padding=""
+							/>
+
+							<div>
+								<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.health.health_practices")}
+								</p>
+								<ChipGroup
+									options={sexualHealthOptions}
+									selected={draft.sexualHealth}
+									onToggle={(value) => onToggleMultiValue("sexualHealth", value)}
+								/>
+							</div>
+							<div>
+								<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.health.vaccinations")}
+								</p>
+								<ChipGroup
+									options={vaccineOptions}
+									selected={draft.vaccines}
+									onToggle={(value) => onToggleMultiValue("vaccines", value)}
+								/>
+							</div>
+						</div>
+					</div>
+
+					{/* Social */}
+					<div className="native-card p-4 sm:p-5">
+						<CategoryHeader
+							title={t("profile_editor.sections.social.title")}
+							description={t("profile_editor.sections.social.description")}
+							icon={AtSign}
+						/>
+						<div className="grid gap-4 md:grid-cols-3">
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.social.instagram")}
+								</label>
+								<input
+									type="text"
+									value={draft.instagram}
+									onChange={(event) => onDraftChange("instagram", event.target.value)}
+									className="input-field"
+									placeholder={t("profile_editor.sections.social.placeholder")}
+								/>
+							</div>
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.social.twitter")}
+								</label>
+								<input
+									type="text"
+									value={draft.twitter}
+									onChange={(event) => onDraftChange("twitter", event.target.value)}
+									className="input-field"
+									placeholder={t("profile_editor.sections.social.placeholder")}
+								/>
+							</div>
+							<div>
+								<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+									{t("profile_editor.sections.social.facebook")}
+								</label>
+								<input
+									type="text"
+									value={draft.facebook}
+									onChange={(event) => onDraftChange("facebook", event.target.value)}
+									className="input-field"
+									placeholder={t("profile_editor.sections.social.placeholder")}
+								/>
+							</div>
+						</div>
+					</div>
+
+					<SpotifyFavoritesSection
+						tracks={spotifyTracks}
+						isLoading={isLoadingSpotify}
+						disabled={profileId == null}
+						onChange={onSpotifyChange}
+					/>
+
+					{/* Map & Right Now — account settings (/v3/me/prefs/settings), saved with the profile */}
+					{settings && (
+						<div className="native-card p-4 sm:p-5">
+							<CategoryHeader
+								title={t("profile_editor.sections.map.title", { defaultValue: "Map & Right Now" })}
+								description={t("profile_editor.sections.map.description", {
+									defaultValue: "Account settings for the map and Right Now.",
+								})}
+								icon={MapIcon}
+							/>
+							<div className="grid gap-4">
+								<ToggleRow
+									checked={settings.showOnMap}
+									onChange={(checked) => onSettingsChange({ showOnMap: checked })}
+									label={t("profile_editor.sections.map.show_on_map", { defaultValue: "Show Me on Map" })}
+									description={t("profile_editor.sections.map.show_on_map_desc", {
+										defaultValue: "Your profile appears on the map, always offset from your actual location.",
+									})}
+									labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+									padding=""
+								/>
+								{settings.showOnMap && (
+									<div>
+										<Slider
+											min={MAP_FUZZ_RADIUS_MIN}
+											max={MAP_FUZZ_RADIUS_MAX}
+											step={MAP_FUZZ_RADIUS_STEP}
+											defaultValue={settings.mapLocationFuzzRadius ?? MAP_FUZZ_RADIUS_MIN}
+											label={t("profile_editor.sections.map.location_randomizer", { defaultValue: "Location Randomizer" })}
+											displayValue={
+												settings.mapLocationFuzzRadius == null
+													? t("profile_editor.sections.map.radius_default", { defaultValue: "Default" })
+													: isImperialHeight
+														? t("profile_editor.sections.map.radius_ft", {
+																defaultValue: "~{{value}} ft radius",
+																value: Math.round(settings.mapLocationFuzzRadius * 3.280839895),
+															})
+														: t("profile_editor.sections.map.radius_m", {
+																defaultValue: "~{{value}} m radius",
+																value: settings.mapLocationFuzzRadius,
+															})
+											}
+											onChange={(value) => onSettingsChange({ mapLocationFuzzRadius: value })}
+										/>
+										<p className="mt-1 text-xs text-[var(--text-muted)]">
+											{t("profile_editor.sections.map.location_randomizer_desc", {
+												defaultValue: "For your privacy, your location on the map is offset within this range and updates as you move.",
+											})}
+										</p>
+									</div>
+								)}
+								<ToggleRow
+									checked={settings.viewRightNowNsfw}
+									onChange={(checked) => onSettingsChange({ viewRightNowNsfw: checked })}
+									label={t("profile_editor.sections.map.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" })}
+									description={t("profile_editor.sections.map.view_right_now_nsfw_desc", {
+										defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
+									})}
+									labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+									padding=""
+								/>
+							</div>
 						</div>
 					)}
 
-					<ToggleRow
-						checked={!testReminderDisabled}
-						onChange={(checked) => void setPreferences({ testReminderDisabled: !checked })}
-						label={t("profile_editor.sections.health.test_reminder_toggle")}
-						description={t("profile_editor.sections.health.test_reminder_toggle_desc")}
-						labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-						padding=""
-					/>
-
+					{/* Other / Account Info */}
 					<div>
-						<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.health.health_practices")}
+						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+							{t("profile_editor.sections.other.title")}
 						</p>
-						<ChipGroup
-							options={sexualHealthOptions}
-							selected={draft.sexualHealth}
-							onToggle={(value) => onToggleMultiValue("sexualHealth", value)}
-						/>
-					</div>
-					<div>
-						<p className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.health.vaccinations")}
-						</p>
-						<ChipGroup
-							options={vaccineOptions}
-							selected={draft.vaccines}
-							onToggle={(value) => onToggleMultiValue("vaccines", value)}
-						/>
-					</div>
-				</div>
-			</div>
-
-			{/* Social */}
-			<div className="native-card p-4 sm:p-5">
-				<CategoryHeader
-					title={t("profile_editor.sections.social.title")}
-					description={t("profile_editor.sections.social.description")}
-					icon={AtSign}
-				/>
-				<div className="grid gap-4 md:grid-cols-3">
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.social.instagram")}
-						</label>
-						<input
-							type="text"
-							value={draft.instagram}
-							onChange={(event) => onDraftChange("instagram", event.target.value)}
-							className="input-field"
-							placeholder={t("profile_editor.sections.social.placeholder")}
-						/>
-					</div>
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.social.twitter")}
-						</label>
-						<input
-							type="text"
-							value={draft.twitter}
-							onChange={(event) => onDraftChange("twitter", event.target.value)}
-							className="input-field"
-							placeholder={t("profile_editor.sections.social.placeholder")}
-						/>
-					</div>
-					<div>
-						<label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-							{t("profile_editor.sections.social.facebook")}
-						</label>
-						<input
-							type="text"
-							value={draft.facebook}
-							onChange={(event) => onDraftChange("facebook", event.target.value)}
-							className="input-field"
-							placeholder={t("profile_editor.sections.social.placeholder")}
-						/>
-					</div>
-				</div>
-			</div>
-
-			<SpotifyFavoritesSection
-				tracks={spotifyTracks}
-				isLoading={isLoadingSpotify}
-				disabled={profileId == null}
-				onChange={onSpotifyChange}
-			/>
-
-			{/* Map & Right Now — account settings (/v3/me/prefs/settings), saved with the profile */}
-			{settings && (
-				<div className="native-card p-4 sm:p-5">
-					<CategoryHeader
-						title={t("profile_editor.sections.map.title", { defaultValue: "Map & Right Now" })}
-						description={t("profile_editor.sections.map.description", {
-							defaultValue: "Account settings for the map and Right Now.",
-						})}
-						icon={MapIcon}
-					/>
-					<div className="grid gap-4">
-						<ToggleRow
-							checked={settings.showOnMap}
-							onChange={(checked) => onSettingsChange({ showOnMap: checked })}
-							label={t("profile_editor.sections.map.show_on_map", { defaultValue: "Show Me on Map" })}
-							description={t("profile_editor.sections.map.show_on_map_desc", {
-								defaultValue: "Your profile appears on the map, always offset from your actual location.",
-							})}
-							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-							padding=""
-						/>
-						{settings.showOnMap && (
-							<div>
-								<Slider
-									min={MAP_FUZZ_RADIUS_MIN}
-									max={MAP_FUZZ_RADIUS_MAX}
-									step={MAP_FUZZ_RADIUS_STEP}
-									defaultValue={settings.mapLocationFuzzRadius ?? MAP_FUZZ_RADIUS_MIN}
-									label={t("profile_editor.sections.map.location_randomizer", { defaultValue: "Location Randomizer" })}
-									displayValue={
-										settings.mapLocationFuzzRadius == null
-											? t("profile_editor.sections.map.radius_default", { defaultValue: "Default" })
-											: isImperialHeight
-												? t("profile_editor.sections.map.radius_ft", {
-														defaultValue: "~{{value}} ft radius",
-														value: Math.round(settings.mapLocationFuzzRadius * 3.280839895),
-													})
-												: t("profile_editor.sections.map.radius_m", {
-														defaultValue: "~{{value}} m radius",
-														value: settings.mapLocationFuzzRadius,
-													})
-									}
-									onChange={(value) => onSettingsChange({ mapLocationFuzzRadius: value })}
-								/>
-								<p className="mt-1 text-xs text-[var(--text-muted)]">
-									{t("profile_editor.sections.map.location_randomizer_desc", {
-										defaultValue: "For your privacy, your location on the map is offset within this range and updates as you move.",
-									})}
-								</p>
+						<div className="native-card overflow-hidden">
+							<div className="flex items-center justify-between px-4 py-3.5">
+								<span className="text-sm text-[var(--text-muted)]">
+									{t("profile_editor.sections.other.user_id")}
+								</span>
+								<span className="rounded-full ink-tint-8 px-2.5 py-1 font-mono text-sm font-semibold">
+									{profileId ?? "—"}
+								</span>
 							</div>
-						)}
-						<ToggleRow
-							checked={settings.viewRightNowNsfw}
-							onChange={(checked) => onSettingsChange({ viewRightNowNsfw: checked })}
-							label={t("profile_editor.sections.map.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" })}
-							description={t("profile_editor.sections.map.view_right_now_nsfw_desc", {
-								defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
-							})}
-							labelClassName="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]"
-							padding=""
-						/>
-					</div>
-				</div>
-			)}
-
-			{/* Other / Account Info */}
-			<div>
-				<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-					{t("profile_editor.sections.other.title")}
-				</p>
-				<div className="native-card overflow-hidden">
-					<div className="flex items-center justify-between px-4 py-3.5">
-						<span className="text-sm text-[var(--text-muted)]">
-							{t("profile_editor.sections.other.user_id")}
-						</span>
-						<span className="rounded-full ink-tint-8 px-2.5 py-1 font-mono text-sm font-semibold">
-							{profileId ?? "—"}
-						</span>
+						</div>
 					</div>
 				</div>
 			</div>

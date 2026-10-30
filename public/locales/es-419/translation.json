@@ -2241,7 +2241,7 @@
         "section_desc": "Informa a los demás de adónde vas y cuándo.",
         "add": "Agregar viaje",
         "max_reached": "Puedes añadir hasta {{max}} viajes.",
-        "empty": "Todavía no hay viajes.",
+        "empty": "Agrega hasta {{max}} viajes",
         "hidden_badge": "Oculto.",
         "resolving_location": "Resolviendo ubicación…",
         "add_title": "Agregar viaje.",

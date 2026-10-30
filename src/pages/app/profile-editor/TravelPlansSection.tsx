@@ -81,12 +81,17 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 					<Loader2 className="h-5 w-5 animate-spin" />
 				</div>
 			) : (travelPlans?.length ?? 0) === 0 ? (
-				<div className="flex flex-col items-center justify-center gap-2 rounded-2xl ink-tint-6 py-8 text-center">
+				<button
+					type="button"
+					onClick={() => setEditingPlan(null)}
+					disabled={numericProfileId == null}
+					className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl ink-tint-6 py-8 text-center transition hover:ink-tint-10 disabled:cursor-not-allowed disabled:opacity-40"
+				>
 					<div className="flex h-9 w-9 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
 						<Plane className="h-4 w-4" />
 					</div>
-					<p className="text-sm text-[var(--text-muted)]">{t("travel_plans.empty")}</p>
-				</div>
+					<p className="text-sm text-[var(--text-muted)]">{t("travel_plans.empty", { max: MAX_TRAVEL_PLANS })}</p>
+				</button>
 			) : (
 				<div className="overflow-hidden rounded-2xl ink-tint-6 divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)]">
 					{travelPlans!.map((plan) => (

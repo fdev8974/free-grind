@@ -2260,7 +2260,7 @@
         "section_desc": "Sporoči drugim, kam greš in kdaj.",
         "add": "Dodaj potovanje",
         "max_reached": "Dodaš lahko največ {{max}} potovanj.",
-        "empty": "Še ni potovanj.",
+        "empty": "Dodaj do {{max}} potovanj",
         "hidden_badge": "Skrito",
         "resolving_location": "Določanje lokacije…",
         "add_title": "Dodaj potovanje",

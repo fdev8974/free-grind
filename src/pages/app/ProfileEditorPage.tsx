@@ -29,6 +29,7 @@ import { validateMediaHash } from "../../utils/media";
 import { sanitizeUploadFile } from "../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../utils/tags";
 import { PageHeader } from "../../components/PageHeader";
+import { cn } from "../../utils/cn";
 import { BottomDrawer } from "../../components/ui/bottom-drawer";
 import { MediaToolButton, TakenOnGrindrToolIcon } from "./chat/drawerUi";
 import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
@@ -921,14 +922,42 @@ export function ProfileEditorPage() {
 		setSettingsDraft({});
 	};
 
+	const showSaveActions = hasChanges && !(isLoadingProfile && !profile) && !(profileError && !profile);
+
 	return (
 		<section className="app-screen">
-			<div className="mx-auto grid w-full max-w-[1180px] gap-6">
+			<div className="mx-auto grid w-full max-w-[1180px] gap-6 rail:max-w-none">
 				<PageHeader
 					backTo="/settings"
 					title={t("profile_editor.title")}
 					subtitle={t("profile_editor.subtitle")}
 					subtitleClassName="-mt-4 mb-0"
+					// Desktop rail: save/reset live in the sticky header instead of the
+					// floating bottom bar below, which is a mobile pattern.
+					actions={showSaveActions ? (
+						<div className="hidden items-center gap-2 rail:flex">
+							<button
+								type="button"
+								onClick={handleResetDraft}
+								disabled={isSaving}
+								className={cn(sheetButtonClass("secondary"), "h-10 flex-none px-4 text-sm")}
+							>
+								<RefreshCw className="h-4 w-4" />
+								{t("profile_editor.actions.reset")}
+							</button>
+							<button
+								type="button"
+								onClick={handleSaveProfile}
+								disabled={!canSave}
+								className={cn(sheetButtonClass(), "h-10 flex-none px-5 text-sm")}
+							>
+								<Save className="h-4 w-4" />
+								{isSaving
+									? t("profile_editor.actions.saving")
+									: t("profile_editor.actions.save")}
+							</button>
+						</div>
+					) : undefined}
 				/>
 
 				{isLoadingProfile && !profile ? (
@@ -992,9 +1021,9 @@ export function ProfileEditorPage() {
 					</div>
 				)}
 
-				{hasChanges && !(isLoadingProfile && !profile) && !(profileError && !profile) && (
+				{showSaveActions && (
 					<div
-						className="pointer-events-none fixed left-[var(--nav-rail-width,0px)] right-0 z-40 flex justify-center px-4 pb-3 pt-10 [&>*]:pointer-events-auto"
+						className="pointer-events-none fixed left-[var(--nav-rail-width,0px)] right-0 z-40 flex justify-center px-4 pb-3 pt-10 rail:hidden [&>*]:pointer-events-auto"
 						style={{
 							// Flush on the nav bar's measured height (published by NavBar).
 							bottom: "var(--nav-height, calc(env(safe-area-inset-bottom, 0px) + 80px))",

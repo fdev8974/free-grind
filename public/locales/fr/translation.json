@@ -2241,7 +2241,7 @@
         "section_desc": "Indiquez aux autres où vous allez et quand.",
         "add": "Ajouter un voyage",
         "max_reached": "Vous pouvez ajouter jusqu'à {{max}} voyages.",
-        "empty": "Aucun voyage pour l'instant.",
+        "empty": "Ajoutez jusqu'à {{max}} voyages",
         "hidden_badge": "Caché",
         "resolving_location": "Résolution de l'emplacement…",
         "add_title": "Ajouter un voyage",
