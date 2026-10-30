@@ -8,6 +8,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.Color
 import android.os.Handler
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +23,7 @@ import android.view.animation.LinearInterpolator
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.ImageView
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -211,7 +213,16 @@ class MainActivity : TauriActivity() {
     // entire wait. The dialog uses the same background/icon, so the handoff
     // between the two is invisible regardless.
     installSplashScreen()
-    enableEdgeToEdge()
+    // Fully transparent nav bar: the default SystemBarStyle.auto() paints a
+    // translucent scrim behind 3-button navigation (API 26-28 via the bar
+    // color, API 29+ via contrast enforcement), which looks like a grey band
+    // under the app's own bottom NavBar.
+    enableEdgeToEdge(
+      navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
+    )
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      window.isNavigationBarContrastEnforced = false
+    }
     super.onCreate(savedInstanceState)
     // Resolved once up front: both the splash icon below and the Recents
     // (task switcher) card need to match whichever disguise is currently
