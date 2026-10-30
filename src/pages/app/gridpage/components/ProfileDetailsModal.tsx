@@ -149,6 +149,8 @@ type ProfileDetailsModalProps = {
 	/** What's already known about the neighbouring profiles, shown beside the page while swiping. */
 	prevProfilePreview?: ProfileSwipePreview | null;
 	nextProfilePreview?: ProfileSwipePreview | null;
+	/** Opens your own profile in edit mode right away (ignored for other profiles). */
+	initialEditMode?: boolean;
 };
 
 export type ProfileSwipePreview = {
@@ -514,6 +516,7 @@ export function ProfileDetailsModal({
 	onNextProfile,
 	prevProfilePreview,
 	nextProfilePreview,
+	initialEditMode = false,
 }: ProfileDetailsModalProps) {
 	const { t } = useTranslation();
 	const { unitsPreset, showAlbumSensitiveContentWarning, openAlbumAsBottomSheet } = usePreferences();
@@ -522,7 +525,7 @@ export function ProfileDetailsModal({
 	// Own profile only: edit mode swaps the details for the editor sections.
 	// Leaving it re-reads the profile here, since the parent only fetches it
 	// when the opened profile changes.
-	const [isEditingOwnProfile, setIsEditingOwnProfile] = useState(false);
+	const [isEditingOwnProfile, setIsEditingOwnProfile] = useState(initialEditMode);
 	const [hasUnsavedOwnEdits, setHasUnsavedOwnEdits] = useState(false);
 	const [isDiscardEditsPromptOpen, setIsDiscardEditsPromptOpen] = useState(false);
 	const [refreshedOwnProfile, setRefreshedOwnProfile] = useState<ProfileDetail | null>(null);
@@ -531,7 +534,13 @@ export function ProfileDetailsModal({
 	// mode, which reads /v7/profiles and can lag behind the write.
 	const [editedOwnPhotoHashes, setEditedOwnPhotoHashes] = useState<string[] | null>(null);
 	const openedProfileId = activeProfileProp?.profileId;
+	// Reset only when switching from one loaded profile to another — not when
+	// the first one arrives, which would undo `initialEditMode`.
+	const previousOpenedProfileIdRef = useRef(openedProfileId);
 	useEffect(() => {
+		const previous = previousOpenedProfileIdRef.current;
+		previousOpenedProfileIdRef.current = openedProfileId;
+		if (previous == null || previous === openedProfileId) return;
 		setRefreshedOwnProfile(null);
 		setEditedOwnPhotoHashes(null);
 		setIsEditingOwnProfile(false);

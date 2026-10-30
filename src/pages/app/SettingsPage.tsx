@@ -28,6 +28,7 @@ import {
 	Ban,
 	Clock,
 	Pointer,
+	UserPen,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
@@ -647,6 +648,19 @@ export function SettingsPage() {
 		);
 	}
 
+	// Your own profile, opened straight in its edit mode (see ProfileDetailsModal);
+	// on desktop as the modal over Settings, like profiles opened elsewhere.
+	const openOwnProfileEditor = () => {
+		if (userId == null) return;
+		navigate(`/profile/${userId}`, {
+			state: {
+				returnTo: `${location.pathname}${location.search}`,
+				editOwnProfile: true,
+				...(isDesktop ? { backgroundLocation: location } : {}),
+			},
+		});
+	};
+
 	return (
 		<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0">
 			{/* Main-page header, same structure as Inbox / Interest: a fixed header with the
@@ -768,7 +782,7 @@ export function SettingsPage() {
 										<div className="flex items-center gap-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
 											<button
 												type="button"
-												onClick={() => navigate("/settings/profile-editor")}
+												onClick={openOwnProfileEditor}
 												className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3.5 text-left"
 											>
 												<Avatar
@@ -867,6 +881,26 @@ export function SettingsPage() {
 										</p>
 										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
 											{t("settings.add_account_desc", { defaultValue: "Sign in with another account" })}
+										</p>
+									</div>
+									<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
+								</button>
+							</div>
+
+							{/* The classic full-page editor, on its own below the account list. */}
+							<div className="native-card mt-3 overflow-hidden">
+								<button
+									type="button"
+									onClick={() => navigate("/settings/profile-editor")}
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+								>
+									<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5 shrink-0">
+										<UserPen className="h-5 w-5" />
+									</div>
+									<div className="min-w-0 flex-1">
+										<p className="text-sm font-semibold leading-snug">{t("settings.profile_editor")}</p>
+										<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
+											{t("settings.profile_editor_desc")}
 										</p>
 									</div>
 									<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />

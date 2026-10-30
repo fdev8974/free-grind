@@ -237,7 +237,7 @@ export function GridProfilePage() {
 	const isTappingProfile = tappingProfileId === profileId;
 
 	const locationState =
-		(location.state as { returnTo?: unknown; profileIds?: unknown; fromChat?: unknown; backgroundLocation?: unknown } | null) ?? {};
+		(location.state as { returnTo?: unknown; profileIds?: unknown; fromChat?: unknown; backgroundLocation?: unknown; editOwnProfile?: unknown } | null) ?? {};
 	// Opened from a chat thread, which sits directly below in history.
 	const openedFromChat = locationState.fromChat === true;
 	// Shown as a modal over the page that opened it (see App.tsx), which is
@@ -593,6 +593,8 @@ export function GridProfilePage() {
 			<ProfileDetailsModal
 				variant={isDesktopLike ? "modal" : "page"}
 				isOpen
+				// Settings' profile row opens your own profile straight in edit mode.
+				initialEditMode={locationState.editOwnProfile === true}
 				onClose={() => {
 					if (openedFromChat || isOverBackground) {
 						navigateBackTo(navigate, safeReturnTo);
