@@ -755,6 +755,13 @@
         "toast_added_from_drawer_few": "Dodana su {{count}} medija"
     },
     "profile_editor": {
+        "edit_profile": "Uredi profil",
+        "stop_editing": "Završi uređivanje",
+        "discard": {
+            "title": "Odbaciti promjene?",
+            "message": "Nespremljene promjene profila će biti izgubljene.",
+            "confirm": "Odbaci"
+        },
         "title": "Uređivač profila",
         "management": "Upravljanje profilom",
         "subtitle": "Oblikuj kako te ljudi upoznaju na prvi pogled, pa doteraj detalje na jednom mjestu.",

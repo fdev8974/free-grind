@@ -747,6 +747,13 @@
         "collections_delete_confirm_message": "Nur die Sammlung wird gelöscht. Ihre Medien bleiben in deiner Galerie."
     },
     "profile_editor": {
+        "edit_profile": "Profil bearbeiten",
+        "stop_editing": "Bearbeiten beenden",
+        "discard": {
+            "title": "Änderungen verwerfen?",
+            "message": "Deine ungespeicherten Profiländerungen gehen verloren.",
+            "confirm": "Verwerfen"
+        },
         "title": "Profil-Editor",
         "management": "Profilverwaltung",
         "subtitle": "Bestimme, wie du auf andere auf den ersten Blick wirkst, und feile an einem Ort an deinen Angaben.",

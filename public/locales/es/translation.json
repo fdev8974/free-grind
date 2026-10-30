@@ -755,6 +755,13 @@
         "toast_added_from_drawer_many": "{{count}} elementos añadidos"
     },
     "profile_editor": {
+        "edit_profile": "Editar perfil",
+        "stop_editing": "Terminar de editar",
+        "discard": {
+            "title": "¿Descartar cambios?",
+            "message": "Se perderán los cambios de tu perfil sin guardar.",
+            "confirm": "Descartar"
+        },
         "title": "Editor de perfil",
         "management": "Gestión de perfil",
         "subtitle": "Define la primera impresión que le causas a la gente, luego perfecciona los detalles en un solo sitio.",

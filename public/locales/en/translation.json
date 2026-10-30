@@ -747,6 +747,13 @@
     "collections_delete_confirm_message": "Only the collection is deleted. Its media stays in your drawer."
   },
   "profile_editor": {
+    "edit_profile": "Edit profile",
+    "stop_editing": "Stop editing",
+    "discard": {
+      "title": "Discard changes?",
+      "message": "Your unsaved profile changes will be lost.",
+      "confirm": "Discard"
+    },
     "title": "Profile Editor",
     "management": "Profile Management",
     "subtitle": "Shape how people meet you at a glance, then fine-tune your details in one place.",

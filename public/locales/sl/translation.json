@@ -763,6 +763,13 @@
         "toast_added_from_drawer_few": "Dodani so {{count}} mediji"
     },
     "profile_editor": {
+        "edit_profile": "Uredi profil",
+        "stop_editing": "Končaj urejanje",
+        "discard": {
+            "title": "Zavržem spremembe?",
+            "message": "Neshranjene spremembe profila bodo izgubljene.",
+            "confirm": "Zavrzi"
+        },
         "title": "Urejevalnik profila",
         "management": "Upravljanje profila",
         "subtitle": "Oblikuj, kako te ljudje spoznajo na prvi pogled, nato pa na enem mestu izpopolni podrobnosti.",

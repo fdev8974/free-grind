@@ -747,6 +747,13 @@
         "collections_delete_confirm_message": "Alleen de collectie wordt verwijderd. De media blijven in je galerij."
     },
     "profile_editor": {
+        "edit_profile": "Profiel bewerken",
+        "stop_editing": "Bewerken stoppen",
+        "discard": {
+            "title": "Wijzigingen verwerpen?",
+            "message": "Je niet-opgeslagen profielwijzigingen gaan verloren.",
+            "confirm": "Verwerpen"
+        },
         "title": "Profieleditor",
         "management": "Profielbeheer",
         "subtitle": "Bepaal hoe mensen je in één oogopslag leren kennen en verfijn je gegevens op één plek.",

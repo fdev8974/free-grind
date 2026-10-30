@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Loader2, Pencil, Plane, Plus } from "lucide-react";
-import { CategoryHeader } from "./ProfileEditorComponents";
+import { ChevronRight, Loader2, Plane, Plus } from "lucide-react";
+import { FieldSection, FieldSectionAction } from "./ProfileFieldRows";
 import { TravelPlanEditorSheet } from "./TravelPlanEditorSheet";
 import { useTravelPlans } from "../../../hooks/queries/useProfileQueries";
 import { reverseGeocodeCityDistrictForGeohash } from "../gridpage/geocoding";
@@ -56,68 +57,67 @@ export function TravelPlansSection({ profileId }: TravelPlansSectionProps) {
 	const [editingPlan, setEditingPlan] = useState<TravelPlan | null | undefined>(undefined);
 	const hasReachedMax = (travelPlans?.length ?? 0) >= MAX_TRAVEL_PLANS;
 
-	return (
-		<div className="native-card p-4 sm:p-5">
-			<CategoryHeader
-				title={t("travel_plans.section_title")}
-				description={t("travel_plans.section_desc")}
-				icon={Plane}
-				action={
-					<button
-						type="button"
-						onClick={() => setEditingPlan(null)}
-						disabled={numericProfileId == null || hasReachedMax}
-						title={hasReachedMax ? t("travel_plans.max_reached", { max: MAX_TRAVEL_PLANS }) : undefined}
-						className="inline-flex h-9 items-center gap-1.5 rounded-full ink-tint-10 px-3.5 text-sm font-semibold transition-[transform,background-color] duration-150 hover:ink-tint-14 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
-					>
-						<Plus className="h-4 w-4" />
-						{t("travel_plans.add")}
-					</button>
-				}
-			/>
+	const planCount = travelPlans?.length ?? 0;
 
+	return (
+		<FieldSection
+			title={t("travel_plans.section_title")}
+			action={planCount > 0 ? (
+				<FieldSectionAction
+					onClick={() => setEditingPlan(null)}
+					disabled={numericProfileId == null || hasReachedMax}
+					title={hasReachedMax ? t("travel_plans.max_reached", { max: MAX_TRAVEL_PLANS }) : undefined}
+				>
+					<Plus className="h-3.5 w-3.5" />
+					{t("travel_plans.add")}
+					<span className="tabular-nums text-[var(--text-muted)]">
+						{planCount}/{MAX_TRAVEL_PLANS}
+					</span>
+				</FieldSectionAction>
+			) : undefined}
+		>
 			{isLoading ? (
-				<div className="flex items-center justify-center py-6 text-[var(--text-muted)]">
+				<div className="flex min-h-14 items-center justify-center text-[var(--text-muted)]">
 					<Loader2 className="h-5 w-5 animate-spin" />
 				</div>
-			) : (travelPlans?.length ?? 0) === 0 ? (
+			) : planCount === 0 ? (
 				<button
 					type="button"
 					onClick={() => setEditingPlan(null)}
 					disabled={numericProfileId == null}
-					className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl ink-tint-6 py-8 text-center transition hover:ink-tint-10 disabled:cursor-not-allowed disabled:opacity-40"
+					className="flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50"
 				>
-					<div className="flex h-9 w-9 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
-						<Plane className="h-4 w-4" />
-					</div>
-					<p className="text-sm text-[var(--text-muted)]">{t("travel_plans.empty", { max: MAX_TRAVEL_PLANS })}</p>
+					<span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--text-muted)]">
+						<Plus className="h-4 w-4" />
+					</span>
+					<span className="text-sm text-[var(--text-muted)]">{t("travel_plans.empty", { max: MAX_TRAVEL_PLANS })}</span>
 				</button>
 			) : (
-				<div className="overflow-hidden rounded-2xl ink-tint-6 divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)]">
-					{travelPlans!.map((plan) => (
-						<button
-							key={plan.travelPlanId}
-							type="button"
-							onClick={() => setEditingPlan(plan)}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:ink-tint-6"
-						>
-							<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--accent)]">
-								<Plane className="h-4 w-4" />
-							</div>
-							<TravelPlanSummary plan={plan} />
-							<Pencil className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)] opacity-60" />
-						</button>
-					))}
-				</div>
+				travelPlans!.map((plan) => (
+					<button
+						key={plan.travelPlanId}
+						type="button"
+						onClick={() => setEditingPlan(plan)}
+						className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
+					>
+						<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ink-tint-8 text-[var(--accent)]">
+							<Plane className="h-4 w-4" />
+						</div>
+						<TravelPlanSummary plan={plan} />
+						<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+					</button>
+				))
 			)}
 
-			{editingPlan !== undefined && numericProfileId != null && (
+			{/* Portaled out of the divided card, like the other row pickers. */}
+			{editingPlan !== undefined && numericProfileId != null && createPortal(
 				<TravelPlanEditorSheet
 					profileId={numericProfileId}
 					plan={editingPlan}
 					onClose={() => setEditingPlan(undefined)}
-				/>
+				/>,
+				document.body,
 			)}
-		</div>
+		</FieldSection>
 	);
 }

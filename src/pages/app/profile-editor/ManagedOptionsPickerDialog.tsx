@@ -8,8 +8,9 @@ import type { ManagedOption } from "../GridPage.types";
 
 interface ManagedOptionsPickerDialogProps {
 	title: string;
-	searchPlaceholder: string;
-	noMatchesLabel: string;
+	/** Omit for a short list: no search field then. */
+	searchPlaceholder?: string;
+	noMatchesLabel?: string;
 	options: ManagedOption[];
 	selected: number[];
 	/** Omit for an unlimited selection (e.g. a browse filter). */
@@ -68,13 +69,15 @@ export function ManagedOptionsPickerDialog({
 				<h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
 				<SheetCloseButton />
 			</div>
-			<SheetSearchInput
-				floating
-				value={query}
-				onChange={setQuery}
-				placeholder={searchPlaceholder}
-				accentColor={accentColor}
-			/>
+			{searchPlaceholder != null && (
+				<SheetSearchInput
+					floating
+					value={query}
+					onChange={setQuery}
+					placeholder={searchPlaceholder}
+					accentColor={accentColor}
+				/>
+			)}
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				{filteredOptions.length > 0 ? (
 					<div className="flex flex-wrap gap-2">

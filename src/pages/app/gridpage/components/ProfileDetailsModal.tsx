@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
-import { useNavigate } from "react-router-dom";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { appLog } from "../../../../utils/logger";
 import { useTranslation } from "react-i18next";
@@ -37,7 +36,7 @@ import {
 	getTribeLabelMap,
 	getVaccineLabelMap,
 } from "../../profile-option-builders";
-import { getProfileImageUrl } from "../../../../utils/media";
+import { getProfileImageUrl, validateMediaHash } from "../../../../utils/media";
 import { proxyMediaUrl } from "../../../../utils/mediaProxy";
 import { resolveAvatarSrc } from "../../../../services/avatarStore";
 import { getForbiddenWords, setForbiddenWords } from "../../../../utils/autoblock";
@@ -65,6 +64,9 @@ import {
 	shouldHideField,
 } from "../utils";
 import { ProfileDetailsContent } from "./ProfileDetailsContent";
+import { OwnProfileEditPanel } from "../../profile-editor/OwnProfileEditPanel";
+import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
+import { setCachedProfileDetail } from "../cache";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { PhotoViewer, type HeroRect, type PhotoViewerMenuAction } from "../../../../components/PhotoViewer";
 import { PhotoActionBar } from "../../../../components/PhotoActionBar";
@@ -413,6 +415,22 @@ function getProfileContentFlags(
 	};
 }
 
+/** Photo hashes of a profile in carousel order (primary first), as the
+ * parents derive them for the `activeProfilePhotoHashes` prop. */
+function getProfileDetailPhotoHashes(profile: ProfileDetail): string[] {
+	const hashes = profile.medias
+		.map((item) => item.mediaHash ?? "")
+		.filter((hash): hash is string => validateMediaHash(hash));
+	if (
+		profile.profileImageMediaHash &&
+		validateMediaHash(profile.profileImageMediaHash) &&
+		!hashes.includes(profile.profileImageMediaHash)
+	) {
+		hashes.unshift(profile.profileImageMediaHash);
+	}
+	return hashes;
+}
+
 /** `withHeader={false}` leaves out the name/status lines, for when those are already known. */
 function ProfileDetailsSkeleton({ withHeader = true }: { withHeader?: boolean }) {
 	return (
@@ -481,11 +499,11 @@ export function ProfileDetailsModal({
 	isTapBlocked = false,
 	tapVisualState = { state: "none", tapId: 1 },
 	onTagClick,
-	activeProfile,
+	activeProfile: activeProfileProp,
 	selectedBrowseCard,
 	isLoadingActiveProfile,
 	activeProfileError,
-	activeProfilePhotoHashes,
+	activeProfilePhotoHashes: activeProfilePhotoHashesProp,
 	chatContactStatus,
 	localNickname,
 	onLocalNicknameChange,
@@ -500,8 +518,30 @@ export function ProfileDetailsModal({
 	const { t } = useTranslation();
 	const { unitsPreset, showAlbumSensitiveContentWarning, openAlbumAsBottomSheet } = usePreferences();
 	const { userId } = useAuth();
-	const navigate = useNavigate();
 	const apiFunctions = useApiFunctions();
+	// Own profile only: edit mode swaps the details for the editor sections.
+	// Leaving it re-reads the profile here, since the parent only fetches it
+	// when the opened profile changes.
+	const [isEditingOwnProfile, setIsEditingOwnProfile] = useState(false);
+	const [hasUnsavedOwnEdits, setHasUnsavedOwnEdits] = useState(false);
+	const [isDiscardEditsPromptOpen, setIsDiscardEditsPromptOpen] = useState(false);
+	const [refreshedOwnProfile, setRefreshedOwnProfile] = useState<ProfileDetail | null>(null);
+	// Photo edits save immediately; the editor reports the saved order so the
+	// carousel follows right away. It also wins over the reload on leaving edit
+	// mode, which reads /v7/profiles and can lag behind the write.
+	const [editedOwnPhotoHashes, setEditedOwnPhotoHashes] = useState<string[] | null>(null);
+	const openedProfileId = activeProfileProp?.profileId;
+	useEffect(() => {
+		setRefreshedOwnProfile(null);
+		setEditedOwnPhotoHashes(null);
+		setIsEditingOwnProfile(false);
+	}, [openedProfileId]);
+	const activeProfile = refreshedOwnProfile ?? activeProfileProp;
+	const activeProfilePhotoHashes = useMemo(
+		() => editedOwnPhotoHashes
+			?? (refreshedOwnProfile ? getProfileDetailPhotoHashes(refreshedOwnProfile) : activeProfilePhotoHashesProp),
+		[editedOwnPhotoHashes, refreshedOwnProfile, activeProfilePhotoHashesProp],
+	);
 	const [ownTags, setOwnTags] = useState<string[]>(() => (userId ? (ownProfileDataCache.get(String(userId))?.tags ?? []) : []));
 	useEffect(() => {
 		if (!userId) return;
@@ -539,6 +579,38 @@ export function ProfileDetailsModal({
 
 	const messageProfileId = activeProfile?.profileId ?? selectedBrowseCard?.profileId ?? null;
 	const isOwnProfile = userId != null && messageProfileId != null && String(userId) === String(messageProfileId);
+
+	const finishOwnProfileEdit = useCallback(() => {
+		setIsEditingOwnProfile(false);
+		setHasUnsavedOwnEdits(false);
+		setIsDiscardEditsPromptOpen(false);
+		if (userId == null) return;
+		const ownId = String(userId);
+		apiFunctions.getProfileDetail(ownId).then((fresh) => {
+			setRefreshedOwnProfile(fresh);
+			setCachedProfileDetail(ownId, fresh);
+			ownProfileDataCache.set(ownId, { tags: fresh.profileTags ?? [] });
+		}).catch((error) => appLog.warn("Failed to reload own profile after editing", error));
+	}, [apiFunctions, userId]);
+	const toggleOwnProfileEdit = () => {
+		if (!isEditingOwnProfile) setIsEditingOwnProfile(true);
+		else if (hasUnsavedOwnEdits) setIsDiscardEditsPromptOpen(true);
+		else finishOwnProfileEdit();
+	};
+	const ownProfileEditLabel = isEditingOwnProfile
+		? t("profile_editor.stop_editing", { defaultValue: "Stop editing" })
+		: t("profile_editor.edit_profile", { defaultValue: "Edit profile" });
+	const discardEditsDialog = (
+		<ConfirmDialog
+			isOpen={isDiscardEditsPromptOpen}
+			title={t("profile_editor.discard.title", { defaultValue: "Discard changes?" })}
+			message={t("profile_editor.discard.message", { defaultValue: "Your unsaved profile changes will be lost." })}
+			confirmLabel={t("profile_editor.discard.confirm", { defaultValue: "Discard" })}
+			cancelLabel={t("common.cancel")}
+			onConfirm={finishOwnProfileEdit}
+			onCancel={() => setIsDiscardEditsPromptOpen(false)}
+		/>
+	);
 	const profileDistance =
 		activeProfile?.distance ?? selectedBrowseCard?.distanceMeters ?? null;
 	const profileOnlineUntil = isOwnProfile
@@ -2184,11 +2256,12 @@ export function ProfileDetailsModal({
 					{isOwnProfile && (
 						<button
 							type="button"
-							onClick={() => navigate("/settings/profile-editor")}
+							onClick={toggleOwnProfileEdit}
 							className={`header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border p-2 transition-colors ${inlineScrolled ? "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)]" : "border-white/45 bg-transparent text-white shadow-[0_10px_28px_-18px_rgba(0,0,0,0.95)] backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"}`}
-							aria-label={t("profile_editor.edit_profile")}
+							aria-label={ownProfileEditLabel}
+							title={ownProfileEditLabel}
 						>
-							<Pencil className="h-4 w-4" />
+							{isEditingOwnProfile ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
 						</button>
 					)}
 					{messageProfileId && !isOwnProfile && (
@@ -2393,11 +2466,13 @@ export function ProfileDetailsModal({
 						)}
 					</div>
 				)}
-				<div className={`p-4 sm:p-5 ${variant === "page" ? "pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+6rem)]" : "pb-28"}`}>
+				<div className={`p-4 sm:p-5 ${isEditingOwnProfile ? "pb-0 sm:pb-0" : variant === "page" ? "pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+6rem)]" : "pb-28"}`}>
 					{isLoadingActiveProfile ? (
 						<ProfileDetailsSkeleton />
 					) : activeProfileError ? (
 						<p className="text-sm text-[var(--text-muted)]">{activeProfileError}</p>
+					) : activeProfile && isOwnProfile && isEditingOwnProfile ? (
+						<OwnProfileEditPanel onDone={finishOwnProfileEdit} onDirtyChange={setHasUnsavedOwnEdits} onPhotoHashesChange={setEditedOwnPhotoHashes} />
 					) : activeProfile ? (
 						<ProfileDetailsContent
 							activeProfile={activeProfile}
@@ -2488,6 +2563,7 @@ export function ProfileDetailsModal({
 				{encounterSheet}
 				{nicknamePrompt}
 				{reportDialog}
+				{discardEditsDialog}
 				<PromptDialog
 					isOpen={banBioPrompt !== null}
 					title={t("profile_details.ban_bio_title")}
@@ -2662,8 +2738,8 @@ export function ProfileDetailsModal({
 										<p className="truncate text-base font-semibold">{activeProfileName}</p>
 									</div>
 									{isOwnProfile && (
-										<button type="button" onClick={() => navigate("/settings/profile-editor")} className="header-icon-btn shrink-0 rounded-xl text-[var(--text-muted)] transition-colors hover:text-[var(--text)]" aria-label={t("profile_editor.edit_profile")}>
-											<Pencil className="h-4 w-4" />
+										<button type="button" onClick={toggleOwnProfileEdit} className="header-icon-btn shrink-0 rounded-xl text-[var(--text-muted)] transition-colors hover:text-[var(--text)]" aria-label={ownProfileEditLabel} title={ownProfileEditLabel}>
+											{isEditingOwnProfile ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
 										</button>
 									)}
 									{messageProfileId && !isOwnProfile && (
@@ -2755,11 +2831,13 @@ export function ProfileDetailsModal({
 							</div>
 							{/* Split-mode content */}
 							<div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-lenis-prevent>
-								<div className="p-4 pb-28 sm:p-5 sm:pb-28">
+								<div className={`p-4 sm:p-5 ${isEditingOwnProfile ? "pb-0 sm:pb-0" : "pb-28 sm:pb-28"}`}>
 									{isLoadingActiveProfile ? (
 										<ProfileDetailsSkeleton />
 									) : activeProfileError ? (
 										<p className="text-sm text-[var(--text-muted)]">{activeProfileError}</p>
+									) : activeProfile && isOwnProfile && isEditingOwnProfile ? (
+										<OwnProfileEditPanel onDone={finishOwnProfileEdit} onDirtyChange={setHasUnsavedOwnEdits} onPhotoHashesChange={setEditedOwnPhotoHashes} />
 									) : activeProfile ? (
 										<ProfileDetailsContent
 											activeProfile={activeProfile}
@@ -2826,6 +2904,7 @@ export function ProfileDetailsModal({
 			{encounterSheet}
 			{nicknamePrompt}
 			{reportDialog}
+			{discardEditsDialog}
 			<PromptDialog
 				isOpen={banBioPrompt !== null}
 				title={t("profile_details.ban_bio_title")}

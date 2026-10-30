@@ -755,6 +755,13 @@
         "toast_added_from_drawer_many": "{{count}} ficheiros multimédia adicionados"
     },
     "profile_editor": {
+        "edit_profile": "Editar perfil",
+        "stop_editing": "Terminar edição",
+        "discard": {
+            "title": "Descartar alterações?",
+            "message": "As alterações não guardadas do teu perfil serão perdidas.",
+            "confirm": "Descartar"
+        },
         "title": "Editor de perfil",
         "management": "Gestão de perfis",
         "subtitle": "Defina a primeira impressão que as pessoas têm de você e, em seguida, refine os detalhes em um só lugar.",

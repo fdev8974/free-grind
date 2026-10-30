@@ -755,6 +755,13 @@
         "toast_added_from_drawer_many": "{{count}} médias ajoutés"
     },
     "profile_editor": {
+        "edit_profile": "Modifier le profil",
+        "stop_editing": "Terminer la modification",
+        "discard": {
+            "title": "Abandonner les modifications ?",
+            "message": "Les modifications non enregistrées de ton profil seront perdues.",
+            "confirm": "Abandonner"
+        },
         "title": "Éditeur de profil",
         "management": "Gestion du profil",
         "subtitle": "Définissez la première impression que vous donnez, puis peaufinez les détails au même endroit.",
