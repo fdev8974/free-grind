@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
-import { ArrowDown, Hand, MessageCircle, MousePointerClick, Pointer, Settings2 } from "lucide-react";
+import { ArrowDown, Hand, MessageCircle, MousePointerClick, Pointer } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenCardClass } from "../../../../components/FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass } from "../../../../components/FullscreenPrompt";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { Chip } from "../../../../components/ui/chip";
 import { getTapEmoji } from "../../interest/interestUtils";
@@ -71,7 +71,7 @@ export function GridGesturesIntro({ isDesktop, onConfirm }: { isDesktop: boolean
 				</button>
 			}
 		>
-			<div className={`${fullscreenCardClass} overflow-hidden divide-y divide-[var(--border)] text-left`}>
+			<div className={"native-group text-left"}>
 				<GestureRow
 					icon={<Pointer className="h-5 w-5" />}
 					title={isDesktop
@@ -141,8 +141,8 @@ export function GridGesturesIntro({ isDesktop, onConfirm }: { isDesktop: boolean
 					/>
 				)}
 			</div>
-			<p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
-				<Settings2 className="h-3.5 w-3.5 shrink-0" />
+			{/* Footnote under the group, like the settings pages' group footnotes. */}
+			<p className="mt-2 px-4 text-left text-xs leading-relaxed text-[var(--text-muted)]">
 				{t("browse_page.gestures_intro.settings_hint_change", {
 					defaultValue: "You can change this and the tap type later in Settings → Behavior.",
 				})}

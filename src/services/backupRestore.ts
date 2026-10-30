@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { appCacheDir, documentDir, downloadDir, join } from "@tauri-apps/api/path";
-import { save } from "@tauri-apps/plugin-dialog";
+import { open as openFileDialog, save } from "@tauri-apps/plugin-dialog";
 import { BaseDirectory, mkdir, open, remove } from "@tauri-apps/plugin-fs";
 import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-fs-api";
 import { isAndroid, isIos } from "./saveMedia";
@@ -43,6 +43,12 @@ export type BackupProgress = {
 	rowsTotal?: number;
 };
 
+/** Progress of reading a picked backup before its categories are known: copying
+ * it to a scratch path (bytes only when the copy runs in JS), then checking it. */
+export type BackupReadProgress =
+	| { stage: "copying"; bytesDone?: number; bytesTotal?: number }
+	| { stage: "checking" };
+
 const BACKUP_TEMP_DIR = "backup-tmp";
 /** Fewer, larger IPC writes — a picked File's stream yields ~64 KB chunks, one round-trip each otherwise. */
 const IMPORT_WRITE_CHUNK_SIZE = 8 * 1024 * 1024;
@@ -52,14 +58,21 @@ async function tempZipPath(prefix: string): Promise<string> {
 	return join(await appCacheDir(), BACKUP_TEMP_DIR, `${prefix}-${crypto.randomUUID()}.zip`);
 }
 
-/** Copies a picked `File` to a scratch path on disk, streamed so a large archive never sits fully in WebView memory. */
-export async function copyPickedFileToTemp(file: File): Promise<string> {
+/** Copies a picked `File` to a scratch path on disk, streamed so a large archive
+ * never sits fully in WebView memory. `onProgress` gets the bytes written after
+ * each chunk: a media backup can be gigabytes, which takes a while. */
+export async function copyPickedFileToTemp(
+	file: File,
+	onProgress?: (bytesDone: number, bytesTotal: number) => void,
+): Promise<string> {
 	const path = await tempZipPath("import");
 	const handle = await open(path, { write: true, create: true, truncate: true });
 	try {
 		const reader = file.stream().getReader();
 		const buffer = new Uint8Array(IMPORT_WRITE_CHUNK_SIZE);
 		let filled = 0;
+		let written = 0;
+		onProgress?.(0, file.size);
 		while (true) {
 			const { done, value } = await reader.read();
 			if (done) break;
@@ -71,12 +84,16 @@ export async function copyPickedFileToTemp(file: File): Promise<string> {
 				offset += take;
 				if (filled === buffer.length) {
 					await handle.write(buffer);
+					written += filled;
 					filled = 0;
+					onProgress?.(written, file.size);
 				}
 			}
 		}
 		if (filled > 0) {
 			await handle.write(buffer.subarray(0, filled));
+			written += filled;
+			onProgress?.(written, file.size);
 		}
 	} catch (error) {
 		await handle.close().catch(() => {});
@@ -93,13 +110,15 @@ export async function copyPickedFileToTemp(file: File): Promise<string> {
  * routes the whole archive through JS, which was slow and flaky for large
  * media backups. Resolves to null if the picker was cancelled.
  */
-export async function pickBackupFileToTempAndroid(): Promise<string | null> {
+export async function pickBackupFileToTempAndroid(onCopying?: () => void): Promise<string | null> {
 	const [uri] = await AndroidFs.showOpenFilePicker({
 		// Some file managers report zips as octet-stream; the inspection step
 		// rejects anything that isn't actually a backup anyway.
 		mimeTypes: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
 	});
 	if (!uri) return null;
+	// Picked: the native copy reports no progress, so only its start.
+	onCopying?.();
 	const path = await tempZipPath("import");
 	try {
 		await invoke("copy_android_uri_to_file", { srcUri: uri, destPath: path });
@@ -110,7 +129,55 @@ export async function pickBackupFileToTempAndroid(): Promise<string | null> {
 	return path;
 }
 
+/**
+ * Desktop: picks a backup with the native file dialog and returns its own path.
+ * Rust reads the archive in place, so unlike a picked `File` (copied through JS,
+ * ~30 s for a large media backup) there's nothing to copy. Null if cancelled.
+ */
+export async function pickBackupFileDesktop(): Promise<string | null> {
+	const path = await openFileDialog({
+		multiple: false,
+		directory: false,
+		filters: [{ name: "Free Grind data export", extensions: ["zip"] }],
+	});
+	return typeof path === "string" ? path : null;
+}
+
+/**
+ * Opens the platform's backup picker and hands the result to `onPicked` as a
+ * stage for it to run: on Android the native copy, on desktop the picked path
+ * as is. `fallbackToInput` opens the `<input type="file">` instead: always on
+ * iOS, and on desktop when the native dialog isn't available (e.g. a plain
+ * browser in dev).
+ */
+export async function pickBackupFile(
+	onPicked: (stage: (report: (progress: BackupReadProgress) => void) => Promise<string | null>) => void,
+	fallbackToInput: () => void,
+): Promise<void> {
+	if (isAndroid()) {
+		onPicked((report) => pickBackupFileToTempAndroid(() => report({ stage: "copying" })));
+		return;
+	}
+	if (isIos()) {
+		fallbackToInput();
+		return;
+	}
+	let path: string | null;
+	try {
+		path = await pickBackupFileDesktop();
+	} catch {
+		fallbackToInput();
+		return;
+	}
+	if (path != null) onPicked(async () => path);
+}
+
+/** Removes a scratch copy made by the pickers above. Anything outside the
+ * scratch dir (a backup picked in place on desktop) is the user's own file and
+ * is left alone. */
 export async function cleanupTempFile(path: string): Promise<void> {
+	const scratchDir = await join(await appCacheDir(), BACKUP_TEMP_DIR);
+	if (!path.startsWith(scratchDir)) return;
 	await remove(path).catch(() => {});
 }
 
@@ -156,7 +223,8 @@ export async function exportBackup(
 			await exportBackupToFile(dbFileName, ownerUserId, stagedPath, categories);
 			return (await save({ defaultPath: fileName })) != null;
 		} finally {
-			await cleanupTempFile(stagedPath);
+			// Staged in Documents, outside the scratch dir cleanupTempFile is limited to.
+			await remove(stagedPath).catch(() => {});
 		}
 	}
 

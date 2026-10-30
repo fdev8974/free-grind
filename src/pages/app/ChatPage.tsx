@@ -4555,6 +4555,11 @@ export function ChatPage() {
 					});
 					return next;
 				});
+				toast.success(
+					isPinned
+						? t("chat.toasts.conversation_unpinned", { defaultValue: "Chat unpinned" })
+						: t("chat.toasts.conversation_pinned", { defaultValue: "Chat pinned" }),
+				);
 			} catch (error) {
 				toast.error(
 					error instanceof Error ? error.message : t("chat.errors.update_pin_state"),
@@ -4604,6 +4609,11 @@ export function ChatPage() {
 					});
 					return next;
 				});
+				toast.success(
+					isMuted
+						? t("chat.toasts.conversation_unmuted", { defaultValue: "Chat unmuted" })
+						: t("chat.toasts.conversation_muted", { defaultValue: "Chat muted" }),
+				);
 			} catch (error) {
 				toast.error(
 					error instanceof Error ? error.message : t("chat.errors.update_mute_state"),
@@ -4676,6 +4686,11 @@ export function ChatPage() {
 				...conversation,
 				data: { ...conversation.data, muted: !isMuted },
 			}));
+			toast.success(
+				isMuted
+					? t("chat.toasts.conversation_unmuted", { defaultValue: "Chat unmuted" })
+					: t("chat.toasts.conversation_muted", { defaultValue: "Chat muted" }),
+			);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : t("chat.errors.update_mute_state"),

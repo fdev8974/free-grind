@@ -594,6 +594,9 @@ export function BottomSheet({
 						willChange: "transform",
 						"--sheet-bg": tintedSheetBg(bg) ?? sheetBgColor(bg),
 						backgroundColor: tintedSheetBg(bg) ? "var(--sheet-bg)" : undefined,
+						// Inside the sheet, surface-2 (code blocks, fields, icon tiles) is the
+						// SheetCard fill, derived from the tinted sheet, not the palette's own.
+						"--surface-2": tintedSheetBg(bg) ? "color-mix(in srgb, var(--sheet-bg) 93%, var(--text))" : undefined,
 						// Extends SHEET_BLEED past the screen edge so the open/settle overshoot
 						// never shows a gap under the sheet.
 						marginBottom: -SHEET_BLEED,

@@ -187,7 +187,7 @@ function DesktopTileMenu({
 			ref={menuRef}
 			style={{ top: position.top, left: position.left, ...menuTransitionStyle(visible, "top left") }}
 			onContextMenu={(e) => e.preventDefault()}
-			className="no-touch-callout fixed z-[70] flex min-w-[190px] flex-col gap-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-2xl"
+			className="no-touch-callout fixed z-[70] flex min-w-[190px] flex-col gap-1 rounded-lg menu-surface p-2"
 		>
 			{actions.map((action) => (
 				<Fragment key={action.key}>
@@ -200,7 +200,7 @@ function DesktopTileMenu({
 						}}
 						className={`flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm transition ${
 							action.danger
-								? "text-red-500 hover:bg-red-500/10"
+								? "text-red-500 hover:bg-red-500/10 active:bg-red-500/15"
 								: "text-[var(--text)] hover-fill"
 						}`}
 					>

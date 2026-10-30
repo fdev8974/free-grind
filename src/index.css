@@ -383,6 +383,10 @@
 		--text: #131821;
 		--text-muted: #606a79;
 		--border: #d7dce3;
+		/* Floating menus (menu-surface): white in light mode, one step up in dark. */
+		--menu-bg: var(--surface);
+		/* Faint lit edge on menus in dark mode, where a shadow on black doesn't show. */
+		--menu-edge: 0 0 #0000;
 		--accent-readable: #6d28d9;
 		/* Photo-less tile placeholder (see ProfileImage "silhouette"). Light mode
 		   gets its own mid-grey so empty tiles don't glare white among photos. */
@@ -427,9 +431,9 @@
 	   it up, while light mode stays untouched. */
 	:root[data-amoled="true"] {
 		--dark-bg: #000000;
-		--dark-surface: #0b0d11;
-		--dark-surface-2: #15191f;
-		--dark-border: #242a33;
+		--dark-surface: #08090c;
+		--dark-surface-2: #111418;
+		--dark-border: #1e232b;
 	}
 
 	@media (prefers-color-scheme: dark) {
@@ -440,6 +444,8 @@
 			--text: var(--dark-text);
 			--text-muted: var(--dark-text-muted);
 			--border: var(--dark-border);
+			--menu-bg: var(--card-tint-surface-2, var(--dark-surface-2));
+			--menu-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 			--accent-readable: var(--dark-accent-readable);
 			--placeholder-tile-top: var(--dark-surface-2);
 			--placeholder-tile-bottom: var(--dark-surface);
@@ -466,6 +472,8 @@
 		--text: var(--dark-text);
 		--text-muted: var(--dark-text-muted);
 		--border: var(--dark-border);
+		--menu-bg: var(--card-tint-surface-2, var(--dark-surface-2));
+		--menu-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 		--accent-readable: var(--dark-accent-readable);
 		--placeholder-tile-top: var(--dark-surface-2);
 		--placeholder-tile-bottom: var(--dark-surface);
@@ -1401,10 +1409,16 @@
 		:root {
 			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, var(--surface));
 			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+			/* A card on a --surface panel (the desktop fs-card): one step up. */
+			--raised-card-bg: var(--card-tint-surface-2);
 		}
 		:root[data-scheme="dark"][data-amoled="true"] {
 			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
 			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+			/* AMOLED menus sit darker than the cards, set off by border and shadow. */
+			--menu-bg: color-mix(in srgb, var(--accent) 5%, var(--dark-surface));
+			/* AMOLED panels are near black, so the regular card fill is already the step up. */
+			--raised-card-bg: var(--card-tint-bg);
 		}
 		.native-card,
 		.native-group,
@@ -1425,6 +1439,10 @@
 			:root:not([data-scheme="light"])[data-amoled="true"] {
 				--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
 				--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+				/* AMOLED menus sit darker than the cards, set off by border and shadow. */
+				--menu-bg: color-mix(in srgb, var(--accent) 5%, var(--dark-surface));
+				/* AMOLED panels are near black, so the regular card fill is already the step up. */
+				--raised-card-bg: var(--card-tint-bg);
 			}
 			:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
 			:root:not([data-scheme="light"])[data-amoled="true"] .native-group {
@@ -1660,10 +1678,15 @@
 
 @media (min-width: 640px) {
   /* The centered fs-card is itself var(--surface), so a .native-card inside
-     it would vanish there; step it up a level instead. */
+     it would vanish there; step it up a level instead (--raised-card-bg, from
+     :root: the card's own --surface-2 is already a step up, and using it here
+     made the card two steps lighter in AMOLED). */
   .fs-card-inner .native-card {
-    --card-bg: var(--surface-2);
-    background: var(--surface-2);
+    --card-bg: var(--raised-card-bg, var(--surface-2));
+    background: var(--card-bg);
+  }
+  .fs-card-inner .native-group {
+    --card-bg: var(--raised-card-bg, var(--surface-2));
   }
   .fs-card-inner::before {
     display: none;
@@ -1890,6 +1913,18 @@ dialog::backdrop {
 			background-color: var(--press-fill);
 		}
 	}
+}
+
+/* Floating menus and popovers. --surface didn't lift them off a card, where
+ * it's the card's own fill; --menu-bg sets them apart (see :root: white in
+ * light, a step up in dark, a step down in AMOLED), and the rows' hover-fill
+ * mixes into it too. */
+@utility menu-surface {
+	background-color: var(--menu-bg);
+	--hover-base: var(--menu-bg);
+	/* Borderless like the cards and sheets; a light shadow lifts it instead,
+	   plus a faint lit edge in dark mode (--menu-edge). */
+	box-shadow: var(--menu-edge), 0 2px 8px rgba(0, 0, 0, 0.18), 0 10px 28px rgba(0, 0, 0, 0.24);
 }
 
 /* Same as accent-tint, but tinted with the text color — the soft neutral fill

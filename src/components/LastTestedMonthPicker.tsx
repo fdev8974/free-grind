@@ -76,7 +76,7 @@ export function LastTestedMonthPicker({
 				/>
 			</button>
 			{isOpen && (
-				<div className="absolute z-20 mt-1 flex max-h-56 w-full flex-col gap-1 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2 shadow-lg">
+				<div className="absolute z-20 mt-1 flex max-h-56 w-full flex-col gap-1 overflow-y-auto rounded-lg menu-surface p-2">
 					<button
 						type="button"
 						onClick={() => {

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Slider } from "../../../components/ui/range-slider";
-import { SheetCard, SheetChip, SheetSection } from "../../../components/ui/sheet-section";
+import { SHEET_GROUP_CLASS, SheetChip, SheetSection } from "../../../components/ui/sheet-section";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { formatDistanceForUnits } from "../../../utils/units";
 import { getSexualPositionOptions, SEXUAL_POSITION_ICONS } from "../profile-option-builders";
@@ -9,7 +9,7 @@ import type { InboxFilterKey, InboxVisibilityFilter } from "../../../types/chat-
 import type { ChatFiltersDraft } from "../chat/chatUtils";
 
 /** One "Pinned"/"Archived"/"Hidden" row: label on the left, a 3-way chip
- * group (Show all/Hide/Only) on the right — a list row inside a SheetCard. */
+ * group (Show all/Hide/Only) on the right — a list row, one tile of a SHEET_GROUP_CLASS group. */
 function VisibilityFilterRow({
 	label,
 	value,
@@ -26,7 +26,7 @@ function VisibilityFilterRow({
 		{ value: "only", label: t("chat.filter.state_only", { defaultValue: "Only" }) },
 	];
 	return (
-		<div className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+		<div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
 			<span className="text-sm font-semibold text-[var(--text)]">{label}</span>
 			<div className="flex gap-1.5">
 				{options.map((option) => (
@@ -106,7 +106,7 @@ export function ChatFiltersPanel({ isDesktop: _isDesktop, draft, onChangeDraft, 
 
 			{/* Pinned/Archived/Hidden visibility */}
 			<SheetSection title={t("chat_filters.visibility", { defaultValue: "Visibility" })}>
-				<SheetCard className="divide-y divide-[var(--border)] py-1">
+				<div className={SHEET_GROUP_CLASS}>
 					<VisibilityFilterRow
 						label={t("chat.pinned")}
 						value={draft.pinnedFilter}
@@ -126,7 +126,7 @@ export function ChatFiltersPanel({ isDesktop: _isDesktop, draft, onChangeDraft, 
 							onChange={(hiddenFilter) => onChangeDraft({ ...draft, hiddenFilter })}
 						/>
 					)}
-				</SheetCard>
+				</div>
 			</SheetSection>
 
 			<SheetSection title={t("chat_filters.max_distance")} value={distanceDisplay}>

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
 import { ChevronRight, Info, Loader2, ShieldAlert, Smartphone } from "lucide-react";
 import toast from "react-hot-toast";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { OutdatedVersionPromptView, fetchLatestRelease, isOlderVersion, type ReleaseInfo } from "./OutdatedVersionPrompt";
 import {
 	dismissUnsupportedVersion,
@@ -79,7 +79,7 @@ export function UnsupportedVersionPromptView({
 				</>
 			}
 		>
-			<dl className={`${fullscreenCardClass} divide-y divide-[var(--border)] overflow-hidden text-left`}>
+			<dl className={"native-group text-left"}>
 				{details.map(({ icon: Icon, label, value }) => (
 					<div key={label} className="flex items-center gap-3 px-4 py-3.5">
 						<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--accent)]">

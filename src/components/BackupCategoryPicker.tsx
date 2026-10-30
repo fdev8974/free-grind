@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { ToggleRow } from "./ui/toggle-row";
+import { SHEET_GROUP_CLASS } from "./ui/sheet-section";
 import type { BackupCategoryId } from "../services/backupRestore";
 
 function useBackupCategoryLabels(): Record<BackupCategoryId, string> {
@@ -27,11 +28,12 @@ export function BackupCategoryPicker({
 	const labels = useBackupCategoryLabels();
 
 	return (
-		<div className="divide-y divide-[var(--border)]">
+		// Sits in a sheet's unpadded scroll area, hence its own side margin.
+		<div className={`mx-4 ${SHEET_GROUP_CLASS}`}>
 			{categories.map((id) => (
 				<ToggleRow
 					key={id}
-					dense
+					padding="px-4 py-3"
 					label={labels[id]}
 					checked={selected.has(id)}
 					onChange={() => onToggle(id)}

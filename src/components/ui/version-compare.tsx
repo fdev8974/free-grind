@@ -30,22 +30,22 @@ function VersionCompareRow({ side, highlight }: { side: VersionCompareSide; high
 }
 
 /**
- * Installed → new comparison used by the update prompts: two equal-height rows
- * (so the arrow on the divider sits visually centered), the new one highlighted.
- * Renders no card of its own — place it inside a `fullscreenCardClass` card.
+ * Installed → new comparison used by the update prompts: two rows, the new one
+ * highlighted, with an arrow badge in the gap between them. Renders the rows
+ * as direct children, so each is its own tile of the surrounding `native-group`.
  */
 export function VersionCompare({ from, to }: { from?: VersionCompareSide; to: VersionCompareSide }) {
 	return (
-		<div className="grid auto-rows-fr divide-y divide-[var(--border)]">
+		<>
 			{from && (
 				<div className="relative">
 					<VersionCompareRow side={from} />
-					<div className="absolute bottom-0 left-6 z-10 flex translate-y-[calc(50%+0.5px)] rounded-full border border-[var(--border)] bg-[var(--surface)] p-1 text-[var(--text-muted)]">
+					<div className="absolute bottom-0 left-6 z-10 flex translate-y-[calc(50%+2px)] rounded-full bg-[var(--surface-2)] p-1 text-[var(--text-muted)] shadow-[0_1px_4px_rgba(0,0,0,0.25)]">
 						<ArrowDown className="h-3.5 w-3.5" />
 					</div>
 				</div>
 			)}
 			<VersionCompareRow side={to} highlight />
-		</div>
+		</>
 	);
 }

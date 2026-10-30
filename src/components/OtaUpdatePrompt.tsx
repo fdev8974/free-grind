@@ -17,7 +17,7 @@ import {
 	type PendingHotswapUpdate,
 } from "../services/hotswap";
 import { appLog } from "../utils/logger";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { ToggleRow } from "./ui/toggle-row";
 import { VersionCompare, type VersionCompareSide } from "./ui/version-compare";
 import { hourCycleOptions } from "../utils/timeFormat";
@@ -259,7 +259,7 @@ export function OtaUpdatePromptView({
 				</>
 			}
 		>
-			<div className={`${fullscreenCardClass} divide-y divide-[var(--border)] overflow-hidden text-left`}>
+			<div className={"native-group text-left"}>
 				<VersionCompare
 					from={
 						installedVersion === undefined

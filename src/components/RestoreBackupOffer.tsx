@@ -3,7 +3,7 @@ import { FileArchive, FileUp, Loader2, Lock, UploadCloud } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
-import { BackupProgressBar } from "./BackupProgressBar";
+import { BackupProgressBar, BackupReadStatus } from "./BackupProgressBar";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
@@ -14,10 +14,10 @@ import {
 	copyPickedFileToTemp,
 	importBackupFile,
 	inspectBackupFile,
-	pickBackupFileToTempAndroid,
+	pickBackupFile,
 	type BackupCategoryId,
+	type BackupReadProgress,
 } from "../services/backupRestore";
-import { isAndroid } from "../services/saveMedia";
 import { markRestoreOffered } from "../utils/restoreOfferStorage";
 import { appLog } from "../utils/logger";
 
@@ -28,6 +28,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 
 	const [isBusy, setIsBusy] = useState(false);
 	const [isDragging, setIsDragging] = useState(false);
+	const [readProgress, setReadProgress] = useState<BackupReadProgress | null>(null);
 	const [pendingImport, setPendingImport] = useState<{
 		tempPath: string;
 		categories: BackupCategoryId[];
@@ -47,13 +48,15 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 		);
 	};
 
-	/** `stage` copies the picked archive to a local scratch path (null = picker cancelled). */
-	const handleFilePicked = async (stage: () => Promise<string | null>) => {
+	/** `stage` copies the picked archive to a local scratch path (null = picker
+	 * cancelled), reporting its progress through `report`. */
+	const handleFilePicked = async (stage: (report: (progress: BackupReadProgress) => void) => Promise<string | null>) => {
 		setIsBusy(true);
 		let tempPath: string | null = null;
 		try {
-			tempPath = await stage();
+			tempPath = await stage(setReadProgress);
 			if (tempPath == null) return;
+			setReadProgress({ stage: "checking" });
 			const inspection = await inspectBackupFile(tempPath, userId);
 			if (!inspection.ok) {
 				showImportError(inspection.error);
@@ -66,6 +69,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 			toast.error(getErrorMessage(error, t("restore_offer.import_failed", { defaultValue: "Failed to read backup file." })));
 			if (tempPath != null) await cleanupTempFile(tempPath);
 		} finally {
+			setReadProgress(null);
 			setIsBusy(false);
 		}
 	};
@@ -137,11 +141,10 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 				<button
 					type="button"
 					onClick={() => {
-						if (isAndroid()) {
-							void handleFilePicked(pickBackupFileToTempAndroid);
-						} else {
-							fileInputRef.current?.click();
-						}
+						void pickBackupFile(
+							(stage) => void handleFilePicked(stage),
+							() => fileInputRef.current?.click(),
+						);
 					}}
 					onDragOver={(event) => {
 						event.preventDefault();
@@ -152,13 +155,16 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 						event.preventDefault();
 						setIsDragging(false);
 						const file = event.dataTransfer.files?.[0];
-						if (file && !isBusy) void handleFilePicked(() => copyPickedFileToTemp(file));
+						if (file && !isBusy) void handleFilePicked((report) => copyPickedFileToTemp(file, (bytesDone, bytesTotal) => report({ stage: "copying", bytesDone, bytesTotal })));
 					}}
 					disabled={isBusy}
+					// Lightly accent-tinted drop zone, stronger on hover and while a file is
+					// dragged over it. The surface comes first in each mix: where color-mix
+					// is unsupported, the build falls back to the first color.
 					className={`group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-7 text-center transition disabled:cursor-wait ${
 						isDragging
-							? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_10%,var(--surface))]"
-							: "border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--accent)_6%,var(--surface-2))]"
+							? "border-[var(--accent)] bg-[color-mix(in_srgb,var(--surface-2)_82%,var(--accent))]"
+							: "border-[color-mix(in_srgb,var(--surface-2)_55%,var(--accent))] bg-[color-mix(in_srgb,var(--surface-2)_92%,var(--accent))] hover:border-[var(--accent)] hover:bg-[color-mix(in_srgb,var(--surface-2)_86%,var(--accent))]"
 					}`}
 				>
 					<span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/20 transition group-hover:scale-105">
@@ -166,14 +172,18 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					</span>
 					<span className="space-y-1">
 						<span className="block font-semibold text-[var(--text)]">
-							{isBusy
+							{readProgress
 								? t("restore_offer.reading_file", { defaultValue: "Reading backup…" })
 								: t("restore_offer.choose_file", { defaultValue: "Choose backup file" })}
 						</span>
-						<span className="flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
-							<FileArchive className="h-3.5 w-3.5" />
-							{t("restore_offer.file_hint", { defaultValue: "Free Grind data export (.zip)" })}
-						</span>
+						{readProgress ? (
+							<BackupReadStatus progress={readProgress} className="w-56 max-w-full pt-1" />
+						) : (
+							<span className="flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
+								<FileArchive className="h-3.5 w-3.5" />
+								{t("restore_offer.file_hint", { defaultValue: "Free Grind data export (.zip)" })}
+							</span>
+						)}
 					</span>
 				</button>
 				<input
@@ -184,7 +194,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					onChange={(event) => {
 						const file = event.target.files?.[0];
 						event.target.value = "";
-						if (file) void handleFilePicked(() => copyPickedFileToTemp(file));
+						if (file) void handleFilePicked((report) => copyPickedFileToTemp(file, (bytesDone, bytesTotal) => report({ stage: "copying", bytesDone, bytesTotal })));
 					}}
 				/>
 

@@ -1647,7 +1647,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									{headerMenuPresence.rendered ? (
 										<div
 											data-lenis-prevent
-											className="absolute right-0 top-full z-40 mt-1 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg"
+											className="absolute right-0 top-full z-40 mt-1 flex max-h-[70dvh] min-w-[210px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg menu-surface py-2"
 											// Mobile: stay within the space between the floating header and composer.
 											style={{
 												...menuTransitionStyle(headerMenuPresence.visible),
@@ -2539,7 +2539,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										</button>
 										{isComposerMenuOpen && (
 											<>
-												<div className="absolute bottom-full left-0 z-50 mb-2 min-w-[220px] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-2xl">
+												<div className="absolute bottom-full left-0 z-50 mb-2 min-w-[220px] rounded-2xl menu-surface p-1.5">
 													{composerActions.filter((action) => action.key !== "drawer").map((action) => (
 														<button
 															key={action.key}

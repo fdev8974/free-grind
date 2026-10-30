@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
 import { RowActionPill } from "../../components/ui/row-action-pill";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
-import { BackupProgressBar } from "../../components/BackupProgressBar";
+import { BackupProgressBar, BackupReadStatus } from "../../components/BackupProgressBar";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../components/ui/bottom-sheet";
 import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
@@ -30,9 +30,10 @@ import {
 	exportBackup,
 	importBackupFile,
 	inspectBackupFile,
-	pickBackupFileToTempAndroid,
+	pickBackupFile,
 	type BackupCategoryId,
 	type BackupExportDestination,
+	type BackupReadProgress,
 } from "../../services/backupRestore";
 import { loadEncounters } from "../../services/encounters";
 import { encountersToIcs } from "../../services/icsExport";
@@ -41,14 +42,7 @@ import { loadSavedPhrases, parsePhrasesFromTxt, phrasesToTxt, saveSavedPhrases }
 import { resetAllSettings } from "../../utils/resetSettings";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import { appLog } from "../../utils/logger";
-
-function formatBytes(bytes: number): string {
-	if (bytes <= 0) return "0 B";
-	const units = ["B", "KB", "MB", "GB"];
-	const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-	const value = bytes / 1024 ** exponent;
-	return `${exponent === 0 ? value : value.toFixed(1)} ${units[exponent]}`;
-}
+import { formatBytes } from "../../utils/formatBytes";
 
 export function SettingsDataPage() {
 	const { t } = useTranslation();
@@ -61,6 +55,7 @@ export function SettingsDataPage() {
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [isExporting, setIsExporting] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);
+	const [readProgress, setReadProgress] = useState<BackupReadProgress | null>(null);
 	const [isResetting, setIsResetting] = useState(false);
 	const [showResetConfirm, setShowResetConfirm] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,8 +170,9 @@ export function SettingsDataPage() {
 		);
 	};
 
-	/** `stage` copies the picked archive to a local scratch path (null = picker cancelled). */
-	const handleImportFile = async (stage: () => Promise<string | null>) => {
+	/** `stage` copies the picked archive to a local scratch path (null = picker
+	 * cancelled), reporting its progress through `report`. */
+	const handleImportFile = async (stage: (report: (progress: BackupReadProgress) => void) => Promise<string | null>) => {
 		if (userId == null) {
 			toast.error(t("data_backup.import_no_user", { defaultValue: "You must be signed in to import." }));
 			return;
@@ -187,8 +183,9 @@ export function SettingsDataPage() {
 		// the file do we ask the user which of those to restore.
 		let tempPath: string | null = null;
 		try {
-			tempPath = await stage();
+			tempPath = await stage(setReadProgress);
 			if (tempPath == null) return;
+			setReadProgress({ stage: "checking" });
 			const inspection = await inspectBackupFile(tempPath, userId);
 			if (!inspection.ok) {
 				showImportError(inspection.error);
@@ -201,6 +198,7 @@ export function SettingsDataPage() {
 			toast.error(getErrorMessage(error, t("data_backup.import_failed", { defaultValue: "Failed to import data." })));
 			if (tempPath != null) await cleanupTempFile(tempPath);
 		} finally {
+			setReadProgress(null);
 			setIsImporting(false);
 		}
 	};
@@ -407,11 +405,10 @@ export function SettingsDataPage() {
 							id="data-import"
 							type="button"
 							onClick={() => {
-								if (isAndroid()) {
-									void handleImportFile(pickBackupFileToTempAndroid);
-								} else {
-									fileInputRef.current?.click();
-								}
+								void pickBackupFile(
+									(stage) => void handleImportFile(stage),
+									() => fileInputRef.current?.click(),
+								);
 							}}
 							disabled={isImporting}
 							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover-fill"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
@@ -423,11 +420,15 @@ export function SettingsDataPage() {
 								<p className="text-sm font-semibold leading-snug">
 									{t("data_backup.import", { defaultValue: "Import data" })}
 								</p>
-								<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-									{t("data_backup.import_card_desc", {
-										defaultValue: "Merge a previously exported file back in — nothing already here is erased. The app reloads afterwards.",
-									})}
-								</p>
+								{readProgress ? (
+									<BackupReadStatus progress={readProgress} className="mt-1.5" />
+								) : (
+									<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+										{t("data_backup.import_card_desc", {
+											defaultValue: "Merge a previously exported file back in — nothing already here is erased. The app reloads afterwards.",
+										})}
+									</p>
+								)}
 							</div>
 							{isImporting ? (
 								<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-muted)]" />
@@ -443,7 +444,7 @@ export function SettingsDataPage() {
 							onChange={(event) => {
 								const file = event.target.files?.[0];
 								event.target.value = "";
-								if (file) void handleImportFile(() => copyPickedFileToTemp(file));
+								if (file) void handleImportFile((report) => copyPickedFileToTemp(file, (bytesDone, bytesTotal) => report({ stage: "copying", bytesDone, bytesTotal })));
 							}}
 						/>
 

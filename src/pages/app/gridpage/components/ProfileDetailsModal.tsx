@@ -1900,7 +1900,7 @@ export function ProfileDetailsModal({
 			<button
 				type="button"
 				onClick={() => { setIsActionsMenuOpen(false); setIsReportDialogOpen(true); }}
-				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover-fill"
+				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-red-500/10 active:bg-red-500/15"
 			>
 				<Flag className="mr-2 h-4 w-4 fill-current opacity-70" />
 				{t("profile_details.report.menu_item")}
@@ -2333,7 +2333,7 @@ export function ProfileDetailsModal({
 								</button>
 								{nicknameNameChangeBadge}
 								{actionsMenuPresence.rendered && (
-									<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+									<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg menu-surface py-2">
 										<div className="flex flex-col gap-1 px-2">
 										{showLocate && (
 										<button
@@ -2792,7 +2792,7 @@ export function ProfileDetailsModal({
 												</button>
 												{nicknameNameChangeBadge}
 												{actionsMenuPresence.rendered && (
-													<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border border-[var(--border)] bg-[var(--surface)] py-2 shadow-lg">
+													<div data-lenis-prevent style={menuTransitionStyle(actionsMenuPresence.visible)} className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-8rem)] min-w-[190px] flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg menu-surface py-2">
 														<div className="flex flex-col gap-1 px-2">
 														{showLocate && (
 														<button type="button" disabled={isTriangleDisabled}

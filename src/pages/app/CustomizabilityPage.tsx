@@ -75,7 +75,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 const SCHEME_PREVIEW_COLORS = {
 	light: { bg: "#f5f7fa", card: "#ffffff", line: "#d7dce3" },
 	dark: { bg: "#0f131a", card: "#161d27", line: "#2b3646" },
-	amoled: { bg: "#000000", card: "#15191f", line: "#242a33" },
+	amoled: { bg: "#000000", card: "#111418", line: "#1e232b" },
 };
 
 function SchemeMockup({ colors }: { colors: (typeof SCHEME_PREVIEW_COLORS)["light"] }) {

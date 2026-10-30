@@ -3,7 +3,7 @@ import { ChevronRight, ExternalLink, FileText, Loader2, ScrollText, ShieldCheck,
 import { openUrl } from "@tauri-apps/plugin-opener";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import {
 	isLegalVersionOutdated,
 	useAcceptLegalAgreements,
@@ -144,7 +144,7 @@ export function LegalAgreementsGate({ userId, children }: { userId: number; chil
 				</>
 			}
 		>
-			<div className={`${fullscreenCardClass} divide-y divide-[var(--border)] overflow-hidden text-left`}>
+			<div className={"native-group text-left"}>
 				<PolicyRow
 					icon={ScrollText}
 					title={t("legal_agreements.tos_title", { defaultValue: "Terms of Service" })}

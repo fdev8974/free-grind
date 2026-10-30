@@ -103,10 +103,33 @@ export function SheetChip({
 export const SHEET_FIELD_CLASS =
 	"w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]";
 
-/** Plain surface-2 container for list-style rows in a sheet section. */
+/** Container for list-style rows in a sheet section: the sheet's own (accent
+ * tinted) fill lifted by a touch of the text color, like the resting chips,
+ * rather than the palette's surface-2, which clashed with the tinted sheet.
+ * Its --border follows suit, so dividers inside match too. The sheet color
+ * comes first in each mix, since the build falls back to the first color
+ * where color-mix is unsupported. */
 export function SheetCard({ className, children }: { className?: string; children: ReactNode }) {
-	return <div className={cn("rounded-2xl bg-[var(--surface-2)] px-4 py-3", className)}>{children}</div>;
+	return (
+		<div
+			className={cn(
+				SHEET_CARD_FILL_CLASS,
+				"rounded-2xl [--border:color-mix(in_srgb,var(--sheet-bg,var(--surface))_84%,var(--text))] px-4 py-3",
+				className,
+			)}
+		>
+			{children}
+		</div>
+	);
 }
+
+/** SheetCard's fill on its own, for other cards in a sheet (e.g. a hero row). */
+export const SHEET_CARD_FILL_CLASS = "bg-[color-mix(in_srgb,var(--sheet-bg,var(--surface))_93%,var(--text))]";
+
+/** Grouped list in a sheet: one native-group tile per row, in the SheetCard
+ * fill, with gaps instead of divider lines. Rows bring their own padding. */
+export const SHEET_GROUP_CLASS =
+	"native-group [--card-bg:color-mix(in_srgb,var(--sheet-bg,var(--surface))_93%,var(--text))] [--hover-base:var(--card-bg)]";
 
 export interface SheetToggleItem {
 	key: string;
@@ -116,11 +139,11 @@ export interface SheetToggleItem {
 	description?: string;
 }
 
-/** On/off options in a sheet as native-style list rows: one SheetCard, a
- * switch per row, dividers between them (e.g. a photo's upload options). */
+/** On/off options in a sheet as native-style list rows: a switch per row,
+ * one tile each in a SHEET_GROUP_CLASS group (e.g. a photo's upload options). */
 export function SheetToggleList({ items, className }: { items: SheetToggleItem[]; className?: string }) {
 	return (
-		<SheetCard className={cn("divide-y divide-[var(--border)] py-0", className)}>
+		<div className={cn(SHEET_GROUP_CLASS, className)}>
 			{items.map((item) => (
 				<ToggleRow
 					key={item.key}
@@ -128,10 +151,10 @@ export function SheetToggleList({ items, className }: { items: SheetToggleItem[]
 					onChange={item.onChange}
 					label={item.label}
 					description={item.description}
-					padding="py-3"
+					padding="px-4 py-3"
 				/>
 			))}
-		</SheetCard>
+		</div>
 	);
 }
 

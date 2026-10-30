@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle2, Loader2, Radar, RefreshCcw } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
-import { SheetSection } from "../../../components/ui/sheet-section";
+import { SHEET_CARD_FILL_CLASS, SHEET_GROUP_CLASS, SheetSection } from "../../../components/ui/sheet-section";
 import type { useFingerprintCheck } from "../../../components/FingerprintCheckButton";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
@@ -20,7 +20,7 @@ const TONE_HERO: Record<DiagnosticTone, string> = {
 /** Big status block at the top of a diagnostics sheet. */
 function StatusHero({ tone, icon, title, description }: { tone: DiagnosticTone; icon: ReactNode; title: string; description: string }) {
 	return (
-		<div className="mb-5 flex items-center gap-3 rounded-2xl bg-[var(--surface-2)] p-3">
+		<div className={cn("mb-5 flex items-center gap-3 rounded-2xl p-3", SHEET_CARD_FILL_CLASS)}>
 			<div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", TONE_HERO[tone])}>{icon}</div>
 			<div className="min-w-0 flex-1">
 				<p className="text-sm font-semibold leading-snug">{title}</p>
@@ -41,7 +41,7 @@ function MatchBadge({ match }: { match: boolean }) {
 
 /** A grouped list card inside a sheet section. */
 function SheetListCard({ children }: { children: ReactNode }) {
-	return <div className="divide-y divide-[var(--border)] overflow-hidden rounded-2xl bg-[var(--surface-2)]">{children}</div>;
+	return <div className={SHEET_GROUP_CLASS}>{children}</div>;
 }
 
 function sheetPanelClass(isDesktop: boolean) {

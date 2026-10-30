@@ -751,7 +751,7 @@ export function NavBar() {
 					<div
 						ref={accountSwitcherRef}
 						className={cn(
-							"absolute z-50 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-xl animate-in fade-in zoom-in-95 duration-150",
+							"absolute z-50 w-max min-w-[14rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-lg menu-surface p-3 animate-in fade-in zoom-in-95 duration-150",
 							// Rail: opens to the right of the profile tab at the bottom.
 							rail
 								? "bottom-3 left-full ml-2 slide-in-from-left-2"

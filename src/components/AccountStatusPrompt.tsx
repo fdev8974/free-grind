@@ -445,7 +445,7 @@ function ReasonCard({ ban, expiresAt, now }: { ban: BanSummary; expiresAt?: numb
 
 function DetailList({ details }: { details: Detail[] }) {
 	return (
-		<dl className={`${fullscreenCardClass} divide-y divide-[var(--border)] overflow-hidden text-left`}>
+		<dl className={"native-group text-left"}>
 			{details.map(({ icon: Icon, label, value }) => (
 				<div key={label} className="flex items-center gap-3 px-4 py-3.5">
 					<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--accent)]">

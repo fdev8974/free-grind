@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
-import { SheetSection } from "../../../components/ui/sheet-section";
+import { SHEET_GROUP_CLASS, SheetSection } from "../../../components/ui/sheet-section";
 import type { AlbumLimits } from "../../../types/albums";
 import { DrawerHeader } from "../chat/drawerUi";
 import { formatMs } from "./settingsAlbumsUtils";
@@ -76,7 +76,7 @@ export function AlbumPlanLimitsSheet({
 					</SheetSection>
 				)}
 				<SheetSection title={t("settings_albums.limits_details", { defaultValue: "Details" })}>
-					<div className="divide-y divide-[var(--border)] overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+					<div className={SHEET_GROUP_CLASS}>
 						{limits.maxContentItemsPerAlbum != null && (
 							<LimitRow icon={<Images className="h-4 w-4" />} label={t("settings_albums.limits_items_per_album", { defaultValue: "Items per Album" })} value={String(limits.maxContentItemsPerAlbum)} />
 						)}

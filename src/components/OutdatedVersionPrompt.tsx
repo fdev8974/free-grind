@@ -1,5 +1,5 @@
 import { AlertTriangle, ChevronRight, Download, ExternalLink, Loader2, Smartphone, Sparkles } from "lucide-react";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -287,7 +287,7 @@ export function OutdatedVersionPromptView({
 			}
 			footer={footer}
 		>
-			<div className={`${fullscreenCardClass} overflow-hidden text-left`}>
+			<div className={"native-group text-left"}>
 				<VersionCompare
 					from={{
 						icon: Smartphone,
