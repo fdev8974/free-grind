@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import {
 	DndContext,
-	PointerSensor,
+	MouseSensor,
 	TouchSensor,
 	useSensor,
 	useSensors,
@@ -50,6 +50,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import { haptic } from "../../../utils/haptics";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { getThumbImageUrl } from "../../../utils/media";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
@@ -124,17 +125,21 @@ function SortablePhotoSlot({
 			style={style}
 			{...attributes}
 			{...listeners}
+			// The long press that starts a touch drag mustn't open the browser's
+			// image menu / callout or start a text selection.
+			onContextMenu={(event) => event.preventDefault()}
 			className={[
-				"group relative aspect-square touch-manipulation overflow-hidden rounded-2xl bg-[var(--surface-2)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
+				"group relative aspect-square touch-manipulation select-none overflow-hidden rounded-2xl bg-[var(--surface-2)] outline-none transition-[scale,box-shadow] duration-150 [-webkit-touch-callout:none] focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
 				isBusy ? "" : "cursor-grab active:cursor-grabbing",
-				isDragging ? "z-10 opacity-60" : "",
+				// Lifted while dragging: a bit bigger, accent ring, shadow.
+				isDragging ? "z-10 scale-105 shadow-xl ring-2 ring-[var(--accent)]" : "",
 			].join(" ")}
 		>
 			<img
 				src={proxyMediaUrl(getThumbImageUrl(hash, "320x320"))}
 				alt={`Profile photo ${slotIndex + 1}`}
 				draggable={false}
-				className={`h-full w-full object-cover ${isRejected ? "opacity-50 grayscale" : ""}`}
+				className={`pointer-events-none h-full w-full object-cover ${isRejected ? "opacity-50 grayscale" : ""}`}
 			/>
 
 			{(isPending || isRejected) && (
@@ -291,9 +296,12 @@ export function ProfileEditorFormSections({
 	const [overId, setOverId] = useState<string | null>(null);
 	const [isTagsDialogOpen, setIsTagsDialogOpen] = useState(false);
 
+	// Mouse drags after a few pixels; touch only after a long press, so swiping
+	// across the photos still scrolls the page. (A PointerSensor would also
+	// catch touches and start dragging on every scroll that begins on a photo.)
 	const sensors = useSensors(
-		useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-		useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+		useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 10 } }),
 	);
 
 	const liveOrder = useMemo(() => {
@@ -304,12 +312,17 @@ export function ProfileEditorFormSections({
 		return arrayMove(photos.hashes, from, to);
 	}, [activeId, overId, photos.hashes]);
 
+	// Haptics: a firm tick when the photo lifts, a light one for each new spot
+	// it moves over, and one more when it lands somewhere new.
 	const handleDndDragStart = ({ active }: DragStartEvent) => {
 		setActiveId(String(active.id));
+		haptic(15);
 	};
 
 	const handleDndDragOver = ({ over }: DragOverEvent) => {
-		setOverId(over ? String(over.id) : null);
+		const nextOverId = over ? String(over.id) : null;
+		if (nextOverId && nextOverId !== overId) haptic(6);
+		setOverId(nextOverId);
 	};
 
 	const handleDndDragEnd = ({ active, over }: DragEndEvent) => {
@@ -319,6 +332,7 @@ export function ProfileEditorFormSections({
 		const from = photos.hashes.indexOf(String(active.id));
 		const to = photos.hashes.indexOf(String(over.id));
 		if (from === -1 || to === -1) return;
+		haptic(10);
 		void photos.handleReorder(arrayMove(photos.hashes, from, to));
 	};
 
