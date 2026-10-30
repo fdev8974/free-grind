@@ -974,6 +974,7 @@
         "tags_count_many": "{{count}} etiquetas"
     },
     "privacy": {
+        "map": "Mapa",
         "grid_visibility": "Visibilidad en la cuadrícula",
         "incognito_mode": "Modo incógnito",
         "incognito_mode_desc": "Impide que la cuadrícula se cargue o se actualice, oculta tus confirmaciones de lectura y deja de registrar visitas a perfiles — para navegar sin aparecer en línea ni dejar rastro.",

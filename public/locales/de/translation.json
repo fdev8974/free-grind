@@ -965,6 +965,7 @@
         }
     },
     "privacy": {
+        "map": "Karte",
         "grid_visibility": "Grid-Sichtbarkeit",
         "incognito_mode": "Inkognito-Modus",
         "incognito_mode_desc": "Verhindert, dass das Grid lädt oder sich aktualisiert, verbirgt deine Lesebestätigungen und meldet keine Profilaufrufe — so kannst du stöbern, ohne online zu erscheinen oder Spuren zu hinterlassen.",

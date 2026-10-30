@@ -974,6 +974,7 @@
         "tags_count_many": "{{count}} tags"
     },
     "privacy": {
+        "map": "Mapa",
         "grid_visibility": "Visibilidade da grelha",
         "incognito_mode": "Modo anónimo",
         "incognito_mode_desc": "Impeça o carregamento ou a atualização da grelha, oculte as confirmações de leitura e pare de registar visualizações de perfil — assim, você pode navegar sem aparecer como online ou deixar rastros.",

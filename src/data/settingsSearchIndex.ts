@@ -36,6 +36,7 @@ import {
 	ToggleRight,
 	PanelBottom,
 	LocateFixed,
+	MapPin,
 	Type,
 	Trash2,
 	Upload,
@@ -640,6 +641,30 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			section: "Safety",
 			icon: Shield,
 			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
+			id: "privacy-show-on-map",
+			route: "/settings/privacy",
+			anchor: "privacy-show-on-map",
+			label: t("profile_editor.sections.map.show_on_map", { defaultValue: "Show Me on Map" }),
+			description: t("profile_editor.sections.map.show_on_map_desc", {
+				defaultValue: "Your profile appears on the map, always offset from your actual location.",
+			}),
+			section: "Privacy",
+			icon: MapPin,
+			iconClass: "bg-emerald-500/15 text-emerald-400",
+		},
+		{
+			id: "privacy-right-now-explicit-images",
+			route: "/settings/privacy",
+			anchor: "privacy-right-now-explicit-images",
+			label: t("profile_editor.sections.map.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" }),
+			description: t("profile_editor.sections.map.view_right_now_nsfw_desc", {
+				defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
+			}),
+			section: "Privacy",
+			icon: Images,
+			iconClass: "bg-purple-500/15 text-purple-400",
 		},
 		{
 			id: "privacy-send-read-receipts",

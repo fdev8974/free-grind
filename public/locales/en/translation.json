@@ -965,6 +965,7 @@
     }
   },
   "privacy": {
+    "map": "Map",
     "grid_visibility": "Grid Visibility",
     "incognito_mode": "Incognito Mode",
     "incognito_mode_desc": "Stop the Grid from loading or refreshing, hide your read receipts, and stop reporting profile views — so you can browse without showing up as online or leaving a trace.",

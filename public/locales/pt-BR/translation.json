@@ -974,6 +974,7 @@
         "tags_count_many": "{{count}} tags"
     },
     "privacy": {
+        "map": "Mapa",
         "grid_visibility": "Visibilidade da grade",
         "incognito_mode": "Modo anônimo",
         "incognito_mode_desc": "Impeça o carregamento ou a atualização da grade, oculte as confirmações de leitura e pare de registrar visualizações de perfil — assim, você pode navegar sem aparecer como online ou deixar rastros.",

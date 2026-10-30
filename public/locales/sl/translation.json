@@ -983,6 +983,7 @@
         "tags_count_few": "{{count}} oznake"
     },
     "privacy": {
+        "map": "Zemljevid",
         "grid_visibility": "Vidnost v mreži",
         "incognito_mode": "Način brez beleženja",
         "incognito_mode_desc": "Prepreči nalaganje ali osveževanje mreže, skrij potrdila o branju in nehaj poročati o ogledih profila — da lahko brskaš, ne da bi bil viden kot povezan ali pustil sled.",

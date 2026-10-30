@@ -965,6 +965,7 @@
         }
     },
     "privacy": {
+        "map": "Kaart",
         "grid_visibility": "Zichtbaarheid in Grid",
         "incognito_mode": "Incognitomodus",
         "incognito_mode_desc": "Voorkom dat het Grid laadt of vernieuwt, verberg je leesbevestigingen en stop met het melden van profielweergaven — zodat je kunt rondkijken zonder online te verschijnen of sporen achter te laten.",

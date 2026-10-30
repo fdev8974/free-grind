@@ -11,7 +11,6 @@ import {
 	useManagedGenders,
 	useManagedPronouns,
 	useManagedTagCategories,
-	useMySettings,
 	useProfileSpotifyFavorites,
 	useUpdateSpotifyFavorites,
 	useTravelPlans,
@@ -22,7 +21,6 @@ import {
 import type { TravelPlan } from "../../../types/travel";
 import type { SpotifyTrack } from "../../../services/spotify";
 import { BannedTermsError } from "../../../services/apiHelpers";
-import type { MySettings } from "../../../types/api-functions";
 import { validateMediaHash } from "../../../utils/media";
 import { sanitizeUploadFile } from "../../../services/uploadSanitize";
 import { buildTagLabelMap } from "../../../utils/tags";
@@ -82,7 +80,7 @@ const MULTI_VALUE_MAX: Partial<Record<ToggleMultiValueKey, number>> = {
 };
 
 /** Everything behind editing your own profile: loading it, the unsaved draft
- * (profile fields, Spotify favorites, map/Right Now settings), saving, and the
+ * (profile fields, Spotify favorites, trips), saving, and the
  * photo pool / upload flow. Shared by the profile editor page and the edit
  * mode of your own profile view, which only differ in how they lay it out. */
 export function useProfileEditor() {
@@ -351,23 +349,7 @@ export function useProfileEditor() {
 	const travelPlans = travelDraft ?? savedTravelPlans ?? [];
 	const hasTravelChanges = travelDraft !== null && !sameTravelPlans(travelDraft, savedTravelPlans ?? []);
 
-	// Map / Right Now prefs are account settings (/v3/me/prefs/settings), not
-	// profile fields, but they're edited and saved along with the draft.
-	const { data: mySettings } = useMySettings();
-	const [settingsDraft, setSettingsDraft] = useState<Partial<MySettings>>({});
-	const settingsForEditor = mySettings ? { ...mySettings, ...settingsDraft } : undefined;
-	const changedSettings = useMemo(() => {
-		if (!mySettings) return {};
-		return Object.fromEntries(
-			Object.entries(settingsDraft).filter(([key, value]) => mySettings[key as keyof MySettings] !== value),
-		) as Partial<MySettings>;
-	}, [mySettings, settingsDraft]);
-	const hasSettingsChanges = Object.keys(changedSettings).length > 0;
-	const handleSettingsChange = useCallback((patch: Partial<MySettings>) => {
-		setSettingsDraft((current) => ({ ...current, ...patch }));
-	}, []);
-
-	const hasChanges = hasProfileChanges || hasSpotifyChanges || hasTravelChanges || hasSettingsChanges;
+	const hasChanges = hasProfileChanges || hasSpotifyChanges || hasTravelChanges;
 
 	const tagList = useMemo(
 		() => normalizeTagList(draft.profileTagsText),
@@ -586,12 +568,6 @@ export function useProfileEditor() {
 						};
 					});
 				}
-			}
-
-			if (hasSettingsChanges) {
-				await apiFunctions.updateMySettings(changedSettings);
-				queryClient.setQueryData(["my-settings"], { ...mySettings, ...changedSettings });
-				setSettingsDraft({});
 			}
 
 			if (hasSpotifyChanges && spotifyDraft) {
@@ -963,7 +939,6 @@ export function useProfileEditor() {
 		setDraft(savedDraft);
 		setSpotifyDraft(null);
 		setTravelDraft(null);
-		setSettingsDraft({});
 	};
 
 	const isLoaded = !(isLoadingProfile && !profile) && !(profileError && !profile);
@@ -1005,8 +980,6 @@ export function useProfileEditor() {
 		travelPlans,
 		isLoadingTravelPlans,
 		setTravelDraft,
-		settings: settingsForEditor,
-		handleSettingsChange,
 		hasChanges,
 		canSave,
 		isSaving,

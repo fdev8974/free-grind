@@ -974,6 +974,7 @@
         "tags_count_many": "{{count}} tags"
     },
     "privacy": {
+        "map": "Carte",
         "grid_visibility": "Visibilité dans la grille",
         "incognito_mode": "Mode incognito",
         "incognito_mode_desc": "Empêche la grille de se charger ou de s'actualiser, masque vos confirmations de lecture et ne signale plus vos visites de profil — pour naviguer sans apparaître en ligne ni laisser de trace.",

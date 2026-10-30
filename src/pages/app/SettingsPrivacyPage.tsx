@@ -12,6 +12,7 @@ import { ToggleRow } from "../../components/ui/toggle-row";
 import { SelectRow } from "../../components/ui/select-row";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
+import { MapVisibilitySection, RightNowExplicitImagesRow } from "./MapPrivacySettings";
 import {
 	type AppDisguiseId,
 	getCurrentAppDisguise,
@@ -99,6 +100,9 @@ export function SettingsPrivacyPage() {
 						</div>
 					</div>
 				</div>
+
+				{/* Map visibility (account setting) */}
+				<MapVisibilitySection highlightId={highlightId} />
 
 				{/* Read Receipts */}
 				<div>
@@ -240,6 +244,7 @@ export function SettingsPrivacyPage() {
 							checked={showAlbumSensitiveContentWarning}
 							onChange={(checked) => void setPreferences({ showAlbumSensitiveContentWarning: checked })}
 						/>
+						<RightNowExplicitImagesRow highlightId={highlightId} />
 					</div>
 				</div>
 

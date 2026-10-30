@@ -16,8 +16,6 @@ import {
 	Hand,
 	Hash,
 	Heart,
-	Images,
-	Map as MapIcon,
 	MapPin,
 	MessageSquare,
 	Move,
@@ -58,7 +56,6 @@ import { getThumbImageUrl } from "../../../utils/media";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import { sheetChipClassName } from "../../../components/ui/sheet-section";
 import { SelectSheet } from "../../../components/ui/select-sheet";
-import { Slider } from "../../../components/ui/range-slider";
 import { TravelPlansSection } from "./TravelPlansSection";
 import { SpotifyFavoritesSection } from "./SpotifyFavoritesSection";
 import { TagsPickerDialog } from "./TagsPickerDialog";
@@ -190,11 +187,6 @@ export type ToggleMultiValueKey =
 	| "sexualHealth"
 	| "vaccines";
 
-// Location Randomizer range in the official app (26.21: "Less" … "More").
-const MAP_FUZZ_RADIUS_MIN = 50;
-const MAP_FUZZ_RADIUS_MAX = 1500;
-const MAP_FUZZ_RADIUS_STEP = 50;
-
 const TEST_REMINDER_THRESHOLD_MONTHS = 3;
 const LAST_TESTED_MONTH_RANGE = 24;
 
@@ -288,8 +280,6 @@ export function ProfileEditorFormSections({
 		travelPlans,
 		isLoadingTravelPlans,
 		setTravelDraft,
-		settings,
-		handleSettingsChange: onSettingsChange,
 		photos,
 	} = editor;
 	const isImperialHeight = unitsPreset === "uk" || unitsPreset === "american";
@@ -713,60 +703,6 @@ export function ProfileEditorFormSections({
 		</FieldSection>
 	);
 
-	// Map & Right Now — account settings (/v3/me/prefs/settings), saved with the profile.
-	const mapSection = settings ? (
-		<FieldSection title={t("profile_editor.sections.map.title", { defaultValue: "Map & Right Now" })}>
-			<ToggleField
-				icon={MapIcon}
-				label={t("profile_editor.sections.map.show_on_map", { defaultValue: "Show Me on Map" })}
-				description={t("profile_editor.sections.map.show_on_map_desc", {
-					defaultValue: "Your profile appears on the map, always offset from your actual location.",
-				})}
-				checked={settings.showOnMap}
-				onChange={(checked) => onSettingsChange({ showOnMap: checked })}
-			/>
-			{settings.showOnMap && (
-				<div className="px-4 py-3">
-					<Slider
-						min={MAP_FUZZ_RADIUS_MIN}
-						max={MAP_FUZZ_RADIUS_MAX}
-						step={MAP_FUZZ_RADIUS_STEP}
-						defaultValue={settings.mapLocationFuzzRadius ?? MAP_FUZZ_RADIUS_MIN}
-						label={t("profile_editor.sections.map.location_randomizer", { defaultValue: "Location Randomizer" })}
-						displayValue={
-							settings.mapLocationFuzzRadius == null
-								? t("profile_editor.sections.map.radius_default", { defaultValue: "Default" })
-								: isImperialHeight
-									? t("profile_editor.sections.map.radius_ft", {
-											defaultValue: "~{{value}} ft radius",
-											value: Math.round(settings.mapLocationFuzzRadius * 3.280839895),
-										})
-									: t("profile_editor.sections.map.radius_m", {
-											defaultValue: "~{{value}} m radius",
-											value: settings.mapLocationFuzzRadius,
-										})
-						}
-						onChange={(value) => onSettingsChange({ mapLocationFuzzRadius: value })}
-					/>
-					<p className="mt-1 text-xs text-[var(--text-muted)]">
-						{t("profile_editor.sections.map.location_randomizer_desc", {
-							defaultValue: "For your privacy, your location on the map is offset within this range and updates as you move.",
-						})}
-					</p>
-				</div>
-			)}
-			<ToggleField
-				icon={Images}
-				label={t("profile_editor.sections.map.view_right_now_nsfw", { defaultValue: "Explicit Images in Right Now" })}
-				description={t("profile_editor.sections.map.view_right_now_nsfw_desc", {
-					defaultValue: "Opt in to seeing explicit sexual and other adult content in Right Now.",
-				})}
-				checked={settings.viewRightNowNsfw}
-				onChange={(checked) => onSettingsChange({ viewRightNowNsfw: checked })}
-			/>
-		</FieldSection>
-	) : null;
-
 	const accountSection = (
 		<FieldSection title={t("profile_details.account_info")}>
 			<div className="flex min-h-12 items-center gap-3 px-4 py-2.5">
@@ -806,7 +742,6 @@ export function ProfileEditorFormSections({
 				disabled={profileId == null}
 				onChange={setSpotifyDraft}
 			/>
-			{mapSection}
 			{accountSection}
 		</>
 	);

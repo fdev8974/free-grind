@@ -974,6 +974,7 @@
         "tags_count_few": "{{count}} oznake"
     },
     "privacy": {
+        "map": "Mapa",
         "grid_visibility": "Vidljivost na Gridu",
         "incognito_mode": "Inkognito način",
         "incognito_mode_desc": "Spriječi učitavanje i osvježavanje Grida, sakrij potvrde o čitanju i prestani prijavljivati preglede profila — da možeš pregledati bez prikazivanja na mreži i bez ostavljanja traga.",
