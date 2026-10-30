@@ -1292,8 +1292,8 @@
             "qr_scan": "Scanner le QR code",
             "qr_or_paste": "ou collez le code",
             "qr_code_placeholder": "Code de connexion",
-            "qr_back": "Retour aux autres options de connexion",
-            "qr_entry": "Connecté sur un autre appareil ? Utilisez un QR code",
+            "qr_entry_title": "Se connecter avec un QR code",
+            "qr_sheet_title": "Se connecter avec un QR code",
             "qr_scan_hint": "Pointez la caméra vers le QR code sur votre autre appareil"
         },
         "reset": {

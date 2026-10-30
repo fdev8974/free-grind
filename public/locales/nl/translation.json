@@ -1283,8 +1283,8 @@
             "qr_scan": "QR-code scannen",
             "qr_or_paste": "of plak de code",
             "qr_code_placeholder": "Inlogcode",
-            "qr_back": "Terug naar de andere inlogopties",
-            "qr_entry": "Ingelogd op een ander apparaat? Gebruik een QR-code",
+            "qr_entry_title": "Inloggen met een QR-code",
+            "qr_sheet_title": "Inloggen met een QR-code",
             "qr_scan_hint": "Richt de camera op de QR-code op je andere apparaat"
         },
         "reset": {

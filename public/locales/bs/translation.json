@@ -1292,8 +1292,8 @@
             "qr_scan": "Skeniraj QR kod",
             "qr_or_paste": "ili zalijepi kod",
             "qr_code_placeholder": "Kod za prijavu",
-            "qr_back": "Nazad na ostale opcije prijave",
-            "qr_entry": "Prijavljen si na drugom uređaju? Koristi QR kod",
+            "qr_entry_title": "Prijavi se QR kodom",
+            "qr_sheet_title": "Prijavi se QR kodom",
             "qr_scan_hint": "Usmjeri kameru prema QR kodu na drugom uređaju"
         },
         "reset": {

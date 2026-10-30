@@ -1291,8 +1291,8 @@
             "qr_scan": "QR-Code scannen",
             "qr_or_paste": "oder Code einfügen",
             "qr_code_placeholder": "Anmeldecode",
-            "qr_back": "Zurück zu den anderen Anmeldeoptionen",
-            "qr_entry": "Auf einem anderen Gerät angemeldet? QR-Code verwenden",
+            "qr_entry_title": "Mit QR-Code anmelden",
+            "qr_sheet_title": "Mit QR-Code anmelden",
             "qr_scan_hint": "Richte die Kamera auf den QR-Code auf deinem anderen Gerät"
         },
         "reset": {

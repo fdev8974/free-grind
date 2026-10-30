@@ -1292,8 +1292,8 @@
             "qr_scan": "Escanear código QR",
             "qr_or_paste": "o pega el código",
             "qr_code_placeholder": "Código de inicio de sesión",
-            "qr_back": "Volver a las otras opciones de inicio de sesión",
-            "qr_entry": "¿Tienes la sesión iniciada en otro dispositivo? Usa un código QR",
+            "qr_entry_title": "Iniciar sesión con un código QR",
+            "qr_sheet_title": "Iniciar sesión con un código QR",
             "qr_scan_hint": "Apunta la cámara al código QR de tu otro dispositivo"
         },
         "reset": {

@@ -1292,8 +1292,8 @@
             "qr_scan": "Escanear QR code",
             "qr_or_paste": "ou cole o código",
             "qr_code_placeholder": "Código de login",
-            "qr_back": "Voltar para as outras opções de login",
-            "qr_entry": "Conectado em outro dispositivo? Use um QR code",
+            "qr_entry_title": "Entrar com um QR code",
+            "qr_sheet_title": "Entrar com um QR code",
             "qr_scan_hint": "Aponte a câmera para o QR code no seu outro dispositivo"
         },
         "reset": {

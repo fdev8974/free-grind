@@ -16,6 +16,9 @@ import { cancelQrScan, isQrScanSupported, QrScanError, scanQrCode } from "../../
 import { QrScanOverlay } from "../../components/QrScanOverlay";
 import { cn } from "../../utils/cn";
 import { SlidingTabs, useSwipeTabs } from "../../components/ui/sliding-tabs";
+import { BottomSheet, SheetCloseButton } from "../../components/ui/bottom-sheet";
+import { NATIVE_SHEET_BG, afterSheetClose } from "../../components/ui/action-sheet";
+import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 
 /**
  * Android-only native Google sign-in (GoogleOAuthActivity.kt).
@@ -103,7 +106,177 @@ function Step({
 	);
 }
 
-/** "— or —" divider plus a secondary button to the other auth page. */
+/**
+ * Signs in with a code shown on another, signed-in device (TransferAccountSheet
+ * there): scanned with the camera, or pasted where there is none.
+ */
+function TransferSignInSheet({ isDesktop, onClose }: { isDesktop: boolean; onClose: () => void }) {
+	const { t } = useTranslation();
+	const navigate = useNavigate();
+	const { loginWithTransferCode, error, clearError } = useAuth();
+	const closeRef = useRef<(() => void) | null>(null);
+	const [transferCode, setTransferCode] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+	const [canScanQr] = useState(isQrScanSupported);
+	const [scanError, setScanError] = useState<string | null>(null);
+	const [isScanning, setIsScanning] = useState(false);
+	// With a camera to scan with, pasting the code stays folded away.
+	const [showManualCode, setShowManualCode] = useState(false);
+
+	const submitCode = async (code: string) => {
+		setIsLoading(true);
+		try {
+			await loginWithTransferCode(code);
+			// Close first, so the sheet's history entry is gone before the app opens.
+			closeRef.current?.();
+			afterSheetClose(() => navigate("/"));
+		} catch {
+			// AuthContext updates `error`, which is rendered below.
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const handleScan = async () => {
+		setScanError(null);
+		clearError();
+		let code: string;
+		setIsScanning(true);
+		try {
+			code = await scanQrCode();
+		} catch (error) {
+			if (error instanceof QrScanError && error.reason === "cancelled") return;
+			setScanError(
+				error instanceof QrScanError && error.reason === "permissionDenied"
+					? t("auth.sign_in.qr_camera_denied", { defaultValue: "Free Grind needs camera access to scan the code." })
+					: t("auth.sign_in.qr_scan_failed", { defaultValue: "Couldn't scan the code. Please try again." }),
+			);
+			return;
+		} finally {
+			setIsScanning(false);
+		}
+		await submitCode(code);
+	};
+
+	// Closing the sheet mid-scan must not leave the camera running behind it.
+	const isScanningRef = useRef(false);
+	isScanningRef.current = isScanning;
+	useEffect(
+		() => () => {
+			if (isScanningRef.current) void cancelQrScan();
+		},
+		[],
+	);
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		await submitCode(transferCode.trim());
+	};
+
+	const showCodeInput = !canScanQr || showManualCode;
+
+	return (
+		<BottomSheet
+			onClose={onClose}
+			isDesktop={isDesktop}
+			isProcessing={isLoading}
+			closeRef={closeRef}
+			bg={NATIVE_SHEET_BG}
+			panelClassName="max-h-[92dvh] px-4"
+		>
+			{isScanning ? (
+				<QrScanOverlay
+					hint={t("auth.sign_in.qr_scan_hint", { defaultValue: "Point the camera at the QR code on your other device" })}
+					cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+					onCancel={() => void cancelQrScan()}
+				/>
+			) : null}
+			<div className="mb-4 flex shrink-0 items-center justify-between gap-3">
+				<p className="text-sm font-semibold text-[var(--text)]">
+					{t("auth.sign_in.qr_sheet_title", { defaultValue: "Sign in with a QR code" })}
+				</p>
+				<SheetCloseButton disabled={isLoading} />
+			</div>
+			<form
+				onSubmit={handleSubmit}
+				className="-mx-4 min-h-0 flex-1 space-y-5 overflow-y-auto px-4 pb-2"
+				data-lenis-prevent
+			>
+				<div>
+					<Step
+						step={1}
+						title={t("auth.sign_in.qr_step_show", { defaultValue: "Show the code on your signed-in device" })}
+						hint={t("auth.sign_in.qr_step_show_hint", {
+							defaultValue: "In Free Grind on that device, open Settings and tap \"Sign in on another device\".",
+						})}
+					/>
+					<Step
+						step={2}
+						title={
+							canScanQr
+								? t("auth.sign_in.qr_step_scan", { defaultValue: "Scan it here" })
+								: t("auth.sign_in.qr_step_paste", { defaultValue: "Paste the code here" })
+						}
+						hint={
+							canScanQr
+								? undefined
+								: t("auth.sign_in.qr_step_paste_hint", {
+										defaultValue: "Tap \"Copy code\" under the QR code there and send it to this device.",
+									})
+						}
+						last
+					>
+						{canScanQr ? (
+							<section className="space-y-2.5">
+								<Button
+									type="button"
+									variant="primary"
+									loading={isLoading && !showManualCode}
+									onClick={() => void handleScan()}
+									leftIcon={<ScanLine className="h-4 w-4" />}
+									className="w-full"
+								>
+									{t("auth.sign_in.qr_scan", { defaultValue: "Scan QR code" })}
+								</Button>
+								{scanError ? <AuthErrorBox message={scanError} /> : null}
+								{!showManualCode && error ? <AuthErrorBox message={error.message} detail={error.detail} /> : null}
+								<button
+									type="button"
+									onClick={() => setShowManualCode((prev) => !prev)}
+									aria-expanded={showManualCode}
+									className="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+								>
+									{t("auth.sign_in.qr_or_paste", { defaultValue: "or paste the code" })}
+									<ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", showManualCode && "rotate-180")} />
+								</button>
+							</section>
+						) : null}
+						{showCodeInput ? (
+							<IconInput
+								icon={<KeyRound className="h-4 w-4" />}
+								type="password"
+								value={transferCode}
+								onChange={(e) => setTransferCode(e.target.value)}
+								required
+								placeholder={t("auth.sign_in.qr_code_placeholder", { defaultValue: "Sign-in code" })}
+								autoComplete="off"
+							/>
+						) : null}
+					</Step>
+				</div>
+				{showCodeInput ? (
+					<AuthSubmitSection
+						error={error}
+						loading={isLoading}
+						disabled={transferCode.trim().length === 0}
+						loadingLabel={t("auth.sign_in.signing_in")}
+						label={t("auth.sign_in.submit")}
+					/>
+				) : null}
+			</form>
+		</BottomSheet>
+	);
+}
 
 export function SignInPage() {
 	const { t } = useTranslation();
@@ -126,33 +299,27 @@ export function SignInPage() {
 	const [isFacebookLoading, setIsFacebookLoading] = useState(false);
 
 	// Signing in with a code from another device: a secondary flow, so it
-	// replaces the method tabs instead of being one of them.
+	// opens in a sheet instead of being one of the method tabs.
 	const [showTransfer, setShowTransfer] = useState(false);
-	const [transferCode, setTransferCode] = useState("");
-	const [isTransferLoading, setIsTransferLoading] = useState(false);
-	const [canScanQr] = useState(isQrScanSupported);
-	const [scanError, setScanError] = useState<string | null>(null);
-	const [isScanning, setIsScanning] = useState(false);
-	// With a camera to scan with, pasting the code stays folded away.
-	const [showManualTransferCode, setShowManualTransferCode] = useState(false);
+	const isDesktop = useDesktopBreakpoint();
 
 	// Set when an email sign-in is refused until the account verifies by SMS.
 	const [verification, setVerification] = useState<{ profileId: string; signIn: SignInRefusal } | null>(null);
 
-	const { login, loginWithGoogle, loginWithGoogleWindow, loginWithFacebook, loginWithTransferCode, error, clearError } = useAuth();
+	const { login, loginWithGoogle, loginWithGoogleWindow, loginWithFacebook, error: authError, clearError } = useAuth();
 	const navigate = useNavigate();
+	// While the sheet is open, a failure is the code's and shows there only.
+	const error = showTransfer ? null : authError;
 
 	// A failure belongs to the method that produced it; also don't carry it to the next page.
 	const changeMethod = (next: SignInMethod) => {
 		setMethod(next);
 		clearError();
 		setGoogleAppError(null);
-		setScanError(null);
 	};
 	const toggleTransfer = (next: boolean) => {
 		setShowTransfer(next);
 		clearError();
-		setScanError(null);
 	};
 	useEffect(() => clearError, [clearError]);
 
@@ -161,7 +328,6 @@ export function SignInPage() {
 		...(hasGoogleSignIn ? (["google"] as const) : []),
 		...(hasFacebookSignIn ? (["facebook"] as const) : []),
 	];
-	// The transfer flow replaces the tabs, so there's nothing to swipe between then.
 	const methodSwipe = useSwipeTabs<SignInMethod>(methods, method, changeMethod, !showTransfer);
 
 	const isPasswordFormValid = email.trim().length > 0 && password.trim().length > 0;
@@ -223,54 +389,6 @@ export function SignInPage() {
 		}
 	};
 
-	const submitTransferCode = async (code: string) => {
-		setIsTransferLoading(true);
-		try {
-			await loginWithTransferCode(code);
-			navigate("/");
-		} catch {
-			// AuthContext updates `error`, which is rendered in the form.
-		} finally {
-			setIsTransferLoading(false);
-		}
-	};
-
-	const handleScanQr = async () => {
-		setScanError(null);
-		clearError();
-		let code: string;
-		setIsScanning(true);
-		try {
-			code = await scanQrCode();
-		} catch (error) {
-			if (error instanceof QrScanError && error.reason === "cancelled") return;
-			setScanError(
-				error instanceof QrScanError && error.reason === "permissionDenied"
-					? t("auth.sign_in.qr_camera_denied", { defaultValue: "Free Grind needs camera access to scan the code." })
-					: t("auth.sign_in.qr_scan_failed", { defaultValue: "Couldn't scan the code. Please try again." }),
-			);
-			return;
-		} finally {
-			setIsScanning(false);
-		}
-		await submitTransferCode(code);
-	};
-
-	// Leaving the page mid-scan must not leave the camera running behind it.
-	const isScanningRef = useRef(false);
-	isScanningRef.current = isScanning;
-	useEffect(
-		() => () => {
-			if (isScanningRef.current) void cancelQrScan();
-		},
-		[],
-	);
-
-	const handleTransferSubmit = async (e: React.FormEvent) => {
-		e.preventDefault();
-		await submitTransferCode(transferCode.trim());
-	};
-
 	// The listeners below outlive renders; always submit through the latest closure.
 	const submitGoogleTokenRef = useRef(submitGoogleToken);
 	submitGoogleTokenRef.current = submitGoogleToken;
@@ -328,13 +446,25 @@ export function SignInPage() {
 	}
 
 	return (
-		<AuthShell
-			title={addProfileMode ? t("auth.sign_in.add_profile_title", { defaultValue: "Add Profile" }) : t("auth.sign_in.title")}
-			subtitle={addProfileMode ? t("auth.sign_in.add_profile_subtitle", { defaultValue: "Sign in with the account you want to add." }) : t("auth.sign_in.subtitle", { defaultValue: "Use your Grindr email and password, or sign in with Google." })}
-			footer={addProfileMode ? undefined : <BugReportButton />}
-			gestureProps={methodSwipe}
-			toolbar={
-				showTransfer ? undefined : (
+		<>
+			<AuthShell
+				title={addProfileMode ? t("auth.sign_in.add_profile_title", { defaultValue: "Add Profile" }) : t("auth.sign_in.title")}
+				subtitle={addProfileMode ? t("auth.sign_in.add_profile_subtitle", { defaultValue: "Sign in with the account you want to add." }) : t("auth.sign_in.subtitle", { defaultValue: "Use your Grindr email and password, or sign in with Google." })}
+				footer={
+					<div className="flex flex-wrap items-center justify-center gap-1">
+						<button
+							type="button"
+							onClick={() => toggleTransfer(true)}
+							className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+						>
+							<QrCode className="h-3.5 w-3.5" />
+							{t("auth.sign_in.qr_entry_title", { defaultValue: "Sign in with a QR code" })}
+						</button>
+						{addProfileMode ? null : <BugReportButton />}
+					</div>
+				}
+				gestureProps={methodSwipe}
+				toolbar={
 					<SlidingTabs<SignInMethod>
 						value={method}
 						onChange={changeMethod}
@@ -348,242 +478,146 @@ export function SignInPage() {
 								: []),
 						]}
 					/>
-				)
-			}
-		>
-			{showTransfer ? (
-				<form key="qr" onSubmit={handleTransferSubmit} className="animate-fade-in space-y-5">
-					{isScanning ? (
-						<QrScanOverlay
-							hint={t("auth.sign_in.qr_scan_hint", { defaultValue: "Point the camera at the QR code on your other device" })}
-							cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
-							onCancel={() => void cancelQrScan()}
+				}
+			>
+				{method === "password" ? (
+					<form key="password" onSubmit={handlePasswordSubmit} className="animate-fade-in space-y-3">
+						<IconInput
+							icon={<Mail className="h-4 w-4" />}
+							type="email"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							required
+							autoFocus
+							placeholder={t("auth.common.email")}
 						/>
-					) : null}
-					<div>
-						<Step
-							step={1}
-							title={t("auth.sign_in.qr_step_show", { defaultValue: "Show the code on your signed-in device" })}
-							hint={t("auth.sign_in.qr_step_show_hint", {
-								defaultValue: "In Free Grind on that device, open Settings and tap \"Sign in on another device\".",
-							})}
+						<IconInput
+							icon={<Lock className="h-4 w-4" />}
+							type={showPassword ? "text" : "password"}
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							required
+							placeholder={t("auth.common.password")}
+							rightSlot={
+								<button
+									type="button"
+									onClick={() => setShowPassword((prev) => !prev)}
+									className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
+									tabIndex={-1}
+									aria-label={
+										showPassword
+											? t("auth.common.hide_password")
+											: t("auth.common.show_password")
+									}
+								>
+									{showPassword ? (
+										<EyeOff className="h-4 w-4" />
+									) : (
+										<Eye className="h-4 w-4" />
+									)}
+								</button>
+							}
 						/>
-						<Step
-							step={2}
-							title={
-								canScanQr
-									? t("auth.sign_in.qr_step_scan", { defaultValue: "Scan it here" })
-									: t("auth.sign_in.qr_step_paste", { defaultValue: "Paste the code here" })
-							}
-							hint={
-								canScanQr
-									? undefined
-									: t("auth.sign_in.qr_step_paste_hint", {
-											defaultValue: "Tap \"Copy code\" under the QR code there and send it to this device.",
-										})
-							}
-							last
-						>
-							{canScanQr ? (
-								<section className="space-y-2.5">
-									<Button
-										type="button"
-										variant="primary"
-										loading={isTransferLoading && !showManualTransferCode}
-										onClick={() => void handleScanQr()}
-										leftIcon={<ScanLine className="h-4 w-4" />}
-										className="w-full"
-									>
-										{t("auth.sign_in.qr_scan", { defaultValue: "Scan QR code" })}
-									</Button>
-									{scanError ? <AuthErrorBox message={scanError} /> : null}
-									{!showManualTransferCode && error ? <AuthErrorBox message={error.message} detail={error.detail} /> : null}
-									<button
-										type="button"
-										onClick={() => setShowManualTransferCode((prev) => !prev)}
-										aria-expanded={showManualTransferCode}
-										className="mx-auto flex items-center gap-1 rounded-full px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-									>
-										{t("auth.sign_in.qr_or_paste", { defaultValue: "or paste the code" })}
-										<ChevronDown
-											className={cn("h-3.5 w-3.5 transition-transform duration-200", showManualTransferCode && "rotate-180")}
-										/>
-									</button>
-								</section>
-							) : null}
-							{canScanQr && !showManualTransferCode ? null : (
-								<IconInput
-									icon={<KeyRound className="h-4 w-4" />}
-									type="password"
-									value={transferCode}
-									onChange={(e) => setTransferCode(e.target.value)}
-									required
-									placeholder={t("auth.sign_in.qr_code_placeholder", { defaultValue: "Sign-in code" })}
-									autoComplete="off"
-								/>
-							)}
-						</Step>
-					</div>
-					{canScanQr && !showManualTransferCode ? null : (
+						<div className="flex justify-end">
+							<Link
+								to={`/auth/password-reset${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`}
+								className="text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+							>
+								{t("auth.sign_in.forgot_password", { defaultValue: "Forgot password?" })}
+							</Link>
+						</div>
 						<AuthSubmitSection
 							error={error}
-							loading={isTransferLoading}
-							disabled={transferCode.trim().length === 0}
+							loading={isPasswordLoading}
+							disabled={!isPasswordFormValid}
 							loadingLabel={t("auth.sign_in.signing_in")}
 							label={t("auth.sign_in.submit")}
 						/>
-					)}
-				</form>
-			) : method === "password" ? (
-				<form key="password" onSubmit={handlePasswordSubmit} className="animate-fade-in space-y-3">
-					<IconInput
-						icon={<Mail className="h-4 w-4" />}
-						type="email"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-						required
-						autoFocus
-						placeholder={t("auth.common.email")}
-					/>
-					<IconInput
-						icon={<Lock className="h-4 w-4" />}
-						type={showPassword ? "text" : "password"}
-						value={password}
-						onChange={(e) => setPassword(e.target.value)}
-						required
-						placeholder={t("auth.common.password")}
-						rightSlot={
-							<button
-								type="button"
-								onClick={() => setShowPassword((prev) => !prev)}
-								className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
-								tabIndex={-1}
-								aria-label={
-									showPassword
-										? t("auth.common.hide_password")
-										: t("auth.common.show_password")
-								}
-							>
-								{showPassword ? (
-									<EyeOff className="h-4 w-4" />
-								) : (
-									<Eye className="h-4 w-4" />
-								)}
-							</button>
-						}
-					/>
-					<div className="flex justify-end">
-						<Link
-							to={`/auth/password-reset${email.trim() ? `?email=${encodeURIComponent(email.trim())}` : ""}`}
-							className="text-xs font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-						>
-							{t("auth.sign_in.forgot_password", { defaultValue: "Forgot password?" })}
-						</Link>
-					</div>
-					<AuthSubmitSection
-						error={error}
-						loading={isPasswordLoading}
-						disabled={!isPasswordFormValid}
-						loadingLabel={t("auth.sign_in.signing_in")}
-						label={t("auth.sign_in.submit")}
-					/>
-				</form>
-			) : method === "facebook" ? (
-				<form
-					key="facebook"
-					onSubmit={(e) => {
-						e.preventDefault();
-						void handleFacebookSignIn();
-					}}
-					className="animate-fade-in space-y-5"
-				>
-					<div>
-						<Step
-							step={1}
-							title={t("auth.sign_in.facebook_step_open", { defaultValue: "Sign in on Facebook" })}
-							hint={t("auth.sign_in.facebook_step_open_hint", {
-								defaultValue: "A Facebook window opens. Your password goes to Facebook only, never to Free Grind.",
-							})}
+					</form>
+				) : method === "facebook" ? (
+					<form
+						key="facebook"
+						onSubmit={(e) => {
+							e.preventDefault();
+							void handleFacebookSignIn();
+						}}
+						className="animate-fade-in space-y-5"
+					>
+						<div>
+							<Step
+								step={1}
+								title={t("auth.sign_in.facebook_step_open", { defaultValue: "Sign in on Facebook" })}
+								hint={t("auth.sign_in.facebook_step_open_hint", {
+									defaultValue: "A Facebook window opens. Your password goes to Facebook only, never to Free Grind.",
+								})}
+							/>
+							<Step
+								step={2}
+								title={t("auth.sign_in.facebook_step_done", { defaultValue: "Confirm access" })}
+								hint={t("auth.sign_in.facebook_step_done_hint", {
+									defaultValue: "Allow Grindr to use your Facebook account. The window closes by itself and you're signed in.",
+								})}
+								last
+							/>
+						</div>
+						<AuthSubmitSection
+							error={error}
+							loading={isFacebookLoading}
+							disabled={false}
+							loadingLabel={t("auth.sign_in.facebook_waiting", { defaultValue: "Waiting for Facebook…" })}
+							label={t("auth.sign_in.facebook_sign_in", { defaultValue: "Sign in with Facebook" })}
 						/>
-						<Step
-							step={2}
-							title={t("auth.sign_in.facebook_step_done", { defaultValue: "Confirm access" })}
-							hint={t("auth.sign_in.facebook_step_done_hint", {
-								defaultValue: "Allow Grindr to use your Facebook account. The window closes by itself and you're signed in.",
-							})}
-							last
-						/>
-					</div>
-					<AuthSubmitSection
-						error={error}
-						loading={isFacebookLoading}
-						disabled={false}
-						loadingLabel={t("auth.sign_in.facebook_waiting", { defaultValue: "Waiting for Facebook…" })}
-						label={t("auth.sign_in.facebook_sign_in", { defaultValue: "Sign in with Facebook" })}
-					/>
-				</form>
-			) : (
-				<form
-					key="google"
-					onSubmit={(e) => {
-						e.preventDefault();
-						if (hasNativeGoogle) handleGoogleAppSignIn();
-						else void handleGoogleWindowSignIn();
-					}}
-					className="animate-fade-in space-y-5"
-				>
-					<div>
-						<Step
-							step={1}
-							title={t("auth.sign_in.google_step_open", { defaultValue: "Sign in on Google" })}
-							hint={t("auth.sign_in.google_step_open_hint", {
-								defaultValue: "A Google window opens. Your password goes to Google only, never to Free Grind.",
-							})}
-						/>
-						<Step
-							step={2}
-							title={t("auth.sign_in.google_step_done", { defaultValue: "Choose your account" })}
-							hint={t("auth.sign_in.google_step_done_hint", {
-								defaultValue: "Pick the Google account of your Grindr profile. The window closes by itself and you're signed in.",
-							})}
-							last
-						/>
-					</div>
-					<AuthSubmitSection
-						error={googleAppError ?? error}
-						loading={isGoogleLoading}
-						disabled={false}
-						loadingLabel={t("auth.sign_in.google_window_waiting", { defaultValue: "Waiting for Google…" })}
-						label={t("auth.sign_in.google_window_sign_in", { defaultValue: "Sign in with Google" })}
-					/>
-				</form>
-			)}
-			<button
-				type="button"
-				onClick={() => toggleTransfer(!showTransfer)}
-				className="mx-auto mt-4 flex items-center gap-1.5 rounded-full px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
-			>
-				{showTransfer ? (
-					t("auth.sign_in.qr_back", { defaultValue: "Back to the other sign-in options" })
+					</form>
 				) : (
-					<>
-						<QrCode className="h-3.5 w-3.5" />
-						{t("auth.sign_in.qr_entry", { defaultValue: "Signed in on another device? Use a QR code" })}
-					</>
+					<form
+						key="google"
+						onSubmit={(e) => {
+							e.preventDefault();
+							if (hasNativeGoogle) handleGoogleAppSignIn();
+							else void handleGoogleWindowSignIn();
+						}}
+						className="animate-fade-in space-y-5"
+					>
+						<div>
+							<Step
+								step={1}
+								title={t("auth.sign_in.google_step_open", { defaultValue: "Sign in on Google" })}
+								hint={t("auth.sign_in.google_step_open_hint", {
+									defaultValue: "A Google window opens. Your password goes to Google only, never to Free Grind.",
+								})}
+							/>
+							<Step
+								step={2}
+								title={t("auth.sign_in.google_step_done", { defaultValue: "Choose your account" })}
+								hint={t("auth.sign_in.google_step_done_hint", {
+									defaultValue: "Pick the Google account of your Grindr profile. The window closes by itself and you're signed in.",
+								})}
+								last
+							/>
+						</div>
+						<AuthSubmitSection
+							error={googleAppError ?? error}
+							loading={isGoogleLoading}
+							disabled={false}
+							loadingLabel={t("auth.sign_in.google_window_waiting", { defaultValue: "Waiting for Google…" })}
+							label={t("auth.sign_in.google_window_sign_in", { defaultValue: "Sign in with Google" })}
+						/>
+					</form>
 				)}
-			</button>
-			{addProfileMode ? (
-				<AuthAltAction
-					onClick={() => navigate(-1)}
-					label={t("common.cancel", { defaultValue: "Cancel" })}
-				/>
-			) : (
-				<AuthAltAction
-					to="/auth/sign-up"
-					icon={<UserPlus className="h-4 w-4" />}
-					label={t("auth.sign_in.no_account_action")}
-				/>
-			)}
-		</AuthShell>
+				{addProfileMode ? (
+					<AuthAltAction
+						onClick={() => navigate(-1)}
+						label={t("common.cancel", { defaultValue: "Cancel" })}
+					/>
+				) : (
+					<AuthAltAction
+						to="/auth/sign-up"
+						icon={<UserPlus className="h-4 w-4" />}
+						label={t("auth.sign_in.no_account_action")}
+					/>
+				)}
+			</AuthShell>
+			{showTransfer ? <TransferSignInSheet isDesktop={isDesktop} onClose={() => toggleTransfer(false)} /> : null}
+		</>
 	);
 }

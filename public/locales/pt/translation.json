@@ -1292,8 +1292,8 @@
             "qr_scan": "Digitalizar código QR",
             "qr_or_paste": "ou cole o código",
             "qr_code_placeholder": "Código de início de sessão",
-            "qr_back": "Voltar para as outras opções de início de sessão",
-            "qr_entry": "Conectado em outro dispositivo? Use um código QR",
+            "qr_entry_title": "Iniciar sessão com um código QR",
+            "qr_sheet_title": "Iniciar sessão com um código QR",
             "qr_scan_hint": "Aponte a câmara para o código QR no seu outro dispositivo"
         },
         "reset": {
