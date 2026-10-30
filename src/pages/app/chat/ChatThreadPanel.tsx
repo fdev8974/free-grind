@@ -75,11 +75,12 @@ import {
 	getMessageVideoUrl,
 	getMessageAudioUrl,
 	getMessageAlbumId,
+	getAlbumContentReplyTarget,
 	getMessageAlbumCoverUrl,
 	getMediaCaptureTarget,
 } from "./chatUtils";
 import { getCachedMediaUri } from "../../../services/mediaStore";
-import { getCachedAlbumCoverUri, isAlbumCachedLocally } from "../../../services/albumStore";
+import { getCachedAlbumContentThumbUri, getCachedAlbumCoverUri, isAlbumCachedLocally } from "../../../services/albumStore";
 import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { useMediaBlur } from "../../../hooks/useProfilePhotoPrivacy";
 import { getThumbImageUrl } from "../../../utils/media";
@@ -2262,7 +2263,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									return typeof urlCandidate === "string" ? urlCandidate : null;
 								}
 								if (rtm.type === "AlbumContentReaction" || rtm.type === "AlbumContentReply") {
-									return typeof rtmBody?.previewUrl === "string" ? rtmBody.previewUrl : null;
+									// Our own sent replies carry no previewUrl, so the cached
+									// thumb comes first (same as the in-thread bubble).
+									const albumTarget = getAlbumContentReplyTarget(rtm);
+									return (albumTarget ? getCachedAlbumContentThumbUri(albumTarget.albumId, albumTarget.contentId) : null)
+										?? (typeof rtmBody?.previewUrl === "string" ? rtmBody.previewUrl : null);
 								}
 								const rtmAlbumId = getMessageAlbumId(rtm);
 								const albumCover = (rtmAlbumId != null ? getCachedAlbumCoverUri(rtmAlbumId) : null)
