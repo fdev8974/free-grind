@@ -176,7 +176,7 @@ export function EncounterLogSheet({
 									type="button"
 									disabled={isEditing}
 									onClick={() => setChangingPerson(true)}
-									className="flex w-full items-center gap-3 rounded-2xl bg-[var(--surface-2)] px-3 py-2.5 text-left transition hover:ink-tint-8 disabled:hover:bg-[var(--surface-2)]"
+									className="flex w-full items-center gap-3 rounded-2xl bg-[var(--surface-2)] px-3 py-2.5 text-left transition hover:ink-tint-8 disabled:hover-fill"
 								>
 									<div className="h-10 w-10 shrink-0 rounded-full overflow-hidden bg-[var(--surface)] drop-shadow-sm">
 										<ProfileImage src={person!.avatarSrc} alt={person!.displayName} />

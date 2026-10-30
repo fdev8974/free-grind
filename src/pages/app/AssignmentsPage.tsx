@@ -171,11 +171,11 @@ export function AssignmentsPage() {
 
 				<div className="grid min-w-0 gap-5">
 					{/* Where the list comes from */}
-					<div className="native-card overflow-hidden">
+					<div className="native-group">
 						<button
 							type="button"
 							onClick={() => setIsSourceSheetOpen(true)}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill"
 						>
 							<div className="shrink-0 rounded-2xl bg-sky-500/15 p-2.5 text-sky-400">
 								<Database className="h-5 w-5" />
@@ -207,7 +207,7 @@ export function AssignmentsPage() {
 					</div>
 
 					{isLoading && !sources ? (
-						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-group">
 							{Array.from({ length: 6 }).map((_, i) => (
 								<div key={i} className="flex items-center gap-3 px-4 py-3">
 									<div className="min-w-0 flex-1 space-y-1.5">
@@ -239,7 +239,7 @@ export function AssignmentsPage() {
 									{filtered.length}
 								</span>
 							</div>
-							<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+							<div className="native-group">
 								{filtered.map((a) => {
 									const withPayload = hasPayload(a.payload);
 									return (
@@ -248,7 +248,7 @@ export function AssignmentsPage() {
 											type="button"
 											disabled={!withPayload}
 											onClick={() => setOpenAssignment(a)}
-											className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition enabled:hover:bg-[var(--surface-2)]"
+											className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition enabled:hover-fill"
 										>
 											<div className="min-w-0 flex-1">
 												<p className="break-all font-mono text-[13px] font-semibold text-[var(--text)]">{a.key}</p>

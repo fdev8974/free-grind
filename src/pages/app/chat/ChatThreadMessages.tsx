@@ -324,7 +324,7 @@ function MessageContextMenu({
 						className={`flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm transition disabled:cursor-default disabled:opacity-50 ${
 							action.danger
 								? "text-red-500 hover:bg-red-500/10"
-								: "text-[var(--text)] hover:bg-[var(--surface-2)]"
+								: "text-[var(--text)] hover-fill"
 						}`}
 					>
 						{action.icon}

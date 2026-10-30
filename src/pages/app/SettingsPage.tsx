@@ -588,7 +588,7 @@ export function SettingsPage() {
 				{right ?? <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />}
 			</>
 		);
-		const cls = `flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"}`;
+		const cls = `flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${disabled ? "opacity-50 cursor-not-allowed" : "hover-fill active:bg-[var(--surface-2)]"}`;
 		return onClick ? (
 			<button type="button" onClick={onClick} disabled={disabled} className={cls}>
 				{inner}
@@ -710,7 +710,7 @@ export function SettingsPage() {
 								<button
 									type="button"
 									onClick={() => setSearchQuery("")}
-									className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+									className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover-fill hover:text-[var(--text)]"
 									aria-label={t("common.clear", { defaultValue: "Clear" })}
 								>
 									<X className="h-4 w-4" />
@@ -731,7 +731,7 @@ export function SettingsPage() {
 									{t("settings.search_no_results", { query: searchQuery.trim() })}
 								</p>
 							) : (
-								<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								<div className="native-group">
 									{searchResults.map((entry) => (
 										<button
 											key={entry.id}
@@ -743,7 +743,7 @@ export function SettingsPage() {
 												}
 												navigate(entry.anchor ? `${entry.route}#${entry.anchor}` : entry.route);
 											}}
-											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+											className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
 										>
 											<div className={`rounded-2xl p-2.5 shrink-0 ${entry.iconClass}`}>
 												<entry.icon className="h-5 w-5" />
@@ -771,14 +771,14 @@ export function SettingsPage() {
 						    switching never shows a leftover account's data. */}
 						<div className="min-w-0">
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Profile</p>
-							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-group">
 								{(() => {
 									const activeAccount = userId != null
 										? savedAccounts.find((account) => String(userId) === account.profileId)
 										: undefined;
 									const activeProfile = userId != null ? getSavedAccountProfile(String(userId)) : null;
 									return (
-										<div className="flex items-center gap-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
+										<div className="flex items-center gap-1 transition-colors hover-fill active:bg-[var(--surface-2)]">
 											<button
 												type="button"
 												onClick={openOwnProfileEditor}
@@ -826,7 +826,7 @@ export function SettingsPage() {
 										const isRemoving = removingProfileId === account.profileId;
 										const savedProfile = getSavedAccountProfile(account.profileId);
 										return (
-											<div key={account.profileId} className="flex items-center gap-1 transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]">
+											<div key={account.profileId} className="flex items-center gap-1 transition-colors hover-fill active:bg-[var(--surface-2)]">
 												<button
 													type="button"
 													onClick={() => void handleSwitchAccount(account.profileId)}
@@ -869,7 +869,7 @@ export function SettingsPage() {
 								<button
 									type="button"
 									onClick={() => navigate("/auth/sign-in?mode=add-profile")}
-									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
 								>
 									<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5 shrink-0">
 										<UserPlusFilled className="h-5 w-5" />
@@ -890,7 +890,7 @@ export function SettingsPage() {
 						{/* Chat */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Chat</p>
-							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-group">
 								<div className="flex items-center gap-3 px-4 py-3.5">
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
@@ -946,7 +946,7 @@ export function SettingsPage() {
 						{/* Safety */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Safety</p>
-							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-group">
 								{navRow(
 									() => navigate("/settings/blocked"),
 									<UserXFilled className="h-5 w-5" />,
@@ -995,7 +995,7 @@ export function SettingsPage() {
 						{/* Customizability */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Customizability</p>
-							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-group">
 								{navRow(
 									() => navigate("/settings/customizability"),
 									<PaletteFilled className="h-5 w-5" />,
@@ -1041,7 +1041,7 @@ export function SettingsPage() {
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 								{t("settings.data_section", { defaultValue: "Backup & Restore" })}
 							</p>
-							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-group">
 								{navRow(
 									() => navigate("/settings/data"),
 									<ArchiveRestoreFilled className="h-5 w-5" />,
@@ -1055,13 +1055,13 @@ export function SettingsPage() {
 						{/* Updates — same row pattern as the rest of the settings list. */}
 						<div className="min-w-0">
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
-							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-group">
 								{/* The whole row checks; a spinner replaces the chevron while it runs. */}
 								<button
 									type="button"
 									onClick={() => void handleCheckUpdates()}
 									disabled={isCheckingUpdates || isSwitchingChannel}
-									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default disabled:hover:bg-transparent"
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)] disabled:cursor-default disabled:hover:bg-transparent"
 								>
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
@@ -1144,7 +1144,7 @@ export function SettingsPage() {
 						{developerMode ? (
 							<div>
 								<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Developer</p>
-								<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+								<div className="native-group">
 									<ToggleRow
 										checked={showDebugInfo}
 										onChange={(checked) => void setPreferences({ showDebugInfo: checked })}
@@ -1205,7 +1205,7 @@ export function SettingsPage() {
 						{/* About */}
 						<div>
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">About</p>
-							<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+							<div className="native-group">
 								{navRow(
 									() => navigate("/settings/about"),
 									<InfoFilled className="h-5 w-5" />,

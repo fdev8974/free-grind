@@ -62,7 +62,7 @@ function ProjectRow({
 	return (
 		<Tag
 			{...(onClick ? { type: "button" as const, onClick } : {})}
-			className={`flex w-full items-center gap-3 px-4 py-3.5 text-left ${onClick ? "transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]" : ""}`}
+			className={`flex w-full items-center gap-3 px-4 py-3.5 text-left ${onClick ? "transition-colors hover-fill active:bg-[var(--surface-2)]" : ""}`}
 		>
 			<div className={`shrink-0 rounded-2xl p-2.5 ${iconClass}`}>
 				<Icon className="h-5 w-5" />
@@ -134,12 +134,12 @@ export function AboutPage() {
 			<PageHeader backTo="/settings" title={t("settings.about")} />
 
 			<div className="grid gap-6">
-				<div className="native-card overflow-hidden">
+				<div className="native-group">
 					{/* Tapping the app row 7 times toggles Developer Mode. */}
 					<button
 						type="button"
 						onClick={handleVersionTap}
-						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
 					>
 						<div className="shrink-0 rounded-2xl bg-slate-500/15 text-slate-400 p-2.5">
 							<img src={logo} alt="" className="h-5 w-5 rounded-md object-cover" draggable={false} />
@@ -158,7 +158,7 @@ export function AboutPage() {
 
 				<div>
 					<SectionLabel>{t("about_page.section_principles", { defaultValue: "Why Free Grind" })}</SectionLabel>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ProjectRow
 							icon={LockFilled}
 							iconClass="bg-emerald-500/15 text-emerald-400"
@@ -188,7 +188,7 @@ export function AboutPage() {
 
 				<div>
 					<SectionLabel>{t("about_page.section_community", { defaultValue: "Community" })}</SectionLabel>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						{/* Brand colors as solid tiles on purpose: no color-mix (see accent-tint in index.css). */}
 						<ProjectRow
 							icon={DiscordIcon}
@@ -211,7 +211,7 @@ export function AboutPage() {
 
 				<div>
 					<SectionLabel>{t("about_page.section_project", { defaultValue: "Project" })}</SectionLabel>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						{announcement && (
 							<ProjectRow
 								icon={MegaphoneFilled}

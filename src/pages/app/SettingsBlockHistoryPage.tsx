@@ -69,7 +69,7 @@ export function SettingsBlockHistoryPage() {
 			{/* Fills the rest of the screen so the empty state can sit centered in it. */}
 			<div className={`grid flex-1 gap-6 ${!isLoading && !error && (!events || events.length === 0) ? "content-center" : "content-start"}`}>
 				{isLoading ? (
-					<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
+					<div className="native-group">
 						{Array.from({ length: 4 }).map((_, i) => (
 							<div key={i} className="flex items-center gap-3 px-4 py-3">
 								<div className="h-11 w-11 shrink-0 animate-pulse rounded-full overflow-hidden ink-tint-10" />
@@ -103,7 +103,7 @@ export function SettingsBlockHistoryPage() {
 								{events.length}
 							</span>
 						</div>
-						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
+						<div className="native-group">
 							{events.map((event) => {
 								const displayName =
 									event.displayName || t("settings_block_history.name_fallback");

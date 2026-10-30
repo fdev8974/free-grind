@@ -59,7 +59,7 @@ export const InterestRow = memo(function InterestRow({
 			ref={ref}
 			className={cn(
 				"group/reveal relative flex items-center gap-4 border-b border-[var(--surface-2)] pl-4 pr-4 py-3 transition-colors",
-				isLocked ? "opacity-75 grayscale-[0.3]" : "hover:bg-[var(--surface-2)]/40",
+				isLocked ? "opacity-75 grayscale-[0.3]" : "hover-fill/40",
 				revealClass
 			)}
 		>

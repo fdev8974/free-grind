@@ -1866,7 +1866,7 @@ export function ProfileDetailsModal({
 			<button
 				type="button"
 				onClick={handleEditNickname}
-				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 			>
 				<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
 				<NicknameMenuItemLabel
@@ -1882,7 +1882,7 @@ export function ProfileDetailsModal({
 		<button
 			type="button"
 			onClick={() => void handleLogEncounter()}
-			className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+			className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 		>
 			<BananaFilled className="mr-2 h-4 w-4 opacity-70" />
 			{t("chat.log_encounter", { defaultValue: "We just hooked up" })}
@@ -1900,7 +1900,7 @@ export function ProfileDetailsModal({
 			<button
 				type="button"
 				onClick={() => { setIsActionsMenuOpen(false); setIsReportDialogOpen(true); }}
-				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover:bg-[var(--surface-2)]"
+				className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-red-400 transition hover-fill"
 			>
 				<Flag className="mr-2 h-4 w-4 fill-current opacity-70" />
 				{t("profile_details.report.menu_item")}
@@ -2338,7 +2338,7 @@ export function ProfileDetailsModal({
 											type="button"
 											disabled={isTriangleDisabled}
 											onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
-											className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+											className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-50"
 										>
 											<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
 											{locateLabel ?? t("profile_details.locate")}
@@ -2349,7 +2349,7 @@ export function ProfileDetailsModal({
 											type="button"
 											disabled={isProfileUnavailable}
 											onClick={() => { setIsActionsMenuOpen(false); if (!messageProfileId || isProfileUnavailable) return; isHidden ? onUnhideProfile?.(String(messageProfileId)) : onHideProfile?.(String(messageProfileId)); }}
-											className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+											className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-50"
 										>
 											{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 											{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
@@ -2365,7 +2365,7 @@ export function ProfileDetailsModal({
 											<button
 												type="button"
 												onClick={handleBanBioPhrase}
-												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
 												<span className="flex flex-col">
@@ -2378,7 +2378,7 @@ export function ProfileDetailsModal({
 											<button
 												type="button"
 												onClick={handleBanProfileName}
-												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
 												<span className="flex flex-col">
@@ -2794,7 +2794,7 @@ export function ProfileDetailsModal({
 														{showLocate && (
 														<button type="button" disabled={isTriangleDisabled}
 															onClick={() => { setIsActionsMenuOpen(false); if (messageProfileId) onTriangleProfile?.(String(messageProfileId)); }}
-															className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50">
+															className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-50">
 															<LocateFixedFilled className="mr-2 h-4 w-4 opacity-70" />
 															{locateLabel ?? t("profile_details.locate")}
 														</button>
@@ -2804,7 +2804,7 @@ export function ProfileDetailsModal({
 															type="button"
 															disabled={isProfileUnavailable}
 															onClick={() => { setIsActionsMenuOpen(false); if (!messageProfileId || isProfileUnavailable) return; isHidden ? onUnhideProfile?.(String(messageProfileId)) : onHideProfile?.(String(messageProfileId)); }}
-															className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+															className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-50"
 														>
 															{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 															{isHidden ? t("profile_details.unhide") : t("profile_details.hide")}
@@ -2820,7 +2820,7 @@ export function ProfileDetailsModal({
 															<button
 																type="button"
 																onClick={handleBanBioPhrase}
-																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
 																<span className="flex flex-col">
@@ -2833,7 +2833,7 @@ export function ProfileDetailsModal({
 															<button
 																type="button"
 																onClick={handleBanProfileName}
-																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
 																<span className="flex flex-col">

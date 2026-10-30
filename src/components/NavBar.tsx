@@ -673,7 +673,7 @@ export function NavBar() {
 											? // Rail: stacked icon + label, tinted pill for the active tab; the
 												// profile tab sits at the bottom like in desktop messengers.
 												cn(
-													"h-auto w-full flex-none px-1 py-2.5 text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]",
+													"h-auto w-full flex-none px-1 py-2.5 text-[var(--text-muted)] hover-fill hover:text-[var(--text)]",
 													"data-[state=active]:bg-[color-mix(in_srgb,currentColor_12%,transparent)]",
 													item.value === "settings" && "mt-auto",
 												)
@@ -769,7 +769,7 @@ export function NavBar() {
 										type="button"
 										onClick={() => void handleSwitchAccount(account.profileId)}
 										disabled={isActive || isSwitching}
-										className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)] disabled:cursor-default"
+										className="flex min-w-0 items-center gap-2.5 rounded-sm px-1.5 py-1.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)] disabled:cursor-default"
 									>
 										<div className="relative h-10 w-10 shrink-0">
 											<Avatar

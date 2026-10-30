@@ -375,13 +375,13 @@ export function SettingsDataPage() {
 
 			<div className="grid gap-8">
 				<div>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<button
 							id="data-export"
 							type="button"
 							onClick={() => setShowExportCategoryPicker(true)}
 							disabled={isExporting}
-							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isExporting ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-export" ? "animate-settings-highlight" : ""}`}
+							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isExporting ? "opacity-50" : "hover-fill active:bg-[var(--surface-2)]"} ${highlightId === "data-export" ? "animate-settings-highlight" : ""}`}
 						>
 							<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
 								<FileDown className="h-5 w-5" />
@@ -414,7 +414,7 @@ export function SettingsDataPage() {
 								}
 							}}
 							disabled={isImporting}
-							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
+							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover-fill active:bg-[var(--surface-2)]"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
 						>
 							<div className="shrink-0 rounded-2xl bg-violet-500/15 p-2.5 text-violet-400">
 								<FileUpFilled className="h-5 w-5" />
@@ -464,7 +464,7 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.media_storage", { defaultValue: "Media Storage" })}
 						</p>
-						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-group">
 							<div
 								id="data-storage-used"
 								className={`flex items-center justify-between gap-4 px-4 py-3.5 ${highlightId === "data-storage-used" ? "animate-settings-highlight" : ""}`}
@@ -502,13 +502,13 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.phrases_section", { defaultValue: "Saved Phrases" })}
 						</p>
-						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-group">
 							<button
 								id="data-phrases-export"
 								type="button"
 								onClick={() => void handleExportPhrasesTxt()}
 								disabled={savedPhrases.length === 0 || isExportingPhrases}
-								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${savedPhrases.length === 0 ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-phrases-export" ? "animate-settings-highlight" : ""}`}
+								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${savedPhrases.length === 0 ? "opacity-50" : "hover-fill active:bg-[var(--surface-2)]"} ${highlightId === "data-phrases-export" ? "animate-settings-highlight" : ""}`}
 							>
 								<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
 									<MessageSquareQuoteFilled className="h-5 w-5" />
@@ -535,7 +535,7 @@ export function SettingsDataPage() {
 								type="button"
 								onClick={() => phrasesInputRef.current?.click()}
 								disabled={isImportingPhrases}
-								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImportingPhrases ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-phrases-import" ? "animate-settings-highlight" : ""}`}
+								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImportingPhrases ? "opacity-50" : "hover-fill active:bg-[var(--surface-2)]"} ${highlightId === "data-phrases-import" ? "animate-settings-highlight" : ""}`}
 							>
 								<div className="shrink-0 rounded-2xl bg-violet-500/15 p-2.5 text-violet-400">
 									<Upload className="h-5 w-5" />
@@ -573,13 +573,13 @@ export function SettingsDataPage() {
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 							{t("data_backup.encounters_section", { defaultValue: "Sexual Encounters" })}
 						</p>
-						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-group">
 							<button
 								id="data-encounters-export"
 								type="button"
 								onClick={() => void handleExportEncountersIcs()}
 								disabled={isExportingEncounters}
-								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isExportingEncounters ? "opacity-50" : "hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"} ${highlightId === "data-encounters-export" ? "animate-settings-highlight" : ""}`}
+								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isExportingEncounters ? "opacity-50" : "hover-fill active:bg-[var(--surface-2)]"} ${highlightId === "data-encounters-export" ? "animate-settings-highlight" : ""}`}
 							>
 								<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
 									<CalendarDaysFilled className="h-5 w-5" />
@@ -609,7 +609,7 @@ export function SettingsDataPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("data_backup.danger_zone", { defaultValue: "Danger Zone" })}
 					</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<div
 							id="data-reset-all"
 							className={`flex items-center justify-between gap-4 px-4 py-3.5 ${highlightId === "data-reset-all" ? "animate-settings-highlight" : ""}`}

@@ -1,7 +1,7 @@
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useEffect, useMemo, useState } from "react";
 import { Columns2, Columns3, Columns4, Languages, LayoutGrid, List, PanelBottom, Ruler, Type, Vibrate } from "lucide-react";
-import { ClockFilled, FlameFilled, ImagesFilled, MessageCircleFilled, LayoutGridFilled, MonitorFilled, MoonFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
+import { ClockFilled, FlameFilled, ImagesFilled, MessageCircleFilled, LayoutGridFilled, MonitorFilled, MoonFilled, PaletteFilled, SparklesFilled, SunFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { usePreferences, ACCENT_PRESETS, type ColorScheme } from "../../contexts/PreferencesContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -67,6 +67,43 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 		<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 			{children}
 		</p>
+	);
+}
+
+/* Fixed palettes (index.css light / dark / AMOLED values) so every preview
+   shows its scheme regardless of the one currently active. */
+const SCHEME_PREVIEW_COLORS = {
+	light: { bg: "#f5f7fa", card: "#ffffff", line: "#d7dce3" },
+	dark: { bg: "#0f131a", card: "#161d27", line: "#2b3646" },
+	amoled: { bg: "#000000", card: "#15191f", line: "#242a33" },
+};
+
+function SchemeMockup({ colors }: { colors: (typeof SCHEME_PREVIEW_COLORS)["light"] }) {
+	return (
+		<div className="flex h-full flex-col gap-1 p-2" style={{ background: colors.bg }}>
+			<div className="h-1.5 w-1/2 rounded-full" style={{ background: "var(--accent)" }} />
+			{[0, 1].map((i) => (
+				<div key={i} className="flex flex-1 flex-col justify-center gap-1 rounded-md px-1.5" style={{ background: colors.card }}>
+					<div className="h-1 w-3/4 rounded-full" style={{ background: colors.line }} />
+					<div className="h-1 w-1/2 rounded-full" style={{ background: colors.line }} />
+				</div>
+			))}
+		</div>
+	);
+}
+
+/** Mini app preview for a color scheme; "system" splits light and dark diagonally. */
+function SchemePreview({ scheme, amoled }: { scheme: ColorScheme; amoled: boolean }) {
+	const dark = amoled ? SCHEME_PREVIEW_COLORS.amoled : SCHEME_PREVIEW_COLORS.dark;
+	return (
+		<div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl">
+			<SchemeMockup colors={scheme === "dark" ? dark : SCHEME_PREVIEW_COLORS.light} />
+			{scheme === "system" && (
+				<div className="absolute inset-0" style={{ clipPath: "polygon(100% 0, 100% 100%, 0 100%)" }}>
+					<SchemeMockup colors={dark} />
+				</div>
+			)}
+		</div>
 	);
 }
 
@@ -198,25 +235,38 @@ export function CustomizabilityPage() {
 					<SectionLabel>{t("customizability.appearance")}</SectionLabel>
 					<div className="grid gap-3">
 
-						{/* Color Scheme */}
-						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						{/* Color Scheme: row header like the other settings rows, then a
+						    mini app preview per scheme to pick from. */}
+						<div className="native-group">
 						<div
 							id="cust-color-scheme"
-							className={`p-4 ${highlightId === "cust-color-scheme" ? "animate-settings-highlight" : ""}`}
+							className={`px-4 pb-4 pt-3.5 ${highlightId === "cust-color-scheme" ? "animate-settings-highlight" : ""}`}
 						>
-							<p className="mb-3 text-sm font-semibold">{t("customizability.color_scheme")}</p>
-							<div className="grid grid-cols-3 gap-2">
-								{schemeOptions.map(({ value, label, icon }) => {
+							<div className="flex items-center gap-3">
+								<div className="shrink-0 rounded-2xl bg-sky-500/15 p-2.5 text-sky-400">
+									{schemeOptions.find((option) => option.value === colorScheme)?.icon}
+								</div>
+								<div className="min-w-0 flex-1">
+									<p className="text-sm font-semibold leading-snug">{t("customizability.color_scheme")}</p>
+									<p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+										{schemeOptions.find((option) => option.value === colorScheme)?.label}
+									</p>
+								</div>
+							</div>
+							{/* Fixed tile width from sm up, so the previews don't grow with the page. */}
+							<div className="mt-3.5 grid grid-cols-3 gap-2 sm:grid-cols-[repeat(3,9rem)]">
+								{schemeOptions.map(({ value, label }) => {
 									const isActive = colorScheme === value;
 									return (
 										<button
 											key={value}
 											type="button"
 											onClick={() => handleSchemeChange(value)}
-											className={`flex flex-col items-center gap-2 rounded-2xl p-4 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isActive ? "accent-tint-15 text-[var(--accent-readable)] ring-2 ring-inset ring-[var(--accent)]" : "ink-tint-10 text-[var(--text)] hover:ink-tint-14"}`}
+											aria-pressed={isActive}
+											className={`flex flex-col gap-2 rounded-2xl p-1.5 pb-2.5 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isActive ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "bg-[var(--surface-2)] hover:accent-tint-10"}`}
 										>
-											{icon}
-											<span className="text-xs font-medium">{label}</span>
+											<SchemePreview scheme={value} amoled={amoledMode} />
+											<span className={`text-xs font-medium ${isActive ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{label}</span>
 										</button>
 									);
 								})}
@@ -237,16 +287,27 @@ export function CustomizabilityPage() {
 						)}
 						</div>
 
-						{/* Accent Color + Preview combined */}
-						<div className="native-card overflow-hidden">
+						{/* Accent Color: swatches, hex field and preview as tiles of one group */}
+						<div className="native-group">
 						<div
 							id="cust-accent-color"
-							className={`p-4 ${highlightId === "cust-accent-color" ? "animate-settings-highlight" : ""}`}
+							className={`px-4 pb-4 pt-3.5 ${highlightId === "cust-accent-color" ? "animate-settings-highlight" : ""}`}
 						>
-							<p className="mb-3 text-sm font-semibold">{t("customizability.accent_color")}</p>
+							<div className="flex items-center gap-3">
+								<div className="shrink-0 rounded-2xl accent-tint-15 p-2.5 text-[var(--accent)]">
+									<PaletteFilled className="h-5 w-5" />
+								</div>
+								<div className="min-w-0 flex-1">
+									<p className="text-sm font-semibold leading-snug">{t("customizability.accent_color")}</p>
+									<p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+										{ACCENT_PRESETS.find((p) => p.color === accentColor)?.name ?? t("customizability.custom")}
+									</p>
+								</div>
+							</div>
 
-							{/* Preset swatches + custom swatch in one row */}
-							<div className="flex flex-wrap gap-3 p-1">
+							{/* Preset tiles + custom tile, styled like the color scheme tiles above:
+							    a color block with its name below, the active one ringed in the accent. */}
+							<div className="mt-3.5 grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2 sm:grid-cols-[repeat(auto-fill,5.5rem)]">
 								{ACCENT_PRESETS.map((preset) => {
 									const isActive = accentColor === preset.color;
 									return (
@@ -254,39 +315,23 @@ export function CustomizabilityPage() {
 											key={preset.color}
 											type="button"
 											onClick={() => handleAccentChange(preset)}
-											title={preset.name}
-											className="relative h-8 w-8 rounded-full transition-transform hover:scale-110 sm:h-10 sm:w-10"
-											style={{
-												background: preset.color,
-												outline: isActive ? `2.5px solid ${preset.color}` : "none",
-												outlineOffset: "3px",
-											}}
+											aria-pressed={isActive}
+											className={`flex flex-col gap-1.5 rounded-2xl p-1.5 pb-2 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isActive ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "bg-[var(--surface-2)] hover:accent-tint-10"}`}
 										>
-											{isActive && (
-												<span
-													className="absolute inset-0 flex items-center justify-center rounded-full text-xs font-bold sm:text-sm"
-													style={{ color: preset.contrast }}
-												>
-													✓
-												</span>
-											)}
+											<span className="aspect-[4/3] w-full rounded-xl" style={{ background: preset.color }} />
+											<span className={`truncate text-center text-xs font-medium ${isActive ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{preset.name}</span>
 										</button>
 									);
 								})}
 
-								{/* Custom color — same swatch style, opens native picker */}
+								{/* Custom color: same tile, opens the native picker */}
 								{(() => {
 									const isCustom = !ACCENT_PRESETS.some((p) => p.color === accentColor);
 									return (
 										<label
 											htmlFor="accent-color-picker"
-											className="relative h-8 w-8 shrink-0 cursor-pointer rounded-full transition-transform hover:scale-110 sm:h-10 sm:w-10"
-											style={{
-												background: isCustom ? accentColor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)",
-												outline: isCustom ? `2.5px solid ${accentColor}` : "none",
-												outlineOffset: "3px",
-											}}
 											title={t("customizability.picker")}
+											className={`flex cursor-pointer flex-col gap-1.5 rounded-2xl p-1.5 pb-2 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isCustom ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "bg-[var(--surface-2)] hover:accent-tint-10"}`}
 										>
 											<input
 												id="accent-color-picker"
@@ -295,24 +340,22 @@ export function CustomizabilityPage() {
 												onChange={(event) => handlePickColor(event.target.value)}
 												className="sr-only"
 											/>
-											{isCustom && (
-												<span
-													className="absolute inset-0 flex items-center justify-center rounded-full text-xs font-bold sm:text-sm"
-													style={{ color: getContrastForHex(accentColor) }}
-												>
-													✓
-												</span>
-											)}
+											<span
+												className="aspect-[4/3] w-full rounded-xl"
+												style={{ background: isCustom ? accentColor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+											/>
+											<span className={`truncate text-center text-xs font-medium ${isCustom ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{t("customizability.custom")}</span>
 										</label>
 									);
 								})()}
 							</div>
+						</div>
 
-							{/* Hex input — applies on blur or Enter, no button needed */}
-							<div className="mt-4">
+						{/* Hex input — applies on blur or Enter, no button needed */}
+						<div className="px-4 py-3">
 								<div
-									className={`flex h-10 items-center overflow-hidden rounded-lg border bg-[var(--surface-2)] px-3 transition-colors focus-within:border-[var(--accent)] ${
-										hexError ? "border-red-400" : "border-[var(--border)]"
+									className={`flex h-10 items-center overflow-hidden rounded-xl border bg-[var(--surface-2)] px-3 transition-colors focus-within:border-[var(--accent)] ${
+										hexError ? "border-red-400" : "border-transparent"
 									}`}
 								>
 									<span
@@ -336,10 +379,9 @@ export function CustomizabilityPage() {
 									</span>
 								</div>
 								{hexError && <p className="mt-1.5 text-xs text-red-400">{hexError}</p>}
-							</div>
 						</div>
-						{/* Preview — inline below hex input */}
-						<div className="border-t border-[var(--border)] bg-[var(--surface-2)] px-4 py-4 flex flex-col gap-3">
+						{/* Preview */}
+						<div className="flex flex-col gap-3 px-4 py-4">
 							<div className="flex flex-wrap gap-2">
 								<button
 									type="button"
@@ -390,7 +432,7 @@ export function CustomizabilityPage() {
 				{/* GRID PAGE (column count only affects the mobile app) */}
 				<div>
 					<SectionLabel>{t("customizability.grid_page")}</SectionLabel>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						{isMobilePlatform && (
 							<SelectRow
 								id="cust-browse-grid"
@@ -426,7 +468,7 @@ export function CustomizabilityPage() {
 				{/* NAVIGATION */}
 				<div>
 					<SectionLabel>{t("customizability.navigation_bar")}</SectionLabel>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						{/* Bar style options only exist in the mobile app. */}
 						{isMobilePlatform && (
 							<>
@@ -512,7 +554,7 @@ export function CustomizabilityPage() {
 				{showInterest && (
 					<div>
 						<SectionLabel>{t("customizability.interest_page")}</SectionLabel>
-						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-group">
 							<SelectRow
 								icon={<FlameFilled className="h-5 w-5 opacity-50" />}
 								iconClass="bg-yellow-500/10 text-yellow-400"
@@ -567,7 +609,7 @@ export function CustomizabilityPage() {
 				{/* CHAT */}
 				<div>
 					<SectionLabel>{t("customizability.chat_section", { defaultValue: "Chat Page" })}</SectionLabel>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="cust-drawer-layout"
 							highlighted={highlightId === "cust-drawer-layout"}
@@ -598,7 +640,7 @@ export function CustomizabilityPage() {
 				{/* VISUAL EFFECTS */}
 				<div>
 					<SectionLabel>{t("customizability.visual_effects")}</SectionLabel>
-					<div className="native-card overflow-hidden">
+					<div className="native-group">
 						{/* Off and both strengths in one picker. */}
 						<SelectRow
 							id="cust-reveal-effect"
@@ -627,7 +669,7 @@ export function CustomizabilityPage() {
 				{isMobilePlatform && (
 					<div>
 						<SectionLabel>{t("customizability.interaction")}</SectionLabel>
-						<div className="native-card overflow-hidden">
+						<div className="native-group">
 							<ToggleRow
 								id="cust-haptics"
 								highlighted={highlightId === "cust-haptics"}
@@ -648,7 +690,7 @@ export function CustomizabilityPage() {
 				{/* REGIONAL */}
 				<div>
 					<SectionLabel>{t("customizability.regional")}</SectionLabel>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<SelectRow
 							id="cust-language"
 							highlighted={highlightId === "cust-language"}

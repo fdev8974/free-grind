@@ -330,7 +330,7 @@ export function PushInspectorPage() {
 				/>
 
 				{/* Token */}
-				<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+				<div className="native-group">
 					<div className="flex items-start gap-3 px-4 py-3.5">
 						<div className={cn("shrink-0 rounded-2xl p-2.5", tone === "ok" ? "bg-emerald-500/15 text-emerald-500" : "bg-amber-500/15 text-amber-500")}>
 							<BellFilled className="h-5 w-5" />
@@ -363,7 +363,7 @@ export function PushInspectorPage() {
 						type="button"
 						onClick={() => token && void syncToken(token)}
 						disabled={!token || isSyncing}
-						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill disabled:opacity-50"
 					>
 						<div className="shrink-0 rounded-2xl accent-tint-15 p-2.5 text-[var(--accent)]">
 							{isSyncing ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCcw className="h-5 w-5" />}
@@ -377,7 +377,7 @@ export function PushInspectorPage() {
 					<button
 						type="button"
 						onClick={() => setIsManualSyncOpen(true)}
-						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill"
 					>
 						<div className="shrink-0 rounded-2xl bg-slate-500/15 p-2.5 text-slate-400">
 							<KeyRound className="h-5 w-5" />
@@ -420,7 +420,7 @@ export function PushInspectorPage() {
 							/>
 						</div>
 					) : (
-						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-group">
 							{filtered.map((entry) => {
 								const event = entryEvent(entry);
 								const body = entryBody(entry);
@@ -429,7 +429,7 @@ export function PushInspectorPage() {
 										key={entry.id}
 										type="button"
 										onClick={() => setOpenEntry(entry)}
-										className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
+										className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition hover-fill"
 									>
 										<EventBadge event={event} className="w-14" />
 										<div className="min-w-0 flex-1">

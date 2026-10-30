@@ -455,7 +455,7 @@ export function SignInPage() {
 						<button
 							type="button"
 							onClick={() => toggleTransfer(true)}
-							className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+							className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-[var(--text-muted)] transition-colors hover-fill hover:text-[var(--text)]"
 						>
 							<QrCode className="h-3.5 w-3.5" />
 							{t("auth.sign_in.qr_entry_title", { defaultValue: "Sign in with a QR code" })}

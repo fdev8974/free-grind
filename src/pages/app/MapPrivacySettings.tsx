@@ -55,7 +55,7 @@ export function MapVisibilitySection({ highlightId }: { highlightId: string | nu
 			<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 				{t("privacy.map", { defaultValue: "Map" })}
 			</p>
-			<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+			<div className="native-group">
 				<ToggleRow
 					id="privacy-show-on-map"
 					highlighted={highlightId === "privacy-show-on-map"}

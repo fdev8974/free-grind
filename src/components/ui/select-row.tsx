@@ -40,7 +40,7 @@ export function SelectRow<T extends string>({
 				id={id}
 				type="button"
 				onClick={() => setIsOpen(true)}
-				className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] ${highlighted ? "animate-settings-highlight" : ""}`}
+				className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill ${highlighted ? "animate-settings-highlight" : ""}`}
 			>
 				<div className={`rounded-2xl p-2.5 shrink-0 ${iconClass}`}>{icon}</div>
 				<div className="min-w-0 flex-1">

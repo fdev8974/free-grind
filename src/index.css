@@ -375,7 +375,9 @@
 		--space-6: 32px;
 
 		/* --- Theme Definition: LIGHT (Default) --- */
-		--bg: #f5f7fa;
+		/* Page a step darker than the near-white cards: borderless cards and the
+		   gaps between grouped tiles (.native-group) need the contrast. */
+		--bg: #e9ecf1;
 		--surface: #ffffff;
 		--surface-2: #eceff4;
 		--text: #131821;
@@ -1328,12 +1330,33 @@
 		border-radius: 20px;
 		background: var(--card-bg);
 	}
-	/* Desktop (same query as useDesktopBreakpoint): hairline border matching
-	   the dividers, so cards stand apart from the page without a shadow. */
-	@media (hover: hover) and (pointer: fine) {
-		.native-card {
-			border: 1px solid var(--border);
-		}
+	/* Grouped list (settings sections etc.): each direct child is its own tile
+	   in the card fill, separated by a small gap instead of divider lines.
+	   Outer corners keep the card radius, inner corners are tight, so the
+	   group still reads as one block. Shares the card's tokens (see the
+	   .native-card rules below), so rows built on --surface-2 look the same. */
+	.native-group {
+		--card-bg: var(--surface);
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+	.native-group > * {
+		background: var(--card-bg);
+		border-radius: 6px;
+	}
+	.native-group > :first-child {
+		border-top-left-radius: 20px;
+		border-top-right-radius: 20px;
+	}
+	.native-group > :last-child {
+		border-bottom-left-radius: 20px;
+		border-bottom-right-radius: 20px;
+	}
+	/* A tile that only wraps its row (e.g. <li><button>) passes its corners on,
+	   so the row's hover fill doesn't draw square corners over the tile. */
+	.native-group > * > :only-child {
+		border-radius: inherit;
 	}
 	/* Just the card's fill (incl. AMOLED below), e.g. for chips sitting on the page. */
 	.native-card-fill {
@@ -1344,7 +1367,8 @@
 	:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
 		background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 	}
-	:root[data-scheme="dark"][data-amoled="true"] .native-card {
+	:root[data-scheme="dark"][data-amoled="true"] .native-card,
+	:root[data-scheme="dark"][data-amoled="true"] .native-group {
 		--card-bg: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 		--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
 	}
@@ -1354,7 +1378,8 @@
 		:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
 			background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 		}
-		:root:not([data-scheme="light"])[data-amoled="true"] .native-card {
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
+		:root:not([data-scheme="light"])[data-amoled="true"] .native-group {
 			--card-bg: color-mix(in srgb, var(--dark-surface-2) 90%, black);
 			--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
 		}
@@ -1379,7 +1404,9 @@
 			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
 		}
 		.native-card,
-		:root[data-scheme="dark"][data-amoled="true"] .native-card {
+		.native-group,
+		:root[data-scheme="dark"][data-amoled="true"] .native-card,
+		:root[data-scheme="dark"][data-amoled="true"] .native-group {
 			--card-bg: var(--card-tint-bg);
 			--surface: var(--card-tint-bg);
 			--surface-2: var(--card-tint-surface-2);
@@ -1396,7 +1423,8 @@
 				--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
 				--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
 			}
-			:root:not([data-scheme="light"])[data-amoled="true"] .native-card {
+			:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
+			:root:not([data-scheme="light"])[data-amoled="true"] .native-group {
 				--card-bg: var(--card-tint-bg);
 				--surface: var(--card-tint-bg);
 				--surface-2: var(--card-tint-surface-2);
@@ -1834,6 +1862,23 @@ dialog::backdrop {
 		opacity: calc(--value(integer) * 1%);
 		pointer-events: none;
 		transition: opacity 150ms;
+	}
+}
+
+/* Hover fill for rows and menu items: the accent mixed into the surface, so
+ * hovering reads in the same color family as selected states. Only on
+ * hover-capable pointers (desktop), like Tailwind's own hover variant, so a tap
+ * on touch doesn't leave a sticky fill behind. The mix goes through a custom
+ * property: written directly, the build adds an unguarded solid var(--accent)
+ * fallback (see accent-tint below). Without color-mix there's no hover fill. */
+@utility hover-fill {
+	--hover-fill: color-mix(in srgb, var(--accent) 12%, var(--surface));
+	@media (hover: hover) {
+		@supports (color: color-mix(in srgb, red, blue)) {
+			&:hover {
+				background-color: var(--hover-fill);
+			}
+		}
 	}
 }
 

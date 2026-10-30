@@ -348,7 +348,7 @@ export function SettingsAutomationPage() {
 							</DrawerEmptyState>
 						</div>
 					) : (
-						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-group">
 							{rules.map((rule) => (
 								<div
 									key={rule.id}
@@ -358,7 +358,7 @@ export function SettingsAutomationPage() {
 									onKeyDown={(e) => {
 										if (e.key === "Enter" || e.key === " ") setEditingRule(rule);
 									}}
-									className="grid min-w-0 cursor-pointer gap-1.5 p-4 outline-none transition hover:bg-[var(--surface-2)]"
+									className="grid min-w-0 cursor-pointer gap-1.5 p-4 outline-none transition hover-fill"
 								>
 									<div className="flex min-w-0 items-center gap-3">
 										<div className="relative shrink-0 rounded-2xl bg-indigo-500/15 p-2.5 text-indigo-400">
@@ -408,11 +408,11 @@ export function SettingsAutomationPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("settings_automation.forbidden_keywords_title")}
 					</p>
-					<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+					<div className="native-group">
 						<button
 							type="button"
 							onClick={() => setIsKeywordsSheetOpen(true)}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill"
 						>
 							<div className="shrink-0 rounded-2xl bg-orange-500/15 p-2.5 text-orange-400">
 								<TagFilled className="h-5 w-5" />
@@ -442,7 +442,7 @@ export function SettingsAutomationPage() {
 											key={rule.id}
 											type="button"
 											onClick={() => setEditingRule(rule)}
-											className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-[var(--surface-2)]"
+											className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-2 rounded-xl px-2 py-2 text-left transition hover-fill"
 										>
 											<Workflow className="h-4 w-4 shrink-0 text-indigo-400" />
 											<span className="min-w-0 flex-1 truncate text-sm">{rule.nameKey ? t(rule.nameKey) : rule.name}</span>

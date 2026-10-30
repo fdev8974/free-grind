@@ -359,11 +359,11 @@ export function ApiInspectorPage() {
 				/>
 
 				{/* New request */}
-				<div className="native-card overflow-hidden">
+				<div className="native-group">
 					<button
 						type="button"
 						onClick={() => setComposerDraft({ method: "GET", path: "", body: "" })}
-						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+						className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill"
 					>
 						<div className="shrink-0 rounded-2xl accent-tint-15 p-2.5 text-[var(--accent)]">
 							<Send className="h-5 w-5" />
@@ -406,13 +406,13 @@ export function ApiInspectorPage() {
 							/>
 						</div>
 					) : (
-						<div className="native-card divide-y divide-[var(--border)] overflow-hidden">
+						<div className="native-group">
 							{filtered.map((entry) => (
 								<button
 									key={entry.id}
 									type="button"
 									onClick={() => setOpenEntry(entry)}
-									className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition hover:bg-[var(--surface-2)]"
+									className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition hover-fill"
 								>
 									<span className={cn("w-14 shrink-0 rounded-md py-0.5 text-center font-mono text-[10px] font-bold", methodBadgeClass(entry.method))}>
 										{entry.method.length > 6 ? entry.method.slice(0, 6) : entry.method}

@@ -273,7 +273,7 @@ export function ShareChatPicker({
 									<button
 										type="button"
 										onClick={() => setQuery("")}
-										className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
+										className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover-fill hover:text-[var(--text)]"
 										aria-label={t("common.clear", { defaultValue: "Clear" })}
 									>
 										<X className="h-4 w-4" />
@@ -337,7 +337,7 @@ export function ShareChatPicker({
 									onClick={() => toggleSelected(chat.conversationId)}
 									disabled={isSending}
 									aria-pressed={selectedIds.includes(chat.conversationId)}
-									className="flex w-full items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 text-left transition hover:bg-[var(--surface-2)]"
+									className="flex w-full items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 text-left transition hover-fill"
 								>
 									<Avatar chat={chat} selected={selectedIds.includes(chat.conversationId)} />
 									<div className="min-w-0 flex-1">

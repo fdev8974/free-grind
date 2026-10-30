@@ -39,7 +39,7 @@ export function ToggleRow({
 			id={id}
 			className={
 				(hasIcon
-					? `flex cursor-pointer items-start gap-3 ${padding} transition-colors hover:bg-[var(--surface-2)]`
+					? `flex cursor-pointer items-start gap-3 ${padding} transition-colors hover-fill`
 					: `flex min-h-14 cursor-pointer justify-between gap-4 ${padding} ${description ? "items-start" : "items-center"}`) +
 				(highlighted ? " animate-settings-highlight" : "")
 			}

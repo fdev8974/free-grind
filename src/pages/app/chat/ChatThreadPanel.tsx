@@ -1664,7 +1664,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													openProfile(profileId, getProfileReturnToChatPath(profileId), true);
 												}}
 												disabled={profileId == null}
-												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-60"
 											>
 												<UserFilled className="mr-2 h-4 w-4 opacity-70" />
 												{t("chat.view_profile")}
@@ -1677,7 +1677,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													setIsHeaderActionsMenuOpen(false);
 													setIsEncounterSheetOpen(true);
 												}}
-												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 											>
 												<BananaFilled className="mr-2 h-4 w-4 opacity-70" />
 												{t("chat.log_encounter", { defaultValue: "We just hooked up" })}
@@ -1697,7 +1697,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														startOutgoingCall(String(profileId), displayName, avatarHash ?? null);
 													}}
 													disabled={videoCallDisabled}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
 												>
 													{videoCallDisabled ? (
 														<VideoOffFilled className="mr-2 h-4 w-4 opacity-70" />
@@ -1729,7 +1729,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														onOpenMediaSheet();
 													}}
 													disabled={!selectedConversation}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-40 disabled:cursor-not-allowed"
 												>
 													<ImagesFilled className="mr-2 h-4 w-4 opacity-70" />
 													{t("chat.received_media")}
@@ -1745,7 +1745,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													toast.success(enabled ? t("auto_translate.enabled_toast", { defaultValue: "Auto-translate turned on for this chat." }) : t("auto_translate.disabled_toast", { defaultValue: "Auto-translate turned off for this chat." }));
 												}}
 												disabled={!selectedConversation}
-												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:cursor-not-allowed disabled:opacity-40"
 											>
 												<Languages className="mr-2 h-4 w-4 opacity-70" />
 												<span className="flex flex-col">
@@ -1773,7 +1773,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														toast.success(newState ? "Read receipts turned off for this chat." : "Read receipts turned on for this chat.");
 													}}
 													disabled={!selectedConversation}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:cursor-not-allowed disabled:opacity-40"
 												>
 													{readReceiptsHidden ? <Check className="mr-2 h-4 w-4 opacity-70" /> : <CheckCheck className="mr-2 h-4 w-4 opacity-70" />}
 													<span className="flex flex-col">
@@ -1793,7 +1793,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													void onEditLocalNickname(profileId, nicknameNameChange.realName || actualProfileName?.trim() || displayName);
 												}}
 												disabled={profileId == null || !onEditLocalNickname}
-												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-60"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-60"
 											>
 												<PencilLineFilled className="mr-2 h-4 w-4 opacity-70" />
 												<NicknameMenuItemLabel
@@ -1811,7 +1811,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														setIsMergeSheetOpen(true);
 													}}
 													disabled={isMergingConversation || mergeableConversations.length === 0}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:cursor-not-allowed disabled:opacity-40"
 												>
 													<GitMerge className="mr-2 h-4 w-4 opacity-70" />
 													{isMergingConversation
@@ -1829,7 +1829,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													}}
 													disabled={isTogglingFavorite || profileId == null || !onToggleFavorite}
 													className={`flex items-center rounded-sm px-2 py-2 text-left text-sm transition disabled:opacity-60 ${
-														isFavorite ? "text-[var(--accent)] hover:bg-[var(--accent)]/10" : "text-[var(--text)] hover:bg-[var(--surface-2)]"
+														isFavorite ? "text-[var(--accent)] hover:bg-[var(--accent)]/10" : "text-[var(--text)] hover-fill"
 													}`}
 												>
 													{isTogglingFavorite ? (
@@ -1848,7 +1848,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														setIsHeaderActionsMenuOpen(false);
 														void togglePin();
 													}}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-40 disabled:cursor-not-allowed"
 												>
 													<Pin className={`mr-2 h-4 w-4 opacity-70 ${selectedConversation?.data.pinned ? "fill-current" : ""}`} />
 													{selectedConversation?.data.pinned ? t("chat.unpin") : t("chat.pin")}
@@ -1861,7 +1861,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													setIsHeaderActionsMenuOpen(false);
 													toggleHide();
 												}}
-												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
+												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-40 disabled:cursor-not-allowed"
 											>
 												{isHidden ? <EyeFilled className="mr-2 h-4 w-4 opacity-70" /> : <EyeOffFilled className="mr-2 h-4 w-4 opacity-70" />}
 												{isHidden
@@ -1876,7 +1876,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														setIsHeaderActionsMenuOpen(false);
 														void toggleMute();
 													}}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:opacity-40 disabled:cursor-not-allowed"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:opacity-40 disabled:cursor-not-allowed"
 												>
 													{selectedConversation?.data.muted ? (
 														<BellOffFilled className="mr-2 h-4 w-4 opacity-70" />
@@ -1896,7 +1896,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														setIsHeaderActionsMenuOpen(false);
 														setBanNamePrompt({ text: actualProfileName });
 													}}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover:bg-[var(--surface-2)]"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 												>
 													<Ban className="mr-2 h-4 w-4 opacity-70" />
 													<span className="flex flex-col">
@@ -2547,7 +2547,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 															onPointerDown={composerActionHaptic}
 															onClick={() => { setIsComposerMenuOpen(false); action.onClick(); }}
 															disabled={action.disabled}
-															className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--text)] transition hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+															className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-[var(--text)] transition hover-fill disabled:cursor-not-allowed disabled:opacity-40"
 														>
 															<span className="text-[var(--accent)]">{action.icon}</span>
 															{action.label}

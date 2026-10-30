@@ -77,7 +77,7 @@ export function BehaviorPage() {
 			/>
 
 			<div className="grid gap-6">
-				<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+				<div className="native-group">
 					<ToggleRow
 						id="behavior-confirm-block"
 						highlighted={highlightId === "behavior-confirm-block"}
@@ -123,7 +123,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.chats")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="behavior-chat-row-swipe-actions"
 							highlighted={highlightId === "behavior-chat-row-swipe-actions"}
@@ -152,7 +152,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.video_calls", { defaultValue: "Video Calls" })}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="behavior-start-calls-with-camera-on"
 							highlighted={highlightId === "behavior-start-calls-with-camera-on"}
@@ -186,7 +186,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.disappearing_media")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="behavior-default-expiring-photos"
 							highlighted={highlightId === "behavior-default-expiring-photos"}
@@ -213,7 +213,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.album_viewing")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="behavior-open-album-as-bottom-sheet"
 							highlighted={highlightId === "behavior-open-album-as-bottom-sheet"}
@@ -229,7 +229,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.media_drawer")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="behavior-sort-drawer-media-by-frequency"
 							highlighted={highlightId === "behavior-sort-drawer-media-by-frequency"}
@@ -245,7 +245,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.grid", { defaultValue: "Grid" })}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<SelectRow
 							id="behavior-double-tap-tap-type"
 							highlighted={highlightId === "behavior-double-tap-tap-type"}
@@ -276,7 +276,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.location")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="behavior-auto-focus-location-search"
 							highlighted={highlightId === "behavior-auto-focus-location-search"}
@@ -292,7 +292,7 @@ export function BehaviorPage() {
 
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("right_now.title")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="behavior-auto-focus-right-now-text"
 							highlighted={highlightId === "behavior-auto-focus-right-now-text"}
@@ -311,7 +311,7 @@ export function BehaviorPage() {
 				{isKeepScreenOnSupported && (
 					<div>
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("behavior.display")}</p>
-						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-group">
 							<ToggleRow
 								id="behavior-keep-screen-on"
 								highlighted={highlightId === "behavior-keep-screen-on"}

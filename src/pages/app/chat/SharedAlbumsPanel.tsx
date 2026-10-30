@@ -529,7 +529,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 					type="button"
 					onClick={handleRefresh}
 					disabled={isRefreshing || isLoading}
-					className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text)] disabled:opacity-50"
+					className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition hover-fill hover:text-[var(--text)] disabled:opacity-50"
 				>
 					<RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
 				</button>

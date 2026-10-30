@@ -324,13 +324,13 @@ export function SettingsTranslationPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("auto_translate.provider_section", { defaultValue: "Provider" })}
 					</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<button
 							id="translation-provider"
 							type="button"
 							onClick={() => setIsProviderSheetOpen(true)}
 							disabled={isSaving || isTesting}
-							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)] disabled:opacity-60 ${highlightId === "translation-provider" ? "animate-settings-highlight" : ""}`}
+							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill disabled:opacity-60 ${highlightId === "translation-provider" ? "animate-settings-highlight" : ""}`}
 						>
 							<div className={`shrink-0 rounded-2xl p-2.5 ${PROVIDER_ICON_CLASSES[provider]}`}>
 								<ProviderIcon className="h-5 w-5" />
@@ -350,7 +350,7 @@ export function SettingsTranslationPage() {
 						<button
 							type="button"
 							onClick={focusKeyInput}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--surface-2)]"
+							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill"
 						>
 							<div className="shrink-0 rounded-2xl bg-cyan-500/15 p-2.5 text-cyan-400">
 								<KeyRoundFilled className="h-5 w-5" />
@@ -381,8 +381,8 @@ export function SettingsTranslationPage() {
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
 						{t("auto_translate.guide_section", { defaultValue: "Get an API key" })}
 					</p>
-					<div className="native-card overflow-hidden">
-						<ol className="divide-y divide-[var(--border)]">
+					<div>
+						<ol className="native-group">
 							{guideSteps.map((step, index) => {
 								const content = (
 									<>
@@ -409,7 +409,7 @@ export function SettingsTranslationPage() {
 											<button
 												type="button"
 												onClick={() => void openExternalUrl(step.url!)}
-												className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover:bg-[var(--surface-2)] active:bg-[var(--surface-2)]"
+												className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover-fill active:bg-[var(--surface-2)]"
 											>
 												{content}
 												<ExternalLink className="mt-1.5 h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />

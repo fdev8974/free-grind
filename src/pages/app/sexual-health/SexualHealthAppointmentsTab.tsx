@@ -223,7 +223,7 @@ function AppointmentRow({
 			ref={ref}
 			onClick={onEdit}
 			className={cn(
-				"flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 rail:pl-[var(--app-px)] rail:pr-[var(--app-px)] transition-colors hover:bg-[var(--surface-2)]/50",
+				"flex cursor-pointer items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 rail:pl-[var(--app-px)] rail:pr-[var(--app-px)] transition-colors hover-fill/50",
 				revealClass,
 			)}
 		>
@@ -236,7 +236,7 @@ function AppointmentRow({
 				className={`h-15 w-15 shrink-0 rounded-full overflow-hidden drop-shadow-sm flex items-center justify-center transition-colors active:scale-95 ${
 					appointment.completedAt != null
 						? "bg-emerald-500 text-white"
-						: "bg-[var(--surface-2)] text-[var(--text-muted)] hover:bg-[var(--surface-2)]/70"
+						: "bg-[var(--surface-2)] text-[var(--text-muted)] hover-fill/70"
 				}`}
 				aria-label={
 					appointment.completedAt != null

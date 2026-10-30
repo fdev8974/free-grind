@@ -83,7 +83,7 @@ export function LastTestedMonthPicker({
 							onChange("");
 							setIsOpen(false);
 						}}
-						className={`block w-full rounded-sm px-2 py-2 text-left text-sm transition-colors hover:bg-[var(--surface-2)] ${
+						className={`block w-full rounded-sm px-2 py-2 text-left text-sm transition-colors hover-fill ${
 							!value ? "font-semibold text-[var(--accent)]" : "text-[var(--text-muted)]"
 						}`}
 					>
@@ -97,7 +97,7 @@ export function LastTestedMonthPicker({
 								onChange(option.value);
 								setIsOpen(false);
 							}}
-							className={`block w-full rounded-sm px-2 py-2 text-left text-sm transition-colors hover:bg-[var(--surface-2)] ${
+							className={`block w-full rounded-sm px-2 py-2 text-left text-sm transition-colors hover-fill ${
 								value === option.value ? "font-semibold text-[var(--accent)]" : ""
 							}`}
 						>

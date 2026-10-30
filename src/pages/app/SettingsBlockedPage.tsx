@@ -179,7 +179,7 @@ export function SettingsBlockedPage() {
 								<div className="h-3.5 w-5 animate-pulse rounded-full ink-tint-10" />
 							)}
 						</div>
-						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
+						<div className="native-group">
 							{Array.from({ length: isLoadingIds ? 4 : (blockedIdsData?.length ?? 4) }).map((_, i) => (
 								<div key={i} className="flex items-center gap-3 px-4 py-3">
 									<div className="h-11 w-11 shrink-0 animate-pulse rounded-full overflow-hidden ink-tint-10" />
@@ -215,7 +215,7 @@ export function SettingsBlockedPage() {
 								{blockedProfiles.length}
 							</span>
 						</div>
-						<div className="native-card divide-y divide-[color-mix(in_srgb,var(--text)_8%,transparent)] overflow-hidden">
+						<div className="native-group">
 							{blockedProfiles.map((profile) => {
 								const isMutating = mutatingProfileId === profile.profileId;
 								return (
@@ -263,23 +263,21 @@ export function SettingsBlockedPage() {
 						</div>
 					</div>
 				)}
-				{/* Unblock all: a destructive action row of its own, like in the
-				    native settings apps, with its explanation as a footnote. */}
+				{/* Unblock all: a borderless red-tinted action button of its own,
+				    with its explanation as a footnote. */}
 				{!isLoading && !error && blockedProfiles.length > 0 && (
 					<div>
-						<div className="native-card overflow-hidden">
-							<button
+						<button
 								type="button"
 								onClick={() => setConfirmUnblockAll(true)}
 								disabled={isUnblockingAll}
-								className="flex w-full items-center justify-center gap-2 px-4 py-3.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-500/8 active:bg-red-500/12 disabled:opacity-60"
+								className="flex w-full items-center justify-center gap-2 rounded-[20px] bg-red-500/12 px-4 py-3.5 text-sm font-semibold text-red-500 transition-colors hover:bg-red-500/18 active:bg-red-500/24 disabled:opacity-60"
 							>
 								{isUnblockingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
 								{isUnblockingAll
 									? t("settings_blocked.unblocking_all", { defaultValue: "Unblocking…" })
 									: t("settings_blocked.unblock_all_title", { defaultValue: "Unblock All" })}
 							</button>
-						</div>
 						<p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
 							{t("settings_blocked.unblock_all_desc", { defaultValue: "Remove all blocked accounts at once. This cannot be undone." })}
 						</p>

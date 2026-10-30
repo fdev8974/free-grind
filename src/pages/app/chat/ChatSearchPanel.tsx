@@ -191,7 +191,7 @@ export function ChatSearchPanel({ isDesktop, searchQuery, onClose, onOpenConvers
 							key={result.messageId}
 							type="button"
 							onClick={() => openConversationById(result.conversationId)}
-							className="flex w-full items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 text-left transition hover:bg-[var(--surface-2)]"
+							className="flex w-full items-center gap-4 border-b border-[var(--surface-2)] py-3 pl-4 pr-4 text-left transition hover-fill"
 						>
 							<div className="h-14 w-14 shrink-0 rounded-full overflow-hidden bg-[var(--surface-2)] drop-shadow-sm">
 								<ProfileImage src={avatarSrc} alt={name} />

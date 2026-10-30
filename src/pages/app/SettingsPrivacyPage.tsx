@@ -79,7 +79,7 @@ export function SettingsPrivacyPage() {
 				{/* Incognito Mode */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.grid_visibility")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="privacy-incognito-mode"
 							highlighted={highlightId === "privacy-incognito-mode"}
@@ -107,7 +107,7 @@ export function SettingsPrivacyPage() {
 				{/* Read Receipts */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.read_receipts")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="privacy-send-read-receipts"
 							highlighted={highlightId === "privacy-send-read-receipts"}
@@ -148,7 +148,7 @@ export function SettingsPrivacyPage() {
 				{/* Profile Views */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.profile_views")}</p>
-					<div className="native-card overflow-hidden">
+					<div className="native-group">
 						<ToggleRow
 							id="privacy-record-profile-views"
 							highlighted={highlightId === "privacy-record-profile-views"}
@@ -168,7 +168,7 @@ export function SettingsPrivacyPage() {
 				{/* NSFW Content */}
 				<div>
 					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.nsfw_content")}</p>
-					<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+					<div className="native-group">
 						<ToggleRow
 							id="privacy-safe-for-work"
 							highlighted={highlightId === "privacy-safe-for-work"}
@@ -252,7 +252,7 @@ export function SettingsPrivacyPage() {
 				{disguiseSupported && (
 					<div>
 						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{t("privacy.app_disguise")}</p>
-						<div className="native-card overflow-hidden divide-y divide-[var(--border)]">
+						<div className="native-group">
 							{(() => {
 								const current = DISGUISE_OPTIONS.find((option) => option.id === disguise) ?? DISGUISE_OPTIONS[0];
 								const CurrentIcon = current.icon;
