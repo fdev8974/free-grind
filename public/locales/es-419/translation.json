@@ -1008,8 +1008,6 @@
         "regional": "Regional",
         "navigation_tabs": "Pestañas de navegación",
         "navigation_bar": "Barra de navegación",
-        "nav_floating": "Estilo flotante",
-        "nav_floating_desc": "Muestra la barra de navegación como una tarjeta flotante en lugar de una barra a todo lo ancho.",
         "nav_show_labels": "Mostrar etiquetas",
         "nav_show_labels_desc": "Muestra etiquetas de texto bajo los iconos de navegación.",
         "interest_page": "Página de intereses",

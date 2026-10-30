@@ -35,21 +35,31 @@ import { looksLikeMessageUpdate } from "../utils/messageUpdates";
 
 // Bottom-nav style options; only offered (and only honoured) in the mobile app.
 export const NAV_SHOW_LABELS_KEY = "fg-nav-show-labels";
+// Bar style: unset/"false" = full width, "true" = floating card, "fade" =
+// floating without a card, on a dark fade instead.
 export const NAV_FLOATING_KEY = "fg-nav-floating";
 export const NAV_STYLE_EVENT = "fg-nav-style-changed";
 
+export type NavBarStyle = "solid" | "floating" | "fade";
+
+export const readNavBarStyle = (): NavBarStyle => {
+	const value = window.localStorage.getItem(NAV_FLOATING_KEY);
+	return value === "fade" ? "fade" : value === "true" ? "floating" : "solid";
+};
+
 const readNavStyle = () => ({
 	showLabels: window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true",
-	floating: window.localStorage.getItem(NAV_FLOATING_KEY) === "true",
+	barStyle: readNavBarStyle(),
 });
 
 /**
  * The bottom nav's effective look, kept in sync with the customization page.
  * `fullWidth`: edge-to-edge bar (mobile app default) instead of the floating
  * card desktop/web always use — overlays placed above the nav (e.g. the Right
- * Now map card) need less bottom offset then.
+ * Now map card) need less bottom offset then. `transparent`: floating tabs
+ * without a card, kept readable by a dark fade from the screen edge.
  */
-export function useNavStyle(): { fullWidth: boolean; hideLabels: boolean } {
+export function useNavStyle(): { fullWidth: boolean; hideLabels: boolean; transparent: boolean } {
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
 	const [navStyle, setNavStyle] = useState(readNavStyle);
 	useEffect(() => {
@@ -62,7 +72,8 @@ export function useNavStyle(): { fullWidth: boolean; hideLabels: boolean } {
 		hideLabels: isMobilePlatform && !navStyle.showLabels,
 		// Full-width edge-to-edge bar in the mobile app, unless the user opted
 		// into the floating card that desktop/web always use.
-		fullWidth: isMobilePlatform && !navStyle.floating,
+		fullWidth: isMobilePlatform && navStyle.barStyle === "solid",
+		transparent: isMobilePlatform && navStyle.barStyle === "fade",
 	};
 }
 
@@ -118,7 +129,7 @@ export function NavBar() {
 	const { isExploreActive } = useExploreMode();
 	// A live (public) Right Now session takes the grid tab's color over everything, explore included.
 	const isRightNowLive = useIsRightNowLive();
-	const { hideLabels, fullWidth } = useNavStyle();
+	const { hideLabels, fullWidth, transparent } = useNavStyle();
 	// Desktop: vertical rail on the left instead of the bottom bar.
 	const rail = useDesktopBreakpoint();
 
@@ -531,10 +542,11 @@ export function NavBar() {
 			)}
 			style={{ "--nav-system-inset": `${systemNavInset}px` } as React.CSSProperties}
 		>
-			{/* No solid bar: a dark fade rising from the screen edge (like the profile
-			    footer actions) keeps the icons readable over the content. It reaches
-			    above the bar without adding to its height (--nav-height). */}
-			{!rail && (
+			{/* Transparent style, no card: a dark fade rising from the screen edge
+			    (like the profile footer actions) keeps the icons readable over the
+			    content. It reaches above the bar without adding to its height
+			    (--nav-height). */}
+			{!rail && transparent && (
 				<div
 					aria-hidden
 					className="pointer-events-none absolute inset-x-0 -top-16 bottom-0"
@@ -545,17 +557,28 @@ export function NavBar() {
 			)}
 			{/* Mobile app: full-width bar that extends under the system navigation
 			    bar (edge-to-edge), with the safe-area inset as inner padding.
-			    Opted-in floating style: rounded capsule. Desktop: left rail. */}
+			    Floating style: rounded capsule (transparent style: without the card).
+			    Desktop: left rail. */}
 			<div
 				className={cn(
 					"relative",
 					rail
 						? "h-full"
 						: fullWidth
-							? "w-full pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
+							? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
 							: // Capsule shape; extra side padding keeps the outer tabs off the curve.
-								"mx-auto w-full max-w-4xl rounded-full px-3 py-1.5",
+								cn("mx-auto w-full max-w-4xl rounded-full px-3 py-1.5", !transparent && "border border-[var(--border)]"),
 				)}
+				style={
+					rail || transparent
+						? undefined
+						: {
+								backgroundColor: "rgba(22, 29, 39, 0.8)",
+								background: "color-mix(in srgb, var(--surface) 80%, transparent)",
+								backdropFilter: "blur(24px)",
+								WebkitBackdropFilter: "blur(24px)",
+							}
+				}
 			>
 				<Tabs
 					value={activeTab}
@@ -651,8 +674,10 @@ export function NavBar() {
 													"data-[state=active]:bg-[color-mix(in_srgb,currentColor_12%,transparent)]",
 													item.value === "settings" && "mt-auto",
 												)
-											: // Always on the dark fade: light icons with a shadow, in either theme.
-												"text-white/90 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)] hover:text-white",
+											: transparent
+												? // On the dark fade: light icons with a shadow, in either theme.
+													"text-white/90 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)] hover:text-white"
+												: "text-[var(--text-muted)] hover:text-[var(--text)]",
 										item.value === "right-now" || (item.value === "browse" && isRightNowLive)
 											? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
 											: item.value === "browse" && isExploreActive

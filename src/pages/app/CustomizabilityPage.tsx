@@ -8,7 +8,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { HAPTICS_ENABLED_KEY, isHapticsEnabled } from "../../utils/haptics";
 import { getTimeFormat, TIME_FORMAT_KEY, type TimeFormat } from "../../utils/timeFormat";
-import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT } from "../../components/NavBar";
+import { NAV_FLOATING_KEY, NAV_SHOW_LABELS_KEY, NAV_STYLE_EVENT, readNavBarStyle, type NavBarStyle } from "../../components/NavBar";
 import { isAndroid, isIos } from "../../services/saveMedia";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { SelectRow } from "../../components/ui/select-row";
@@ -95,7 +95,7 @@ export function CustomizabilityPage() {
 	const [showNavLabels, setShowNavLabels] = useState(() => window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true");
 	const [hapticsEnabled, setHapticsEnabled] = useState(isHapticsEnabled);
 	const [timeFormat, setTimeFormat] = useState<TimeFormat>(getTimeFormat);
-	const [floatingNav, setFloatingNav] = useState(() => window.localStorage.getItem(NAV_FLOATING_KEY) === "true");
+	const [navBarStyle, setNavBarStyle] = useState<NavBarStyle>(readNavBarStyle);
 	const [showInterest, setShowInterest] = useState(() => window.localStorage.getItem("fg-show-interest") !== "false");
 	const [defaultInterestTab, setDefaultInterestTab] = useState(() => window.localStorage.getItem("fg-interest-default-tab") || "taps");
 	const [viewsLayout, setViewsLayout] = useState(() => window.localStorage.getItem("fg-interest-views-layout") === "list" ? "list" : "grid");
@@ -430,19 +430,36 @@ export function CustomizabilityPage() {
 						{/* Bar style options only exist in the mobile app. */}
 						{isMobilePlatform && (
 							<>
-								<ToggleRow
+								<SelectRow
 									id="cust-nav-floating"
 									highlighted={highlightId === "cust-nav-floating"}
 									icon={<PanelBottom className="h-5 w-5" />}
 									iconClass="bg-sky-500/15 text-sky-400"
-									label={t("customizability.nav_floating")}
-									description={t("customizability.nav_floating_desc")}
-									checked={floatingNav}
-									onChange={(checked) => {
-										setFloatingNav(checked);
-										window.localStorage.setItem(NAV_FLOATING_KEY, String(checked));
+									label={t("customizability.nav_style", { defaultValue: "Bar Style" })}
+									description={t("customizability.nav_style_desc", { defaultValue: "How the navigation bar is shown." })}
+									value={navBarStyle}
+									onChange={(val) => {
+										setNavBarStyle(val);
+										window.localStorage.setItem(NAV_FLOATING_KEY, val === "fade" ? "fade" : String(val === "floating"));
 										window.dispatchEvent(new Event(NAV_STYLE_EVENT));
 									}}
+									options={[
+										{
+											value: "solid",
+											label: t("customizability.nav_style_solid", { defaultValue: "Full Width" }),
+											description: t("customizability.nav_style_solid_desc", { defaultValue: "A solid bar across the full width of the screen." }),
+										},
+										{
+											value: "floating",
+											label: t("customizability.nav_style_floating", { defaultValue: "Floating" }),
+											description: t("customizability.nav_style_floating_desc", { defaultValue: "A floating card above the content." }),
+										},
+										{
+											value: "fade",
+											label: t("customizability.nav_style_fade", { defaultValue: "Floating, Transparent" }),
+											description: t("customizability.nav_style_fade_desc", { defaultValue: "Floating icons without a card, on a dark fade from the bottom edge." }),
+										},
+									]}
 								/>
 								<ToggleRow
 									id="cust-nav-show-labels"
