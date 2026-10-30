@@ -14,7 +14,7 @@
  *   stale row lives on, and to count a row the server *didn't* return as
  *   checked anyway (otherwise a conversation the server has dropped would be
  *   refetched forever).
- * - snapshot / scrollAnchor: the last unfiltered list and where it was
+ * - snapshot / scrollAnchors: the last unfiltered list and where it was
  *   scrolled to, so a remount can render and restore synchronously.
  */
 
@@ -29,9 +29,10 @@ export const INBOX_RIGHT_NOW_MAX_AGE_MS = 10 * 60_000;
 // been seen — the live API returns ~190 conversations per page.
 const DEFAULT_INBOX_PAGE_SIZE = 190;
 
+// One per row in view — see ChatInboxPanel's scroll anchoring.
 export type InboxScrollAnchor = {
 	conversationId: string;
-	// scrollTop minus the anchor row's start offset.
+	// scrollTop minus the row's start offset.
 	offset: number;
 };
 
@@ -48,7 +49,7 @@ type InboxPageRecord = {
 
 type UserInboxState = {
 	snapshot: ConversationEntry[] | null;
-	scrollAnchor: InboxScrollAnchor | null;
+	scrollAnchors: InboxScrollAnchor[];
 	liveAt: Map<string, number>;
 	pagesByFilterKey: Map<string, Map<number, InboxPageRecord>>;
 };
@@ -60,7 +61,7 @@ let version = 0;
 function getState(userId: number): UserInboxState {
 	let state = stateByUser.get(userId);
 	if (!state) {
-		state = { snapshot: null, scrollAnchor: null, liveAt: new Map(), pagesByFilterKey: new Map() };
+		state = { snapshot: null, scrollAnchors: [], liveAt: new Map(), pagesByFilterKey: new Map() };
 		stateByUser.set(userId, state);
 	}
 	return state;
@@ -92,12 +93,12 @@ export function setInboxSnapshot(userId: number, entries: ConversationEntry[]): 
 	getState(userId).snapshot = entries;
 }
 
-export function getInboxScrollAnchor(userId: number | null): InboxScrollAnchor | null {
-	return userId == null ? null : (stateByUser.get(userId)?.scrollAnchor ?? null);
+export function getInboxScrollAnchors(userId: number | null): InboxScrollAnchor[] {
+	return userId == null ? [] : (stateByUser.get(userId)?.scrollAnchors ?? []);
 }
 
-export function setInboxScrollAnchor(userId: number, anchor: InboxScrollAnchor | null): void {
-	getState(userId).scrollAnchor = anchor;
+export function setInboxScrollAnchors(userId: number, anchors: InboxScrollAnchor[]): void {
+	getState(userId).scrollAnchors = anchors;
 }
 
 /**

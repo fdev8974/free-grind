@@ -43,10 +43,11 @@ import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { getNicknameRename, useSeenDisplayNames, type SeenDisplayName } from "../../../hooks/useNicknameNameChange";
 import {
 	getInboxFreshnessVersion,
-	getInboxScrollAnchor,
+	getInboxScrollAnchors,
 	isInboxRightNowFresh,
-	setInboxScrollAnchor,
+	setInboxScrollAnchors,
 	subscribeInboxFreshness,
+	type InboxScrollAnchor,
 } from "./inboxFreshness";
 
 // Quiet period after the last scroll event before the rows in view are
@@ -896,7 +897,7 @@ export function ChatInboxPanel({
 
 	const handleListScroll = () => {
 		lastScrollAtRef.current = Date.now();
-		saveScrollAnchor();
+		captureScrollAnchors();
 		scheduleScrollIdleReport();
 	};
 
@@ -994,43 +995,71 @@ export function ChatInboxPanel({
 		}
 	}, [filteredConversations.length, isLoadingInbox, isSearchOpen, scheduleScrollIdleReport]);
 
-	// Scroll position survives remounts (mobile unmounts the inbox while a
-	// thread is open; leaving /chat unmounts the whole page) as an anchor row
-	// plus offset rather than a raw scrollTop, so rows added above it in the
-	// meantime don't shift what's shown. Not saved until the restore below
-	// has run, so the initial scrollTop of 0 can't clobber it.
-	const hasRestoredScrollRef = useRef(false);
-	const saveScrollAnchor = () => {
+	// Scroll anchoring. Every row in view is remembered by id with its offset
+	// from scrollTop; whenever the list changes (archived chats hydrating in,
+	// a poll adding chats above, chatDb merging in) or the list remounts
+	// (mobile unmounts the inbox while a thread is open; leaving /chat
+	// unmounts the whole page), scrollTop is moved so those rows sit where
+	// they were. Several rows instead of one, taking the position most of
+	// them agree on: the row that just got a message jumps to the top, and
+	// following it would yank the list there. Nothing is anchored at the very
+	// top, so new chats still appear there.
+	const scrollAnchorsRef = useRef(getInboxScrollAnchors(userId));
+	// The list renders empty/skeleton first — capturing then would clobber
+	// the saved anchors with "at top".
+	const isScrollAnchoringReadyRef = useRef(false);
+	const captureScrollAnchors = () => {
 		const el = inboxListRef.current;
-		if (!el || userId == null || !hasRestoredScrollRef.current) {
+		const range = rowVirtualizer.range;
+		if (!el || !isScrollAnchoringReadyRef.current) {
 			return;
 		}
-		const item = el.scrollTop > 0 ? rowVirtualizer.getVirtualItemForOffset(el.scrollTop) : undefined;
-		const conversation = item ? filteredConversations[item.index] : undefined;
-		setInboxScrollAnchor(
-			userId,
-			item && conversation
-				? { conversationId: conversation.data.conversationId, offset: el.scrollTop - item.start }
-				: null,
-		);
+		const anchors: InboxScrollAnchor[] = [];
+		if (el.scrollTop >= 1 && range) {
+			for (let index = range.startIndex; index <= range.endIndex; index += 1) {
+				const conversation = filteredConversations[index];
+				const item = rowVirtualizer.measurementsCache[index];
+				if (conversation && item) {
+					anchors.push({ conversationId: conversation.data.conversationId, offset: el.scrollTop - item.start });
+				}
+			}
+		}
+		scrollAnchorsRef.current = anchors;
+		if (userId != null) {
+			setInboxScrollAnchors(userId, anchors);
+		}
 	};
 	useLayoutEffect(() => {
-		if (hasRestoredScrollRef.current || isLoadingInbox || isSearchOpen || filteredConversations.length === 0) {
+		const el = inboxListRef.current;
+		if (!el || isLoadingInbox || isSearchOpen || filteredConversations.length === 0) {
 			return;
 		}
-		hasRestoredScrollRef.current = true;
-		const anchor = getInboxScrollAnchor(userId);
-		if (!anchor) {
+		isScrollAnchoringReadyRef.current = true;
+		const anchors = scrollAnchorsRef.current;
+		if (anchors.length === 0) {
 			return;
 		}
-		const index = filteredConversations.findIndex(
-			(conversation) => conversation.data.conversationId === anchor.conversationId,
+		const indexById = new Map(
+			filteredConversations.map((conversation, index) => [conversation.data.conversationId, index] as const),
 		);
-		const start = index >= 0 ? rowVirtualizer.measurementsCache[index]?.start : undefined;
-		if (start != null) {
-			rowVirtualizer.scrollToOffset(start + anchor.offset);
+		const votes = new Map<number, number>();
+		let target: number | null = null;
+		for (const anchor of anchors) {
+			const index = indexById.get(anchor.conversationId);
+			const start = index != null ? rowVirtualizer.measurementsCache[index]?.start : undefined;
+			if (start == null) continue;
+			const candidate = Math.round(start + anchor.offset);
+			const count = (votes.get(candidate) ?? 0) + 1;
+			votes.set(candidate, count);
+			// Ties go to the topmost row (anchors are in on-screen order).
+			if (target == null || count > (votes.get(target) ?? 0)) {
+				target = candidate;
+			}
 		}
-	}, [filteredConversations, isLoadingInbox, isSearchOpen, rowVirtualizer, userId]);
+		if (target != null && Math.abs(el.scrollTop - target) >= 1) {
+			rowVirtualizer.scrollToOffset(target);
+		}
+	}, [filteredConversations, isLoadingInbox, isSearchOpen, rowVirtualizer]);
 
 	return (
 		<PullToRefreshContainer
