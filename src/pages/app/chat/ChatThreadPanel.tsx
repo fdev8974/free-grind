@@ -457,6 +457,19 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const [isGiphyPickerOpen, setIsGiphyPickerOpen] = useState(false);
 	// Compact composer: the "+" menu inside the input pill holding the other actions.
 	const [isComposerMenuOpen, setIsComposerMenuOpen] = useState(false);
+	const composerMenuRef = useRef<HTMLDivElement | null>(null);
+	// Close on a tap/click outside. A fixed backdrop doesn't work here: the mobile
+	// composer's backdrop-filter makes it the containing block for fixed children,
+	// so the backdrop would only cover the composer itself.
+	useEffect(() => {
+		if (!isComposerMenuOpen) return;
+		const onPointerDown = (event: PointerEvent) => {
+			if (composerMenuRef.current?.contains(event.target as Node)) return;
+			setIsComposerMenuOpen(false);
+		};
+		document.addEventListener("pointerdown", onPointerDown, true);
+		return () => document.removeEventListener("pointerdown", onPointerDown, true);
+	}, [isComposerMenuOpen]);
 	const [newPhraseInput, setNewPhraseInput] = useState("");
 	const [slashSelectedIndex, setSlashSelectedIndex] = useState(0);
 	const [isComposerFocused, setIsComposerFocused] = useState(false);
@@ -2502,7 +2515,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							) : (
 								<>
 								{compactComposer && (
-									<div data-composer-actions className="flex shrink-0 items-center gap-0.5">
+									<div ref={composerMenuRef} data-composer-actions className="flex shrink-0 items-center gap-0.5">
 										<button
 											type="button"
 											onPointerDown={composerActionHaptic}
@@ -2526,13 +2539,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										</button>
 										{isComposerMenuOpen && (
 											<>
-												<button
-													type="button"
-													aria-hidden="true"
-													tabIndex={-1}
-													className="fixed inset-0 z-40 cursor-default"
-													onClick={() => setIsComposerMenuOpen(false)}
-												/>
 												<div className="absolute bottom-full left-0 z-50 mb-2 min-w-[220px] rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-2xl">
 													{composerActions.filter((action) => action.key !== "drawer").map((action) => (
 														<button
