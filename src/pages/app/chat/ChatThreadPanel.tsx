@@ -26,6 +26,7 @@ import {
 	Play,
 	Reply,
 	RotateCw,
+	SearchX,
 	ShieldCheck,
 	SquareCenterlineDashedHorizontal,
 	Trash2,
@@ -93,7 +94,7 @@ import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
 import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
-import { SheetToggleList } from "../../../components/ui/sheet-section";
+import { SheetSearchInput, SheetToggleList } from "../../../components/ui/sheet-section";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG, SheetActionList } from "../../../components/ui/action-sheet";
@@ -2979,38 +2980,39 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								runAfterSheetClose();
 							}}
 							closeRef={mergeSheetCloseRef}
+							expandable
 							isDesktop={isDesktop}
-							bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+							bg={NATIVE_SHEET_BG}
+							panelClassName={isDesktop ? "max-h-[70dvh] px-4" : "px-4"}
 						>
-							<div className="flex items-center justify-between px-4 pb-3">
-								<p className="text-sm font-semibold text-[var(--text)]">
+							<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+								<h3 className="truncate text-sm font-semibold text-[var(--text)]">
 									{t("chat.merge_conversation_dialog_title", { defaultValue: "Merge into…" })}
-								</p>
+								</h3>
 								<SheetCloseButton />
 							</div>
 
-							<div className="px-3 pb-3">
-								<input
-									type="text"
+							{mergeableConversations.length > 0 && (
+								<SheetSearchInput
+									floating
 									value={mergeSearchQuery}
-									onChange={(e) => setMergeSearchQuery(e.target.value)}
+									onChange={setMergeSearchQuery}
 									placeholder={t("chat.merge_conversation_search_placeholder", { defaultValue: "Search chats or profile ID…" })}
-									className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--text-muted)] outline-none"
 								/>
-							</div>
+							)}
 
-							<div className="border-t border-[var(--border)]" />
-
-							<div data-lenis-prevent className="overflow-y-auto overflow-x-hidden" style={{ maxHeight: "50dvh" }}>
+							<div data-lenis-prevent className="-mx-4 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-1">
 								{filteredMergeableConversations.length === 0 ? (
-									<div className="flex flex-col items-center justify-center gap-2 p-8 text-center text-[var(--text-muted)]">
-										<GitMerge className="h-6 w-6 opacity-50" />
-										<p className="text-sm font-medium">
-											{t("chat.merge_conversation_empty", { defaultValue: "No current chats to merge into." })}
-										</p>
+									<div className="flex h-full min-h-[30dvh] items-center justify-center px-4">
+										<DrawerEmptyState
+											fanned={false}
+											icon={mergeSearchQuery.trim() ? <SearchX className="h-5 w-5" /> : <GitMerge className="h-5 w-5" />}
+											title={t("chat.merge_conversation_empty", { defaultValue: "No current chats to merge into." })}
+											hint={t("chat.merge_conversation_empty_hint", { defaultValue: "Only active chats can take in an archived one." })}
+										/>
 									</div>
 								) : (
-									<div className="divide-y divide-[var(--border)]">
+									<div>
 										{filteredMergeableConversations.map((conversation) => {
 											const other = getOtherParticipant(conversation, userId);
 											const name = conversation.data.name || t("common.unknown_display_name");
@@ -3022,9 +3024,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														afterSheetCloseRef.current = () => setMergeConfirmTarget(conversation);
 														mergeSheetCloseRef.current?.();
 													}}
-													className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-[var(--surface-2)]"
+													className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:ink-tint-6 active:ink-tint-10"
 												>
-													<div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[var(--surface-2)]">
+													<div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[var(--surface-2)] drop-shadow-sm">
 														<ProfileImage
 															src={resolveAvatarSrc(
 																other?.primaryMediaHash,
@@ -3034,7 +3036,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														/>
 													</div>
 													<div className="min-w-0 flex-1">
-														<p className="truncate text-sm font-medium text-[var(--text)]">
+														<p className="truncate text-sm font-semibold text-[var(--text)]">
 															{name}
 														</p>
 														{other?.profileId != null && (

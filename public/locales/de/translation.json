@@ -1435,6 +1435,7 @@
         "merge_conversation_dialog_title": "Zusammenführen mit…",
         "merge_conversation_search_placeholder": "Chats oder Profil-ID suchen…",
         "merge_conversation_empty": "Keine aktuellen Chats zum Zusammenführen.",
+        "merge_conversation_empty_hint": "Nur aktive Chats können einen archivierten aufnehmen.",
         "merge_conversation_confirm_title": "Unterhaltung zusammenführen",
         "merge_conversation_confirm_message": "Den gesamten Nachrichtenverlauf dieser Unterhaltung nach \"{{name}}\" verschieben? Der archivierte Chat wird geschlossen und seine Nachrichten erscheinen in diesem Chat als älterer Verlauf. Das kann nicht rückgängig gemacht werden.",
         "open_conversation_actions": "Unterhaltungsaktionen öffnen",

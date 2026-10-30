@@ -1435,6 +1435,7 @@
         "merge_conversation_dialog_title": "Споји са…",
         "merge_conversation_search_placeholder": "Претражи четове или ID профила…",
         "merge_conversation_empty": "Нема тренутних четова за спајање.",
+        "merge_conversation_empty_hint": "Само активни четови могу да преузму архивирани.",
         "merge_conversation_confirm_title": "Споји разговор",
         "merge_conversation_confirm_message": "Преместити целу историју порука овог разговора у „{{name}}“? Архивирани чет ће бити затворен, а његове поруке ће се приказати као старија историја у том чету. Ово се не може опозвати.",
         "open_conversation_actions": "Отвори радње разговора",

@@ -1431,6 +1431,7 @@
         "merge_conversation_dialog_title": "Fusionner dans…",
         "merge_conversation_search_placeholder": "Rechercher des chats ou un ID de profil…",
         "merge_conversation_empty": "Aucun chat actuel dans lequel fusionner.",
+        "merge_conversation_empty_hint": "Seuls les chats actifs peuvent accueillir un chat archivé.",
         "merge_conversation_confirm_title": "Fusionner la conversation",
         "merge_conversation_confirm_message": "Déplacer tout l'historique de cette conversation dans « {{name}} » ? Le chat archivé sera fermé et ses messages apparaîtront comme historique plus ancien dans ce chat. Cette action est irréversible.",
         "open_conversation_actions": "Ouvrir les actions de conversation",

@@ -1431,6 +1431,7 @@
         "merge_conversation_dialog_title": "Spoji u…",
         "merge_conversation_search_placeholder": "Pretraži razgovore ili ID profila…",
         "merge_conversation_empty": "Nema trenutnih razgovora za spajanje.",
+        "merge_conversation_empty_hint": "Samo aktivni razgovori mogu preuzeti arhivirani.",
         "merge_conversation_confirm_title": "Spoji razgovor",
         "merge_conversation_confirm_message": "Premjestiti cijelu historiju poruka ovog razgovora u \"{{name}}\"? Arhivirani razgovor će biti zatvoren, a njegove poruke će se pojaviti kao starija historija u tom razgovoru. Ovo se ne može poništiti.",
         "open_conversation_actions": "Otvori radnje razgovora",

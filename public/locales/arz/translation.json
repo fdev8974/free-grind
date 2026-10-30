@@ -1456,6 +1456,7 @@
         "merge_conversation_dialog_title": "ادمج في…",
         "merge_conversation_search_placeholder": "دور في الشات أو رقم البروفايل…",
         "merge_conversation_empty": "مفيش شاتات حالية تدمج فيها.",
+        "merge_conversation_empty_hint": "بس الشاتات النشطة تقدر تدمج فيها شات متأرشف.",
         "merge_conversation_confirm_title": "دمج الشات",
         "merge_conversation_confirm_message": "تحوّل كل تاريخ الرسائل بتاع الشات ده لـ \"{{name}}\"؟ الشات القديمة هتتقفل ورسائلها هتظهر كتاريخ قديم هناك. ده مش هيتراجع.",
         "open_conversation_actions": "إجراءات الحوار المفتوح",

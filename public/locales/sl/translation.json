@@ -1442,6 +1442,7 @@
         "merge_conversation_dialog_title": "Združi v…",
         "merge_conversation_search_placeholder": "Išči klepete ali ID profila…",
         "merge_conversation_empty": "Ni trenutnih klepetov za združitev.",
+        "merge_conversation_empty_hint": "Samo aktivni klepeti lahko prevzamejo arhiviranega.",
         "merge_conversation_confirm_title": "Združi pogovor",
         "merge_conversation_confirm_message": "Premaknem celotno zgodovino sporočil tega pogovora v \"{{name}}\"? Arhivirani klepet bo zaprt, njegova sporočila pa bodo prikazana kot starejša zgodovina v tem klepetu. Tega ni mogoče razveljaviti.",
         "open_conversation_actions": "Odpri dejanja pogovora",

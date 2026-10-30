@@ -1431,6 +1431,7 @@
         "merge_conversation_dialog_title": "Mesclar em…",
         "merge_conversation_search_placeholder": "Buscar chats ou ID do perfil…",
         "merge_conversation_empty": "Nenhum chat atual para mesclar.",
+        "merge_conversation_empty_hint": "Só chats ativos podem receber um chat arquivado.",
         "merge_conversation_confirm_title": "Mesclar conversa",
         "merge_conversation_confirm_message": "Mover todo o histórico de mensagens desta conversa para \"{{name}}\"? O chat arquivado será fechado e as mensagens dele aparecerão como histórico anterior nesse chat. Isso não pode ser desfeito.",
         "open_conversation_actions": "Ações de diálogo aberto",

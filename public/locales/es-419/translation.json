@@ -1431,6 +1431,7 @@
         "merge_conversation_dialog_title": "Fusionar con…",
         "merge_conversation_search_placeholder": "Buscar chats o ID de perfil…",
         "merge_conversation_empty": "No hay chats actuales con los que fusionar.",
+        "merge_conversation_empty_hint": "Solo los chats activos pueden absorber uno archivado.",
         "merge_conversation_confirm_title": "Fusionar conversación",
         "merge_conversation_confirm_message": "¿Mover todo el historial de mensajes de esta conversación a \"{{name}}\"? El chat archivado se cerrará y sus mensajes aparecerán como historial anterior en ese chat. Esto no se puede deshacer.",
         "open_conversation_actions": "Abrir acciones de conversación",

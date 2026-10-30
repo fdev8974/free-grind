@@ -1420,6 +1420,7 @@
         "merge_conversation_dialog_title": "Samenvoegen met…",
         "merge_conversation_search_placeholder": "Chats of profiel-ID zoeken…",
         "merge_conversation_empty": "Geen huidige chats om mee samen te voegen.",
+        "merge_conversation_empty_hint": "Alleen actieve chats kunnen een gearchiveerde chat opnemen.",
         "merge_conversation_confirm_title": "Gesprek samenvoegen",
         "merge_conversation_confirm_message": "De volledige berichtgeschiedenis van dit gesprek naar \"{{name}}\" verplaatsen? De gearchiveerde chat wordt gesloten en de berichten verschijnen als oudere geschiedenis in die chat. Dit kan niet ongedaan worden gemaakt.",
         "open_conversation_actions": "Gespreksacties openen",
