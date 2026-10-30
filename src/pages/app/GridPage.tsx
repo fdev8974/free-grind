@@ -1608,7 +1608,9 @@ export function GridPage() {
 						    chips with location + name search at the right end of the same row.
 						    Mobile keeps the full-width location pill above the chips. */}
 						<div className="rail:grid rail:grid-cols-[minmax(0,1fr)_auto] rail:gap-x-3">
-							<h1 className="app-title hidden rail:col-span-2 rail:row-start-1 rail:mb-1 rail:block">{t("nav.browse")}</h1>
+							<h1 className="app-title hidden rail:col-span-2 rail:row-start-1 rail:mb-1 rail:block">
+								{exploreLocation ? t("browse_location.tab_explore") : t("nav.browse")}
+							</h1>
 							<div className="mb-1 flex items-center gap-2 rail:col-start-2 rail:row-start-2 rail:mb-0 rail:self-start rail:pt-2">
 								<div
 									className="glass-pill inline-flex h-12 w-full items-center rail:h-[38px] rail:w-auto rail:min-w-[260px] rail:max-w-sm overflow-hidden transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_26%,transparent)] has-[button:active]:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_38%,transparent)]"
