@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, Camera, Check, ChevronRight, ExternalLink, Loader2, MapPin, Mic, Monitor, Moon, RefreshCcw, Sun, X } from "lucide-react";
+import { AlertTriangle, Bell, Camera, Check, ChevronRight, ExternalLink, Loader2, MapPin, Mic, RefreshCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	isPermissionGranted,
@@ -21,6 +21,7 @@ import type { ColorScheme } from "../contexts/PreferencesContext";
 import { LoadingScreen } from "./LoadingScreen";
 import logo from "../images/freegrind-logo.webp";
 import { fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
+import { SchemePreview } from "./SchemePreview";
 
 type PermissionStatus = "idle" | "granted" | "denied" | "unavailable";
 
@@ -425,11 +426,11 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 	// ── Theme ────────────────────────────────────────────────────────────────
 	if (step === "theme") {
 		// AMOLED isn't a color scheme of its own: it's dark plus the pure-black flag.
-		const options: { key: string; value: ColorScheme; amoled: boolean; label: string; sub: string; icon: typeof Sun; previewBg: string; previewFg: string }[] = [
-			{ key: "system", value: "system", amoled: false, label: "System", sub: "Follows your device", icon: Monitor, previewBg: "linear-gradient(135deg, #eceff4 50%, #1f2835 50%)", previewFg: "#96a2b6" },
-			{ key: "light",  value: "light",  amoled: false, label: "Light",  sub: "Always light",        icon: Sun,     previewBg: "#eceff4",  previewFg: "#6d28d9" },
-			{ key: "dark",   value: "dark",   amoled: false, label: "Dark",   sub: "Always dark",         icon: Moon,    previewBg: "#1f2835",  previewFg: "#96a2b6" },
-			{ key: "amoled", value: "dark",   amoled: true,  label: "AMOLED", sub: "Pure black for OLED screens", icon: Moon, previewBg: "#000000", previewFg: "#96a2b6" },
+		const options: { key: string; value: ColorScheme; amoled: boolean; label: string; sub: string }[] = [
+			{ key: "system", value: "system", amoled: false, label: "System", sub: "Follows your device" },
+			{ key: "light",  value: "light",  amoled: false, label: "Light",  sub: "Always light" },
+			{ key: "dark",   value: "dark",   amoled: false, label: "Dark",   sub: "Always dark" },
+			{ key: "amoled", value: "dark",   amoled: true,  label: "AMOLED", sub: "Pure black for OLED screens" },
 		];
 		return (
 			<div className="fs-card-outer fs-card-overlay z-[300] no-touch-callout">
@@ -442,23 +443,20 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
 						</div>
 
-						<div className="flex flex-col gap-2.5">
-							{options.map(({ key, value, amoled, label, sub, icon: Icon, previewBg, previewFg }) => {
+						{/* One group of tiles, like the settings lists; each option shows the
+						    same mini app preview as the color scheme picker in Settings. */}
+						<div className="native-group">
+							{options.map(({ key, value, amoled, label, sub }) => {
 								const active = colorScheme === value && (value !== "dark" || amoledMode === amoled);
 								return (
 									<button
 										key={key}
 										type="button"
 										onClick={() => setPreferences({ colorScheme: value, amoledMode: amoled })}
-										className={`flex items-center gap-4 rounded-2xl p-4 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] native-card ${active ? "accent-tint-18" : "hover:brightness-110"}`}
+										aria-pressed={active}
+										className={`flex items-center gap-4 px-4 py-3.5 text-left transition-[transform,background-color] duration-150 active:scale-[0.99] ${active ? "accent-tint-14" : "hover-fill"}`}
 									>
-										<div
-											className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
-											// Inset hairline so the black AMOLED swatch doesn't vanish on a black page.
-											style={{ background: previewBg, boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--text) 14%, transparent)" }}
-										>
-											<Icon className="h-5 w-5" style={{ color: previewFg }} />
-										</div>
+										<SchemePreview scheme={value} amoled={amoled} className="w-16 shrink-0 rounded-lg" />
 
 										<div className="flex-1">
 											<p className="text-sm font-semibold text-[var(--text)]">{label}</p>
@@ -511,9 +509,13 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
 						</div>
 
-						{/* Same height as the theme step's four option rows, so the
-						    title doesn't jump between the two steps. */}
-						<div className="mx-auto grid h-[358px] grid-cols-4 content-start gap-4 pt-16">
+						{/* Same tiles as the accent picker in Settings: a color block with its
+						    name, the active one ringed in the accent. Same height as the theme
+						    step's option rows, so the title doesn't jump between the steps.
+						    A native-group laid out as a grid: its tiles get the same fill as
+						    the theme step's, raised on the desktop card too; rounded-2xl
+						    overrides the group's stacked-list corners. */}
+						<div className="native-group grid h-[358px] w-full grid-cols-4 content-center gap-2">
 							{ACCENT_PRESETS.map((preset) => {
 								const active = accentColor === preset.color;
 								return (
@@ -521,16 +523,11 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 										key={preset.color}
 										type="button"
 										onClick={() => setPreferences({ accentColor: preset.color, accentContrast: preset.contrast })}
-										title={preset.name}
-										aria-label={preset.name}
-										className="flex h-14 w-14 items-center justify-center rounded-full transition-transform active:scale-95"
-										style={{
-											background: preset.color,
-											outline: active ? `2.5px solid ${preset.color}` : "none",
-											outlineOffset: "3px",
-										}}
+										aria-pressed={active}
+										className={`flex flex-col gap-1.5 !rounded-2xl p-1.5 pb-2 transition-[transform,background-color] duration-150 active:scale-[0.98] ${active ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "hover:accent-tint-10"}`}
 									>
-										{active && <Check className="h-5 w-5" style={{ color: preset.contrast }} />}
+										<span className="aspect-[4/3] w-full rounded-xl" style={{ background: preset.color }} />
+										<span className={`truncate text-center text-xs font-medium ${active ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{preset.name}</span>
 									</button>
 								);
 							})}

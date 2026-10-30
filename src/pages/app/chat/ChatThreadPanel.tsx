@@ -1697,7 +1697,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														startOutgoingCall(String(profileId), displayName, avatarHash ?? null);
 													}}
 													disabled={videoCallDisabled}
-													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill disabled:cursor-not-allowed disabled:opacity-50"
 												>
 													{videoCallDisabled ? (
 														<VideoOffFilled className="mr-2 h-4 w-4 opacity-70" />

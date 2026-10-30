@@ -1903,13 +1903,14 @@ dialog::backdrop {
 	--hover-fill: color-mix(in srgb, var(--accent) 12%, var(--hover-base, var(--surface)));
 	--press-fill: color-mix(in srgb, var(--accent) 20%, var(--hover-base, var(--surface)));
 	@supports (color: color-mix(in srgb, red, blue)) {
+		/* Not while disabled (e.g. a row busy checking): it keeps its own fill. */
 		@media (hover: hover) {
-			&:hover {
+			&:hover:not(:disabled) {
 				background-color: var(--hover-fill);
 			}
 		}
 		/* Pressed: a step more accent, on touch too, instead of a darker fill. */
-		&:active {
+		&:active:not(:disabled) {
 			background-color: var(--press-fill);
 		}
 	}

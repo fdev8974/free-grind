@@ -1061,7 +1061,7 @@ export function SettingsPage() {
 									type="button"
 									onClick={() => void handleCheckUpdates()}
 									disabled={isCheckingUpdates || isSwitchingChannel}
-									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill disabled:cursor-default disabled:hover:bg-transparent"
+									className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill disabled:cursor-default"
 								>
 									<div className="relative shrink-0">
 										<div className="rounded-2xl bg-green-500/15 p-2.5 text-green-400">
