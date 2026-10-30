@@ -1604,16 +1604,21 @@ export function GridPage() {
 					<PageHeaderBackground color={exploreLocation ? "var(--explore)" : "var(--accent)"} />
 					<div className="pointer-events-auto px-[var(--app-px)] sm:px-4 rail:px-[var(--app-px)]">
 					<div>
-						<div>
-							<div className="mb-1 flex items-center gap-2">
+						{/* Desktop: title on its own line like Right Now / Interest, then the filter
+						    chips with location + name search at the right end of the same row.
+						    Mobile keeps the full-width location pill above the chips. */}
+						<div className="rail:grid rail:grid-cols-[minmax(0,1fr)_auto] rail:gap-x-3">
+							<h1 className="app-title hidden rail:col-span-2 rail:row-start-1 rail:mb-1 rail:block">{t("nav.browse")}</h1>
+							<div className="mb-1 flex items-center gap-2 rail:col-start-2 rail:row-start-2 rail:mb-0 rail:self-start rail:pt-2">
 								<div
-									className="glass-pill inline-flex h-12 w-full items-center overflow-hidden transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_26%,transparent)] has-[button:active]:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_38%,transparent)]"
+									className="glass-pill inline-flex h-12 w-full items-center rail:h-[38px] rail:w-auto rail:min-w-[260px] rail:max-w-sm overflow-hidden transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_26%,transparent)] has-[button:active]:bg-[color-mix(in_srgb,var(--pill-color,var(--accent))_38%,transparent)]"
 									style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
 								>
 									<button
 										type="button"
 										onClick={() => setIsLocationOpen(true)}
-										className="flex h-full min-w-0 flex-1 items-center gap-2.5 pl-2 pr-3 text-left"
+										// Desktop pill is only 38px tall: same inset left as above/below the icon.
+										className="flex h-full min-w-0 flex-1 items-center gap-2.5 pl-2 pr-3 text-left rail:pl-[2px]"
 									>
 										<div
 											className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
@@ -1661,7 +1666,7 @@ export function GridPage() {
 										onClick={(e) => { e.stopPropagation(); setIsDistanceSheetOpen(true); }}
 										title={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
 										aria-label={t("browse_page.share_distance.title", { defaultValue: "Share Distance" })}
-										className="group flex h-12 shrink-0 items-center justify-center pl-3 pr-4 transition active:scale-90"
+										className="group flex h-full shrink-0 items-center justify-center pl-3 pr-4 transition active:scale-90"
 									>
 										{distanceMode === "hidden"
 											? <EyeOffFilled
@@ -1689,7 +1694,7 @@ export function GridPage() {
 									title={t("browse_filters.local_filters.name_title")}
 									aria-label={t("browse_filters.local_filters.name_title")}
 									className={cn(
-										"inline-flex h-12 w-12 shrink-0 items-center justify-center transition-all active:scale-95",
+										"inline-flex h-12 w-12 shrink-0 items-center justify-center transition-all active:scale-95 rail:h-[38px] rail:w-[38px]",
 										effectiveNicknameFilter
 											? exploreLocation
 												? "rounded-full border border-[var(--explore)] bg-[var(--explore)] text-white shadow-lg shadow-[var(--explore)]/40"
@@ -1709,7 +1714,7 @@ export function GridPage() {
 							</div>
 
 							{showNameSearch && (
-								<div className="pt-2">
+								<div className="pt-2 rail:col-span-2">
 									<div
 										className="glass-pill relative flex h-10 items-center"
 										style={{ "--pill-color": exploreLocation ? "var(--explore)" : "var(--accent)" } as React.CSSProperties}
@@ -1777,9 +1782,9 @@ export function GridPage() {
 								ref={chipRowFade.ref}
 								onScroll={chipRowFade.onScroll}
 								// Extra bottom room (cancelled by -mb) so the scroller doesn't clip the pills' shadow.
-								className="pointer-events-none -mx-[var(--app-px)] -mb-15 overflow-x-auto pb-16 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+								className="pointer-events-none -mx-[var(--app-px)] -mb-15 overflow-x-auto pb-16 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rail:col-start-1 rail:row-start-2 rail:mr-0"
 							>
-								<div className="pointer-events-auto flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto">
+								<div className="pointer-events-auto flex min-w-max items-center gap-2 px-[var(--app-px)] ml-auto rail:pr-0">
 									<button
 										type="button"
 										onClick={() => setIsSortSheetOpen(true)}
@@ -1927,7 +1932,7 @@ export function GridPage() {
 							</div>
 
 							{!exploreLocation && browseFilters.favorites && (
-								<div className="pt-2">
+								<div className="pt-2 rail:col-span-2">
 									<div
 										className="glass-pill relative flex h-10 items-center"
 										style={{ "--pill-color": "var(--accent)" } as React.CSSProperties}

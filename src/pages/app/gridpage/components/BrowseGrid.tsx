@@ -30,13 +30,18 @@ export function mobileGridTemplate(columns: "2" | "3" | "4") {
 	return `repeat(auto-fill, minmax(clamp(${MOBILE_MIN_TRACK[columns]}, 15vw, 250px), 1fr))`;
 }
 
+// Desktop: tiles at least ~200px wide so they don't shrink to thumbnails on a
+// narrow window, but never fewer than 3 or more than 6 columns (gap-2 = 0.5rem).
+export const DESKTOP_GRID_TEMPLATE =
+	"repeat(auto-fill, minmax(max(calc((100% - 2.5rem) / 6), min(200px, calc((100% - 1rem) / 3))), 1fr))";
+
 function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; mobileColumns: "2" | "3" | "4" }) {
 	const count = isDesktop ? 30 : Number(mobileColumns) * 8;
 	return (
 		<div
 			className={cn("w-full grid", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px")}
 			style={{
-				gridTemplateColumns: isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileColumns),
+				gridTemplateColumns: isDesktop ? DESKTOP_GRID_TEMPLATE : mobileGridTemplate(mobileColumns),
 			}}
 		>
 			{Array.from({ length: count }).map((_, i) => (
@@ -124,7 +129,7 @@ export function BrowseGrid({
 	const { mobileGridColumns } = usePreferences();
 	const isDesktop = useDesktopBreakpoint();
 
-	const gridTemplateColumns = isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileGridColumns);
+	const gridTemplateColumns = isDesktop ? DESKTOP_GRID_TEMPLATE : mobileGridTemplate(mobileGridColumns);
 	const gridClassName = cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px");
 
 	const { rowMetrics, probeRef: probeRefCallback } = useGridRowMetrics(

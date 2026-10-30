@@ -3,7 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { cn } from "../../../utils/cn";
-import { mobileGridTemplate } from "../gridpage/components/BrowseGrid";
+import { DESKTOP_GRID_TEMPLATE, mobileGridTemplate } from "../gridpage/components/BrowseGrid";
 import { useGridRowMetrics } from "../gridpage/hooks/useGridRowMetrics";
 import type { BrowseCard } from "../GridPage.types";
 import { InterestViewTile } from "./InterestComponents";
@@ -15,7 +15,7 @@ export function useViewsGridLayout() {
 	return {
 		isDesktop,
 		mobileGridColumns,
-		gridTemplateColumns: isDesktop ? "repeat(6, minmax(0, 1fr))" : mobileGridTemplate(mobileGridColumns),
+		gridTemplateColumns: isDesktop ? DESKTOP_GRID_TEMPLATE : mobileGridTemplate(mobileGridColumns),
 		gridClassName: cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px"),
 	};
 }
