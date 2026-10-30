@@ -803,17 +803,35 @@ export async function getConversation(
 	return row ? rowToStoredConversation(row) : null;
 }
 
+/**
+ * True for a row that only exists as ensureConversationRow's block_state
+ * carrier (blocking, or being blocked by, a profile we never had an actual
+ * chat thread with) — no participants and no preview, since nothing from a
+ * live inbox entry ever reached it. It has no messages worth listing, so chat
+ * lists skip it; the row itself stays, since block_state still drives the
+ * grid/profile block gating and the later unblock detection. Becomes a normal
+ * conversation as soon as a real inbox entry is upserted over it.
+ */
+export function isPlaceholderConversationEntry(entry: ConversationEntry): boolean {
+	return (entry.data.participants?.length ?? 0) === 0 && entry.data.preview == null;
+}
+
+const NOT_PLACEHOLDER_SQL = "NOT (participants_json = '[]' AND preview_json IS NULL)";
+
 export async function listConversations(options?: {
 	includeArchived?: boolean;
+	// Only for block_state bookkeeping (see reconcileBlockStateWithBlockedList) —
+	// every chat list should leave these out.
+	includePlaceholders?: boolean;
 }): Promise<StoredConversation[]> {
 	const db = await getDb();
-	const rows = options?.includeArchived
-		? await db.select<ConversationRow[]>(
-				"SELECT * FROM conversations ORDER BY pinned DESC, last_activity_timestamp DESC",
-			)
-		: await db.select<ConversationRow[]>(
-				"SELECT * FROM conversations WHERE archived = 0 ORDER BY pinned DESC, last_activity_timestamp DESC",
-			);
+	const conditions: string[] = [];
+	if (!options?.includeArchived) conditions.push("archived = 0");
+	if (!options?.includePlaceholders) conditions.push(NOT_PLACEHOLDER_SQL);
+	const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")} ` : "";
+	const rows = await db.select<ConversationRow[]>(
+		`SELECT * FROM conversations ${where}ORDER BY pinned DESC, last_activity_timestamp DESC`,
+	);
 	return rows.map(rowToStoredConversation);
 }
 
@@ -832,7 +850,7 @@ export async function listConversations(options?: {
 export async function listConversationsSince(sinceTimestamp: number): Promise<StoredConversation[]> {
 	const db = await getDb();
 	const rows = await db.select<ConversationRow[]>(
-		"SELECT * FROM conversations WHERE archived = 0 AND (pinned = 1 OR last_activity_timestamp >= $1) ORDER BY pinned DESC, last_activity_timestamp DESC",
+		`SELECT * FROM conversations WHERE archived = 0 AND ${NOT_PLACEHOLDER_SQL} AND (pinned = 1 OR last_activity_timestamp >= $1) ORDER BY pinned DESC, last_activity_timestamp DESC`,
 		[sinceTimestamp],
 	);
 	return rows.map(rowToStoredConversation);

@@ -4047,6 +4047,19 @@ export function ChatPage() {
 		[archivedConversations],
 	);
 
+	// A block_state-only placeholder (see chatDb.isPlaceholderConversationEntry)
+	// can still land in this page's state through a direct chatDb lookup — e.g.
+	// the archive event right after blocking someone we never chatted with, or
+	// opening that profile's chat. It stays openable (its thread carries the
+	// block markers), but never shows up as its own row in the list.
+	const listedArchivedEntries = useMemo(
+		() =>
+			[...archivedConversations.values()]
+				.map((info) => info.entry)
+				.filter((entry) => !chatDb.isPlaceholderConversationEntry(entry)),
+		[archivedConversations],
+	);
+
 	const filteredConversations = useMemo(() => {
 		// The normal ("all") view shows everything, including archived chats,
 		// mixed in by recency. "hide" excludes them; "only" shows exclusively
@@ -4055,7 +4068,9 @@ export function ChatPage() {
 		// /v4/inbox data and so can never contain something that's by
 		// definition gone from there).
 		const liveConversations = conversations.filter(
-			(c) => !archivedConversations.has(c.data.conversationId),
+			(c) =>
+				!archivedConversations.has(c.data.conversationId) &&
+				!chatDb.isPlaceholderConversationEntry(c),
 		);
 		// chemistryOnly/rightNowOnly/onlineNowOnly/distance/positions are
 		// server-side filters with no equivalent field cached on a stored
@@ -4072,9 +4087,7 @@ export function ChatPage() {
 			Boolean(activeInboxFilters.onlineNowOnly) ||
 			(activeInboxFilters.positions?.length ?? 0) > 0 ||
 			activeInboxFilters.distanceMeters != null;
-		const archivedEntries = hasUnverifiableServerFilters
-			? []
-			: [...archivedConversations.values()].map((info) => info.entry);
+		const archivedEntries = hasUnverifiableServerFilters ? [] : listedArchivedEntries;
 		// Sort by pinned-then-recency instead of tacking archived entries onto
 		// the end, where a single archived chat among many active ones would
 		// be easy to miss without scrolling.
@@ -4124,6 +4137,7 @@ export function ChatPage() {
 		activeInboxFilters.positions,
 		activeInboxFilters.distanceMeters,
 		archivedConversations,
+		listedArchivedEntries,
 		archivedFilter,
 		hiddenFilter,
 		hiddenConversationIds,
@@ -7034,7 +7048,7 @@ export function ChatPage() {
 					draft={chatFiltersDraft}
 					onChangeDraft={setChatFiltersDraft}
 					onClose={() => setChatIsFiltersOpen(false)}
-					archivedCount={archivedConversations.size}
+					archivedCount={listedArchivedEntries.length}
 					hiddenCount={hiddenConversationIds.size}
 					onApply={(draft) => {
 						setInboxFilters(draftToFilters(draft));

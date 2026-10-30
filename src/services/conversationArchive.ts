@@ -676,7 +676,9 @@ export async function reconcileBlockStateWithBlockedList(
 	blockedProfileIds: string[],
 ): Promise<void> {
 	const blockedSet = new Set(blockedProfileIds);
-	const conversations = await chatDb.listConversations({ includeArchived: true }).catch(() => []);
+	const conversations = await chatDb
+		.listConversations({ includeArchived: true, includePlaceholders: true })
+		.catch(() => []);
 	const toReconcile = conversations.filter((c) => {
 		if (!c.otherProfileId) return false;
 		const shouldBeBlockedByMe = blockedSet.has(c.otherProfileId);
