@@ -65,6 +65,7 @@ import {
 } from "../utils";
 import { ProfileDetailsContent } from "./ProfileDetailsContent";
 import { OwnProfileEditPanel } from "../../profile-editor/OwnProfileEditPanel";
+import { useCarouselSwipe } from "./useCarouselSwipe";
 import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
 import { setCachedProfileDetail } from "../cache";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
@@ -1323,6 +1324,15 @@ export function ProfileDetailsModal({
 		const withDefault = showDefaultProfileSlide ? [DEFAULT_PROFILE_SLIDE_HASH, ...base] : base;
 		return albumStatus.hasAlbum ? [...withDefault, ALBUM_SLIDE_HASH] : withDefault;
 	}, [hasRightNowSlide, activeProfilePhotoHashes, albumStatus.hasAlbum, showDefaultProfileSlide]);
+
+	// ProfileDetailsContent wires up swiping the mobile carousel; in edit mode it
+	// isn't mounted, so the carousel above the editor gets it from here.
+	useCarouselSwipe(mobileCarouselRef, {
+		enabled: isOwnProfile && isEditingOwnProfile && !isDesktopLike,
+		count: carouselHashes.length,
+		index: mobileCarouselPhotoIndex,
+		onIndexChange: setMobileCarouselPhotoIndex,
+	});
 	const getSlideImageUrl = (hash: string) => {
 		if (hash === RIGHT_NOW_SLIDE_HASH) return rightNowSlideUrl ?? "";
 		if (hash === ALBUM_SLIDE_HASH) return albumStatus.coverUrl ?? "";

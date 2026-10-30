@@ -22,7 +22,7 @@ import {
 	Calendar,
 } from "lucide-react";
 import { HomeFilled, MapPinFilled } from "../../../../components/icons/FilledIcons";
-import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-hot-toast";
 import type { ProfileDetail } from "../../GridPage.types";
@@ -43,6 +43,7 @@ import { ProfileImage } from "../../../../components/ui/profile-image";
 import { Chip } from "../../../../components/ui/chip";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import { TapSelector } from "./TapSelector";
+import { setCarouselDrag, useCarouselSwipe } from "./useCarouselSwipe";
 import type { ChatContactIndexRecord } from "../../../../types/chat-contact-index";
 import { formatRelativeTime } from "../../../../utils/relativeTime";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
@@ -297,96 +298,17 @@ export function ProfileDetailsContent({
 		setTapBurst({ key: Date.now(), emoji: emojis[id] ?? "🔥" });
 		onTapProfile?.(profileId, id);
 	};
-	const lastDeltaRef = useRef(0);
-	const currentIndexRef = useRef(mobileCarouselPhotoIndex);
-	currentIndexRef.current = mobileCarouselPhotoIndex;
-	const onPhotoIndexChangeRef = useRef(onPhotoIndexChange);
-	onPhotoIndexChangeRef.current = onPhotoIndexChange;
-
-	// The drag offset goes onto the carousel as CSS variables that its slides
-	// read, rather than state — no re-render per frame of finger movement.
-	const setCarouselDrag = (el: HTMLElement, dy: number | null) => {
-		if (dy === null) {
-			el.style.removeProperty("--carousel-drag");
-			el.style.removeProperty("--carousel-transition");
-			return;
-		}
-		el.style.setProperty("--carousel-drag", `${dy}px`);
-		el.style.setProperty("--carousel-transition", "none");
-	};
-
 	useEffect(() => {
 		const el = mobileCarouselRef.current;
 		if (el) setCarouselDrag(el, null);
 	}, [activeProfile?.profileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-	useEffect(() => {
-		const el = mobileCarouselRef.current;
-		if (!el || !showMobileCarousel || isDesktopLike) return;
-
-		let startY = 0, startX = 0;
-		let decided = false, navigating = false;
-
-		const onStart = (e: TouchEvent) => {
-			startY = e.touches[0].clientY;
-			startX = e.touches[0].clientX;
-			decided = false;
-			navigating = false;
-			lastDeltaRef.current = 0;
-		};
-
-		const onMove = (e: TouchEvent) => {
-			const dy = e.touches[0].clientY - startY;
-			const dx = e.touches[0].clientX - startX;
-
-			if (!decided) {
-				if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
-				decided = true;
-				if (Math.abs(dx) >= Math.abs(dy)) return; // horizontal swipe → ignore
-				const idx = currentIndexRef.current;
-				const total = activeProfilePhotoHashes.length;
-				// only take over when not at a boundary
-				if ((dy < 0 && idx < total - 1) || (dy > 0 && idx > 0)) {
-					navigating = true;
-					e.preventDefault();
-				}
-				// at boundary: fall through, page scrolls normally
-			}
-
-			if (!navigating) return;
-			e.preventDefault();
-			lastDeltaRef.current = dy;
-			setCarouselDrag(el, dy);
-		};
-
-		const onEnd = () => {
-			if (!navigating) return;
-			navigating = false;
-			const dy = lastDeltaRef.current;
-			const idx = currentIndexRef.current;
-			const total = activeProfilePhotoHashes.length;
-			if (dy < -60 && idx < total - 1) {
-				haptic(8);
-				onPhotoIndexChangeRef.current?.(idx + 1);
-			} else if (dy > 60 && idx > 0) {
-				haptic(8);
-				onPhotoIndexChangeRef.current?.(idx - 1);
-			}
-			lastDeltaRef.current = 0;
-			setCarouselDrag(el, null);
-		};
-
-		el.addEventListener('touchstart', onStart, { passive: true });
-		el.addEventListener('touchmove', onMove, { passive: false });
-		el.addEventListener('touchend', onEnd, { passive: true });
-		el.addEventListener('touchcancel', onEnd, { passive: true });
-		return () => {
-			el.removeEventListener('touchcancel', onEnd);
-			el.removeEventListener('touchstart', onStart);
-			el.removeEventListener('touchmove', onMove);
-			el.removeEventListener('touchend', onEnd);
-		};
-	}, [activeProfilePhotoHashes.length, showMobileCarousel, isDesktopLike]);
+	useCarouselSwipe(mobileCarouselRef, {
+		enabled: showMobileCarousel && !isDesktopLike,
+		count: activeProfilePhotoHashes.length,
+		index: mobileCarouselPhotoIndex,
+		onIndexChange: onPhotoIndexChange,
+	});
 
 	const PositionIcon = activeProfile?.sexualPosition != null
 		? (SEXUAL_POSITION_ICONS[activeProfile.sexualPosition] ?? Compass)
