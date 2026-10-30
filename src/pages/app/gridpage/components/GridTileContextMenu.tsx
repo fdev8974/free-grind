@@ -2,7 +2,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactEleme
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff } from "lucide-react";
-import { SheetActionList } from "../../../../components/ui/action-sheet";
+import { SheetActionList, afterSheetClose } from "../../../../components/ui/action-sheet";
 import { menuTransitionStyle } from "../../../../hooks/usePresence";
 import { LocateFixedFilled } from "../../../../components/icons/FilledIcons";
 import type { NicknameRename } from "../../../../hooks/useNicknameNameChange";
@@ -122,7 +122,9 @@ export function GridTileContextMenu({
 					label: action.label,
 					description: action.description,
 					tone: action.danger ? "danger" : "default",
-					onSelect: action.onClick,
+					// The closing sheet pops its history entry, which would undo a
+					// navigation (Message) run right away — run actions after it.
+					onSelect: () => afterSheetClose(action.onClick),
 				}))}
 			/>
 		);
