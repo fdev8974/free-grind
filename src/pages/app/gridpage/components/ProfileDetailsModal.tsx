@@ -1131,7 +1131,10 @@ export function ProfileDetailsModal({
 			!isOpen ||
 			selectedPhotoIndex !== null ||
 			variant !== "page" ||
-			!hasProfileNeighbors
+			!hasProfileNeighbors ||
+			// Editing your own profile: horizontal drags belong to the form
+			// (sliders, photo reordering), and leaving would drop the draft.
+			isEditingOwnProfile
 		) {
 			return;
 		}
@@ -1224,6 +1227,7 @@ export function ProfileDetailsModal({
 		selectedPhotoIndex,
 		variant,
 		hasProfileNeighbors,
+		isEditingOwnProfile,
 		resetProfileSwipeOffset,
 	]);
 
