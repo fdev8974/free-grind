@@ -81,8 +81,7 @@ const MULTI_VALUE_MAX: Partial<Record<ToggleMultiValueKey, number>> = {
 
 /** Everything behind editing your own profile: loading it, the unsaved draft
  * (profile fields, Spotify favorites, trips), saving, and the
- * photo pool / upload flow. Shared by the profile editor page and the edit
- * mode of your own profile view, which only differ in how they lay it out. */
+ * photo pool / upload flow. Backs the edit mode of your own profile view. */
 export function useProfileEditor() {
 	const { t, i18n } = useTranslation();
 	const { userId } = useAuth();
@@ -941,14 +940,11 @@ export function useProfileEditor() {
 		setTravelDraft(null);
 	};
 
-	const isLoaded = !(isLoadingProfile && !profile) && !(profileError && !profile);
-
 	return {
 		profile,
 		profileId: profile?.profileId ?? userId,
 		isLoadingProfile,
 		profileError,
-		isLoaded,
 		unitsPreset,
 		draft,
 		handleDraftChange,

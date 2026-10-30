@@ -62,7 +62,7 @@ import { TagsPickerDialog } from "./TagsPickerDialog";
 import {
 	FieldSection,
 	FieldSectionAction,
-	FieldStyleProvider,
+	FIELD_ROW_HOVER_CLASS,
 	MultiSelectField,
 	PickerRow,
 	SingleSelectField,
@@ -251,14 +251,7 @@ function LastTestedField({
 	);
 }
 
-export function ProfileEditorFormSections({
-	editor,
-	layout = "page",
-}: {
-	editor: ProfileEditorState;
-	/** "panel": always one column, for narrower hosts like the profile view's edit mode. */
-	layout?: "page" | "panel";
-}) {
+export function ProfileEditorFormSections({ editor }: { editor: ProfileEditorState }) {
 	const { t } = useTranslation();
 	const { testReminderDisabled, setPreferences } = usePreferences();
 	const isDesktop = useDesktopBreakpoint();
@@ -340,9 +333,6 @@ export function ProfileEditorFormSections({
 
 	const openPhotoDrawer = () => photos.setIsDrawerOpen(true);
 	const isPhotoAddDisabled = photos.isUploading || photos.isSaving || photos.hashes.length >= MAX_PROFILE_PHOTOS;
-	const fieldStyle = layout === "panel" ? "profile" : "card";
-	// This component provides the field style, so it can't read it from context.
-	const rowHoverClass = fieldStyle === "profile" ? "hover:bg-[var(--surface)] active:bg-[var(--surface)]" : "hover:bg-[var(--surface-2)]";
 	const PositionIcon = (draft.sexualPosition ? SEXUAL_POSITION_ICONS[Number(draft.sexualPosition)] : undefined) ?? Compass;
 
 	const picturesSection = (
@@ -431,7 +421,7 @@ export function ProfileEditorFormSections({
 			<button
 				type="button"
 				onClick={() => setIsTagsDialogOpen(true)}
-				className={`block w-full px-4 py-3 text-left transition ${rowHoverClass}`}
+				className={`block w-full px-4 py-3 text-left transition ${FIELD_ROW_HOVER_CLASS}`}
 			>
 				<span className="flex min-h-6 items-center gap-3">
 					<Tag className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
@@ -747,21 +737,12 @@ export function ProfileEditorFormSections({
 	);
 
 	return (
-		<FieldStyleProvider value={fieldStyle}>
-			{layout === "page" ? (
-				// Wide windows: two fixed stacks (not CSS columns, so sections never
-				// jump between columns while editing); narrower, they stack in order.
-				<div className="grid gap-6 min-[1400px]:grid-cols-2 min-[1400px]:items-start">
-					<div className="grid min-w-0 gap-6">{firstStack}</div>
-					<div className="grid min-w-0 gap-6">{secondStack}</div>
-				</div>
-			) : (
-				// Same spacing and side inset as the profile view's sections.
-				<div className="grid gap-8 px-3">
-					{firstStack}
-					{secondStack}
-				</div>
-			)}
+		<>
+			{/* Same spacing and side inset as the profile view's sections. */}
+			<div className="grid gap-8 px-3">
+				{firstStack}
+				{secondStack}
+			</div>
 
 			{isTagsDialogOpen && (
 				<TagsPickerDialog
@@ -772,6 +753,6 @@ export function ProfileEditorFormSections({
 					onClose={() => setIsTagsDialogOpen(false)}
 				/>
 			)}
-		</FieldStyleProvider>
+		</>
 	);
 }

@@ -18,7 +18,7 @@ import { InterestPage } from "./pages/app/InterestPage";
 import { ChatPage } from "./pages/app/ChatPage";
 import { ChatFiltersPage } from "./pages/app/ChatFiltersPage";
 import { SettingsPage } from "./pages/app/SettingsPage.tsx";
-import { ProfileEditorPage } from "./pages/app/ProfileEditorPage.tsx";
+import { OwnProfileEditRedirect } from "./pages/app/profile-editor/OwnProfileEditRedirect.tsx";
 import { GridProfilePage } from "./pages/app/GridProfilePage.tsx";
 import { AboutPage } from "./pages/app/AboutPage.tsx";
 import { SettingsBlockedPage } from "./pages/app/SettingsBlockedPage.tsx";
@@ -336,9 +336,10 @@ export default function App() {
 									path="/settings/notifications"
 									element={<NotificationsPage />}
 								/>
+								{/* The profile is edited in place now; the old editor URL leads there. */}
 								<Route
 									path="/settings/profile-editor"
-									element={<ProfileEditorPage />}
+									element={<OwnProfileEditRedirect />}
 								/>
 							</Route>
 

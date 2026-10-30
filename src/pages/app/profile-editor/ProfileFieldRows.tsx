@@ -1,4 +1,4 @@
-import { createContext, useContext, useLayoutEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { ChevronRight, CircleDashed } from "lucide-react";
@@ -12,25 +12,11 @@ type Option = { value: number; label: string };
 /** A lucide icon or one of the app's own (e.g. brand marks), drawn in currentColor. */
 export type FieldIcon = ComponentType<{ className?: string }>;
 
-/** "card": native cards on the page (profile editor page). "profile": the
- * surface-2 list cards of the profile view, for its edit mode. */
-export type FieldStyle = "card" | "profile";
-
-const FieldStyleContext = createContext<FieldStyle>("card");
-
-export function FieldStyleProvider({ value, children }: { value: FieldStyle; children: ReactNode }) {
-	return <FieldStyleContext.Provider value={value}>{children}</FieldStyleContext.Provider>;
-}
-
-/** Hover fill for a clickable row — one step off the card it sits on. */
-export function useFieldRowHoverClass() {
-	return useContext(FieldStyleContext) === "profile"
-		? "hover:bg-[var(--surface)] active:bg-[var(--surface)]"
-		: "hover:bg-[var(--surface-2)]";
-}
+/** Hover fill for a clickable row — one step off the surface-2 card it sits on. */
+export const FIELD_ROW_HOVER_CLASS = "hover:bg-[var(--surface)] active:bg-[var(--surface)]";
 
 /** Small caps heading (plus an optional action on the right) above one card
- * of divided rows. `footer` sits under the card. */
+ * of divided rows, styled like the profile view's lists. `footer` sits under the card. */
 export function FieldSection({
 	title,
 	action,
@@ -44,19 +30,14 @@ export function FieldSection({
 	className?: string;
 	children: ReactNode;
 }) {
-	const style = useContext(FieldStyleContext);
 	return (
 		<section className={cn("min-w-0", className)}>
-			<div className={cn("mb-2 flex min-h-7 items-center justify-between gap-3", style === "card" && "px-1")}>
+			<div className="mb-2 flex min-h-7 items-center justify-between gap-3">
 				<h3 className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">{title}</h3>
 				{action}
 			</div>
-			<div
-				className={cn(
-					"overflow-hidden divide-y divide-[var(--border)]",
-					style === "profile" ? "rounded-2xl bg-[var(--surface-2)]" : "native-card",
-				)}
-			>
+			{/* The profile view's list card. */}
+			<div className="overflow-hidden divide-y divide-[var(--border)] rounded-2xl bg-[var(--surface-2)]">
 				{children}
 			</div>
 			{footer}
@@ -112,14 +93,13 @@ export function PickerRow({
 	disabled?: boolean;
 }) {
 	const { t } = useTranslation();
-	const hoverClass = useFieldRowHoverClass();
 	const isEmpty = value == null || value === "";
 	return (
 		<button
 			type="button"
 			onClick={onClick}
 			disabled={disabled}
-			className={cn(ROW_CLASS, "transition disabled:cursor-not-allowed disabled:opacity-50", hoverClass)}
+			className={cn(ROW_CLASS, "transition disabled:cursor-not-allowed disabled:opacity-50", FIELD_ROW_HOVER_CLASS)}
 		>
 			<RowIcon icon={icon} />
 			<span className="shrink-0 text-sm font-medium text-[var(--text)]">{label}</span>

@@ -54,7 +54,7 @@ export function OwnProfileEditPanel({
 
 	return (
 		<>
-			<ProfileEditorFormSections editor={editor} layout="panel" />
+			<ProfileEditorFormSections editor={editor} />
 			{/* Pinned to the bottom of the profile's scroll area, edge to edge (out of
 			    the host's p-4 / sm:p-5), over the same dark fade as the profile view's
 			    message bar. Laid out like a bottom sheet's footer: a full-width
