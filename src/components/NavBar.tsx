@@ -13,7 +13,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "../utils/cn";
-import { startRouteTransition } from "../utils/routeTransition";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
@@ -489,33 +488,16 @@ export function NavBar() {
 		}
 	}, [location.pathname]);
 
-	// Tab switches navigate inside a view transition, whose update callback
-	// runs a frame later, so the pathname doesn't change right away. A second
-	// call for the same tab in the meantime (see handleTabChange, and onClick
-	// right after) has to be dropped here instead.
-	const pendingTabPathRef = useRef<string | null>(null);
-	const goToTab = (path: string, options?: { replace?: boolean }) => {
-		if (pendingTabPathRef.current === path) return;
-		if (window.location.pathname === path) {
-			navigate(path, options);
-			return;
-		}
-		pendingTabPathRef.current = path;
-		startRouteTransition(() => {
-			if (pendingTabPathRef.current === path) pendingTabPathRef.current = null;
-			navigate(path, options);
-		});
-	};
-
 	const handleTabChange = (value: string) => {
 		setActiveTab(value);
 		const item = navItems.find((i) => i.value === value);
 		// Radix fires onValueChange from both mousedown and focus, and
 		// depending on render timing a single tap can hit both — pushing the
 		// same tab twice, so the first system back appeared to do nothing.
-		// goToTab skips the second call (pathname check, or pending path).
+		// BrowserRouter pushes synchronously, so the second call sees the
+		// already-updated pathname and skips.
 		if (item && window.location.pathname !== item.path) {
-			goToTab(item.path);
+			navigate(item.path);
 		}
 	};
 
@@ -565,8 +547,6 @@ export function NavBar() {
 		<nav
 			ref={navRef}
 			className={cn(
-				// Own view-transition layer: stays put while the page cross-fades (index.css).
-				"[view-transition-name:app-navbar]",
 				rail
 					? // No fill or border: the tabs sit on the page background like the
 						// page headers, so the header glow runs behind them and only the
@@ -673,12 +653,14 @@ export function NavBar() {
 					>
 						{/* Capsule: one shared selection pill that slides to the active tab.
 						    The columns are equal, so translateX(index × 100%) of a one-column-wide
-						    pill lands on the tab. Tinted via opacity, not color-mix (see accent-tint). */}
+						    pill lands on the tab. A single element with a px radius and a permanent
+						    compositor layer (will-change): webviews could drop the radius of an
+						    opacity child while the layer was promoted mid-slide, showing a rectangle. */}
 						{capsule && activeTabIndex >= 0 && (
 							<div
 								aria-hidden
 								className={cn(
-									"pointer-events-none absolute inset-y-0 left-0 rounded-full",
+									"pointer-events-none absolute inset-y-0 left-0",
 									"transition-[transform,color] duration-[340ms] ease-[cubic-bezier(0.3,1.25,0.55,1)] motion-reduce:transition-none",
 									activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
 										? "text-[var(--right-now)]"
@@ -689,10 +671,11 @@ export function NavBar() {
 								style={{
 									width: `${100 / navItems.length}%`,
 									transform: `translateX(${activeTabIndex * 100}%)`,
+									willChange: "transform",
+									borderRadius: "9999px",
+									background: "color-mix(in srgb, currentColor 14%, transparent)",
 								}}
-							>
-								<div className="h-full w-full rounded-full bg-current opacity-[0.14]" />
-							</div>
+							/>
 						)}
 						{navItems.map((item) => {
 							const Icon = item.icon;
@@ -753,7 +736,7 @@ export function NavBar() {
 											window.dispatchEvent(new CustomEvent("browse-scroll-top"));
 										}
 										setActiveTab(item.value);
-										goToTab(item.path, { replace: true });
+										navigate(item.path, { replace: true });
 									}}
 									className={cn(
 										isSwitcherTab && "select-none [-webkit-touch-callout:none]",
