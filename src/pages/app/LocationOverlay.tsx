@@ -449,7 +449,6 @@ function LocationSheetContent({
 							defaultZoom={11}
 							initialCenter={initialCenter}
 							pinColor={isExploreTab ? EXPLORE_COLOR : undefined}
-							modifierWheelZoom
 						/>
 					)
 				}
