@@ -13,6 +13,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { cn } from "../utils/cn";
+import { startRouteTransition } from "../utils/routeTransition";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
@@ -488,16 +489,33 @@ export function NavBar() {
 		}
 	}, [location.pathname]);
 
+	// Tab switches navigate inside a view transition, whose update callback
+	// runs a frame later, so the pathname doesn't change right away. A second
+	// call for the same tab in the meantime (see handleTabChange, and onClick
+	// right after) has to be dropped here instead.
+	const pendingTabPathRef = useRef<string | null>(null);
+	const goToTab = (path: string, options?: { replace?: boolean }) => {
+		if (pendingTabPathRef.current === path) return;
+		if (window.location.pathname === path) {
+			navigate(path, options);
+			return;
+		}
+		pendingTabPathRef.current = path;
+		startRouteTransition(() => {
+			if (pendingTabPathRef.current === path) pendingTabPathRef.current = null;
+			navigate(path, options);
+		});
+	};
+
 	const handleTabChange = (value: string) => {
 		setActiveTab(value);
 		const item = navItems.find((i) => i.value === value);
 		// Radix fires onValueChange from both mousedown and focus, and
 		// depending on render timing a single tap can hit both — pushing the
 		// same tab twice, so the first system back appeared to do nothing.
-		// BrowserRouter pushes synchronously, so the second call sees the
-		// already-updated pathname and skips.
+		// goToTab skips the second call (pathname check, or pending path).
 		if (item && window.location.pathname !== item.path) {
-			navigate(item.path);
+			goToTab(item.path);
 		}
 	};
 
@@ -541,11 +559,14 @@ export function NavBar() {
 		navItems.length === 3 ? "grid-cols-3" : 
 		navItems.length === 4 ? "grid-cols-4" :
 		"grid-cols-5";
+	const activeTabIndex = navItems.findIndex((item) => item.value === activeTab);
 
 	return (
 		<nav
 			ref={navRef}
 			className={cn(
+				// Own view-transition layer: stays put while the page cross-fades (index.css).
+				"[view-transition-name:app-navbar]",
 				rail
 					? // No fill or border: the tabs sit on the page background like the
 						// page headers, so the header glow runs behind them and only the
@@ -647,8 +668,32 @@ export function NavBar() {
 										// Mobile app without labels: keep icon size, shrink the bar instead.
 										hideLabels ? "h-12" : capsule ? "h-[3.625rem]" : "h-16 md:h-[4.1rem]",
 									),
+							capsule && "relative",
 						)}
 					>
+						{/* Capsule: one shared selection pill that slides to the active tab.
+						    The columns are equal, so translateX(index × 100%) of a one-column-wide
+						    pill lands on the tab. Tinted via opacity, not color-mix (see accent-tint). */}
+						{capsule && activeTabIndex >= 0 && (
+							<div
+								aria-hidden
+								className={cn(
+									"pointer-events-none absolute inset-y-0 left-0 rounded-full",
+									"transition-[transform,color] duration-[340ms] ease-[cubic-bezier(0.3,1.25,0.55,1)] motion-reduce:transition-none",
+									activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
+										? "text-[var(--right-now)]"
+										: activeTab === "browse" && isExploreActive
+											? "text-[var(--explore)]"
+											: "text-[var(--accent)]",
+								)}
+								style={{
+									width: `${100 / navItems.length}%`,
+									transform: `translateX(${activeTabIndex * 100}%)`,
+								}}
+							>
+								<div className="h-full w-full rounded-full bg-current opacity-[0.14]" />
+							</div>
+						)}
 						{navItems.map((item) => {
 							const Icon = item.icon;
 							const isSwitcherTab = item.value === "settings" && hasAccountSwitcher;
@@ -708,7 +753,7 @@ export function NavBar() {
 											window.dispatchEvent(new CustomEvent("browse-scroll-top"));
 										}
 										setActiveTab(item.value);
-										navigate(item.path, { replace: true });
+										goToTab(item.path, { replace: true });
 									}}
 									className={cn(
 										isSwitcherTab && "select-none [-webkit-touch-callout:none]",
@@ -727,9 +772,10 @@ export function NavBar() {
 												? // On the dark fade: light icons with a shadow, in either theme.
 													"text-white/90 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)] hover:text-white"
 												: "text-[var(--text-muted)] hover:text-[var(--text)]",
-										// Capsule: tinted pill behind the active tab and a press shrink, like native tab bars.
+										// Capsule: press shrink like native tab bars; the active pill is drawn
+										// once behind all tabs (above) so it can slide. Positioned to stay above it.
 										capsule &&
-											"min-w-0 gap-0.5 rounded-full px-0.5 transition-[color,background-color,transform] active:scale-[0.94] data-[state=active]:bg-[color-mix(in_srgb,currentColor_14%,transparent)] md:gap-0.5",
+											"relative min-w-0 gap-0.5 rounded-full px-0.5 transition-[color,transform] active:scale-[0.94] md:gap-0.5",
 										item.value === "right-now" || (item.value === "browse" && isRightNowLive)
 											? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
 											: item.value === "browse" && isExploreActive

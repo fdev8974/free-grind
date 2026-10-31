@@ -1,4 +1,6 @@
+import { useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { notifyRouteCommitted } from "../utils/routeTransition";
 import { NavBar } from "../components/NavBar";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { useAndroidBackToGrid } from "../hooks/useAndroidBackToGrid";
@@ -6,6 +8,11 @@ import { useAndroidBackToGrid } from "../hooks/useAndroidBackToGrid";
 export function ProtectedLayout() {
 	const location = useLocation();
 	useAndroidBackToGrid();
+	// Runs after the new page's DOM is in place: lets a pending tab-switch
+	// view transition snapshot it.
+	useLayoutEffect(() => {
+		notifyRouteCommitted();
+	}, [location.key]);
     const isChatConversationRoute =
         (/^\/chat\/[^/]+$/.test(location.pathname) && location.pathname !== "/chat/albums" && location.pathname !== "/chat/videos") ||
         (location.pathname === "/chat" && new URLSearchParams(location.search).has("targetProfileId"));

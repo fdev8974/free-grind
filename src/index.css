@@ -1891,6 +1891,32 @@ dialog::backdrop {
   .animate-step-in-prev { animation: fade-in 0.2s ease-out both; }
 }
 
+/*
+ * Tab switches (NavBar → startRouteTransition): Material-style fade-through.
+ * The old page fades out quickly, the new one fades in with a slight zoom.
+ * The nav bar is its own layer (app-navbar) and isn't animated: its live
+ * new state shows right away, so the sliding pill keeps moving.
+ */
+::view-transition-old(root) {
+	animation: route-fade-out 90ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+::view-transition-new(root) {
+	animation: route-fade-in 220ms cubic-bezier(0, 0, 0.2, 1) 40ms both;
+}
+::view-transition-old(app-navbar) {
+	display: none;
+}
+::view-transition-new(app-navbar),
+::view-transition-group(app-navbar) {
+	animation: none;
+}
+@keyframes route-fade-out {
+	to { opacity: 0; }
+}
+@keyframes route-fade-in {
+	from { opacity: 0; transform: scale(0.98); }
+}
+
 /* Glow on the "taken on Grindr" logo; global so drawer tiles get it on every page. */
 @keyframes logo-shine {
 	0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 140, 0, 0.3)) brightness(1); }
