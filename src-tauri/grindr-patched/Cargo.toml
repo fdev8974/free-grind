@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.88"
 name = "grindr"
-version = "0.32.0+26.22.0.192710"
+version = "0.32.1+26.22.0.192710"
 build = false
 exclude = [
     ".forgejo",
@@ -145,6 +145,9 @@ version = "0.1"
 [dependencies.uuid]
 version = "1"
 features = ["v4"]
+
+[dependencies.webpki-root-certs]
+version = "1.0.10"
 
 [dependencies.wreq]
 version = "0.15"

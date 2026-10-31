@@ -24,6 +24,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 	const [weightGramsMax, setWeightGramsMax] = useState(persistedBrowseFilters.weightGramsMax);
 	const [genders, setGenders] = useState<number[]>(persistedBrowseFilters.genders);
 	const [tribes, setTribes] = useState<number[]>(persistedBrowseFilters.tribes);
+	const [tribesImInto, setTribesImInto] = useState<number[]>(persistedBrowseFilters.tribesImInto);
 	const [lookingFor, setLookingFor] = useState<number[]>(persistedBrowseFilters.lookingFor);
 	const [relationshipStatuses, setRelationshipStatuses] = useState<number[]>(
 		persistedBrowseFilters.relationshipStatuses,
@@ -60,6 +61,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 		setWeightGramsMax(normalized.weightGramsMax);
 		setGenders(normalized.genders);
 		setTribes(normalized.tribes);
+		setTribesImInto(normalized.tribesImInto);
 		setLookingFor(normalized.lookingFor);
 		setRelationshipStatuses(normalized.relationshipStatuses);
 		setBodyTypes(normalized.bodyTypes);
@@ -101,6 +103,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 			weightGramsMax,
 			genders,
 			tribes,
+			tribesImInto,
 			lookingFor,
 			relationshipStatuses,
 			bodyTypes,
@@ -120,6 +123,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 		weightGramsMax,
 		genders,
 		tribes,
+		tribesImInto,
 		lookingFor,
 		relationshipStatuses,
 		bodyTypes,
@@ -162,6 +166,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 			weightGramsMax?: number;
 			genders?: string;
 			tribes?: string;
+			tribesImInto?: string;
 			lookingFor?: string;
 			relationshipStatuses?: string;
 			bodyTypes?: string;
@@ -210,6 +215,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 
 		const parsedGenders = toOptionalNumberCsv(genders);
 		const parsedTribes = toOptionalNumberCsv(tribes);
+		const parsedTribesImInto = toOptionalNumberCsv(tribesImInto);
 		const parsedLookingFor = toOptionalNumberCsv(lookingFor);
 		const parsedRelationshipStatuses = toOptionalNumberCsv(relationshipStatuses);
 		const parsedBodyTypes = toOptionalNumberCsv(bodyTypes);
@@ -220,6 +226,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 
 		if (parsedGenders) next.genders = parsedGenders;
 		if (parsedTribes) next.tribes = parsedTribes;
+		if (parsedTribesImInto) next.tribesImInto = parsedTribesImInto;
 		if (parsedLookingFor) next.lookingFor = parsedLookingFor;
 		if (parsedRelationshipStatuses) next.relationshipStatuses = parsedRelationshipStatuses;
 		if (parsedBodyTypes) next.bodyTypes = parsedBodyTypes;
@@ -239,6 +246,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 		weightGramsMin,
 		genders,
 		tribes,
+		tribesImInto,
 		lookingFor,
 		relationshipStatuses,
 		bodyTypes,
@@ -268,6 +276,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 		setWeightGramsMax("");
 		setGenders([]);
 		setTribes([]);
+		setTribesImInto([]);
 		setLookingFor([]);
 		setRelationshipStatuses([]);
 		setBodyTypes([]);
@@ -290,6 +299,7 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 		setWeightGramsMax(normalized.weightGramsMax);
 		setGenders(normalized.genders);
 		setTribes(normalized.tribes);
+		setTribesImInto(normalized.tribesImInto);
 		setLookingFor(normalized.lookingFor);
 		setRelationshipStatuses(normalized.relationshipStatuses);
 		setBodyTypes(normalized.bodyTypes);
@@ -319,6 +329,8 @@ export function useBrowseFilters(persistedBrowseFilters: BrowseFiltersDraft) {
 		setGenders,
 		tribes,
 		setTribes,
+		tribesImInto,
+		setTribesImInto,
 		lookingFor,
 		setLookingFor,
 		relationshipStatuses,

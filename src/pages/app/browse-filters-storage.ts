@@ -45,6 +45,7 @@ export type BrowseFiltersDraft = {
 	weightGramsMax: string;
 	genders: number[];
 	tribes: number[];
+	tribesImInto: number[];
 	lookingFor: number[];
 	relationshipStatuses: number[];
 	bodyTypes: number[];
@@ -66,6 +67,7 @@ type BrowseFiltersDraftInput = {
 	weightGramsMax?: string;
 	genders?: number[];
 	tribes?: number[];
+	tribesImInto?: number[];
 	lookingFor?: number[];
 	relationshipStatuses?: number[];
 	bodyTypes?: number[];
@@ -105,6 +107,7 @@ export function getDefaultBrowseFiltersDraft(): BrowseFiltersDraft {
 		weightGramsMax: "",
 		genders: [],
 		tribes: [],
+		tribesImInto: [],
 		lookingFor: [],
 		relationshipStatuses: [],
 		bodyTypes: [],
@@ -156,6 +159,9 @@ export function normalizeBrowseFiltersDraft(
 				: defaults.weightGramsMax,
 		genders: isNumberArray(draft.genders) ? draft.genders : defaults.genders,
 		tribes: isNumberArray(draft.tribes) ? draft.tribes : defaults.tribes,
+		tribesImInto: isNumberArray(draft.tribesImInto)
+			? draft.tribesImInto
+			: defaults.tribesImInto,
 		lookingFor: isNumberArray(draft.lookingFor)
 			? draft.lookingFor
 			: defaults.lookingFor,

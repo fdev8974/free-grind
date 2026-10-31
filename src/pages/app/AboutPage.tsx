@@ -1,43 +1,19 @@
-import { Ban, ChevronRight, Code2, ExternalLink, GitBranch, Globe, HeartHandshake, Scale } from "lucide-react";
+import { Ban, Code2, ExternalLink, GitBranch, Globe, HeartHandshake, Scale } from "lucide-react";
 import { DiscordIcon, TelegramIcon } from "../../components/icons/BrandIcons";
-import { HeartFilled, LockFilled, MegaphoneFilled } from "../../components/icons/FilledIcons";
-import { useMemo, useState, type ComponentType, type ReactNode } from "react";
+import { HeartFilled, LockFilled } from "../../components/icons/FilledIcons";
+import { useState, type ComponentType, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import semver from "semver";
 import { PageHeader } from "../../components/PageHeader";
-import { VersionAnnouncement } from "../../components/VersionAnnouncement";
-import { FullscreenPortal } from "../../components/FullscreenPrompt";
 import { usePreferences } from "../../contexts/PreferencesContext";
-import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
 import { triggerSinModeUnlock } from "../../utils/sinModeEasterEgg";
 import { openExternalUrl } from "../../utils/githubIssues";
+import { DISCORD_URL, REPO_URL, TELEGRAM_URL, WEBSITE_URL } from "../../config/links-config";
 import logo from "../../images/freegrind-logo.webp";
 
 type AboutIcon = ComponentType<{ className?: string }>;
 
 const DEV_TAP_TARGET = 7;
-const REPO_URL = "https://github.com/fdev8974/free-grind";
-const WEBSITE_URL = "https://fdev8974.github.io/free-grind/";
-const DISCORD_URL = "https://discord.gg/cJqTaWPMFF";
-const TELEGRAM_URL = "https://t.me/freegrind";
-
-/**
- * "What's new" for the running version: its own entry (a pre-release shares
- * its final version's one), else the newest one released before it.
- */
-function findCurrentAnnouncement(appVersion: string) {
-	const release = semver.coerce(appVersion)?.version;
-	const exact =
-		VERSION_ANNOUNCEMENTS.find((a) => a.version === appVersion) ??
-		VERSION_ANNOUNCEMENTS.find((a) => a.version === release);
-	if (exact || !release) return exact ?? null;
-	return (
-		VERSION_ANNOUNCEMENTS.filter((a) => semver.valid(a.version) && semver.lte(a.version, release)).sort((a, b) =>
-			semver.rcompare(a.version, b.version),
-		)[0] ?? null
-	);
-}
 
 function SectionLabel({ children }: { children: ReactNode }) {
 	return <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{children}</p>;
@@ -84,8 +60,6 @@ export function AboutPage() {
 	const { t } = useTranslation();
 	const { developerMode, setPreferences } = usePreferences();
 	const appVersion = import.meta.env.VITE_APP_VERSION;
-	const announcement = useMemo(() => findCurrentAnnouncement(appVersion), [appVersion]);
-	const [showAnnouncement, setShowAnnouncement] = useState(false);
 	const [devTapCount, setDevTapCount] = useState(0);
 	const [lastDevTapAt, setLastDevTapAt] = useState(0);
 
@@ -116,19 +90,6 @@ export function AboutPage() {
 			);
 		}
 	};
-
-	if (showAnnouncement && announcement) {
-		return (
-			<FullscreenPortal className="z-[300]">
-				<VersionAnnouncement
-					announcement={announcement}
-					appVersion={announcement.version === semver.coerce(appVersion)?.version ? appVersion : undefined}
-					buttonLabel={t("common.close", { defaultValue: "Close" })}
-					onClose={() => setShowAnnouncement(false)}
-				/>
-			</FullscreenPortal>
-		);
-	}
 
 	return (
 		<section className="app-screen">
@@ -213,19 +174,6 @@ export function AboutPage() {
 				<div>
 					<SectionLabel>{t("about_page.section_project", { defaultValue: "Project" })}</SectionLabel>
 					<div className="native-group">
-						{announcement && (
-							<ProjectRow
-								icon={MegaphoneFilled}
-								iconClass="bg-[var(--surface-2)] text-[var(--accent)]"
-								label={t("about_page.whats_new", { defaultValue: "What's New" })}
-								description={t("about_page.whats_new_desc", {
-									defaultValue: "Highlights of version {{version}}",
-									version: announcement.version,
-								})}
-								right={<ChevronRight className="h-4 w-4 opacity-50" />}
-								onClick={() => setShowAnnouncement(true)}
-							/>
-						)}
 						<ProjectRow
 							icon={Globe}
 							iconClass="bg-indigo-500/15 text-indigo-400"

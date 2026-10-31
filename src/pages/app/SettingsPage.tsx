@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLogoutToNextAccount } from "../../hooks/useLogoutToNextAccount";
 import { getVersion } from "@tauri-apps/api/app";
+import { RELEASES_URL } from "../../config/links-config";
 import { invoke } from "@tauri-apps/api/core";
 import { PageHeaderBackground } from "../../components/ui/PageHeaderBackground";
 import { FeedScrollContainer } from "../../components/ui/FeedScrollContainer";
@@ -36,6 +37,7 @@ import { useState, useEffect, useMemo, useRef, useSyncExternalStore, type CSSPro
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import semver from "semver";
 import { appLog } from "../../utils/logger";
 import { useAuth } from "../../contexts/useAuth";
 import { usePreferences } from "../../contexts/PreferencesContext";
@@ -95,9 +97,26 @@ import { SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } fr
 // Always previews whichever entry was added/edited most recently, regardless
 // of whether it matches the app's current running version yet.
 const LATEST_ANNOUNCEMENT = VERSION_ANNOUNCEMENTS[VERSION_ANNOUNCEMENTS.length - 1] ?? null;
+
+/**
+ * "What's new" for the running version: its own entry (a pre-release shares
+ * its final version's one), else the newest one released before it.
+ */
+function findCurrentAnnouncement(appVersion: string) {
+	const release = semver.coerce(appVersion)?.version;
+	const exact =
+		VERSION_ANNOUNCEMENTS.find((a) => a.version === appVersion) ??
+		VERSION_ANNOUNCEMENTS.find((a) => a.version === release);
+	if (exact || !release) return exact ?? null;
+	return (
+		VERSION_ANNOUNCEMENTS.filter((a) => semver.valid(a.version) && semver.lte(a.version, release)).sort((a, b) =>
+			semver.rcompare(a.version, b.version),
+		)[0] ?? null
+	);
+}
 const PREVIEW_RELEASE_INFO = {
 	latestVersion: "9.9.9",
-	releasesUrl: "https://github.com/fdev8974/free-grind/releases",
+	releasesUrl: RELEASES_URL,
 	releases: [
 		{ version: "9.9.9", publishedAt: new Date(Date.now() - 2 * 86_400_000).toISOString() },
 		{ version: "9.9.8", publishedAt: new Date(Date.now() - 12 * 86_400_000).toISOString() },
@@ -381,6 +400,8 @@ export function SettingsPage() {
 		useState<HotswapChannel>(getCurrentHotswapChannel());
 	const visibleChannels = getHotswapChannels();
 	const frontendVersion = import.meta.env.VITE_APP_VERSION;
+	const currentAnnouncement = useMemo(() => findCurrentAnnouncement(frontendVersion), [frontendVersion]);
+	const [showCurrentAnnouncement, setShowCurrentAnnouncement] = useState(false);
 	const commitHash: string = import.meta.env.VITE_COMMIT_HASH ?? "";
 	// The installed app (APK / desktop binary) can lag behind the frontend when an
 	// OTA bundle was applied on top of it, so show both when they differ.
@@ -610,6 +631,21 @@ export function SettingsPage() {
 					announcement={LATEST_ANNOUNCEMENT}
 					buttonLabel={t("common.close", { defaultValue: "Close" })}
 					onClose={() => setPreviewAnnouncement(false)}
+				/>
+			</FullscreenPortal>
+		);
+	}
+
+	if (showCurrentAnnouncement && currentAnnouncement) {
+		return (
+			<FullscreenPortal className="z-[300]">
+				<VersionAnnouncement
+					announcement={currentAnnouncement}
+					appVersion={
+						currentAnnouncement.version === semver.coerce(frontendVersion)?.version ? frontendVersion : undefined
+					}
+					buttonLabel={t("common.close", { defaultValue: "Close" })}
+					onClose={() => setShowCurrentAnnouncement(false)}
 				/>
 			</FullscreenPortal>
 		);
@@ -1080,6 +1116,18 @@ export function SettingsPage() {
 						<div className="min-w-0">
 							<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Updates</p>
 							<div className="native-group">
+								{currentAnnouncement &&
+									navRow(
+										() => setShowCurrentAnnouncement(true),
+										<MegaphoneFilled className="h-5 w-5" />,
+										"bg-[var(--surface-2)] text-[var(--accent)]",
+										t("about_page.whats_new", { defaultValue: "What's New" }),
+										t("about_page.whats_new_desc", {
+											defaultValue: "Highlights of version {{version}}",
+											version: currentAnnouncement.version,
+										}),
+									)}
+
 								{/* The whole row checks; a spinner replaces the chevron while it runs. */}
 								<button
 									type="button"

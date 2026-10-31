@@ -213,6 +213,7 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 				weightGramsMax?: number;
 				genders?: string;
 				tribes?: string;
+				tribesImInto?: string;
 				lookingFor?: string;
 				relationshipStatuses?: string;
 				bodyTypes?: string;
@@ -267,6 +268,8 @@ export function createProfileMethods(fetchRest: RestFetcher, t: (key: string, op
 			}
 			if (params.filters?.genders) queryParams.set("genders", params.filters.genders);
 			if (params.filters?.tribes) queryParams.set("tribes", params.filters.tribes);
+			if (params.filters?.tribesImInto)
+				queryParams.set("tribesImInto", params.filters.tribesImInto);
 			if (params.filters?.lookingFor)
 				queryParams.set("lookingFor", params.filters.lookingFor);
 			if (params.filters?.relationshipStatuses)

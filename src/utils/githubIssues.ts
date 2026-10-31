@@ -1,6 +1,5 @@
 import { openUrl } from "@tauri-apps/plugin-opener";
-
-const GITHUB_REPO_URL = "https://github.com/fdev8974/free-grind";
+import { REPO_URL as GITHUB_REPO_URL } from "../config/links-config";
 
 export const GITHUB_ISSUES_URL = `${GITHUB_REPO_URL}/issues`;
 export const GITHUB_NEW_ISSUE_URL = `${GITHUB_REPO_URL}/issues/new`;

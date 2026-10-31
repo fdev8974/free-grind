@@ -53,7 +53,7 @@ tauri-plugin-notification = { path = "notification-patched" }
 tauri-plugin-http = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 wreq = { version = "0.15", features = ["gzip", "json"] }
-# Vendored 0.32.0 plus account creation and SMS verification until they land
+# Vendored 0.32.1 plus account creation and SMS verification until they land
 # upstream (grindr-patched/account-creation-and-sms-verification.patch).
 grindr = { path = "grindr-patched" }
 tauri-plugin-hotswap = { path = "hotswap-patched" }

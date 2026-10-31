@@ -102,6 +102,7 @@ function BrowseFiltersSheetContent({
 	const [weightGramsMax, setWeightGramsMax] = useState(normalized.weightGramsMax);
 	const [genders, setGenders] = useState<number[]>(normalized.genders);
 	const [tribes, setTribes] = useState<number[]>(normalized.tribes);
+	const [tribesImInto, setTribesImInto] = useState<number[]>(normalized.tribesImInto);
 	const [lookingFor, setLookingFor] = useState<number[]>(normalized.lookingFor);
 	const [relationshipStatuses, setRelationshipStatuses] = useState<number[]>(normalized.relationshipStatuses);
 	const [bodyTypes, setBodyTypes] = useState<number[]>(normalized.bodyTypes);
@@ -169,6 +170,7 @@ function BrowseFiltersSheetContent({
 		() => [{ value: -1, label: t("browse_filters.not_specified") }, ...getTribeOptions(t)],
 		[t],
 	);
+	const tribesImIntoFilterOptions = useMemo<ManagedOption[]>(() => getTribeOptions(t), [t]);
 	const lookingForFilterOptions = useMemo<ManagedOption[]>(
 		() => [{ value: -1, label: t("browse_filters.not_specified") }, ...getLookingForOptions(t)],
 		[t],
@@ -236,7 +238,7 @@ function BrowseFiltersSheetContent({
 			ageMin, ageMax,
 			heightCmMin, heightCmMax,
 			weightGramsMin, weightGramsMax,
-			genders, tribes, lookingFor, relationshipStatuses,
+			genders, tribes, tribesImInto, lookingFor, relationshipStatuses,
 			bodyTypes, sexualPositions, meetAt,
 			nsfwPics, tags,
 			nicknameFilter,
@@ -407,6 +409,12 @@ function BrowseFiltersSheetContent({
 						tribeFilterOptions,
 						tribes,
 						(value) => toggleMultiSelect(value, setTribes),
+					)}
+					{renderChipSection(
+						t("browse_filters.tribes_theyre_into"),
+						tribesImIntoFilterOptions,
+						tribesImInto,
+						(value) => toggleMultiSelect(value, setTribesImInto),
 					)}
 					{renderChipSection(
 						t("profile_editor.sections.expectations.looking_for"),

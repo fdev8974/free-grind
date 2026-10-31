@@ -10,8 +10,9 @@ import { getCurrentHotswapChannel, isHotswapAvailable, whenStartupHotswapSettled
 import { areUpdateChecksEnabled } from "../services/updateChecks";
 import { formatRelativeTime } from "../utils/relativeTime";
 import { VersionCompare } from "./ui/version-compare";
+import { RELEASES_URL } from "../config/links-config";
 
-const DEFAULT_RELEASES_URL = "https://github.com/fdev8974/free-grind/releases";
+const DEFAULT_RELEASES_URL = RELEASES_URL;
 // Used when the release lookup fails: assume the running version is current,
 // so being offline never flags a build (e.g. a pre-release) as outdated.
 const DEFAULT_LATEST_VERSION = normalizeVersion(import.meta.env.VITE_APP_VERSION ?? "0.0.0");

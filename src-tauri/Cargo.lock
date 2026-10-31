@@ -2121,7 +2121,7 @@ dependencies = [
 
 [[package]]
 name = "grindr"
-version = "0.32.0+26.22.0.192710"
+version = "0.32.1+26.22.0.192710"
 dependencies = [
  "base64 0.22.1",
  "bytes",
@@ -2143,6 +2143,7 @@ dependencies = [
  "tower-service",
  "tracing",
  "uuid",
+ "webpki-root-certs 1.0.11",
  "wreq",
 ]
 
@@ -7140,14 +7141,14 @@ version = "0.26.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75c7f0ef91146ebfb530314f5f1d24528d7f0767efbfd31dce919275413e393e"
 dependencies = [
- "webpki-root-certs 1.0.8",
+ "webpki-root-certs 1.0.11",
 ]
 
 [[package]]
 name = "webpki-root-certs"
-version = "1.0.8"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d46a5a140e6f7afeccd8eae97eff335163939eac8b929834875168b29b3d267"
+checksum = "e49d0e65abc00c142e8f9428da991da9f1a250c39be97459901eb12b9b49f62a"
 dependencies = [
  "rustls-pki-types",
 ]
