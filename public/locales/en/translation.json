@@ -77,7 +77,48 @@
     "update_channel_contributor_desc": "Contributor channel",
     "data_section": "Backup & Restore",
     "data": "Backup & Restore",
-    "data_desc": "Downloaded media storage, and back up/restore your entire account"
+    "data_desc": "Downloaded media storage, and back up/restore your entire account",
+    "developer_mode_caption": "Developer Mode",
+    "contributor": {
+      "title": "Contributor Channel",
+      "desc": "Receive experimental builds from a community contributor's channel. Use at your own risk.",
+      "placeholder": "contributor-handle",
+      "activate": "Activate",
+      "invalid_code": "Enter a valid contributor code (letters, numbers, _ or -).",
+      "switched_no_update": "Switched to {{handle}}'s channel. No update available yet.",
+      "binary_update_required": "Binary update required.",
+      "switch_failed": "Failed to switch to contributor channel."
+    },
+    "search_sections": {
+      "about": "About",
+      "automation": "Automation",
+      "backup_restore": "Backup & Restore",
+      "behavior": "Behavior",
+      "chat": "Chat",
+      "look_feel": "Look & Feel",
+      "notifications": "Notifications",
+      "optional_features": "Optional Features",
+      "privacy": "Privacy",
+      "profile": "Profile",
+      "safety": "Safety",
+      "translation": "Translation"
+    },
+    "chat_sync_syncing_list": "Checking for new chats…",
+    "chat_sync_syncing_list_desc_changed": "{{checked}} checked, {{changed}} new or updated",
+    "chat_sync_syncing_list_desc": "{{count}} checked so far",
+    "chat_sync_syncing_messages": "Syncing latest messages…",
+    "chat_sync_syncing_messages_desc": "{{completed}} / {{total}} conversations",
+    "chat_sync_done": "Chats up to date",
+    "chat_sync_done_desc_changed": "{{count}} conversations total, {{changed}} just updated",
+    "chat_sync_done_desc": "{{count}} conversations synced",
+    "chat_sync_error": "Chat sync failed",
+    "chat_sync_preparing": "Preparing chat sync…",
+    "chat_sync_preparing_desc": "Runs in the background and won't slow down the app.",
+    "account_tap_to_switch": "Tap to switch",
+    "add_account": "Add account",
+    "add_account_desc": "Sign in with another account",
+    "logout_confirm_title": "Log out?",
+    "logout_other_description": "You'll need to sign in again to use this account on this device."
   },
   "settings_blocked": {
     "title": "Blocked Accounts",
@@ -89,7 +130,16 @@
     "refreshing": "Refreshing...",
     "profile_id": "Profile ID: {{id}}",
     "count_one": "{{count}} blocked account",
-    "count_other": "{{count}} blocked accounts"
+    "count_other": "{{count}} blocked accounts",
+    "unblock_all_success": "All users unblocked.",
+    "unblock_all_failed": "Failed to unblock all profiles.",
+    "empty_desc": "Accounts you block won't be able to see you or message you.",
+    "section_label": "Blocked",
+    "unblocking_all": "Unblocking…",
+    "unblock_all_title": "Unblock All",
+    "unblock_all_desc": "Remove all blocked accounts at once. This cannot be undone.",
+    "unblock_all_confirm": "This will unblock all blocked accounts. Are you sure?",
+    "cancel": "Cancel"
   },
   "settings_hidden": {
     "title": "Hidden Profiles",
@@ -102,7 +152,6 @@
     "refreshing": "Refreshing...",
     "profile_id": "Profile ID: {{id}}",
     "section_label": "Hidden",
-    "name_fallback": "Someone",
     "unhide": "Unhide",
     "unhide_all_title": "Unhide All",
     "unhide_all_desc": "Show all hidden profiles on the grid again.",
@@ -121,8 +170,7 @@
     "empty_desc": "When someone blocks or unblocks you, it'll show up here.",
     "section_label": "History",
     "blocked": "Blocked you",
-    "unblocked": "Unblocked you",
-    "name_fallback": "Someone"
+    "unblocked": "Unblocked you"
   },
   "settings_automation": {
     "auto_block_title": "Message Auto-Block",
@@ -302,7 +350,6 @@
   "shared_albums": {
     "title": "Shared Albums",
     "subtitle": "Browse all albums shared by people in your chats.",
-    "name_fallback": "Someone",
     "albums_count_one": "{{count}} album",
     "albums_count_other": "{{count}} albums",
     "people_count_one": "{{count}} person",
@@ -343,7 +390,11 @@
     "error_delete_fallback": "Failed to remove album",
     "filter_favorites": "Favorites",
     "filter_online": "Online",
-    "filter_video": "Has videos"
+    "filter_video": "Has videos",
+    "sensitive_content_title": "Sensitive content",
+    "sensitive_content_description": "This album could contain sensitive content.",
+    "sensitive_content_confirm": "View album",
+    "cached_label": "cached"
   },
   "right_now": {
     "title": "Right Now",
@@ -414,7 +465,9 @@
     "map_recenter": "Show everyone",
     "map_center": "Center",
     "map_you": "You",
-    "map_no_positions": "Nobody nearby is sharing their location on the map right now."
+    "map_no_positions": "Nobody nearby is sharing their location on the map right now.",
+    "not_hosting": "Right Now",
+    "view_grid": "Grid"
   },
   "right_now_filters": {
     "title": "Right Now Filters",
@@ -578,7 +631,8 @@
       "load_profiles": "Failed to load browse profiles",
       "load_profile_details": "Failed to load profile details",
       "location_required": "Set your browse location first",
-      "location_read_failed": "Could not read your saved browse location"
+      "location_read_failed": "Could not read your saved browse location",
+      "toggle_distance_failed": "Could not update distance setting."
     },
     "toasts": {
       "distance_info": "Browse location {{lat}}, {{lon}}. {{id}} is about {{distance}}m away.",
@@ -750,7 +804,40 @@
     "collections_save_failed": "Couldn't save the collection.",
     "collections_delete_failed": "Couldn't delete the collection.",
     "collections_delete_confirm_title": "Delete collection?",
-    "collections_delete_confirm_message": "Only the collection is deleted. Its media stays in your drawer."
+    "collections_delete_confirm_message": "Only the collection is deleted. Its media stays in your drawer.",
+    "rejected": "Rejected",
+    "processing": "Processing",
+    "error_load_shares": "Failed to load album shares.",
+    "error_album_full": "Album is full (max {{max}} items).",
+    "warning_truncated": "Only {{remaining}} slot(s) left — uploading the first {{remaining}} file(s).",
+    "error_file_too_large": "\"{{name}}\" is too large (max {{max}}).",
+    "error_video_limit": "\"{{name}}\" skipped — album video limit reached (max {{max}}).",
+    "error_video_too_long": "\"{{name}}\" is too long (max {{max}}).",
+    "error_video_too_short": "\"{{name}}\" is too short (min {{min}}).",
+    "toast_reordered": "Order saved.",
+    "toast_unshared": "Album share removed.",
+    "error_unshare": "Failed to remove share.",
+    "toast_unshared_all": "All shares removed.",
+    "media_items": "items",
+    "media_videos": "videos",
+    "shared_with": "Shared With",
+    "unshare": "Remove",
+    "unsharing_all": "Removing…",
+    "unshare_all": "Remove All",
+    "confirm_delete_message": "This album and all its content will be permanently deleted.",
+    "confirm_delete_content_message": "This image will be permanently removed from the album.",
+    "unshare_all_title": "Remove All Shares",
+    "unshare_all_message": "This will remove access for everyone this album is shared with.",
+    "limits_title": "Plan Limits",
+    "limits_items_per_album": "Items per Album",
+    "limits_videos_per_album": "Videos per Album",
+    "limits_max_video_length": "Max Video Length",
+    "limits_min_video_length": "Min Video Length",
+    "limits_storage": "Max File Size",
+    "limits_shares": "Shares",
+    "limits_shareable_albums": "Shareable Albums",
+    "limits_viewable_albums": "Viewable Albums (others)",
+    "limits_viewable_videos": "Viewable Videos (others)"
   },
   "profile_editor": {
     "edit_profile": "Edit profile",
@@ -968,7 +1055,8 @@
       "no_matches": "No songs match your search.",
       "no_matches_hint": "Try a different song title or artist name.",
       "apply": "Apply"
-    }
+    },
+    "logout_description": "You will be signed out of your account on this device."
   },
   "privacy": {
     "map": "Map",
@@ -1110,7 +1198,8 @@
     "schemes": {
       "system": "System",
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "amoled": "AMOLED"
     },
     "amoled": {
       "title": "Pure black (AMOLED)",
@@ -1126,7 +1215,9 @@
       "not_selected": "Not selected yet"
     },
     "show_grid_tap_status": "Show Taps on the Grid",
-    "show_grid_tap_status_desc": "Show a small flame on grid tiles of profiles you've tapped or who tapped you in the last 24 hours."
+    "show_grid_tap_status_desc": "Show a small flame on grid tiles of profiles you've tapped or who tapped you in the last 24 hours.",
+    "confirm_before_open_link": "Ask before opening links",
+    "confirm_before_open_link_desc": "Show a confirmation before opening a link tapped inside a chat message."
   },
   "behavior": {
     "subtitle": "How chats, photos, calls and browsing behave, and which actions ask for confirmation first.",
@@ -1363,6 +1454,15 @@
       "copy_report": "Copy debug info",
       "report_copied": "Debug info copied to clipboard",
       "report_copy_failed": "Couldn't copy the debug info"
+    },
+    "toasts": {
+      "rate_limited": "Too many attempts. Please try again later.",
+      "login_success": "Login successful",
+      "google_login_success": "Google login successful",
+      "facebook_login_success": "Facebook login successful",
+      "account_created": "Account created",
+      "logged_out": "Logged out",
+      "switched_account": "Switched account"
     }
   },
   "chat": {
@@ -1537,7 +1637,8 @@
       "taken_now": "Taken just now",
       "taken_ago": "Taken {{time}}",
       "taken_last_week": "Taken last week",
-      "taken_in": "Taken in {{time}}"
+      "taken_in": "Taken in {{time}}",
+      "just_now": "just now"
     },
     "preview": {
       "sent_image": "Sent an image",
@@ -1602,7 +1703,8 @@
       "reacted_to_image": "Reacted to your album image",
       "audio_label": "Audio",
       "unsupported_message": "Unsupported message",
-      "unsupported_message_description": "This message type isn't supported in this app version yet."
+      "unsupported_message_description": "This message type isn't supported in this app version yet.",
+      "replied_to_you": "Replied to you"
     },
     "actions": {
       "title": "Message actions",
@@ -1709,7 +1811,8 @@
       "microphone_access": "Could not access microphone.",
       "microphone_denied": "Microphone access denied.",
       "microphone_not_found": "No microphone found.",
-      "recording_too_short": "Recording too short."
+      "recording_too_short": "Recording too short.",
+      "recording_failed": "No audio data captured."
     },
     "toasts": {
       "cleared_local_history": "Cleared local history for this chat",
@@ -1727,7 +1830,8 @@
       "album_reaction_sent": "Reaction sent",
       "album_reply_sent": "Reply sent",
       "album_share_stopped": "Album share stopped.",
-      "album_removed_locally": "Album removed from your device"
+      "album_removed_locally": "Album removed from your device",
+      "photo_reply_sent": "Reply sent"
     },
     "new_conversation": {
       "title": "New conversation",
@@ -1757,8 +1861,24 @@
       "filter_label": "Hidden"
     },
     "archived": {
-      "filter_label": "Archived"
-    }
+      "filter_label": "Archived",
+      "title": "Conversation archived",
+      "not_found": "This conversation is no longer available. You can still read the history.",
+      "blocked_or_deleted": "This conversation is archived. You can still read the history and view this person's saved profile, but can no longer send messages.",
+      "badge": "Archived"
+    },
+    "saved_phrases_label": "Saved Phrases",
+    "unhide_conversation": "Unhide chat",
+    "hide_conversation": "Hide chat",
+    "record_audio": "Record audio",
+    "saved_phrases_manage": "Manage",
+    "sync_progress": {
+      "syncing_list": "Syncing chats… {{count}} checked",
+      "syncing_messages_percent": "Syncing messages… {{percent}}%"
+    },
+    "open_link_title": "Open link?",
+    "open_link_message": "You're about to open this link: {{url}}",
+    "open_link_confirm": "Open"
   },
   "chat_drawer": {
     "title": "Drawer",
@@ -1811,7 +1931,21 @@
     "collections_empty_hint": "Collections group drawer photos so you can send them together in one tap.",
     "collections_create": "Create collection",
     "view_combined": "Show all on one page",
-    "view_split": "Split into categories"
+    "view_split": "Split into categories",
+    "record_video": "Record video",
+    "expiry": {
+      "ten_seconds": "10s",
+      "unlimited": "Unlimited",
+      "once": "Once",
+      "ten_minutes": "10 minutes",
+      "one_hour": "1 hour",
+      "one_day": "1 day",
+      "ten_seconds_or_once": "10s / once",
+      "repeat": "Repeat"
+    },
+    "album_fallback": "My Album",
+    "sharing": "Sharing",
+    "sent": "Sent"
   },
   "favorites": {
     "added": "Added to favorites",
@@ -2126,7 +2260,13 @@
         "RIGHT_NOW_PHOTO": "Right Now image",
         "RIGHT_NOW_TEXT": "Right Now text"
       }
-    }
+    },
+    "pause_video": "Pause",
+    "play_video": "Play",
+    "unmute_video": "Unmute",
+    "mute_video": "Mute",
+    "quick_message_placeholder": "Message...",
+    "tap_hold_hint": "Hold for more options"
   },
   "interest_page": {
     "title": "Interest",
@@ -2167,7 +2307,8 @@
     },
     "empty_sent": "No taps sent yet",
     "empty_sent_desc": "Taps you send will appear here.",
-    "sent_read_tooltip": "Seen by recipient"
+    "sent_read_tooltip": "Seen by recipient",
+    "mutual_tap_tooltip": "Mutual tap"
   },
   "api": {
     "errors": {
@@ -2222,8 +2363,6 @@
       "media_heic_unsupported": "HEIC photos aren't supported on this device. Please convert it to JPEG first.",
       "media_video_unstrippable": "This video's metadata can't be removed safely, so it wasn't uploaded.",
       "invalid_upload_profile_response": "Invalid profile upload response",
-      "age_verification_options": "Failed to fetch age verification options",
-      "age_verification_session": "Failed to create age verification session",
       "liveness_failed": "Liveness3d verification failed",
       "enrollment_failed": "Enrollment verification failed",
       "document_failed": "Document verification failed",
@@ -2235,7 +2374,14 @@
       "load_legal_agreements": "Failed to load legal agreements",
       "accept_legal_agreements": "Failed to accept legal agreements",
       "load_warnings": "Failed to load account warnings",
-      "acknowledge_warnings": "Failed to acknowledge account warnings"
+      "acknowledge_warnings": "Failed to acknowledge account warnings",
+      "add_album_content_by_ids": "Failed to add media to album.",
+      "load_album_poster": "Failed to load album poster.",
+      "check_profile_album_share": "Failed to check album status.",
+      "load_album_shares": "Failed to load album shares",
+      "unshare_album": "Failed to remove album share",
+      "load_album_processing": "Failed to check media processing status",
+      "update_right_now": "Failed to update post"
     }
   },
   "errors": {
@@ -2290,7 +2436,9 @@
     "error_save_failed": "Failed to save trip",
     "error_delete_failed": "Failed to delete trip",
     "delete_confirm_title": "Delete this trip?",
-    "delete_confirm_message": "This removes it from your profile immediately."
+    "delete_confirm_message": "This removes it from your profile immediately.",
+    "use_destination": "Use this destination",
+    "choose_destination": "Choose destination"
   },
   "common": {
     "scroll_to_top": "Back to top",
@@ -2301,7 +2449,9 @@
     "edit": "Edit",
     "unknown_display_name": "Someone",
     "close": "Close",
-    "done": "Done"
+    "done": "Done",
+    "preview": "Preview",
+    "more_options": "More options"
   },
   "grid": {
     "refresh": "Refresh grid",
@@ -3213,5 +3363,65 @@
       "rc": "Release Candidate",
       "other": "Pre-release"
     }
+  },
+  "onboarding": {
+    "welcome_title": "Let's get you set up",
+    "welcome_desc": "Just a few quick steps to get the most out of Free Grind.",
+    "get_started": "Get Started",
+    "continue": "Continue",
+    "skip": "Skip for now",
+    "requesting": "Requesting…",
+    "got_it": "Got it",
+    "change_later": "You can change this anytime in Settings.",
+    "theme_title": "Choose Your Theme",
+    "theme_system_desc": "Follows your device",
+    "theme_light_desc": "Always light",
+    "theme_dark_desc": "Always dark",
+    "theme_amoled_desc": "Pure black for OLED screens",
+    "accent_title": "Pick Your Color",
+    "updates_title": "Automatic Updates",
+    "updates_desc": "Automatically downloads the newest app interface built by GitHub Actions and reloads as soon as it's available. Only updates signed with our key are installed. When off, you'll be asked before each update.",
+    "updates_more": "More about that",
+    "updates_later": "You can turn this on in Settings later.",
+    "updates_on": "Turn On",
+    "updates_ask": "Ask me each time",
+    "scam_title": "Caution",
+    "scam_desc": "Free Grind is free — and always will be. If someone sold you access or is asking you to pay, it's a scam. Don't pay, and report it.",
+    "permission_later": "You can enable this in Settings later.",
+    "notifications_title": "Notifications",
+    "notifications_allow": "Allow Notifications",
+    "notifications_desc": "Stay up to date with new messages, taps, and activity from people nearby.",
+    "location_title": "Location",
+    "location_allow": "Allow Location",
+    "location_desc": "Discover people near you and appear on the map for others to find you.",
+    "microphone_title": "Microphone",
+    "microphone_allow": "Allow Microphone",
+    "microphone_desc": "Record and send voice messages in conversations.",
+    "camera_title": "Camera",
+    "camera_allow": "Allow Camera",
+    "camera_desc": "Take photos and videos to share, and use video calls.",
+    "errors": {
+      "microphone_not_found": "No microphone found on this device.",
+      "camera_not_found": "No camera found on this device.",
+      "microphone_in_use": "Microphone is in use by another app.",
+      "camera_in_use": "Camera is in use by another app.",
+      "access_denied": "Access was denied.",
+      "microphone_failed": "Couldn't access the microphone.",
+      "camera_failed": "Couldn't access the camera."
+    }
+  },
+  "settings_saved_phrases": {
+    "reorder": "Reorder phrase",
+    "delete": "Delete phrase",
+    "new_placeholder": "Add a new phrase...",
+    "add": "Add",
+    "empty": "No saved phrases yet.",
+    "empty_hint": "Type above to add your first phrase."
+  },
+  "photo_viewer": {
+    "reply_placeholder": "Reply…",
+    "send": "Send",
+    "reacted": "Reaction sent",
+    "react": "React"
   }
 }

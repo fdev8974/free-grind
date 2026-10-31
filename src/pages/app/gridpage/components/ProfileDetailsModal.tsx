@@ -209,7 +209,7 @@ function ProfileSwipePreviewPanel({
 	const src = proxyMediaUrl(preview.imageUrl);
 	const hasStatus = preview.lastSeen != null || preview.onlineUntil != null;
 	const status = hasStatus ? getProfileStatusDisplay(getOnlineStatusMeta(preview.lastSeen, preview.onlineUntil), t) : null;
-	const name = preview.name?.trim() || t("profile_details.anonymous", "Someone");
+	const name = preview.name?.trim() || t("common.unknown_display_name");
 	const hasAge = preview.age != null && Number.isFinite(preview.age);
 	const distanceLabel = preview.distance != null ? formatDistance(preview.distance, t, unitsPreset) : null;
 	const headerSubtitle = [status?.label, distanceLabel].filter(Boolean).join(" · ");
@@ -584,7 +584,7 @@ export function ProfileDetailsModal({
 			return value;
 		}
 
-		return t("profile_details.anonymous", "Someone");
+		return t("common.unknown_display_name");
 	}, [activeProfile, localNickname, t]);
 
 	const messageProfileId = activeProfile?.profileId ?? selectedBrowseCard?.profileId ?? null;
@@ -2216,7 +2216,7 @@ export function ProfileDetailsModal({
 				mobileCarouselRef={previewCarouselRef}
 				mobileCarouselPhotoIndex={0}
 				openPhotoViewer={() => {}}
-				activeProfileName={detail.displayName?.trim() || t("profile_details.anonymous", "Someone")}
+				activeProfileName={detail.displayName?.trim() || t("common.unknown_display_name")}
 				estimatedCreatedAt={formatEstimatedAccountCreation(detail.profileId, t)}
 				travelPlans={queryClient.getQueryData<TravelPlan[]>(["travel-plans", String(detail.profileId)])}
 				profileStatusLabel={status.label}

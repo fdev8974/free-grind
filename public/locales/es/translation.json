@@ -101,7 +101,6 @@
         "refreshing": "Recargando...",
         "profile_id": "ID de perfil: {{id}}",
         "section_label": "Oculto",
-        "name_fallback": "Alguien",
         "unhide": "Mostrar",
         "unhide_all_title": "Mostrar todos",
         "unhide_all_desc": "Muestra todos los perfiles ocultos de nuevo en la cuadrícula.",
@@ -120,8 +119,7 @@
         "empty_desc": "Cuando alguien te bloquee o desbloquee, se mostrará aquí.",
         "section_label": "Historial",
         "blocked": "Te bloqueó",
-        "unblocked": "Te desbloqueó",
-        "name_fallback": "Alguien"
+        "unblocked": "Te desbloqueó"
     },
     "settings_automation": {
         "auto_block_title": "Auto-Bloquear Mensaje",
@@ -302,7 +300,6 @@
     "shared_albums": {
         "title": "Álbumes compartidos",
         "subtitle": "Explora todos los álbumes compartidos por los demás en tus chats.",
-        "name_fallback": "Alguien",
         "albums_count_one": "{{count}} álbum",
         "albums_count_other": "{{count}} álbumes",
         "people_count_one": "{{count}} persona",
@@ -2228,8 +2225,6 @@
             "media_heic_unsupported": "Las fotos HEIC no son compatibles con este dispositivo. Conviértela primero a JPEG.",
             "media_video_unstrippable": "Los metadatos de este vídeo no se pueden eliminar de forma segura, así que no se ha subido.",
             "invalid_upload_profile_response": "Respuesta inválida de subida de perfil",
-            "age_verification_options": "Error al conseguir opciones de verificación de edad",
-            "age_verification_session": "Error al crear una sesión de verificación de edad",
             "liveness_failed": "Error en la verificación de Liveness3d",
             "enrollment_failed": "Error en la verificación de inscripción",
             "document_failed": "Error en la verificación de documentación",

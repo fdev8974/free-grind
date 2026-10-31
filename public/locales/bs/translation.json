@@ -101,7 +101,6 @@
         "refreshing": "Osvježavanje...",
         "profile_id": "ID profila: {{id}}",
         "section_label": "Skriveno",
-        "name_fallback": "Neko",
         "unhide": "Prikaži",
         "unhide_all_title": "Prikaži sve",
         "unhide_all_desc": "Ponovo prikaži sve skrivene profile na Gridu.",
@@ -120,8 +119,7 @@
         "empty_desc": "Kada te neko blokira ili deblokira, to će se pojaviti ovdje.",
         "section_label": "Historija",
         "blocked": "Blokirao te",
-        "unblocked": "Deblokirao te",
-        "name_fallback": "Neko"
+        "unblocked": "Deblokirao te"
     },
     "settings_automation": {
         "auto_block_title": "Automatsko blokiranje poruka",
@@ -302,7 +300,6 @@
     "shared_albums": {
         "title": "Dijeljeni albumi",
         "subtitle": "Pregledaj sve albume koje su ljudi podijelili u tvojim razgovorima.",
-        "name_fallback": "Neko",
         "albums_count_one": "{{count}} album",
         "albums_count_other": "{{count}} albuma",
         "people_count_one": "{{count}} osoba",
@@ -2228,8 +2225,6 @@
             "media_heic_unsupported": "HEIC fotografije nisu podržane na ovom uređaju. Prvo je pretvori u JPEG.",
             "media_video_unstrippable": "Metapodaci ovog videozapisa ne mogu se sigurno ukloniti, pa nije otpremljen.",
             "invalid_upload_profile_response": "Neispravan odgovor na otpremanje profila",
-            "age_verification_options": "Dohvatanje opcija za provjeru dobi nije uspjelo",
-            "age_verification_session": "Pravljenje sesije za provjeru dobi nije uspjelo",
             "liveness_failed": "Liveness3d provjera nije uspjela",
             "enrollment_failed": "Provjera upisa nije uspjela",
             "document_failed": "Provjera dokumenta nije uspjela",

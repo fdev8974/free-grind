@@ -24,7 +24,6 @@ import { AboutPage } from "./pages/app/AboutPage.tsx";
 import { SettingsBlockedPage } from "./pages/app/SettingsBlockedPage.tsx";
 import { SettingsHiddenPage } from "./pages/app/SettingsHiddenPage.tsx";
 import { SettingsBlockHistoryPage } from "./pages/app/SettingsBlockHistoryPage.tsx";
-import { AgeVerificationPage } from "./pages/app/AgeVerificationPage.tsx";
 import { SharedAlbumsPage } from "./pages/app/SharedAlbumsPage.tsx";
 import { VideoGalleryPage } from "./pages/app/VideoGalleryPage.tsx";
 import { ApiInspectorPage } from "./pages/app/ApiInspectorPage.tsx";
@@ -317,10 +316,6 @@ export default function App() {
 								<Route
 									path="/settings/shared-albums"
 									element={<SharedAlbumsPage />}
-								/>
-								<Route
-									path="/settings/age-verification"
-									element={<AgeVerificationPage />}
 								/>
 								<Route
 									path="/settings/customizability"

@@ -106,7 +106,7 @@ export function SettingsBlockHistoryPage() {
 						<div className="native-group">
 							{events.map((event) => {
 								const displayName =
-									event.displayName || t("settings_block_history.name_fallback");
+									event.displayName || t("common.unknown_display_name");
 								const avatarSrc = resolveAvatarSrc(
 									event.avatarMediaHash,
 									getParticipantAvatarUrl(event.avatarMediaHash),

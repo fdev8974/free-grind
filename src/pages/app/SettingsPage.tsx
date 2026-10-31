@@ -284,6 +284,7 @@ function ContributorChannelDialog({
 	onCancel: () => void;
 	isProcessing: boolean;
 }) {
+	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -304,12 +305,12 @@ function ContributorChannelDialog({
 			panelClassName="max-h-[92dvh] px-4"
 		>
 			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
-				<h3 className="text-sm font-semibold text-[var(--text)]">Contributor Channel</h3>
+				<h3 className="text-sm font-semibold text-[var(--text)]">{t("settings.contributor.title")}</h3>
 				<SheetCloseButton disabled={isProcessing} />
 			</div>
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
 				<p className="mb-3 px-1 text-sm leading-relaxed text-[var(--text-muted)]">
-					Receive experimental builds from a community contributor's channel. Use at your own risk.
+					{t("settings.contributor.desc")}
 				</p>
 				<input
 					ref={inputRef}
@@ -319,7 +320,7 @@ function ContributorChannelDialog({
 					onKeyDown={(event) => {
 						if (event.key === "Enter") onSubmit();
 					}}
-					placeholder="contributor-handle"
+					placeholder={t("settings.contributor.placeholder")}
 					maxLength={32}
 					disabled={isProcessing}
 					enterKeyHint="go"
@@ -328,7 +329,7 @@ function ContributorChannelDialog({
 			</div>
 			<div className={SHEET_FOOTER_CLASS}>
 				<SheetClose disabled={isProcessing} className={sheetButtonClass("secondary")}>
-					Cancel
+					{t("common.cancel")}
 				</SheetClose>
 				<button
 					type="button"
@@ -337,7 +338,7 @@ function ContributorChannelDialog({
 					className={sheetButtonClass()}
 				>
 					{isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-					<span>Activate</span>
+					<span>{t("settings.contributor.activate")}</span>
 				</button>
 			</div>
 		</ControlledBottomSheet>
@@ -556,7 +557,7 @@ export function SettingsPage() {
 	const handleActivateContributorChannel = async () => {
 		const handle = contributorCodeInput.trim().toLowerCase();
 		if (!handle || !/^[a-z0-9_-]{1,32}$/.test(handle)) {
-			toast.error("Enter a valid contributor code (letters, numbers, _ or -).");
+			toast.error(t("settings.contributor.invalid_code"));
 			return;
 		}
 
@@ -574,12 +575,12 @@ export function SettingsPage() {
 
 			const result = await checkForHotswapUpdate();
 			if (!result.available) {
-				toast.success(`Switched to ${handle}'s channel. No update available yet.`);
+				toast.success(t("settings.contributor.switched_no_update", { handle }));
 				window.location.reload();
 				return;
 			}
 			if (result.requiresBinaryUpdate) {
-				toast.error(result.notes ?? "Binary update required.");
+				toast.error(result.notes ?? t("settings.contributor.binary_update_required"));
 				return;
 			}
 			showHotswapUpdatePrompt({ version: result.version, notes: result.notes, autoStart: true });
@@ -587,7 +588,7 @@ export function SettingsPage() {
 			if (import.meta.env.DEV) {
 				appLog.error("Contributor channel switch failed:", error);
 			}
-			toast.error("Failed to switch to contributor channel.");
+			toast.error(t("settings.contributor.switch_failed"));
 		} finally {
 			setIsActivatingContributor(false);
 		}
@@ -732,7 +733,7 @@ export function SettingsPage() {
 							<h1 className="app-title">{t("settings.title")}</h1>
 							{/* Caption under the title, styled like the inbox's sync caption. */}
 							{developerMode ? (
-								<p className="mt-0.5 text-[11px] font-medium text-[var(--accent-readable)]">Developer Mode</p>
+								<p className="mt-0.5 text-[11px] font-medium text-[var(--accent-readable)]">{t("settings.developer_mode_caption")}</p>
 							) : null}
 						</div>
 						<div className="-my-2 flex shrink-0 items-center gap-0.5">

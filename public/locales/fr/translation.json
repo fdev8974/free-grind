@@ -101,7 +101,6 @@
         "refreshing": "Actualisation...",
         "profile_id": "ID du profil : {{id}}",
         "section_label": "Masqués",
-        "name_fallback": "Quelqu'un",
         "unhide": "Réafficher",
         "unhide_all_title": "Tout réafficher",
         "unhide_all_desc": "Afficher à nouveau tous les profils masqués dans la grille.",
@@ -120,8 +119,7 @@
         "empty_desc": "Lorsque quelqu'un vous bloque ou vous débloque, cela s'affichera ici.",
         "section_label": "Historique",
         "blocked": "T'as bloqué",
-        "unblocked": "T'as débloqué",
-        "name_fallback": "Quelqu'un"
+        "unblocked": "T'as débloqué"
     },
     "settings_automation": {
         "auto_block_title": "Auto-Block message",
@@ -302,7 +300,6 @@
     "shared_albums": {
         "title": "Albums partagés",
         "subtitle": "Explorez tous les albums partagés par les autres dans vos chats.",
-        "name_fallback": "Quelqu'un",
         "albums_count_one": "{{count}} album",
         "albums_count_other": "{{count}} albums",
         "people_count_one": "{{count}} personne",
@@ -2228,8 +2225,6 @@
             "media_heic_unsupported": "Les photos HEIC ne sont pas prises en charge sur cet appareil. Convertissez-la d'abord en JPEG.",
             "media_video_unstrippable": "Les métadonnées de cette vidéo ne peuvent pas être supprimées en toute sécurité, elle n'a donc pas été téléversée.",
             "invalid_upload_profile_response": "Réponse de l'importation de profil invalide",
-            "age_verification_options": "Erreur lors de la récupération des options de vérification de l'âge",
-            "age_verification_session": "Erreur lors de la création d'une session de vérification d'âge",
             "liveness_failed": "Échec de la vérification Liveness3d",
             "enrollment_failed": "Échec de l'inscription à la vérification",
             "document_failed": "Échec de la vérification du document",

@@ -72,7 +72,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 				cachedStoredAlbums.map(async (stored): Promise<SharedAlbumItem | null> => {
 					const profileId = stored.ownerProfileId ? Number(stored.ownerProfileId) : null;
 					if (profileId == null) return null;
-					let profileName = t("shared_albums.name_fallback");
+					let profileName = t("common.unknown_display_name");
 					let profileMediaHash: string | null = null;
 					if (stored.conversationId) {
 						const conv = await getConversation(stored.conversationId).catch(() => null);
@@ -126,7 +126,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 					const cp = getCounterparty(entry, userId);
 					if (!cp) continue;
 					profileMap.set(cp.profileId, {
-						profileName: entry.data.name?.trim() || t("shared_albums.name_fallback"),
+						profileName: entry.data.name?.trim() || t("common.unknown_display_name"),
 						conversationId: entry.data.conversationId ?? null,
 						profileMediaHash: cp.mediaHash,
 					});
@@ -152,7 +152,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 				});
 				return {
 					profileId: sa.ownerProfileId,
-					profileName: meta?.profileName || sa.profile.name?.trim() || t("shared_albums.name_fallback"),
+					profileName: meta?.profileName || sa.profile.name?.trim() || t("common.unknown_display_name"),
 					profileMediaHash:
 						meta?.profileMediaHash && validateMediaHash(meta.profileMediaHash)
 							? meta.profileMediaHash
@@ -183,7 +183,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 				cachedOnlyItems.map(async (stored): Promise<SharedAlbumItem | null> => {
 					const profileId = stored.ownerProfileId ? Number(stored.ownerProfileId) : null;
 					if (profileId == null) return null;
-					let profileName = t("shared_albums.name_fallback");
+					let profileName = t("common.unknown_display_name");
 					let profileMediaHash: string | null = null;
 					if (stored.conversationId) {
 						const conv = await getConversation(stored.conversationId).catch(() => null);
@@ -272,7 +272,7 @@ export function SharedAlbumsPanel({ isDesktop }: Props) {
 					}),
 				);
 
-				const nameFallback = t("shared_albums.name_fallback");
+				const nameFallback = t("common.unknown_display_name");
 				const applyDetails = (item: SharedAlbumItem): SharedAlbumItem => {
 					const details = detailsById.get(item.profileId);
 					if (!details) return item;

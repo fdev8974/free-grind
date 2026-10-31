@@ -1121,7 +1121,7 @@ export function PhotoViewer({
 								onClick={() => setIsMenuOpen((v) => !v)}
 								onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
 								onTouchEnd={(e) => handleButtonTouchEnd(e, () => setIsMenuOpen((v) => !v))}
-								aria-label="More options"
+								aria-label={t("common.more_options")}
 								aria-expanded={isMenuOpen}
 								className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl border border-white/45 bg-black/40 p-2 text-white backdrop-blur-md drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90"
 							>

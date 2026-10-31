@@ -5665,7 +5665,7 @@ export function ChatPage() {
 			const isImage = file.type.startsWith("image/");
 			const isVideo = file.type.startsWith("video/");
 			if (!isImage && !isVideo) {
-				toast.error("Only image and video attachments are supported.");
+				toast.error(t("chat.attachments.only_image_video"));
 				return;
 			}
 
@@ -6573,7 +6573,7 @@ export function ChatPage() {
 		if (albumViewer.isOwn) {
 			return {
 				avatarUrl: ownProfilePhotoUrl,
-				name: myProfile?.displayName?.trim() || t("shared_albums.name_fallback"),
+				name: myProfile?.displayName?.trim() || t("common.unknown_display_name"),
 				subtitle: albumViewer.albumName?.trim() || null,
 				isOnline: true,
 			};
@@ -6595,7 +6595,7 @@ export function ChatPage() {
 					? getThumbImageUrl(otherParticipant.primaryMediaHash, "75x75")
 					: null,
 			),
-			name: selectedConversation?.data.name?.trim() || t("shared_albums.name_fallback"),
+			name: selectedConversation?.data.name?.trim() || t("common.unknown_display_name"),
 			subtitle: [onlineMeta.label, distanceLabel].filter(Boolean).join(" · ") || null,
 			isOnline: onlineMeta.isOnline,
 			isOnlineEndingSoon: onlineMeta.isEndingSoon,
@@ -6876,7 +6876,7 @@ export function ChatPage() {
 
 	const openAttachmentDialogForFile = (file: File) => {
 		if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-			toast.error("Only image and video attachments are supported.");
+			toast.error(t("chat.attachments.only_image_video"));
 			return;
 		}
 

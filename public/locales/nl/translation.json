@@ -99,7 +99,6 @@
         "refreshing": "Vernieuwen...",
         "profile_id": "Profiel-ID: {{id}}",
         "section_label": "Verborgen",
-        "name_fallback": "Iemand",
         "unhide": "Zichtbaar maken",
         "unhide_all_title": "Alles zichtbaar maken",
         "unhide_all_desc": "Toon alle verborgen profielen weer in het Grid.",
@@ -118,8 +117,7 @@
         "empty_desc": "Als iemand je blokkeert of deblokkeert, verschijnt dat hier.",
         "section_label": "Geschiedenis",
         "blocked": "Heeft je geblokkeerd",
-        "unblocked": "Heeft je gedeblokkeerd",
-        "name_fallback": "Iemand"
+        "unblocked": "Heeft je gedeblokkeerd"
     },
     "settings_automation": {
         "auto_block_title": "Automatisch blokkeren bij berichten",
@@ -299,7 +297,6 @@
     "shared_albums": {
         "title": "Gedeelde albums",
         "subtitle": "Bekijk alle albums die mensen in je chats hebben gedeeld.",
-        "name_fallback": "Iemand",
         "albums_count_one": "{{count}} album",
         "albums_count_other": "{{count}} albums",
         "people_count_one": "{{count}} persoon",
@@ -2209,8 +2206,6 @@
             "media_heic_unsupported": "HEIC-foto's worden op dit apparaat niet ondersteund. Zet hem eerst om naar JPEG.",
             "media_video_unstrippable": "De metadata van deze video kunnen niet veilig worden verwijderd, dus hij is niet geüpload.",
             "invalid_upload_profile_response": "Ongeldig antwoord op profielupload",
-            "age_verification_options": "Opties voor leeftijdsverificatie ophalen mislukt",
-            "age_verification_session": "Sessie voor leeftijdsverificatie aanmaken mislukt",
             "liveness_failed": "Liveness3d-verificatie mislukt",
             "enrollment_failed": "Inschrijvingsverificatie mislukt",
             "document_failed": "Documentverificatie mislukt",

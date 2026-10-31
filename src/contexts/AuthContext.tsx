@@ -39,6 +39,7 @@ import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
 import { mintRecaptchaToken, RecaptchaError, type RecaptchaFailure } from "../services/recaptcha";
 import { restoreStrandedLocation } from "../services/entitlementBypass";
+import i18n from "../i18n";
 
 const AUTH_USER_ID_STORAGE_KEY = "fg-user-id";
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
@@ -208,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			return true;
 		}
 		if (asAppError(error)?.kind === "RateLimited") {
-			toast.error("Too many attempts. Please try again later.");
+			toast.error(i18n.t("auth.toasts.rate_limited"));
 			return true;
 		}
 		return false;
@@ -284,7 +285,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
-				toast.success("Login successful");
+				toast.success(i18n.t("auth.toasts.login_success"));
 			}
 		} catch (error) {
 			// Not a failure to report: the page switches to SMS verification.
@@ -331,7 +332,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
-				toast.success("Google login successful");
+				toast.success(i18n.t("auth.toasts.google_login_success"));
 			}
 		} catch (error) {
 			if (handleAccountBlock(error)) {
@@ -362,7 +363,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
-				toast.success("Google login successful");
+				toast.success(i18n.t("auth.toasts.google_login_success"));
 			}
 		} catch (error) {
 			if (handleAccountBlock(error)) {
@@ -396,7 +397,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
-				toast.success("Login successful");
+				toast.success(i18n.t("auth.toasts.login_success"));
 			}
 		} catch (error) {
 			if (handleAccountBlock(error)) {
@@ -429,7 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
-				toast.success("Facebook login successful");
+				toast.success(i18n.t("auth.toasts.facebook_login_success"));
 			}
 		} catch (error) {
 			if (handleAccountBlock(error)) {
@@ -471,7 +472,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				pushToken: cachedPushToken(),
 			});
 			appLog.info("[Auth] signUp: account created", { profileId });
-			toast.success("Account created");
+			toast.success(i18n.t("auth.toasts.account_created"));
 		} catch (error) {
 			if (error instanceof RecaptchaError) {
 				appLog.warn("[Auth] signUp: reCAPTCHA token unavailable", { reason: error.reason, detail: error.detail });
@@ -523,7 +524,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			await restoreStrandedLocation();
 			await callMethod("logout");
 			dispatch({ type: "CLEAR_USER" });
-			toast.success("Logged out");
+			toast.success(i18n.t("auth.toasts.logged_out"));
 		} catch (error) {
 			const appError = asAppError(error);
 			const message = appError?.prettyMessage || "Logout failed";
@@ -548,7 +549,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			dispatch({ type: "SET_USER", payload: result.profileId });
 			void refreshSavedAccounts();
 			if (!showRestriction(result.restriction)) {
-				toast.success("Switched account");
+				toast.success(i18n.t("auth.toasts.switched_account"));
 			}
 		} catch (error) {
 			if (handleAccountBlock(error)) {

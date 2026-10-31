@@ -101,7 +101,6 @@
         "refreshing": "A atualizar...",
         "profile_id": "ID do perfil: {{id}}",
         "section_label": "Escondido",
-        "name_fallback": "Alguém",
         "unhide": "Reexibir",
         "unhide_all_title": "Reexibir todos",
         "unhide_all_desc": "Mostrar novamente todos os perfis ocultos na grelha.",
@@ -120,8 +119,7 @@
         "empty_desc": "Quando alguém bloquear ou desbloquear você, isso aparecerá aqui.",
         "section_label": "Histórico",
         "blocked": "Te bloqueou",
-        "unblocked": "Desbloqueou você",
-        "name_fallback": "Alguém"
+        "unblocked": "Desbloqueou você"
     },
     "settings_automation": {
         "auto_block_title": "Bloqueio Automático de Mensagens",
@@ -302,7 +300,6 @@
     "shared_albums": {
         "title": "Álbuns Partilhados",
         "subtitle": "Veja todos os álbuns partilhados pelas pessoas nos seus chats.",
-        "name_fallback": "Alguém",
         "albums_count_one": "{{count}} álbum",
         "albums_count_other": "{{count}} álbum",
         "people_count_one": "{{count}} pessoa",
@@ -2228,8 +2225,6 @@
             "media_heic_unsupported": "As fotos HEIC não são suportadas neste dispositivo. Converta-a primeiro para JPEG.",
             "media_video_unstrippable": "Os metadados deste vídeo não podem ser removidos com segurança, por isso ele não foi enviado.",
             "invalid_upload_profile_response": "Resposta inválida ao enviar o perfil",
-            "age_verification_options": "Não foi possível obter as opções de verificação de idade",
-            "age_verification_session": "Falha ao criar sessão de verificação de idade",
             "liveness_failed": "A verificação 3D de vivacidade falhou",
             "enrollment_failed": "Falha na verificação de registo",
             "document_failed": "A verificação do documento falhou",

@@ -107,7 +107,6 @@
         "refreshing": "بيتحدّث...",
         "profile_id": "معرّف البروفايل: {{id}}",
         "section_label": "مخفي",
-        "name_fallback": "حد",
         "unhide": "أظهر",
         "unhide_all_title": "أظهر الكل",
         "unhide_all_desc": "أظهر كل البروفايلات المخفية على الشبكة تاني.",
@@ -126,8 +125,7 @@
         "empty_desc": "لما حد يعمللك بلوك أو يفك البلوك، هيبان هنا.",
         "section_label": "السجل",
         "blocked": "عمللك بلوك",
-        "unblocked": "فك البلوك عنك",
-        "name_fallback": "حد"
+        "unblocked": "فك البلوك عنك"
     },
     "settings_automation": {
         "auto_block_title": "بلوك الرسائل تلقائيًا",
@@ -311,7 +309,6 @@
     "shared_albums": {
         "title": "الألبومات المشتركة",
         "subtitle": "تصفح جميع الألبومات التي شاركها الأشخاص في محادثاتك.",
-        "name_fallback": "شخص ما",
         "albums_count_one": "ألبوم واحد",
         "albums_count_other": "{{count}} ألبوم",
         "albums_count_zero": "مفيش ألبومات",
@@ -2253,8 +2250,6 @@
             "media_heic_unsupported": "صور HEIC مش مدعومة على الجهاز ده. حوّلها لـ JPEG الأول.",
             "media_video_unstrippable": "مينفعش نشيل بيانات الفيديو ده بأمان، فمترفعش.",
             "invalid_upload_profile_response": "رد رفع البروفايل مش صالح",
-            "age_verification_options": "فشل جلب خيارات التحقق من العمر",
-            "age_verification_session": "فشل إنشاء جلسة التحقق من العمر",
             "liveness_failed": "فشل التحقق من الحيوية",
             "enrollment_failed": "فشل التحقق من التسجيل",
             "document_failed": "فشل التحقق من المستند",

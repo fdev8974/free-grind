@@ -103,7 +103,6 @@
         "refreshing": "Osveževanje...",
         "profile_id": "ID profila: {{id}}",
         "section_label": "Skrito",
-        "name_fallback": "Nekdo",
         "unhide": "Prikaži",
         "unhide_all_title": "Prikaži vse",
         "unhide_all_desc": "Znova prikaži vse skrite profile v mreži.",
@@ -122,8 +121,7 @@
         "empty_desc": "Ko te nekdo blokira ali odblokira, se bo to prikazalo tukaj.",
         "section_label": "Zgodovina",
         "blocked": "Te je blokiral",
-        "unblocked": "Te je odblokiral",
-        "name_fallback": "Nekdo"
+        "unblocked": "Te je odblokiral"
     },
     "settings_automation": {
         "auto_block_title": "Samodejno blokiranje sporočil",
@@ -305,7 +303,6 @@
     "shared_albums": {
         "title": "Deljeni albumi",
         "subtitle": "Prebrskaj vse albume, ki so jih delili ljudje v tvojih klepetih.",
-        "name_fallback": "Nekdo",
         "albums_count_one": "{{count}} album",
         "albums_count_other": "{{count}} albumov",
         "people_count_one": "{{count}} oseba",
@@ -2247,8 +2244,6 @@
             "media_heic_unsupported": "Fotografije HEIC v tej napravi niso podprte. Najprej jo pretvori v JPEG.",
             "media_video_unstrippable": "Metapodatkov tega videoposnetka ni mogoče varno odstraniti, zato ni bil naložen.",
             "invalid_upload_profile_response": "Neveljaven odgovor na nalaganje profila",
-            "age_verification_options": "Pridobivanje možnosti preverjanja starosti ni uspelo",
-            "age_verification_session": "Ustvarjanje seje za preverjanje starosti ni uspelo",
             "liveness_failed": "Preverjanje Liveness3d ni uspelo",
             "enrollment_failed": "Preverjanje vpisa ni uspelo",
             "document_failed": "Preverjanje dokumenta ni uspelo",

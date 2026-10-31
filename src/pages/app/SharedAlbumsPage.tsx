@@ -207,7 +207,7 @@ export function SharedAlbumsPage() {
 
 					profileMap.set(counterparty.profileId, {
 						profileName:
-							entry.data.name?.trim() || t("shared_albums.name_fallback"),
+							entry.data.name?.trim() || t("common.unknown_display_name"),
 						conversationId: entry.data.conversationId ?? null,
 						profileMediaHash: counterparty.mediaHash,
 					});
@@ -231,7 +231,7 @@ export function SharedAlbumsPage() {
 				const profileName =
 					profileMeta?.profileName ||
 					sharedAlbum.profile.name?.trim() ||
-					t("shared_albums.name_fallback");
+					t("common.unknown_display_name");
 
 				return {
 					profileId: sharedAlbum.ownerProfileId,
@@ -318,7 +318,7 @@ export function SharedAlbumsPage() {
 						if (profileId == null) {
 							return null;
 						}
-						let profileName = t("shared_albums.name_fallback");
+						let profileName = t("common.unknown_display_name");
 						let profileMediaHash: string | null = null;
 						if (stored.conversationId) {
 							const conversation = await getConversation(stored.conversationId).catch(() => null);
@@ -429,7 +429,7 @@ export function SharedAlbumsPage() {
 					}),
 				);
 
-				const nameFallback = t("shared_albums.name_fallback");
+				const nameFallback = t("common.unknown_display_name");
 				const applyDetails = (item: SharedAlbumItem): SharedAlbumItem => {
 					const details = detailsById.get(item.profileId);
 					if (!details) return item;

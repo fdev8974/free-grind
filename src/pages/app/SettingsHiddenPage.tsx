@@ -81,7 +81,7 @@ export function SettingsHiddenPage() {
 									: null;
 							if (displayName || avatarUrl) {
 								detailsById.set(profileId, {
-									displayName: displayName ?? t("settings_hidden.name_fallback", { defaultValue: "Someone" }),
+									displayName: displayName ?? t("common.unknown_display_name"),
 									avatarUrl,
 								});
 							}
@@ -105,7 +105,7 @@ export function SettingsHiddenPage() {
 						displayName:
 							meta?.displayName ??
 							profile.displayName ??
-							t("settings_hidden.name_fallback", { defaultValue: "Someone" }),
+							t("common.unknown_display_name"),
 						avatarUrl,
 					} satisfies HiddenProfileListItem;
 				}),

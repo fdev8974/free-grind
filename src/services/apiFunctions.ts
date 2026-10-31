@@ -6,7 +6,6 @@ import {
 import { createAlbumMethods } from "./api/albumMethods";
 import { createProfileMethods } from "./api/profileMethods";
 import { createInterestMethods } from "./api/interestMethods";
-import { createAgeVerificationMethods } from "./api/ageVerificationMethods";
 import { createFeedMethods } from "./api/feedMethods";
 import { createFavoritesMethods } from "./api/favoritesMethods";
 import { createPhrasesMethods } from "./api/phrasesMethods";
@@ -32,7 +31,6 @@ export function createApiFunctions(fetchRest: RestFetcher, t: (key: string) => s
 		...createInterestMethods(fetchRest, t),
 		...createAlbumMethods(fetchRest, t),
 		...createProfileMethods(fetchRest, t),
-		...createAgeVerificationMethods(fetchRest, t),
 		...createFeedMethods(fetchRest, t),
 		...createFavoritesMethods(fetchRest, t),
 		...createPhrasesMethods(fetchRest),

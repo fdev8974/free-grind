@@ -1573,7 +1573,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									type="button"
 									onClick={openHeaderProfile}
 									disabled={profileId == null}
-									aria-label="Open profile"
+									aria-label={t("push_notifications.open_profile")}
 									title={onlineMeta.label}
 									className={`header-back-adjacent h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 bg-[var(--surface-2)] transition disabled:cursor-default disabled:opacity-80 ${
 										isOnline
@@ -1692,7 +1692,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										onClick={onOpenMediaSheet}
 										disabled={!selectedConversation}
 										className="header-icon-btn rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed"
-										aria-label="Received media"
+										aria-label={t("chat.received_media")}
 									>
 										<ImagesFilled className="h-5 w-5" />
 									</button>
@@ -1708,7 +1708,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											setIsHeaderActionsMenuOpen((current) => !current)
 										}
 										className="header-icon-btn inline-flex shrink-0 items-center justify-center rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
-										aria-label="Open conversation actions"
+										aria-label={t("chat.open_conversation_actions")}
 										aria-expanded={isHeaderActionsMenuOpen}
 									>
 										<EllipsisVertical className="h-5 w-5" />
@@ -1970,8 +1970,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												>
 													<Ban className="mr-2 h-4 w-4 opacity-70" />
 													<span className="flex flex-col">
-														<span>Add forbidden Keyword</span>
-														<span className="text-xs text-[var(--text-muted)]">Profile Name</span>
+														<span>{t("chat.actions.ban_word", { defaultValue: "Add forbidden keyword" })}</span>
+														<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_name")}</span>
 													</span>
 												</button>
 												</div>
@@ -2922,7 +2922,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 												className="attach-crop ReactCrop--no-animate"
 												style={{ maxHeight: "45dvh", display: "block" }}
 											>
-												<img ref={attachmentImgRef} src={attachmentPreviewUrl} alt="Preview" className="block" style={{ maxHeight: "45dvh" }} />
+												<img ref={attachmentImgRef} src={attachmentPreviewUrl} alt={t("common.preview")} className="block" style={{ maxHeight: "45dvh" }} />
 											</ReactCrop>
 											{attachmentTakenOnGrindr && attachmentCrop && (
 												<div

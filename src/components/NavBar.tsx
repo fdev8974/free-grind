@@ -825,7 +825,7 @@ export function NavBar() {
 										</div>
 										<div className="min-w-0 flex-1">
 											<p className="truncate text-sm font-semibold leading-snug text-[var(--text)]">
-												{savedProfile.displayName || t("settings.account_unnamed", { defaultValue: "Someone" })}
+												{savedProfile.displayName || t("common.unknown_display_name")}
 											</p>
 											{account.email && (
 												<p className="truncate text-xs text-[var(--text-muted)] leading-snug mt-0.5">

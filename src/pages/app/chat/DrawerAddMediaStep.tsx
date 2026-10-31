@@ -184,7 +184,7 @@ export function DrawerAddMediaStep({
 						<img
 							ref={imgRef}
 							src={previewUrl}
-							alt="Preview"
+							alt={t("common.preview")}
 							className="block"
 							style={{ maxHeight: "50dvh" }}
 						/>

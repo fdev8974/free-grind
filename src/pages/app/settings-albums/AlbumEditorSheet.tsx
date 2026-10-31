@@ -319,7 +319,7 @@ export function AlbumEditorSheet({
 							const displayName =
 								typeof nameRaw === "string" && nameRaw.trim().length > 0
 									? nameRaw.trim()
-									: t("settings_albums.share_name_fallback", { defaultValue: "Someone" });
+									: t("common.unknown_display_name");
 							const hashRaw = (p as { profileImageMediaHash?: unknown }).profileImageMediaHash;
 							const avatarUrl =
 								typeof hashRaw === "string" && validateMediaHash(hashRaw)

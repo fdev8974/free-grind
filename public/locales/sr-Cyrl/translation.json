@@ -101,7 +101,6 @@
         "refreshing": "Освежавање...",
         "profile_id": "ID профила: {{id}}",
         "section_label": "Сакривени",
-        "name_fallback": "Неко",
         "unhide": "Прикажи",
         "unhide_all_title": "Прикажи све",
         "unhide_all_desc": "Поново прикажи све сакривене профиле у мрежи.",
@@ -120,8 +119,7 @@
         "empty_desc": "Када вас неко блокира или одблокира, то ће се појавити овде.",
         "section_label": "Историја",
         "blocked": "Блокирао вас је",
-        "unblocked": "Одблокирао вас је",
-        "name_fallback": "Неко"
+        "unblocked": "Одблокирао вас је"
     },
     "settings_automation": {
         "auto_block_title": "Аутоматско блокирање порука",
@@ -303,7 +301,6 @@
     "shared_albums": {
         "title": "Подељени албуми",
         "subtitle": "Прегледајте све албуме које су са вама поделиле особе из ваших четова.",
-        "name_fallback": "Неко",
         "albums_count_one": "{{count}} албум",
         "albums_count_few": "{{count}} албума",
         "albums_count_other": "{{count}} албума",
@@ -2230,8 +2227,6 @@
             "media_heic_unsupported": "HEIC фотографије нису подржане на овом уређају. Прво је претворите у JPEG.",
             "media_video_unstrippable": "Метаподаци овог видео снимка не могу безбедно да се уклоне, па није отпремљен.",
             "invalid_upload_profile_response": "Неисправан одговор за отпремање профила",
-            "age_verification_options": "Преузимање опција за проверу узраста није успело",
-            "age_verification_session": "Прављење сесије за проверу узраста није успело",
             "liveness_failed": "Liveness3d провера није успела",
             "enrollment_failed": "Провера регистрације није успела",
             "document_failed": "Провера документа није успела",

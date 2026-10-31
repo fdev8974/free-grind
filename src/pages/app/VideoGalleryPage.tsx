@@ -219,7 +219,7 @@ export function VideoGalleryPage() {
 				getAllAlbumVideos(),
 				getAllReceivedChatVideos(userId),
 			]);
-			const nameFallback = t("shared_albums.name_fallback");
+			const nameFallback = t("common.unknown_display_name");
 
 			const conversationIds = new Set<string>();
 			for (const row of albumVideos) if (row.conversationId) conversationIds.add(row.conversationId);

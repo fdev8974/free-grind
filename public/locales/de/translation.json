@@ -77,7 +77,48 @@
         "update_channel_contributor_desc": "Contributor-Kanal",
         "data_section": "Backup & Wiederherstellung",
         "data": "Backup & Wiederherstellung",
-        "data_desc": "Speicher für heruntergeladene Medien sowie Backup und Wiederherstellung deines gesamten Kontos"
+        "data_desc": "Speicher für heruntergeladene Medien sowie Backup und Wiederherstellung deines gesamten Kontos",
+        "developer_mode_caption": "Entwicklermodus",
+        "contributor": {
+            "title": "Contributor-Kanal",
+            "desc": "Erhalte experimentelle Builds aus dem Kanal eines Community-Contributors. Nutzung auf eigene Gefahr.",
+            "placeholder": "contributor-handle",
+            "activate": "Aktivieren",
+            "invalid_code": "Gib einen gültigen Contributor-Code ein (Buchstaben, Zahlen, _ oder -).",
+            "switched_no_update": "Zum Kanal von {{handle}} gewechselt. Noch kein Update verfügbar.",
+            "binary_update_required": "App-Update erforderlich.",
+            "switch_failed": "Wechsel zum Contributor-Kanal fehlgeschlagen."
+        },
+        "search_sections": {
+            "about": "Über",
+            "automation": "Automation",
+            "backup_restore": "Backup & Wiederherstellung",
+            "behavior": "Verhalten",
+            "chat": "Chat",
+            "look_feel": "Erscheinungsbild",
+            "notifications": "Benachrichtigungen",
+            "optional_features": "Optionale Funktionen",
+            "privacy": "Privatsphäre",
+            "profile": "Profil",
+            "safety": "Sicherheit",
+            "translation": "Übersetzung"
+        },
+        "chat_sync_syncing_list": "Suche nach neuen Chats…",
+        "chat_sync_syncing_list_desc_changed": "{{checked}} geprüft, {{changed}} neu oder aktualisiert",
+        "chat_sync_syncing_list_desc": "Bisher {{count}} geprüft",
+        "chat_sync_syncing_messages": "Neueste Nachrichten werden synchronisiert…",
+        "chat_sync_syncing_messages_desc": "{{completed}} / {{total}} Unterhaltungen",
+        "chat_sync_done": "Chats sind aktuell",
+        "chat_sync_done_desc_changed": "{{count}} Unterhaltungen insgesamt, {{changed}} gerade aktualisiert",
+        "chat_sync_done_desc": "{{count}} Unterhaltungen synchronisiert",
+        "chat_sync_error": "Chat-Synchronisierung fehlgeschlagen",
+        "chat_sync_preparing": "Chat-Synchronisierung wird vorbereitet…",
+        "chat_sync_preparing_desc": "Läuft im Hintergrund und verlangsamt die App nicht.",
+        "account_tap_to_switch": "Tippen zum Wechseln",
+        "add_account": "Konto hinzufügen",
+        "add_account_desc": "Mit einem anderen Konto anmelden",
+        "logout_confirm_title": "Abmelden?",
+        "logout_other_description": "Du musst dich erneut anmelden, um dieses Konto auf diesem Gerät zu nutzen."
     },
     "settings_blocked": {
         "title": "Blockierte Konten",
@@ -89,7 +130,16 @@
         "refreshing": "Aktualisiere...",
         "profile_id": "Profil-ID: {{id}}",
         "count_one": "{{count}} blockiertes Konto",
-        "count_other": "{{count}} blockierte Konten"
+        "count_other": "{{count}} blockierte Konten",
+        "unblock_all_success": "Alle Nutzer entsperrt.",
+        "unblock_all_failed": "Profile konnten nicht alle entsperrt werden.",
+        "empty_desc": "Konten, die du blockierst, können dich weder sehen noch dir schreiben.",
+        "section_label": "Blockiert",
+        "unblocking_all": "Wird entsperrt…",
+        "unblock_all_title": "Alle entsperren",
+        "unblock_all_desc": "Entfernt alle blockierten Konten auf einmal. Das kann nicht rückgängig gemacht werden.",
+        "unblock_all_confirm": "Damit werden alle blockierten Konten entsperrt. Bist du sicher?",
+        "cancel": "Abbrechen"
     },
     "settings_hidden": {
         "title": "Ausgeblendete Profile",
@@ -102,7 +152,6 @@
         "refreshing": "Wird aktualisiert...",
         "profile_id": "Profil-ID: {{id}}",
         "section_label": "Ausgeblendet",
-        "name_fallback": "Jemand",
         "unhide": "Einblenden",
         "unhide_all_title": "Alle einblenden",
         "unhide_all_desc": "Alle ausgeblendeten Profile wieder im Grid anzeigen.",
@@ -121,8 +170,7 @@
         "empty_desc": "Wenn dich jemand blockiert oder entsperrt, erscheint es hier.",
         "section_label": "Verlauf",
         "blocked": "Hat dich blockiert",
-        "unblocked": "Hat dich entsperrt",
-        "name_fallback": "Jemand"
+        "unblocked": "Hat dich entsperrt"
     },
     "settings_automation": {
         "auto_block_title": "Nachrichten Auto-Block",
@@ -302,7 +350,6 @@
     "shared_albums": {
         "title": "Geteilte Alben",
         "subtitle": "Durchstöbere alle Alben, die dir Leute aus deinen Chats geteilt haben.",
-        "name_fallback": "Jemand",
         "albums_count_one": "{{count}} Album",
         "albums_count_other": "{{count}} Alben",
         "people_count_one": "{{count}} Person",
@@ -343,7 +390,11 @@
         "error_delete_fallback": "Album konnte nicht entfernt werden",
         "filter_favorites": "Favoriten",
         "filter_online": "Online",
-        "filter_video": "Mit Video"
+        "filter_video": "Mit Video",
+        "sensitive_content_title": "Sensible Inhalte",
+        "sensitive_content_description": "Dieses Album könnte sensible Inhalte enthalten.",
+        "sensitive_content_confirm": "Album ansehen",
+        "cached_label": "gespeichert"
     },
     "right_now": {
         "title": "Right Now",
@@ -414,7 +465,9 @@
         "map_recenter": "Alle anzeigen",
         "map_center": "Zentrieren",
         "map_you": "Du",
-        "map_no_positions": "Gerade teilt niemand in der Nähe seinen Standort auf der Karte."
+        "map_no_positions": "Gerade teilt niemand in der Nähe seinen Standort auf der Karte.",
+        "not_hosting": "Right Now",
+        "view_grid": "Grid"
     },
     "right_now_filters": {
         "title": "Right now Filter",
@@ -578,7 +631,8 @@
             "load_profiles": "Laden der Profile fehlgeschlagen",
             "load_profile_details": "Laden der Profildetails fehlgeschlagen",
             "location_required": "Lege zuerst deinen Standort fest",
-            "location_read_failed": "Dein gespeicherter Standort konnte nicht gelesen werden"
+            "location_read_failed": "Dein gespeicherter Standort konnte nicht gelesen werden",
+            "toggle_distance_failed": "Entfernungseinstellung konnte nicht aktualisiert werden."
         },
         "toasts": {
             "distance_info": "Suchstandort {{lat}}, {{lon}}. {{id}} ist etwa {{distance}}m entfernt.",
@@ -750,7 +804,40 @@
         "collections_save_failed": "Die Sammlung konnte nicht gespeichert werden.",
         "collections_delete_failed": "Die Sammlung konnte nicht gelöscht werden.",
         "collections_delete_confirm_title": "Sammlung löschen?",
-        "collections_delete_confirm_message": "Nur die Sammlung wird gelöscht. Ihre Medien bleiben in deiner Galerie."
+        "collections_delete_confirm_message": "Nur die Sammlung wird gelöscht. Ihre Medien bleiben in deiner Galerie.",
+        "rejected": "Abgelehnt",
+        "processing": "Wird verarbeitet",
+        "error_load_shares": "Albumfreigaben konnten nicht geladen werden.",
+        "error_album_full": "Album ist voll (max. {{max}} Elemente).",
+        "warning_truncated": "Nur noch {{remaining}} Platz/Plätze frei – die ersten {{remaining}} Datei(en) werden hochgeladen.",
+        "error_file_too_large": "„{{name}}“ ist zu groß (max. {{max}}).",
+        "error_video_limit": "„{{name}}“ übersprungen – Video-Limit des Albums erreicht (max. {{max}}).",
+        "error_video_too_long": "„{{name}}“ ist zu lang (max. {{max}}).",
+        "error_video_too_short": "„{{name}}“ ist zu kurz (min. {{min}}).",
+        "toast_reordered": "Reihenfolge gespeichert.",
+        "toast_unshared": "Albumfreigabe entfernt.",
+        "error_unshare": "Freigabe konnte nicht entfernt werden.",
+        "toast_unshared_all": "Alle Freigaben entfernt.",
+        "media_items": "Elemente",
+        "media_videos": "Videos",
+        "shared_with": "Geteilt mit",
+        "unshare": "Entfernen",
+        "unsharing_all": "Wird entfernt…",
+        "unshare_all": "Alle entfernen",
+        "confirm_delete_message": "Dieses Album und alle Inhalte werden dauerhaft gelöscht.",
+        "confirm_delete_content_message": "Dieses Bild wird dauerhaft aus dem Album entfernt.",
+        "unshare_all_title": "Alle Freigaben entfernen",
+        "unshare_all_message": "Damit verlieren alle, mit denen dieses Album geteilt ist, den Zugriff.",
+        "limits_title": "Tariflimits",
+        "limits_items_per_album": "Elemente pro Album",
+        "limits_videos_per_album": "Videos pro Album",
+        "limits_max_video_length": "Max. Videolänge",
+        "limits_min_video_length": "Min. Videolänge",
+        "limits_storage": "Max. Dateigröße",
+        "limits_shares": "Freigaben",
+        "limits_shareable_albums": "Teilbare Alben",
+        "limits_viewable_albums": "Sichtbare Alben (andere)",
+        "limits_viewable_videos": "Sichtbare Videos (andere)"
     },
     "profile_editor": {
         "edit_profile": "Profil bearbeiten",
@@ -968,7 +1055,8 @@
             "no_matches": "Keine Songs passen zu deiner Suche.",
             "no_matches_hint": "Versuch einen anderen Songtitel oder Künstlernamen.",
             "apply": "Übernehmen"
-        }
+        },
+        "logout_description": "Du wirst auf diesem Gerät von deinem Konto abgemeldet."
     },
     "privacy": {
         "map": "Karte",
@@ -1110,7 +1198,8 @@
         "schemes": {
             "system": "System",
             "light": "Hell",
-            "dark": "Dunkel"
+            "dark": "Dunkel",
+            "amoled": "AMOLED"
         },
         "amoled": {
             "title": "Reines Schwarz (AMOLED)",
@@ -1126,7 +1215,9 @@
             "not_selected": "Noch nicht ausgewählt"
         },
         "show_grid_tap_status": "Taps im Grid anzeigen",
-        "show_grid_tap_status_desc": "Zeigt eine kleine Flamme auf Grid-Kacheln von Profilen, denen du in den letzten 24 Stunden einen Tap gesendet hast oder die dir einen gesendet haben."
+        "show_grid_tap_status_desc": "Zeigt eine kleine Flamme auf Grid-Kacheln von Profilen, denen du in den letzten 24 Stunden einen Tap gesendet hast oder die dir einen gesendet haben.",
+        "confirm_before_open_link": "Vor dem Öffnen von Links fragen",
+        "confirm_before_open_link_desc": "Zeigt eine Bestätigung, bevor ein in einer Chatnachricht angetippter Link geöffnet wird."
     },
     "behavior": {
         "subtitle": "Wie sich Chats, Fotos, Anrufe und das Stöbern verhalten und welche Aktionen vorher nachfragen.",
@@ -1363,6 +1454,15 @@
             "copy_report": "Debug-Infos kopieren",
             "report_copied": "Debug-Infos in die Zwischenablage kopiert",
             "report_copy_failed": "Debug-Infos konnten nicht kopiert werden"
+        },
+        "toasts": {
+            "rate_limited": "Zu viele Versuche. Bitte versuche es später erneut.",
+            "login_success": "Anmeldung erfolgreich",
+            "google_login_success": "Google-Anmeldung erfolgreich",
+            "facebook_login_success": "Facebook-Anmeldung erfolgreich",
+            "account_created": "Konto erstellt",
+            "logged_out": "Abgemeldet",
+            "switched_account": "Konto gewechselt"
         }
     },
     "chat": {
@@ -1537,7 +1637,8 @@
             "taken_now": "Gerade eben aufgenommen",
             "taken_ago": "Aufgenommen {{time}}",
             "taken_last_week": "Letzte Woche aufgenommen",
-            "taken_in": "Aufgenommen im {{time}}"
+            "taken_in": "Aufgenommen im {{time}}",
+            "just_now": "gerade eben"
         },
         "preview": {
             "sent_image": "Hat ein Bild gesendet",
@@ -1602,7 +1703,8 @@
             "reacted_to_image": "Auf dein Album-Bild reagiert",
             "audio_label": "Audio",
             "unsupported_message": "Nicht unterstützte Nachricht",
-            "unsupported_message_description": "Dieser Nachrichtentyp wird in dieser App-Version noch nicht unterstützt."
+            "unsupported_message_description": "Dieser Nachrichtentyp wird in dieser App-Version noch nicht unterstützt.",
+            "replied_to_you": "Hat dir geantwortet"
         },
         "actions": {
             "title": "Nachrichten-Aktionen",
@@ -1709,7 +1811,8 @@
             "microphone_access": "Mikrofon konnte nicht aufgerufen werden.",
             "microphone_denied": "Mikrofonzugriff verweigert.",
             "microphone_not_found": "Kein Mikrofon gefunden.",
-            "recording_too_short": "Aufnahme zu kurz."
+            "recording_too_short": "Aufnahme zu kurz.",
+            "recording_failed": "Es wurden keine Audiodaten aufgenommen."
         },
         "toasts": {
             "cleared_local_history": "Lokaler Verlauf für diesen Chat gelöscht",
@@ -1727,7 +1830,8 @@
             "album_reaction_sent": "Reaktion gesendet",
             "album_reply_sent": "Antwort gesendet",
             "album_share_stopped": "Album-Freigabe beendet.",
-            "album_removed_locally": "Album von deinem Gerät entfernt"
+            "album_removed_locally": "Album von deinem Gerät entfernt",
+            "photo_reply_sent": "Antwort gesendet"
         },
         "new_conversation": {
             "title": "Neue Unterhaltung",
@@ -1757,8 +1861,24 @@
             "filter_label": "Versteckt"
         },
         "archived": {
-            "filter_label": "Archiviert"
-        }
+            "filter_label": "Archiviert",
+            "title": "Unterhaltung archiviert",
+            "not_found": "Diese Unterhaltung ist nicht mehr verfügbar. Du kannst den Verlauf weiterhin lesen.",
+            "blocked_or_deleted": "Diese Unterhaltung ist archiviert. Du kannst den Verlauf weiterhin lesen und das gespeicherte Profil ansehen, aber keine Nachrichten mehr senden.",
+            "badge": "Archiviert"
+        },
+        "saved_phrases_label": "Gespeicherte Phrasen",
+        "saved_phrases_manage": "Verwalten",
+        "unhide_conversation": "Chat einblenden",
+        "hide_conversation": "Chat ausblenden",
+        "record_audio": "Audio aufnehmen",
+        "sync_progress": {
+            "syncing_list": "Chats werden synchronisiert… {{count}} geprüft",
+            "syncing_messages_percent": "Nachrichten werden synchronisiert… {{percent}} %"
+        },
+        "open_link_title": "Link öffnen?",
+        "open_link_message": "Du bist dabei, diesen Link zu öffnen: {{url}}",
+        "open_link_confirm": "Öffnen"
     },
     "chat_drawer": {
         "title": "Galerie",
@@ -1811,7 +1931,21 @@
         "collections_empty_hint": "Sammlungen bündeln Galeriefotos, damit du sie mit einem Tipp zusammen senden kannst.",
         "collections_create": "Sammlung erstellen",
         "view_combined": "Alles auf einer Seite zeigen",
-        "view_split": "In Kategorien aufteilen"
+        "view_split": "In Kategorien aufteilen",
+        "record_video": "Video aufnehmen",
+        "expiry": {
+            "ten_seconds": "10 s",
+            "ten_seconds_or_once": "10 s / einmal",
+            "unlimited": "Unbegrenzt",
+            "once": "Einmal",
+            "ten_minutes": "10 Minuten",
+            "one_hour": "1 Stunde",
+            "one_day": "1 Tag",
+            "repeat": "Wiederholen"
+        },
+        "album_fallback": "Mein Album",
+        "sharing": "Wird geteilt",
+        "sent": "Gesendet"
     },
     "favorites": {
         "added": "Zu Favoriten hinzugefügt",
@@ -2126,7 +2260,13 @@
                 "RIGHT_NOW_PHOTO": "Right-Now-Bild",
                 "RIGHT_NOW_TEXT": "Right-Now-Text"
             }
-        }
+        },
+        "quick_message_placeholder": "Nachricht...",
+        "tap_hold_hint": "Gedrückt halten für mehr Optionen",
+        "pause_video": "Pausieren",
+        "play_video": "Abspielen",
+        "unmute_video": "Ton an",
+        "mute_video": "Stummschalten"
     },
     "interest_page": {
         "title": "Interest",
@@ -2167,7 +2307,8 @@
         },
         "empty_sent": "Noch keine Taps gesendet",
         "empty_sent_desc": "Taps, die du sendest, erscheinen hier.",
-        "sent_read_tooltip": "Vom Empfänger gesehen"
+        "sent_read_tooltip": "Vom Empfänger gesehen",
+        "mutual_tap_tooltip": "Gegenseitiger Tap"
     },
     "api": {
         "errors": {
@@ -2222,8 +2363,6 @@
             "media_heic_unsupported": "HEIC-Fotos werden auf diesem Gerät nicht unterstützt. Bitte wandle es zuerst in JPEG um.",
             "media_video_unstrippable": "Die Metadaten dieses Videos lassen sich nicht sicher entfernen, deshalb wurde es nicht hochgeladen.",
             "invalid_upload_profile_response": "Ungültige Antwort beim Profilbild-Upload",
-            "age_verification_options": "Optionen für Altersverifizierung konnten nicht geladen werden",
-            "age_verification_session": "Sitzung für Altersverifizierung konnte nicht erstellt werden",
             "liveness_failed": "Liveness3d-Prüfung fehlgeschlagen",
             "enrollment_failed": "Registrierung fehlgeschlagen",
             "document_failed": "Dokumentenprüfung fehlgeschlagen",
@@ -2235,7 +2374,14 @@
             "load_legal_agreements": "Rechtliche Vereinbarungen konnten nicht geladen werden",
             "accept_legal_agreements": "Rechtliche Vereinbarungen konnten nicht akzeptiert werden",
             "load_warnings": "Account-Verwarnungen konnten nicht geladen werden",
-            "acknowledge_warnings": "Account-Verwarnungen konnten nicht bestätigt werden"
+            "acknowledge_warnings": "Account-Verwarnungen konnten nicht bestätigt werden",
+            "load_album_shares": "Albumfreigaben konnten nicht geladen werden",
+            "unshare_album": "Albumfreigabe konnte nicht entfernt werden",
+            "load_album_processing": "Verarbeitungsstatus der Medien konnte nicht geprüft werden",
+            "update_right_now": "Beitrag konnte nicht aktualisiert werden",
+            "add_album_content_by_ids": "Medien konnten nicht zum Album hinzugefügt werden.",
+            "load_album_poster": "Albumvorschau konnte nicht geladen werden.",
+            "check_profile_album_share": "Albumstatus konnte nicht geprüft werden."
         }
     },
     "errors": {
@@ -2290,7 +2436,9 @@
         "error_save_failed": "Trip konnte nicht gespeichert werden",
         "error_delete_failed": "Trip konnte nicht gelöscht werden",
         "delete_confirm_title": "Diesen Trip löschen?",
-        "delete_confirm_message": "Er wird sofort von deinem Profil entfernt."
+        "delete_confirm_message": "Er wird sofort von deinem Profil entfernt.",
+        "use_destination": "Dieses Ziel verwenden",
+        "choose_destination": "Ziel wählen"
     },
     "common": {
         "scroll_to_top": "Nach oben",
@@ -2301,7 +2449,9 @@
         "edit": "Bearbeiten",
         "unknown_display_name": "Jemand",
         "close": "Schließen",
-        "done": "Fertig"
+        "done": "Fertig",
+        "preview": "Vorschau",
+        "more_options": "Weitere Optionen"
     },
     "grid": {
         "refresh": "Grid aktualisieren",
@@ -3215,5 +3365,65 @@
             "rc": "Release Candidate",
             "other": "Vorabversion"
         }
+    },
+    "onboarding": {
+        "welcome_title": "Lass uns loslegen",
+        "welcome_desc": "Nur ein paar kurze Schritte, damit du das Beste aus Free Grind herausholst.",
+        "get_started": "Los geht's",
+        "continue": "Weiter",
+        "skip": "Vorerst überspringen",
+        "requesting": "Wird angefragt…",
+        "got_it": "Verstanden",
+        "change_later": "Du kannst das jederzeit in den Einstellungen ändern.",
+        "theme_title": "Wähle dein Design",
+        "theme_system_desc": "Folgt deinem Gerät",
+        "theme_light_desc": "Immer hell",
+        "theme_dark_desc": "Immer dunkel",
+        "theme_amoled_desc": "Reines Schwarz für OLED-Displays",
+        "accent_title": "Wähle deine Farbe",
+        "updates_title": "Automatische Updates",
+        "updates_desc": "Lädt automatisch die neueste, von GitHub Actions gebaute App-Oberfläche herunter und lädt neu, sobald sie verfügbar ist. Es werden nur Updates installiert, die mit unserem Schlüssel signiert sind. Wenn deaktiviert, wirst du vor jedem Update gefragt.",
+        "updates_more": "Mehr dazu",
+        "updates_later": "Du kannst das später in den Einstellungen aktivieren.",
+        "updates_on": "Aktivieren",
+        "updates_ask": "Jedes Mal fragen",
+        "scam_title": "Achtung",
+        "scam_desc": "Free Grind ist kostenlos – und wird es immer bleiben. Wenn dir jemand Zugang verkauft hat oder Geld verlangt, ist das Betrug. Zahl nichts und melde es.",
+        "permission_later": "Du kannst das später in den Einstellungen aktivieren.",
+        "notifications_title": "Benachrichtigungen",
+        "notifications_allow": "Benachrichtigungen erlauben",
+        "notifications_desc": "Bleib auf dem Laufenden über neue Nachrichten, Taps und Aktivitäten von Leuten in deiner Nähe.",
+        "location_title": "Standort",
+        "location_allow": "Standort erlauben",
+        "location_desc": "Entdecke Leute in deiner Nähe und erscheine auf der Karte, damit andere dich finden.",
+        "microphone_title": "Mikrofon",
+        "microphone_allow": "Mikrofon erlauben",
+        "microphone_desc": "Nimm Sprachnachrichten auf und sende sie in Unterhaltungen.",
+        "camera_title": "Kamera",
+        "camera_allow": "Kamera erlauben",
+        "camera_desc": "Nimm Fotos und Videos zum Teilen auf und nutze Videoanrufe.",
+        "errors": {
+            "microphone_not_found": "Auf diesem Gerät wurde kein Mikrofon gefunden.",
+            "camera_not_found": "Auf diesem Gerät wurde keine Kamera gefunden.",
+            "microphone_in_use": "Das Mikrofon wird von einer anderen App verwendet.",
+            "camera_in_use": "Die Kamera wird von einer anderen App verwendet.",
+            "access_denied": "Der Zugriff wurde verweigert.",
+            "microphone_failed": "Auf das Mikrofon konnte nicht zugegriffen werden.",
+            "camera_failed": "Auf die Kamera konnte nicht zugegriffen werden."
+        }
+    },
+    "settings_saved_phrases": {
+        "reorder": "Phrase verschieben",
+        "delete": "Phrase löschen",
+        "new_placeholder": "Neue Phrase hinzufügen...",
+        "add": "Hinzufügen",
+        "empty": "Noch keine gespeicherten Phrasen.",
+        "empty_hint": "Tippe oben, um deine erste Phrase hinzuzufügen."
+    },
+    "photo_viewer": {
+        "reply_placeholder": "Antworten…",
+        "send": "Senden",
+        "reacted": "Reaktion gesendet",
+        "react": "Reagieren"
     }
 }
