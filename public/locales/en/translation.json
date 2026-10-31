@@ -629,6 +629,8 @@
     "licence_value": "MIT",
     "commercial_note": "The source is available under the MIT licence, so anyone is free to use, modify, and fork it.",
     "resources": {
+      "website_title": "Website",
+      "website_desc": "Downloads, guides, and project news.",
       "source_code_title": "Source Code",
       "source_code_desc": "Track progress, inspect the code, and follow releases.",
       "contributing_title": "Contributing",

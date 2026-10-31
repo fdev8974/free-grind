@@ -629,6 +629,8 @@
         "licence_value": "MIT",
         "commercial_note": "Der Quellcode steht unter der MIT-Lizenz, jeder darf ihn also frei nutzen, verändern und forken.",
         "resources": {
+            "website_title": "Website",
+            "website_desc": "Downloads, Anleitungen und Neuigkeiten zum Projekt.",
             "source_code_title": "Quellcode",
             "source_code_desc": "Fortschritte verfolgen, Code inspizieren und Releases folgen.",
             "contributing_title": "Mitwirken",

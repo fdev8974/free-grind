@@ -1,4 +1,4 @@
-import { Ban, ChevronRight, Code2, ExternalLink, GitBranch, HeartHandshake, Scale } from "lucide-react";
+import { Ban, ChevronRight, Code2, ExternalLink, GitBranch, Globe, HeartHandshake, Scale } from "lucide-react";
 import { DiscordIcon, TelegramIcon } from "../../components/icons/BrandIcons";
 import { HeartFilled, LockFilled, MegaphoneFilled } from "../../components/icons/FilledIcons";
 import { useMemo, useState, type ComponentType, type ReactNode } from "react";
@@ -18,6 +18,7 @@ type AboutIcon = ComponentType<{ className?: string }>;
 
 const DEV_TAP_TARGET = 7;
 const REPO_URL = "https://github.com/fdev8974/free-grind";
+const WEBSITE_URL = "https://fdev8974.github.io/free-grind/";
 const DISCORD_URL = "https://discord.gg/cJqTaWPMFF";
 const TELEGRAM_URL = "https://t.me/freegrind";
 
@@ -225,6 +226,16 @@ export function AboutPage() {
 								onClick={() => setShowAnnouncement(true)}
 							/>
 						)}
+						<ProjectRow
+							icon={Globe}
+							iconClass="bg-indigo-500/15 text-indigo-400"
+							label={t("about_page.resources.website_title", { defaultValue: "Website" })}
+							description={t("about_page.resources.website_desc", {
+								defaultValue: "Downloads, guides, and project news.",
+							})}
+							right={externalIcon}
+							onClick={() => void openExternalUrl(WEBSITE_URL)}
+						/>
 						<ProjectRow
 							icon={GitBranch}
 							iconClass="bg-green-500/15 text-green-400"
