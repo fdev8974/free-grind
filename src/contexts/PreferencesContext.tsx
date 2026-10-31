@@ -7,6 +7,8 @@ import {
 	useCallback,
 	useRef,
 	useState,
+	useLayoutEffect,
+	useSyncExternalStore,
 } from "react";
 import z from "zod";
 import { appLog } from "../utils/logger";
@@ -370,9 +372,41 @@ function preferencesReducer(
 	}
 }
 
+// Screens that always render dark (e.g. Right Now) bump this while mounted;
+// light then resolves to dark, while AMOLED still applies on top.
+let forcedDarkCount = 0;
+let lastThemeArgs: Parameters<typeof applyTheme> | null = null;
+const forcedDarkListeners = new Set<() => void>();
+
+function subscribeForcedDark(listener: () => void) {
+	forcedDarkListeners.add(listener);
+	return () => {
+		forcedDarkListeners.delete(listener);
+	};
+}
+
+function setForcedDark(delta: number) {
+	forcedDarkCount += delta;
+	if (lastThemeArgs) applyTheme(...lastThemeArgs);
+	forcedDarkListeners.forEach((listener) => listener());
+}
+
+export function useIsDarkSchemeForced(): boolean {
+	return useSyncExternalStore(subscribeForcedDark, () => forcedDarkCount > 0);
+}
+
+/** Forces the dark color scheme while the calling component is mounted. */
+export function useForceDarkScheme() {
+	useLayoutEffect(() => {
+		setForcedDark(1);
+		return () => setForcedDark(-1);
+	}, []);
+}
+
 function applyTheme(colorScheme: ColorScheme, amoledMode: boolean, accentColor: string, accentContrast: string, revealStrength: RevealStrength) {
+	lastThemeArgs = [colorScheme, amoledMode, accentColor, accentContrast, revealStrength];
 	const root = document.documentElement;
-	root.setAttribute("data-scheme", colorScheme);
+	root.setAttribute("data-scheme", forcedDarkCount > 0 ? "dark" : colorScheme);
 	if (amoledMode) {
 		root.setAttribute("data-amoled", "true");
 	} else {

@@ -36,7 +36,7 @@ import {
 	saveRightNowFiltersDraft,
 } from "./rightnow/rightnow-filters-storage";
 import { getSexualPositionFilterOptions } from "./profile-option-builders";
-import { usePreferences } from "../../contexts/PreferencesContext";
+import { useForceDarkScheme, usePreferences } from "../../contexts/PreferencesContext";
 import { RightNowPostFAB, type RightNowFABPhase } from "./rightnow/RightNowPostFAB";
 import { RightNowPostPill } from "./rightnow/RightNowPostPill";
 import { useNavStyle } from "../../components/NavBar";
@@ -797,6 +797,8 @@ function RightNowSkeleton() {
 }
 
 export function RightNowPage() {
+	// Right Now is always dark (the map is too); AMOLED still applies.
+	useForceDarkScheme();
 	const { t } = useTranslation();
 	// Desktop shows the feed as a tile grid instead of rows.
 	const isDesktop = useDesktopBreakpoint();

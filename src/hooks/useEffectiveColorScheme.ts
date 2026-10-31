@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { usePreferences } from "../contexts/PreferencesContext";
+import { useIsDarkSchemeForced, usePreferences } from "../contexts/PreferencesContext";
 
 /**
  * Resolves the app's "system" color scheme preference down to an actual
@@ -7,6 +7,7 @@ import { usePreferences } from "../contexts/PreferencesContext";
  */
 export function useEffectiveColorScheme(): "light" | "dark" {
 	const { colorScheme } = usePreferences();
+	const forcedDark = useIsDarkSchemeForced();
 
 	const [prefersDark, setPrefersDark] = useState(() =>
 		typeof window !== "undefined"
@@ -25,6 +26,7 @@ export function useEffectiveColorScheme(): "light" | "dark" {
 		return () => query.removeEventListener("change", update);
 	}, []);
 
+	if (forcedDark) return "dark";
 	if (colorScheme === "light") return "light";
 	if (colorScheme === "dark") return "dark";
 	return prefersDark ? "dark" : "light";
