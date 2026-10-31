@@ -615,14 +615,25 @@ export function NavBar() {
 									"mx-auto w-full max-w-4xl rounded-full px-3 py-1.5"
 								: // Capsule: tight inset so the active tab's pill follows the bar's curve. No outline
 									// on Android, like Material 3 bars (surface + shadow only).
-									cn("mx-auto w-full max-w-4xl rounded-full p-1 shadow-[0_8px_28px_rgba(0,0,0,0.35)]", !isAndroid() && "border border-[var(--border)]"),
+									cn(
+										"mx-auto w-full max-w-4xl rounded-full p-1",
+										isAndroid()
+											? // M3 level-3 elevation: key + ambient shadow.
+												"shadow-[0_4px_10px_rgba(0,0,0,0.55),0_12px_36px_rgba(0,0,0,0.5)]"
+											: "border border-[var(--border)] shadow-[0_8px_28px_rgba(0,0,0,0.35)]",
+									),
 				)}
 				style={
 					rail || transparent
 						? undefined
 						: {
 								backgroundColor: "rgba(22, 29, 39, 0.8)",
-								background: "color-mix(in srgb, var(--surface) 80%, transparent)",
+								// Android capsule: lighter tonal surface (surface-2), since in dark
+								// themes M3 shows elevation mostly by tone; shadows barely read on black.
+								background:
+									capsule && isAndroid()
+										? "color-mix(in srgb, var(--surface-2) 92%, transparent)"
+										: "color-mix(in srgb, var(--surface) 80%, transparent)",
 								backdropFilter: "blur(24px) saturate(180%)",
 								WebkitBackdropFilter: "blur(24px) saturate(180%)",
 							}
