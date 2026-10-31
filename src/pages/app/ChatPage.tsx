@@ -2895,7 +2895,14 @@ export function ChatPage() {
 							...conversation,
 							data: {
 								...conversation.data,
-								lastActivityTimestamp: newest.timestamp,
+								// Only ever forward: the server's lastActivityTimestamp also
+								// counts reactions, which no message timestamp reflects —
+								// lowering it to the newest message would drop a chat that
+								// just got a reaction below where the server sorts it.
+								lastActivityTimestamp: Math.max(
+									conversation.data.lastActivityTimestamp ?? 0,
+									newest.timestamp,
+								),
 								preview: buildPreviewFromMessage(bestPreviewMessage, t),
 							},
 						}));
@@ -3398,7 +3405,12 @@ export function ChatPage() {
 					...conversation,
 					data: {
 						...conversation.data,
-						lastActivityTimestamp: latestMessage.timestamp,
+						// Never backwards — a realtime update to an older message (e.g. a
+						// reaction) carries that message's original timestamp.
+						lastActivityTimestamp: Math.max(
+							conversation.data.lastActivityTimestamp ?? 0,
+							latestMessage.timestamp,
+						),
 						unreadCount: (isMine || isActive) ? conversation.data.unreadCount : (conversation.data.unreadCount + 1),
 						preview: {
 							conversationId: {
