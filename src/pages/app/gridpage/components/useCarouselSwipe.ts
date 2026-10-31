@@ -1,5 +1,4 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { haptic } from "../../../../utils/haptics";
 
 /** The drag offset goes onto the carousel as CSS variables that its slides
  * read, rather than state — no re-render per frame of finger movement. */
@@ -79,10 +78,8 @@ export function useCarouselSwipe(
 			const dy = lastDeltaRef.current;
 			const idx = currentIndexRef.current;
 			if (dy < -60 && idx < count - 1) {
-				haptic(8);
 				onIndexChangeRef.current?.(idx + 1);
 			} else if (dy > 60 && idx > 0) {
-				haptic(8);
 				onIndexChangeRef.current?.(idx - 1);
 			}
 			lastDeltaRef.current = 0;

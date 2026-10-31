@@ -366,7 +366,6 @@ export function ProfileDetailsContent({
 														key={`${hash}-dot`}
 														type="button"
 														onClick={() => {
-															if (index !== mobileCarouselPhotoIndex) haptic(8);
 															onPhotoIndexChange?.(index);
 														}}
 														className="flex items-center justify-center p-1.5 -m-1.5"
