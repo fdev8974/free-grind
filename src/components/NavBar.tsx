@@ -572,9 +572,16 @@ export function NavBar() {
 				// While the account switcher is open, lift the bar (and the switcher
 				// inside it) above the pages' floating action buttons (z-[60]).
 				isAccountSwitcherOpen ? "z-[65]" : "z-50",
-				!rail && !fullWidth && "px-3 pb-[calc(var(--nav-system-inset)+0.75rem)] md:px-4 md:pb-[calc(var(--nav-system-inset)+1rem)]",
+				!rail && !fullWidth && "px-3 pb-[calc(var(--nav-system-inset)+var(--nav-bottom-gap,0.75rem))] md:px-4 md:pb-[calc(var(--nav-system-inset)+var(--nav-bottom-gap,1rem))]",
 			)}
-			style={{ "--nav-system-inset": `${systemNavInset}px` } as React.CSSProperties}
+			style={
+				{
+					"--nav-system-inset": `${systemNavInset}px`,
+					// 3-button navigation: the system bar is transparent, so sit just above
+					// its buttons with a small 5px gap instead of the usual 12px.
+					...(systemNavInset > 0 && { "--nav-bottom-gap": "5px" }),
+				} as React.CSSProperties
+			}
 		>
 			{/* Floating styles: a dark fade rising from the screen edge (like the
 			    profile footer actions) sets the bar off from the content. Strong for
@@ -720,7 +727,7 @@ export function NavBar() {
 												: "text-[var(--text-muted)] hover:text-[var(--text)]",
 										// Capsule: tinted pill behind the active tab and a press shrink, like native tab bars.
 										capsule &&
-											"gap-0.5 rounded-full transition-[color,background-color,transform] active:scale-[0.94] data-[state=active]:bg-[color-mix(in_srgb,currentColor_14%,transparent)] md:gap-0.5",
+											"min-w-0 gap-0.5 rounded-full px-0.5 transition-[color,background-color,transform] active:scale-[0.94] data-[state=active]:bg-[color-mix(in_srgb,currentColor_14%,transparent)] md:gap-0.5",
 										item.value === "right-now" || (item.value === "browse" && isRightNowLive)
 											? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
 											: item.value === "browse" && isExploreActive
@@ -786,7 +793,7 @@ export function NavBar() {
 												rail
 													? "w-full whitespace-normal break-words text-center text-[0.7rem] leading-tight"
 													: capsule
-														? "max-w-full truncate px-1 text-[0.6875rem] font-semibold leading-tight tracking-[-0.01em]"
+														? "max-w-full truncate text-[0.6875rem] font-semibold leading-tight tracking-[-0.01em]"
 														: "text-xs md:text-[0.8rem]"
 											}
 										>
