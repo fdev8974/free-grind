@@ -22,6 +22,7 @@ import { LoadingScreen } from "./LoadingScreen";
 import logo from "../images/freegrind-logo.webp";
 import { fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { SchemePreview } from "./SchemePreview";
+import { cn } from "../utils/cn";
 
 type PermissionStatus = "idle" | "granted" | "denied" | "unavailable";
 
@@ -509,28 +510,46 @@ export function PermissionsOnboarding({ onComplete }: { onComplete: () => void }
 							<p className="mt-1 text-sm text-[var(--text-muted)]">You can change this anytime in Settings.</p>
 						</div>
 
-						{/* Same tiles as the accent picker in Settings: a color block with its
-						    name, the active one ringed in the accent. Same height as the theme
-						    step's option rows, so the title doesn't jump between the steps.
-						    A native-group laid out as a grid: its tiles get the same fill as
-						    the theme step's, raised on the desktop card too; rounded-2xl
-						    overrides the group's stacked-list corners. */}
-						<div className="native-group grid h-[358px] w-full grid-cols-4 content-center gap-2">
-							{ACCENT_PRESETS.map((preset) => {
-								const active = accentColor === preset.color;
-								return (
-									<button
-										key={preset.color}
-										type="button"
-										onClick={() => setPreferences({ accentColor: preset.color, accentContrast: preset.contrast })}
-										aria-pressed={active}
-										className={`flex flex-col gap-1.5 !rounded-2xl p-1.5 pb-2 transition-[transform,background-color] duration-150 active:scale-[0.98] ${active ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "hover:accent-tint-10"}`}
-									>
-										<span className="aspect-[4/3] w-full rounded-xl" style={{ background: preset.color }} />
-										<span className={`truncate text-center text-xs font-medium ${active ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{preset.name}</span>
-									</button>
-								);
-							})}
+						{/* Two columns of tiles in the theme step's style: color, name and the
+						    same radio. A native-group laid out as a grid, so the tiles get the
+						    group's fill (raised on the desktop card too); the corner classes
+						    round only the block's four outer corners. Its fixed height keeps
+						    the title level with the theme step's. */}
+						<div className="flex h-[358px] items-center">
+							<div className="native-group grid w-full grid-cols-2">
+								{ACCENT_PRESETS.map((preset, index) => {
+									const active = accentColor === preset.color;
+									const lastRow = index >= ACCENT_PRESETS.length - 2;
+									return (
+										<button
+											key={preset.color}
+											type="button"
+											onClick={() => setPreferences({ accentColor: preset.color, accentContrast: preset.contrast })}
+											aria-pressed={active}
+											className={cn(
+												"flex items-center gap-3 !rounded-[6px] px-3 py-3 text-left transition-[transform,background-color] duration-150 active:scale-[0.99]",
+												index === 0 && "!rounded-tl-[20px]",
+												index === 1 && "!rounded-tr-[20px]",
+												lastRow && index % 2 === 0 && "!rounded-bl-[20px]",
+												lastRow && index % 2 === 1 && "!rounded-br-[20px]",
+												active ? "accent-tint-14" : "hover-fill",
+											)}
+										>
+											<span className="h-7 w-7 shrink-0 rounded-lg" style={{ background: preset.color }} />
+											<span className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--text)]">{preset.name}</span>
+											<span
+												className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all"
+												style={{
+													borderColor: active ? "var(--accent)" : "color-mix(in srgb, var(--text) 25%, transparent)",
+													background: active ? "var(--accent)" : "transparent",
+												}}
+											>
+												{active && <Check className="h-3 w-3 text-[var(--accent-contrast)]" />}
+											</span>
+										</button>
+									);
+								})}
+							</div>
 						</div>
 					</div>
 
