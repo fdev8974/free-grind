@@ -37,6 +37,7 @@ import { Avatar } from "./ui/avatar";
 import { useMyOwnProfile } from "../hooks/queries/useProfileQueries";
 import { getProfilePhotoHash } from "../pages/app/profile-editor/profileEditorUtils";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { useSystemNavInset } from "../hooks/useSystemNavInset";
 import { getThumbImageUrl } from "../utils/media";
 import { getSavedAccountProfile } from "../services/savedAccountProfiles";
 import { looksLikeMessageUpdate } from "../utils/messageUpdates";
@@ -532,22 +533,7 @@ export function NavBar() {
 	// let it overlap the gesture-handle / home-indicator area. Only a tall
 	// inset (Android 3-button navigation) is kept clear, since the bar would
 	// cover the system buttons there.
-	const [systemNavInset, setSystemNavInset] = useState(0);
-	useLayoutEffect(() => {
-		const probe = document.createElement("div");
-		probe.style.cssText = "position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px)";
-		document.body.appendChild(probe);
-		const measure = () => {
-			const inset = parseFloat(getComputedStyle(probe).paddingBottom) || 0;
-			setSystemNavInset(inset > 40 ? inset : 0);
-		};
-		measure();
-		window.addEventListener("resize", measure);
-		return () => {
-			window.removeEventListener("resize", measure);
-			probe.remove();
-		};
-	}, []);
+	const systemNavInset = useSystemNavInset();
 
 	// Determine the grid column class safely based on exactly how many tabs remain
 	const gridColsClass = 
@@ -609,7 +595,11 @@ export function NavBar() {
 					rail
 						? "h-full"
 						: fullWidth
-							? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
+							? cn(
+									"w-full border-t border-[var(--border)] pt-1.5",
+									// 3-button navigation: sit 5px lower, closer to the system buttons.
+									systemNavInset > 0 ? "pb-[calc(env(safe-area-inset-bottom,0px)+1px)]" : "pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]",
+								)
 							: transparent
 								? // Cardless: extra side padding keeps the outer tabs off the curve.
 									"mx-auto w-full max-w-4xl rounded-full px-3 py-1.5"
