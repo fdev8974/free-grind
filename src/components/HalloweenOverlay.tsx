@@ -57,12 +57,12 @@ export function HalloweenOverlay() {
 					{DRIPS.filter(([, width]) => width >= 9).map(([left, width, fullLength, dur, delay]) => {
 						const length = Math.round(fullLength * scale);
 						return (
-						<svg key={left} x={`${left}%`} overflow="visible">
-							<ellipse cx={0} cy={length} rx={width * 0.45} ry={width * 0.6} fill="#a8001a" opacity={0}>
-								<animate attributeName="cy" values={`${length};${length};${length + 1400}`} keyTimes="0;0.62;0.8" calcMode="spline" keySplines="0 0 1 1;0.55 0 1 0.45" dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
-								<animate attributeName="opacity" values="0;0;0.9;0.9;0" keyTimes="0;0.61;0.62;0.76;0.8" dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
-							</ellipse>
-						</svg>
+							<svg key={left} x={`${left}%`} overflow="visible">
+								<ellipse cx={0} cy={length} rx={width * 0.45} ry={width * 0.6} fill="#a8001a" opacity={0}>
+									<animate attributeName="cy" values={`${length};${length};${length + 1400}`} keyTimes="0;0.62;0.8" calcMode="spline" keySplines="0 0 1 1;0.55 0 1 0.45" dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
+									<animate attributeName="opacity" values="0;0;0.9;0.9;0" keyTimes="0;0.61;0.62;0.76;0.8" dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
+								</ellipse>
+							</svg>
 						);
 					})}
 				</svg>
