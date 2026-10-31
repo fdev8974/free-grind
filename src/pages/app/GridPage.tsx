@@ -208,32 +208,39 @@ export function GridPage() {
 		return () => setGridPageActive(false);
 	}, []);
 	const [isLocationMissing, setIsLocationMissing] = useState(false);
-	const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
-
 	// The desktop profile modal is local state, not a route like the profile
 	// modal on Inbox, Interest and Right Now, so it gets a history entry of its
-	// own: Back closes it instead of leaving the grid. Closing it in the UI drops
-	// the flag in place rather than popping, which would make the router
-	// re-render the grid route (as ProfileDetailsModal's photo viewer does).
-	const profileHistoryPushedRef = useRef(false);
+	// own, holding the open profile's id: Back closes it instead of leaving the
+	// grid, closing it in the UI takes the entry back (so the next Back isn't a
+	// no-op), and coming back to the entry from a page opened out of the modal
+	// (e.g. Message) reopens that profile, like the routed modals do.
+	const [activeProfileId, setActiveProfileId] = useState<string | null>(() => {
+		const id = (window.history.state as { gridProfile?: unknown } | null)?.gridProfile;
+		return typeof id === "string" ? id : null;
+	});
+	const profileHistoryPushedRef = useRef(activeProfileId !== null);
 	useEffect(() => {
-		if (activeProfileId && !profileHistoryPushedRef.current) {
-			window.history.pushState({ ...(window.history.state as object | null), gridProfile: true }, "");
-			profileHistoryPushedRef.current = true;
-		} else if (!activeProfileId && profileHistoryPushedRef.current) {
-			profileHistoryPushedRef.current = false;
-			const state = window.history.state as Record<string, unknown> | null;
-			if (state?.gridProfile) {
-				const { gridProfile: _omit, ...rest } = state;
-				window.history.replaceState(rest, "");
+		const state = window.history.state as Record<string, unknown> | null;
+		if (activeProfileId) {
+			if (!profileHistoryPushedRef.current) {
+				window.history.pushState({ ...state, gridProfile: activeProfileId }, "");
+				profileHistoryPushedRef.current = true;
+			} else if (state?.gridProfile !== undefined && state.gridProfile !== activeProfileId) {
+				// Swiped to another profile in the open modal: same entry, new id.
+				window.history.replaceState({ ...state, gridProfile: activeProfileId }, "");
 			}
+		} else if (profileHistoryPushedRef.current) {
+			// Cleared first so our own popstate handler ignores this pop. Popping
+			// back to the same URL only re-renders the grid route, it doesn't remount it.
+			profileHistoryPushedRef.current = false;
+			if (state?.gridProfile !== undefined) window.history.back();
 		}
 	}, [activeProfileId]);
 	useEffect(() => {
 		const onPopState = () => {
 			if (!profileHistoryPushedRef.current) return;
 			// Still on our entry (e.g. Back only closed the photo viewer on top).
-			if ((window.history.state as { gridProfile?: boolean } | null)?.gridProfile) return;
+			if ((window.history.state as { gridProfile?: unknown } | null)?.gridProfile !== undefined) return;
 			profileHistoryPushedRef.current = false;
 			setActiveProfileId(null);
 		};
