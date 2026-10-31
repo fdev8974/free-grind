@@ -2013,13 +2013,10 @@ html.qr-scanning #app {
 	visibility: hidden;
 }
 
-/* Halloween theme (HalloweenOverlay): blood pooling along the top edge and
-   running down, over a red vignette. Global since the overlay is portalled to body. */
+/* Halloween theme (HalloweenOverlay): red vignette over the whole app.
+   Global since the overlay is portalled to body. */
 .halloween-vignette {
 	background:
 		radial-gradient(ellipse 120% 60% at 50% 0%, rgba(120, 0, 10, 0.28) 0%, transparent 45%),
 		radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(90, 0, 8, 0.38) 100%);
-}
-.halloween-blood {
-	filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
 }
