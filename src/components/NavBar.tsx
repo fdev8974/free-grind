@@ -1,5 +1,12 @@
 import { Flame, MessageCircle, Check, Loader2 } from "lucide-react";
-import { LayoutGridFilled as GridIcon, UserFilled } from "./icons/FilledIcons";
+import {
+	LayoutGridFilled as GridIcon,
+	PumpkinFilled,
+	BatFilled,
+	BleedingHeartFilled,
+	GhostFilled,
+} from "./icons/FilledIcons";
+import { ProfilePlaceholderIcon } from "./icons/ProfilePlaceholderIcon";
 import toast from "react-hot-toast";
 import { RightNowIcon } from "./icons/RightNowIcon";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -11,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
 import { useExploreMode } from "../contexts/ExploreModeContext";
 import { useIsRightNowLive } from "../hooks/useIsRightNowLive";
+import { useIsHalloween } from "../hooks/useIsHalloween";
 import {
 	getInterestLastSeen,
 	INTEREST_SEEN_EVENT,
@@ -129,6 +137,7 @@ export function NavBar() {
 	const { isExploreActive } = useExploreMode();
 	// A live (public) Right Now session takes the grid tab's color over everything, explore included.
 	const isRightNowLive = useIsRightNowLive();
+	const isHalloween = useIsHalloween();
 	const { hideLabels, fullWidth, transparent } = useNavStyle();
 	// Desktop: vertical rail on the left instead of the bottom bar.
 	const rail = useDesktopBreakpoint();
@@ -234,28 +243,28 @@ export function NavBar() {
 		{
 			value: "browse",
 			label: t("nav.browse"),
-			icon: GridIcon,
+			icon: isHalloween ? PumpkinFilled : GridIcon,
 			path: "/",
 			visible: true, // Mandatory
 		},
 		{
 			value: "right-now",
 			label: t("nav.right_now"),
-			icon: RightNowIcon,
+			icon: isHalloween ? BatFilled : RightNowIcon,
 			path: "/right-now",
 			visible: showRightNow, // Toggleable
 		},
 		{
 			value: "interest",
 			label: t("nav.interest"),
-			icon: Flame,
+			icon: isHalloween ? BleedingHeartFilled : Flame,
 			path: "/interest",
 			visible: showInterest, // Toggleable
 		},
 		{
 			value: "inbox",
 			label: t("nav.inbox"),
-			icon: MessageCircle,
+			icon: isHalloween ? GhostFilled : MessageCircle,
 			path: "/chat",
 			visible: true, // Mandatory
 		},
@@ -720,7 +729,7 @@ export function NavBar() {
 											<Icon className="h-5 w-5 fill-current md:h-[1.2rem] md:w-[1.2rem]" />
 										) : !profilePhotoUrl ? (
 											// No profile photo: a user icon that takes the tab's (active) color like the other icons.
-											<UserFilled className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+											<ProfilePlaceholderIcon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
 										) : (
 											<Avatar
 												src={profilePhotoUrl}

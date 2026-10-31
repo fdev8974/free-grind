@@ -935,3 +935,64 @@ export function CloudSunFilled(props: IconProps) {
 		</FilledSvg>
 	);
 }
+
+// Halloween nav icons (see useIsHalloween).
+
+export function PumpkinFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M6.5 13.5 9 9.5l2.5 4z" stroke="none" />
+				<path d="M12.5 13.5 15 9.5l2.5 4z" stroke="none" />
+				<path d="M6.5 15.5h11l-1.5 3-2-1.25L12 18.5l-2-1.25-2 1.25z" stroke="none" />
+			</CutoutMask>
+			<g mask={`url(#${id})`}>
+				<ellipse cx="7.5" cy="14" rx="4.5" ry="6.5" />
+				<ellipse cx="16.5" cy="14" rx="4.5" ry="6.5" />
+				<ellipse cx="12" cy="14" rx="4.5" ry="7" />
+			</g>
+			<path d="M12 7V4.5C12 3 13 2 14.5 2" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function BatFilled(props: IconProps) {
+	return (
+		<FilledSvg strokeWidth={1} {...props}>
+			<path d="M12 9.5 10.8 7.5l-.5 2.5C7.5 8.2 3.8 8.5 1.5 11.5c1.7-.2 2.9.5 3.3 2 1.2-.9 2.8-.5 3.4 1 1.2-.6 2.6.1 2.8 1.5l1 2 1-2c.2-1.4 1.6-2.1 2.8-1.5.6-1.5 2.2-1.9 3.4-1 .4-1.5 1.6-2.2 3.3-2-2.3-3-6-3.3-8.8-1.5l-.5-2.5z" />
+		</FilledSvg>
+	);
+}
+
+export function SkullFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<circle cx="9" cy="11" r="1.8" stroke="none" />
+				<circle cx="15" cy="11" r="1.8" stroke="none" />
+				<path d="M12 14l-1 2h2z" stroke="none" />
+				<path d="M10.5 19.5v2.5M13.5 19.5v2.5" strokeWidth={1} />
+			</CutoutMask>
+			<path
+				mask={`url(#${id})`}
+				d="M12 2a8 8 0 0 0-5.56 13.75A2 2 0 0 0 8 19v2a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2a2 2 0 0 0 1.56-3.25A8 8 0 0 0 12 2z"
+			/>
+		</FilledSvg>
+	);
+}
+
+// The heart from HeartFilled, shrunk to make room for blood dripping off it.
+export function BleedingHeartFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path
+				transform="translate(2.4 0) scale(0.8)"
+				d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5z"
+			/>
+			<path d="M7.5 12v5.5M16.5 12v3.5" fill="none" strokeWidth={1.75} />
+			<path d="M12 19c-.8 1.1-1.3 1.9-1.3 2.6a1.3 1.3 0 0 0 2.6 0c0-.7-.5-1.5-1.3-2.6z" strokeWidth={1} />
+		</FilledSvg>
+	);
+}

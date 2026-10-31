@@ -1,5 +1,5 @@
 import type { HTMLAttributes, ImgHTMLAttributes } from "react";
-import { UserFilled } from "../icons/FilledIcons";
+import { ProfilePlaceholderIcon } from "../icons/ProfilePlaceholderIcon";
 import { cn } from "../../utils/cn";
 import { proxyMediaUrl } from "../../utils/mediaProxy";
 import { PRIVACY_BLUR_CLASS, PRIVACY_BLUR_TRANSITION_CLASS, PRIVACY_HOVER_REVEAL_CLASS, useProfilePhotoPrivacy, type ProfilePhotoPrivacyScope } from "../../hooks/useProfilePhotoPrivacy";
@@ -43,7 +43,7 @@ export function Avatar({
 			) : initials ? (
 				<span>{initials}</span>
 			) : (
-				<UserFilled className="h-5 w-5" />
+				<ProfilePlaceholderIcon className="h-5 w-5" />
 			)}
 		</div>
 	);
