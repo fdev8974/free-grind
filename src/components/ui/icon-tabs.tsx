@@ -80,7 +80,8 @@ export function IconTabs<K extends string>({
 	return (
 		<div
 			className="glass-pill relative inline-flex items-center gap-0.5 p-0.5"
-			style={{ "--icon-tabs-color": color, "--icon-tabs-contrast": contrastColor } as CSSProperties}
+			// --pill-color tints the glass-pill frame too, which otherwise falls back to the accent.
+			style={{ "--icon-tabs-color": color, "--icon-tabs-contrast": contrastColor, "--pill-color": color } as CSSProperties}
 		>
 			{/*
 				The Sliding Pill:

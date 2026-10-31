@@ -7,7 +7,7 @@ import { ErrorState } from "../../components/ui/states";
 import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
 import { BottomSheet, SheetCloseButton } from "../../components/ui/bottom-sheet";
 import { SelectSheet } from "../../components/ui/select-sheet";
-import { SheetChip, SheetSearchInput, SheetSection } from "../../components/ui/sheet-section";
+import { SheetChip, SheetSection } from "../../components/ui/sheet-section";
 import { useRefreshAssignments } from "../../components/AssignmentsBridge";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
@@ -15,6 +15,7 @@ import { type AssignmentSourceId as SourceId, useAssignmentsSnapshot } from "../
 import type { Assignment } from "../../utils/assignments";
 import { cn } from "../../utils/cn";
 import { DrawerEmptyState } from "./chat/drawerUi";
+import { PageSearchBar } from "./settings-dev/inspectorUi";
 
 // A developer tool, so its texts stay English (as before).
 
@@ -192,86 +193,86 @@ export function AssignmentsPage() {
 						</button>
 					</div>
 
-					<div className="grid min-w-0 gap-3">
-						<SheetSearchInput value={query} onChange={setQuery} placeholder="Search key or value" />
-						<div className="flex flex-wrap gap-2">
-							{TYPE_FILTERS.map((filter) => {
-								const count = searched.filter((a) => matchesType(a, filter.id)).length;
-								return (
-									<SheetChip key={filter.id} size="sm" active={typeFilter === filter.id} onClick={() => setTypeFilter(filter.id)}>
-										{filter.label} · {count}
-									</SheetChip>
-								);
-							})}
-						</div>
-					</div>
+					<PageSearchBar value={query} onChange={setQuery} placeholder="Search key or value" />
 
-					{isLoading && !sources ? (
-						<div className="native-group">
-							{Array.from({ length: 6 }).map((_, i) => (
-								<div key={i} className="flex items-center gap-3 px-4 py-3">
-									<div className="min-w-0 flex-1 space-y-1.5">
-										<div className="h-3.5 w-2/3 animate-pulse rounded-full ink-tint-10" />
-										<div className="h-3 w-16 animate-pulse rounded-full ink-tint-10" />
-									</div>
-									<div className="h-5 w-12 animate-pulse rounded-full ink-tint-10" />
-								</div>
-							))}
-						</div>
-					) : current?.error && current.assignments.length === 0 ? (
-						<ErrorState title="Couldn't load assignments" description={current.error} onRetry={() => void refresh()} />
-					) : filtered.length === 0 ? (
-						<div className="native-card overflow-hidden px-4">
-							<DrawerEmptyState
-								icon={<FlagTriangleRight />}
-								fanned={false}
-								title="No assignments"
-								hint={current && current.assignments.length > 0
-									? "Nothing matches this search or filter."
-									: "The server returned none for this source."}
-							/>
-						</div>
-					) : (
-						<div className="min-w-0">
-							<div className="mb-2 flex items-center gap-2 px-1">
-								<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{source.label}</p>
-								<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
-									{filtered.length}
-								</span>
-							</div>
-							<div className="native-group">
-								{filtered.map((a) => {
-									const withPayload = hasPayload(a.payload);
+					<div className="min-w-0">
+						<div className="mb-2 flex flex-wrap items-center gap-2 px-1">
+							<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{source.label}</p>
+							<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
+								{filtered.length}
+							</span>
+							<div className="ml-auto flex flex-wrap justify-end gap-1.5">
+								{TYPE_FILTERS.map((filter) => {
+									const count = searched.filter((a) => matchesType(a, filter.id)).length;
 									return (
-										<button
-											key={a.key}
-											type="button"
-											disabled={!withPayload}
-											onClick={() => setOpenAssignment(a)}
-											className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition enabled:hover-fill"
-										>
-											<div className="min-w-0 flex-1">
-												<p className="break-all font-mono text-[13px] font-semibold text-[var(--text)]">{a.key}</p>
-												<p className="mt-0.5 text-xs text-[var(--text-muted)]">
-													{typeLabel(a.type)}
-													{withPayload ? " · payload" : ""}
-												</p>
-											</div>
-											<span className={cn("max-w-[40%] shrink-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold", valueClass(a.value))}>
-												{a.value || "—"}
-											</span>
-											{withPayload && <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />}
-										</button>
+										<SheetChip key={filter.id} size="sm" active={typeFilter === filter.id} onClick={() => setTypeFilter(filter.id)}>
+											{filter.label} · {count}
+										</SheetChip>
 									);
 								})}
 							</div>
-							{current?.error ? (
-								<p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
-									Couldn't refresh, showing the last loaded list ({current.error}).
-								</p>
-							) : null}
 						</div>
-					)}
+						{isLoading && !sources ? (
+							<div className="native-group">
+								{Array.from({ length: 6 }).map((_, i) => (
+									<div key={i} className="flex items-center gap-3 px-4 py-3">
+										<div className="min-w-0 flex-1 space-y-1.5">
+											<div className="h-3.5 w-2/3 animate-pulse rounded-full ink-tint-10" />
+											<div className="h-3 w-16 animate-pulse rounded-full ink-tint-10" />
+										</div>
+										<div className="h-5 w-12 animate-pulse rounded-full ink-tint-10" />
+									</div>
+								))}
+							</div>
+						) : current?.error && current.assignments.length === 0 ? (
+							<ErrorState title="Couldn't load assignments" description={current.error} onRetry={() => void refresh()} />
+						) : filtered.length === 0 ? (
+							<div className="native-card overflow-hidden px-4">
+								<DrawerEmptyState
+									icon={<FlagTriangleRight />}
+									fanned={false}
+									title="No assignments"
+									hint={current && current.assignments.length > 0
+										? "Nothing matches this search or filter."
+										: "The server returned none for this source."}
+								/>
+							</div>
+						) : (
+							<div>
+								<div className="native-group">
+									{filtered.map((a) => {
+										const withPayload = hasPayload(a.payload);
+										return (
+											<button
+												key={a.key}
+												type="button"
+												disabled={!withPayload}
+												onClick={() => setOpenAssignment(a)}
+												className="flex w-full min-w-0 items-center gap-3 px-4 py-3 text-left transition enabled:hover-fill"
+											>
+												<div className="min-w-0 flex-1">
+													<p className="break-all font-mono text-[13px] font-semibold text-[var(--text)]">{a.key}</p>
+													<p className="mt-0.5 text-xs text-[var(--text-muted)]">
+														{typeLabel(a.type)}
+														{withPayload ? " · payload" : ""}
+													</p>
+												</div>
+												<span className={cn("max-w-[40%] shrink-0 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold", valueClass(a.value))}>
+													{a.value || "—"}
+												</span>
+												{withPayload && <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />}
+											</button>
+										);
+									})}
+								</div>
+								{current?.error ? (
+									<p className="mt-2 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
+										Couldn't refresh, showing the last loaded list ({current.error}).
+									</p>
+								) : null}
+							</div>
+						)}
+					</div>
 				</div>
 			</PullToRefreshContainer>
 

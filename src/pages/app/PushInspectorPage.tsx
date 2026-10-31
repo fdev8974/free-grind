@@ -6,7 +6,7 @@ import { PageHeader } from "../../components/PageHeader";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
 import { BottomSheet, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
-import { SHEET_FIELD_CLASS, SheetChip, SheetSearchInput, SheetSection } from "../../components/ui/sheet-section";
+import { SHEET_FIELD_CLASS, SheetChip, SheetSection } from "../../components/ui/sheet-section";
 import { useAuth } from "../../contexts/useAuth";
 import { useApi } from "../../hooks/useApi";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
@@ -22,7 +22,7 @@ import {
 } from "../../services/pushEventLog";
 import { cn } from "../../utils/cn";
 import { DrawerEmptyState } from "./chat/drawerUi";
-import { CodeBlock, HEADER_ICON_BUTTON_CLASS, copyText, formatTimestamp } from "./settings-dev/inspectorUi";
+import { CodeBlock, HEADER_ICON_BUTTON_CLASS, PageSearchBar, copyText, formatTimestamp } from "./settings-dev/inspectorUi";
 
 // A developer tool, so its texts stay English (like the API Inspector).
 
@@ -311,24 +311,23 @@ export function PushInspectorPage() {
 
 	return (
 		<section className="app-screen">
-			<div className="mx-auto grid w-full min-w-0 max-w-4xl gap-5">
-				<PageHeader
-					backTo="/settings"
-					title="Push Inspector"
-					subtitle="Every FCM push and notification tap, live — also while the app is open. Tap one for its full payload."
-					subtitleClassName="-mt-3 mb-0"
-					actions={
-						<>
-							<button type="button" onClick={() => void handleExport()} disabled={log.length === 0 || isExporting} className={HEADER_ICON_BUTTON_CLASS} aria-label="Export" title="Export as JSON">
-								{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-							</button>
-							<button type="button" onClick={() => setIsConfirmClearOpen(true)} disabled={log.length === 0} className={cn(HEADER_ICON_BUTTON_CLASS, "hover:text-red-500")} aria-label="Clear" title="Clear all">
-								<Trash2 className="h-4 w-4" />
-							</button>
-						</>
-					}
-				/>
+			<PageHeader
+				backTo="/settings"
+				title="Push Inspector"
+				subtitle="Every FCM push and notification tap, live — also while the app is open. Tap one for its full payload."
+				actions={
+					<>
+						<button type="button" onClick={() => void handleExport()} disabled={log.length === 0 || isExporting} className={HEADER_ICON_BUTTON_CLASS} aria-label="Export" title="Export as JSON">
+							{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+						</button>
+						<button type="button" onClick={() => setIsConfirmClearOpen(true)} disabled={log.length === 0} className={cn(HEADER_ICON_BUTTON_CLASS, "hover:text-red-500")} aria-label="Clear" title="Clear all">
+							<Trash2 className="h-4 w-4" />
+						</button>
+					</>
+				}
+			/>
 
+			<div className="grid min-w-0 gap-5">
 				{/* Token */}
 				<div className="native-group">
 					<div className="flex items-start gap-3 px-4 py-3.5">
@@ -390,23 +389,21 @@ export function PushInspectorPage() {
 					</button>
 				</div>
 
-				<div className="grid min-w-0 gap-3">
-					<SheetSearchInput value={query} onChange={setQuery} placeholder="Search sender, text, ids or any payload field" />
-					<div className="flex flex-wrap gap-2">
-						{filters.map((option) => (
-							<SheetChip key={option.value} size="sm" active={filter === option.value} onClick={() => setFilter(option.value)}>
-								{option.value !== "all" && counts[option.value] > 0 ? `${option.label} · ${counts[option.value]}` : option.label}
-							</SheetChip>
-						))}
-					</div>
-				</div>
+				<PageSearchBar value={query} onChange={setQuery} placeholder="Search sender, text, ids or any payload field" />
 
 				<div className="min-w-0">
-					<div className="mb-2 flex items-center gap-2 px-1">
+					<div className="mb-2 flex flex-wrap items-center gap-2 px-1">
 						<p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Events</p>
 						<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[10px] font-bold tabular-nums text-[var(--text-muted)]">
 							{filtered.length}
 						</span>
+						<div className="ml-auto flex flex-wrap justify-end gap-1.5">
+							{filters.map((option) => (
+								<SheetChip key={option.value} size="sm" active={filter === option.value} onClick={() => setFilter(option.value)}>
+									{option.value !== "all" && counts[option.value] > 0 ? `${option.label} · ${counts[option.value]}` : option.label}
+								</SheetChip>
+							))}
+						</div>
 					</div>
 					{filtered.length === 0 ? (
 						<div className="native-card overflow-hidden px-4">

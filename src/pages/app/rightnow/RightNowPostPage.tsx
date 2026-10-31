@@ -17,7 +17,7 @@ import type { RightNowCreatePostRequest, RightNowUpdatePostRequest } from "../..
 import { getRightNowSessionDuration } from "./rightnow-constants";
 import { DrawerEmptyState } from "../chat/drawerUi";
 import { triggerRightNowStarted } from "../../../components/RightNowStartedOverlay";
-import { SheetSection } from "../../../components/ui/sheet-section";
+import { SHEET_GROUP_CLASS, SheetSection } from "../../../components/ui/sheet-section";
 import { simulateCreatePost, simulateEndSession, simulateFetchActivePost, simulateUpdatePost, simulateUploadMedia } from "./rightnow-simulation";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
@@ -35,6 +35,7 @@ export function RightNowPostPage({ onClose, onPost }: RightNowPostPageProps) {
 			// Same glass as the bottom navigation: translucent surface + 24px blur.
 			bg="bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] backdrop-blur-[24px]"
 			panelClassName="relative max-h-[92dvh] px-4"
+			accentColor="var(--right-now)"
 		>
 			<RightNowPostSheetContent onPost={onPost} />
 		</BottomSheet>
@@ -504,14 +505,11 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							</SheetSection>
 
 							<SheetSection title={t("right_now.section_options", { defaultValue: "Options" })}>
-								<div className={`divide-y divide-[color-mix(in_srgb,var(--border)_60%,transparent)] overflow-hidden rounded-2xl ${GLASS_FIELD}`}>
+								<div className={SHEET_GROUP_CLASS}>
 									{isEditMode && (
 										<ToggleRow
 											icon={<RightNowIcon className="h-5 w-5" />}
-											iconClass={cn(
-												"flex h-10 w-10 items-center justify-center transition-colors",
-												isHidden ? "bg-[var(--surface)] text-[var(--text-muted)]" : "bg-[var(--right-now)] text-white"
-											)}
+											iconClass="bg-[color-mix(in_srgb,var(--right-now)_15%,transparent)] text-[var(--right-now)]"
 											label={t("right_now.visibility")}
 											description={
 												isHidden
@@ -520,22 +518,17 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 											}
 											checked={!isHidden}
 											onChange={(checked) => setIsHidden(!checked)}
-											dense
 											activeColor="var(--right-now)"
 											activeThumbColor="#fff"
 										/>
 									)}
 									<ToggleRow
 										icon={<HomeFilled className="h-5 w-5" />}
-										iconClass={cn(
-											"flex h-10 w-10 items-center justify-center transition-colors",
-											isHosting ? "bg-[var(--right-now)] text-white" : "bg-[var(--surface)] text-[var(--text-muted)]"
-										)}
+										iconClass="bg-[color-mix(in_srgb,var(--right-now)_15%,transparent)] text-[var(--right-now)]"
 										label={t("right_now.i_am_hosting")}
 										description={t("right_now.i_am_hosting_desc")}
 										checked={isHosting}
 										onChange={setIsHosting}
-										dense
 										activeColor="var(--right-now)"
 										activeThumbColor="#fff"
 									/>

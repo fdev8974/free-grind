@@ -1456,6 +1456,30 @@
 				background: var(--card-tint-bg);
 			}
 		}
+
+		/* Right Now keeps its own color whatever the app accent: swaps the accent
+		   and recomputes the card tints, which :root resolved with the app accent.
+		   This element isn't a card itself, so its --surface is still untinted. */
+		.right-now-scope {
+			--accent: var(--right-now);
+			--accent-contrast: #ffffff;
+			--accent-readable: var(--right-now);
+			--card-tint-bg: color-mix(in srgb, var(--right-now) 4%, var(--surface));
+			--card-tint-surface-2: color-mix(in srgb, var(--right-now) 8%, var(--surface-2));
+			--raised-card-bg: var(--card-tint-surface-2);
+		}
+		:root[data-scheme="dark"][data-amoled="true"] .right-now-scope {
+			--card-tint-bg: color-mix(in srgb, var(--right-now) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
+			--card-tint-surface-2: color-mix(in srgb, var(--right-now) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+			--raised-card-bg: var(--card-tint-bg);
+		}
+		@media (prefers-color-scheme: dark) {
+			:root:not([data-scheme="light"])[data-amoled="true"] .right-now-scope {
+				--card-tint-bg: color-mix(in srgb, var(--right-now) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
+				--card-tint-surface-2: color-mix(in srgb, var(--right-now) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+				--raised-card-bg: var(--card-tint-bg);
+			}
+		}
 	}
 
 	.no-touch-callout {
@@ -1900,8 +1924,9 @@ dialog::backdrop {
  * The accent is mixed into --hover-base, inherited from the container: lists
  * on a --surface-2 fill set it to that, so the hover doesn't drop darker. */
 @utility hover-fill {
-	--hover-fill: color-mix(in srgb, var(--accent) 12%, var(--hover-base, var(--surface)));
-	--press-fill: color-mix(in srgb, var(--accent) 20%, var(--hover-base, var(--surface)));
+	/* --hover-tint swaps the accent for another brand color (e.g. Right Now's tab). */
+	--hover-fill: color-mix(in srgb, var(--hover-tint, var(--accent)) 12%, var(--hover-base, var(--surface)));
+	--press-fill: color-mix(in srgb, var(--hover-tint, var(--accent)) 20%, var(--hover-base, var(--surface)));
 	@supports (color: color-mix(in srgb, red, blue)) {
 		/* Not while disabled (e.g. a row busy checking): it keeps its own fill. */
 		@media (hover: hover) {

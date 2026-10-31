@@ -143,6 +143,8 @@ export function NavBar() {
 	const mutedConversationIdsRef = useRef<Set<string>>(new Set());
 
 	const [activeTab, setActiveTab] = useState("browse");
+	// On Right Now (its tab, or the grid while a session is live) every tab hovers in Right Now's color.
+	const isRightNowPage = activeTab === "right-now" || (activeTab === "browse" && isRightNowLive);
 	const setUnreadCount = useState(0)[1];
 	const [interestUnseen, setInterestUnseen] = useState(false);
 	const [inboxUnseen, setInboxUnseen] = useState(false);
@@ -706,6 +708,9 @@ export function NavBar() {
 											: item.value === "browse" && isExploreActive
 												? "focus-visible:ring-[var(--explore)] data-[state=active]:text-[var(--explore)]"
 												: "focus-visible:ring-[var(--accent)] data-[state=active]:text-[var(--accent)]",
+										isRightNowPage || item.value === "right-now" || (item.value === "browse" && isRightNowLive)
+											? "[--hover-tint:var(--right-now)]"
+											: item.value === "browse" && isExploreActive && "[--hover-tint:var(--explore)]",
 									)}
 								>
 									{/* Fixed icon-sized slot so the slightly larger avatar overflows evenly
@@ -734,7 +739,7 @@ export function NavBar() {
 												<span
 													className={cn(
 														"absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-														activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
+														isRightNowPage
 															? "bg-[var(--right-now)]"
 															: activeTab === "browse" && isExploreActive
 																? "bg-[var(--explore)]"
@@ -744,7 +749,7 @@ export function NavBar() {
 												<span
 													className={cn(
 														"relative inline-block h-2 w-2 rounded-full ring-1 ring-[var(--surface)]",
-														activeTab === "right-now" || (activeTab === "browse" && isRightNowLive)
+														isRightNowPage
 															? "bg-[var(--right-now)]"
 															: activeTab === "browse" && isExploreActive
 																? "bg-[var(--explore)]"

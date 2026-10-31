@@ -192,6 +192,8 @@ const preferencesSchema = z.object({
 	chatRowSwipeActions: z.boolean().default(true),
 	// Enter sends a chat message on mobile too (desktop always does; Shift+Enter is a newline there).
 	mobileEnterToSend: z.boolean().default(false),
+	// Gesture that sends a saved phrase right away; the other one puts it into the composer ("off": tap only fills the composer).
+	savedPhraseSendGesture: z.enum(["off", "tap", "longPress"]).default("off"),
 	// Video calls start with the camera on; when off, it has to be turned on in the call.
 	startCallsWithCameraOn: z.boolean().default(true),
 	// Camera a video call opens first on phones (front "user" / back "environment").
@@ -256,6 +258,7 @@ type PreferencesAction =
 	| { type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT"; payload: boolean }
 	| { type: "SET_CHAT_ROW_SWIPE_ACTIONS"; payload: boolean }
 	| { type: "SET_MOBILE_ENTER_TO_SEND"; payload: boolean }
+	| { type: "SET_SAVED_PHRASE_SEND_GESTURE"; payload: Preferences["savedPhraseSendGesture"] }
 	| { type: "SET_START_CALLS_WITH_CAMERA_ON"; payload: boolean }
 	| { type: "SET_DEFAULT_CALL_CAMERA"; payload: Preferences["defaultCallCamera"] }
 	| { type: "SET_DEFAULT_EXPIRING_PHOTOS"; payload: boolean }
@@ -334,6 +337,8 @@ function preferencesReducer(
 			return { ...state, chatRowSwipeActions: action.payload };
 		case "SET_MOBILE_ENTER_TO_SEND":
 			return { ...state, mobileEnterToSend: action.payload };
+		case "SET_SAVED_PHRASE_SEND_GESTURE":
+			return { ...state, savedPhraseSendGesture: action.payload };
 		case "SET_START_CALLS_WITH_CAMERA_ON":
 			return { ...state, startCallsWithCameraOn: action.payload };
 		case "SET_DEFAULT_CALL_CAMERA":
@@ -482,6 +487,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusRightNowText: true,
 		chatRowSwipeActions: true,
 		mobileEnterToSend: false,
+		savedPhraseSendGesture: "off",
 		startCallsWithCameraOn: true,
 		defaultCallCamera: "user",
 		doubleTapTapType: 1,
@@ -539,6 +545,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: parsed.autoFocusRightNowText });
 					dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: parsed.chatRowSwipeActions });
 					dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: parsed.mobileEnterToSend });
+					dispatch({ type: "SET_SAVED_PHRASE_SEND_GESTURE", payload: parsed.savedPhraseSendGesture });
 					dispatch({ type: "SET_START_CALLS_WITH_CAMERA_ON", payload: parsed.startCallsWithCameraOn });
 					dispatch({ type: "SET_DEFAULT_CALL_CAMERA", payload: parsed.defaultCallCamera });
 					dispatch({ type: "SET_DOUBLE_TAP_TAP_TYPE", payload: parsed.doubleTapTapType });
@@ -672,6 +679,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				autoFocusRightNowText: currentState.autoFocusRightNowText,
 				chatRowSwipeActions: currentState.chatRowSwipeActions,
 				mobileEnterToSend: currentState.mobileEnterToSend,
+				savedPhraseSendGesture: currentState.savedPhraseSendGesture,
 				startCallsWithCameraOn: currentState.startCallsWithCameraOn,
 				defaultCallCamera: currentState.defaultCallCamera,
 				doubleTapTapType: currentState.doubleTapTapType,
@@ -789,6 +797,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			}
 			if (newValues.mobileEnterToSend !== undefined) {
 				dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: newValues.mobileEnterToSend });
+			}
+			if (newValues.savedPhraseSendGesture !== undefined) {
+				dispatch({ type: "SET_SAVED_PHRASE_SEND_GESTURE", payload: newValues.savedPhraseSendGesture });
 			}
 			if (newValues.startCallsWithCameraOn !== undefined) {
 				dispatch({ type: "SET_START_CALLS_WITH_CAMERA_ON", payload: newValues.startCallsWithCameraOn });
@@ -909,6 +920,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					autoFocusRightNowText: preferences.autoFocusRightNowText,
 					chatRowSwipeActions: preferences.chatRowSwipeActions,
 					mobileEnterToSend: preferences.mobileEnterToSend,
+					savedPhraseSendGesture: preferences.savedPhraseSendGesture,
 					startCallsWithCameraOn: preferences.startCallsWithCameraOn,
 					defaultCallCamera: preferences.defaultCallCamera,
 					doubleTapTapType: preferences.doubleTapTapType,
@@ -959,6 +971,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusRightNowText: state.autoFocusRightNowText,
 		chatRowSwipeActions: state.chatRowSwipeActions,
 		mobileEnterToSend: state.mobileEnterToSend,
+		savedPhraseSendGesture: state.savedPhraseSendGesture,
 		startCallsWithCameraOn: state.startCallsWithCameraOn,
 		defaultCallCamera: state.defaultCallCamera,
 		doubleTapTapType: state.doubleTapTapType,

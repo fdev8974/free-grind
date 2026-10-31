@@ -1,9 +1,10 @@
 /**
  * Shared building blocks of the developer inspector pages (API Inspector,
- * Push Inspector): header icon buttons, timestamps, copy and code blocks.
+ * Push Inspector, Assignments): header icon buttons, search bar, timestamps,
+ * copy and code blocks.
  */
 
-import { Copy } from "lucide-react";
+import { Copy, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { SheetSection } from "../../../components/ui/sheet-section";
 import { cn } from "../../../utils/cn";
@@ -50,5 +51,35 @@ export function CodeBlock({ title, text, tone = "default" }: { title: string; te
 				{text ?? "(empty)"}
 			</pre>
 		</SheetSection>
+	);
+}
+
+/** Flat page search bar, like the one above the settings list — the floating
+ * SheetSearchInput pill stands out against the page's cards. */
+export function PageSearchBar({ value, onChange, placeholder }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
+	return (
+		<div className="settings-search-bar flex items-center gap-2.5 px-4 py-0.5">
+			<Search className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+			<input
+				type="search"
+				value={value}
+				onChange={(e) => onChange(e.target.value)}
+				onKeyDown={(e) => {
+					if (e.key === "Escape") onChange("");
+				}}
+				placeholder={placeholder}
+				className="h-11 min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:outline-none"
+			/>
+			{value ? (
+				<button
+					type="button"
+					onClick={() => onChange("")}
+					className="shrink-0 rounded-full p-1 text-[var(--text-muted)] transition hover-fill hover:text-[var(--text)]"
+					aria-label="Clear"
+				>
+					<X className="h-4 w-4" />
+				</button>
+			) : null}
+		</div>
 	);
 }

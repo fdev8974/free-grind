@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowDownWideNarrow, Ban, CornerDownLeft, ExternalLink, MoveHorizontal, SwitchCamera, Video } from "lucide-react";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
+import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, MessageSquareQuoteFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
 import { ToggleRow } from "../../components/ui/toggle-row";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
@@ -49,6 +49,7 @@ export function BehaviorPage() {
 		doubleTapAction,
 		chatRowSwipeActions,
 		mobileEnterToSend,
+		savedPhraseSendGesture,
 		startCallsWithCameraOn,
 		defaultCallCamera,
 		setPreferences,
@@ -150,6 +151,23 @@ export function BehaviorPage() {
 							checked={mobileEnterToSend}
 							onChange={(checked) => void setPreferences({ mobileEnterToSend: checked })}
 						/>}
+						<SelectRow
+							id="behavior-saved-phrase-send-gesture"
+							highlighted={highlightId === "behavior-saved-phrase-send-gesture"}
+							icon={<MessageSquareQuoteFilled className="h-5 w-5" />}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("behavior.saved_phrase_send_gesture", { defaultValue: "Send Saved Phrases Instantly" })}
+							description={t("behavior.saved_phrase_send_gesture_desc", {
+								defaultValue: "Choose whether a tap or a long press on a saved phrase sends it right away. The other gesture puts it into the text field.",
+							})}
+							value={savedPhraseSendGesture}
+							onChange={(option) => void setPreferences({ savedPhraseSendGesture: option })}
+							options={[
+								{ value: "off", label: t("behavior.saved_phrase_send_off", { defaultValue: "Off" }) },
+								{ value: "tap", label: t("behavior.saved_phrase_send_tap", { defaultValue: "Tap" }) },
+								{ value: "longPress", label: t("behavior.saved_phrase_send_long_press", { defaultValue: "Long Press" }) },
+							]}
+						/>
 					</div>
 				</div>
 

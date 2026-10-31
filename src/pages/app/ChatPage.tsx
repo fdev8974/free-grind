@@ -5903,6 +5903,11 @@ export function ChatPage() {
 		scrollThreadToBottom();
 	};
 
+	const handleSendPhrase = (phrase: string) => {
+		void sendTextMessage(phrase);
+		scrollThreadToBottom();
+	};
+
 	const handleRetry = (message: UiMessage) => {
 		if (!message.body || typeof message.body !== "object") {
 			return;
@@ -7152,6 +7157,7 @@ export function ChatPage() {
 			handleRemoveLocalAlbum={handleRemoveLocalAlbum}
 			threadBottomRef={threadBottomRef}
 			handleSend={handleSend}
+			handleSendPhrase={handleSendPhrase}
 			toggleAlbumPicker={toggleAlbumPicker}
 			toggleDrawer={toggleDrawer}
 			attachmentInputRef={attachmentInputRef}

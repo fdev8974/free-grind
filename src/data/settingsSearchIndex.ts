@@ -402,6 +402,18 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-sky-500/15 text-sky-400",
 		},
 		{
+			id: "behavior-saved-phrase-send-gesture",
+			route: "/settings/behavior",
+			anchor: "behavior-saved-phrase-send-gesture",
+			label: t("behavior.saved_phrase_send_gesture", { defaultValue: "Send Saved Phrases Instantly" }),
+			description: t("behavior.saved_phrase_send_gesture_desc", {
+				defaultValue: "Choose whether a tap or a long press on a saved phrase sends it right away. The other gesture puts it into the text field.",
+			}),
+			section: "Behavior",
+			icon: MessageSquareQuote,
+			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
 			id: "behavior-start-calls-with-camera-on",
 			route: "/settings/behavior",
 			anchor: "behavior-start-calls-with-camera-on",

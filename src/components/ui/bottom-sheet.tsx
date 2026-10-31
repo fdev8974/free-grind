@@ -186,6 +186,9 @@ interface BottomSheetProps {
 	zIndex?: string;
 	bg?: string;
 	panelClassName?: string;
+	/** Replaces the app accent inside the sheet (e.g. Right Now's own color),
+	 * contrasted with white. */
+	accentColor?: string;
 	/** Receives the sheet's animated close, for code outside its children —
 	 * e.g. a parent closing it once an async action succeeded. Use this
 	 * instead of unmounting the sheet directly, which skips the slide-out
@@ -203,6 +206,7 @@ export function BottomSheet({
 	zIndex = "z-[60]",
 	bg = "bg-[var(--surface)]",
 	panelClassName = "",
+	accentColor,
 	closeRef,
 	children,
 }: BottomSheetProps) {
@@ -592,6 +596,8 @@ export function BottomSheet({
 					// transform, height and transition are set by applyLayout.
 					style={{
 						willChange: "transform",
+						// Set here so --sheet-bg below already mixes in this accent.
+						...(accentColor ? { "--accent": accentColor, "--accent-contrast": "#fff", "--accent-readable": accentColor } : {}),
 						"--sheet-bg": tintedSheetBg(bg) ?? sheetBgColor(bg),
 						backgroundColor: tintedSheetBg(bg) ? "var(--sheet-bg)" : undefined,
 						// Inside the sheet, surface-2 (code blocks, fields, icon tiles) is the

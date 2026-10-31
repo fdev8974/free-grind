@@ -223,6 +223,7 @@ type ChatThreadPanelProps = {
 	handleRemoveLocalAlbum: (albumId: number) => void | Promise<void>;
 	threadBottomRef: { current: HTMLDivElement | null };
 	handleSend: (event: React.FormEvent<HTMLFormElement>) => void;
+	handleSendPhrase: (phrase: string) => void;
 	toggleAlbumPicker: () => void;
 	toggleDrawer: () => void;
 	attachmentInputRef: { current: HTMLInputElement | null };
@@ -322,15 +323,62 @@ function AudioPreviewPlayer({ blob, durationMs, recordedBars, recordedFraction, 
 	return <AudioMessagePlayer src={url} messageId="preview" mine={false} className="w-full" durationHint={durationMs / 1000} hideSpeed compact largeButton={largeButton} initialBars={recordedBars} recordedFraction={recordedFraction} />;
 }
 
+// Pointer handlers that fire onLongPress after a still hold, and swallow the
+// click that follows it so the hold doesn't also count as a tap.
+function useLongPress(delay = 450) {
+	const timerRef = useRef<number | null>(null);
+	const firedRef = useRef(false);
+	const startRef = useRef<{ x: number; y: number } | null>(null);
+	const cancel = useCallback(() => {
+		if (timerRef.current !== null) {
+			window.clearTimeout(timerRef.current);
+			timerRef.current = null;
+		}
+	}, []);
+	useEffect(() => cancel, [cancel]);
+
+	return (onLongPress?: () => void) => onLongPress ? {
+		onPointerDown: (event: React.PointerEvent) => {
+			if (event.pointerType === "mouse" && event.button !== 0) return;
+			firedRef.current = false;
+			startRef.current = { x: event.clientX, y: event.clientY };
+			cancel();
+			timerRef.current = window.setTimeout(() => {
+				timerRef.current = null;
+				firedRef.current = true;
+				haptic(10);
+				onLongPress();
+			}, delay);
+		},
+		onPointerMove: (event: React.PointerEvent) => {
+			const start = startRef.current;
+			if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) cancel();
+		},
+		onPointerUp: cancel,
+		onPointerLeave: cancel,
+		onPointerCancel: cancel,
+		onContextMenu: (event: React.MouseEvent) => event.preventDefault(),
+		onClickCapture: (event: React.MouseEvent) => {
+			if (!firedRef.current) return;
+			firedRef.current = false;
+			event.preventDefault();
+			event.stopPropagation();
+		},
+	} : {};
+}
+
 type SortableSavedPhraseRowProps = {
 	phrase: string;
 	onUse: () => void;
+	// Desktop only: on touch a long press picks the row up for reordering instead.
+	onLongPress?: () => void;
 	onDelete: () => void;
 	isDesktop: boolean;
 };
 
-function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: SortableSavedPhraseRowProps) {
+function SortableSavedPhraseRow({ phrase, onUse, onLongPress, onDelete, isDesktop }: SortableSavedPhraseRowProps) {
 	const { t } = useTranslation();
+	const bindLongPress = useLongPress();
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
 		useSortable({ id: phrase });
 
@@ -363,12 +411,14 @@ function SortableSavedPhraseRow({ phrase, onUse, onDelete, isDesktop }: Sortable
 				<GripVertical className="h-4 w-4" />
 			</span>
 			{/* The whole row sends the phrase, not just its text. */}
-			<SheetClose
-				onClick={onUse}
-				className="min-w-0 flex-1 rounded-xl py-3 pl-1 pr-2 text-left transition active:ink-tint-6"
-			>
-				<span className="block break-words text-sm leading-relaxed text-[var(--text)]">{phrase}</span>
-			</SheetClose>
+			<div className="min-w-0 flex-1" {...bindLongPress(isDesktop ? onLongPress : undefined)}>
+				<SheetClose
+					onClick={onUse}
+					className="w-full rounded-xl py-3 pl-1 pr-2 text-left transition active:ink-tint-6"
+				>
+					<span className="block break-words text-sm leading-relaxed text-[var(--text)]">{phrase}</span>
+				</SheetClose>
+			</div>
 			<button
 				type="button"
 				onClick={onDelete}
@@ -386,7 +436,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { chat: blurChatMedia } = useMediaBlur();
 	useAvatarCache();
     const apiFunctions = useApiFunctions();
-	const { unitsPreset, geohash, amoledMode, mobileEnterToSend, compactComposer } = usePreferences();
+	const { unitsPreset, geohash, amoledMode, mobileEnterToSend, compactComposer, savedPhraseSendGesture } = usePreferences();
 	const enterSends = props.isDesktop || mobileEnterToSend;
 	const effectiveColorScheme = useEffectiveColorScheme();
 	// AMOLED on mobile: the bottom bar blends into the black page so the saved
@@ -724,6 +774,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		handleRemoveLocalAlbum,
 		threadBottomRef,
 		handleSend,
+		handleSendPhrase,
 		toggleAlbumPicker: _toggleAlbumPicker,
 		attachmentInputRef,
 		onAttachmentInput,
@@ -904,10 +955,23 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		await confirmAttachmentFile(fileToUpload);
 	}, [pendingAttachmentFile, attachmentCompletedCrop, confirmAttachmentFile]);
 
-	const handleUsePhrase = (phrase: string) => {
+	// The gesture picked in Behavior settings sends the phrase, the other one fills the composer.
+	const handleUsePhrase = (phrase: string, gesture: "tap" | "longPress" = "tap") => {
+		// While a send is in flight (or a location share is pending) the send button is
+		// disabled too, so fall back to filling the composer.
+		if (gesture === savedPhraseSendGesture && !isSending && !pendingLocationShare) {
+			handleSendPhrase(phrase);
+			return;
+		}
 		setDraft(phrase);
 		textareaRef.current?.focus();
 	};
+	const bindPhraseLongPress = useLongPress();
+	const phraseLongPressHandler = (phrase: string, after?: () => void) =>
+		savedPhraseSendGesture === "off" ? undefined : () => {
+			handleUsePhrase(phrase, "longPress");
+			after?.();
+		};
 
 	const handleAddPhrase = async () => {
 		const trimmed = newPhraseInput.trim();
@@ -928,7 +992,13 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	);
 
 	const handlePhrasesDragEnd = async (event: DragEndEvent) => {
-		const { active, over } = event;
+		const { active, over, delta } = event;
+		// On touch a long press lifts the row; dropping it where it was counts as the long press.
+		if (!isDesktop && Math.hypot(delta.x, delta.y) < 8) {
+			const onLongPress = phraseLongPressHandler(String(active.id), () => savedPhrasesSheetCloseRef.current?.());
+			onLongPress?.();
+			return;
+		}
 		if (!over || active.id === over.id) return;
 		const from = savedPhrases.indexOf(String(active.id));
 		const to = savedPhrases.indexOf(String(over.id));
@@ -2224,7 +2294,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											key={idx}
 											type="button"
 											onClick={() => handleUsePhrase(phrase)}
-											className={`max-w-[200px] shrink-0 rounded-2xl rounded-br-[3px] border px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
+											{...bindPhraseLongPress(phraseLongPressHandler(phrase))}
+											className={`max-w-[200px] no-touch-callout shrink-0 rounded-2xl rounded-br-[3px] border px-3 py-1.5 text-xs font-medium transition active:scale-95 ${
 												isExact
 													? "border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]"
 													: !isDesktop
@@ -3038,6 +3109,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 														key={phrase}
 														phrase={phrase}
 														onUse={() => handleUsePhrase(phrase)}
+														onLongPress={phraseLongPressHandler(phrase, () => savedPhrasesSheetCloseRef.current?.())}
 														onDelete={() => handleDeletePhrase(originalIndex)}
 														isDesktop={isDesktop}
 													/>

@@ -15,7 +15,7 @@ import {
 	X,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { ClockFilled, HomeFilled, MapFilled } from "../../components/icons/FilledIcons";
+import { ClockFilled, HomeFilled, LayoutGridFilled, MapFilled } from "../../components/icons/FilledIcons";
 import { useRightNowFeed } from "../../hooks/queries/useRightNowQueries";
 import { useFeatureFlag } from "../../services/assignmentsStore";
 import { decodeGeohash } from "../../utils/geohash";
@@ -1186,10 +1186,13 @@ export function RightNowPage() {
 
 	const viewModeTabs: IconTabConfig<RightNowViewMode>[] = useMemo(
 		() => [
-			{ key: "list", label: t("right_now.view_list", { defaultValue: "List" }), icon: ListIcon },
+			// Desktop shows the feed as a card grid, not a list.
+			isDesktop
+				? { key: "list", label: t("right_now.view_grid", { defaultValue: "Grid" }), icon: LayoutGridFilled }
+				: { key: "list", label: t("right_now.view_list", { defaultValue: "List" }), icon: ListIcon },
 			{ key: "map", label: t("right_now.view_map", { defaultValue: "Map" }), icon: MapFilled },
 		],
-		[t],
+		[t, isDesktop],
 	);
 
 	const openFilters = useCallback(() => {
@@ -1217,7 +1220,7 @@ export function RightNowPage() {
 	return (
 		<>
 		<PullToRefreshContainer
-			className="app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
+			className="right-now-scope app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
 			contentClassName="flex flex-1 flex-col min-h-0"
 			style={{ overflow: "visible", overflowX: "hidden" }}
 			onRefresh={() => {
