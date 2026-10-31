@@ -1379,6 +1379,19 @@ export function GridPage() {
 		handleSelectProfile(profileId);
 	};
 
+	const handleSendProfilePhotoReply = async (targetProfileId: string, imageHash: string, text: string) => {
+		try {
+			await apiFunctions.sendMessage({
+				type: "ProfilePhotoReply",
+				target: { type: "Direct", targetId: Number(targetProfileId) },
+				body: { imageHash, photoContentReply: text },
+			});
+			toast.success(t("chat.toasts.photo_reply_sent", { defaultValue: "Reply sent" }));
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
+		}
+	};
+
 	const handleMessageProfile = (profileId: string) => {
 		const nextParams = new URLSearchParams();
 		nextParams.set("targetProfileId", profileId);
@@ -2147,6 +2160,7 @@ export function GridPage() {
 				isOpen={Boolean(activeProfileId)}
 				onClose={() => setActiveProfileId(null)}
 				onMessageProfile={handleMessageProfile}
+				onSendProfilePhotoReply={handleSendProfilePhotoReply}
 				onTagClick={handleTagClick}
 				onTriangleProfile={handleTriangleProfile}
 				onBlockProfile={handleBlockProfile}
