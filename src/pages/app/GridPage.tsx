@@ -209,6 +209,37 @@ export function GridPage() {
 	}, []);
 	const [isLocationMissing, setIsLocationMissing] = useState(false);
 	const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
+
+	// The desktop profile modal is local state, not a route like the profile
+	// modal on Inbox, Interest and Right Now, so it gets a history entry of its
+	// own: Back closes it instead of leaving the grid. Closing it in the UI drops
+	// the flag in place rather than popping, which would make the router
+	// re-render the grid route (as ProfileDetailsModal's photo viewer does).
+	const profileHistoryPushedRef = useRef(false);
+	useEffect(() => {
+		if (activeProfileId && !profileHistoryPushedRef.current) {
+			window.history.pushState({ ...(window.history.state as object | null), gridProfile: true }, "");
+			profileHistoryPushedRef.current = true;
+		} else if (!activeProfileId && profileHistoryPushedRef.current) {
+			profileHistoryPushedRef.current = false;
+			const state = window.history.state as Record<string, unknown> | null;
+			if (state?.gridProfile) {
+				const { gridProfile: _omit, ...rest } = state;
+				window.history.replaceState(rest, "");
+			}
+		}
+	}, [activeProfileId]);
+	useEffect(() => {
+		const onPopState = () => {
+			if (!profileHistoryPushedRef.current) return;
+			// Still on our entry (e.g. Back only closed the photo viewer on top).
+			if ((window.history.state as { gridProfile?: boolean } | null)?.gridProfile) return;
+			profileHistoryPushedRef.current = false;
+			setActiveProfileId(null);
+		};
+		window.addEventListener("popstate", onPopState);
+		return () => window.removeEventListener("popstate", onPopState);
+	}, []);
 	const [activeProfile, setActiveProfile] = useState<ProfileDetail | null>(null);
 	const [isActiveProfileBlockedByOther, setIsActiveProfileBlockedByOther] = useState(false);
 	const [isLoadingActiveProfile, setIsLoadingActiveProfile] = useState(false);
