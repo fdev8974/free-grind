@@ -290,6 +290,16 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 				description: "Long press the Settings tab in the navigation bar to switch accounts instantly.",
 			},
 			{
+				icon: MonitorSmartphone,
+				title: "Redesigned Desktop Layout",
+				description: "A reworked desktop interface: the grid makes better use of wide screens, profiles open in an overlay, and the chat layout is cleaner.",
+			},
+			{
+				icon: UserPen,
+				title: "New Profile Editor",
+				description: "A completely redesigned profile editor that makes it easier to update your profile.",
+			},
+			{
 				icon: Moon,
 				title: "Pure Black Mode",
 				description: "Use true black backgrounds in dark mode to save battery on OLED screens.",
