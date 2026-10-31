@@ -227,9 +227,9 @@ export function CustomizabilityPage() {
 								</div>
 							</div>
 
-							{/* Preset tiles + custom tile, styled like the color scheme tiles above:
-							    a color block with its name below, the active one ringed in the accent. */}
-							<div className="mt-3.5 grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-2 sm:grid-cols-[repeat(auto-fill,5.5rem)]">
+							{/* Compact chips: a color dot with its name, the active one tinted and
+							    ringed in the accent like the color scheme tiles above. */}
+							<div className="mt-3.5 flex flex-wrap gap-2">
 								{ACCENT_PRESETS.map((preset) => {
 									const isActive = accentColor === preset.color;
 									return (
@@ -238,22 +238,22 @@ export function CustomizabilityPage() {
 											type="button"
 											onClick={() => handleAccentChange(preset)}
 											aria-pressed={isActive}
-											className={`flex flex-col gap-1.5 rounded-2xl p-1.5 pb-2 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isActive ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "bg-[var(--surface-2)] hover:accent-tint-10"}`}
+											className={`flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-3 transition-[transform,background-color] duration-150 active:scale-[0.97] ${isActive ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "bg-[var(--surface-2)] hover:accent-tint-10"}`}
 										>
-											<span className="aspect-[4/3] w-full rounded-xl" style={{ background: preset.color }} />
-											<span className={`truncate text-center text-xs font-medium ${isActive ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{preset.name}</span>
+											<span className="h-6 w-6 shrink-0 rounded-lg" style={{ background: preset.color }} />
+											<span className={`text-xs font-medium ${isActive ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{preset.name}</span>
 										</button>
 									);
 								})}
 
-								{/* Custom color: same tile, opens the native picker */}
+								{/* Custom color: same chip, opens the native picker */}
 								{(() => {
 									const isCustom = !ACCENT_PRESETS.some((p) => p.color === accentColor);
 									return (
 										<label
 											htmlFor="accent-color-picker"
 											title={t("customizability.picker")}
-											className={`flex cursor-pointer flex-col gap-1.5 rounded-2xl p-1.5 pb-2 transition-[transform,background-color] duration-150 active:scale-[0.98] ${isCustom ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "bg-[var(--surface-2)] hover:accent-tint-10"}`}
+											className={`flex cursor-pointer items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-3 transition-[transform,background-color] duration-150 active:scale-[0.97] ${isCustom ? "accent-tint-15 ring-2 ring-inset ring-[var(--accent)]" : "bg-[var(--surface-2)] hover:accent-tint-10"}`}
 										>
 											<input
 												id="accent-color-picker"
@@ -263,10 +263,10 @@ export function CustomizabilityPage() {
 												className="sr-only"
 											/>
 											<span
-												className="aspect-[4/3] w-full rounded-xl"
+												className="h-6 w-6 shrink-0 rounded-lg"
 												style={{ background: isCustom ? accentColor : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
 											/>
-											<span className={`truncate text-center text-xs font-medium ${isCustom ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{t("customizability.custom")}</span>
+											<span className={`text-xs font-medium ${isCustom ? "text-[var(--accent-readable)]" : "text-[var(--text)]"}`}>{t("customizability.custom")}</span>
 										</label>
 									);
 								})()}
