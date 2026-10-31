@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useIsHalloween } from "../hooks/useIsHalloween";
+import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 
 // Blood running down from the top edge: [left %, width px, length px, duration s, delay s].
-// Lengths stay short enough that headers underneath remain readable.
+// Lengths are for desktop; see MOBILE_SCALE.
 const DRIPS: [number, number, number, number, number][] = [
 	[2.5, 9, 46, 11, 0],
 	[8, 6, 22, 9, 3.1],
@@ -26,6 +27,10 @@ const DRIPS: [number, number, number, number, number][] = [
 // Irregular pool along the top: [left %, radius px].
 const BLOBS: [number, number][] = Array.from({ length: 42 }, (_, i) => [i * 2.5, 6 + ((i * 37) % 11)]);
 
+// On mobile the header controls (location pill, filters) sit right below the
+// status bar, so the blood stays a thin fringe there instead of covering them.
+const MOBILE_SCALE = 0.35;
+
 // Drip cycle: grows slowly, a drop falls off, the rest pulls back up a bit.
 const GROW_KEYS = "0;0.62;0.68;1";
 const GROW_SPLINES = "0.5 0 0.9 0.6;0.2 0 0.4 1;0.4 0 0.6 1";
@@ -37,6 +42,7 @@ function prefersReducedMotion(): boolean {
 export function HalloweenOverlay() {
 	const isHalloween = useIsHalloween();
 	const [still] = useState(prefersReducedMotion);
+	const scale = useDesktopBreakpoint() ? 1 : MOBILE_SCALE;
 	if (!isHalloween) {
 		return null;
 	}
@@ -48,14 +54,17 @@ export function HalloweenOverlay() {
 			{/* Falling drops: outside the goo filter so they stay crisp over the whole screen. */}
 			{!still && (
 				<svg className="absolute inset-0 h-full w-full overflow-visible">
-					{DRIPS.filter(([, width]) => width >= 9).map(([left, width, length, dur, delay]) => (
+					{DRIPS.filter(([, width]) => width >= 9).map(([left, width, fullLength, dur, delay]) => {
+						const length = Math.round(fullLength * scale);
+						return (
 						<svg key={left} x={`${left}%`} overflow="visible">
 							<ellipse cx={0} cy={length} rx={width * 0.45} ry={width * 0.6} fill="#a8001a" opacity={0}>
 								<animate attributeName="cy" values={`${length};${length};${length + 1400}`} keyTimes="0;0.62;0.8" calcMode="spline" keySplines="0 0 1 1;0.55 0 1 0.45" dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
 								<animate attributeName="opacity" values="0;0;0.9;0.9;0" keyTimes="0;0.61;0.62;0.76;0.8" dur={`${dur}s`} begin={`${delay}s`} repeatCount="indefinite" />
 							</ellipse>
 						</svg>
-					))}
+						);
+					})}
 				</svg>
 			)}
 
@@ -82,9 +91,10 @@ export function HalloweenOverlay() {
 				<g filter="url(#halloween-goo)" fill="url(#halloween-blood-fill)">
 					<rect x="0" y="-20" width="100%" height="28" />
 					{BLOBS.map(([left, r]) => (
-						<circle key={left} cx={`${left}%`} cy={4} r={r} />
+						<circle key={left} cx={`${left}%`} cy={4} r={scale < 1 ? r * 0.7 : r} />
 					))}
-					{DRIPS.map(([left, width, length, dur, delay]) => {
+					{DRIPS.map(([left, width, fullLength, dur, delay]) => {
+						const length = Math.round(fullLength * scale);
 						const head = width * 0.75;
 						const rest = Math.round(length * 0.55);
 						const timing = { dur: `${dur}s`, begin: `${delay}s`, repeatCount: "indefinite", calcMode: "spline", keyTimes: GROW_KEYS, keySplines: GROW_SPLINES } as const;
