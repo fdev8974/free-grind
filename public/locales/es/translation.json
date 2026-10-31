@@ -1068,7 +1068,7 @@
         "picker": "Selector",
         "apply_hex": "Aplicar hex",
         "hex_error": "Envía un color hexadecimal válido como #22c55e o 22c55e",
-        "grid_page": "Página de la cuadrícula",
+        "grid_page": "Página de navegación",
         "grid_layout": "Diseño",
         "visual_effects": "Efectos visuales",
         "browse_grid_mobile": "Cuadrícula de Navegar (Móvil)",

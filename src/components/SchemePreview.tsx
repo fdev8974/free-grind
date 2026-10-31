@@ -6,7 +6,7 @@ import { cn } from "../utils/cn";
 const SCHEME_PREVIEW_COLORS = {
 	light: { bg: "#e9ecf1", card: "#ffffff", line: "#d7dce3" },
 	dark: { bg: "#0f131a", card: "#161d27", line: "#2b3646" },
-	amoled: { bg: "#000000", card: "#111418", line: "#1e232b" },
+	amoled: { bg: "#000000", card: "#0c0e11", line: "#1e232b" },
 };
 
 function SchemeMockup({ colors }: { colors: (typeof SCHEME_PREVIEW_COLORS)["light"] }) {

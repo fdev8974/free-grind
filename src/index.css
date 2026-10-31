@@ -1376,23 +1376,23 @@
 	:root[data-scheme="dark"][data-amoled="true"] .native-card,
 	:root[data-scheme="dark"][data-amoled="true"] .native-card-fill,
 	:root[data-scheme="dark"][data-amoled="true"] .settings-search-bar {
-		background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
+		background: color-mix(in srgb, var(--dark-surface-2) 70%, black);
 	}
 	:root[data-scheme="dark"][data-amoled="true"] .native-card,
 	:root[data-scheme="dark"][data-amoled="true"] .native-group {
-		--card-bg: color-mix(in srgb, var(--dark-surface-2) 90%, black);
-		--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
+		--card-bg: color-mix(in srgb, var(--dark-surface-2) 70%, black);
+		--surface-2: color-mix(in srgb, var(--dark-surface-2) 95%, white);
 	}
 	@media (prefers-color-scheme: dark) {
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-card-fill,
 		:root:not([data-scheme="light"])[data-amoled="true"] .settings-search-bar {
-			background: color-mix(in srgb, var(--dark-surface-2) 90%, black);
+			background: color-mix(in srgb, var(--dark-surface-2) 70%, black);
 		}
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-card,
 		:root:not([data-scheme="light"])[data-amoled="true"] .native-group {
-			--card-bg: color-mix(in srgb, var(--dark-surface-2) 90%, black);
-			--surface-2: color-mix(in srgb, var(--dark-surface-2) 90%, white);
+			--card-bg: color-mix(in srgb, var(--dark-surface-2) 70%, black);
+			--surface-2: color-mix(in srgb, var(--dark-surface-2) 95%, white);
 		}
 	}
 
@@ -1413,8 +1413,8 @@
 			--raised-card-bg: var(--card-tint-surface-2);
 		}
 		:root[data-scheme="dark"][data-amoled="true"] {
-			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
-			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+			--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 70%, black));
+			--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 95%, white));
 			/* AMOLED menus sit darker than the cards, set off by border and shadow. */
 			--menu-bg: color-mix(in srgb, var(--accent) 5%, var(--dark-surface));
 			/* AMOLED panels are near black, so the regular card fill is already the step up. */
@@ -1437,8 +1437,8 @@
 		}
 		@media (prefers-color-scheme: dark) {
 			:root:not([data-scheme="light"])[data-amoled="true"] {
-				--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
-				--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+				--card-tint-bg: color-mix(in srgb, var(--accent) 4%, color-mix(in srgb, var(--dark-surface-2) 70%, black));
+				--card-tint-surface-2: color-mix(in srgb, var(--accent) 8%, color-mix(in srgb, var(--dark-surface-2) 95%, white));
 				/* AMOLED menus sit darker than the cards, set off by border and shadow. */
 				--menu-bg: color-mix(in srgb, var(--accent) 5%, var(--dark-surface));
 				/* AMOLED panels are near black, so the regular card fill is already the step up. */
@@ -1469,14 +1469,14 @@
 			--raised-card-bg: var(--card-tint-surface-2);
 		}
 		:root[data-scheme="dark"][data-amoled="true"] .right-now-scope {
-			--card-tint-bg: color-mix(in srgb, var(--right-now) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
-			--card-tint-surface-2: color-mix(in srgb, var(--right-now) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+			--card-tint-bg: color-mix(in srgb, var(--right-now) 4%, color-mix(in srgb, var(--dark-surface-2) 70%, black));
+			--card-tint-surface-2: color-mix(in srgb, var(--right-now) 8%, color-mix(in srgb, var(--dark-surface-2) 95%, white));
 			--raised-card-bg: var(--card-tint-bg);
 		}
 		@media (prefers-color-scheme: dark) {
 			:root:not([data-scheme="light"])[data-amoled="true"] .right-now-scope {
-				--card-tint-bg: color-mix(in srgb, var(--right-now) 4%, color-mix(in srgb, var(--dark-surface-2) 90%, black));
-				--card-tint-surface-2: color-mix(in srgb, var(--right-now) 8%, color-mix(in srgb, var(--dark-surface-2) 90%, white));
+				--card-tint-bg: color-mix(in srgb, var(--right-now) 4%, color-mix(in srgb, var(--dark-surface-2) 70%, black));
+				--card-tint-surface-2: color-mix(in srgb, var(--right-now) 8%, color-mix(in srgb, var(--dark-surface-2) 95%, white));
 				--raised-card-bg: var(--card-tint-bg);
 			}
 		}
