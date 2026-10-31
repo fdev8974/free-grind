@@ -1223,11 +1223,12 @@ export function RightNowPage() {
 			className="right-now-scope app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
 			contentClassName="flex flex-1 flex-col min-h-0"
 			style={{ overflow: "visible", overflowX: "hidden" }}
-			onRefresh={() => {
+			onRefresh={async () => {
 				sessionStorage.removeItem("rightnow-scroll");
 				setHasRestoredScroll(true);
 				feedContainerRef.current?.scrollTo(0, 0);
-				void refetch();
+				// Awaited so the spinner stays until the feed is actually back.
+				await refetch();
 			}}
 			isDisabled={isLoading || isMapView}
 			isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
