@@ -64,15 +64,25 @@ function geohashCenter(geohash: string): { lat: number; lon: number } | null {
 	}
 }
 
+type LocationTab = "set" | "explore";
+
 export function LocationOverlay({ onClose, isDesktop, ...props }: LocationOverlayProps) {
+	// Which of the two ways to pick a location is active: "set" changes the
+	// real geohash (visible to others, persisted). "explore" browses a
+	// different area via /v7/search's exploreGeoHash without touching it —
+	// see GridPage's exploreLocation state for why this stays out of
+	// preferences. Defaults to whichever is already in effect. Lives here so
+	// the whole sheet, not just its content, takes the explore accent.
+	const [activeTab, setActiveTab] = useState<LocationTab>(props.exploreLocation ? "explore" : "set");
 	return (
 		<BottomSheet
 			onClose={onClose}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
+			accentColor={activeTab === "explore" ? EXPLORE_COLOR : undefined}
 			{...mapSheetProps(isDesktop)}
 		>
-			<LocationSheetContent isDesktop={isDesktop} {...props} />
+			<LocationSheetContent isDesktop={isDesktop} activeTab={activeTab} setActiveTab={setActiveTab} {...props} />
 		</BottomSheet>
 	);
 }
@@ -81,17 +91,13 @@ function LocationSheetContent({
 	exploreLocation,
 	onSetExploreLocation,
 	isDesktop,
-}: Omit<LocationOverlayProps, "onClose">) {
+	activeTab,
+	setActiveTab,
+}: Omit<LocationOverlayProps, "onClose"> & { activeTab: LocationTab; setActiveTab: (tab: LocationTab) => void }) {
 	const { t } = useTranslation();
 	const close = useBottomSheetClose();
 	const { setPreferences, geohash, locationName, useAutoLocation, autoFocusLocationSearch } = usePreferences();
 
-	// Which of the two ways to pick a location is active: "set" changes the
-	// real geohash (visible to others, persisted). "explore" browses a
-	// different area via /v7/search's exploreGeoHash without touching it —
-	// see GridPage's exploreLocation state for why this stays out of
-	// preferences. Defaults to whichever is already in effect.
-	const [activeTab, setActiveTab] = useState<"set" | "explore">(exploreLocation ? "explore" : "set");
 	const isExploreTab = activeTab === "explore";
 	const tabColor = isExploreTab ? EXPLORE_COLOR : "var(--accent)";
 	const tabContrast = isExploreTab ? "#fff" : "var(--accent-contrast)";
@@ -394,15 +400,10 @@ function LocationSheetContent({
 
 			{/* Set vs. Explore: "set" changes your real, visible location;
 			    "explore" only changes what you browse — see confirmExplore.
-			    Explore gets its own color (EXPLORE_COLOR) everywhere, kept
-			    distinct from the app's --accent used for "set". */}
-			{/* Override only for explore: setting --accent to var(--accent) would be a
-			    self-referencing custom property, which CSS treats as invalid. */}
-			<div
-				className="mb-3 shrink-0"
-				style={isExploreTab ? ({ "--accent": EXPLORE_COLOR, "--accent-contrast": "#fff" } as React.CSSProperties) : undefined}
-			>
-				<SlidingTabs<"set" | "explore">
+			    Explore gets its own color (EXPLORE_COLOR) everywhere — the
+			    sheet's accent is swapped for it, see LocationOverlay. */}
+			<div className="mb-3 shrink-0">
+				<SlidingTabs<LocationTab>
 					value={activeTab}
 					onChange={(tab) => {
 						setActiveTab(tab);
@@ -448,7 +449,7 @@ function LocationSheetContent({
 							className="h-full w-full"
 							defaultZoom={11}
 							initialCenter={initialCenter}
-							pinColor={isExploreTab ? EXPLORE_COLOR : undefined}
+							accentColor={isExploreTab ? EXPLORE_COLOR : undefined}
 						/>
 					)
 				}

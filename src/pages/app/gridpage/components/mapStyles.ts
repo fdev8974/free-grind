@@ -27,14 +27,16 @@ function mixHex(a: string, b: string, amount: number): string {
  * CARTO's dark-matter style defaults to a near-monochrome black map where
  * roads/rail barely register. Re-tint it with the app's own dark palette
  * (the --dark-* tokens, so AMOLED mode follows too, plus a hint of the user's
- * accent) so the map reads as part of the app. Call after the style has
- * (re)loaded, e.g. on the MapLibre "style.load" event.
+ * accent) so the map reads as part of the app. `accentOverride` (#rrggbb)
+ * tints it in another color instead, e.g. the location sheet's explore mode.
+ * Call after the style has (re)loaded, e.g. on the MapLibre "style.load"
+ * event — or again on a live map to switch the tint.
  */
-export function applyDarkMapTheme(map: any): void {
+export function applyDarkMapTheme(map: any, accentOverride?: string): void {
 	const bg = readCssColor("--dark-bg", "#0f131a");
 	const surface2 = readCssColor("--dark-surface-2", "#1f2835");
 	const textMuted = readCssColor("--dark-text-muted", "#96a2b6");
-	const accent = readCssColor("--accent", "#7c3aed");
+	const accent = accentOverride && /^#[0-9a-f]{6}$/i.test(accentOverride) ? accentOverride : readCssColor("--accent", "#7c3aed");
 
 	// Land a step lighter than surface-2: maps sit inside dialogs/sheets whose
 	// backgrounds are surface/surface-2, and land in exactly those colors made

@@ -11,8 +11,8 @@ type MapLocationPickerProps = {
 	className?: string;
 	defaultZoom?: number;
 	initialCenter?: [number, number];
-	/** Marker color override — defaults to --accent inside createPinMarkerElement. */
-	pinColor?: string;
+	/** Color (#rrggbb) of the marker and of the dark map's tint — defaults to --accent. */
+	accentColor?: string;
 };
 
 export function MapLocationPicker({
@@ -28,7 +28,7 @@ export function MapLocationPicker({
 	// in on the middle of the ocean whenever the real center wasn't ready
 	// yet. Leaving it undefined when not passed keeps that distinction.
 	initialCenter,
-	pinColor,
+	accentColor,
 }: MapLocationPickerProps) {
 	const { t } = useTranslation();
 	const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -57,8 +57,8 @@ export function MapLocationPicker({
 	selectedLocationRef.current = selectedLocation;
 	const initialCenterRef = useRef(initialCenter);
 	initialCenterRef.current = initialCenter;
-	const pinColorRef = useRef(pinColor);
-	pinColorRef.current = pinColor;
+	const accentColorRef = useRef(accentColor);
+	accentColorRef.current = accentColor;
 
 	useEffect(() => {
 		let mounted = true;
@@ -121,7 +121,7 @@ export function MapLocationPicker({
 				map.on("click", (event: any) => { onPickRef.current(event.lngLat.lat, event.lngLat.lng); });
 				map.on("style.load", () => {
 					relaxRoadZoomThresholds(map);
-					if (schemeRef.current === "dark") applyDarkMapTheme(map);
+					if (schemeRef.current === "dark") applyDarkMapTheme(map, accentColorRef.current);
 				});
 				// Extra safety net beyond waitForPaint above: re-measure once the
 				// map reports itself fully loaded, in case the container's size
@@ -130,7 +130,7 @@ export function MapLocationPicker({
 				mapRef.current = map;
 
 				if (currentSelectedLocation) {
-					markerRef.current = new maplibregl.Marker({ element: createPinMarkerElement(pinColorRef.current), anchor: "bottom" })
+					markerRef.current = new maplibregl.Marker({ element: createPinMarkerElement(accentColorRef.current), anchor: "bottom" })
 						.setLngLat([currentSelectedLocation.lon, currentSelectedLocation.lat])
 						.addTo(map);
 				}
@@ -182,6 +182,15 @@ export function MapLocationPicker({
 		map.setStyle(getMapStyleUrl(scheme));
 	}, [scheme]);
 
+	// Re-tints the live map when the accent changes (e.g. switching between
+	// the "set" and "explore" tabs). Before the style has loaded, the
+	// style.load handler above picks up the current color via its ref.
+	useEffect(() => {
+		const map = mapRef.current;
+		if (!map || scheme !== "dark" || !map.isStyleLoaded()) return;
+		applyDarkMapTheme(map, accentColor);
+	}, [accentColor, scheme]);
+
 	useEffect(() => {
 		const map = mapRef.current;
 		const maplibregl = maplibreRef.current;
@@ -189,17 +198,17 @@ export function MapLocationPicker({
 
 		const lngLat: [number, number] = [selectedLocation.lon, selectedLocation.lat];
 
-		// Recreated (not just repositioned) so a pinColor change — e.g.
+		// Recreated (not just repositioned) so an accentColor change — e.g.
 		// switching between the "set" and "explore" tabs while the map stays
 		// mounted — is reflected immediately instead of keeping the old color.
 		markerRef.current?.remove();
-		markerRef.current = new maplibregl.Marker({ element: createPinMarkerElement(pinColor), anchor: "bottom" })
+		markerRef.current = new maplibregl.Marker({ element: createPinMarkerElement(accentColor), anchor: "bottom" })
 			.setLngLat(lngLat)
 			.addTo(map);
 
 		map.jumpTo({ center: lngLat, zoom: Math.max(defaultZoom, map.getZoom()) });
 		map.resize();
-	}, [defaultZoom, selectedLocation, pinColor]);
+	}, [defaultZoom, selectedLocation, accentColor]);
 
 	return <div ref={mapContainerRef} className={className} />;
 }
