@@ -143,7 +143,7 @@ import type { ChatContactIndexRecord } from "../../types/chat-contact-index";
 import { markInboxSeen } from "../../services/seenStore";
 import { clearAutomationSeenHistoryForSender, runAutomationRulesForSender } from "../../utils/automationRules";
 import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
-import { isReadReceiptsHidden, setLocalReadMarker } from "../../utils/privacy";
+import { isReadReceiptsHidden, markServerUnreadReadLocally, setLocalReadMarker } from "../../utils/privacy";
 import { clearChatNotifications } from "../../services/localNotify";
 import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
 import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatMediaSend";
@@ -2919,20 +2919,27 @@ export function ChatPage() {
 					if (newest?.messageId) {
 						setLocalReadMarker(conversationId, newest.messageId);
 					}
-					// Same gap for the grid/profile badge's local index.
+					// Same gap for the grid/profile badge's local index. Its count
+					// (grid API + realtime bumps) is also the best estimate of the
+					// server's count we just read, for the grid's baseline.
 					const entry =
 						conversationsRef.current.find((c) => c.data.conversationId === conversationId) ??
 						archivedConversationsRef.current.get(conversationId)?.entry;
-					const other = entry && userId != null ? getOtherParticipant(entry, userId) : null;
-					if (other?.profileId) {
-						const pid = String(other.profileId);
-						void clearUnreadCountForProfile(pid).catch(() => {});
+					const otherFromEntry = entry && userId != null ? getOtherParticipant(entry, userId) : null;
+					void (async () => {
+						const pid = otherFromEntry?.profileId
+							? String(otherFromEntry.profileId)
+							: ((await chatDb.getConversation(conversationId).catch(() => null))?.otherProfileId ?? null);
+						if (!pid) return;
+						const [indexed] = await getChatContactIndexForProfiles([pid]).catch(() => []);
+						markServerUnreadReadLocally(pid, indexed?.unreadCount ?? 0);
+						await clearUnreadCountForProfile(pid).catch(() => {});
 						setChatContactIndexByProfileId((prev) => {
 							const existing = prev[pid];
 							if (!existing || existing.unreadCount === 0) return prev;
 							return { ...prev, [pid]: { ...existing, unreadCount: 0 } };
 						});
-					}
+					})();
 				}
 
 				if (!older && selectedConversationUnreadCountRef.current > 0) {

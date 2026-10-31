@@ -649,13 +649,7 @@ export function GridPage() {
 				filters: browseRequestFilters,
 			});
 			return {
-				// With read receipts hidden the server never learns we've read a
-				// chat, so its unread count keeps including messages read locally.
-				cards: parsed.cards.map((card) => {
-					if (!card.unreadCount) return card;
-					const unreadCount = getUnreadBeyondLocalRead(card.profileId, card.unreadCount);
-					return unreadCount === card.unreadCount ? card : { ...card, unreadCount };
-				}),
+				cards: parsed.cards,
 				nextPage: parsed.nextPage != null ? String(parsed.nextPage) : null,
 			};
 		},
@@ -813,7 +807,7 @@ export function GridPage() {
 				void upsertChatContactIndexFromGrid(
 					parsed.cards.map((card) => ({
 						profileId: card.profileId,
-						unreadCount: card.unreadCount ?? 0,
+						unreadCount: getUnreadBeyondLocalRead(card.profileId, card.unreadCount ?? 0),
 					})),
 				).catch((error) => {
 					appLog.warn("[chat-index] failed to persist grid metadata", error);
@@ -1078,7 +1072,7 @@ export function GridPage() {
 			void upsertChatContactIndexFromGrid(
 				parsed.cards.map((card) => ({
 					profileId: card.profileId,
-					unreadCount: card.unreadCount ?? 0,
+					unreadCount: getUnreadBeyondLocalRead(card.profileId, card.unreadCount ?? 0),
 				})),
 			).catch((error) => {
 				appLog.warn(

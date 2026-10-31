@@ -19,6 +19,7 @@ import { haptic } from "../../../../utils/haptics";
 import { TILE_HOVER_ZOOM_CLASS } from "../../../../hooks/useProfilePhotoPrivacy";
 import { TileFlameBurst } from "./TileFlameBurst";
 import type { GridTapStatus } from "../hooks/useGridTapStatus";
+import { getUnreadBeyondLocalRead } from "../../../../utils/privacy";
 
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
@@ -77,7 +78,9 @@ export const BrowseCardTile = memo(function BrowseCardTile({
 	const isRightNow = card.rightNow === "HOSTING" || card.rightNow === "NOT_HOSTING";
 	const isBoosting = card.isBoosting === true;
 	const databaseUnread = chatContactStatus?.unreadCount ?? 0;
-	const apiUnread = card.unreadCount ?? 0;
+	// Adjusted at render, not when fetched: cached cards (kept for minutes)
+	// still carry the raw count from before the chat was read.
+	const apiUnread = getUnreadBeyondLocalRead(card.profileId, card.unreadCount ?? 0);
 	const unreadCount = Math.max(databaseUnread, apiUnread);
 	const hasChatted = Boolean(chatContactStatus?.hasChatted) || card.chatted === true || unreadCount > 0;
 	const isFavorite = card.favorite === true;

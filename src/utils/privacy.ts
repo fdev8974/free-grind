@@ -139,6 +139,18 @@ export function noteServerUnreadCount(
     }
 }
 
+/**
+ * Called when a chat is read locally: `knownUnreadCount` is our best local
+ * estimate of the server's count (e.g. the contact index's value before it's
+ * cleared), for when no inbox fetch has reported the raw count yet.
+ */
+export function markServerUnreadReadLocally(profileId: string, knownUnreadCount: number): void {
+    const current = readServerUnreadBaselines[profileId] ?? 0;
+    if (knownUnreadCount > current) {
+        setReadServerUnreadBaseline(profileId, knownUnreadCount);
+    }
+}
+
 /** The part of the server's unread count for `profileId` that wasn't already read locally. */
 export function getUnreadBeyondLocalRead(profileId: string, serverUnreadCount: number): number {
     const baseline = readServerUnreadBaselines[profileId] ?? 0;
