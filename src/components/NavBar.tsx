@@ -141,6 +141,9 @@ export function NavBar() {
 	const { hideLabels, fullWidth, transparent } = useNavStyle();
 	// Desktop: vertical rail on the left instead of the bottom bar.
 	const rail = useDesktopBreakpoint();
+	// Floating card (not full-width, not the cardless fade): styled like the
+	// native iOS 26 / Material 3 bars, with a selection pill concentric to the capsule.
+	const capsule = !rail && !fullWidth && !transparent;
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
@@ -600,8 +603,11 @@ export function NavBar() {
 						? "h-full"
 						: fullWidth
 							? "w-full border-t border-[var(--border)] pt-1.5 pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]"
-							: // Capsule shape; extra side padding keeps the outer tabs off the curve.
-								cn("mx-auto w-full max-w-4xl rounded-full px-3 py-1.5", !transparent && "border border-[var(--border)]"),
+							: transparent
+								? // Cardless: extra side padding keeps the outer tabs off the curve.
+									"mx-auto w-full max-w-4xl rounded-full px-3 py-1.5"
+								: // Capsule: tight inset so the active tab's pill follows the bar's curve.
+									"mx-auto w-full max-w-4xl rounded-full border border-[var(--border)] p-1 shadow-[0_8px_28px_rgba(0,0,0,0.35)]",
 				)}
 				style={
 					rail || transparent
@@ -609,8 +615,8 @@ export function NavBar() {
 						: {
 								backgroundColor: "rgba(22, 29, 39, 0.8)",
 								background: "color-mix(in srgb, var(--surface) 80%, transparent)",
-								backdropFilter: "blur(24px)",
-								WebkitBackdropFilter: "blur(24px)",
+								backdropFilter: "blur(24px) saturate(180%)",
+								WebkitBackdropFilter: "blur(24px) saturate(180%)",
 							}
 				}
 			>
@@ -630,7 +636,7 @@ export function NavBar() {
 										"grid w-full bg-transparent p-0",
 										gridColsClass,
 										// Mobile app without labels: keep icon size, shrink the bar instead.
-										hideLabels ? "h-12" : "h-16 md:h-[4.1rem]",
+										hideLabels ? "h-12" : capsule ? "h-[3.625rem]" : "h-16 md:h-[4.1rem]",
 									),
 						)}
 					>
@@ -712,6 +718,9 @@ export function NavBar() {
 												? // On the dark fade: light icons with a shadow, in either theme.
 													"text-white/90 drop-shadow-[0_1px_1.5px_rgba(0,0,0,1)] drop-shadow-[0_0_0.8px_rgba(0,0,0,1)] hover:text-white"
 												: "text-[var(--text-muted)] hover:text-[var(--text)]",
+										// Capsule: tinted pill behind the active tab and a press shrink, like native tab bars.
+										capsule &&
+											"gap-0.5 rounded-full transition-[color,background-color,transform] active:scale-[0.94] data-[state=active]:bg-[color-mix(in_srgb,currentColor_14%,transparent)] md:gap-0.5",
 										item.value === "right-now" || (item.value === "browse" && isRightNowLive)
 											? "focus-visible:ring-[var(--right-now)] data-[state=active]:text-[var(--right-now)]"
 											: item.value === "browse" && isExploreActive
@@ -724,18 +733,19 @@ export function NavBar() {
 								>
 									{/* Fixed icon-sized slot so the slightly larger avatar overflows evenly
 									    instead of pushing its label below the other tabs' labels. */}
-									<div className="relative flex h-5 w-5 items-center justify-center md:h-[1.2rem] md:w-[1.2rem]">
+									<div className={cn("relative flex items-center justify-center", capsule ? "h-6 w-6" : "h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]")}>
 										{Icon ? (
-											<Icon className="h-5 w-5 fill-current md:h-[1.2rem] md:w-[1.2rem]" />
+											<Icon className={cn("fill-current", capsule ? "h-6 w-6" : "h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]")} />
 										) : !profilePhotoUrl ? (
 											// No profile photo: a user icon that takes the tab's (active) color like the other icons.
-											<ProfilePlaceholderIcon className="h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]" />
+											<ProfilePlaceholderIcon className={capsule ? "h-6 w-6" : "h-5 w-5 md:h-[1.2rem] md:w-[1.2rem]"} />
 										) : (
 											<Avatar
 												src={profilePhotoUrl}
 												alt={t("browse_page.your_profile_photo")}
 												className={cn(
-													"h-6 w-6 shrink-0 border-0 ring-2 transition-colors md:h-[1.35rem] md:w-[1.35rem]",
+													"shrink-0 border-0 transition-colors",
+													capsule ? "h-[1.625rem] w-[1.625rem] ring-[1.5px]" : "h-6 w-6 ring-2 md:h-[1.35rem] md:w-[1.35rem]",
 													activeTab !== "settings" && !isAccountSwitcherOpen
 														? "ring-transparent"
 														: "ring-[var(--accent)]",
@@ -771,7 +781,15 @@ export function NavBar() {
 									{hideLabels && !rail ? (
 										<span className="sr-only">{item.label}</span>
 									) : (
-										<span className={rail ? "w-full whitespace-normal break-words text-center text-[0.7rem] leading-tight" : "text-xs md:text-[0.8rem]"}>
+										<span
+											className={
+												rail
+													? "w-full whitespace-normal break-words text-center text-[0.7rem] leading-tight"
+													: capsule
+														? "max-w-full truncate px-1 text-[0.6875rem] font-semibold leading-tight tracking-[-0.01em]"
+														: "text-xs md:text-[0.8rem]"
+											}
+										>
 											{item.label}
 										</span>
 									)}
