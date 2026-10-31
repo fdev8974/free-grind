@@ -578,8 +578,8 @@ export function NavBar() {
 				{
 					"--nav-system-inset": `${systemNavInset}px`,
 					// 3-button navigation: the system bar is transparent, so sit just above
-					// its buttons with a small 5px gap instead of the usual 12px.
-					...(systemNavInset > 0 && { "--nav-bottom-gap": "5px" }),
+					// its buttons with a small 2px gap instead of the usual 12px.
+					...(systemNavInset > 0 && { "--nav-bottom-gap": "2px" }),
 				} as React.CSSProperties
 			}
 		>
