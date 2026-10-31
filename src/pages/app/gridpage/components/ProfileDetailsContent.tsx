@@ -110,11 +110,11 @@ function TravelPlanRow({
 		<button
 			type="button"
 			onClick={handleOpenMaps}
-			className="flex w-full items-start gap-2.5 text-left transition hover:opacity-80"
+			className="flex min-h-12 w-full items-start gap-3 px-4 py-2.5 text-left transition hover-fill"
 		>
 			<Plane className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-			<div className="min-w-0">
-				<p className="text-sm text-[var(--text)]">
+			<div className="min-w-0 flex-1">
+				<p className="text-[15px] text-[var(--text)]">
 					{location ?? t("profile_details.travel_resolving_location")}
 				</p>
 				<p className="text-xs text-[var(--text-muted)]">
@@ -809,9 +809,13 @@ export function ProfileDetailsContent({
 							<p className="mb-2 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--text-muted)]">
 								{t("profile_details.travel_plans")}
 							</p>
-							<div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
-								{visibleTravelPlans.map((plan) => (
-									<TravelPlanRow key={plan.travelPlanId} plan={plan} t={t} isDesktopLike={isDesktopLike} />
+							{/* Same native list card as the social links below. */}
+							<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)] [--hover-base:var(--surface-2)]">
+								{visibleTravelPlans.map((plan, index) => (
+									<div key={plan.travelPlanId}>
+										{index > 0 && <div className="ml-11 h-px bg-[var(--border)]" />}
+										<TravelPlanRow plan={plan} t={t} isDesktopLike={isDesktopLike} />
+									</div>
 								))}
 							</div>
 						</div>
@@ -824,7 +828,7 @@ export function ProfileDetailsContent({
 							</p>
 							{/* One native list card (like the private notes): a row per network,
 							    inset dividers, opened through the opener like the Spotify songs. */}
-							<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)]">
+							<div className="overflow-hidden rounded-2xl bg-[var(--surface-2)] [--hover-base:var(--surface-2)]">
 								{socialLinks.map((link, index) => (
 									<div key={link.key}>
 										{index > 0 && <div className="ml-11 h-px bg-[var(--border)]" />}
@@ -833,7 +837,7 @@ export function ProfileDetailsContent({
 											onClick={() => {
 												openUrl(link.url).catch((error) => appLog.error("Failed to open social link", error));
 											}}
-											className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition active:bg-[var(--surface)]"
+											className="flex min-h-12 w-full items-center gap-3 px-4 text-left transition hover-fill"
 										>
 											<link.icon className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 											<span className="min-w-0 flex-1 truncate text-[15px] text-[var(--text)]">{link.handle}</span>

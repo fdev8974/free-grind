@@ -2452,6 +2452,7 @@ export function ChatThreadMessages({
 			<PromptDialog
 				isOpen={banWordPrompt !== null}
 				title={t("chat.actions.ban_word", { defaultValue: "Add forbidden keyword" })}
+				rows={6}
 				message={t("chat.actions.ban_word_prompt", {
 					defaultValue: "Trim this message down to the specific keyword you want to ban:",
 				})}

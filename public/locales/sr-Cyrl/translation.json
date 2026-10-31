@@ -1884,6 +1884,8 @@
         "ban_bio_added": "„{{word}}“ је додато у забрањене речи!",
         "ban_keyword_source_bio": "Фраза из био-а",
         "ban_keyword_source_name": "Име профила",
+        "ban_keyword_menu_bio": "Блокирај реч из описа",
+        "ban_keyword_menu_name": "Блокирај реч из имена",
         "more_actions": "Још радњи",
         "profile_fallback": "Профил {{id}}",
         "last_online": "Последњи пут на мрежи {{value}}",

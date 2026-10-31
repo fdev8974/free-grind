@@ -1900,6 +1900,8 @@
         "ban_bio_added": "\"{{word}}\" dodano med prepovedane besede!",
         "ban_keyword_source_bio": "Fraza iz bia",
         "ban_keyword_source_name": "Ime profila",
+        "ban_keyword_menu_bio": "Blokiraj besedo iz opisa",
+        "ban_keyword_menu_name": "Blokiraj besedo iz imena",
         "more_actions": "Več dejanj",
         "profile_fallback": "Profil {{id}}",
         "last_online": "Nazadnje na spletu {{value}}",

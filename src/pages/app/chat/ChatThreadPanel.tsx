@@ -1971,10 +1971,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 													className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 												>
 													<Ban className="mr-2 h-4 w-4 opacity-70" />
-													<span className="flex flex-col">
-														<span>{t("chat.actions.ban_word", { defaultValue: "Add forbidden keyword" })}</span>
-														<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_name")}</span>
-													</span>
+													{t("profile_details.ban_keyword_menu_name", { defaultValue: "Ban word from name" })}
 												</button>
 												</div>
 											)}
@@ -2084,6 +2081,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						<PromptDialog
 							isOpen={banWordPrompt !== null}
 							title={t("chat.actions.ban_word", { defaultValue: "Add forbidden keyword" })}
+							rows={6}
 							message={t("chat.actions.ban_word_prompt", {
 								defaultValue: "Trim this message down to the specific keyword you want to ban:",
 							})}
@@ -2107,6 +2105,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						<PromptDialog
 							isOpen={banNamePrompt !== null}
 							title={t("chat.actions.ban_word", { defaultValue: "Add forbidden keyword" })}
+							rows={6}
 							message={t("chat.actions.ban_name_prompt", {
 								defaultValue: "Trim this down to the exact name or phrase you want to ban:",
 							})}

@@ -1864,6 +1864,8 @@
         "ban_bio_added": "\"{{word}}\" toegevoegd aan verboden woorden!",
         "ban_keyword_source_bio": "Bio-zin",
         "ban_keyword_source_name": "Profielnaam",
+        "ban_keyword_menu_bio": "Woord uit bio blokkeren",
+        "ban_keyword_menu_name": "Woord uit naam blokkeren",
         "more_actions": "Meer acties",
         "profile_fallback": "Profiel {{id}}",
         "last_online": "Laatst online {{value}}",

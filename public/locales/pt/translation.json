@@ -1882,6 +1882,8 @@
         "ban_bio_added": "\"{{word}}\" adicionada às palavras proibidas!",
         "ban_keyword_source_bio": "Frase da bio",
         "ban_keyword_source_name": "Nome do perfil",
+        "ban_keyword_menu_bio": "Bloquear palavra da bio",
+        "ban_keyword_menu_name": "Bloquear palavra do nome",
         "more_actions": "Mais ações",
         "profile_fallback": "Perfil {{id}}",
         "last_online": "Último online {{value}}",

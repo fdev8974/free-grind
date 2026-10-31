@@ -2370,10 +2370,7 @@ export function ProfileDetailsModal({
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
-												<span className="flex flex-col">
-													<span>{t("profile_details.ban_bio_title")}</span>
-													<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_bio", { defaultValue: "Bio phrase" })}</span>
-												</span>
+												{t("profile_details.ban_keyword_menu_bio", { defaultValue: "Ban word from bio" })}
 											</button>
 										)}
 										{actualProfileName && (
@@ -2383,10 +2380,7 @@ export function ProfileDetailsModal({
 												className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 											>
 												<Ban className="mr-2 h-4 w-4 opacity-70" />
-												<span className="flex flex-col">
-													<span>{t("profile_details.ban_bio_title")}</span>
-													<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_name", { defaultValue: "Profile name" })}</span>
-												</span>
+												{t("profile_details.ban_keyword_menu_name", { defaultValue: "Ban word from name" })}
 											</button>
 										)}
 										</div>
@@ -2591,6 +2585,7 @@ export function ProfileDetailsModal({
 				<PromptDialog
 					isOpen={banBioPrompt !== null}
 					title={t("profile_details.ban_bio_title")}
+					rows={6}
 					message={t("profile_details.ban_bio_prompt")}
 					defaultValue={banBioPrompt?.text ?? ""}
 					confirmLabel={t("chat.actions.ban_word_confirm", { defaultValue: "Add" })}
@@ -2607,6 +2602,7 @@ export function ProfileDetailsModal({
 				<PromptDialog
 					isOpen={banNamePrompt !== null}
 					title={t("profile_details.ban_bio_title")}
+					rows={6}
 					message={t("chat.actions.ban_name_prompt", {
 						defaultValue: "Trim this down to the exact name or phrase you want to ban:",
 					})}
@@ -2824,10 +2820,7 @@ export function ProfileDetailsModal({
 																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
-																<span className="flex flex-col">
-																	<span>{t("profile_details.ban_bio_title")}</span>
-																	<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_bio", { defaultValue: "Bio phrase" })}</span>
-																</span>
+																{t("profile_details.ban_keyword_menu_bio", { defaultValue: "Ban word from bio" })}
 															</button>
 														)}
 														{actualProfileName && (
@@ -2837,10 +2830,7 @@ export function ProfileDetailsModal({
 																className="flex items-center rounded-sm px-2 py-2 text-left text-sm text-[var(--text)] transition hover-fill"
 															>
 																<Ban className="mr-2 h-4 w-4 opacity-70" />
-																<span className="flex flex-col">
-																	<span>{t("profile_details.ban_bio_title")}</span>
-																	<span className="text-xs text-[var(--text-muted)]">{t("profile_details.ban_keyword_source_name", { defaultValue: "Profile name" })}</span>
-																</span>
+																{t("profile_details.ban_keyword_menu_name", { defaultValue: "Ban word from name" })}
 															</button>
 														)}
 														</div>
@@ -2932,6 +2922,7 @@ export function ProfileDetailsModal({
 			<PromptDialog
 				isOpen={banBioPrompt !== null}
 				title={t("profile_details.ban_bio_title")}
+				rows={6}
 				message={t("profile_details.ban_bio_prompt")}
 				defaultValue={banBioPrompt?.text ?? ""}
 				confirmLabel={t("chat.actions.ban_word_confirm", { defaultValue: "Add" })}
@@ -2948,6 +2939,7 @@ export function ProfileDetailsModal({
 			<PromptDialog
 				isOpen={banNamePrompt !== null}
 				title={t("profile_details.ban_bio_title")}
+				rows={6}
 				message={t("chat.actions.ban_name_prompt", {
 					defaultValue: "Trim this down to the exact name or phrase you want to ban:",
 				})}

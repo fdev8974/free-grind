@@ -538,6 +538,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			try {
 				const stored = localStorage.getItem(PREFERENCES_STORAGE_KEY);
 				const deviceDefaultStrength = isDesktopDevice() ? "pronounced" : "subtle";
+				// Compact message bar on desktop, the full action row on mobile.
+				const deviceDefaultCompactComposer = isDesktopDevice();
 
 				if (stored) {
 					const decoded = JSON.parse(stored) as Record<string, unknown>;
@@ -545,6 +547,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					// If the strength wasn't explicitly saved yet, use the device-based default
 					if (decoded.revealEffectStrength === undefined) {
 						decoded.revealEffectStrength = deviceDefaultStrength;
+					}
+					if (decoded.compactComposer === undefined) {
+						decoded.compactComposer = deviceDefaultCompactComposer;
 					}
 
 					const parsed = preferencesSchema.parse(decoded);
@@ -595,6 +600,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				} else {
 					// No stored preferences at all, apply device defaults immediately
 					dispatch({ type: "SET_REVEAL_EFFECT_STRENGTH", payload: deviceDefaultStrength });
+					dispatch({ type: "SET_COMPACT_COMPOSER", payload: deviceDefaultCompactComposer });
 					// We also need to apply the theme with these defaults
 					applyTheme("dark", false, "#7c3aed", "#ffffff", deviceDefaultStrength);
 				}

@@ -1882,6 +1882,8 @@
         "ban_bio_added": "\"{{word}}\" a été ajouté aux mots-clés interdits !",
         "ban_keyword_source_bio": "Phrase de la bio",
         "ban_keyword_source_name": "Nom du profil",
+        "ban_keyword_menu_bio": "Bloquer un mot de la bio",
+        "ban_keyword_menu_name": "Bloquer un mot du nom",
         "more_actions": "Plus d'actions",
         "profile_fallback": "Profil {{id}}",
         "last_online": "Dernière connexion {{value}}",

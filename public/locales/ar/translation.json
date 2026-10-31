@@ -1936,6 +1936,8 @@
         "ban_bio_added": "اتضافت \"{{word}}\" للكلمات الممنوعة!",
         "ban_keyword_source_bio": "جملة من البايو",
         "ban_keyword_source_name": "اسم البروفايل",
+        "ban_keyword_menu_bio": "حظر كلمة من النبذة",
+        "ban_keyword_menu_name": "حظر كلمة من الاسم",
         "more_actions": "أكشنز أكتر",
         "profile_fallback": "بروفايل {{id}}",
         "last_online": "آخر ظهور {{value}}",
