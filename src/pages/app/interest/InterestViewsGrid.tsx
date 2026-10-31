@@ -16,7 +16,7 @@ export function useViewsGridLayout() {
 		isDesktop,
 		mobileGridColumns,
 		gridTemplateColumns: isDesktop ? DESKTOP_GRID_TEMPLATE : mobileGridTemplate(mobileGridColumns),
-		gridClassName: cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px"),
+		gridClassName: cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-[3px]"),
 	};
 }
 

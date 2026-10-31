@@ -231,7 +231,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 			: t("common.unknown_display_name");
 
 	return (
-		<div ref={ref} className={cn(!isDesktop && "bg-black rounded-[4px] overflow-hidden", revealClass)}>
+		<div ref={ref} className={cn(!isDesktop && "bg-black rounded-[6px] overflow-hidden", revealClass)}>
 			<button
 				type="button"
 				onClick={() => !isLocked && onOpenProfile(item.profileId)}
@@ -240,7 +240,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 					"group/reveal no-touch-callout touch-manipulation surface-card-grid relative block w-full overflow-hidden text-left transition-transform",
 					!isLocked && "active:scale-95",
 					isRightNow ? "p-[2px]" : "p-0",
-					isDesktop ? "rounded-xl shadow-sm" : "rounded-[4px]",
+					isDesktop ? "rounded-xl shadow-sm" : "rounded-[6px]",
 				)}
 			>
 				{isRightNow && (
@@ -251,7 +251,7 @@ export const InterestViewTile = memo(function InterestViewTile({
 				)}
 
 				{/* h-0 pb-[100%] instead of aspect-ratio — see BrowseCardTile for why. */}
-				<div className="relative z-10 h-0 w-full overflow-hidden rounded-[inherit] bg-[var(--surface-2)] pb-[100%] ring-1 ring-inset ring-white/10">
+				<div className={cn("relative z-10 h-0 w-full overflow-hidden rounded-[inherit] bg-[var(--surface-2)] pb-[100%]", isDesktop && "ring-1 ring-inset ring-white/10")}>
 					<div className="absolute inset-0">
 						<ProfileImage
 							src={imageSrc}

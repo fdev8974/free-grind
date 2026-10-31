@@ -39,7 +39,7 @@ function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; 
 	const count = isDesktop ? 30 : Number(mobileColumns) * 8;
 	return (
 		<div
-			className={cn("w-full grid", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px")}
+			className={cn("w-full grid", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-[3px]")}
 			style={{
 				gridTemplateColumns: isDesktop ? DESKTOP_GRID_TEMPLATE : mobileGridTemplate(mobileColumns),
 			}}
@@ -49,7 +49,7 @@ function BrowseGridSkeleton({ isDesktop, mobileColumns }: { isDesktop: boolean; 
 					key={i}
 					className={cn(
 						"animate-pulse bg-[var(--surface-2)] relative w-full h-0 pb-[100%] overflow-hidden",
-						!isDesktop && "rounded-[4px]",
+						!isDesktop && "rounded-[6px]",
 						isDesktop && "rounded-xl",
 					)}
 				>
@@ -130,7 +130,7 @@ export function BrowseGrid({
 	const isDesktop = useDesktopBreakpoint();
 
 	const gridTemplateColumns = isDesktop ? DESKTOP_GRID_TEMPLATE : mobileGridTemplate(mobileGridColumns);
-	const gridClassName = cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-px");
+	const gridClassName = cn("grid w-full", isDesktop ? "gap-2 px-[var(--app-px)]" : "gap-[3px]");
 
 	const { rowMetrics, probeRef: probeRefCallback } = useGridRowMetrics(
 		gridTemplateColumns,

@@ -53,7 +53,7 @@ function InterestViewsGridSkeleton() {
 					key={i}
 					className={cn(
 						"relative h-0 w-full animate-pulse overflow-hidden bg-[var(--surface-2)] pb-[100%]",
-						isDesktop ? "rounded-xl" : "rounded-[4px]",
+						isDesktop ? "rounded-xl" : "rounded-[6px]",
 					)}
 				>
 					<div className="absolute left-2 top-2 h-4 w-9 rounded-full bg-white/20" />

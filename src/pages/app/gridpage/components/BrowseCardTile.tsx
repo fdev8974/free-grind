@@ -183,7 +183,7 @@ export const BrowseCardTile = memo(function BrowseCardTile({
 
 
 	return (
-		<div ref={ref} className={cn(!isDesktop && "bg-black rounded-[4px] overflow-hidden", revealClass)}>
+		<div ref={ref} className={cn(!isDesktop && "bg-black rounded-[6px] overflow-hidden", revealClass)}>
 			<button
 				type="button"
 				key={card.profileId}
@@ -201,7 +201,7 @@ export const BrowseCardTile = memo(function BrowseCardTile({
 					!isDemoCard && "active:scale-95",
 					isDesktop
 						? "rounded-xl shadow-sm"
-						: "rounded-[4px]",
+						: "rounded-[6px]",
 					isBoosting ? "p-[2.5px] z-20" : isRightNow ? "p-[2px]" : "p-0",
 					isDemoCard && "cursor-default"
 				)}
@@ -231,7 +231,7 @@ export const BrowseCardTile = memo(function BrowseCardTile({
                     pre-iOS-15 WebKit. This triggered an endless pagination loop
                     that crashed the WebView renderer. thank you flo
 				*/}
-				<div className="relative w-full h-0 pb-[100%] bg-[var(--surface-2)] z-10 rounded-[inherit] overflow-hidden ring-1 ring-inset ring-white/10">
+				<div className={cn("relative w-full h-0 pb-[100%] bg-[var(--surface-2)] z-10 rounded-[inherit] overflow-hidden", isDesktop && "ring-1 ring-inset ring-white/10")}>
 					<div className="absolute inset-0">
 					<ProfileImage
 						src={card.primaryImageUrl}
