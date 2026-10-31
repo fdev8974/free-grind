@@ -613,8 +613,9 @@ export function NavBar() {
 							: transparent
 								? // Cardless: extra side padding keeps the outer tabs off the curve.
 									"mx-auto w-full max-w-4xl rounded-full px-3 py-1.5"
-								: // Capsule: tight inset so the active tab's pill follows the bar's curve.
-									"mx-auto w-full max-w-4xl rounded-full border border-[var(--border)] p-1 shadow-[0_8px_28px_rgba(0,0,0,0.35)]",
+								: // Capsule: tight inset so the active tab's pill follows the bar's curve. No outline
+									// on Android, like Material 3 bars (surface + shadow only).
+									cn("mx-auto w-full max-w-4xl rounded-full p-1 shadow-[0_8px_28px_rgba(0,0,0,0.35)]", !isAndroid() && "border border-[var(--border)]"),
 				)}
 				style={
 					rail || transparent
