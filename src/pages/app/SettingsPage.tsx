@@ -28,6 +28,7 @@ import {
 	Ban,
 	Clock,
 	Pointer,
+	KeyRound,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
@@ -72,6 +73,8 @@ import { FullscreenPortal } from "../../components/FullscreenPrompt";
 import { VERSION_ANNOUNCEMENTS } from "../../data/versionAnnouncements";
 import { OutdatedVersionPromptView, fetchLatestRelease, isOlderVersion, type ReleaseInfo } from "../../components/OutdatedVersionPrompt";
 import { AccountStatusPromptView } from "../../components/AccountStatusPrompt";
+import { TestReminderPromptView } from "../../components/TestReminderPrompt";
+import { TokenExpiredPromptView } from "../../components/TokenExpiredPrompt";
 import type { AccountStatus } from "../../contexts/auth-context";
 import { areUpdateChecksEnabled, setUpdateChecksEnabled, subscribeUpdateChecks } from "../../services/updateChecks";
 import { Avatar } from "../../components/ui/avatar";
@@ -352,6 +355,8 @@ export function SettingsPage() {
 	const [previewAnnouncement, setPreviewAnnouncement] = useState(false);
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
 	const [previewAccountStatus, setPreviewAccountStatus] = useState<AccountStatus>(null);
+	const [previewTestReminder, setPreviewTestReminder] = useState(false);
+	const [previewTokenExpired, setPreviewTokenExpired] = useState(false);
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 	// App release found by a manual check — shown as the APK update prompt.
 	const [appUpdateRelease, setAppUpdateRelease] = useState<ReleaseInfo | null>(null);
@@ -630,6 +635,25 @@ export function SettingsPage() {
 					status={previewAccountStatus}
 					onSignOut={() => setPreviewAccountStatus(null)}
 					onAcceptBanAgreement={async () => setPreviewAccountStatus(null)}
+				/>
+			</FullscreenPortal>
+		);
+	}
+
+	if (previewTokenExpired) {
+		return (
+			<FullscreenPortal className="z-[110]">
+				<TokenExpiredPromptView onSignOut={() => setPreviewTokenExpired(false)} />
+			</FullscreenPortal>
+		);
+	}
+
+	if (previewTestReminder) {
+		return (
+			<FullscreenPortal className="z-[110]">
+				<TestReminderPromptView
+					onSave={() => setPreviewTestReminder(false)}
+					onSkip={() => setPreviewTestReminder(false)}
 				/>
 			</FullscreenPortal>
 		);
@@ -1303,6 +1327,8 @@ export function SettingsPage() {
 						{ key: "underage-ban", icon: Ban, label: "Underage Ban Screen", description: "Code 35, banned as under 18 by a moderator.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(PREVIEW_UNDERAGE_BAN_STATUS)) },
 						{ key: "timed-ban", icon: Clock, label: "Timed Ban Screen", description: "A temporary ban (MILD_INSULTS) that ends in two days.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(false))) },
 						{ key: "timed-ban-expired", icon: ScrollText, label: "Ban Agreement Screen", description: "An expired temporary ban (BOT_ACTIVITY, appealable) waiting for its ban agreement.", onSelect: () => afterSheetClose(() => setPreviewAccountStatus(previewTimedBanStatus(true))) },
+						{ key: "token-expired", icon: KeyRound, label: "Token Expired Screen", description: "The \"session expired\" prompt asking to sign in again.", onSelect: () => afterSheetClose(() => setPreviewTokenExpired(true)) },
+						{ key: "test-reminder", icon: HeartPulseFilled, label: "Test Reminder", description: "The HIV test check-up reminder; saving here doesn't touch your profile.", onSelect: () => afterSheetClose(() => setPreviewTestReminder(true)) },
 						{ key: "warnings", icon: TriangleAlertFilled, label: "Account Warnings", description: "The community-guidelines warnings prompt with sample warnings.", onSelect: () => afterSheetClose(showAccountWarningsPrompt) },
 						{ key: "share", icon: Share2, label: "Share Picker", description: "The \"Send to…\" chat picker with sample images.", onSelect: () => afterSheetClose(() => void showSharePickerDebug()) },
 						{

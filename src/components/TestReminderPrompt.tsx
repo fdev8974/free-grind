@@ -27,40 +27,20 @@ function currentMonthValue(): string {
 	return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-/**
- * Gates the routed app behind a full-page HIV test reminder — same slot in
- * the tree as onboarding/VersionAnnouncement in App.tsx, not a floating
- * overlay on top of the grid. Shown once the last test is 3+ months old.
- * Lets the user patch lastTestedDate directly (same optimistic-PATCH pattern
- * as the grid header's "show distance" toggle) instead of routing to the
- * full profile editor. "Skip" suppresses the reminder for the next
- * TEST_REMINDER_REOPEN_COUNT app starts (same countdown mechanism as
- * OutdatedVersionGate) rather than showing it every cold start; it can also
- * be turned off entirely from the profile editor's Health section.
- */
-export function TestReminderGate({ children }: { children: ReactNode }) {
+export function TestReminderPromptView({
+	onSave,
+	onSkip,
+	isSaving = false,
+}: {
+	/** Called with the picked month as a UTC timestamp (first of the month). */
+	onSave: (timestamp: number) => void;
+	onSkip: () => void;
+	isSaving?: boolean;
+}) {
 	const { t } = useTranslation();
-	const { userId, isLoading: isAuthLoading } = useAuth();
-	const { testReminderDisabled } = usePreferences();
-	const apiFunctions = useApiFunctions();
-	const queryClient = useQueryClient();
-	const { data: profile } = useMyOwnProfile(Boolean(userId) && !isAuthLoading);
-	const [isDismissed, setIsDismissed] = useState(() =>
-		processDismissCountdown(TEST_REMINDER_DISMISS_KEY),
-	);
 	const [monthValue, setMonthValue] = useState(currentMonthValue);
-	const [isSaving, setIsSaving] = useState(false);
 
-	const isOverdue =
-		!testReminderDisabled &&
-		profile?.lastTestedDate != null &&
-		monthsSince(profile.lastTestedDate) >= TEST_REMINDER_THRESHOLD_MONTHS;
-
-	if (!isOverdue || isDismissed) {
-		return <>{children}</>;
-	}
-
-	const handleSave = async () => {
+	const handleSave = () => {
 		if (!monthValue || isSaving) {
 			return;
 		}
@@ -68,24 +48,10 @@ export function TestReminderGate({ children }: { children: ReactNode }) {
 		if (!Number.isFinite(timestamp)) {
 			return;
 		}
-
-		setIsSaving(true);
-		try {
-			await apiFunctions.updateMyProfile({ lastTestedDate: timestamp });
-			queryClient.setQueryData(["my-own-profile"], (current: typeof profile) =>
-				current ? { ...current, lastTestedDate: timestamp } : current,
-			);
-			toast.success(t("test_reminder.saved"));
-			setIsDismissed(true);
-		} catch {
-			toast.error(t("test_reminder.save_failed"));
-		} finally {
-			setIsSaving(false);
-		}
+		onSave(timestamp);
 	};
 
 	return (
-		<div className="app-shell">
 		<div className="fs-card-outer fs-card-overlay no-touch-callout">
 			<div className="fs-card-inner fs-card-lg flex flex-col">
 				<div
@@ -117,7 +83,7 @@ export function TestReminderGate({ children }: { children: ReactNode }) {
 				>
 					<button
 						type="button"
-						onClick={() => void handleSave()}
+						onClick={handleSave}
 						disabled={!monthValue || isSaving}
 						className={fullscreenPrimaryButtonClass}
 					>
@@ -125,10 +91,7 @@ export function TestReminderGate({ children }: { children: ReactNode }) {
 					</button>
 					<button
 						type="button"
-						onClick={() => {
-							writeDismissedFlag(TEST_REMINDER_DISMISS_KEY, TEST_REMINDER_REOPEN_COUNT);
-							setIsDismissed(true);
-						}}
+						onClick={onSkip}
 						disabled={isSaving}
 						className="w-full rounded-xl py-3 text-sm font-medium text-[var(--text-muted)] transition hover:text-[var(--text)] disabled:opacity-60"
 					>
@@ -137,6 +100,67 @@ export function TestReminderGate({ children }: { children: ReactNode }) {
 				</div>
 			</div>
 		</div>
+	);
+}
+
+/**
+ * Gates the routed app behind a full-page HIV test reminder — same slot in
+ * the tree as onboarding/VersionAnnouncement in App.tsx, not a floating
+ * overlay on top of the grid. Shown once the last test is 3+ months old.
+ * Lets the user patch lastTestedDate directly (same optimistic-PATCH pattern
+ * as the grid header's "show distance" toggle) instead of routing to the
+ * full profile editor. "Skip" suppresses the reminder for the next
+ * TEST_REMINDER_REOPEN_COUNT app starts (same countdown mechanism as
+ * OutdatedVersionGate) rather than showing it every cold start; it can also
+ * be turned off entirely from the profile editor's Health section.
+ */
+export function TestReminderGate({ children }: { children: ReactNode }) {
+	const { t } = useTranslation();
+	const { userId, isLoading: isAuthLoading } = useAuth();
+	const { testReminderDisabled } = usePreferences();
+	const apiFunctions = useApiFunctions();
+	const queryClient = useQueryClient();
+	const { data: profile } = useMyOwnProfile(Boolean(userId) && !isAuthLoading);
+	const [isDismissed, setIsDismissed] = useState(() =>
+		processDismissCountdown(TEST_REMINDER_DISMISS_KEY),
+	);
+	const [isSaving, setIsSaving] = useState(false);
+
+	const isOverdue =
+		!testReminderDisabled &&
+		profile?.lastTestedDate != null &&
+		monthsSince(profile.lastTestedDate) >= TEST_REMINDER_THRESHOLD_MONTHS;
+
+	if (!isOverdue || isDismissed) {
+		return <>{children}</>;
+	}
+
+	const handleSave = async (timestamp: number) => {
+		setIsSaving(true);
+		try {
+			await apiFunctions.updateMyProfile({ lastTestedDate: timestamp });
+			queryClient.setQueryData(["my-own-profile"], (current: typeof profile) =>
+				current ? { ...current, lastTestedDate: timestamp } : current,
+			);
+			toast.success(t("test_reminder.saved"));
+			setIsDismissed(true);
+		} catch {
+			toast.error(t("test_reminder.save_failed"));
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	return (
+		<div className="app-shell">
+			<TestReminderPromptView
+				onSave={(timestamp) => void handleSave(timestamp)}
+				onSkip={() => {
+					writeDismissedFlag(TEST_REMINDER_DISMISS_KEY, TEST_REMINDER_REOPEN_COUNT);
+					setIsDismissed(true);
+				}}
+				isSaving={isSaving}
+			/>
 		</div>
 	);
 }

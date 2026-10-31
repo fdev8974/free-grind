@@ -8,27 +8,51 @@ import { useHorizontalSwipe } from "../hooks/useHorizontalSwipe";
 import logo from "../images/freegrind-logo.webp";
 import { fullscreenCardClass, fullscreenIconTileClass, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 
+// Long announcements only show a sliding window of dots; the outermost ones
+// shrink to hint that more pages follow (like iOS/Instagram page controls).
+const MAX_VISIBLE_DOTS = 10;
+
 function Dots({ total, current }: { total: number; current: number }) {
 	if (total <= 1) {
 		return null;
 	}
+
+	const visible = Math.min(total, MAX_VISIBLE_DOTS);
+	const start = Math.max(0, Math.min(current - Math.floor(visible / 2), total - visible));
+	const end = start + visible - 1;
+
+	const dotScale = (i: number) => {
+		if (i === current) return 1;
+		const moreBefore = start > 0;
+		const moreAfter = end < total - 1;
+		if ((moreBefore && i === start) || (moreAfter && i === end)) return 0.5;
+		if ((moreBefore && i === start + 1) || (moreAfter && i === end - 1)) return 0.75;
+		return 1;
+	};
 
 	return (
 		<div
 			className="flex justify-center pb-3 pt-5"
 			style={{ paddingTop: "max(36px, env(safe-area-inset-top))" }}
 		>
-			<div className="flex items-center justify-center gap-2">
-				{Array.from({ length: total }).map((_, i) => (
-					<div
-						key={i}
-						className="h-1.5 rounded-full transition-all duration-300"
-						style={{
-							width: i === current ? "24px" : "6px",
-							background: i <= current ? "var(--accent)" : "color-mix(in srgb, var(--text) 15%, transparent)",
-						}}
-					/>
-				))}
+			<div className="flex items-center justify-center">
+				{Array.from({ length: total }).map((_, i) => {
+					const inWindow = i >= start && i <= end;
+					const scale = dotScale(i);
+					return (
+						<div
+							key={i}
+							className="h-1.5 rounded-full transition-all duration-300"
+							style={{
+								width: !inWindow ? 0 : i === current ? "24px" : "6px",
+								margin: inWindow ? "0 4px" : 0,
+								opacity: inWindow ? (scale < 1 ? 0.4 + scale * 0.6 : 1) : 0,
+								transform: `scale(${scale})`,
+								background: i <= current ? "var(--accent)" : "color-mix(in srgb, var(--text) 15%, transparent)",
+							}}
+						/>
+					);
+				})}
 			</div>
 		</div>
 	);
