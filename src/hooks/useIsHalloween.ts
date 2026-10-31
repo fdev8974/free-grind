@@ -7,6 +7,39 @@ const HALLOWEEN_END = Date.UTC(2026, 10, 1, 6);
 // Set to "true" in localStorage to preview the theme outside the window.
 export const FORCE_HALLOWEEN_KEY = "fg-force-halloween";
 
+// Set to "true" in localStorage (dev options) to hide the blood-drip overlay.
+export const HIDE_HALLOWEEN_OVERLAY_KEY = "fg-hide-halloween-overlay";
+export const HALLOWEEN_OVERLAY_EVENT = "fg-halloween-overlay-changed";
+
+export function isHalloweenOverlayHidden(): boolean {
+	try {
+		return window.localStorage.getItem(HIDE_HALLOWEEN_OVERLAY_KEY) === "true";
+	} catch {
+		return false;
+	}
+}
+
+export function setHalloweenOverlayHidden(hidden: boolean): void {
+	try {
+		if (hidden) window.localStorage.setItem(HIDE_HALLOWEEN_OVERLAY_KEY, "true");
+		else window.localStorage.removeItem(HIDE_HALLOWEEN_OVERLAY_KEY);
+	} catch {
+		// Storage unavailable: the toggle just doesn't stick.
+	}
+	window.dispatchEvent(new Event(HALLOWEEN_OVERLAY_EVENT));
+}
+
+/** Whether the dev option hiding the Halloween overlay is on; follows the toggle live. */
+export function useIsHalloweenOverlayHidden(): boolean {
+	const [hidden, setHidden] = useState(isHalloweenOverlayHidden);
+	useEffect(() => {
+		const onChange = () => setHidden(isHalloweenOverlayHidden());
+		window.addEventListener(HALLOWEEN_OVERLAY_EVENT, onChange);
+		return () => window.removeEventListener(HALLOWEEN_OVERLAY_EVENT, onChange);
+	}, []);
+	return hidden;
+}
+
 function isForced(): boolean {
 	try {
 		return window.localStorage.getItem(FORCE_HALLOWEEN_KEY) === "true";

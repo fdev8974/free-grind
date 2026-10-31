@@ -32,7 +32,7 @@ import {
 	KeyRound,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
-import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
+import { ArchiveRestoreFilled, BellFilled, BotFilled, BugFilled, ClipboardListFilled, EyeFilled, EyeOffFilled, FileUpFilled, FlaskConicalFilled, GhostFilled, HeartPulseFilled, ImagesFilled, InfoFilled, MegaphoneFilled, PaletteFilled, PuzzleFilled, ShieldFilled, TriangleAlertFilled, UserPlusFilled, UserXFilled, ZapFilled } from "../../components/icons/FilledIcons";
 import { useState, useEffect, useMemo, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -68,6 +68,7 @@ import { ControlledBottomSheet } from "../../components/ui/controlled-sheet";
 import { SHEET_FIELD_CLASS } from "../../components/ui/sheet-section";
 import { cn } from "../../utils/cn";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { setHalloweenOverlayHidden, useIsHalloweenOverlayHidden } from "../../hooks/useIsHalloween";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
@@ -372,6 +373,7 @@ export function SettingsPage() {
 	const navigate = useNavigate();
 	const logoutToNextAccount = useLogoutToNextAccount();
 	const { developerMode, showDebugInfo, setPreferences } = usePreferences();
+	const isHalloweenOverlayHidden = useIsHalloweenOverlayHidden();
 	const [previewAnnouncement, setPreviewAnnouncement] = useState(false);
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
 	const [previewAccountStatus, setPreviewAccountStatus] = useState<AccountStatus>(null);
@@ -1225,6 +1227,14 @@ export function SettingsPage() {
 										iconClass="bg-slate-500/15 text-slate-400"
 										label="Show Debug Overlays"
 										description="Displays source (cache/network) info in the grid."
+									/>
+									<ToggleRow
+										checked={isHalloweenOverlayHidden}
+										onChange={setHalloweenOverlayHidden}
+										icon={<GhostFilled className="h-5 w-5" />}
+										iconClass="bg-slate-500/15 text-slate-400"
+										label="Hide Halloween Overlay"
+										description="Removes the blood-drip vignette during the Halloween theme. Nav icons stay."
 									/>
 									{hasDemoProfileImages() && (
 										<ToggleRow

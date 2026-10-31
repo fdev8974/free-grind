@@ -1,9 +1,10 @@
 import { createPortal } from "react-dom";
-import { useIsHalloween } from "../hooks/useIsHalloween";
+import { useIsHalloween, useIsHalloweenOverlayHidden } from "../hooks/useIsHalloween";
 
 export function HalloweenOverlay() {
 	const isHalloween = useIsHalloween();
-	if (!isHalloween) {
+	const isHidden = useIsHalloweenOverlayHidden();
+	if (!isHalloween || isHidden) {
 		return null;
 	}
 
