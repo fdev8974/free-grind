@@ -1324,6 +1324,11 @@ export function GridPage() {
 	// animation when it actually does; a blocked tap still runs through
 	// handleTapProfile for the "already tapped" toast.
 	const handleDoubleTapProfile = (profileId: string, tapId: number) => {
+		// Your own tile: nothing to tap, so a double tap just opens it.
+		if (selfCard && profileId === selfCard.profileId) {
+			handleSelectProfile(profileId);
+			return false;
+		}
 		// The sent-taps list also knows about taps from earlier sessions/devices.
 		if (tapStatusByProfileId[profileId]?.sent != null) {
 			toast(t("browse_page.toasts.tap_limit"));
@@ -1346,6 +1351,18 @@ export function GridPage() {
 		}
 
 		setActiveProfileId(profileId);
+	};
+
+	// Same as Settings' profile row: the own profile, straight in edit mode.
+	const openOwnProfileEditor = () => {
+		if (userId == null) return;
+		navigate(`/profile/${userId}`, {
+			state: {
+				returnTo: `${location.pathname}${location.search}`,
+				editOwnProfile: true,
+				...(isDesktop ? { backgroundLocation: location } : {}),
+			},
+		});
 	};
 
 	const openProfileFromSearch = (profileId: string) => {
@@ -2052,7 +2069,11 @@ export function GridPage() {
 							tapStatusByProfileId={showGridTapStatus ? tapStatusByProfileId : undefined}
 							onSelectProfile={handleSelectProfile}
 							onDoubleTapProfile={handleDoubleTapProfile}
-							onMessageProfile={handleMessageProfile}
+							// Double tap set to "open chat": there's no chat with yourself, so
+							// your own tile opens instead.
+							onMessageProfile={(profileId) =>
+								selfCard && profileId === selfCard.profileId ? handleSelectProfile(profileId) : handleMessageProfile(profileId)
+							}
 							onOpenContextMenu={handleOpenTileContextMenu}
 							hidePopular={sortBy === "distance"}
 							hasMore={nextPage !== null && !(effectiveNicknameFilter && loadedPageCount >= NICKNAME_FILTER_MAX_PAGES)}
@@ -2109,6 +2130,8 @@ export function GridPage() {
 					onBlock={() => void handleBlockProfile(renderedTileMenu.card.profileId)}
 					onLocate={showLocate ? () => handleTriangleProfile(String(renderedTileMenu.card.profileId)) : undefined}
 					locateLabel={locateLabelFor(renderedTileMenu.card.profileId)}
+					// Your own tile: editing is the only thing to do with it.
+					onEditProfile={selfCard && renderedTileMenu.card.profileId === selfCard.profileId ? openOwnProfileEditor : undefined}
 				/>
 			)}
 

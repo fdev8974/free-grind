@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Ban, EyeOff, MessageCircle, PencilLine, Star, StarOff } from "lucide-react";
+import { Ban, EyeOff, MessageCircle, Pencil, PencilLine, Star, StarOff } from "lucide-react";
 import { SheetActionList, afterSheetClose } from "../../../../components/ui/action-sheet";
 import { menuTransitionStyle } from "../../../../hooks/usePresence";
 import { LocateFixedFilled } from "../../../../components/icons/FilledIcons";
@@ -27,6 +27,8 @@ type GridTileContextMenuProps = {
 	/** Only passed while the optional Locate feature is enabled. */
 	onLocate?: () => void;
 	locateLabel?: string;
+	/** Your own tile: then this is the only action (no message, favorite, hide, block…). */
+	onEditProfile?: () => void;
 };
 
 type TileAction = {
@@ -58,10 +60,18 @@ export function GridTileContextMenu({
 	onBlock,
 	onLocate,
 	locateLabel,
+	onEditProfile,
 }: GridTileContextMenuProps) {
 	const { t } = useTranslation();
 
-	const actions: TileAction[] = [
+	const actions: TileAction[] = onEditProfile ? [
+		{
+			key: "edit-profile",
+			icon: <Pencil className={isDesktop ? "h-4 w-4" : "h-3.5 w-3.5"} />,
+			label: t("profile_editor.edit_profile", { defaultValue: "Edit profile" }),
+			onClick: onEditProfile,
+		},
+	] : [
 		{
 			key: "message",
 			icon: <MessageCircle className={isDesktop ? "h-4 w-4" : "h-3.5 w-3.5"} />,
