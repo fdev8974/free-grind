@@ -143,7 +143,7 @@ import type { ChatContactIndexRecord } from "../../types/chat-contact-index";
 import { markInboxSeen } from "../../services/seenStore";
 import { clearAutomationSeenHistoryForSender, runAutomationRulesForSender } from "../../utils/automationRules";
 import { consumeSelfBlockAction } from "../../utils/selfBlockActions";
-import { isReadReceiptsHidden } from "../../utils/privacy";
+import { isReadReceiptsHidden, setLocalReadMarker } from "../../utils/privacy";
 import { clearChatNotifications } from "../../services/localNotify";
 import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
 import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatMediaSend";
@@ -2909,6 +2909,32 @@ export function ChatPage() {
 					}
 				}
 
+				// Remembered regardless of the unread gate below: opened from the
+				// grid or a profile, the conversation entry is often still a cached
+				// or not-yet-loaded one with unreadCount 0, so markRead never runs —
+				// and with read receipts hidden the next inbox poll would bring the
+				// server's stale unread count right back.
+				if (!older) {
+					const newest = response.messages[response.messages.length - 1];
+					if (newest?.messageId) {
+						setLocalReadMarker(conversationId, newest.messageId);
+					}
+					// Same gap for the grid/profile badge's local index.
+					const entry =
+						conversationsRef.current.find((c) => c.data.conversationId === conversationId) ??
+						archivedConversationsRef.current.get(conversationId)?.entry;
+					const other = entry && userId != null ? getOtherParticipant(entry, userId) : null;
+					if (other?.profileId) {
+						const pid = String(other.profileId);
+						void clearUnreadCountForProfile(pid).catch(() => {});
+						setChatContactIndexByProfileId((prev) => {
+							const existing = prev[pid];
+							if (!existing || existing.unreadCount === 0) return prev;
+							return { ...prev, [pid]: { ...existing, unreadCount: 0 } };
+						});
+					}
+				}
+
 				if (!older && selectedConversationUnreadCountRef.current > 0) {
 					const newest = response.messages[response.messages.length - 1];
 					if (newest?.messageId) {
@@ -3069,7 +3095,7 @@ export function ChatPage() {
 				isLoadingOlderMessagesRef.current = false;
 			}
 		},
-		[service, syncConversation, archiveConversationsLocally],
+		[service, syncConversation, archiveConversationsLocally, userId],
 	);
 
 	const mergeIncomingMessages = useCallback((messages: Message[]) => {
@@ -3375,6 +3401,11 @@ export function ChatPage() {
 				const text = getMessagePreviewLabel(latestMessage, t);
 				const isMine = userId != null && Number(latestMessage.senderId) === Number(userId);
 				const isActive = selectedConversationIdRef.current === conversation.data.conversationId;
+
+				// Our own reply becomes the server's preview too — still read up to it.
+				if (isActive && isMine) {
+					setLocalReadMarker(conversation.data.conversationId, latestMessage.messageId);
+				}
 
 				if (isActive && !isMine) {
  				void service

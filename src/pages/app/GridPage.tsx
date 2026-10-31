@@ -57,7 +57,7 @@ import {
 } from "../../services/chatContactIndex";
 import type { ChatContactIndexRecord } from "../../types/chat-contact-index";
 import { appLog } from "../../utils/logger";
-import { getIncognitoMode } from "../../utils/privacy";
+import { getIncognitoMode, getUnreadBeyondLocalRead } from "../../utils/privacy";
 import { setGridPageActive } from "./gridpage/activeState";
 import { GRID_REFRESH_INTERVAL_MS } from "../../components/gridRefreshInterval";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
@@ -649,7 +649,13 @@ export function GridPage() {
 				filters: browseRequestFilters,
 			});
 			return {
-				cards: parsed.cards,
+				// With read receipts hidden the server never learns we've read a
+				// chat, so its unread count keeps including messages read locally.
+				cards: parsed.cards.map((card) => {
+					if (!card.unreadCount) return card;
+					const unreadCount = getUnreadBeyondLocalRead(card.profileId, card.unreadCount);
+					return unreadCount === card.unreadCount ? card : { ...card, unreadCount };
+				}),
 				nextPage: parsed.nextPage != null ? String(parsed.nextPage) : null,
 			};
 		},
