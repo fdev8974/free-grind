@@ -38,7 +38,7 @@ import type {
 } from "../types/chat-service";
 
 import { runAutomationRulesForSender } from "../utils/automationRules";
-import { getIncognitoMode, isReadReceiptsHidden } from "../utils/privacy";
+import { getIncognitoMode, isReadLocallyUpTo, isReadReceiptsHidden, setLocalReadMarker } from "../utils/privacy";
 import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
 import { isPaywallError, withEntitlementBypass } from "./entitlementBypass";
@@ -271,6 +271,13 @@ export function createChatService(
 					}
 				}
 
+				// Read here with read receipts hidden — the server was never told
+				// (see markRead), so its unread count is stale for us.
+				if (entry.data.unreadCount > 0 && isReadLocallyUpTo(entry.data.conversationId, entry.data.preview?.messageId)) {
+					safeEntries.push({ ...entry, data: { ...entry.data, unreadCount: 0 } });
+					continue;
+				}
+
 				safeEntries.push(entry);
 			}
 			// ---------------------------------
@@ -425,7 +432,10 @@ export function createChatService(
 		async markRead(conversationId: string, messageId: string): Promise<void> {
  		// --- READ RECEIPTS CHECK ---
  		if (isReadReceiptsHidden(conversationId) || getIncognitoMode()) {
- 			return; // Silently do nothing. They will never know you read it!
+ 			// Silently do nothing server-side. They will never know you read it!
+ 			// Only remembered locally, so the inbox doesn't keep showing it unread.
+ 			setLocalReadMarker(conversationId, messageId);
+ 			return;
  		}
  		// ---------------------------
 

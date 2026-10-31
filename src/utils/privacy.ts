@@ -34,6 +34,44 @@ export async function loadPrivacyCache(): Promise<void> {
     } catch {
         privacyCache = DEFAULT_PRIVACY_SETTINGS;
     }
+    try {
+        localReadMarkers = (await getSetting<Record<string, string>>(LOCAL_READ_MARKERS_KEY)) ?? {};
+    } catch {
+        localReadMarkers = {};
+    }
+}
+
+// --- LOCAL READ MARKERS ---
+// With read receipts hidden (or incognito), markRead never reaches the server,
+// so every /v4/inbox response keeps reporting the chat as unread. Remember the
+// message we read up to locally instead, and treat the conversation as read
+// for as long as the server's preview still points at that same message — a
+// newer message changes the preview id and the server's count shows again.
+
+const LOCAL_READ_MARKERS_KEY = "localReadMarkers";
+// Oldest markers are dropped past this — a marker only matters until the
+// conversation's next message, so long-idle ones are cheap to lose.
+const MAX_LOCAL_READ_MARKERS = 1000;
+
+let localReadMarkers: Record<string, string> = {};
+
+export function setLocalReadMarker(conversationId: string, messageId: string): void {
+    if (localReadMarkers[conversationId] === messageId) {
+        return;
+    }
+    const { [conversationId]: _previous, ...rest } = localReadMarkers;
+    const next: Record<string, string> = { ...rest, [conversationId]: messageId };
+    const keys = Object.keys(next);
+    for (let i = 0; i < keys.length - MAX_LOCAL_READ_MARKERS; i += 1) {
+        delete next[keys[i]];
+    }
+    localReadMarkers = next;
+    void setSetting(LOCAL_READ_MARKERS_KEY, localReadMarkers);
+}
+
+/** True when the conversation was read locally up to `latestMessageId` (the server's current preview). */
+export function isReadLocallyUpTo(conversationId: string, latestMessageId: string | null | undefined): boolean {
+    return latestMessageId != null && localReadMarkers[conversationId] === latestMessageId;
 }
 
 // localStorage writes don't trigger re-renders in other components, so anything
