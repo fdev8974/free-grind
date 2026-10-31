@@ -1,14 +1,16 @@
-import { Check, Clock, Loader2, SearchX, Send, Sticker, TrendingUp } from "lucide-react";
+import { Check, Clock, Loader2, SearchX, Send, Smile, Sticker, TrendingUp } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
-import { SheetSearchInput } from "../../../components/ui/sheet-section";
+import { SheetChip, SheetSearchInput } from "../../../components/ui/sheet-section";
+import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
 import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
 import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
 import { fetchExternal, okHttpQueryComponent } from "../../../services/externalFetch";
 import { getRecentGifs, setRecentGifs } from "../../../services/chatDb";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { getGaymojiSections, type GaymojiItem, type GaymojiSection } from "../../../services/gaymoji";
 
 interface GiphyItem {
 	id: string;
@@ -35,9 +37,10 @@ async function saveRecentGif(gif: GiphyItem): Promise<GiphyItem[]> {
 	return setRecentGifs(next);
 }
 
-interface GiphyPickerSheetProps {
+interface StickerPickerSheetProps {
 	onClose: () => void;
 	onSelect: (gif: GiphyItem) => void;
+	onSelectGaymoji: (imageHash: string) => void;
 	isDesktop: boolean;
 	isSending?: boolean;
 }
@@ -150,6 +153,18 @@ function GifImage({ src }: { src: string }) {
 	);
 }
 
+function SelectedOverlay() {
+	return (
+		<>
+			<div className="pointer-events-none absolute inset-0 rounded-xl bg-[var(--accent)] opacity-25" />
+			<div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-[var(--accent)]" />
+			<span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md">
+				<Check className="h-3.5 w-3.5" />
+			</span>
+		</>
+	);
+}
+
 function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId: string | null; onToggle: (gif: GiphyItem) => void }) {
 	const col1: GiphyItem[] = [];
 	const col2: GiphyItem[] = [];
@@ -172,15 +187,7 @@ function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId
 								}}
 							>
 								<GifImage key={gif.id} src={gif.previewWebpUrl ?? gif.previewUrl} />
-								{isSelected && (
-									<>
-										<div className="pointer-events-none absolute inset-0 rounded-xl bg-[var(--accent)] opacity-25" />
-										<div className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-inset ring-[var(--accent)]" />
-										<span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] shadow-md">
-											<Check className="h-3.5 w-3.5" />
-										</span>
-									</>
-								)}
+								{isSelected && <SelectedOverlay />}
 							</button>
 						);
 					})}
@@ -190,17 +197,203 @@ function GifGrid({ gifs, selectedId, onToggle }: { gifs: GiphyItem[]; selectedId
 	);
 }
 
-type Tab = "trending" | "recent";
-const GIPHY_TABS: readonly Tab[] = ["trending", "recent"];
+const GAYMOJI_GRID_CLASS = "grid grid-cols-4 gap-1 min-[480px]:grid-cols-5 min-[640px]:grid-cols-6";
 
-export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = false }: GiphyPickerSheetProps) {
+function gaymojiCategoryTitle(key: string): string {
+	const words = key.replace(/\+/g, " & ").replace(/_/g, " ").replace(/\s+/g, " ").trim();
+	return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function GaymojiImage({ item, className }: { item: GaymojiItem; className: string }) {
+	const [loaded, setLoaded] = useState(false);
+	return (
+		<>
+			{!loaded && <div className="absolute inset-1 animate-pulse rounded-lg bg-[var(--surface-2)]" />}
+			<img
+				src={proxyMediaUrl(item.imageUrl)}
+				alt={item.label}
+				loading="lazy"
+				draggable={false}
+				onLoad={() => setLoaded(true)}
+				onError={() => setLoaded(true)}
+				className={`${className} object-contain transition ${loaded ? "opacity-100" : "opacity-0"}`}
+			/>
+		</>
+	);
+}
+
+type GaymojiState =
+	| { status: "idle" | "loading" | "failed" }
+	| { status: "ready"; sections: GaymojiSection[] };
+
+/** Loads the manifest the first time the Gaymoji tab is opened. */
+function useGaymojiSections(active: boolean) {
+	const [state, setState] = useState<GaymojiState>({ status: "idle" });
+
+	const load = useCallback(() => {
+		setState({ status: "loading" });
+		getGaymojiSections().then(
+			(sections) => setState({ status: "ready", sections }),
+			(error: unknown) => {
+				console.error(error);
+				setState({ status: "failed" });
+			},
+		);
+	}, []);
+
+	useEffect(() => {
+		if (active && state.status === "idle") load();
+	}, [active, state.status, load]);
+
+	return { state, retry: load };
+}
+
+function useGaymojiCategoryTitle() {
+	const { t } = useTranslation();
+	return (key: string) =>
+		t(`chat.stickers.gaymoji_categories.${key.replace(/\W+/g, "_")}`, { defaultValue: gaymojiCategoryTitle(key) });
+}
+
+/** Filter chips in place of the search field; `null` is "all". */
+function GaymojiCategoryChips({
+	sections,
+	category,
+	onChange,
+}: {
+	sections: GaymojiSection[];
+	category: string | null;
+	onChange: (category: string | null) => void;
+}) {
+	const { t } = useTranslation();
+	const title = useGaymojiCategoryTitle();
+	// Wheel and mouse drag scroll it sideways on desktop; touch scrolls it natively.
+	const rowFade = useScrollRowFade();
+	return (
+		<div
+			ref={rowFade.ref}
+			onScroll={rowFade.onScroll}
+			role="toolbar"
+			aria-label={t("chat.stickers.tab_gaymoji")}
+			data-no-tab-swipe
+			className="-mx-4 mb-3 shrink-0 overflow-x-auto overscroll-x-contain px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+		>
+			<div className="flex min-w-max items-center gap-2">
+				<SheetChip size="sm" active={category === null} onClick={() => onChange(null)}>
+					{t("chat.stickers.gaymoji_all")}
+				</SheetChip>
+				{sections.map(({ key }) => (
+					<SheetChip key={key} size="sm" active={category === key} onClick={() => onChange(key)}>
+						{title(key)}
+					</SheetChip>
+				))}
+			</div>
+		</div>
+	);
+}
+
+function GaymojiGrid({
+	items,
+	selectedId,
+	onToggle,
+}: {
+	items: GaymojiItem[];
+	selectedId: string | null;
+	onToggle: (item: GaymojiItem) => void;
+}) {
+	return (
+		<div className={GAYMOJI_GRID_CLASS}>
+			{items.map((item) => (
+				<button
+					key={item.id}
+					type="button"
+					aria-label={item.label}
+					aria-pressed={selectedId === item.id}
+					onClick={() => onToggle(item)}
+					className="relative aspect-square rounded-xl p-1 transition active:scale-[0.96]"
+				>
+					<GaymojiImage item={item} className="h-full w-full" />
+					{selectedId === item.id && <SelectedOverlay />}
+				</button>
+			))}
+		</div>
+	);
+}
+
+/** Every category as a titled grid, or just the one picked in the chips. */
+function GaymojiPanel({
+	state,
+	onRetry,
+	category,
+	selectedId,
+	onToggle,
+}: {
+	state: GaymojiState;
+	onRetry: () => void;
+	category: string | null;
+	selectedId: string | null;
+	onToggle: (item: GaymojiItem) => void;
+}) {
+	const { t } = useTranslation();
+	const title = useGaymojiCategoryTitle();
+
+	if (state.status === "failed") {
+		return (
+			<div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+				<p className="text-sm text-[var(--text-muted)]">{t("chat.stickers.gaymoji_error_load")}</p>
+				<button
+					type="button"
+					onClick={onRetry}
+					className="inline-flex h-9 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text)] transition hover:brightness-110"
+				>
+					{t("chat.stickers.retry")}
+				</button>
+			</div>
+		);
+	}
+
+	if (state.status !== "ready") {
+		return (
+			<div className={GAYMOJI_GRID_CLASS} aria-busy="true">
+				{Array.from({ length: 18 }, (_, i) => (
+					<div key={i} className="aspect-square animate-pulse rounded-lg bg-[var(--surface-2)]" />
+				))}
+			</div>
+		);
+	}
+
+	const picked = category === null ? undefined : state.sections.find(({ key }) => key === category);
+	if (picked) return <GaymojiGrid items={picked.items} selectedId={selectedId} onToggle={onToggle} />;
+
+	return state.sections.map((section, i) => (
+		<section key={section.key} aria-label={title(section.key)}>
+			<h4 className={`px-1 pb-2 text-sm font-medium text-[var(--text-muted)] ${i === 0 ? "" : "pt-4"}`}>
+				{title(section.key)}
+			</h4>
+			<GaymojiGrid items={section.items} selectedId={selectedId} onToggle={onToggle} />
+		</section>
+	));
+}
+
+type Tab = "trending" | "recent" | "gaymoji";
+const GIPHY_TABS: readonly Tab[] = ["trending", "recent", "gaymoji"];
+
+type Selection = { kind: "gif"; gif: GiphyItem } | { kind: "gaymoji"; item: GaymojiItem };
+
+function selectionId(selection: Selection | null, kind: Selection["kind"]): string | null {
+	if (selection?.kind !== kind) return null;
+	return selection.kind === "gif" ? selection.gif.id : selection.item.id;
+}
+
+export function StickerPickerSheet({ onClose, onSelect, onSelectGaymoji, isDesktop, isSending = false }: StickerPickerSheetProps) {
 	const { t } = useTranslation();
 	const [tab, setTab] = useState<Tab>("trending");
 	const [query, setQuery] = useState("");
 	const [gifs, setGifs] = useState<GiphyItem[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [selectedGif, setSelectedGif] = useState<GiphyItem | null>(null);
+	const [selection, setSelection] = useState<Selection | null>(null);
+	const [gaymojiCategory, setGaymojiCategory] = useState<string | null>(null);
+	const gaymoji = useGaymojiSections(tab === "gaymoji");
 	const [recentGifs, setRecentGifsState] = useState<GiphyItem[]>([]);
 
 	useEffect(() => {
@@ -209,10 +402,10 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 
-	// New results (a search, or trending again) start at the top.
+	// New results (a search, trending again, another tab) start at the top.
 	useEffect(() => {
 		contentRef.current?.scrollTo({ top: 0 });
-	}, [gifs]);
+	}, [gifs, tab, gaymojiCategory]);
 
 	const loadTrending = useCallback(async () => {
 		setIsLoading(true);
@@ -221,7 +414,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 			const raw = await fetchGiphy(giphyTrendingPath());
 			setGifs(parseGiphyResponse(raw));
 		} catch {
-			setError(t("chat.giphy.error_load"));
+			setError(t("chat.stickers.error_load"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -234,7 +427,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 			const raw = await fetchGiphy(giphySearchPath(q));
 			setGifs(parseGiphyResponse(raw));
 		} catch {
-			setError(t("chat.giphy.error_search"));
+			setError(t("chat.stickers.error_search"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -260,7 +453,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 
 	const handleTabChange = (next: Tab) => {
 		setTab(next);
-		setSelectedGif(null);
+		setSelection(null);
 		if (next === "trending") {
 			setQuery("");
 			void loadTrending();
@@ -269,7 +462,20 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 	const tabSwipe = useSwipeTabs<Tab>(GIPHY_TABS, tab, handleTabChange);
 
 	const handleToggle = (gif: GiphyItem) => {
-		setSelectedGif((prev) => (prev?.id === gif.id ? null : gif));
+		setSelection((prev) => (prev?.kind === "gif" && prev.gif.id === gif.id ? null : { kind: "gif", gif }));
+	};
+
+	const handleToggleGaymoji = (item: GaymojiItem) => {
+		setSelection((prev) => (prev?.kind === "gaymoji" && prev.item.id === item.id ? null : { kind: "gaymoji", item }));
+	};
+
+	const sendSelection = () => {
+		if (selection?.kind === "gif") {
+			void saveRecentGif(selection.gif).then(setRecentGifsState);
+			onSelect(selection.gif);
+		} else if (selection?.kind === "gaymoji") {
+			onSelectGaymoji(selection.item.imageHash);
+		}
 	};
 
 	return (
@@ -281,7 +487,7 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 			panelClassName={isDesktop ? "max-h-[70dvh] px-4" : "px-4"}
 		>
 			<div className="mb-3 flex items-center justify-between gap-3">
-				<h3 className="text-sm font-semibold text-[var(--text)]">{t("chat.giphy.title")}</h3>
+				<h3 className="text-sm font-semibold text-[var(--text)]">{t("chat.stickers.title")}</h3>
 				<SheetCloseButton />
 			</div>
 
@@ -290,8 +496,9 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 				value={tab}
 				onChange={handleTabChange}
 				tabs={[
-					{ value: "trending", label: t("chat.giphy.tab_trending"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
-					{ value: "recent", label: t("chat.giphy.tab_recent"), icon: <Clock className="h-3.5 w-3.5" /> },
+					{ value: "trending", label: t("chat.stickers.tab_trending"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
+					{ value: "recent", label: t("chat.stickers.tab_recent"), icon: <Clock className="h-3.5 w-3.5" /> },
+					{ value: "gaymoji", label: t("chat.stickers.tab_gaymoji"), icon: <Smile className="h-3.5 w-3.5" /> },
 				]}
 			/>
 
@@ -302,8 +509,12 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 					value={query}
 					onChange={handleQueryChange}
 					isLoading={isLoading && query.trim().length > 0}
-					placeholder={t("chat.giphy.search_placeholder")}
+					placeholder={t("chat.stickers.search_placeholder")}
 				/>
+			)}
+
+			{tab === "gaymoji" && gaymoji.state.status === "ready" && (
+				<GaymojiCategoryChips sections={gaymoji.state.sections} category={gaymojiCategory} onChange={setGaymojiCategory} />
 			)}
 
 			{/* Content — on mouse devices the 10px scrollbar gutter comes out of the
@@ -314,7 +525,15 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 				data-lenis-prevent
 				{...tabSwipe}
 			>
-				{tab === "trending" ? (
+				{tab === "gaymoji" ? (
+					<GaymojiPanel
+						state={gaymoji.state}
+						onRetry={gaymoji.retry}
+						category={gaymojiCategory}
+						selectedId={selectionId(selection, "gaymoji")}
+						onToggle={handleToggleGaymoji}
+					/>
+				) : tab === "trending" ? (
 					isLoading ? (
 						<GifGridSkeleton />
 					) : error ? (
@@ -325,38 +544,35 @@ export function GiphyPickerSheet({ onClose, onSelect, isDesktop, isSending = fal
 								onClick={() => (query.trim() ? void searchGifs(query.trim()) : void loadTrending())}
 								className="inline-flex h-9 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm font-semibold text-[var(--text)] transition hover:brightness-110"
 							>
-								{t("chat.giphy.retry")}
+								{t("chat.stickers.retry")}
 							</button>
 						</div>
 					) : gifs.length === 0 ? (
 						<DrawerEmptyState
 							icon={<SearchX className="h-5 w-5" />}
-							title={t("chat.giphy.no_results")}
-							hint={t("chat.giphy.no_results_hint", { defaultValue: "Try a different search term." })}
+							title={t("chat.stickers.no_results")}
+							hint={t("chat.stickers.no_results_hint", { defaultValue: "Try a different search term." })}
 						/>
 					) : (
-						<GifGrid gifs={gifs} selectedId={selectedGif?.id ?? null} onToggle={handleToggle} />
+						<GifGrid gifs={gifs} selectedId={selectionId(selection, "gif")} onToggle={handleToggle} />
 					)
 				) : recentGifs.length === 0 ? (
 					<DrawerEmptyState
 						icon={<Sticker className="h-5 w-5" />}
-						title={t("chat.giphy.recent_empty")}
-						hint={t("chat.giphy.recent_empty_hint")}
+						title={t("chat.stickers.recent_empty")}
+						hint={t("chat.stickers.recent_empty_hint")}
 					/>
 				) : (
-					<GifGrid gifs={recentGifs} selectedId={selectedGif?.id ?? null} onToggle={handleToggle} />
+					<GifGrid gifs={recentGifs} selectedId={selectionId(selection, "gif")} onToggle={handleToggle} />
 				)}
 			</div>
 
 			{/* Send footer */}
-			{selectedGif && (
+			{selection && (
 				<div className={SHEET_FOOTER_CLASS}>
 					{/* SheetClose so the sheet animates out and pops its history entry. */}
 					<SheetClose
-						onClick={() => {
-							void saveRecentGif(selectedGif).then(setRecentGifsState);
-							onSelect(selectedGif);
-						}}
+						onClick={sendSelection}
 						disabled={isSending}
 						className={sheetButtonClass()}
 					>

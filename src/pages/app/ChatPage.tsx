@@ -5485,8 +5485,9 @@ export function ChatPage() {
 		[ensureConversationPlaceholder, loadInbox, openConversationById, selectedConversation, service, t, targetProfileId, userId, replyTargetMessageId, setReplyTargetMessageId],
 	);
 
-	const sendGiphyMessage = useCallback(
-		async (gif: { id: string; urlPath: string; stillPath: string; previewPath: string; width: number; height: number }) => {
+	/** Giphy and Gaymoji: a single body, no upload, optimistic inbox placeholder like the official app. */
+	const sendStickerMessage = useCallback(
+		async (message: { type: "Giphy" | "Gaymoji"; chat1Type: string; body: Record<string, unknown> }) => {
 			if (!userId) return;
 
 			const targetProfileIdValue = selectedConversation
@@ -5502,20 +5503,12 @@ export function ChatPage() {
 
 			try {
 				const sentMessage = await service.sendMessage({
-					type: "Giphy",
+					type: message.type,
 					target: {
 						type: "Direct",
 						targetId: targetProfileIdValue,
 					},
-					body: {
-						id: gif.id,
-						urlPath: gif.urlPath,
-						stillPath: gif.stillPath,
-						previewPath: gif.previewPath,
-						width: gif.width,
-						height: gif.height,
-						imageHash: "",
-					},
+					body: message.body,
 					replyToMessageId: replyTargetMessageId,
 				});
 
@@ -5531,7 +5524,7 @@ export function ChatPage() {
 							messageId: sentMessage.messageId,
 							senderId: sentMessage.senderId,
 							type: sentMessage.type,
-							chat1Type: sentMessage.chat1Type ?? "giphy",
+							chat1Type: sentMessage.chat1Type ?? message.chat1Type,
 							text: null,
 							albumId: null,
 							imageHash: null,
@@ -5548,6 +5541,29 @@ export function ChatPage() {
 			}
 		},
 		[ensureConversationPlaceholder, loadInbox, openConversationById, selectedConversation, service, t, targetProfileId, userId, replyTargetMessageId, setReplyTargetMessageId],
+	);
+
+	const sendGiphyMessage = useCallback(
+		(gif: { id: string; urlPath: string; stillPath: string; previewPath: string; width: number; height: number }) =>
+			sendStickerMessage({
+				type: "Giphy",
+				chat1Type: "giphy",
+				body: {
+					id: gif.id,
+					urlPath: gif.urlPath,
+					stillPath: gif.stillPath,
+					previewPath: gif.previewPath,
+					width: gif.width,
+					height: gif.height,
+					imageHash: "",
+				},
+			}),
+		[sendStickerMessage],
+	);
+
+	const sendGaymojiMessage = useCallback(
+		(imageHash: string) => sendStickerMessage({ type: "Gaymoji", chat1Type: "gaymoji", body: { imageHash } }),
+		[sendStickerMessage],
 	);
 
 	// Sent from the in-thread album image viewer's reply/react bar — deliberately
@@ -7251,6 +7267,7 @@ export function ChatPage() {
 			onStopAlbumShareFromDrawer={handleStopAlbumShare}
 			onSendLocation={sendLocationMessage}
 			onSendGiphy={sendGiphyMessage}
+			onSendGaymoji={sendGaymojiMessage}
 			onAudioRecorded={onAudioRecorded}
 			pendingAudioBlob={pendingAudioBlob}
 			pendingAudioDuration={pendingAudioDuration}

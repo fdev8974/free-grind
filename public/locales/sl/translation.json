@@ -1488,11 +1488,24 @@
         "share_location_current": "Trenutna lokacija",
         "share_location_saved_hint": "Shrani kraje v nastavitvah lokacije, da jih tukaj hitro deliš.",
         "drawer_label": "Galerija",
-        "giphy": {
-            "title": "GIF-i",
-            "button_label": "Pošlji GIF",
+        "stickers": {
+            "title": "GIF-i in Gaymojiji",
+            "button_label": "GIF-i in Gaymojiji",
             "tab_trending": "Priljubljeno",
             "tab_recent": "Nedavni",
+            "tab_gaymoji": "Gaymoji",
+            "gaymoji_error_load": "Gaymojijev ni bilo mogoče naložiti.",
+            "gaymoji_all": "Vse",
+            "gaymoji_categories": {
+                "wen_ching_taiwan_stickers": "Wen Ching",
+                "dating_sex": "Zmenki in seks",
+                "body": "Telo",
+                "profile": "Profil",
+                "holiday": "Prazniki",
+                "objects": "Predmeti",
+                "mood": "Razpoloženje",
+                "featured": "Drugo"
+            },
             "search_placeholder": "Išči GIF-e…",
             "error_load": "GIF-ov ni mogoče naložiti.",
             "error_search": "Iskanje ni uspelo.",

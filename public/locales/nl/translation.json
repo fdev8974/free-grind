@@ -1466,11 +1466,24 @@
         "share_location_current": "Huidige locatie",
         "share_location_saved_hint": "Sla plekken op in je locatie-instellingen om ze hier snel te delen.",
         "drawer_label": "Galerij",
-        "giphy": {
-            "title": "GIFs",
-            "button_label": "GIF sturen",
+        "stickers": {
+            "title": "GIFs & Gaymojis",
+            "button_label": "GIFs & Gaymojis",
             "tab_trending": "Trending",
             "tab_recent": "Recent",
+            "tab_gaymoji": "Gaymoji",
+            "gaymoji_error_load": "Gaymoji konden niet worden geladen.",
+            "gaymoji_all": "Alle",
+            "gaymoji_categories": {
+                "wen_ching_taiwan_stickers": "Wen Ching",
+                "dating_sex": "Daten & seks",
+                "body": "Lichaam",
+                "profile": "Profiel",
+                "holiday": "Feestdagen",
+                "objects": "Objecten",
+                "mood": "Stemming",
+                "featured": "Overig"
+            },
             "search_placeholder": "Zoek GIFs…",
             "error_load": "Kon geen GIFs laden.",
             "error_search": "Zoeken mislukt.",

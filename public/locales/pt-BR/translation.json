@@ -1477,11 +1477,24 @@
         "share_location_current": "Localização atual",
         "share_location_saved_hint": "Salve lugares nas suas configurações de localização para compartilhá-los rapidamente aqui.",
         "drawer_label": "Pasta",
-        "giphy": {
-            "title": "GIFs",
-            "button_label": "Enviar GIF",
+        "stickers": {
+            "title": "GIFs e Gaymojis",
+            "button_label": "GIFs e Gaymojis",
             "tab_trending": "Em alta",
             "tab_recent": "Recentes",
+            "tab_gaymoji": "Gaymoji",
+            "gaymoji_error_load": "Não foi possível carregar os Gaymoji.",
+            "gaymoji_all": "Todos",
+            "gaymoji_categories": {
+                "wen_ching_taiwan_stickers": "Wen Ching",
+                "dating_sex": "Encontros e sexo",
+                "body": "Corpo",
+                "profile": "Perfil",
+                "holiday": "Feriados",
+                "objects": "Objetos",
+                "mood": "Humor",
+                "featured": "Outros"
+            },
             "search_placeholder": "Buscar GIFs…",
             "error_load": "Não foi possível carregar os GIFs.",
             "error_search": "Falha na busca.",

@@ -1497,11 +1497,24 @@
         "share_location_current": "الموقع الحالي",
         "share_location_saved_hint": "احفظ أماكن في إعدادات الموقع عشان تشاركها هنا بسرعة.",
         "drawer_label": "درج",
-        "giphy": {
-            "title": "صور متحركه",
-            "button_label": "ارسل صوره متحركه",
+        "stickers": {
+            "title": "صور متحركة وGaymojis",
+            "button_label": "صور متحركة وGaymojis",
             "tab_trending": "الترند",
             "tab_recent": "مؤخرًا",
+            "tab_gaymoji": "Gaymoji",
+            "gaymoji_error_load": "تعذّر تحميل Gaymoji.",
+            "gaymoji_all": "الكل",
+            "gaymoji_categories": {
+                "wen_ching_taiwan_stickers": "Wen Ching",
+                "dating_sex": "مواعدة وجنس",
+                "body": "الجسم",
+                "profile": "الملف الشخصي",
+                "holiday": "العطلات",
+                "objects": "أشياء",
+                "mood": "المزاج",
+                "featured": "أخرى"
+            },
             "search_placeholder": "الدور عن صوره متحركه",
             "error_load": "تعذر تحميل صور GIF.",
             "error_search": "فشل الدور",

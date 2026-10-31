@@ -1481,11 +1481,24 @@
         "share_location_current": "Тренутна локација",
         "share_location_saved_hint": "Сачувајте места у подешавањима локације да бисте их овде брзо делили.",
         "drawer_label": "Фиока",
-        "giphy": {
-            "title": "GIF-ови",
-            "button_label": "Пошаљи GIF",
+        "stickers": {
+            "title": "GIF-ови и Gaymoji-ји",
+            "button_label": "GIF-ови и Gaymoji-ји",
             "tab_trending": "У тренду",
             "tab_recent": "Недавно",
+            "tab_gaymoji": "Gaymoji",
+            "gaymoji_error_load": "Није могуће учитати Gaymoji.",
+            "gaymoji_all": "Све",
+            "gaymoji_categories": {
+                "wen_ching_taiwan_stickers": "Wen Ching",
+                "dating_sex": "Изласци и секс",
+                "body": "Тело",
+                "profile": "Профил",
+                "holiday": "Празници",
+                "objects": "Предмети",
+                "mood": "Расположење",
+                "featured": "Остало"
+            },
             "search_placeholder": "Претражи GIF-ове…",
             "error_load": "Учитавање GIF-ова није успело.",
             "error_search": "Претрага није успела.",

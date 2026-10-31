@@ -115,7 +115,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "../../../utils/dndModifiers";
-import { GiphyPickerSheet } from "./GiphyPickerSheet";
+import { StickerPickerSheet } from "./StickerPickerSheet";
 import type { ArchivedReason } from "../../../types/chat-db";
 import { useAvatarCache } from "../../../hooks/useAvatarCache";
 import { resolveAvatarSrc } from "../../../services/avatarStore";
@@ -275,6 +275,7 @@ type ChatThreadPanelProps = {
 	onStopAlbumShareFromDrawer: (albumId: number) => Promise<void>;
 	onSendLocation: (lat: number, lon: number) => void | Promise<void>;
 	onSendGiphy: (gif: { id: string; urlPath: string; stillPath: string; previewPath: string; width: number; height: number }) => void | Promise<void>;
+	onSendGaymoji: (imageHash: string) => void | Promise<void>;
 	onAudioRecorded: (blob: Blob, durationMs: number, autoSend?: boolean) => void;
 	pendingAudioBlob: Blob | null;
 	pendingAudioDuration: number;
@@ -829,6 +830,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		onStopAlbumShareFromDrawer,
 		onSendLocation,
 		onSendGiphy,
+		onSendGaymoji,
 	} = props;
 	const headerMenuPresence = usePresence(isHeaderActionsMenuOpen);
 
@@ -1184,7 +1186,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		{
 			key: "giphy",
 			icon: <StickerFilled className="h-5 w-5" />,
-			label: t("chat.giphy.button_label"),
+			label: t("chat.stickers.button_label"),
 			onClick: () => {
 				setIsGiphyPickerOpen((prev) => !prev);
 				if (isDrawerOpen) toggleDrawer();
@@ -3008,10 +3010,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
                     ) : null}
 
 					{isGiphyPickerOpen ? (
-						<GiphyPickerSheet
+						<StickerPickerSheet
 							onClose={() => setIsGiphyPickerOpen(false)}
 							// The sheet closes itself (animated) after a pick.
 							onSelect={(gif) => void onSendGiphy(gif)}
+							onSelectGaymoji={(imageHash) => void onSendGaymoji(imageHash)}
 							isDesktop={isDesktop}
 							isSending={isSending}
 						/>
