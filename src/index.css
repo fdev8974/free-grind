@@ -1734,9 +1734,16 @@
     max-height: 90vh;
     overflow: hidden;
     border-radius: 1.5rem;
-    border: 1px solid var(--border);
     background: var(--surface);
-    box-shadow: 0 20px 40px -8px oklch(0 0 0 / 0.18);
+    /* Borderless like the cards and sheets: a shadow, plus the menus' faint lit
+       edge in dark mode (--menu-edge) so it still reads on AMOLED black. */
+    box-shadow: var(--menu-edge, 0 0 #0000), 0 20px 40px -8px oklch(0 0 0 / 0.18);
+  }
+  /* A light accent tint like the cards. Gated: without color-mix it stays plain. */
+  @supports (color: color-mix(in srgb, red, blue)) {
+    .fs-card-inner {
+      background: color-mix(in srgb, var(--surface) 96%, var(--accent));
+    }
   }
   .fs-card-inner.fs-card-lg {
     max-width: 30rem;
