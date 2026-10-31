@@ -91,6 +91,9 @@ export function CustomizabilityPage() {
 	} = usePreferences();
 	const [showRightNow, setShowRightNow] = useState(() => window.localStorage.getItem("fg-show-right-now") !== "false");
 	const [isMobilePlatform] = useState(() => isAndroid() || isIos());
+	// 4 columns only leave room for usable tiles on tablets; the shorter screen
+	// edge keeps the check independent of orientation.
+	const [isTablet] = useState(() => Math.min(window.screen.width, window.screen.height) >= 600);
 	const [showNavLabels, setShowNavLabels] = useState(() => window.localStorage.getItem(NAV_SHOW_LABELS_KEY) === "true");
 	const [hapticsEnabled, setHapticsEnabled] = useState(isHapticsEnabled);
 	const [timeFormat, setTimeFormat] = useState<TimeFormat>(getTimeFormat);
@@ -291,9 +294,11 @@ export function CustomizabilityPage() {
 								value={mobileGridColumns}
 								onChange={(cols) => void setPreferences({ mobileGridColumns: cols })}
 								options={[
-									{ value: "2", label: t("customizability.columns_2") },
-									{ value: "3", label: t("customizability.columns_3") },
-									{ value: "4", label: t("customizability.columns_4") },
+									{ value: "2", label: t("customizability.columns_2"), icon: Columns2 },
+									{ value: "3", label: t("customizability.columns_3"), icon: Columns3 },
+									...(isTablet || mobileGridColumns === "4"
+										? [{ value: "4" as const, label: t("customizability.columns_4"), icon: Columns4 }]
+										: []),
 								]}
 							/>
 						)}
@@ -443,7 +448,9 @@ export function CustomizabilityPage() {
 										? [
 											{ value: "2", label: t("customizability.columns_2"), icon: Columns2 },
 											{ value: "3", label: t("customizability.columns_3"), icon: Columns3 },
-											{ value: "4", label: t("customizability.columns_4"), icon: Columns4 },
+											...(isTablet || mobileViewsGridColumns === "4"
+												? [{ value: "4", label: t("customizability.columns_4"), icon: Columns4 }]
+												: []),
 										]
 										: [{ value: "grid", label: t("customizability.views_display_grid"), icon: LayoutGrid }]),
 								]}
