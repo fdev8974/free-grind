@@ -41,6 +41,11 @@ type Props = {
 const FIT_PADDING = { top: 56, bottom: 230, left: 48, right: 48 };
 const FIT_MAX_ZOOM = 15;
 const MARKER_SIZE = 48;
+const MAX_PIXEL_RATIO = 2;
+/** Tiles kept in memory; maplibre's default grows with the viewport size. */
+const MAX_TILE_CACHE_SIZE = 64;
+/** How often groups are recomputed while the map moves. */
+const RECLUSTER_THROTTLE_MS = 120;
 
 /** The poster's profile photo (ignoring any photo attached to the post). */
 export function getRightNowProfileImageUrl(item: RightNowFeedItem): string | null {
@@ -627,6 +632,11 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 					center: startCenter ?? [10, 50],
 					zoom: startCenter ? 12 : 3,
 					attributionControl: false,
+					// The map runs full screen; at the native ratio (3+ on many Android
+					// phones) its WebGL buffers plus the heatmap's offscreen framebuffer
+					// can push the WebView out of GPU memory and take the app down.
+					pixelRatio: Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO),
+					maxTileCacheSize: MAX_TILE_CACHE_SIZE,
 				});
 				map.on("style.load", () => {
 					relaxRoadZoomThresholds(map);
@@ -635,16 +645,16 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 					// setStyle drops custom sources/layers, so re-add the hotspots.
 					syncHotspots();
 				});
-				// Regroup while the map moves (once per frame), not only when it
-				// stops — otherwise tapping a group shows nothing until the whole
-				// zoom animation has finished, which feels like a hang.
-				let reclusterFrame = 0;
+				// Regroup while the map moves, not only when it stops — otherwise
+				// tapping a group shows nothing until the whole zoom animation has
+				// finished, which feels like a hang. Throttled rather than once per
+				// frame: every regroup can build fresh cluster elements and photos.
+				let lastRecluster = 0;
 				map.on("move", () => {
-					if (reclusterFrame) return;
-					reclusterFrame = requestAnimationFrame(() => {
-						reclusterFrame = 0;
-						recluster();
-					});
+					const now = performance.now();
+					if (now - lastRecluster < RECLUSTER_THROTTLE_MS) return;
+					lastRecluster = now;
+					recluster();
 				});
 				map.on("moveend", recluster);
 				map.on("click", () => onSelectKeyRef.current(null));

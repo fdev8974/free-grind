@@ -807,10 +807,11 @@
 		animation: rn-marker-bounce 0.5s ease-out;
 		filter: drop-shadow(0 0 10px color-mix(in srgb, var(--right-now) 70%, transparent));
 	}
+	/* Opacity only: a filter here would give every marker its own offscreen
+	   surface, which on Android WebViews adds up to an out-of-memory crash. */
 	.rn-map-has-selection .rn-marker:not([data-selected="true"]) .rn-marker-inner,
 	.rn-map-has-selection .rn-cluster .rn-marker-inner {
-		opacity: 0.45;
-		filter: saturate(0.6);
+		opacity: 0.4;
 	}
 	/* SVG is a replaced element: `inset` alone doesn't stretch it (it keeps its
 	   300x150 default box), so position and size it explicitly around the avatar. */
@@ -824,9 +825,8 @@
 		pointer-events: none;
 		overflow: visible;
 	}
-	.rn-ring-progress {
-		filter: drop-shadow(0 0 3px var(--right-now));
-	}
+	/* No filter (drop-shadow) on the rings: one per marker, re-rasterized while
+	   the map moves, costs too much GPU memory on Android. */
 	.rn-ring-fresh .rn-ring-progress {
 		animation: rn-ring-glow 1.6s ease-in-out infinite;
 	}
@@ -961,8 +961,8 @@
 		100% { transform: scale(1.25); }
 	}
 	@keyframes rn-ring-glow {
-		0%, 100% { filter: drop-shadow(0 0 3px var(--right-now)); }
-		50% { filter: drop-shadow(0 0 9px var(--right-now)); }
+		0%, 100% { stroke-width: 2.5px; }
+		50% { stroke-width: 4.5px; }
 	}
 	@keyframes rn-ring-blink {
 		0%, 100% { opacity: 1; }
