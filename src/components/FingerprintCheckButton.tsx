@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useApi } from "../hooks/useApi";
 
 interface FingerprintResult {
 	ja3_hash: string;
@@ -11,6 +12,7 @@ interface FingerprintResult {
 }
 
 export function useFingerprintCheck() {
+	const { asAppError } = useApi();
 	const [loading, setLoading] = useState(false);
 	const [result, setResult] = useState<FingerprintResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
@@ -24,7 +26,7 @@ export function useFingerprintCheck() {
 			const response = await invoke<FingerprintResult>("check_fingerprint");
 			setResult(response);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : String(err));
+			setError(asAppError(err)?.prettyMessage ?? (err instanceof Error ? err.message : String(err)));
 		} finally {
 			setLoading(false);
 		}
