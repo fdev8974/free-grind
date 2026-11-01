@@ -1,4 +1,5 @@
 import { getCurrentHotswapChannel } from "../services/hotswap";
+import { saveTextFile } from "../services/saveTextFile";
 import { getRecentAppLogs } from "./logger";
 
 const ISSUE_LOG_LIMIT = 100;
@@ -59,4 +60,16 @@ export async function collectIssueLogs(): Promise<Record<string, unknown>> {
 		logCount: recentLogs.length,
 		logs: recentLogs,
 	};
+}
+
+/**
+ * Saves the recent app logs plus app/device info as a JSON file the user can
+ * send along with a bug report. Release builds only keep warnings and errors
+ * (see logger.ts). Returns the saved file's name.
+ */
+export async function saveIssueLogsFile(): Promise<string> {
+	const fileName = `free-grind-logs-${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.json`;
+	const payload = { ...getIssueAppInfo(), ...(await collectIssueLogs()) };
+	await saveTextFile(fileName, JSON.stringify(payload, null, 2), "application/json");
+	return fileName;
 }

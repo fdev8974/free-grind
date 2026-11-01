@@ -83,7 +83,8 @@ import { areUpdateChecksEnabled, setUpdateChecksEnabled, subscribeUpdateChecks }
 import { Avatar } from "../../components/ui/avatar";
 import { getThumbImageUrl } from "../../utils/media";
 import { getSavedAccountProfile, removeSavedAccountProfile } from "../../services/savedAccountProfiles";
-import { isAndroid } from "../../services/saveMedia";
+import { isAndroid, isIos } from "../../services/saveMedia";
+import { saveIssueLogsFile } from "../../utils/issueTelemetry";
 import { useSettingsSearchIndex } from "../../data/settingsSearchIndex";
 import { isSexualHealthEnabled } from "../../utils/optionalFeatures";
 import { replayOnboarding } from "../../utils/onboardingStorage";
@@ -374,6 +375,18 @@ export function SettingsPage() {
 	const logoutToNextAccount = useLogoutToNextAccount();
 	const { developerMode, showDebugInfo, setPreferences } = usePreferences();
 	const isHalloweenOverlayHidden = useIsHalloweenOverlayHidden();
+	const handleExportLogs = async () => {
+		try {
+			const fileName = await saveIssueLogsFile();
+			toast.success(
+				isAndroid() || !isIos()
+					? `Saved to Downloads/FreeGrind/${fileName}`
+					: `Saved to Files → On My iPhone/iPad → Free Grind/${fileName}`,
+			);
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : "Export failed");
+		}
+	};
 	const [previewAnnouncement, setPreviewAnnouncement] = useState(false);
 	const [previewOutdatedPrompt, setPreviewOutdatedPrompt] = useState(false);
 	const [previewAccountStatus, setPreviewAccountStatus] = useState<AccountStatus>(null);
@@ -1252,6 +1265,13 @@ export function SettingsPage() {
 										"bg-slate-500/15 text-slate-400",
 										t("settings.api_inspector"),
 										t("settings.api_inspector_desc"),
+									)}
+									{navRow(
+										() => void handleExportLogs(),
+										<ScrollText className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										"Export Logs",
+										"Saves recent warnings and errors as a JSON file to attach to a bug report.",
 									)}
 									{navRow(
 										() => navigate("/settings/assignments"),
