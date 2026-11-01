@@ -25,7 +25,7 @@ import {
 	SmsVerificationRequiredError,
 } from "./auth-context";
 import { appLog } from "../utils/logger";
-import { setActiveChatDbUser, migrateLegacySettingsIfNeeded } from "../services/chatDb";
+import { setActiveChatDbUser } from "../services/chatDb";
 import { setActiveChatContactIndexAccount } from "../services/chatContactIndex";
 import { setActiveInterestStoreUser } from "../services/interestViewsStore";
 import { clearAllCaches } from "../pages/app/gridpage/cache";
@@ -613,9 +613,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		void (async () => {
 			await setActiveChatDbUser(state.userId);
-			if (state.userId != null) {
-				await migrateLegacySettingsIfNeeded(state.userId);
-			}
 
 			// Fire-and-forget: throttled background sync of the chat list and
 			// each changed conversation's latest messages, run on every profile
