@@ -3308,7 +3308,6 @@
     "push_notifications": {
         "someone": "Jemand",
         "generic_message": "Hat dir eine Nachricht geschickt",
-        "open_chat": "Chat öffnen",
         "open_profile": "Profil öffnen",
         "reply": "Antworten",
         "reply_hint": "Nachricht",

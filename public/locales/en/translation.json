@@ -3306,7 +3306,6 @@
   "push_notifications": {
     "someone": "Someone",
     "generic_message": "Sent you a message",
-    "open_chat": "Open chat",
     "open_profile": "Open profile",
     "reply": "Reply",
     "reply_hint": "Message",

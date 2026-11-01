@@ -20,7 +20,6 @@ object NotificationStrings {
 
     const val SOMEONE = "SOMEONE"
     const val GENERIC_MESSAGE = "GENERIC_MESSAGE"
-    const val OPEN_CHAT = "OPEN_CHAT"
     const val OPEN_PROFILE = "OPEN_PROFILE"
     const val REPLY = "REPLY"
     const val REPLY_HINT = "REPLY_HINT"
@@ -34,7 +33,6 @@ object NotificationStrings {
     private val OWN_FALLBACKS = mapOf(
         SOMEONE to "Someone",
         GENERIC_MESSAGE to "Sent you a message",
-        OPEN_CHAT to "Open chat",
         OPEN_PROFILE to "Open profile",
         REPLY to "Reply",
         REPLY_HINT to "Message",

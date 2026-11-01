@@ -3112,7 +3112,6 @@
     "push_notifications": {
         "someone": "Neko",
         "generic_message": "Poslao ti je poruku",
-        "open_chat": "Otvori razgovor",
         "open_profile": "Otvori profil",
         "reply": "Odgovori",
         "reply_hint": "Poruka",

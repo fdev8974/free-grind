@@ -467,12 +467,14 @@ object NotificationPoster {
 
         // WhatsApp-style action buttons on chat notifications. Taps already
         // open the sender's profile and have no conversation to open.
+        // Every action needs a real icon: with 0 the framework action has a
+        // null icon, which the framework may render as disabled — One UI 9
+        // showed no actions at all, while OxygenOS ignored it.
         val senderId = normalizeNullableString(payload.optString("senderId"))
         if (!isTap && senderId != null) {
             if (conversationId != null) builder.addAction(replyAction(context, notificationKey, conversationId, senderId))
-            builder
-                .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_CHAT), pendingIntent).build())
-                .addAction(NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.OPEN_PROFILE), openIntent("profile")).build())
+            // No "Open chat": tapping the notification already opens it.
+            builder.addAction(NotificationCompat.Action.Builder(R.drawable.ic_notification_action_profile, NotificationStrings.text(context, NotificationStrings.OPEN_PROFILE), openIntent("profile")).build())
         }
 
         val added = Line(lineKey, text, timestamp, previewUri?.let { "image/jpeg" }, previewUri)
@@ -512,7 +514,7 @@ object NotificationPoster {
         val remoteInput = RemoteInput.Builder(NotificationReply.KEY_TEXT)
             .setLabel(NotificationStrings.text(context, NotificationStrings.REPLY_HINT))
             .build()
-        return NotificationCompat.Action.Builder(0, NotificationStrings.text(context, NotificationStrings.REPLY), pendingIntent)
+        return NotificationCompat.Action.Builder(R.drawable.ic_notification_action_reply, NotificationStrings.text(context, NotificationStrings.REPLY), pendingIntent)
             .addRemoteInput(remoteInput)
             .setAllowGeneratedReplies(false)
             .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)

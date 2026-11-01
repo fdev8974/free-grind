@@ -3110,7 +3110,6 @@
     "push_notifications": {
         "someone": "Неко",
         "generic_message": "Послао Вам је поруку",
-        "open_chat": "Отвори чет",
         "open_profile": "Отвори профил",
         "reply": "Одговори",
         "reply_hint": "Порука",

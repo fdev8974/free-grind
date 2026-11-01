@@ -3112,7 +3112,6 @@
     "push_notifications": {
         "someone": "Alguien",
         "generic_message": "Te envió un mensaje",
-        "open_chat": "Abrir chat",
         "open_profile": "Abrir perfil",
         "reply": "Responder",
         "reply_hint": "Mensaje",

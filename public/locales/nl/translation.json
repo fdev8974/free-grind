@@ -3084,7 +3084,6 @@
     "push_notifications": {
         "someone": "Iemand",
         "generic_message": "Heeft je een bericht gestuurd",
-        "open_chat": "Chat openen",
         "open_profile": "Profiel openen",
         "reply": "Beantwoorden",
         "reply_hint": "Bericht",
