@@ -3141,6 +3141,7 @@
     "try_again": "Try again",
     "download_install": "Download & install",
     "open_github": "Open on GitHub",
+    "view_changes": "See what's changed",
     "dismiss": "Dismiss",
     "get_version": "Get {{version}}",
     "description_manual": "A new version of the app is ready to install.",

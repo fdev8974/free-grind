@@ -3143,6 +3143,7 @@
         "try_again": "Erneut versuchen",
         "download_install": "Herunterladen & installieren",
         "open_github": "Auf GitHub öffnen",
+        "view_changes": "Änderungen ansehen",
         "dismiss": "Schließen",
         "get_version": "{{version}} holen",
         "description_manual": "Eine neue Version der App ist bereit zur Installation.",

@@ -119,6 +119,7 @@ function findCurrentAnnouncement(appVersion: string) {
 const PREVIEW_RELEASE_INFO = {
 	latestVersion: "9.9.9",
 	releasesUrl: RELEASES_URL,
+	commit: "development",
 	releases: [
 		{ version: "9.9.9", publishedAt: new Date(Date.now() - 2 * 86_400_000).toISOString() },
 		{ version: "9.9.8", publishedAt: new Date(Date.now() - 12 * 86_400_000).toISOString() },
@@ -1430,6 +1431,8 @@ export function SettingsPage() {
 									showHotswapUpdatePrompt({
 										version: `${frontendVersion}-ota.${getCurrentHotswapChannel()}.${Math.floor(Date.now() / 1000)}`,
 										notes: null,
+										// Any ref works for the diff link; the default branch always has one.
+										commit: "development",
 										preview: true,
 									}),
 								),

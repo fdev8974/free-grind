@@ -217,6 +217,8 @@ export function setHotswapAutoUpdateEnabled(enabled: boolean): void {
 export interface PendingHotswapUpdate {
 	version: string | null;
 	notes: string | null;
+	/** Commit (or any ref) the bundle was built from; defaults to the one in the CI notes. */
+	commit?: string;
 	/** Dev preview (UI Previews): "Update now" only simulates the download. */
 	preview?: boolean;
 	/** Install started from Settings: the prompt downloads right away and just shows the progress. */

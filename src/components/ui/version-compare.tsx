@@ -1,5 +1,6 @@
-import { ArrowDown, Package, type LucideIcon } from "lucide-react";
+import { ArrowDown, ExternalLink, Package, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { openExternalUrl } from "../../utils/githubIssues";
 
 export type VersionCompareSide = {
 	/** Small caps label above the title ("Installed build", "Latest"). */
@@ -47,5 +48,21 @@ export function VersionCompare({ from, to }: { from?: VersionCompareSide; to: Ve
 			)}
 			<VersionCompareRow side={to} highlight />
 		</>
+	);
+}
+
+/** Small accent link under the comparison, styled like the one in the updates onboarding step. */
+export function VersionCompareLink({ url, label }: { url: string; label: string }) {
+	return (
+		<div className="mt-3 flex justify-center">
+			<button
+				type="button"
+				onClick={() => void openExternalUrl(url)}
+				className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline"
+			>
+				{label}
+				<ExternalLink className="h-3 w-3" />
+			</button>
+		</div>
 	);
 }

@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronRight, Download, ExternalLink, Loader2, Smartphone, Sparkles } from "lucide-react";
+import { ChevronRight, Download, ExternalLink, Loader2, Smartphone, Sparkles } from "lucide-react";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,8 +9,9 @@ import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
 import { getCurrentHotswapChannel, isHotswapAvailable, whenStartupHotswapSettled } from "../services/hotswap";
 import { areUpdateChecksEnabled } from "../services/updateChecks";
 import { formatRelativeTime } from "../utils/relativeTime";
-import { VersionCompare } from "./ui/version-compare";
+import { VersionCompare, VersionCompareLink } from "./ui/version-compare";
 import { RELEASES_URL } from "../config/links-config";
+import { githubCompareUrl } from "../utils/githubIssues";
 
 const DEFAULT_RELEASES_URL = RELEASES_URL;
 // Used when the release lookup fails: assume the running version is current,
@@ -41,6 +42,8 @@ export type ReleaseInfo = {
     apkUrl?: string;
     /** Releases on this channel, for the installed release's date and how many came after it. */
     releases?: { version: string; publishedAt: string | null }[];
+    /** Commit (or any ref) the latest release was built from, for the "See what's changed" diff. */
+    commit?: string;
 };
 
 function normalizeVersion(value: string): string {
@@ -111,6 +114,10 @@ function parseReleaseVersion(release: GitHubRelease): string | null {
     return semver.valid(version) ? version : null;
 }
 
+function parseReleaseCommit(release: GitHubRelease): string | undefined {
+    return release.name?.match(/\(([0-9a-f]{7,40})\)\s*$/)?.[1];
+}
+
 /**
  * Highest published release by semver. GitHub's `releases/latest` skips
  * pre-releases entirely, so this walks the release list instead and only lets
@@ -158,6 +165,7 @@ export async function fetchLatestRelease(signal: AbortSignal, includePrerelease:
                 : DEFAULT_RELEASES_URL,
         apkUrl: pickApkAsset(latest.release.assets ?? [], latest.version),
         releases: channelReleases,
+        commit: parseReleaseCommit(latest.release),
     };
 }
 
@@ -190,6 +198,7 @@ export function OutdatedVersionPromptView({
 	const latestReleasedAgo = releasedAgo(t, releaseInfo, releaseInfo.latestVersion);
 	// Only worth saying when more than one release was skipped.
 	const releasesAhead = (releaseInfo.releases ?? []).filter((release) => isOlderVersion(appVersion, release.version)).length;
+	const compareUrl = githubCompareUrl(import.meta.env.VITE_COMMIT_HASH, releaseInfo.commit);
 
 	const footer = apkUpdate.supported ? (
 		<>
@@ -277,7 +286,7 @@ export function OutdatedVersionPromptView({
 
 	return (
 		<FullscreenPrompt
-			icon={manual ? Download : AlertTriangle}
+			icon={Download}
 			title={t("update_prompt.title", { defaultValue: "Update Available" })}
 			description={
 				manual
@@ -315,6 +324,9 @@ export function OutdatedVersionPromptView({
 					}}
 				/>
 			</div>
+			{compareUrl && (
+				<VersionCompareLink url={compareUrl} label={t("update_prompt.view_changes", { defaultValue: "See what's changed" })} />
+			)}
 		</FullscreenPrompt>
 	);
 }

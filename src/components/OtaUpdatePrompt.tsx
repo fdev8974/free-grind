@@ -1,4 +1,4 @@
-import { Download, Loader2, RefreshCcw, Zap } from "lucide-react";
+import { Download, Loader2, Zap } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -19,9 +19,15 @@ import {
 import { appLog } from "../utils/logger";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { ToggleRow } from "./ui/toggle-row";
-import { VersionCompare, type VersionCompareSide } from "./ui/version-compare";
+import { VersionCompare, VersionCompareLink, type VersionCompareSide } from "./ui/version-compare";
 import { hourCycleOptions } from "../utils/timeFormat";
 import { formatRelativeTime } from "../utils/relativeTime";
+import { GITHUB_OTA_SIGNING_URL, githubCompareUrl } from "../utils/githubIssues";
+
+/** CI publishes bundles with notes like "Automated OTA upload for <sha> on <channel>". */
+function noteCommit(notes: string | null): string | null {
+	return notes?.match(/\b[0-9a-f]{40}\b/)?.[0] ?? null;
+}
 
 /**
  * OTA bundle versions look like `1.2.0-ota.development.1729500000` (see
@@ -195,10 +201,12 @@ export function OtaUpdatePromptView({
 	// it does on the regular screen, and come back if the download fails.
 	const progressOnly = update.autoStart === true;
 	const hideButtons = progressOnly && !failed;
+	// The running frontend is the installed build, so its commit is the diff base.
+	const compareUrl = githubCompareUrl(import.meta.env.VITE_COMMIT_HASH, update.commit ?? noteCommit(update.notes));
 
 	return (
 		<FullscreenPrompt
-			icon={RefreshCcw}
+			icon={Download}
 			title={t("ota_prompt.title", { defaultValue: "Update Available" })}
 			description={t("ota_prompt.description", {
 				defaultValue: "A new version of the app interface is ready to download. It only takes a moment and the app reloads afterwards.",
@@ -277,6 +285,14 @@ export function OtaUpdatePromptView({
 					description={t("ota_prompt.auto_desc", { defaultValue: "Install future frontend updates without asking." })}
 				/>}
 			</div>
+			<VersionCompareLink
+				url={compareUrl ?? GITHUB_OTA_SIGNING_URL}
+				label={
+					compareUrl
+						? t("update_prompt.view_changes", { defaultValue: "See what's changed" })
+						: t("onboarding.updates_more", { defaultValue: "More about that" })
+				}
+			/>
 		</FullscreenPrompt>
 	);
 }
