@@ -6,6 +6,7 @@ import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { AudioMessagePlayer } from "./AudioMessagePlayer";
+import { ProgressRing } from "../../../components/ui/progress-ring";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import React, { Fragment, useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect } from "react";
 
@@ -15,7 +16,7 @@ import { appLog } from "../../../utils/logger";
 import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
 import { loadSavedPhrases, saveSavedPhrases } from "../../../services/savedPhrases";
 import type { ConversationEntry, Message } from "../../../types/messages";
-import type { AlbumMediaCount, UiMessage } from "../../../types/chat-page";
+import type { AlbumMediaCount, LocalUploadProgress, UiMessage } from "../../../types/chat-page";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getMessageFallbackMediaKey } from "../../../services/mediaStore";
 import { useAlbumCache } from "../../../hooks/useAlbumCache";
@@ -116,6 +117,8 @@ type ChatThreadMessagesProps = {
 	isArchived?: boolean;
 	localNickname?: string | null;
 	messageTranslations: MessageTranslations;
+	/** Progress of an optimistic upload bubble (currently voice messages). */
+	localUploadProgress?: LocalUploadProgress | null;
 };
 
 const KNOWN_REPLY_TYPES = new Set([
@@ -164,6 +167,17 @@ function MediaBadge({ icon, label }: { icon: React.ReactNode; label: React.React
 		<div className="pointer-events-none absolute left-2 top-2 z-20 inline-flex items-center gap-1.5 rounded-full bg-black/50 py-1 pl-1.5 pr-2.5 text-[11px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md">
 			{icon}
 			{label}
+		</div>
+	);
+}
+
+/** Centered upload ring over an optimistic image/video tile. */
+function MediaUploadOverlay({ progress }: { progress: number }) {
+	return (
+		<div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/30">
+			<div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
+				<ProgressRing progress={progress} className="h-8 w-8" />
+			</div>
 		</div>
 	);
 }
@@ -380,6 +394,7 @@ export function ChatThreadMessages({
 	isArchived = false,
 	localNickname = null,
 	messageTranslations,
+	localUploadProgress = null,
 }: ChatThreadMessagesProps) {
 	const { t } = useTranslation();
 	useLocalMediaCache();
@@ -1153,6 +1168,7 @@ export function ChatThreadMessages({
                         userId != null && Number(message.senderId) === Number(userId);
                     const failed = message.clientState === "failed";
                     const pending = message.clientState === "pending";
+                    const uploadProgress = localUploadProgress?.messageId === message.messageId ? localUploadProgress.progress : null;
                     // Every message in an archived conversation is local-only by
                     // definition (the whole thread is gone from the API) — singling
                     // out individual messages with the badge/dimming is redundant
@@ -1723,6 +1739,7 @@ export function ChatThreadMessages({
                                             ) : message.type === "Giphy" ? (
                                                 <MediaBadge icon={<ImagePlay className="h-3.5 w-3.5" />} label="GIF" />
                                             ) : null}
+                                            {uploadProgress != null ? <MediaUploadOverlay progress={uploadProgress} /> : null}
                                             {messageTakenOnGrindr ? (
                                                 <>
                                                     <style>{`
@@ -2007,6 +2024,7 @@ export function ChatThreadMessages({
                                                             <Play className="h-5 w-5 fill-white text-white" />
                                                         </div>
                                                     </div>
+                                                    {uploadProgress != null ? <MediaUploadOverlay progress={uploadProgress} /> : null}
                                                     {isVideoOnlyBubble && (
                                                         <div className="absolute inset-x-0 bottom-0 flex flex-col bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2 text-white">
                                                             <div className="flex items-center justify-between gap-2 text-[10px]">
@@ -2054,6 +2072,7 @@ export function ChatThreadMessages({
                                                     messageId={message.messageId}
                                                     mine={mine}
                                                     durationHint={audioDurationHint}
+                                                    uploadProgress={uploadProgress ?? undefined}
                                                 />
                                             </div>
                                         );

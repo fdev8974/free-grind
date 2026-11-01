@@ -757,7 +757,8 @@ export function getMessageImageUrl(message: UiMessage): string | null {
 	};
 
 	const normalizeUrlCandidate = (candidate: string): string | null => {
-		if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+		// blob: is an optimistic upload bubble's local preview (see sendMediaAttachment).
+		if (candidate.startsWith("http://") || candidate.startsWith("https://") || candidate.startsWith("blob:")) {
 			return candidate;
 		}
 
@@ -956,7 +957,8 @@ export function getMessageVideoUrl(message: UiMessage): string | null {
 			: null;
 
 	const normalizeUrl = (candidate: string): string | null => {
-		if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+		// blob: is an optimistic upload bubble's local preview (see sendMediaAttachment).
+		if (candidate.startsWith("http://") || candidate.startsWith("https://") || candidate.startsWith("blob:")) {
 			return candidate;
 		}
 		if (candidate.startsWith("/")) {
@@ -1104,7 +1106,8 @@ function isViewLimitedMessage(message: UiMessage): boolean {
  * non-expiring CDN content, not Grindr media subject to URL expiry.
  */
 export function getMediaCaptureTarget(message: UiMessage): MediaCaptureTarget | null {
-	if (message.type === "Giphy") {
+	// Optimistic bubbles point at a local blob: preview, nothing to capture yet.
+	if (message.type === "Giphy" || isLocalClientMessageId(message.messageId)) {
 		return null;
 	}
 

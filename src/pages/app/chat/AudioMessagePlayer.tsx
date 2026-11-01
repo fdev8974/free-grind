@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { ProgressRing } from "../../../components/ui/progress-ring";
 
 function formatDuration(seconds: number) {
 	const m = Math.floor(seconds / 60);
@@ -45,9 +46,11 @@ type Props = {
 	largeButton?: boolean;
 	initialBars?: number[];
 	recordedFraction?: number;
+	/** Set while the message is still uploading: the play button becomes a progress ring. */
+	uploadProgress?: number;
 };
 
-export function AudioMessagePlayer({ src, messageId, mine, className, durationHint, hideSpeed, compact, largeButton, initialBars, recordedFraction }: Props) {
+export function AudioMessagePlayer({ src, messageId, mine, className, durationHint, hideSpeed, compact, largeButton, initialBars, recordedFraction, uploadProgress }: Props) {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const trackRef = useRef<HTMLDivElement | null>(null);
 	const isDraggingRef = useRef(false);
@@ -229,9 +232,12 @@ export function AudioMessagePlayer({ src, messageId, mine, className, durationHi
 			<button
 				type="button"
 				onClick={togglePlay}
+				disabled={uploadProgress != null}
 				className={`flex ${largeButton ? "h-10 w-10" : compact ? "h-8 w-8" : "h-9 w-9"} shrink-0 items-center justify-center rounded-full ${btnColor} shadow-sm transition active:scale-95`}
 			>
-				{isPlaying
+				{uploadProgress != null
+					? <ProgressRing progress={uploadProgress} className={largeButton ? "h-6 w-6" : "h-5 w-5"} />
+					: isPlaying
 					? <Pause className={`${largeButton ? "h-5 w-5" : "h-4 w-4"} fill-current`} />
 					: <Play className={`${largeButton ? "h-5 w-5" : "h-4 w-4"} fill-current translate-x-[1px]`} />
 				}

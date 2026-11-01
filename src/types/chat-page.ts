@@ -7,6 +7,12 @@ export type UiMessage = Message & {
 	localHistory?: boolean;
 };
 
+/** Upload progress (0–100) of one optimistic local-upload: message. */
+export type LocalUploadProgress = {
+	messageId: string;
+	progress: number;
+};
+
 export type AlbumListItem = {
 	albumId: number;
 	albumName: string | null;

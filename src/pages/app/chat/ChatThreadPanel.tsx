@@ -53,7 +53,7 @@ import { isWebRtcSupported } from "../../../services/agoraCall";
 import {
 	useModalClose,
 } from "../../../hooks/useModalClose";
-import type { AlbumListItem, AlbumMediaCount, UiMessage } from "../../../types/chat-page";
+import type { AlbumListItem, AlbumMediaCount, LocalUploadProgress, UiMessage } from "../../../types/chat-page";
 import type { ConversationEntry, Message } from "../../../types/messages";
 import type { ProfileDetail } from "../../../types/grid";
 import type { DrawerMedia } from "./ChatDrawerPanel";
@@ -87,6 +87,7 @@ import { useMediaBlur } from "../../../hooks/useProfilePhotoPrivacy";
 import { getThumbImageUrl } from "../../../utils/media";
 import { formatDistance } from "../gridpage/utils";
 import { ProfileImage } from "../../../components/ui/profile-image";
+import { ProgressRing } from "../../../components/ui/progress-ring";
 import { ChatThreadMessages } from "./ChatThreadMessages";
 import { AudioMessagePlayer } from "./AudioMessagePlayer";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -281,9 +282,12 @@ type ChatThreadPanelProps = {
 	pendingAudioBlob: Blob | null;
 	pendingAudioDuration: number;
 	isSendingAudio: boolean;
+	/** The voice message being uploaded, shown as a ring on its bubble and send button. */
+	audioUpload: LocalUploadProgress | null;
 	confirmAudio: () => void | Promise<void>;
 	cancelAudio: () => void;
-	uploadProgress: number;
+	/** The image/video being uploaded, shown as a ring on its bubble. */
+	attachmentUpload: LocalUploadProgress | null;
 	draft: string;
 	setDraft: (value: string) => void;
 	replyTargetMessage: UiMessage | null;
@@ -806,7 +810,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		shareAlbumToCurrentConversation: _shareAlbumToCurrentConversation,
         confirmPendingAlbumShare: _confirmPendingAlbumShare,
         closePendingAlbumShare,
-		uploadProgress,
+		attachmentUpload,
 		draft,
 		setDraft,
 		replyTargetMessage,
@@ -2213,6 +2217,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						isArchived={isArchived}
 						localNickname={localNickname}
 						messageTranslations={messageTranslations}
+						localUploadProgress={props.audioUpload ?? attachmentUpload}
 				/>
 				)
 			) : (
@@ -2259,6 +2264,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					<form
 						ref={!isDesktop ? composerRef : undefined}
 						onSubmit={onFormSubmit}
+						// Locked while media uploads (its progress rides on the thread bubble);
+						// for voice messages the pending bar keeps the recording until it's sent.
+						inert={props.isSendingAudio || isUploadingAttachment}
+						aria-busy={props.isSendingAudio || isUploadingAttachment}
 						// Mobile: a tap that just misses the send button (or lands on the
 						// pill's padding, a phrase pill, …) would move focus off the
 						// textarea and close the keyboard. Cancelling mousedown keeps the
@@ -2272,17 +2281,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 						} : undefined}
 						className={!isDesktop ? `absolute inset-x-0 bottom-0 z-[35] px-[var(--app-px)] pt-3 ${mobileComposerBg}` : "relative mt-3 pt-3 sm:pt-4 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)]"}
 					>
-						{(isUploadingAttachment || uploadProgress > 0) && (
-							<div
-								className="h-0.5 bg-[var(--surface-2)] mb-3"
-								style={{ marginTop: "-12px", marginLeft: "calc(-1 * var(--app-px))", marginRight: "calc(-1 * var(--app-px))" }}
-							>
-								<div
-									className="h-0.5 bg-[var(--accent)] transition-all duration-300"
-									style={{ width: `${Math.min(100, uploadProgress)}%` }}
-								/>
-							</div>
-						)}
 						{/* --- QUICK PHRASE PILLS --- */}
 						{!slashMenuMatch && filteredPhrases.length > 0 && (
 							<div
@@ -2541,7 +2539,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									aria-label={t("chat.attachments.send")}
 								>
 									{props.isSendingAudio
-										? <Loader2 className={`h-5 w-5 animate-spin`} />
+										? <ProgressRing progress={props.audioUpload?.progress ?? 0} className="h-5 w-5" />
 										: <SendHorizontalFilled className={"h-5 w-5"} />}
 								</button>
 							</div>
@@ -2706,6 +2704,18 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									aria-label={t("chat.stop_recording", { defaultValue: "Stop recording" })}
 								>
 									<Square className={`h-5 w-5 fill-current`} />
+								</button>
+							) : isUploadingAttachment ? (
+								// Image/video upload in flight (the composer is locked meanwhile):
+								// the send button carries its progress, as the bubble does.
+								<button
+									key="attachment-upload"
+									type="button"
+									disabled
+									className={`shrink-0 inline-flex h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] items-center justify-center`}
+									aria-label={t("chat.sending")}
+								>
+									<ProgressRing progress={attachmentUpload?.progress ?? 0} className="h-5 w-5" />
 								</button>
 							) : isSendingDrawerMedia && draft.trim().length === 0 && !isSending ? (
 								// Drawer send in flight (its sheet is already closed): the send

@@ -70,6 +70,7 @@ import type {
 	AlbumMediaCount,
 	AlbumViewerState,
 	InboxVisibilityFilter,
+	LocalUploadProgress,
 	UiMessage,
 } from "../../types/chat-page";
 import type { DrawerMedia } from "./chat/ChatDrawerPanel";
@@ -848,7 +849,7 @@ export function ChatPage() {
 	const fullScreenImageUrl = fullScreenMediaList.length > 0 ? fullScreenMediaList[fullScreenMediaIndex]?.url ?? null : null;
 
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
-	const [uploadProgress, setUploadProgress] = useState(0);
+	const [attachmentUpload, setAttachmentUpload] = useState<LocalUploadProgress | null>(null);
 	const [pendingAttachmentFile, setPendingAttachmentFile] =
 		useState<File | null>(null);
 	const [attachmentLooping, setAttachmentLooping] = useState(false);
@@ -858,6 +859,7 @@ export function ChatPage() {
 	const [pendingAudioBlob, setPendingAudioBlob] = useState<Blob | null>(null);
 	const [pendingAudioDuration, setPendingAudioDuration] = useState(0);
 	const [isSendingAudio, setIsSendingAudio] = useState(false);
+	const [audioUpload, setAudioUpload] = useState<LocalUploadProgress | null>(null);
 	const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 	const [isLoadingDrawer, setIsLoadingDrawer] = useState(false);
 	const [drawerError, setDrawerError] = useState<string | null>(null);
@@ -5691,7 +5693,6 @@ export function ChatPage() {
 			}
 
 			setIsUploadingAttachment(true);
-			setUploadProgress(5);
 
 			const localMessageId = `local-upload:${Date.now()}:${Math.random()}`;
 			const objectUrl = URL.createObjectURL(file);
@@ -5715,8 +5716,9 @@ export function ChatPage() {
 				},
 			]);
 
+			setAttachmentUpload({ messageId: localMessageId, progress: 5 });
 			const progressId = window.setInterval(() => {
-				setUploadProgress((previous) => Math.min(92, previous + 8));
+				setAttachmentUpload((previous) => previous && { ...previous, progress: Math.min(92, previous.progress + 8) });
 			}, 260);
 
 			try {
@@ -5724,7 +5726,7 @@ export function ChatPage() {
 					looping: options.looping,
 					takenOnGrindr: options.takenOnGrindr,
 				});
-				setUploadProgress(96);
+				setAttachmentUpload((previous) => previous && { ...previous, progress: 96 });
 
 				if (options.addToDrawer) {
 					try {
@@ -5796,8 +5798,6 @@ export function ChatPage() {
 					void loadInbox({ page: 1, replace: true });
 				}
 
-				setUploadProgress(100);
-				window.setTimeout(() => setUploadProgress(0), 240);
 			} catch (error) {
 				setThreadMessages((previous) =>
 					previous.map((message) =>
@@ -5813,10 +5813,8 @@ export function ChatPage() {
 				);
 			} finally {
 				window.clearInterval(progressId);
+				setAttachmentUpload(null);
 				setIsUploadingAttachment(false);
-				if (uploadProgress < 100) {
-					setUploadProgress(0);
-				}
 				URL.revokeObjectURL(objectUrl);
 			}
 		},
@@ -5828,7 +5826,6 @@ export function ChatPage() {
 			service,
 			syncConversation,
 			targetProfileId,
-			uploadProgress,
 			userId,
 			replyTargetMessageId,
 			setReplyTargetMessageId,
@@ -5891,7 +5888,40 @@ export function ChatPage() {
 			? (getOtherParticipant(selectedConversation, userId)?.profileId ?? null)
 			: targetProfileId;
 		if (!targetIdValue) return;
+		// Auto-sent recordings go through the pending bar too: it stays locked
+		// while the upload runs and keeps the recording for a retry if it fails.
+		setPendingAudioBlob(blob);
+		setPendingAudioDuration(durationMs);
 		setIsSendingAudio(true);
+
+		// Optimistic bubble, like sendMediaAttachment's, carrying the upload ring.
+		const localMessageId = `local-upload:${Date.now()}:${Math.random()}`;
+		const objectUrl = URL.createObjectURL(blob);
+		setThreadMessages((previous) => [
+			...previous,
+			{
+				messageId: localMessageId,
+				conversationId: selectedConversation?.data.conversationId ?? `direct:${targetIdValue}`,
+				senderId: userId,
+				timestamp: Date.now(),
+				unsent: false,
+				reactions: [],
+				type: "Audio",
+				chat1Type: "audio",
+				body: { url: objectUrl, length: durationMs },
+				replyToMessage: replyTargetMessageId ? { messageId: replyTargetMessageId } : null,
+				replyPreview: null,
+				dynamic: false,
+				clientState: "pending",
+			},
+		]);
+		setAudioUpload({ messageId: localMessageId, progress: 5 });
+		// The upload runs Rust-side without progress events, so this is paced like
+		// the attachment progress bar: creep towards 92%, jump on each finished step.
+		const progressId = window.setInterval(() => {
+			setAudioUpload((previous) => previous && { ...previous, progress: Math.min(92, previous.progress + 8) });
+		}, 260);
+
 		try {
 			const audioBytes = new Uint8Array(await blob.arrayBuffer());
 			let contentType = blob.type || "audio/aac";
@@ -5904,7 +5934,8 @@ export function ChatPage() {
 				multipart: { body: audioBytes, contentType },
 				options: { looping: false, takenOnGrindr: false, durationSeconds: durationMs },
 			});
-			await service.sendMessage({
+			setAudioUpload((previous) => previous && { ...previous, progress: 96 });
+			const sentMessage = await service.sendMessage({
 				type: "Audio",
 				target: { type: "Direct", targetId: Number(targetIdValue) },
 				body: {
@@ -5917,10 +5948,22 @@ export function ChatPage() {
 				},
 				replyToMessageId: replyTargetMessageId,
 			});
+			setThreadMessages((previous) => {
+				const merged = previous
+					.filter((message) => message.messageId !== localMessageId)
+					.concat(sentMessage);
+				const map = new Map<string, UiMessage>();
+				for (const message of merged) {
+					map.set(message.messageId, message);
+				}
+				return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
+			});
 			setPendingAudioBlob(null);
 			setPendingAudioDuration(0);
 			setReplyTargetMessageId(null);
 		} catch (err) {
+			// The pending bar still holds the recording for a retry.
+			setThreadMessages((previous) => previous.filter((message) => message.messageId !== localMessageId));
 			console.error("[sendAudioBlob] failed", {
 				err,
 				blobType: blob?.type,
@@ -5931,7 +5974,10 @@ export function ChatPage() {
 			});
 			toast.error(err instanceof Error ? err.message : t("chat.errors.send_failed"));
 		} finally {
+			window.clearInterval(progressId);
+			setAudioUpload(null);
 			setIsSendingAudio(false);
+			URL.revokeObjectURL(objectUrl);
 		}
 	}, [userId, selectedConversation, targetProfileId, service, t, replyTargetMessageId, setReplyTargetMessageId]);
 
@@ -7272,9 +7318,10 @@ export function ChatPage() {
 			pendingAudioBlob={pendingAudioBlob}
 			pendingAudioDuration={pendingAudioDuration}
 			isSendingAudio={isSendingAudio}
+			audioUpload={audioUpload}
 			confirmAudio={confirmAudio}
 			cancelAudio={cancelAudio}
-			uploadProgress={uploadProgress}
+			attachmentUpload={attachmentUpload}
 			draft={draft}
 			setDraft={setDraft}
 			replyTargetMessage={replyTargetMessage}
