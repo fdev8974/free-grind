@@ -52,7 +52,11 @@ import { guardAgainstClosedPool } from "./sqlitePoolGuard";
 // before login, and as the migration source for existing installs.
 const LEGACY_CHAT_DB_FILENAME = "chat.sqlite3";
 const LEGACY_CHAT_DB = `sqlite:${LEGACY_CHAT_DB_FILENAME}`;
-const SQLITE_BUSY_TIMEOUT_MS = 5_000;
+// Stored in each db file's PRAGMA user_version once initChatDbSchema has run
+// on it. BUMP THIS whenever initChatDbSchema changes (new table, index,
+// column or data fix) — otherwise existing installs skip the setup and never
+// get the change; only fresh installs would.
+const CHAT_DB_SCHEMA_VERSION = 1;
 const SLOW_DB_OPEN_MS = 2_000;
 const SQLITE_LOCK_RETRY_DELAYS_MS = [30, 80, 180, 350] as const;
 
@@ -190,379 +194,26 @@ async function getDb(): Promise<Database> {
 			const openStartedAt = performance.now();
 			const db = guardAgainstClosedPool(await Database.load(activeChatDbName), "chat-db");
 			const loadMs = performance.now() - openStartedAt;
-			try {
-				await db.execute("PRAGMA journal_mode = WAL");
-				await db.execute("PRAGMA synchronous = NORMAL");
-				await db.execute(`PRAGMA busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS}`);
-			} catch (error) {
-				appLog.warn("[chat-db] failed to set pragmas", error);
+
+			// Every statement below is one IPC round trip, ~90ms each on slow
+			// devices — so the schema setup only runs when the file's stored
+			// version is behind, not on every open. busy_timeout needs no pragma:
+			// sqlx already sets 5s on each pooled connection.
+			const versionRows = await db.select<{ user_version: number }[]>("PRAGMA user_version");
+			const storedSchemaVersion = versionRows[0]?.user_version ?? 0;
+			const runsInit = storedSchemaVersion < CHAT_DB_SCHEMA_VERSION;
+			if (runsInit) {
+				try {
+					// Persisted in the file itself, so once per file is enough.
+					await db.execute("PRAGMA journal_mode = WAL");
+				} catch (error) {
+					appLog.warn("[chat-db] failed to set journal mode", error);
+				}
+
+				await initChatDbSchema(db);
+				// Only after the whole setup succeeded — a failed one reruns next open.
+				await db.execute(`PRAGMA user_version = ${CHAT_DB_SCHEMA_VERSION}`);
 			}
-			const pragmasMs = performance.now() - openStartedAt - loadMs;
-
-			await executeWithLockRetry(db, "init-tables", async () => {
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS conversations (
-						conversation_id TEXT PRIMARY KEY,
-						other_profile_id TEXT,
-						name TEXT,
-						participants_json TEXT NOT NULL,
-						last_activity_timestamp INTEGER,
-						unread_count INTEGER NOT NULL DEFAULT 0,
-						pinned INTEGER NOT NULL DEFAULT 0,
-						muted INTEGER NOT NULL DEFAULT 0,
-						favorite INTEGER NOT NULL DEFAULT 0,
-						preview_json TEXT,
-						archived INTEGER NOT NULL DEFAULT 0,
-						archived_reason TEXT,
-						archived_at INTEGER,
-						last_seen_in_inbox_at INTEGER,
-						created_at INTEGER NOT NULL,
-						updated_at INTEGER NOT NULL
-					)
-				`);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_conversations_other_profile ON conversations(other_profile_id)",
-				);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_conversations_archived ON conversations(archived)",
-				);
-				// Added later: explicit, durable "who blocked whom" state — the
-				// source of truth for archive/system-message decisions instead of
-				// inferring direction from toggling `archived` on an ambiguous
-				// chat.v1.conversation.delete event. NULL = not blocked either way.
-				try {
-					await db.execute("ALTER TABLE conversations ADD COLUMN block_state TEXT");
-				} catch {
-					// already migrated
-				}
-				// Added later: tracks message-fetch progress separately from
-				// conversation-metadata freshness so inboxSync can resume an
-				// interrupted first sync without re-walking conversations whose
-				// messages already landed (see StoredConversation.messagesSyncedActivityTimestamp).
-				try {
-					await db.execute(
-						"ALTER TABLE conversations ADD COLUMN messages_synced_activity_timestamp INTEGER",
-					);
-				} catch {
-					// already migrated
-				}
-				// Added later: manual, local-only "hide this chat from the inbox"
-				// flag — unlike `archived` (server says the conversation is gone),
-				// hidden conversations still round-trip through /v4/inbox normally;
-				// this only affects the client-side filteredConversations view.
-				try {
-					await db.execute("ALTER TABLE conversations ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0");
-				} catch {
-					// already migrated
-				}
-				// One-time data fix: earlier builds didn't clear `pinned` when a
-				// conversation got archived (e.g. by a block), leaving pinned+archived
-				// rows stuck showing pinned with no toggle able to reach them (the
-				// pinned duplicate lived outside the list the pin toggle updates).
-				// Idempotent — a no-op once every row is clean.
-				await db.execute("UPDATE conversations SET pinned = 0 WHERE archived = 1 AND pinned = 1");
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS conversation_meta (
-						conversation_id TEXT PRIMARY KEY,
-						last_read_timestamp INTEGER
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS messages (
-						message_id TEXT PRIMARY KEY,
-						conversation_id TEXT NOT NULL,
-						sender_id INTEGER NOT NULL,
-						timestamp INTEGER NOT NULL,
-						type TEXT,
-						chat1_type TEXT,
-						body_json TEXT,
-						unsent INTEGER NOT NULL DEFAULT 0,
-						local_history INTEGER NOT NULL DEFAULT 0,
-						reply_to_message_id TEXT,
-						reply_preview_json TEXT,
-						reactions_json TEXT,
-						created_at INTEGER NOT NULL,
-						updated_at INTEGER NOT NULL
-					)
-				`);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_messages_conversation_ts ON messages(conversation_id, timestamp)",
-				);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_messages_reply_to ON messages(reply_to_message_id)",
-				);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS media_files (
-						media_key TEXT PRIMARY KEY,
-						conversation_id TEXT,
-						message_id TEXT,
-						kind TEXT NOT NULL,
-						mime_type TEXT,
-						data_base64 TEXT NOT NULL,
-						view_once INTEGER NOT NULL DEFAULT 0,
-						size_bytes INTEGER,
-						fetch_status TEXT NOT NULL DEFAULT 'ok',
-						fetched_at INTEGER NOT NULL
-					)
-				`);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_media_files_message ON media_files(message_id)",
-				);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS albums (
-						album_id TEXT PRIMARY KEY,
-						owner_profile_id TEXT,
-						album_name TEXT,
-						conversation_id TEXT,
-						shared_via_message_id TEXT,
-						created_at INTEGER NOT NULL,
-						updated_at INTEGER NOT NULL
-					)
-				`);
-				// Added later: the chat bubble's blurred teaser preview, which comes
-				// from the sharing message's own body (coverUrl/previewUrl) and is
-				// visually distinct from the album's actual (clear) content
-				// thumbnails in album_media. Best-effort migration — ignore
-				// "duplicate column" once it already exists.
-				try {
-					await db.execute("ALTER TABLE albums ADD COLUMN preview_cover_base64 TEXT");
-				} catch {
-					// already migrated
-				}
-				try {
-					await db.execute("ALTER TABLE albums ADD COLUMN preview_cover_mime_type TEXT");
-				} catch {
-					// already migrated
-				}
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS album_media (
-						content_id TEXT PRIMARY KEY,
-						album_id TEXT NOT NULL,
-						content_type TEXT,
-						data_base64 TEXT,
-						thumb_data_base64 TEXT,
-						remaining_views INTEGER,
-						is_viewable INTEGER,
-						fetched_at INTEGER,
-						position INTEGER
-					)
-				`);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_album_media_album ON album_media(album_id)",
-				);
-				// Added later: the item's slot in the album's actual (server-side)
-				// order, so a cache-only render (before the live album details
-				// round-trip resolves) shows the same order as the live one instead
-				// of capture order, which otherwise visibly re-sorts moments after
-				// the album sheet opens. Best-effort migration — ignore "duplicate
-				// column" once it already exists.
-				try {
-					await db.execute("ALTER TABLE album_media ADD COLUMN position INTEGER");
-				} catch {
-					// already migrated
-				}
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS avatars (
-						media_hash TEXT PRIMARY KEY,
-						data_base64 TEXT NOT NULL,
-						mime_type TEXT,
-						fetched_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS downloaded_media (
-						identifier TEXT PRIMARY KEY,
-						platform TEXT NOT NULL,
-						album_id TEXT,
-						byte_size INTEGER NOT NULL,
-						mime_type TEXT,
-						kind TEXT,
-						saved_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS settings (
-						key TEXT PRIMARY KEY,
-						value TEXT NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS saved_phrases (
-						phrase TEXT PRIMARY KEY,
-						created_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS saved_locations (
-						id TEXT PRIMARY KEY,
-						name TEXT NOT NULL,
-						geohash TEXT NOT NULL,
-						lat REAL NOT NULL,
-						lon REAL NOT NULL,
-						created_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS sexual_health_prep_doses (
-						id TEXT PRIMARY KEY,
-						taken_at INTEGER NOT NULL,
-						scheme TEXT NOT NULL,
-						dose_role TEXT NOT NULL,
-						note TEXT,
-						created_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS sexual_health_encounters (
-						id TEXT PRIMARY KEY,
-						occurred_at INTEGER NOT NULL,
-						profile_id TEXT,
-						display_name TEXT NOT NULL,
-						tags_json TEXT NOT NULL DEFAULT '[]',
-						note TEXT,
-						conversation_id TEXT,
-						created_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS sexual_health_appointments (
-						id TEXT PRIMARY KEY,
-						title TEXT NOT NULL,
-						scheduled_at INTEGER NOT NULL,
-						kind TEXT NOT NULL,
-						location TEXT,
-						note TEXT,
-						completed_at INTEGER,
-						created_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS sexual_health_sti_tests (
-						id TEXT PRIMARY KEY,
-						tested_at INTEGER NOT NULL,
-						test_type TEXT NOT NULL,
-						result TEXT NOT NULL,
-						note TEXT,
-						created_at INTEGER NOT NULL
-					)
-				`);
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS drawer_media_usage (
-						media_id INTEGER PRIMARY KEY,
-						send_count INTEGER NOT NULL DEFAULT 0,
-						updated_at INTEGER NOT NULL
-					)
-				`);
-
-				// Collections: local-only, named groups of drawer media — the
-				// server has no such concept. media_ids_json keeps the drawer media
-				// ids in send order; ids that have since been deleted from the
-				// drawer are just skipped at send time, not pruned here.
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS drawer_collections (
-						id TEXT PRIMARY KEY,
-						name TEXT NOT NULL,
-						media_ids_json TEXT NOT NULL DEFAULT '[]',
-						created_at INTEGER NOT NULL,
-						updated_at INTEGER NOT NULL
-					)
-				`);
-				// Briefly shipped as local_drawer_albums in a test build — carry
-				// any rows over once, then drop the old table.
-				try {
-					await db.execute(`
-						INSERT OR IGNORE INTO drawer_collections (id, name, media_ids_json, created_at, updated_at)
-						SELECT id, name, media_ids_json, created_at, updated_at FROM local_drawer_albums
-					`);
-					await db.execute("DROP TABLE local_drawer_albums");
-				} catch {
-					// never existed / already migrated
-				}
-
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS block_events (
-						id TEXT PRIMARY KEY,
-						profile_id TEXT,
-						conversation_id TEXT NOT NULL,
-						event_type TEXT NOT NULL,
-						timestamp INTEGER NOT NULL,
-						display_name TEXT,
-						avatar_media_hash TEXT,
-						created_at INTEGER NOT NULL
-					)
-				`);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_block_events_timestamp ON block_events(timestamp DESC)",
-				);
-
-				// Manual, local-only "hide this profile from the grid" flag — unlike
-				// blocking (server-side, mutual), hiding is purely a client-side
-				// preference: the profile still comes back from /v4/cascade like any
-				// other card, this only gates the client-side sortedCards view in
-				// GridPage. display_name/avatar_media_hash are a snapshot at hide time
-				// so the Settings "Hidden" page can still show something if the
-				// profile later becomes unresolvable (deleted/banned).
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS hidden_profiles (
-						profile_id TEXT PRIMARY KEY,
-						display_name TEXT,
-						avatar_media_hash TEXT,
-						hidden_at INTEGER NOT NULL
-					)
-				`);
-
-				// Durable last-known-good snapshot of a full profile detail response,
-				// refreshed every time a live fetch resolves to an actual profile
-				// (not the blocked/gone stub — see classifyProfileAccess). Lets the
-				// profile page still show real info for a conversation whose profile
-				// can no longer be fetched live (archived via block/delete), instead
-				// of only being reachable while the profile is still live.
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS profile_snapshots (
-						profile_id TEXT PRIMARY KEY,
-						data TEXT NOT NULL,
-						updated_at INTEGER NOT NULL
-					)
-				`);
-
-				// Auto-translate results (Google Translate), one row per message and
-				// target language. source_text is kept so a changed message body
-				// (e.g. a restored local copy) is detected and re-translated instead
-				// of showing a stale translation. translated_text is NULL when the
-				// message was already in the target language — remembered so it's
-				// never sent to the API again.
-				await db.execute(`
-					CREATE TABLE IF NOT EXISTS message_translations (
-						message_id TEXT NOT NULL,
-						target_lang TEXT NOT NULL,
-						conversation_id TEXT NOT NULL,
-						source_text TEXT NOT NULL,
-						translated_text TEXT,
-						detected_source_lang TEXT,
-						created_at INTEGER NOT NULL,
-						PRIMARY KEY (message_id, target_lang)
-					)
-				`);
-				await db.execute(
-					"CREATE INDEX IF NOT EXISTS idx_message_translations_conversation ON message_translations(conversation_id, target_lang)",
-				);
-
-			});
 
 			// The app's settings (location, filters, ...) wait on this open, so a
 			// slow one shows up as a long grid skeleton on startup. Logged as a
@@ -572,8 +223,8 @@ async function getDb(): Promise<Database> {
 				appLog.warn("[chat-db] slow db open", {
 					totalMs: Math.round(totalMs),
 					loadMs: Math.round(loadMs),
-					pragmasMs: Math.round(pragmasMs),
-					initTablesMs: Math.round(totalMs - loadMs - pragmasMs),
+					storedSchemaVersion,
+					runsInit,
 				});
 			}
 
@@ -582,6 +233,373 @@ async function getDb(): Promise<Database> {
 	}
 
 	return dbPromise;
+}
+
+async function initChatDbSchema(db: Database): Promise<void> {
+	await executeWithLockRetry(db, "init-tables", async () => {
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS conversations (
+				conversation_id TEXT PRIMARY KEY,
+				other_profile_id TEXT,
+				name TEXT,
+				participants_json TEXT NOT NULL,
+				last_activity_timestamp INTEGER,
+				unread_count INTEGER NOT NULL DEFAULT 0,
+				pinned INTEGER NOT NULL DEFAULT 0,
+				muted INTEGER NOT NULL DEFAULT 0,
+				favorite INTEGER NOT NULL DEFAULT 0,
+				preview_json TEXT,
+				archived INTEGER NOT NULL DEFAULT 0,
+				archived_reason TEXT,
+				archived_at INTEGER,
+				last_seen_in_inbox_at INTEGER,
+				created_at INTEGER NOT NULL,
+				updated_at INTEGER NOT NULL
+			)
+		`);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_conversations_other_profile ON conversations(other_profile_id)",
+		);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_conversations_archived ON conversations(archived)",
+		);
+		// Added later: explicit, durable "who blocked whom" state — the
+		// source of truth for archive/system-message decisions instead of
+		// inferring direction from toggling `archived` on an ambiguous
+		// chat.v1.conversation.delete event. NULL = not blocked either way.
+		try {
+			await db.execute("ALTER TABLE conversations ADD COLUMN block_state TEXT");
+		} catch {
+			// already migrated
+		}
+		// Added later: tracks message-fetch progress separately from
+		// conversation-metadata freshness so inboxSync can resume an
+		// interrupted first sync without re-walking conversations whose
+		// messages already landed (see StoredConversation.messagesSyncedActivityTimestamp).
+		try {
+			await db.execute(
+				"ALTER TABLE conversations ADD COLUMN messages_synced_activity_timestamp INTEGER",
+			);
+		} catch {
+			// already migrated
+		}
+		// Added later: manual, local-only "hide this chat from the inbox"
+		// flag — unlike `archived` (server says the conversation is gone),
+		// hidden conversations still round-trip through /v4/inbox normally;
+		// this only affects the client-side filteredConversations view.
+		try {
+			await db.execute("ALTER TABLE conversations ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0");
+		} catch {
+			// already migrated
+		}
+		// One-time data fix: earlier builds didn't clear `pinned` when a
+		// conversation got archived (e.g. by a block), leaving pinned+archived
+		// rows stuck showing pinned with no toggle able to reach them (the
+		// pinned duplicate lived outside the list the pin toggle updates).
+		// Idempotent — a no-op once every row is clean.
+		await db.execute("UPDATE conversations SET pinned = 0 WHERE archived = 1 AND pinned = 1");
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS conversation_meta (
+				conversation_id TEXT PRIMARY KEY,
+				last_read_timestamp INTEGER
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS messages (
+				message_id TEXT PRIMARY KEY,
+				conversation_id TEXT NOT NULL,
+				sender_id INTEGER NOT NULL,
+				timestamp INTEGER NOT NULL,
+				type TEXT,
+				chat1_type TEXT,
+				body_json TEXT,
+				unsent INTEGER NOT NULL DEFAULT 0,
+				local_history INTEGER NOT NULL DEFAULT 0,
+				reply_to_message_id TEXT,
+				reply_preview_json TEXT,
+				reactions_json TEXT,
+				created_at INTEGER NOT NULL,
+				updated_at INTEGER NOT NULL
+			)
+		`);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_messages_conversation_ts ON messages(conversation_id, timestamp)",
+		);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_messages_reply_to ON messages(reply_to_message_id)",
+		);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS media_files (
+				media_key TEXT PRIMARY KEY,
+				conversation_id TEXT,
+				message_id TEXT,
+				kind TEXT NOT NULL,
+				mime_type TEXT,
+				data_base64 TEXT NOT NULL,
+				view_once INTEGER NOT NULL DEFAULT 0,
+				size_bytes INTEGER,
+				fetch_status TEXT NOT NULL DEFAULT 'ok',
+				fetched_at INTEGER NOT NULL
+			)
+		`);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_media_files_message ON media_files(message_id)",
+		);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS albums (
+				album_id TEXT PRIMARY KEY,
+				owner_profile_id TEXT,
+				album_name TEXT,
+				conversation_id TEXT,
+				shared_via_message_id TEXT,
+				created_at INTEGER NOT NULL,
+				updated_at INTEGER NOT NULL
+			)
+		`);
+		// Added later: the chat bubble's blurred teaser preview, which comes
+		// from the sharing message's own body (coverUrl/previewUrl) and is
+		// visually distinct from the album's actual (clear) content
+		// thumbnails in album_media. Best-effort migration — ignore
+		// "duplicate column" once it already exists.
+		try {
+			await db.execute("ALTER TABLE albums ADD COLUMN preview_cover_base64 TEXT");
+		} catch {
+			// already migrated
+		}
+		try {
+			await db.execute("ALTER TABLE albums ADD COLUMN preview_cover_mime_type TEXT");
+		} catch {
+			// already migrated
+		}
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS album_media (
+				content_id TEXT PRIMARY KEY,
+				album_id TEXT NOT NULL,
+				content_type TEXT,
+				data_base64 TEXT,
+				thumb_data_base64 TEXT,
+				remaining_views INTEGER,
+				is_viewable INTEGER,
+				fetched_at INTEGER,
+				position INTEGER
+			)
+		`);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_album_media_album ON album_media(album_id)",
+		);
+		// Added later: the item's slot in the album's actual (server-side)
+		// order, so a cache-only render (before the live album details
+		// round-trip resolves) shows the same order as the live one instead
+		// of capture order, which otherwise visibly re-sorts moments after
+		// the album sheet opens. Best-effort migration — ignore "duplicate
+		// column" once it already exists.
+		try {
+			await db.execute("ALTER TABLE album_media ADD COLUMN position INTEGER");
+		} catch {
+			// already migrated
+		}
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS avatars (
+				media_hash TEXT PRIMARY KEY,
+				data_base64 TEXT NOT NULL,
+				mime_type TEXT,
+				fetched_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS downloaded_media (
+				identifier TEXT PRIMARY KEY,
+				platform TEXT NOT NULL,
+				album_id TEXT,
+				byte_size INTEGER NOT NULL,
+				mime_type TEXT,
+				kind TEXT,
+				saved_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS settings (
+				key TEXT PRIMARY KEY,
+				value TEXT NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS saved_phrases (
+				phrase TEXT PRIMARY KEY,
+				created_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS saved_locations (
+				id TEXT PRIMARY KEY,
+				name TEXT NOT NULL,
+				geohash TEXT NOT NULL,
+				lat REAL NOT NULL,
+				lon REAL NOT NULL,
+				created_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS sexual_health_prep_doses (
+				id TEXT PRIMARY KEY,
+				taken_at INTEGER NOT NULL,
+				scheme TEXT NOT NULL,
+				dose_role TEXT NOT NULL,
+				note TEXT,
+				created_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS sexual_health_encounters (
+				id TEXT PRIMARY KEY,
+				occurred_at INTEGER NOT NULL,
+				profile_id TEXT,
+				display_name TEXT NOT NULL,
+				tags_json TEXT NOT NULL DEFAULT '[]',
+				note TEXT,
+				conversation_id TEXT,
+				created_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS sexual_health_appointments (
+				id TEXT PRIMARY KEY,
+				title TEXT NOT NULL,
+				scheduled_at INTEGER NOT NULL,
+				kind TEXT NOT NULL,
+				location TEXT,
+				note TEXT,
+				completed_at INTEGER,
+				created_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS sexual_health_sti_tests (
+				id TEXT PRIMARY KEY,
+				tested_at INTEGER NOT NULL,
+				test_type TEXT NOT NULL,
+				result TEXT NOT NULL,
+				note TEXT,
+				created_at INTEGER NOT NULL
+			)
+		`);
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS drawer_media_usage (
+				media_id INTEGER PRIMARY KEY,
+				send_count INTEGER NOT NULL DEFAULT 0,
+				updated_at INTEGER NOT NULL
+			)
+		`);
+
+		// Collections: local-only, named groups of drawer media — the
+		// server has no such concept. media_ids_json keeps the drawer media
+		// ids in send order; ids that have since been deleted from the
+		// drawer are just skipped at send time, not pruned here.
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS drawer_collections (
+				id TEXT PRIMARY KEY,
+				name TEXT NOT NULL,
+				media_ids_json TEXT NOT NULL DEFAULT '[]',
+				created_at INTEGER NOT NULL,
+				updated_at INTEGER NOT NULL
+			)
+		`);
+		// Briefly shipped as local_drawer_albums in a test build — carry
+		// any rows over once, then drop the old table.
+		try {
+			await db.execute(`
+				INSERT OR IGNORE INTO drawer_collections (id, name, media_ids_json, created_at, updated_at)
+				SELECT id, name, media_ids_json, created_at, updated_at FROM local_drawer_albums
+			`);
+			await db.execute("DROP TABLE local_drawer_albums");
+		} catch {
+			// never existed / already migrated
+		}
+
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS block_events (
+				id TEXT PRIMARY KEY,
+				profile_id TEXT,
+				conversation_id TEXT NOT NULL,
+				event_type TEXT NOT NULL,
+				timestamp INTEGER NOT NULL,
+				display_name TEXT,
+				avatar_media_hash TEXT,
+				created_at INTEGER NOT NULL
+			)
+		`);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_block_events_timestamp ON block_events(timestamp DESC)",
+		);
+
+		// Manual, local-only "hide this profile from the grid" flag — unlike
+		// blocking (server-side, mutual), hiding is purely a client-side
+		// preference: the profile still comes back from /v4/cascade like any
+		// other card, this only gates the client-side sortedCards view in
+		// GridPage. display_name/avatar_media_hash are a snapshot at hide time
+		// so the Settings "Hidden" page can still show something if the
+		// profile later becomes unresolvable (deleted/banned).
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS hidden_profiles (
+				profile_id TEXT PRIMARY KEY,
+				display_name TEXT,
+				avatar_media_hash TEXT,
+				hidden_at INTEGER NOT NULL
+			)
+		`);
+
+		// Durable last-known-good snapshot of a full profile detail response,
+		// refreshed every time a live fetch resolves to an actual profile
+		// (not the blocked/gone stub — see classifyProfileAccess). Lets the
+		// profile page still show real info for a conversation whose profile
+		// can no longer be fetched live (archived via block/delete), instead
+		// of only being reachable while the profile is still live.
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS profile_snapshots (
+				profile_id TEXT PRIMARY KEY,
+				data TEXT NOT NULL,
+				updated_at INTEGER NOT NULL
+			)
+		`);
+
+		// Auto-translate results (Google Translate), one row per message and
+		// target language. source_text is kept so a changed message body
+		// (e.g. a restored local copy) is detected and re-translated instead
+		// of showing a stale translation. translated_text is NULL when the
+		// message was already in the target language — remembered so it's
+		// never sent to the API again.
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS message_translations (
+				message_id TEXT NOT NULL,
+				target_lang TEXT NOT NULL,
+				conversation_id TEXT NOT NULL,
+				source_text TEXT NOT NULL,
+				translated_text TEXT,
+				detected_source_lang TEXT,
+				created_at INTEGER NOT NULL,
+				PRIMARY KEY (message_id, target_lang)
+			)
+		`);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_message_translations_conversation ON message_translations(conversation_id, target_lang)",
+		);
+
+	});
 }
 
 function sleep(ms: number): Promise<void> {
@@ -637,10 +655,6 @@ async function executeWithLockRetry(
 	const current = writeQueue.then(queuedRun, queuedRun);
 	writeQueue = current.then(() => undefined, () => undefined);
 	await current;
-}
-
-export async function initChatDb(): Promise<void> {
-	await getDb();
 }
 
 /**

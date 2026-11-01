@@ -8,7 +8,6 @@ import ManagerApp from "./ManagerApp";
 import "./i18n";
 import { markHotswapStartupReady, startupCheckForUpdate } from "./services/hotswap";
 import { initChatContactIndex } from "./services/chatContactIndex";
-import { initChatDb } from "./services/chatDb";
 import { isTauri } from "@tauri-apps/api/core";
 import { appLog } from "./utils/logger";
 import { DEFAULT_GC_TIME_MS } from "./config/ui-constants";
@@ -51,9 +50,10 @@ void (async () => {
 			void initChatContactIndex().catch((err) => {
 				appLog.warn("[chat-index] failed to initialize:", err);
 			});
-			void initChatDb().catch((err) => {
-				appLog.warn("[chat-db] failed to initialize:", err);
-			});
+			// No eager chatDb open here: before login it would open the legacy
+			// pre-account file, which AuthContext's setActiveChatDbUser then has
+			// to wait for, close and replace with the account's own file — a
+			// whole extra open (seconds on slow devices) in front of settingsReady.
 		}
 	}
 
