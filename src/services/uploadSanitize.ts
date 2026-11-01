@@ -37,7 +37,20 @@ function mediaErrorCode(error: unknown): string | null {
 	return null;
 }
 
+// Binaries built before the media pipeline (Oct 2026) can still receive this
+// frontend over OTA (`1.0.0` outranks every `1.0.0-beta.x`), and Tauri then
+// rejects the invoke with a plain "Command … not found" string.
+function isMissingCommand(error: unknown): boolean {
+	return typeof error === "string" && /^Command sanitize_upload_media not found/.test(error);
+}
+
 function toUploadError(error: unknown): ApiFunctionError {
+	if (isMissingCommand(error)) {
+		const message = i18n.t("api.errors.media_app_outdated", {
+			defaultValue: "This app installation is too old to upload photos and videos. Please install the latest version.",
+		});
+		return new ApiFunctionError(message, 0, error);
+	}
 	const code = mediaErrorCode(error);
 	if (code && code in MEDIA_ERROR_MESSAGES) {
 		const message = i18n.t(`api.errors.media_${code}`, { defaultValue: MEDIA_ERROR_MESSAGES[code] });

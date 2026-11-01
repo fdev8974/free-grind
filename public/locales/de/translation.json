@@ -2397,6 +2397,7 @@
             "media_too_large": "Dieses Foto ist zu groß zum Hochladen (max. 64 MB).",
             "media_heic_unsupported": "HEIC-Fotos werden auf diesem Gerät nicht unterstützt. Bitte wandle es zuerst in JPEG um.",
             "media_video_unstrippable": "Die Metadaten dieses Videos lassen sich nicht sicher entfernen, deshalb wurde es nicht hochgeladen.",
+            "media_app_outdated": "Diese App-Installation ist zu alt, um Fotos und Videos hochzuladen. Bitte installiere die neueste Version.",
             "invalid_upload_profile_response": "Ungültige Antwort beim Profilbild-Upload",
             "liveness_failed": "Liveness3d-Prüfung fehlgeschlagen",
             "enrollment_failed": "Registrierung fehlgeschlagen",

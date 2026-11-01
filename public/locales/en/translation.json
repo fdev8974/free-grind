@@ -2397,6 +2397,7 @@
       "media_too_large": "This photo is too large to upload (max. 64 MB).",
       "media_heic_unsupported": "HEIC photos aren't supported on this device. Please convert it to JPEG first.",
       "media_video_unstrippable": "This video's metadata can't be removed safely, so it wasn't uploaded.",
+      "media_app_outdated": "This app installation is too old to upload photos and videos. Please install the latest version.",
       "invalid_upload_profile_response": "Invalid profile upload response",
       "liveness_failed": "Liveness3d verification failed",
       "enrollment_failed": "Enrollment verification failed",
