@@ -3439,5 +3439,19 @@
     "send": "Send",
     "reacted": "Reaction sent",
     "react": "React"
+  },
+  "render_crash": {
+    "title": "App Closed Unexpectedly",
+    "description": "Last time, the app's web view stopped and the app had to close. Copy the details and add them to your bug report.",
+    "what_happened": "What happened",
+    "oom_title": "Out of memory",
+    "oom_text": "Android stopped the web view to free up memory for other apps or the system.",
+    "crash_title": "Web view crashed",
+    "crash_text": "The web view ran into an internal error and stopped.",
+    "row_route": "Screen: {{route}}",
+    "row_memory": "Free memory: {{free}} of {{total}} MB",
+    "copy_details": "Copy Details",
+    "copy_success": "Details copied to clipboard",
+    "continue": "Continue"
   }
 }

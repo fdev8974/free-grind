@@ -8,6 +8,7 @@ import { getThumbImageUrl, validateMediaHash } from "../../../utils/media";
 import { MAP_STYLE_DARK, applyRightNowMapTheme, relaxRoadZoomThresholds } from "../gridpage/components/mapStyles";
 import { formatDistance } from "../gridpage/utils";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { setCrashContext } from "../../../utils/crashContext";
 
 export type RightNowMapItem = RightNowFeedItem & { lat: number; lon: number };
 
@@ -437,6 +438,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 				markers.delete(key);
 			}
 		}
+		setCrashContext("rightNowMapMarkers", markers.size);
 	}, []);
 
 	const applySelection = useCallback((key: string | null) => {
@@ -664,6 +666,7 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 				map.on("zoom", updateZoomClass);
 				map.once("load", updateZoomClass);
 				mapRef.current = map;
+				setCrashContext("rightNowMap", `open, pixelRatio ${map.getPixelRatio()}`);
 
 				// Radar first, so the post markers stack above it.
 				syncRadar();
@@ -698,6 +701,8 @@ export function RightNowMap({ items, selectedKey, onSelectKey, fitKey, topInset,
 			clustersRef.current.clear();
 			mapRef.current?.remove();
 			mapRef.current = null;
+			setCrashContext("rightNowMap", null);
+			setCrashContext("rightNowMapMarkers", null);
 		};
 		// Map is created once; theme/items updates are applied to the live instance below.
 		// eslint-disable-next-line react-hooks/exhaustive-deps

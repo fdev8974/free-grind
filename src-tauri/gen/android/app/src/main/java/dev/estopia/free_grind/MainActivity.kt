@@ -289,6 +289,10 @@ class MainActivity : TauriActivity() {
     // apps show none, so neither does the app.
     webView.isVerticalScrollBarEnabled = false
     webView.isHorizontalScrollBarEnabled = false
+    // Records renderer deaths (e.g. out of memory) for the next start. Again
+    // once queued, in case wry assigns its client only after this callback.
+    RenderProcessGuard.install(webView)
+    webView.post { RenderProcessGuard.install(webView) }
 
     @Suppress("AddJavascriptInterface")
     webView.addJavascriptInterface(JsBridge(), "FreeGrindBridge")
@@ -334,6 +338,11 @@ class MainActivity : TauriActivity() {
     super.onPause()
   }
 
+  override fun onTrimMemory(level: Int) {
+    super.onTrimMemory(level)
+    RenderProcessGuard.recordTrim(level)
+  }
+
   /**
    * JavaScript bridge exposed as `window.FreeGrindBridge`. Frontend calls
    * `setActiveRoute(path + search)` whenever the React route or document
@@ -346,6 +355,16 @@ class MainActivity : TauriActivity() {
       activeRoute = route
       Log.d("FCM", "JsBridge.setActiveRoute=$route foreground=$inForeground")
     }
+
+    /** Extra state included in a renderer-death report (see RenderProcessGuard). */
+    @JavascriptInterface
+    fun setCrashContext(key: String, value: String?) {
+      RenderProcessGuard.setContext(key, value)
+    }
+
+    /** The report of the last renderer death as JSON, once; null if none. */
+    @JavascriptInterface
+    fun takeRenderCrashReport(): String? = RenderProcessGuard.takeReport(this@MainActivity)
 
     @JavascriptInterface
     fun setNotificationPreferences(json: String) {

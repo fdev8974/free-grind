@@ -3441,5 +3441,19 @@
         "send": "Senden",
         "reacted": "Reaktion gesendet",
         "react": "Reagieren"
+    },
+    "render_crash": {
+        "title": "App unerwartet beendet",
+        "description": "Beim letzten Mal ist die Web-Ansicht der App ausgefallen und die App musste schließen. Kopiere die Details und füge sie deinem Fehlerbericht hinzu.",
+        "what_happened": "Was ist passiert",
+        "oom_title": "Speicher voll",
+        "oom_text": "Android hat die Web-Ansicht beendet, um Speicher für andere Apps oder das System freizugeben.",
+        "crash_title": "Web-Ansicht abgestürzt",
+        "crash_text": "Die Web-Ansicht ist auf einen internen Fehler gestoßen und wurde beendet.",
+        "row_route": "Bildschirm: {{route}}",
+        "row_memory": "Freier Speicher: {{free}} von {{total}} MB",
+        "copy_details": "Details kopieren",
+        "copy_success": "Details in die Zwischenablage kopiert",
+        "continue": "Weiter"
     }
 }

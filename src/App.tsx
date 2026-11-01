@@ -61,6 +61,7 @@ import { AssignmentsBridge } from "./components/AssignmentsBridge";
 import { HondurasRecoveryBridge } from "./components/HondurasRecoveryBridge";
 import { ManagedOptionsCacheBridge } from "./components/ManagedOptionsCacheBridge";
 import { SplashReadyBridge } from "./components/SplashReadyBridge";
+import { RenderCrashReportBridge } from "./components/RenderCrashReportBridge";
 import { HotswapUpdatedToastBridge } from "./components/HotswapUpdatedToastBridge";
 import { SmoothScroll } from "./components/SmoothScroll";
 import { SinModeUnlockOverlay } from "./components/SinModeUnlockOverlay";
@@ -209,6 +210,7 @@ export default function App() {
 	return (
 		<AuthProvider>
 			<SplashReadyBridge />
+			<RenderCrashReportBridge />
 			<HotswapUpdatedToastBridge />
 			<PreferencesProvider>
 			<ExploreModeProvider>
