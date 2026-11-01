@@ -4,6 +4,7 @@ import { BananaFilled, EyeFilled, HomeFilled, MapPinFilled, StickyNoteFilled, Ey
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -1792,6 +1793,25 @@ export function ProfileDetailsModal({
 			}
 		}
 	}, [albumStatus.hasSharedWithMe, albumStatus.albumId, isOpeningAlbum, apiFunctions, messageProfileId, activeProfileName, activeProfilePhotoHashes, profileOnlineUntil, profileDistance, t, openAlbumAsBottomSheet, pushAlbumViewerHistory, resetAlbumViewerState, closeAlbumViewer]);
+
+	// A "favorite updated their album" push opens the profile with
+	// `openAlbumId` in the router state — open the album on top once the share
+	// check is in, so back lands on the profile. The flag is dropped from the
+	// history entry so returning to it later doesn't reopen the album.
+	const location = useLocation();
+	const requestedAlbumId = (location.state as { openAlbumId?: unknown } | null)?.openAlbumId;
+	const autoOpenedAlbumKeyRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (requestedAlbumId == null || autoOpenedAlbumKeyRef.current === location.key) return;
+		if (!activeProfile || !albumStatus.hasSharedWithMe || albumStatus.albumId == null) return;
+		autoOpenedAlbumKeyRef.current = location.key;
+		const state = window.history.state as { usr?: Record<string, unknown> } | null;
+		if (state?.usr) {
+			const { openAlbumId: _omit, ...usr } = state.usr;
+			window.history.replaceState({ ...state, usr }, "");
+		}
+		void handleAlbumSlideClick();
+	}, [requestedAlbumId, location.key, activeProfile, albumStatus.hasSharedWithMe, albumStatus.albumId, handleAlbumSlideClick]);
 
 	const albumViewerPhotos = useMemo(() => {
 		if (!albumViewer) return [];

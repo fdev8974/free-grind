@@ -97,7 +97,9 @@ const PROFILE_GROWTH_TYPES = new Set([
 	"media_recipient_online",
 ]);
 
-function getSystemRoute(detail: NativePushNotificationDetail): string | null {
+function parseSystemAction(
+	detail: NativePushNotificationDetail,
+): { url: URL; host: string } | null {
 	if (typeof detail.action !== "string" || !detail.action.startsWith("grindr://")) {
 		return null;
 	}
@@ -107,14 +109,34 @@ function getSystemRoute(detail: NativePushNotificationDetail): string | null {
 	} catch {
 		return null;
 	}
-	const host = url.hostname || url.pathname.replace(/^\/+/, "").split("/")[0];
+	return { url, host: url.hostname || url.pathname.replace(/^\/+/, "").split("/")[0] };
+}
+
+// fresh-albums (a favorite updated their album) opens the profile with the
+// album on top of it — see ProfileDetailsModal's `openAlbumId` handling.
+function getSystemAlbumId(detail: NativePushNotificationDetail): string | null {
+	if (!detail.isSystem) return null;
+	const parsed = parseSystemAction(detail);
+	if (!parsed || parsed.host !== "fresh-albums") return null;
+	return parsed.url.searchParams.get("albumIds")?.split(",")[0]?.trim() || null;
+}
+
+function getSystemRoute(detail: NativePushNotificationDetail): string | null {
+	const parsed = parseSystemAction(detail);
+	if (!parsed) return null;
+	const { url, host } = parsed;
 	const type = detail.growthType ?? url.searchParams.get("type");
 	const profileId =
 		(typeof detail.senderId === "string" && detail.senderId.trim()) ||
 		url.searchParams.get("profileId") ||
-		url.searchParams.get("profileID");
+		url.searchParams.get("profileID") ||
+		url.searchParams.get("albumProfileId");
 
-	if (host === "favorite-profile" || (type && PROFILE_GROWTH_TYPES.has(type))) {
+	if (
+		host === "favorite-profile" ||
+		host === "fresh-albums" ||
+		(type && PROFILE_GROWTH_TYPES.has(type))
+	) {
 		if (profileId) return `/profile/${encodeURIComponent(profileId)}`;
 	}
 	if (host === "inbox" || type === "unread_chats") return "/chat";
@@ -198,7 +220,13 @@ export function PushNotificationBridge() {
 						// unchanged, so `useParams()` doesn't update and
 						// nothing reacts. The state nonce forces a fresh
 						// location on every click regardless of path equality.
-						navigate(route, { state: { notificationClickedAt: Date.now() } });
+						const openAlbumId = getSystemAlbumId(detail);
+						navigate(route, {
+							state: {
+								notificationClickedAt: Date.now(),
+								...(openAlbumId ? { openAlbumId } : {}),
+							},
+						});
 					} catch (error) {
 						appLog.error(
 							"[PUSH_EVENT] Failed to navigate to notification route",
