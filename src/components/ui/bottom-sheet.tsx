@@ -592,6 +592,7 @@ export function BottomSheet({
 				/>
 				<div
 					ref={panelRef}
+					data-sheet-panel
 					className={`relative flex flex-col ${bg} overflow-hidden overscroll-contain ${isDesktop ? "w-full max-w-[800px] mx-auto rounded-t-2xl shadow-[0_-1px_6px_rgba(0,0,0,0.2),0_-8px_40px_rgba(0,0,0,0.45)]" : "w-full rounded-t-[24px] shadow-[0_-1px_4px_rgba(0,0,0,0.25),0_-10px_36px_rgba(0,0,0,0.5)]"} ${panelClassName}`}
 					// transform, height and transition are set by applyLayout.
 					style={{
