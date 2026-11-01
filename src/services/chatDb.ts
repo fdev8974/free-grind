@@ -53,6 +53,7 @@ import { guardAgainstClosedPool } from "./sqlitePoolGuard";
 const LEGACY_CHAT_DB_FILENAME = "chat.sqlite3";
 const LEGACY_CHAT_DB = `sqlite:${LEGACY_CHAT_DB_FILENAME}`;
 const SQLITE_BUSY_TIMEOUT_MS = 5_000;
+const SLOW_DB_OPEN_MS = 2_000;
 const SQLITE_LOCK_RETRY_DELAYS_MS = [30, 80, 180, 350] as const;
 
 let activeChatDbName = LEGACY_CHAT_DB;
@@ -186,7 +187,9 @@ let writeQueue: Promise<void> = Promise.resolve();
 async function getDb(): Promise<Database> {
 	if (!dbPromise) {
 		dbPromise = (async () => {
+			const openStartedAt = performance.now();
 			const db = guardAgainstClosedPool(await Database.load(activeChatDbName), "chat-db");
+			const loadMs = performance.now() - openStartedAt;
 			try {
 				await db.execute("PRAGMA journal_mode = WAL");
 				await db.execute("PRAGMA synchronous = NORMAL");
@@ -194,6 +197,7 @@ async function getDb(): Promise<Database> {
 			} catch (error) {
 				appLog.warn("[chat-db] failed to set pragmas", error);
 			}
+			const pragmasMs = performance.now() - openStartedAt - loadMs;
 
 			await executeWithLockRetry(db, "init-tables", async () => {
 				await db.execute(`
@@ -559,6 +563,19 @@ async function getDb(): Promise<Database> {
 				);
 
 			});
+
+			// The app's settings (location, filters, ...) wait on this open, so a
+			// slow one shows up as a long grid skeleton on startup. Logged as a
+			// warning so it lands in issue reports (release keeps warn/error only).
+			const totalMs = performance.now() - openStartedAt;
+			if (totalMs > SLOW_DB_OPEN_MS) {
+				appLog.warn("[chat-db] slow db open", {
+					totalMs: Math.round(totalMs),
+					loadMs: Math.round(loadMs),
+					pragmasMs: Math.round(pragmasMs),
+					initTablesMs: Math.round(totalMs - loadMs - pragmasMs),
+				});
+			}
 
 			return db;
 		})();

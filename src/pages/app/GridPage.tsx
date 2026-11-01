@@ -1757,7 +1757,7 @@ export function GridPage() {
 															: t("browse_location.mode_manual")}
 											</p>
 											{!exploreLocation && isLoadingPreferences ? (
-												<span className="mt-1 block h-2 w-24 animate-pulse rounded-full bg-[var(--surface-3)]" aria-hidden="true" />
+												<span className="mt-1 block h-2 w-24 animate-pulse rounded-full bg-[var(--text-muted)] opacity-30" aria-hidden="true" />
 											) : (
 												<p className="truncate text-[10px] font-medium leading-tight text-[var(--text-muted)]">
 													{exploreLocation

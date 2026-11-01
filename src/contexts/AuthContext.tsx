@@ -612,7 +612,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setActiveChatContactIndexAccount(state.userId);
 
 		void (async () => {
+			const startedAt = performance.now();
 			await setActiveChatDbUser(state.userId);
+			const chatDbMs = performance.now() - startedAt;
 
 			// Fire-and-forget: throttled background sync of the chat list and
 			// each changed conversation's latest messages, run on every profile
@@ -652,13 +654,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				void runTapsAutomationSync(apiFunctions, () => currentUserIdRef.current === userId);
 			}
 
+			const cacheMs: Record<string, number> = {};
+			const timed = async (name: string, load: () => Promise<void>) => {
+				const loadStartedAt = performance.now();
+				await load();
+				cacheMs[name] = Math.round(performance.now() - loadStartedAt);
+			};
 			await Promise.all([
-				loadAutomationCache(),
-				loadAutomationRulesCache(),
-				loadPrivacyCache(),
-				loadAutoTranslateCache(),
-				loadSeenCache(),
+				timed("automation", loadAutomationCache),
+				timed("automationRules", loadAutomationRulesCache),
+				timed("privacy", loadPrivacyCache),
+				timed("autoTranslate", loadAutoTranslateCache),
+				timed("seen", loadSeenCache),
 			]);
+			// Location, filters and so the whole grid wait on settingsReady — a
+			// slow start shows up as a long skeleton. Logged as a warning so it
+			// lands in issue reports (release keeps warn/error only).
+			// On the launch run, also catch a fast open that only started late
+			// (auth check slow), not just a slow one.
+			const totalMs = performance.now() - startedAt;
+			const isLaunchRun = previousUserId === undefined;
+			if (totalMs > 3_000 || (isLaunchRun && performance.now() > 5_000)) {
+				appLog.warn("[Auth] slow settings ready", {
+					sinceLaunchMs: Math.round(performance.now()),
+					startedSinceLaunchMs: Math.round(startedAt),
+					totalMs: Math.round(totalMs),
+					chatDbMs: Math.round(chatDbMs),
+					cacheMs,
+				});
+			}
 			dispatch({ type: "SET_SETTINGS_READY", payload: true });
 		})();
 	}, [state.userId, state.isLoading, queryClient, apiFunctions]);
