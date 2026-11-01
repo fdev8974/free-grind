@@ -109,7 +109,9 @@ export function PageHeader({
 					)}
 				</div>
 			</header>
-			{subtitle && <p className={cn("app-subtitle mb-6 mt-1 rail:hidden", subtitleClassName)}>{subtitle}</p>}
+			{/* Mobile: inset like the section labels below so they share one text column,
+			    and a step smaller so it reads as a page description, not a second title. */}
+			{subtitle && <p className={cn("app-subtitle mb-6 mt-1 px-1 text-sm rail:hidden", subtitleClassName)}>{subtitle}</p>}
 		</>
 	);
 }
