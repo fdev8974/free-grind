@@ -63,12 +63,12 @@ import { hasDemoProfileImages, isDemoProfileImagesEnabled, setDemoProfileImagesE
 import { UpdateChannelSheet } from "./UpdateChannelSheet";
 import { TransferAccountSheet } from "./TransferAccountSheet";
 import { FingerprintCheckSheet } from "./settings-dev/DiagnosticsSheets";
+import { SeasonalOverlaysSheet } from "./settings-dev/SeasonalOverlaysSheet";
 import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "../../components/ui/action-sheet";
 import { ControlledBottomSheet } from "../../components/ui/controlled-sheet";
 import { SHEET_FIELD_CLASS } from "../../components/ui/sheet-section";
 import { cn } from "../../utils/cn";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
-import { setHalloweenOverlayHidden, useIsHalloweenOverlayHidden } from "../../hooks/useIsHalloween";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useFingerprintCheck } from "../../components/FingerprintCheckButton";
 import { VersionAnnouncement } from "../../components/VersionAnnouncement";
@@ -374,7 +374,6 @@ export function SettingsPage() {
 	const navigate = useNavigate();
 	const logoutToNextAccount = useLogoutToNextAccount();
 	const { developerMode, showDebugInfo, setPreferences } = usePreferences();
-	const isHalloweenOverlayHidden = useIsHalloweenOverlayHidden();
 	const handleExportLogs = async () => {
 		try {
 			const fileName = await saveIssueLogsFile();
@@ -401,6 +400,7 @@ export function SettingsPage() {
 	const fingerprintCheck = useFingerprintCheck();
 	const [isFingerprintSheetOpen, setIsFingerprintSheetOpen] = useState(false);
 	const [isPreviewsSheetOpen, setIsPreviewsSheetOpen] = useState(false);
+	const [isSeasonalSheetOpen, setIsSeasonalSheetOpen] = useState(false);
 	const [isChannelSheetOpen, setIsChannelSheetOpen] = useState(false);
 	const [isTransferSheetOpen, setIsTransferSheetOpen] = useState(false);
 	const isDesktop = useDesktopBreakpoint();
@@ -1241,14 +1241,13 @@ export function SettingsPage() {
 										label="Show Debug Overlays"
 										description="Displays source (cache/network) info in the grid."
 									/>
-									<ToggleRow
-										checked={isHalloweenOverlayHidden}
-										onChange={setHalloweenOverlayHidden}
-										icon={<GhostFilled className="h-5 w-5" />}
-										iconClass="bg-slate-500/15 text-slate-400"
-										label="Hide Halloween Overlay"
-										description="Removes the blood-drip vignette during the Halloween theme. Nav icons stay."
-									/>
+									{navRow(
+										() => setIsSeasonalSheetOpen(true),
+										<GhostFilled className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										"Seasonal Overlays",
+										"Force seasonal themes on outside their dates, or turn them off.",
+									)}
 									{hasDemoProfileImages() && (
 										<ToggleRow
 											checked={isDemoProfileImagesEnabled()}
@@ -1438,6 +1437,8 @@ export function SettingsPage() {
 					]}
 				/>
 			)}
+
+			{isSeasonalSheetOpen && <SeasonalOverlaysSheet onClose={() => setIsSeasonalSheetOpen(false)} />}
 
 			{isFingerprintSheetOpen && (
 				<FingerprintCheckSheet check={fingerprintCheck} onClose={() => setIsFingerprintSheetOpen(false)} />

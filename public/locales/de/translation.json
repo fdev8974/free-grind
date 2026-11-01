@@ -579,7 +579,25 @@
         "right_now": "Right Now",
         "interest": "Interest",
         "inbox": "Chats",
-        "settings": "Konto"
+        "settings": "Konto",
+        "halloween": {
+            "browse": "Kürbisse",
+            "right_now": "Spukzeit",
+            "interest": "Blutdurst",
+            "inbox": "Gruft"
+        },
+        "christmas": {
+            "browse": "Advent",
+            "right_now": "Lichter",
+            "interest": "Mistel",
+            "inbox": "Grüße"
+        },
+        "valentines": {
+            "browse": "Ehemänner",
+            "right_now": "1. Date",
+            "interest": "Amor",
+            "inbox": "Herzpost"
+        }
     },
     "browse_page": {
         "share_distance": {

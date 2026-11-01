@@ -4,7 +4,15 @@ import {
 	PumpkinFilled,
 	BatFilled,
 	BleedingHeartFilled,
-	GhostFilled,
+	TombstoneFilled,
+	BaubleGridFilled,
+	CandleFilled,
+	MistletoeFilled,
+	SnowflakeChatFilled,
+	RingFilled,
+	WineGlassesFilled,
+	HeartArrowFilled,
+	LoveLetterFilled,
 } from "./icons/FilledIcons";
 import { ProfilePlaceholderIcon } from "./icons/ProfilePlaceholderIcon";
 import toast from "react-hot-toast";
@@ -18,7 +26,7 @@ import { useTranslation } from "react-i18next";
 import { useAuth } from "../contexts/useAuth";
 import { useExploreMode } from "../contexts/ExploreModeContext";
 import { useIsRightNowLive } from "../hooks/useIsRightNowLive";
-import { useIsHalloween } from "../hooks/useIsHalloween";
+import { useActiveSeason, type SeasonalOverlayId } from "../hooks/useSeasonalOverlay";
 import {
 	getInterestLastSeen,
 	INTEREST_SEEN_EVENT,
@@ -41,6 +49,26 @@ import { useSystemNavInset } from "../hooks/useSystemNavInset";
 import { getThumbImageUrl } from "../utils/media";
 import { getSavedAccountProfile } from "../services/savedAccountProfiles";
 import { looksLikeMessageUpdate } from "../utils/messageUpdates";
+
+// Nav icons and tab names (`labels`: the nav.<season>.* keys) swapped in during
+// a seasonal theme (only one is ever active, see useActiveSeason).
+type SeasonalNav = {
+	icons: Record<"browse" | "rightNow" | "interest" | "inbox", typeof GridIcon>;
+	labels: string;
+};
+const HALLOWEEN_NAV: SeasonalNav = {
+	icons: { browse: PumpkinFilled, rightNow: BatFilled, interest: BleedingHeartFilled, inbox: TombstoneFilled },
+	labels: "nav.halloween",
+};
+const CHRISTMAS_NAV: SeasonalNav = {
+	icons: { browse: BaubleGridFilled, rightNow: CandleFilled, interest: MistletoeFilled, inbox: SnowflakeChatFilled },
+	labels: "nav.christmas",
+};
+const VALENTINES_NAV: SeasonalNav = {
+	icons: { browse: RingFilled, rightNow: WineGlassesFilled, interest: HeartArrowFilled, inbox: LoveLetterFilled },
+	labels: "nav.valentines",
+};
+const SEASONAL_NAV: Record<SeasonalOverlayId, SeasonalNav> = { halloween: HALLOWEEN_NAV, christmas: CHRISTMAS_NAV, valentines: VALENTINES_NAV };
 
 // Bottom-nav style options; only offered (and only honoured) in the mobile app.
 export const NAV_SHOW_LABELS_KEY = "fg-nav-show-labels";
@@ -138,7 +166,11 @@ export function NavBar() {
 	const { isExploreActive } = useExploreMode();
 	// A live (public) Right Now session takes the grid tab's color over everything, explore included.
 	const isRightNowLive = useIsRightNowLive();
-	const isHalloween = useIsHalloween();
+	const activeSeason = useActiveSeason();
+	const seasonalNav = activeSeason ? SEASONAL_NAV[activeSeason] : null;
+	const seasonalIcons = seasonalNav?.icons;
+	const navLabel = (key: string, fallback: string) =>
+		seasonalNav ? t(`${seasonalNav.labels}.${key}`, { defaultValue: fallback }) : fallback;
 	const { hideLabels, fullWidth, transparent } = useNavStyle();
 	// Desktop: vertical rail on the left instead of the bottom bar.
 	const rail = useDesktopBreakpoint();
@@ -246,29 +278,29 @@ export function NavBar() {
 	const navItems = [
 		{
 			value: "browse",
-			label: t("nav.browse"),
-			icon: isHalloween ? PumpkinFilled : GridIcon,
+			label: navLabel("browse", t("nav.browse")),
+			icon: seasonalIcons?.browse ?? GridIcon,
 			path: "/",
 			visible: true, // Mandatory
 		},
 		{
 			value: "right-now",
-			label: t("nav.right_now"),
-			icon: isHalloween ? BatFilled : RightNowIcon,
+			label: navLabel("right_now", t("nav.right_now")),
+			icon: seasonalIcons?.rightNow ?? RightNowIcon,
 			path: "/right-now",
 			visible: showRightNow, // Toggleable
 		},
 		{
 			value: "interest",
-			label: t("nav.interest"),
-			icon: isHalloween ? BleedingHeartFilled : Flame,
+			label: navLabel("interest", t("nav.interest")),
+			icon: seasonalIcons?.interest ?? Flame,
 			path: "/interest",
 			visible: showInterest, // Toggleable
 		},
 		{
 			value: "inbox",
-			label: t("nav.inbox"),
-			icon: isHalloween ? GhostFilled : MessageCircle,
+			label: navLabel("inbox", t("nav.inbox")),
+			icon: seasonalIcons?.inbox ?? MessageCircle,
 			path: "/chat",
 			visible: true, // Mandatory
 		},

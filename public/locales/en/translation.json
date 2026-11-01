@@ -579,7 +579,25 @@
     "right_now": "Right Now",
     "interest": "Interest",
     "inbox": "Inbox",
-    "settings": "Settings"
+    "settings": "Settings",
+    "halloween": {
+      "browse": "Pumpkins",
+      "right_now": "Midnight",
+      "interest": "Bloodlust",
+      "inbox": "Crypt"
+    },
+    "christmas": {
+      "browse": "Advent",
+      "right_now": "Candlelit",
+      "interest": "Mistletoe",
+      "inbox": "Snow Mail"
+    },
+    "valentines": {
+      "browse": "Husbands",
+      "right_now": "1st Date",
+      "interest": "Cupid",
+      "inbox": "Love Mail"
+    }
   },
   "browse_page": {
     "share_distance": {

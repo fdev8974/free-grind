@@ -983,6 +983,19 @@ export function SkullFilled(props: IconProps) {
 	);
 }
 
+export function TombstoneFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M12 7.5v8M9 10.5h6" strokeWidth={1.75} />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d="M6 19.5V9a6 6 0 0 1 12 0v10.5z" />
+			<path d="M3 21.5c2-1.6 5-2 9-2s7 .4 9 2z" strokeWidth={1.5} />
+		</FilledSvg>
+	);
+}
+
 // The heart from HeartFilled, shrunk to make room for blood dripping off it.
 export function BleedingHeartFilled(props: IconProps) {
 	return (
@@ -993,6 +1006,197 @@ export function BleedingHeartFilled(props: IconProps) {
 			/>
 			<path d="M7.5 12v5.5M16.5 12v3.5" fill="none" strokeWidth={1.75} />
 			<path d="M12 19c-.8 1.1-1.3 1.9-1.3 2.6a1.3 1.3 0 0 0 2.6 0c0-.7-.5-1.5-1.3-2.6z" strokeWidth={1} />
+		</FilledSvg>
+	);
+}
+
+// Christmas icons (see useSeasonalOverlay). The nav ones mirror their tab:
+// a grid of baubles, a lit candle (live), mistletoe (who's into you), a chat bubble.
+
+export function BaubleGridFilled(props: IconProps) {
+	return (
+		<FilledSvg stroke="none" {...props}>
+			{[
+				[6.5, 7.5],
+				[17.5, 7.5],
+				[6.5, 17.5],
+				[17.5, 17.5],
+			].map(([cx, cy]) => (
+				<g key={`${cx}-${cy}`}>
+					<circle cx={cx} cy={cy} r="3.6" />
+					<rect x={cx - 1.2} y={cy - 5.3} width="2.4" height="2" rx=".5" />
+				</g>
+			))}
+		</FilledSvg>
+	);
+}
+
+export function CandleFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path d="M12 2.5c-1.6 2.1-2.4 3.4-2.4 4.7a2.4 2.4 0 0 0 4.8 0c0-1.3-.8-2.6-2.4-4.7z" stroke="none" />
+			<path d="M12 9.6V11" fill="none" strokeWidth={1.5} />
+			<rect x="8.5" y="11" width="7" height="11" rx="1.5" stroke="none" />
+		</FilledSvg>
+	);
+}
+
+export function MistletoeFilled(props: IconProps) {
+	const id = useMaskId();
+	const berries: [number, number, number][] = [
+		[12, 12, 1.7],
+		[10.3, 14.6, 1.5],
+		[13.7, 14.6, 1.5],
+	];
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				{berries.map(([cx, cy, r]) => (
+					<circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r + 1} stroke="none" />
+				))}
+			</CutoutMask>
+			<g mask={`url(#${id})`} stroke="none">
+				<ellipse cx="7.5" cy="13" rx="4.8" ry="2.3" transform="rotate(-35 7.5 13)" />
+				<ellipse cx="16.5" cy="13" rx="4.8" ry="2.3" transform="rotate(35 16.5 13)" />
+			</g>
+			{berries.map(([cx, cy, r]) => (
+				<circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} stroke="none" />
+			))}
+			<path d="M12 10V4" fill="none" strokeWidth={1.5} />
+			<path d="M12 4c-1.3-1.8-3.5-2.2-3.5-.9S10.7 4 12 4s3.5.4 3.5-.9S13.3 2.2 12 4" fill="none" strokeWidth={1.5} />
+		</FilledSvg>
+	);
+}
+
+export function SnowflakeChatFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M12 8v8M8.54 10l6.92 4M8.54 14l6.92-4" strokeWidth={1.6} />
+			</CutoutMask>
+			<path
+				mask={`url(#${id})`}
+				d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719z"
+			/>
+		</FilledSvg>
+	);
+}
+
+export function ChristmasTreeFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<circle cx="10.5" cy="11" r="1" stroke="none" />
+				<circle cx="14" cy="15.5" r="1" stroke="none" />
+				<circle cx="9" cy="16.5" r="1" stroke="none" />
+			</CutoutMask>
+			<path mask={`url(#${id})`} d="M12 2 6.5 8.5H9l-4 5h3l-4.5 5h17l-4.5-5h3l-4-5h2.5z" />
+			<path d="M12 18.5V22" fill="none" strokeWidth={3} />
+		</FilledSvg>
+	);
+}
+
+export function SnowflakeFilled(props: IconProps) {
+	return (
+		<FilledSvg fill="none" {...props}>
+			<path d="M12 2v20M3.34 7l17.32 10M3.34 17 20.66 7" />
+			<path d="M9.5 3.5 12 6l2.5-2.5M9.5 20.5 12 18l2.5 2.5M18.1 18.4l-.9-3.4 3.4-.9M5.9 18.4l.9-3.4-3.4-.9M18.1 5.6l-.9 3.4 3.4.9M5.9 5.6l.9 3.4-3.4.9" />
+			<circle cx="12" cy="12" r="2" fill="currentColor" />
+		</FilledSvg>
+	);
+}
+
+export function GiftFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M12 6v17" strokeWidth={1.75} />
+				<path d="M1 11.5h22" strokeWidth={1.25} />
+			</CutoutMask>
+			<g mask={`url(#${id})`}>
+				<rect x="3" y="7" width="18" height="4" rx="1" />
+				<rect x="4" y="11" width="16" height="10" rx="1" />
+			</g>
+			<path d="M12 7C10.5 4 7.5 3 7 5s2.5 2 5 2 5.5 0 5-2-3.5-1-5 2" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function SnowmanFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<circle cx="10.8" cy="6.5" r=".75" stroke="none" />
+				<circle cx="13.2" cy="6.5" r=".75" stroke="none" />
+				<circle cx="12" cy="14.5" r=".85" stroke="none" />
+				<circle cx="12" cy="17.75" r=".85" stroke="none" />
+			</CutoutMask>
+			<g mask={`url(#${id})`}>
+				<circle cx="12" cy="7" r="3.5" />
+				<circle cx="12" cy="16.5" r="5.5" />
+			</g>
+		</FilledSvg>
+	);
+}
+
+// Valentine's nav icons (see useSeasonalOverlay), after a community idea:
+// husband material, first date, Cupid's arrow, love letters.
+
+export function RingFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<circle cx="12" cy="15.5" r="6" fill="none" strokeWidth={2.5} />
+			<path d="M9.5 2.5h5l2 2.5L12 9.5 7.5 5z" strokeWidth={1.5} />
+		</FilledSvg>
+	);
+}
+
+export function WineGlassesFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<g transform="rotate(10 6 21)">
+				<path d="M3 3h6v4a3 3 0 0 1-6 0z" strokeWidth={1.5} />
+				<path d="M6 10v11M3.5 21h5" fill="none" />
+			</g>
+			<g transform="rotate(-10 18 21)">
+				<path d="M15 3h6v4a3 3 0 0 1-6 0z" strokeWidth={1.5} />
+				<path d="M18 10v11M15.5 21h5" fill="none" />
+			</g>
+		</FilledSvg>
+	);
+}
+
+export function HeartArrowFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg {...props}>
+			<CutoutMask id={id}>
+				<path d="M3.5 20.5 20.5 3.5" strokeWidth={4.5} />
+			</CutoutMask>
+			<g mask={`url(#${id})`}>
+				<path
+					transform="translate(3 3.5) scale(0.75)"
+					d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5z"
+				/>
+			</g>
+			<path d="M3.5 20.5 20.5 3.5M20.5 3.5h-5M20.5 3.5v5M7 17H3.5M7 17v3.5" fill="none" />
+		</FilledSvg>
+	);
+}
+
+export function LoveLetterFilled(props: IconProps) {
+	const id = useMaskId();
+	return (
+		<FilledSvg stroke="none" {...props}>
+			<CutoutMask id={id}>
+				<path d="M2.5 7.5 9 11.5M21.5 7.5 15 11.5" strokeWidth={1.5} />
+				<path d="M12 16.8s-3.4-2-3.4-4.3a1.8 1.8 0 0 1 3.4-.9 1.8 1.8 0 0 1 3.4.9c0 2.3-3.4 4.3-3.4 4.3z" />
+			</CutoutMask>
+			<rect mask={`url(#${id})`} x="2" y="4.5" width="20" height="15" rx="2.5" />
 		</FilledSvg>
 	);
 }
