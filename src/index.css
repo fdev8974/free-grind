@@ -2008,12 +2008,13 @@ dialog::backdrop {
  * the system nav bar instead of being cut off at the panel's bottom padding:
  * it takes that padding over as a trailing spacer, so its last entry still
  * scrolls clear of the nav bar. Covers the scroll area as the panel's last
- * child or nested in up to two last-child wrappers. */
+ * child or nested in up to two last-child wrappers. "Last" ignores siblings
+ * that take no room, like a closed ConfirmDialog <dialog> or hidden inputs. */
 :is(
-	[data-sheet-panel] > .overflow-y-auto:last-child,
-	[data-sheet-panel] > :last-child > .overflow-y-auto:last-child,
-	[data-sheet-panel] > :last-child > :last-child > .overflow-y-auto:last-child
-) {
+	[data-sheet-panel] > .overflow-y-auto,
+	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden))) > .overflow-y-auto,
+	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden))) > :not(:has(~ :not(dialog:not([open]), .hidden))) > .overflow-y-auto
+):not(:has(~ :not(dialog:not([open]), .hidden))) {
 	margin-bottom: calc(-1 * (max(16px, env(safe-area-inset-bottom)) + 48px));
 	&::after {
 		content: "";
