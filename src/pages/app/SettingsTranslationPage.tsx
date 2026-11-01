@@ -1,11 +1,13 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { AlertCircle, Bot, BrainCircuit, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, Languages, Sparkles } from "lucide-react";
+import { AlertCircle, Bot, BrainCircuit, CheckCircle2, ChevronRight, ExternalLink, Eye, EyeOff, Languages, Loader2, Sparkles } from "lucide-react";
 import { KeyRoundFilled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
-import { Button } from "../../components/ui/button";
+import { NATIVE_SHEET_BG } from "../../components/ui/action-sheet";
+import { BottomSheet, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../components/ui/bottom-sheet";
 import { SelectSheet } from "../../components/ui/select-sheet";
+import { SHEET_FIELD_CLASS } from "../../components/ui/sheet-section";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import {
@@ -21,6 +23,7 @@ import {
 	setTranslationProvider,
 	translateTexts,
 } from "../../utils/autoTranslate";
+import { cn } from "../../utils/cn";
 import { openExternalUrl } from "../../utils/githubIssues";
 
 type SetupStep = { key: string; title: string; desc: string; url?: string; linkLabel?: string };
@@ -198,45 +201,34 @@ function StepNumber({ value }: { value: number }) {
 	);
 }
 
-export function SettingsTranslationPage() {
-	const { t, i18n } = useTranslation();
-	const highlightId = useSettingsHighlight();
+type ApiKeySheetProps = {
+	provider: TranslationProvider;
+	savedApiKey: string;
+	savedKeyInvalid: boolean;
+	targetLang: string;
+	onStored: (key: string, valid: boolean) => void;
+	onClose: () => void;
+	isDesktop: boolean;
+};
 
-	const [provider, setProvider] = useState<TranslationProvider>(() => getTranslationProvider());
-	const [savedApiKey, setSavedApiKey] = useState(() => getTranslationApiKey(provider));
+/** Enter, test and save the current provider's API key. */
+function ApiKeySheet({ provider, savedApiKey, savedKeyInvalid, targetLang, onStored, onClose, isDesktop }: ApiKeySheetProps) {
+	const { t } = useTranslation();
+	const providerInfo = PROVIDER_INFO[provider];
 	const [apiKeyDraft, setApiKeyDraft] = useState(savedApiKey);
 	const [showApiKey, setShowApiKey] = useState(false);
 	const [isTesting, setIsTesting] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
-	const [savedKeyInvalid, setSavedKeyInvalid] = useState(() => isTranslationApiKeyInvalid(provider));
-	const [isProviderSheetOpen, setIsProviderSheetOpen] = useState(false);
-	const isDesktop = useDesktopBreakpoint();
-	const providerInfo = PROVIDER_INFO[provider];
-	const ProviderIcon = providerInfo.icon;
-	// The final "paste" step is rendered as the key field itself.
-	const guideSteps = SETUP_STEPS[provider].filter((step) => step.key !== "paste");
 	const keyInputRef = useRef<HTMLInputElement>(null);
-
-	function focusKeyInput() {
-		const input = keyInputRef.current;
-		if (!input) return;
-		input.scrollIntoView({ behavior: "smooth", block: "center" });
-		input.focus({ preventScroll: true });
-	}
-
-	function handleSelectProvider(next: TranslationProvider) {
-		if (next === provider || isSaving || isTesting) return;
-		setTranslationProvider(next);
-		setProvider(next);
-		const key = getTranslationApiKey(next);
-		setSavedApiKey(key);
-		setApiKeyDraft(key);
-		setSavedKeyInvalid(isTranslationApiKeyInvalid(next));
-		setShowApiKey(false);
-	}
-
-	const targetLang = resolveTranslateTargetLanguage(i18n.resolvedLanguage ?? i18n.language);
+	const closeRef = useRef<(() => void) | null>(null);
 	const isDirty = apiKeyDraft.trim() !== savedApiKey;
+	const isBusy = isSaving || isTesting;
+
+	useEffect(() => {
+		// Once the sheet's panel is in the DOM.
+		const timer = setTimeout(() => keyInputRef.current?.focus(), 50);
+		return () => clearTimeout(timer);
+	}, []);
 
 	// Throws only for errors that aren't about the key itself (network, quota…).
 	async function verifyKey(key: string): Promise<{ valid: true; sample: string } | { valid: false; message: string }> {
@@ -253,9 +245,8 @@ export function SettingsTranslationPage() {
 
 	function storeKey(key: string, valid: boolean) {
 		setTranslationApiKey(provider, key, valid);
-		setSavedApiKey(key);
 		setApiKeyDraft(key);
-		setSavedKeyInvalid(Boolean(key) && !valid);
+		onStored(key, valid);
 	}
 
 	async function handleSave() {
@@ -263,6 +254,7 @@ export function SettingsTranslationPage() {
 		if (!next) {
 			storeKey("", true);
 			toast.success(t("auto_translate.key_removed", { defaultValue: "API key removed." }));
+			closeRef.current?.();
 			return;
 		}
 		setIsSaving(true);
@@ -271,7 +263,9 @@ export function SettingsTranslationPage() {
 			storeKey(next, result.valid);
 			if (result.valid) {
 				toast.success(t("auto_translate.key_saved", { defaultValue: "API key saved." }));
+				closeRef.current?.();
 			} else {
+				// Stays open so the key can be fixed right away.
 				toast.error(t("auto_translate.key_saved_invalid", { defaultValue: "Saved, but {{provider}} rejected this key: {{message}}", provider: providerInfo.label, message: result.message }));
 			}
 		} catch (error) {
@@ -280,6 +274,7 @@ export function SettingsTranslationPage() {
 			toast.error(t("auto_translate.key_saved_unverified", { defaultValue: "Saved, but the key couldn't be checked: {{message}}",
 				message: error instanceof Error ? error.message : String(error),
 			}));
+			closeRef.current?.();
 		} finally {
 			setIsSaving(false);
 		}
@@ -293,7 +288,7 @@ export function SettingsTranslationPage() {
 			const result = await verifyKey(key);
 			if (key === savedApiKey) {
 				markTranslationApiKeyValid(provider, result.valid);
-				setSavedKeyInvalid(!result.valid);
+				onStored(key, result.valid);
 			}
 			if (result.valid) {
 				toast.success(t("auto_translate.test_success", { defaultValue: "Key works: \"{{text}}\"", text: result.sample }));
@@ -309,6 +304,117 @@ export function SettingsTranslationPage() {
 		} finally {
 			setIsTesting(false);
 		}
+	}
+
+	return (
+		<BottomSheet
+			onClose={onClose}
+			isDesktop={isDesktop}
+			isProcessing={isSaving}
+			closeRef={closeRef}
+			bg={NATIVE_SHEET_BG}
+			panelClassName="max-h-[92dvh] px-4"
+		>
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
+				<h3 className="truncate text-sm font-semibold text-[var(--text)]">
+					{t(`auto_translate.api_key_label_${provider}`, { defaultValue: providerInfo.keyLabel })}
+				</h3>
+				<SheetCloseButton disabled={isSaving} />
+			</div>
+			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-2" data-lenis-prevent>
+				<p className="mb-3 px-1 text-sm leading-relaxed text-[var(--text-muted)]">
+					{t("auto_translate.guide_paste_inline_desc", {
+						defaultValue: "Paste the key and tap Save. It's checked right away.",
+					})}
+				</p>
+				<div className="relative">
+					<input
+						ref={keyInputRef}
+						type={showApiKey ? "text" : "password"}
+						value={apiKeyDraft}
+						onChange={(event) => setApiKeyDraft(event.target.value)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter" && isDirty && !isBusy) {
+								event.preventDefault();
+								void handleSave();
+							}
+						}}
+						placeholder={t("auto_translate.api_key_placeholder", { defaultValue: "Paste your API key" })}
+						autoComplete="off"
+						autoCorrect="off"
+						autoCapitalize="off"
+						spellCheck={false}
+						enterKeyHint="done"
+						disabled={isSaving}
+						className={cn(SHEET_FIELD_CLASS, "h-11 px-3 pr-10 font-mono disabled:opacity-60")}
+					/>
+					<span className="absolute right-3 top-1/2 -translate-y-1/2">
+						<button
+							type="button"
+							onClick={() => setShowApiKey((value) => !value)}
+							className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
+							tabIndex={-1}
+							aria-label={showApiKey ? t("auto_translate.hide_key", { defaultValue: "Hide key" }) : t("auto_translate.show_key", { defaultValue: "Show key" })}
+						>
+							{showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+						</button>
+					</span>
+				</div>
+				{savedApiKey && !isDirty && (
+					<p className={`mt-2 flex items-center gap-1.5 px-1 text-xs ${savedKeyInvalid ? "text-red-400" : "text-emerald-400"}`}>
+						{savedKeyInvalid ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
+						{savedKeyInvalid
+							? t("auto_translate.key_status_invalid", { defaultValue: "This key doesn't work. Translate options in chats are hidden until it's fixed." })
+							: t("auto_translate.key_status_valid", { defaultValue: "Key is set up. Translate options are available in chats." })}
+					</p>
+				)}
+			</div>
+			<div className={SHEET_FOOTER_CLASS}>
+				<button
+					type="button"
+					onClick={() => void handleTest()}
+					disabled={!apiKeyDraft.trim() || isBusy}
+					className={sheetButtonClass("secondary")}
+				>
+					{isTesting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+					<span className="truncate">{t("auto_translate.test_key", { defaultValue: "Test key" })}</span>
+				</button>
+				<button type="button" onClick={() => void handleSave()} disabled={!isDirty || isBusy} className={sheetButtonClass()}>
+					{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+					<span className="truncate">{t("common.save")}</span>
+				</button>
+			</div>
+		</BottomSheet>
+	);
+}
+
+export function SettingsTranslationPage() {
+	const { t, i18n } = useTranslation();
+	const highlightId = useSettingsHighlight();
+
+	const [provider, setProvider] = useState<TranslationProvider>(() => getTranslationProvider());
+	const [savedApiKey, setSavedApiKey] = useState(() => getTranslationApiKey(provider));
+	const [savedKeyInvalid, setSavedKeyInvalid] = useState(() => isTranslationApiKeyInvalid(provider));
+	const [isProviderSheetOpen, setIsProviderSheetOpen] = useState(false);
+	const [isKeySheetOpen, setIsKeySheetOpen] = useState(false);
+	const isDesktop = useDesktopBreakpoint();
+	const providerInfo = PROVIDER_INFO[provider];
+	const ProviderIcon = providerInfo.icon;
+	// The final "paste" step is rendered as a row that opens the key sheet.
+	const guideSteps = SETUP_STEPS[provider].filter((step) => step.key !== "paste");
+	const targetLang = resolveTranslateTargetLanguage(i18n.resolvedLanguage ?? i18n.language);
+
+	function handleSelectProvider(next: TranslationProvider) {
+		if (next === provider) return;
+		setTranslationProvider(next);
+		setProvider(next);
+		setSavedApiKey(getTranslationApiKey(next));
+		setSavedKeyInvalid(isTranslationApiKeyInvalid(next));
+	}
+
+	function handleKeyStored(key: string, valid: boolean) {
+		setSavedApiKey(key);
+		setSavedKeyInvalid(Boolean(key) && !valid);
 	}
 
 	return (
@@ -329,8 +435,7 @@ export function SettingsTranslationPage() {
 							id="translation-provider"
 							type="button"
 							onClick={() => setIsProviderSheetOpen(true)}
-							disabled={isSaving || isTesting}
-							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill disabled:opacity-60 ${highlightId === "translation-provider" ? "animate-settings-highlight" : ""}`}
+							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill ${highlightId === "translation-provider" ? "animate-settings-highlight" : ""}`}
 						>
 							<div className={`shrink-0 rounded-2xl p-2.5 ${PROVIDER_ICON_CLASSES[provider]}`}>
 								<ProviderIcon className="h-5 w-5" />
@@ -346,14 +451,26 @@ export function SettingsTranslationPage() {
 							</span>
 							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 						</button>
-						{/* Key status at a glance; jumps to the key field, the last setup step. */}
+						{/* Key status at a glance; opens the key sheet. */}
 						<button
+							id="translation-api-key"
 							type="button"
-							onClick={focusKeyInput}
-							className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill"
+							onClick={() => setIsKeySheetOpen(true)}
+							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill ${highlightId === "translation-api-key" ? "animate-settings-highlight" : ""}`}
 						>
-							<div className="shrink-0 rounded-2xl bg-cyan-500/15 p-2.5 text-cyan-400">
-								<KeyRoundFilled className="h-5 w-5" />
+							<div className="relative shrink-0">
+								<div className="rounded-2xl bg-cyan-500/15 p-2.5 text-cyan-400">
+									<KeyRoundFilled className="h-5 w-5" />
+								</div>
+								{savedApiKey && (
+									<div
+										className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-white ring-2 ring-[var(--surface)] ${
+											savedKeyInvalid ? "bg-red-500" : "bg-emerald-500"
+										}`}
+									>
+										{savedKeyInvalid ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+									</div>
+								)}
 							</div>
 							<div className="min-w-0 flex-1">
 								<p className="text-sm font-semibold leading-snug">{t(`auto_translate.api_key_label_${provider}`, { defaultValue: providerInfo.keyLabel })}</p>
@@ -362,17 +479,17 @@ export function SettingsTranslationPage() {
 								</p>
 							</div>
 							<span
-								className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold ${
+								className={`shrink-0 text-xs font-semibold ${
 									!savedApiKey ? "text-[var(--text-muted)]" : savedKeyInvalid ? "text-red-400" : "text-emerald-400"
 								}`}
 							>
-								{savedApiKey && (savedKeyInvalid ? <AlertCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />)}
 								{!savedApiKey
 									? t("auto_translate.key_badge_missing", { defaultValue: "Not set" })
 									: savedKeyInvalid
 										? t("auto_translate.key_badge_invalid", { defaultValue: "Not working" })
 										: t("auto_translate.key_badge_valid", { defaultValue: "Active" })}
 							</span>
+							<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
 						</button>
 					</div>
 				</div>
@@ -421,12 +538,13 @@ export function SettingsTranslationPage() {
 								);
 							})}
 
-							{/* Last step: the key field itself. */}
-							<li
-								id="translation-api-key"
-								className={`px-4 py-3.5 ${highlightId === "translation-api-key" ? "animate-settings-highlight" : ""}`}
-							>
-								<div className="flex items-start gap-3">
+							{/* Last step: opens the key sheet. */}
+							<li>
+								<button
+									type="button"
+									onClick={() => setIsKeySheetOpen(true)}
+									className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors hover-fill"
+								>
 									<StepNumber value={guideSteps.length + 1} />
 									<div className="min-w-0 flex-1">
 										<p className="text-sm font-semibold leading-snug">
@@ -438,60 +556,25 @@ export function SettingsTranslationPage() {
 											})}
 										</p>
 									</div>
-								</div>
-								<div className="relative mt-3">
-									<input
-										ref={keyInputRef}
-										type={showApiKey ? "text" : "password"}
-										value={apiKeyDraft}
-										onChange={(event) => setApiKeyDraft(event.target.value)}
-										placeholder={t("auto_translate.api_key_placeholder", { defaultValue: "Paste your API key" })}
-										autoComplete="off"
-										autoCorrect="off"
-										autoCapitalize="off"
-										spellCheck={false}
-										className="input-field pr-10 font-mono text-sm"
-									/>
-									<span className="absolute right-3 top-1/2 -translate-y-1/2">
-										<button
-											type="button"
-											onClick={() => setShowApiKey((value) => !value)}
-											className="flex items-center p-0 text-[var(--text-muted)] hover:text-[var(--text)]"
-											tabIndex={-1}
-											aria-label={showApiKey ? t("auto_translate.hide_key", { defaultValue: "Hide key" }) : t("auto_translate.show_key", { defaultValue: "Show key" })}
-										>
-											{showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-										</button>
-									</span>
-								</div>
-								<div className="mt-2 flex gap-2">
-									<Button
-										type="button"
-										size="sm"
-										className="flex-1"
-										onClick={() => void handleTest()}
-										loading={isTesting}
-										disabled={!apiKeyDraft.trim() || isTesting}
-									>
-										{t("auto_translate.test_key", { defaultValue: "Test key" })}
-									</Button>
-									<Button type="button" variant="primary" size="sm" className="flex-1" onClick={() => void handleSave()} loading={isSaving} disabled={!isDirty || isSaving}>
-										{t("common.save")}
-									</Button>
-								</div>
-								{savedApiKey && !isDirty && (
-									<p className={`mt-2 flex items-center gap-1.5 text-xs ${savedKeyInvalid ? "text-red-400" : "text-emerald-400"}`}>
-										{savedKeyInvalid ? <AlertCircle className="h-3.5 w-3.5 shrink-0" /> : <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />}
-										{savedKeyInvalid
-											? t("auto_translate.key_status_invalid", { defaultValue: "This key doesn't work. Translate options in chats are hidden until it's fixed." })
-											: t("auto_translate.key_status_valid", { defaultValue: "Key is set up. Translate options are available in chats." })}
-									</p>
-								)}
+									<ChevronRight className="mt-1.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+								</button>
 							</li>
 						</ol>
 					</div>
 				</div>
 			</div>
+
+			{isKeySheetOpen && (
+				<ApiKeySheet
+					provider={provider}
+					savedApiKey={savedApiKey}
+					savedKeyInvalid={savedKeyInvalid}
+					targetLang={targetLang}
+					onStored={handleKeyStored}
+					onClose={() => setIsKeySheetOpen(false)}
+					isDesktop={isDesktop}
+				/>
+			)}
 
 			{isProviderSheetOpen && (
 				<SelectSheet
