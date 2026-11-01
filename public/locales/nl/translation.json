@@ -494,6 +494,8 @@
         "use_selected_location": "Deze locatie gebruiken",
         "mode_gps": "GPS · Auto",
         "mode_manual": "Handmatig",
+        "loading_location": "Locatie laden…",
+        "locating": "Locatie bepalen…",
         "badge_active": "Actief",
         "new_pick_heading": "Nieuwe keuze",
         "quick_picks": "Snelle keuzes",

@@ -500,6 +500,8 @@
         "use_selected_location": "Koristi ovu lokaciju",
         "mode_gps": "GPS · Automatski",
         "mode_manual": "Ručno",
+        "loading_location": "Učitavanje lokacije…",
+        "locating": "Određivanje lokacije…",
         "badge_active": "Aktivno",
         "new_pick_heading": "Novi odabir",
         "quick_picks": "Brzi odabiri",

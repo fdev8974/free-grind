@@ -1,5 +1,5 @@
 import { useAuth } from "../../contexts/useAuth";
-import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, UserSearch, ChevronRight } from "lucide-react";
+import { Navigation, ArrowUpDown, Star, Plane, Search, RefreshCw, X, UserSearch, ChevronRight, Loader2 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { EyeOffFilled, LocateApproximateFilled, LocateFixedFilled, MapPinFilled, UserFilled, UserSearchFilled } from "../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../components/icons/RightNowIcon";
@@ -147,6 +147,12 @@ export function GridPage() {
 	// deps), so it reads the current list through this ref instead of a stale
 	// closure — used to carry last-known photos across a refresh, see mergeBrowseCardImages.
 	const cardsRef = useRef<BrowseCard[]>([]);
+	// Lets refreshLocation's late reverse-geocode check whether the location
+	// moved on meanwhile, so it doesn't label a newer location with an old name.
+	const geohashRef = useRef(geohash);
+	geohashRef.current = geohash;
+	// GPS fixes in flight from refreshLocation, shown as a spinner in the location pill.
+	const [locatingCount, setLocatingCount] = useState(0);
 	useEffect(() => {
 		cardsRef.current = cards;
 	}, [cards]);
@@ -666,6 +672,28 @@ export function GridPage() {
 				navigator.geolocation.getCurrentPosition(resolve, reject, options);
 			});
 
+		const applyPosition = async (position: GeolocationPosition) => {
+			const nextGeohash = encodeGeohash(position.coords.latitude, position.coords.longitude);
+			await setPreferences({ geohash: nextGeohash });
+			// Ahead of the re-render, in case the geocode below resolves from cache first.
+			geohashRef.current = nextGeohash;
+			// Re-resolve the display name too, otherwise the header pill and the
+			// location overlay's title keep showing whatever place was last
+			// geocoded (e.g. where auto-location was first turned on) even
+			// though the grid/map have already moved on to the new geohash.
+			// Not awaited: it's a network round trip the grid doesn't need.
+			void reverseGeocodeGeohash(nextGeohash)
+				.catch(() => null)
+				.then((nextLocationName) => {
+					if (nextLocationName && geohashRef.current === nextGeohash) {
+						void setPreferences({ locationName: nextLocationName });
+					}
+				});
+			return nextGeohash;
+		};
+
+		// A counter, not a flag: the refresh timer and pull-to-refresh can overlap.
+		setLocatingCount((count) => count + 1);
 		try {
 			// First attempt with high accuracy
 			const position = await getPosition({
@@ -674,21 +702,11 @@ export function GridPage() {
 				maximumAge: 10000, // Allow 10s old cached data
 			});
 
-			const lat = position.coords.latitude;
-			const lon = position.coords.longitude;
-			const nextGeohash = encodeGeohash(lat, lon);
-			// Re-resolve the display name too, otherwise the header pill and the
-			// location overlay's title keep showing whatever place was last
-			// geocoded (e.g. where auto-location was first turned on) even
-			// though the grid/map have already moved on to the new geohash.
-			const nextLocationName = await reverseGeocodeGeohash(nextGeohash).catch(() => null);
-
-			await setPreferences({
-				geohash: nextGeohash,
-				...(nextLocationName ? { locationName: nextLocationName } : {}),
+			const nextGeohash = await applyPosition(position);
+			appLog.info("[grid] auto-location updated", {
+				lat: position.coords.latitude,
+				lon: position.coords.longitude,
 			});
-
-			appLog.info("[grid] auto-location updated", { lat, lon });
 			return nextGeohash;
 		} catch (error: any) {
 			// If HighAccuracy fails, try once without (often more stable in emulator/buildings)
@@ -699,15 +717,11 @@ export function GridPage() {
 						timeout: 10000,
 						maximumAge: 60000,
 					});
-					const lat = fallbackPosition.coords.latitude;
-					const lon = fallbackPosition.coords.longitude;
-					const nextGeohash = encodeGeohash(lat, lon);
-					const nextLocationName = await reverseGeocodeGeohash(nextGeohash).catch(() => null);
-					await setPreferences({
-						geohash: nextGeohash,
-						...(nextLocationName ? { locationName: nextLocationName } : {}),
+					const nextGeohash = await applyPosition(fallbackPosition);
+					appLog.info("[grid] auto-location updated (fallback)", {
+						lat: fallbackPosition.coords.latitude,
+						lon: fallbackPosition.coords.longitude,
 					});
-					appLog.info("[grid] auto-location updated (fallback)", { lat, lon });
 					return nextGeohash;
 				} catch (fallbackError: any) {
 					appLog.error("[grid] auto-location fallback failed", {
@@ -722,6 +736,8 @@ export function GridPage() {
 				});
 			}
 			return null;
+		} finally {
+			setLocatingCount((count) => count - 1);
 		}
 	}, [useAutoLocation, setPreferences]);
 
@@ -1720,6 +1736,8 @@ export function GridPage() {
 										>
 											{exploreLocation ? (
 												<Search className="h-3.5 w-3.5" />
+											) : isLoadingPreferences || locatingCount > 0 ? (
+												<Loader2 className="h-3.5 w-3.5 animate-spin" />
 											) : useAutoLocation ? (
 												<Navigation className="h-3.5 w-3.5 fill-current" />
 											) : (
@@ -1730,13 +1748,25 @@ export function GridPage() {
 											<p className="text-sm font-semibold leading-tight text-[var(--text)]">
 												{exploreLocation
 													? t("browse_location.exploring_badge")
-													: useAutoLocation
-														? t("browse_location.mode_gps")
-														: t("browse_location.mode_manual")}
+													: isLoadingPreferences
+														// The mode isn't known yet — showing the default "Manual"
+														// here would flip to GPS a moment later.
+														? t("browse_location.loading_location")
+														: useAutoLocation
+															? t("browse_location.mode_gps")
+															: t("browse_location.mode_manual")}
 											</p>
-											<p className="truncate text-[10px] font-medium leading-tight text-[var(--text-muted)]">
-												{exploreLocation ? exploreLocation.label : locationName || t("browse_page.current_location")}
-											</p>
+											{!exploreLocation && isLoadingPreferences ? (
+												<span className="mt-1 block h-2 w-24 animate-pulse rounded-full bg-[var(--surface-3)]" aria-hidden="true" />
+											) : (
+												<p className="truncate text-[10px] font-medium leading-tight text-[var(--text-muted)]">
+													{exploreLocation
+														? exploreLocation.label
+														: locatingCount > 0
+															? t("browse_location.locating")
+															: locationName || t("browse_page.current_location")}
+												</p>
+											)}
 										</div>
 									</button>
 									{exploreLocation && (

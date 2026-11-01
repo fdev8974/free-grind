@@ -500,6 +500,8 @@
         "use_selected_location": "Use este local",
         "mode_gps": "GPS · Auto",
         "mode_manual": "Manual",
+        "loading_location": "A carregar localização…",
+        "locating": "A obter localização…",
         "badge_active": "Ativo",
         "new_pick_heading": "Nova Escolha",
         "quick_picks": "Escolhas Rápidas",

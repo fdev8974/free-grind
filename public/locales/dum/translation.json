@@ -518,6 +518,8 @@
         "use_selected_location": "استخدم هذا الموقع",
         "mode_gps": "نظام تحديد المواقع العالمي (GPS) · تلقائي",
         "mode_manual": "يدوي",
+        "loading_location": "جارٍ تحميل الموقع…",
+        "locating": "جارٍ تحديد الموقع…",
         "badge_active": "نشط",
         "new_pick_heading": "اختيار جديد",
         "quick_picks": "اختيارات سريعة",

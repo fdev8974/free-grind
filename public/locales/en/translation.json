@@ -553,6 +553,8 @@
     "use_selected_location": "Use this location",
     "mode_gps": "GPS · Auto",
     "mode_manual": "Manual",
+    "loading_location": "Loading location…",
+    "locating": "Locating…",
     "badge_active": "Active",
     "new_pick_heading": "New Pick",
     "quick_picks": "Quick Picks",
