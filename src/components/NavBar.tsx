@@ -564,9 +564,9 @@ export function NavBar() {
 			style={
 				{
 					"--nav-system-inset": `${systemNavInset}px`,
-					// 3-button navigation: the system bar is transparent, so sit just above
-					// its buttons with a small 2px gap instead of the usual 12px.
-					...(systemNavInset > 0 && { "--nav-bottom-gap": "2px" }),
+					// 3-button navigation: the system bar is transparent, so sit right on top of
+					// its buttons with no gap instead of the usual 12px.
+					...(systemNavInset > 0 && { "--nav-bottom-gap": "0px" }),
 				} as React.CSSProperties
 			}
 		>
@@ -598,8 +598,8 @@ export function NavBar() {
 						: fullWidth
 							? cn(
 									"w-full border-t border-[var(--border)] pt-1.5",
-									// 3-button navigation: sit 5px lower, closer to the system buttons.
-									systemNavInset > 0 ? "pb-[calc(env(safe-area-inset-bottom,0px)+1px)]" : "pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]",
+									// 3-button navigation: sit right on the system buttons, no gap.
+									systemNavInset > 0 ? "pb-[env(safe-area-inset-bottom,0px)]" : "pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]",
 								)
 							: transparent
 								? // Cardless: extra side padding keeps the outer tabs off the curve.
@@ -621,9 +621,12 @@ export function NavBar() {
 								backgroundColor: "rgba(22, 29, 39, 0.8)",
 								// Android capsule: lighter tonal surface (surface-2), since in dark
 								// themes M3 shows elevation mostly by tone; shadows barely read on black.
+								// Tinted with the page's tab color like Material You's surfaceContainer.
 								background:
 									capsule && isAndroid()
-										? "color-mix(in srgb, var(--surface-2) 92%, transparent)"
+										? `color-mix(in srgb, color-mix(in srgb, var(--surface-2) 94%, ${
+												isRightNowPage ? "var(--right-now)" : activeTab === "browse" && isExploreActive ? "var(--explore)" : "var(--accent)"
+											}) 92%, transparent)`
 										: "color-mix(in srgb, var(--surface) 80%, transparent)",
 								backdropFilter: "blur(24px) saturate(180%)",
 								WebkitBackdropFilter: "blur(24px) saturate(180%)",
@@ -784,7 +787,9 @@ export function NavBar() {
 												className={cn(
 													"shrink-0 border-0 transition-colors",
 													capsule ? "h-[1.625rem] w-[1.625rem] ring-[1.5px]" : "h-6 w-6 ring-2 md:h-[1.35rem] md:w-[1.35rem]",
-													activeTab !== "settings" && !isAccountSwitcherOpen
+													// Capsule: the active tab's pill already marks it, so the ring only
+													// shows while the switcher is open from another tab.
+													(capsule ? activeTab === "settings" || !isAccountSwitcherOpen : activeTab !== "settings" && !isAccountSwitcherOpen)
 														? "ring-transparent"
 														: "ring-[var(--accent)]",
 												)}

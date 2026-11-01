@@ -441,7 +441,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { unitsPreset, geohash, amoledMode, mobileEnterToSend, compactComposer, savedPhraseSendGesture } = usePreferences();
 	const enterSends = props.isDesktop || mobileEnterToSend;
 	const effectiveColorScheme = useEffectiveColorScheme();
-	// Android 3-button navigation: the composer actions sit closer to the system buttons.
+	// Android 3-button navigation: the composer actions sit right on the system buttons.
 	const systemNavInset = useSystemNavInset();
 	// AMOLED on mobile: the bottom bar blends into the black page so the saved
 	// phrases and the input float instead of sitting on a surface strip.
@@ -2809,7 +2809,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							}
 							style={
 								!isDesktop
-									? { paddingBottom: mobileKeyboardInset > 0 ? "0.375rem" : `calc(env(safe-area-inset-bottom, 0px) + ${systemNavInset > 0 ? "1px" : "0.375rem"})` }
+									? { paddingBottom: mobileKeyboardInset > 0 ? "0.375rem" : systemNavInset > 0 ? "env(safe-area-inset-bottom, 0px)" : "calc(env(safe-area-inset-bottom, 0px) + 0.375rem)" }
 									: undefined
 							}
 						>
