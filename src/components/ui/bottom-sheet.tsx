@@ -619,6 +619,7 @@ export function BottomSheet({
 					)}
 					{isDesktop && <div className="pt-4" />}
 					{children}
+					{!isDesktop && <div aria-hidden className="sheet-nav-fade" />}
 				</div>
 			</div>
 		</BottomSheetDetentedContext.Provider>

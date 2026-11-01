@@ -2012,9 +2012,9 @@ dialog::backdrop {
  * that take no room, like a closed ConfirmDialog <dialog> or hidden inputs. */
 :is(
 	[data-sheet-panel] > .overflow-y-auto,
-	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden))) > .overflow-y-auto,
-	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden))) > :not(:has(~ :not(dialog:not([open]), .hidden))) > .overflow-y-auto
-):not(:has(~ :not(dialog:not([open]), .hidden))) {
+	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) > .overflow-y-auto,
+	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) > :not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) > .overflow-y-auto
+):not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) {
 	margin-bottom: calc(-1 * (max(16px, env(safe-area-inset-bottom)) + 48px));
 	&::after {
 		content: "";
@@ -2022,6 +2022,26 @@ dialog::backdrop {
 		flex-shrink: 0;
 		height: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
 	}
+}
+/* Darkens the sheet towards the bottom edge, behind the system nav bar, so
+ * its buttons/handle stay readable over content scrolling on behind it. Same
+ * fade as the floating footer, which brings its own (as do the map sheets). */
+.sheet-nav-fade {
+	position: absolute;
+	inset-inline: 0;
+	bottom: 0;
+	z-index: 5;
+	height: calc(env(safe-area-inset-bottom, 0px) + 1.5rem + 48px);
+	pointer-events: none;
+	background: linear-gradient(
+		to top,
+		color-mix(in srgb, var(--sheet-bg) 85%, black) 0%,
+		color-mix(in srgb, var(--sheet-bg) 85%, black) calc(48px + env(safe-area-inset-bottom, 0px) * 0.4),
+		transparent
+	);
+}
+[data-sheet-panel]:has(.sheet-footer, .maplibregl-map) > .sheet-nav-fade {
+	display: none;
 }
 /* A floating SheetSearchInput is pulled down over the scroll area after it;
  * that area starts its content just under the pill (48px + a small gap). */
