@@ -172,6 +172,17 @@ export function SheetCloseButton({ disabled, label }: { disabled?: boolean; labe
 	);
 }
 
+/** "2/5" pill beside a sheet title, for a step through several picked files.
+ * Tinted like the `accent` sheet button, sheet color first in the mix. */
+export function SheetStepBadge({ index, total }: { index: number; total: number }) {
+	return (
+		<span className="inline-flex shrink-0 items-center rounded-full bg-[color-mix(in_srgb,var(--sheet-bg,var(--surface))_84%,var(--accent))] px-2 py-0.5 text-xs font-bold tabular-nums text-[var(--accent-readable)]">
+			{index}
+			<span className="opacity-60">/{total}</span>
+		</span>
+	);
+}
+
 interface BottomSheetProps {
 	onClose: () => void;
 	/** Gives the sheet two native-style detents: it opens at medium height

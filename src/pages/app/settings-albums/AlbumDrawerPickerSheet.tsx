@@ -31,6 +31,8 @@ interface AlbumDrawerPickerSheetProps {
 	onConfirm: (mediaIds: number[]) => void | Promise<void>;
 	isSubmitting: boolean;
 	remainingSlots: number;
+	/** The plan's items per album, for the "album is full" message. */
+	maxItems?: number;
 	isDesktop: boolean;
 	/** Animated close for the parent to call once the confirm action succeeded. */
 	closeRef?: MutableRefObject<(() => void) | null>;
@@ -45,6 +47,7 @@ export function AlbumDrawerPickerSheet({
 	onConfirm,
 	isSubmitting,
 	remainingSlots,
+	maxItems,
 	isDesktop,
 	closeRef,
 }: AlbumDrawerPickerSheetProps) {
@@ -53,24 +56,22 @@ export function AlbumDrawerPickerSheet({
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
 	const toggleSelection = useCallback((id: number) => {
+		// The album's own maximum, not what's left of it: that is what's full.
+		// Checked here rather than in the state update, which may run twice.
+		if (!selectedIds.has(id) && selectedIds.size >= remainingSlots) {
+			toast.error(t("settings_albums.error_album_full", {
+				defaultValue: "Album is full (max {{max}} items).",
+				max: maxItems ?? remainingSlots,
+			}));
+			return;
+		}
 		setSelectedIds((prev) => {
-			if (prev.has(id)) {
-				const next = new Set(prev);
-				next.delete(id);
-				return next;
-			}
-			if (prev.size >= remainingSlots) {
-				toast.error(t("settings_albums.error_album_full", {
-					defaultValue: "Album is full (max {{max}} items).",
-					max: remainingSlots + prev.size,
-				}));
-				return prev;
-			}
 			const next = new Set(prev);
-			next.add(id);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
 			return next;
 		});
-	}, [remainingSlots, t]);
+	}, [selectedIds, remainingSlots, maxItems, t]);
 
 	// New uploads land in the drawer and get picked right away, as far as
 	// the album still has room.
@@ -129,10 +130,10 @@ export function AlbumDrawerPickerSheet({
 			<>
 			<DrawerBody
 				isDesktop={isDesktop}
-				isLoading={isLoading && media.length === 0}
+				isLoading={isLoading && media.length === 0 && !upload.isUploading}
 				error={media.length === 0 ? error : null}
 				onRetry={() => void onLoadMedia()}
-				empty={media.length === 0 ? (
+				empty={media.length === 0 && !upload.isUploading ? (
 					<DrawerEmptyState
 						icon={<ImagesFilled className="h-5 w-5" />}
 						title={t("settings_albums.drawer_empty", { defaultValue: "No media in your drawer yet." })}
@@ -149,6 +150,7 @@ export function AlbumDrawerPickerSheet({
 				<DrawerGrid isDesktop={isDesktop}>
 					{/* Add actions as the grid's first row, like the chat drawer. */}
 					<DrawerActionBar actions={upload.actions} disabled={isBusy} />
+					{upload.uploadTiles}
 					{media.map((item) => {
 						const isVideo = item.contentType.startsWith("video/");
 						const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;

@@ -170,10 +170,10 @@ export function DrawerCollectionEditorSheet({
 			<DrawerBody
 				isDesktop={isDesktop}
 				className="max-h-[50vh]"
-				isLoading={isLoading && media.length === 0}
+				isLoading={isLoading && media.length === 0 && !upload.isUploading}
 				error={media.length === 0 ? error : null}
 				onRetry={() => void onReloadMedia()}
-				empty={media.length === 0 ? (
+				empty={media.length === 0 && !upload.isUploading ? (
 					<DrawerEmptyState
 						icon={<ImagesFilled className="h-5 w-5" />}
 						title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
@@ -190,6 +190,7 @@ export function DrawerCollectionEditorSheet({
 				<DrawerGrid isDesktop={isDesktop}>
 					{/* Add actions as the grid's first row, like the chat drawer. */}
 					<DrawerActionBar actions={upload.actions} disabled={isBusy} />
+					{upload.uploadTiles}
 					{media.map((item) => {
 						const isVideo = item.contentType.startsWith("video/");
 						const position = orderedSelection.indexOf(item.id) + 1;

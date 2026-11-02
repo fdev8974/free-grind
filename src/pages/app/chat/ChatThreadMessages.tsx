@@ -7,7 +7,7 @@ import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { AudioMessagePlayer } from "./AudioMessagePlayer";
-import { ProgressRing } from "../../../components/ui/progress-ring";
+import { MediaUploadOverlay } from "../../../components/ui/progress-ring";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import React, { Fragment, useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect } from "react";
 
@@ -176,21 +176,6 @@ function MediaBadge({ icon, label }: { icon: React.ReactNode; label: React.React
  * Centered upload ring over an optimistic image/video tile; with a `label`
  * (a video's phase, see UploadProgress) that and the percentage under it.
  */
-function MediaUploadOverlay({ progress, label }: { progress: number; label?: string }) {
-	return (
-		<div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/30">
-			<div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
-				<ProgressRing progress={progress} className="h-8 w-8" />
-			</div>
-			{label ? (
-				<span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
-					{label} · {Math.round(progress)}%
-				</span>
-			) : null}
-		</div>
-	);
-}
-
 function AlbumExpirationCountdown({ expiresAt, isOnce, t, className = "mt-1" }: { expiresAt: number; isOnce?: boolean; t: any; className?: string }) {
 	const [timeLeft, setTimeLeft] = useState<number>(expiresAt - Date.now());
 

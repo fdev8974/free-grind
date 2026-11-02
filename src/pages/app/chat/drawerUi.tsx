@@ -9,6 +9,8 @@ import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import { SheetActionList } from "../../../components/ui/action-sheet";
+import { MediaUploadOverlay } from "../../../components/ui/progress-ring";
+import type { DrawerUpload } from "./useUploadTiles";
 
 // Shared building blocks for every media drawer sheet (chat drawer, collection
 // editor, album "add from drawer", profile pictures), so they stay in sync:
@@ -553,6 +555,9 @@ export function DrawerMediaTile({
 	previewProps,
 	consumePreviewClick,
 	mediaClassName = "",
+	posterSrc,
+	placeholder,
+	onMediaError,
 	takenOnGrindr = false,
 	onDelete,
 	isDeleting = false,
@@ -575,6 +580,11 @@ export function DrawerMediaTile({
 	previewProps?: Record<string, unknown>;
 	consumePreviewClick?: () => boolean;
 	mediaClassName?: string;
+	/** For a video: this still is shown instead of loading the video itself. */
+	posterSrc?: string;
+	/** Shown instead of the media, e.g. while the server still processes it. */
+	placeholder?: ReactNode;
+	onMediaError?: () => void;
 	/** Shows the "taken on Grindr" logo bottom left. */
 	takenOnGrindr?: boolean;
 	onDelete?: (event: MouseEvent<HTMLButtonElement>) => void;
@@ -596,15 +606,20 @@ export function DrawerMediaTile({
 			className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${onSelect ? "cursor-pointer" : "cursor-default"} ${busy ? "opacity-60" : ""} ${muted ? "pointer-events-none opacity-30" : ""}`}
 			style={{ outline: selected ? "2px solid var(--accent)" : "none", outlineOffset: "-2px" }}
 		>
-			{isVideo ? (
+			{placeholder ?? (isVideo ? (
 				<>
-					<video
-						src={proxyMediaUrl(src, { as: "video" })}
-						preload="metadata"
-						muted
-						onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
-						className={`h-full w-full object-cover ${mediaClassName}`}
-					/>
+					{posterSrc ? (
+						<img src={proxyMediaUrl(posterSrc)} alt={alt ?? ""} draggable={false} onError={onMediaError} className={`h-full w-full object-cover ${mediaClassName}`} />
+					) : (
+						<video
+							src={proxyMediaUrl(src, { as: "video" })}
+							preload="metadata"
+							muted
+							onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+							onError={onMediaError}
+							className={`h-full w-full object-cover ${mediaClassName}`}
+						/>
+					)}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
 						<div className="flex h-8 w-8 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
 							<Play className="h-4 w-4 fill-white text-white" />
@@ -612,8 +627,8 @@ export function DrawerMediaTile({
 					</div>
 				</>
 			) : (
-				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} className={`h-full w-full object-cover ${mediaClassName}`} />
-			)}
+				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} onError={onMediaError} className={`h-full w-full object-cover ${mediaClassName}`} />
+			))}
 
 			{children}
 
@@ -639,6 +654,31 @@ export function DrawerMediaTile({
 					disabled={isDeleting}
 				/>
 			) : null}
+		</div>
+	);
+}
+
+/** A file still uploading (to the drawer, an album), from its local copy
+ * or the media already online, with the progress over it like a chat
+ * bubble's (see useUploadTiles). */
+export function DrawerUploadTile({ upload, label }: { upload: DrawerUpload; label?: string }) {
+	// Media already online goes through the proxy, like any other tile's.
+	const src = upload.isLocal ? upload.previewUrl : proxyMediaUrl(upload.previewUrl, upload.isVideo ? { as: "video" } : undefined);
+	return (
+		<div className={DRAWER_TILE_CLASS} aria-busy="true">
+			{upload.isVideo ? (
+				<video
+					src={src}
+					preload="metadata"
+					muted
+					playsInline
+					onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+					className="h-full w-full object-cover"
+				/>
+			) : (
+				<img src={src} alt="" draggable={false} className="h-full w-full object-cover" />
+			)}
+			<MediaUploadOverlay progress={upload.progress} label={label} />
 		</div>
 	);
 }
@@ -880,25 +920,17 @@ export function useDrawerAddActions({
 	onFiles,
 	multiple = false,
 	allowVideo = true,
-	busy = false,
-	busyLabel,
 }: {
 	onFiles: (files: File[]) => void;
 	/** Allow picking several files at once from the device. */
 	multiple?: boolean;
 	/** False drops "record video" and limits uploads to photos. */
 	allowVideo?: boolean;
-	/** Shows a spinner on the action that was used, while its upload runs. */
-	busy?: boolean;
-	/** Replaces that action's label while busy, e.g. with upload progress. */
-	busyLabel?: string;
 }) {
 	const { t } = useTranslation();
 	const uploadInputRef = useRef<HTMLInputElement | null>(null);
 	const cameraInputRef = useRef<HTMLInputElement | null>(null);
 	const cameraVideoInputRef = useRef<HTMLInputElement | null>(null);
-	// Which action the current upload came from, so its status shows there.
-	const [usedKey, setUsedKey] = useState<string | null>(null);
 
 	const onChange = (event: ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(event.target.files ?? []);
@@ -912,18 +944,7 @@ export function useDrawerAddActions({
 			? [{ key: "video", label: t("chat_drawer.record_video", { defaultValue: "Record video" }), icon: <Video className="h-4 w-4 fill-current" />, input: cameraVideoInputRef }]
 			: []),
 		{ key: "upload", label: t("chat_drawer.add_media", { defaultValue: "Add media" }), icon: <CameraPlusFilled className="h-4 w-4" />, input: uploadInputRef },
-	].map(({ key, label, icon, input }) => {
-		const isBusyHere = busy && key === (usedKey ?? "upload");
-		return {
-			key,
-			label: isBusyHere && busyLabel ? busyLabel : label,
-			icon: isBusyHere ? <Loader2 className="h-4 w-4 animate-spin" /> : icon,
-			onClick: () => {
-				setUsedKey(key);
-				input.current?.click();
-			},
-		};
-	});
+	].map(({ key, label, icon, input }) => ({ key, label, icon, onClick: () => input.current?.click() }));
 
 	const inputs = (
 		<>

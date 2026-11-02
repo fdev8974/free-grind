@@ -63,6 +63,7 @@ export function VideoTrimmer({
 	previewHeight = "40dvh",
 	maxBytes = MAX_CHAT_MEDIA_BYTES,
 	tools,
+	onReady,
 }: {
 	file: File;
 	src: string;
@@ -72,6 +73,9 @@ export function VideoTrimmer({
 	maxBytes?: number;
 	/** More tool buttons (e.g. looping), in the row with the upright choice. */
 	tools?: ReactNode;
+	/** Once the video and its timeline are shown at their full height (or
+	 * failed to load) — until then the trimmer is still growing. */
+	onReady?: () => void;
 }) {
 	const { t } = useTranslation();
 	const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -87,6 +91,10 @@ export function VideoTrimmer({
 	const pointerXRef = useRef<number | null>(null);
 	const cropDragRef = useRef<{ pointerId: number; grabX: number; downX: number } | null>(null);
 	const [points, setPoints] = useState<TrimPoints | null>(null);
+	const [pointsSettled, setPointsSettled] = useState(false);
+	const [videoLoaded, setVideoLoaded] = useState(false);
+	const onReadyRef = useRef(onReady);
+	onReadyRef.current = onReady;
 	const [startMs, setStartMs] = useState(0);
 	const [endMs, setEndMs] = useState(0);
 	const [playing, setPlaying] = useState(false);
@@ -131,9 +139,11 @@ export function VideoTrimmer({
 	useEffect(() => {
 		let cancelled = false;
 		setPoints(null);
+		setPointsSettled(false);
 		void loadTrimPoints(file).then((loaded) => {
 			if (cancelled) return;
 			setPoints(loaded);
+			setPointsSettled(true);
 			setStartMs(0);
 			setEndMs(loaded ? Math.min(loaded.durationMs, maxMs) : 0);
 			setViewStart(0);
@@ -144,6 +154,10 @@ export function VideoTrimmer({
 			cancelled = true;
 		};
 	}, [file, maxMs]);
+
+	useEffect(() => {
+		if (pointsSettled && videoLoaded) onReadyRef.current?.();
+	}, [pointsSettled, videoLoaded]);
 
 	useEffect(() => {
 		if (!points) {
@@ -433,6 +447,8 @@ export function VideoTrimmer({
 			onLoadedMetadata={(event) => {
 				event.currentTarget.currentTime = Math.max(startMs / 1000, 0.001);
 			}}
+			onLoadedData={() => setVideoLoaded(true)}
+			onError={() => setVideoLoaded(true)}
 			onTimeUpdate={onTimeUpdate}
 			onPlay={() => setPlaying(true)}
 			onPause={() => setPlaying(false)}

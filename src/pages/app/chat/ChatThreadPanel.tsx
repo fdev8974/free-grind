@@ -25,25 +25,19 @@ import {
 	Pin,
 	Play,
 	Reply,
-	RotateCw,
 	SearchX,
 	ShieldCheck,
-	SquareCenterlineDashedHorizontal,
 	Trash2,
 	Video,
 	Undo2,
 	X,
 	BellOff,
-	Repeat,
 } from "lucide-react";
-import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
-import { VideoTrimmer } from "./VideoTrimmer";
-import { VideoFormatsButton } from "./VideoFormatsSheet";
+import { MediaEditSheet } from "./MediaEditSheet";
+import type { MediaEdit } from "./MediaEditStep";
 import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, SendHorizontalFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
-import "react-image-crop/dist/ReactCrop.css";
 import type { NavigateFunction } from "react-router-dom";
 import { navigateBackTo } from "../../../utils/navigateBack";
 import toast from "react-hot-toast";
@@ -100,7 +94,6 @@ import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidde
 import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { SheetSearchInput } from "../../../components/ui/sheet-section";
-import { BottomDrawer } from "../../../components/ui/bottom-drawer";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG, SheetActionList } from "../../../components/ui/action-sheet";
 import {
@@ -152,7 +145,7 @@ import {
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
 import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
-import { AddToDrawerChip, DrawerEmptyState, ExpiryToggleButton, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon, VideoExpiryButton } from "./drawerUi";
+import { AddToDrawerChip, DrawerEmptyState, ExpiryToggleButton, VideoExpiryButton } from "./drawerUi";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { useNicknameNameChange } from "../../../hooks/useNicknameNameChange";
@@ -235,20 +228,16 @@ type ChatThreadPanelProps = {
 	onAttachmentPaste: (file: File) => void;
 	onAttachmentDrop: (files: File[]) => void;
 	isUploadingAttachment: boolean;
-	pendingAttachmentFile: File | null;
-	/** Which of several files picked at once the dialog shows. */
-	attachmentStep: { index: number; total: number } | null;
-	attachmentLooping: boolean;
-	attachmentTakenOnGrindr: boolean;
+	/** Picked to send, going through MediaEditSheet. */
+	pendingAttachmentFiles: File[] | null;
+	/** The chat's options for the file in the sheet. */
 	attachmentAddToDrawer: boolean;
 	attachmentMaxViews: number;
-	setAttachmentLooping: (value: boolean) => void;
-	setAttachmentTakenOnGrindr: (value: boolean) => void;
 	setAttachmentAddToDrawer: (value: boolean) => void;
 	setAttachmentMaxViews: (value: number) => void;
-	confirmPendingAttachment: () => void;
-	confirmAttachmentFile: (file: File) => void | Promise<void>;
-	cancelPendingAttachment: () => void;
+	showAttachmentFile: (file: File) => void;
+	confirmAttachmentFile: (edit: MediaEdit) => void;
+	finishAttachments: (confirmed: boolean) => void;
 	isAlbumPickerOpen: boolean;
 	isLoadingAlbums: boolean;
 	shareableAlbums: AlbumListItem[];
@@ -710,11 +699,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		setRecordingMs(0);
 	}, [cleanupAnalyser]);
 
-	const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null);
-	const [attachmentCrop, setAttachmentCrop] = useState<Crop | undefined>(undefined);
-	const [attachmentCompletedCrop, setAttachmentCompletedCrop] = useState<PixelCrop | undefined>(undefined);
-	const [isDraggingAttachmentCrop, setIsDraggingAttachmentCrop] = useState(false);
-	const attachmentImgRef = useRef<HTMLImageElement | null>(null);
 	const [mobileKeyboardInset, setMobileKeyboardInset] = useState(0);
 	const fullLayoutHeightRef = useRef(0);
 	const restingOverlapRef = useRef<number | null>(null);
@@ -806,19 +790,14 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		onAttachmentPaste,
 		onAttachmentDrop,
 		isUploadingAttachment,
-		pendingAttachmentFile,
-		attachmentStep,
-		attachmentLooping,
-		attachmentTakenOnGrindr,
+		pendingAttachmentFiles,
 		attachmentAddToDrawer,
 		attachmentMaxViews,
-		setAttachmentLooping,
-		setAttachmentTakenOnGrindr,
 		setAttachmentAddToDrawer,
 		setAttachmentMaxViews,
-		confirmPendingAttachment: _confirmPendingAttachment,
+		showAttachmentFile,
 		confirmAttachmentFile,
-		cancelPendingAttachment,
+		finishAttachments,
 		isAlbumPickerOpen: _isAlbumPickerOpen,
 		isLoadingAlbums,
 		shareableAlbums,
@@ -891,98 +870,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	}, []);
 
 	useEffect(() => {
-		if (!pendingAttachmentFile) {
-			setAttachmentPreviewUrl(null);
-			setAttachmentCrop(undefined);
-			setAttachmentCompletedCrop(undefined);
-			return;
-		}
-		const url = URL.createObjectURL(pendingAttachmentFile);
-		setAttachmentPreviewUrl(url);
-		setAttachmentCrop(undefined);
-		setAttachmentCompletedCrop(undefined);
-		return () => URL.revokeObjectURL(url);
-	}, [pendingAttachmentFile]);
-
-	useEffect(() => {
-		if (!attachmentPreviewUrl) return;
-		setAttachmentCrop({ unit: "%", x: 0, y: 0, width: 100, height: 100 });
-	}, [attachmentPreviewUrl]);
-
-	useEffect(() => {
 		if (replyTargetMessage) {
 			textareaRef.current?.focus();
 		}
 	}, [replyTargetMessage]);
-
-	const applyAttachmentTransform = useCallback(async (type: "flipH" | "rotateCw") => {
-		const img = attachmentImgRef.current;
-		if (!img || !img.complete || img.naturalWidth === 0) return;
-		const sw = img.naturalWidth;
-		const sh = img.naturalHeight;
-		const canvas = document.createElement("canvas");
-		canvas.width = type === "rotateCw" ? sh : sw;
-		canvas.height = type === "rotateCw" ? sw : sh;
-		const ctx = canvas.getContext("2d");
-		if (!ctx) return;
-		ctx.translate(canvas.width / 2, canvas.height / 2);
-		if (type === "flipH") ctx.scale(-1, 1);
-		if (type === "rotateCw") ctx.rotate(Math.PI / 2);
-		ctx.drawImage(img, -sw / 2, -sh / 2, sw, sh);
-		const blob = await new Promise<Blob | null>((resolve) =>
-			canvas.toBlob(resolve, "image/jpeg", 0.95),
-		);
-		if (!blob) return;
-		setAttachmentPreviewUrl((prev) => {
-			if (prev) URL.revokeObjectURL(prev);
-			return URL.createObjectURL(blob);
-		});
-	}, []);
-
-	const handleConfirmAttachment = useCallback(async () => {
-		if (!pendingAttachmentFile) return;
-		let fileToUpload: File = pendingAttachmentFile;
-		const isFullImage =
-			!attachmentCompletedCrop ||
-			!attachmentImgRef.current ||
-			(attachmentCompletedCrop.x <= 1 &&
-				attachmentCompletedCrop.y <= 1 &&
-				Math.abs(attachmentCompletedCrop.width - attachmentImgRef.current.width) <= 2 &&
-				Math.abs(attachmentCompletedCrop.height - attachmentImgRef.current.height) <= 2);
-		if (!isFullImage && attachmentCompletedCrop?.width && attachmentCompletedCrop.height && attachmentImgRef.current) {
-			const img = attachmentImgRef.current;
-			const scaleX = img.naturalWidth / img.width;
-			const scaleY = img.naturalHeight / img.height;
-			const canvas = document.createElement("canvas");
-			canvas.width = Math.round(attachmentCompletedCrop.width * scaleX);
-			canvas.height = Math.round(attachmentCompletedCrop.height * scaleY);
-			const ctx = canvas.getContext("2d");
-			if (ctx) {
-				ctx.drawImage(
-					img,
-					attachmentCompletedCrop.x * scaleX,
-					attachmentCompletedCrop.y * scaleY,
-					attachmentCompletedCrop.width * scaleX,
-					attachmentCompletedCrop.height * scaleY,
-					0,
-					0,
-					canvas.width,
-					canvas.height,
-				);
-				fileToUpload = await new Promise<File>((resolve) => {
-					canvas.toBlob(
-						(blob) => {
-							if (!blob) { resolve(pendingAttachmentFile); return; }
-							resolve(new File([blob], pendingAttachmentFile.name, { type: pendingAttachmentFile.type || "image/jpeg" }));
-						},
-						pendingAttachmentFile.type || "image/jpeg",
-						0.92,
-					);
-				});
-			}
-		}
-		await confirmAttachmentFile(fileToUpload);
-	}, [pendingAttachmentFile, attachmentCompletedCrop, confirmAttachmentFile]);
 
 	// The gesture picked in Behavior settings sends the phrase, the other one fills the composer.
 	const handleUsePhrase = (phrase: string, gesture: "tap" | "longPress" = "tap") => {
@@ -2868,35 +2759,22 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					</form>
 					)}
 
-					{pendingAttachmentFile ? (
-						<BottomDrawer
-							title={`${
-								pendingAttachmentFile.type.startsWith("video/")
-									? t("chat.attachments.upload_video", { defaultValue: "Upload Video" })
-									: t("chat.attachments.upload_picture", { defaultValue: "Upload Picture" })
-							}${attachmentStep ? ` (${attachmentStep.index}/${attachmentStep.total})` : ""}`}
-							onClose={cancelPendingAttachment}
-							onConfirm={() => void handleConfirmAttachment()}
+					{pendingAttachmentFiles ? (
+						<MediaEditSheet
+							files={pendingAttachmentFiles}
+							photoLabel={t("chat.attachments.upload_picture", { defaultValue: "Upload Picture" })}
+							videoLabel={t("chat.attachments.upload_video", { defaultValue: "Upload Video" })}
 							confirmLabel={
 								attachmentMaxViews !== 2147483647
 									? t("chat.attachments.send_expiring")
 									: t("chat.attachments.send")
 							}
-							isProcessing={isUploadingAttachment}
-							isDesktop={isDesktop}
-							bg={NATIVE_SHEET_BG}
-							headerActions={
-								<>
-									{pendingAttachmentFile.type.startsWith("video/") && <VideoFormatsButton isDesktop={isDesktop} />}
-									<AddToDrawerChip
-										checked={attachmentAddToDrawer}
-										onChange={setAttachmentAddToDrawer}
-										disabled={isUploadingAttachment}
-									/>
-								</>
-							}
-							footerLeft={
-								pendingAttachmentFile.type.startsWith("video/") ? (
+							confirmIcon={null}
+							headerActions={() => (
+								<AddToDrawerChip checked={attachmentAddToDrawer} onChange={setAttachmentAddToDrawer} />
+							)}
+							footerLeft={(file: File) =>
+								file.type.startsWith("video/") ? (
 									<VideoExpiryButton
 										value={attachmentMaxViews}
 										onChange={setAttachmentMaxViews}
@@ -2911,94 +2789,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									/>
 								)
 							}
-						>
-							<div className="flex min-h-0 flex-1 flex-col">
-							{/* Scrollable preview area */}
-							<div className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
-							{attachmentPreviewUrl && (
-								pendingAttachmentFile.type.startsWith("video/") ? (
-									<div className="flex min-h-full flex-col px-4">
-										<VideoTrimmer
-											file={pendingAttachmentFile}
-											src={attachmentPreviewUrl}
-											previewHeight="40dvh"
-											tools={
-												<MediaToolButton
-													icon={<Repeat />}
-													label={t("chat.attachments.looping")}
-													active={attachmentLooping}
-													onClick={() => setAttachmentLooping(!attachmentLooping)}
-												/>
-											}
-										/>
-									</div>
-								) : (
-									<div className="flex min-h-full flex-col px-4">
-										<div className="flex justify-center">
-											<style>{`
-												@keyframes attach-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
-												.attach-logo-shine { animation: attach-logo-shine 2.8s ease-in-out infinite; }
-												.attach-crop .ReactCrop__crop-mask { display: none !important; } .attach-crop .ReactCrop__crop-selection { background-image: none !important; animation: none !important; outline: none !important; border: 3px solid rgba(255,255,255,0.6) !important; border-radius: 20px !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5) !important; }
-												.attach-crop .ReactCrop__drag-handle.ord-n, .attach-crop .ReactCrop__drag-handle.ord-s, .attach-crop .ReactCrop__drag-handle.ord-e, .attach-crop .ReactCrop__drag-handle.ord-w { display: none !important; }
-												.attach-crop .ReactCrop__drag-handle { background: transparent !important; border: none !important; width: 18px !important; height: 18px !important; }
-												.attach-crop .ord-nw { transform: none !important; top: 6px !important; left: 6px !important; border-top: 2px solid white !important; border-left: 2px solid white !important; border-top-left-radius: 11px !important; }
-												.attach-crop .ord-ne { transform: none !important; top: 6px !important; right: 6px !important; border-top: 2px solid white !important; border-right: 2px solid white !important; border-top-right-radius: 11px !important; }
-												.attach-crop .ord-sw { transform: none !important; bottom: 6px !important; left: 6px !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 11px !important; }
-												.attach-crop .ord-se { transform: none !important; bottom: 6px !important; right: 6px !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 11px !important; }
-												.attach-crop .ReactCrop__drag-handle::after { content: ""; position: absolute; inset: -16px; } /* grabbable well beyond the drawn corner */
-												/* The straight edges resize too, through invisible bars (none for a fixed aspect, where only corners can). */
-												.attach-crop { --rc-drag-bar-size: 24px; }
-												.attach-crop:not(.ReactCrop--fixed-aspect) .ReactCrop__drag-bar { display: block !important; }
-												.attach-crop .ord-nw, .attach-crop .ord-se { cursor: nwse-resize !important; }
-												.attach-crop .ord-ne, .attach-crop .ord-sw { cursor: nesw-resize !important; }
-												.attach-crop .ReactCrop__drag-bar.ord-n, .attach-crop .ReactCrop__drag-bar.ord-s { cursor: ns-resize !important; }
-												.attach-crop .ReactCrop__drag-bar.ord-e, .attach-crop .ReactCrop__drag-bar.ord-w { cursor: ew-resize !important; }
-											`}</style>
-											<div className="relative overflow-hidden rounded-[20px]">
-											<ReactCrop
-												crop={attachmentCrop}
-												onChange={(c) => { setIsDraggingAttachmentCrop(true); setAttachmentCrop(c); }}
-												onComplete={(c) => { setIsDraggingAttachmentCrop(false); setAttachmentCompletedCrop(c); }}
-												ruleOfThirds={isDraggingAttachmentCrop}
-												minWidth={150}
-												minHeight={150}
-												className="attach-crop ReactCrop--no-animate"
-												style={{ maxHeight: "45dvh", display: "block" }}
-											>
-												<img ref={attachmentImgRef} src={attachmentPreviewUrl} alt={t("common.preview")} className="block" style={{ maxHeight: "45dvh" }} />
-											</ReactCrop>
-											{attachmentTakenOnGrindr && attachmentCrop && (
-												<div
-													className="absolute inline-flex items-center gap-1.5 pointer-events-none"
-													style={{
-														left: `calc(${attachmentCrop.unit === "%" ? attachmentCrop.x + "%" : attachmentCrop.x + "px"} + 10px)`,
-														top: `calc(${attachmentCrop.unit === "%" ? (attachmentCrop.y + attachmentCrop.height) + "%" : (attachmentCrop.y + attachmentCrop.height) + "px"} - 10px)`,
-														transform: "translateY(-100%)",
-													}}
-												>
-													<TakenOnGrindrBadge label={t("chat.time.just_now", { defaultValue: "just now" })} shineClassName="attach-logo-shine" />
-												</div>
-											)}
-											</div>
-										</div>
-										{/* Centered in the room left above the footer, as under a video. */}
-										<div className="my-auto flex items-center justify-center gap-3 pt-3">
-											<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyAttachmentTransform("flipH")} />
-											<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyAttachmentTransform("rotateCw")} />
-											<MediaToolDivider />
-											<MediaToolButton
-												icon={<TakenOnGrindrToolIcon active={attachmentTakenOnGrindr} />}
-												label={t("chat.attachments.taken_on_grindr")}
-												active={attachmentTakenOnGrindr}
-												onClick={() => setAttachmentTakenOnGrindr(!attachmentTakenOnGrindr)}
-											/>
-										</div>
-									</div>
-								)
-							)}
-							</div>
-						</div>
-						</BottomDrawer>
+							isDesktop={isDesktop}
+							onFileShown={showAttachmentFile}
+							onConfirmFile={confirmAttachmentFile}
+							onDone={finishAttachments}
+						/>
 					) : null}
 
 

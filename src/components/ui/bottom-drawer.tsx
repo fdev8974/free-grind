@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./bottom-sheet";
 
 interface BottomDrawerProps {
-	title: string;
+	title: ReactNode;
 	onClose: () => void;
 	onConfirm: () => void;
 	confirmLabel: string;
@@ -42,7 +42,7 @@ export function BottomDrawer({
 			bg={bg}
 		>
 			<div className="flex items-center justify-between px-4 pb-3">
-				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
+				<p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[var(--text)]">{title}</p>
 				<div className="flex items-center gap-2">
 					{headerActions}
 					<SheetCloseButton disabled={isProcessing} />

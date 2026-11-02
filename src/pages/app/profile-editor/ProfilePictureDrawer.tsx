@@ -12,7 +12,7 @@ import {
 	DrawerMediaTile,
 	useDrawerAddActions,
 } from "../chat/drawerUi";
-import { useCallback, useState, type MutableRefObject } from "react";
+import { useCallback, useState, type MutableRefObject, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
@@ -37,6 +37,8 @@ interface ProfilePictureDrawerProps {
 	deletingHash: string | null;
 	onDeleteImage: (hash: string) => void | Promise<void>;
 	onUploadFile: (file: File) => void;
+	/** Placeholder tiles of a running upload (see useUploadTiles). */
+	uploadTiles?: ReactNode[];
 	onClose: () => void;
 	isDesktop: boolean;
 	/** Animated close for the parent to call once adding photos succeeded. */
@@ -55,6 +57,7 @@ export function ProfilePictureDrawer({
 	deletingHash,
 	onDeleteImage,
 	onUploadFile,
+	uploadTiles = [],
 	onClose,
 	isDesktop,
 	closeRef,
@@ -154,7 +157,7 @@ export function ProfilePictureDrawer({
 				error={error}
 				onRetry={onRetry}
 				retryLabel={t("profile_photo_drawer.retry")}
-				empty={visibleImages.length === 0 ? (
+				empty={visibleImages.length === 0 && uploadTiles.length === 0 ? (
 					<DrawerEmptyState
 						icon={<ImageIcon className="h-5 w-5" />}
 						title={t("profile_photo_drawer.empty")}
@@ -171,6 +174,7 @@ export function ProfilePictureDrawer({
 				<DrawerGrid isDesktop={isDesktop}>
 					{/* Add actions as the grid's first row, like the chat drawer. */}
 					<DrawerActionBar actions={addActions} disabled={isSelecting || hasSelection} />
+					{uploadTiles}
 					{visibleImages.map((image) => {
 						const isPending = image.state === MEDIA_MODERATION_STATE.PENDING;
 						const isRejected = image.state === MEDIA_MODERATION_STATE.REJECTED;

@@ -652,7 +652,7 @@ export function ChatDrawerPanel({
 						})()}
 
 						{/* Content Grid */}
-						<DrawerBody isLoading={isLoading || !hasSlidIn} isDesktop={isDesktop} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
+						<DrawerBody isLoading={(isLoading && !upload.isUploading) || !hasSlidIn} isDesktop={isDesktop} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
 								<div className="flex flex-col gap-3">
 								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (
@@ -698,9 +698,10 @@ export function ChatDrawerPanel({
 										{activeTab === "albums" ? albumTiles : collectionTiles}
 									</div>
 								)}
-								{showSection("media") && (media.length > 0 || hasCombinedGroups) && (
+								{showSection("media") && (media.length > 0 || hasCombinedGroups || upload.isUploading) && (
 								<DrawerGrid isDesktop={isDesktop}>
 									<DrawerActionBar actions={gridActions} disabled={actionsDisabled || isCreatingAlbum} />
+									{upload.uploadTiles}
 									{/* Not split into categories: albums and collections share the media grid. */}
 									{combined && albumTiles}
 									{combined && collectionTiles}
@@ -748,7 +749,7 @@ export function ChatDrawerPanel({
 								</DrawerGrid>
 								)}
 								{/* Empty drawer: the add actions on their own, as the way in. */}
-								{showSection("media") && media.length === 0 && !hasCombinedGroups && (
+								{showSection("media") && media.length === 0 && !hasCombinedGroups && !upload.isUploading && (
 									<DrawerEmptyState
 										icon={<ImagesFilled className="h-5 w-5" />}
 										title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}

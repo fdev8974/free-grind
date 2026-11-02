@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import z from "zod";
-import { centerCrop, makeAspectCrop, type Crop, type PixelCrop } from "react-image-crop";
+import type { MediaEdit } from "../chat/MediaEditStep";
+import { useUploadTiles } from "../chat/useUploadTiles";
 import { useAuth } from "../../../contexts/useAuth";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
@@ -50,7 +51,6 @@ import {
 	type ProfileDraft,
 	buildSquareThumbCoords,
 	buildThumbCoordsFromFraction,
-	cropImageFile,
 	type FractionalCrop,
 	emptyDraft,
 	parseMonthInput,
@@ -109,52 +109,11 @@ export function useProfileEditor() {
 	const [poolError, setPoolError] = useState<string | null>(null);
 	const [deletingPoolHash, setDeletingPoolHash] = useState<string | null>(null);
 	const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
-	const [pendingPhotoTakenOnGrindr, setPendingPhotoTakenOnGrindr] = useState(false);
-	// Two steps: "crop" cuts the uploaded photo itself (free aspect), then
-	// "thumbnail" picks the square thumbnail region on the cropped result.
-	const [photoUploadStep, setPhotoUploadStep] = useState<"crop" | "thumbnail">("crop");
-	const [croppedPhotoFile, setCroppedPhotoFile] = useState<File | null>(null);
-	const [isCroppingPhoto, setIsCroppingPhoto] = useState(false);
-	const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
-	const [photoCrop, setPhotoCrop] = useState<Crop | undefined>(undefined);
-	const [photoCompletedCrop, setPhotoCompletedCrop] = useState<PixelCrop | undefined>(undefined);
-	const [isDraggingPhotoCrop, setIsDraggingPhotoCrop] = useState(false);
-	const photoImgRef = useRef<HTMLImageElement | null>(null);
-
-	const photoPreviewFile = photoUploadStep === "thumbnail" ? croppedPhotoFile : pendingPhotoFile;
-	useEffect(() => {
-		if (!photoPreviewFile) {
-			setPhotoPreviewUrl(null);
-			setPhotoCrop(undefined);
-			setPhotoCompletedCrop(undefined);
-			return;
-		}
-		const url = URL.createObjectURL(photoPreviewFile);
-		setPhotoPreviewUrl(url);
-		setPhotoCrop(undefined);
-		setPhotoCompletedCrop(undefined);
-		return () => URL.revokeObjectURL(url);
-	}, [photoPreviewFile]);
-
-	// The crop step starts on the whole image (free aspect); the thumbnail step
-	// is square-only — the server always renders thumbnails as squares. Seeds
-	// photoCompletedCrop immediately (not just photoCrop) so confirming without
-	// dragging still has a valid pixel rect — react-image-crop only fires its
-	// own onComplete after a user-driven drag.
-	const handlePhotoImageLoad = useCallback((event: React.SyntheticEvent<HTMLImageElement>) => {
-		const { width, height } = event.currentTarget;
-		const percentCrop: Crop = photoUploadStep === "crop"
-			? { unit: "%", x: 0, y: 0, width: 100, height: 100 }
-			: centerCrop(makeAspectCrop({ unit: "%", width: 90 }, 1, width, height), width, height);
-		setPhotoCrop(percentCrop);
-		setPhotoCompletedCrop({
-			unit: "px",
-			x: (percentCrop.x / 100) * width,
-			y: (percentCrop.y / 100) * height,
-			width: (percentCrop.width / 100) * width,
-			height: (percentCrop.height / 100) * height,
-		});
-	}, [photoUploadStep]);
+	// Picked in the picture drawer; edited in MediaEditSheet (crop, then the
+	// square thumbnail), which hands its result here before it closes.
+	const pendingPhotoEditRef = useRef<MediaEdit | null>(null);
+	// The upload, as a placeholder tile in the picture drawer.
+	const photoUploadTiles = useUploadTiles();
 
 	// Tracks each photo's last-seen moderation state across reloads, so a
 	// background poll can toast when one changes (e.g. pending -> approved)
@@ -696,9 +655,7 @@ export function useProfileEditor() {
 			return;
 		}
 
-		setPendingPhotoTakenOnGrindr(false);
-		setPhotoUploadStep("crop");
-		setCroppedPhotoFile(null);
+		pendingPhotoEditRef.current = null;
 		setPendingPhotoFile(file);
 	};
 
@@ -782,88 +739,83 @@ export function useProfileEditor() {
 		[apiFunctions, persistProfilePhotos, profilePhotoHashes, t, loadPoolImages],
 	);
 
-	const cancelPendingPhotoUpload = () => {
-		if (isUploadingPhoto) {
-			return;
-		}
-		setPendingPhotoFile(null);
-	};
-
-	const uploadPhotoFile = async (file: File, crop?: FractionalCrop) => {
+	const uploadPhotoFile = async (file: File, crop: FractionalCrop | undefined, takenOnGrindr: boolean) => {
 		setIsUploadingPhoto(true);
+		const [tileId] = photoUploadTiles.add([file]);
 
 		try {
-			// Metadata stripped and downscaled (see uploadSanitize); thumbCoords
-			// are in the normalized photo's pixels.
-			const upload = await sanitizeUploadFile(file);
-			const body = new Uint8Array(await upload.arrayBuffer());
-			const thumbCoords = crop
-				? await buildThumbCoordsFromFraction(upload, crop)
-				: await buildSquareThumbCoords(upload);
-			const contentType = upload.type;
+			await photoUploadTiles.track(tileId, false, async () => {
+				// Metadata stripped and downscaled (see uploadSanitize); thumbCoords
+				// are in the normalized photo's pixels.
+				const upload = await sanitizeUploadFile(file);
+				const body = new Uint8Array(await upload.arrayBuffer());
+				const thumbCoords = crop
+					? await buildThumbCoordsFromFraction(upload, crop)
+					: await buildSquareThumbCoords(upload);
+				const contentType = upload.type;
 
-			// Primary: the media upload (signed /v5 for in-app captures, unsigned
-			// /v4 otherwise — picked Rust-side). Fallback: the older, unsigned
-			// /v3/me/profile/images path, unchanged.
-			const uploadAttempts = [
-				() =>
-					apiFunctions.uploadProfilePhoto({
-						body,
-						contentType,
-						thumbCoords,
-						takenOnGrindr: pendingPhotoTakenOnGrindr,
-					}),
-				() =>
-					apiFunctions.uploadProfileImage({
-						path: "/v3/me/profile/images",
-						body,
-						contentType,
-					}),
-			];
+				// Primary: the media upload (signed /v5 for in-app captures, unsigned
+				// /v4 otherwise — picked Rust-side). Fallback: the older, unsigned
+				// /v3/me/profile/images path, unchanged.
+				const uploadAttempts = [
+					() =>
+						apiFunctions.uploadProfilePhoto({
+							body,
+							contentType,
+							thumbCoords,
+							takenOnGrindr,
+						}),
+					() =>
+						apiFunctions.uploadProfileImage({
+							path: "/v3/me/profile/images",
+							body,
+							contentType,
+						}),
+				];
 
-			let uploadedHash: string | null = null;
-			const failedMessages: string[] = [];
+				let uploadedHash: string | null = null;
+				const failedMessages: string[] = [];
 
-			for (const attempt of uploadAttempts) {
-				try {
-					const uploaded = await attempt();
-					uploadedHash =
-						uploaded.hash ??
-						uploaded.mediaHash ??
-						uploaded.imageSizes?.find((item) => item.mediaHash)?.mediaHash ??
-						null;
-					if (uploadedHash) {
-						break;
+				for (const attempt of uploadAttempts) {
+					try {
+						const uploaded = await attempt();
+						uploadedHash =
+							uploaded.hash ??
+							uploaded.mediaHash ??
+							uploaded.imageSizes?.find((item) => item.mediaHash)?.mediaHash ??
+							null;
+						if (uploadedHash) {
+							break;
+						}
+					} catch (error) {
+						failedMessages.push(
+							error instanceof Error ? error.message : "upload failed",
+						);
 					}
-				} catch (error) {
-					failedMessages.push(
-						error instanceof Error ? error.message : "upload failed",
+				}
+
+				if (!uploadedHash) {
+					throw new Error(
+						`Failed to upload image (${failedMessages.join(" -> ")})`,
 					);
 				}
-			}
 
-			if (!uploadedHash) {
-				throw new Error(
-					`Failed to upload image (${failedMessages.join(" -> ")})`,
-				);
-			}
+				if (!uploadedHash || !validateMediaHash(uploadedHash)) {
+					throw new Error(
+						"Upload completed but no valid media hash was returned",
+					);
+				}
 
-			if (!uploadedHash || !validateMediaHash(uploadedHash)) {
-				throw new Error(
-					"Upload completed but no valid media hash was returned",
-				);
-			}
-
-			// Uploading only lands the image in the server-side pool — it doesn't
-			// select it into a profile slot. The drawer reappears (isPhotoDrawerOpen
-			// stays true) once pendingPhotoFile clears below, showing the new image
-			// as a pickable, not-yet-used tile.
-			setPoolImages((prev) => [
-				{ mediaHash: uploadedHash, type: 0, state: MEDIA_MODERATION_STATE.PENDING },
-				...prev.filter((image) => image.mediaHash !== uploadedHash),
-			]);
-			toast.success(t("profile_editor.toasts.photo_uploaded"));
-			setPendingPhotoFile(null);
+				// Uploading only lands the image in the server-side pool — it doesn't
+				// select it into a profile slot. The picture drawer (back once the edit
+				// sheet closed) swaps the upload's placeholder for the new image, as a
+				// pickable, not-yet-used tile.
+				setPoolImages((prev) => [
+					{ mediaHash: uploadedHash, type: 0, state: MEDIA_MODERATION_STATE.PENDING },
+					...prev.filter((image) => image.mediaHash !== uploadedHash),
+				]);
+				toast.success(t("profile_editor.toasts.photo_uploaded"));
+			});
 		} catch (error) {
 			const message =
 				error instanceof Error
@@ -871,43 +823,18 @@ export function useProfileEditor() {
 					: t("profile_editor.toasts.error_upload");
 			toast.error(message);
 		} finally {
+			photoUploadTiles.drop([tileId]);
 			setIsUploadingPhoto(false);
 		}
 	};
 
-	const getFractionalPhotoCrop = (): FractionalCrop | undefined => {
-		const img = photoImgRef.current;
-		if (!photoCompletedCrop?.width || !photoCompletedCrop.height || !img) return undefined;
-		return {
-			left: photoCompletedCrop.x / img.width,
-			top: photoCompletedCrop.y / img.height,
-			right: (photoCompletedCrop.x + photoCompletedCrop.width) / img.width,
-			bottom: (photoCompletedCrop.y + photoCompletedCrop.height) / img.height,
-		};
-	};
-
-	// Step 1 cuts the photo itself (client-side, see cropImageFile). Step 2's
-	// selection is only used to tell the server which square region of that
-	// cropped photo to render the thumbnail from (thumbCoords).
-	const confirmPendingPhotoUpload = async () => {
-		if (!pendingPhotoFile) return;
-
-		if (photoUploadStep === "crop") {
-			const crop = getFractionalPhotoCrop();
-			setIsCroppingPhoto(true);
-			try {
-				setCroppedPhotoFile(crop ? await cropImageFile(pendingPhotoFile, crop) : pendingPhotoFile);
-			} catch {
-				// Webview can't decode it (e.g. HEIC outside Apple) — upload uncropped.
-				setCroppedPhotoFile(pendingPhotoFile);
-			} finally {
-				setIsCroppingPhoto(false);
-			}
-			setPhotoUploadStep("thumbnail");
-			return;
-		}
-
-		await uploadPhotoFile(croppedPhotoFile ?? pendingPhotoFile, getFractionalPhotoCrop());
+	// The edit sheet closed: uploaded after a confirm (its thumbnail square as
+	// thumbCoords, see uploadPhotoFile), dropped when it was cancelled.
+	const finishPendingPhotoEdit = (confirmed: boolean) => {
+		const edit = pendingPhotoEditRef.current;
+		pendingPhotoEditRef.current = null;
+		setPendingPhotoFile(null);
+		if (confirmed && edit) void uploadPhotoFile(edit.file, edit.thumbnail, edit.takenOnGrindr);
 	};
 
 	// Removing a photo here only unlinks it from the profile's active slots
@@ -986,7 +913,7 @@ export function useProfileEditor() {
 			moderationByHash: photoModerationByHash,
 			isSaving: isSavingPhotos,
 			isUploading: isUploadingPhoto,
-			isCropping: isCroppingPhoto,
+			uploadTiles: photoUploadTiles.tiles,
 			handleRemove: handleRemovePhoto,
 			handleReorder: handleReorderPhotos,
 			isDrawerOpen: isPhotoDrawerOpen,
@@ -1001,20 +928,8 @@ export function useProfileEditor() {
 			handleDeletePoolImage,
 			handleDrawerUploadFile,
 			pendingFile: pendingPhotoFile,
-			cancelPendingUpload: cancelPendingPhotoUpload,
-			confirmPendingUpload: confirmPendingPhotoUpload,
-			uploadStep: photoUploadStep,
-			setUploadStep: setPhotoUploadStep,
-			previewUrl: photoPreviewUrl,
-			crop: photoCrop,
-			setCrop: setPhotoCrop,
-			setCompletedCrop: setPhotoCompletedCrop,
-			isDraggingCrop: isDraggingPhotoCrop,
-			setIsDraggingCrop: setIsDraggingPhotoCrop,
-			imgRef: photoImgRef,
-			handleImageLoad: handlePhotoImageLoad,
-			takenOnGrindr: pendingPhotoTakenOnGrindr,
-			setTakenOnGrindr: setPendingPhotoTakenOnGrindr,
+			setPendingEdit: (edit: MediaEdit) => { pendingPhotoEditRef.current = edit; },
+			finishPendingEdit: finishPendingPhotoEdit,
 		},
 	};
 }

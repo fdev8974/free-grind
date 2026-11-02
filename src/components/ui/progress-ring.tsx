@@ -39,3 +39,21 @@ export function ProgressRing({
 		</svg>
 	);
 }
+
+/** Over a media preview while it uploads: the ring, and with `label` (e.g. a
+ * video's phase) that and the percentage below it. Chat bubbles and the
+ * drawers' upload placeholders. */
+export function MediaUploadOverlay({ progress, label }: { progress: number; label?: string }) {
+	return (
+		<div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/30">
+			<div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
+				<ProgressRing progress={progress} className="h-8 w-8" />
+			</div>
+			{label ? (
+				<span className="max-w-[calc(100%-8px)] truncate rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+					{label} · {Math.round(progress)}%
+				</span>
+			) : null}
+		</div>
+	);
+}

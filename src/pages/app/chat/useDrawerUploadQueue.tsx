@@ -6,10 +6,12 @@ import { appLog } from "../../../utils/logger";
 import { uploadChatVideo } from "../../../services/chatMediaSend";
 import { MAX_CHAT_MEDIA_BYTES } from "../../../services/stagedVideoUpload";
 import { buildBinaryUpload } from "./chatUtils";
-import { DrawerAddMediaStep } from "./DrawerAddMediaStep";
 import { useDrawerAddActions } from "./drawerUi";
+import { MediaEditTitle } from "./MediaEditSheet";
+import { MediaEditStep, type MediaEdit } from "./MediaEditStep";
+import { useUploadTiles } from "./useUploadTiles";
 
-type PreparedUpload = { file: File; takenOnGrindr: boolean; looping: boolean };
+type PreparedUpload = MediaEdit;
 
 /**
  * Adding new media to the drawer from a sheet that picks drawer media
@@ -18,8 +20,9 @@ type PreparedUpload = { file: File; takenOnGrindr: boolean; looping: boolean };
  * Grindr, looping), then one upload round. `onUploaded` gets the new drawer
  * media after `onReloadMedia` has run.
  *
- * Render `inputs` once, `actions` as tiles/buttons, and `step` (when set)
- * in place of the sheet's content, with `stepTitle` and `stop` in its header.
+ * Render `inputs` once, `actions` as tiles/buttons, `uploadTiles` right
+ * after them in the grid, and `step` (when set) in place of the sheet's
+ * content, with `stepTitle` and `stop` in its header.
  */
 export function useDrawerUploadQueue({
 	onReloadMedia,
@@ -32,33 +35,36 @@ export function useDrawerUploadQueue({
 }) {
 	const { t } = useTranslation();
 	const service = useApiFunctions();
-	const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+	const uploadTiles = useUploadTiles();
+	const { add: addUploadTiles, track: trackUpload, drop: dropUploadTiles } = uploadTiles;
 	// Files still waiting for their add step, and the ones confirmed this round.
 	const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 	const [pendingTotal, setPendingTotal] = useState(0);
 	const preparedRef = useRef<PreparedUpload[]>([]);
 	const pendingFile = pendingFiles[0] ?? null;
-	const isUploading = uploadProgress != null;
 
 	const uploadPrepared = useCallback(
 		async (batch: PreparedUpload[]) => {
 			const uploadedMedia: { mediaId: number; isVideo: boolean }[] = [];
-			setUploadProgress({ done: 0, total: batch.length });
+			const ids = addUploadTiles(batch.map(({ file }) => file));
 			for (const [index, { file, takenOnGrindr, looping }] of batch.entries()) {
+				const id = ids[index];
 				const isVideo = file.type.startsWith("video/");
 				// Videos are checked Rust-side, after the cut that may shrink them.
 				if (!isVideo && file.size > MAX_CHAT_MEDIA_BYTES) {
 					toast.error(t("chat.attachments.too_large"));
-					setUploadProgress({ done: index + 1, total: batch.length });
+					dropUploadTiles([id]);
 					continue;
 				}
 				try {
-					const uploaded = isVideo
-						? await uploadChatVideo(service, file, looping)
-						: await service.uploadChatMedia({
-								multipart: await buildBinaryUpload(file),
-								options: { looping: false, takenOnGrindr },
-							});
+					const uploaded = await trackUpload(id, isVideo, async (onProgress) =>
+						isVideo
+							? uploadChatVideo(service, file, looping, onProgress)
+							: service.uploadChatMedia({
+									multipart: await buildBinaryUpload(file),
+									options: { looping: false, takenOnGrindr },
+								}),
+					);
 					await service.addMediaToDrawer(uploaded.mediaId);
 					uploadedMedia.push({ mediaId: uploaded.mediaId, isVideo });
 				} catch (uploadError) {
@@ -66,18 +72,18 @@ export function useDrawerUploadQueue({
 					toast.error(
 						uploadError instanceof Error ? uploadError.message : t("chat.errors.upload_media_failed"),
 					);
+					dropUploadTiles([id]);
 				}
-				setUploadProgress({ done: index + 1, total: batch.length });
 			}
 
 			try {
 				if (uploadedMedia.length > 0) await onReloadMedia();
 			} finally {
 				if (uploadedMedia.length > 0) onUploaded(uploadedMedia);
-				setUploadProgress(null);
+				dropUploadTiles(ids);
 			}
 		},
-		[service, onReloadMedia, onUploaded, t],
+		[service, onReloadMedia, onUploaded, t, addUploadTiles, trackUpload, dropUploadTiles],
 	);
 
 	const pickFiles = useCallback(
@@ -96,12 +102,11 @@ export function useDrawerUploadQueue({
 		[allowVideo, t],
 	);
 
-	// Moves to the next picked file; `prepared` is null when this one was
-	// skipped. After the last one (or `stop`), everything confirmed uploads.
+	// Moves to the next picked file. After the last one, everything confirmed uploads.
 	const finishStep = useCallback(
-		(prepared: PreparedUpload | null, stop = false) => {
-			if (prepared) preparedRef.current.push(prepared);
-			const rest = stop ? [] : pendingFiles.slice(1);
+		(prepared: PreparedUpload) => {
+			preparedRef.current.push(prepared);
+			const rest = pendingFiles.slice(1);
 			setPendingFiles(rest);
 			if (rest.length > 0) return;
 			const batch = preparedRef.current;
@@ -111,37 +116,44 @@ export function useDrawerUploadQueue({
 		[pendingFiles, uploadPrepared],
 	);
 
+	// Cancelling mid-pick drops the whole pick — the files confirmed so far
+	// aren't uploaded either.
+	const cancelSteps = useCallback(() => {
+		preparedRef.current = [];
+		setPendingFiles([]);
+	}, []);
+
 	const { actions, inputs } = useDrawerAddActions({
 		onFiles: pickFiles,
 		multiple: true,
 		allowVideo,
-		busy: isUploading,
-		busyLabel: uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : undefined,
 	});
 
 	const stepIndex = pendingTotal - pendingFiles.length + 1;
-	const stepTitle = pendingFile
-		? `${pendingFile.type.startsWith("video/")
-			? t("chat_drawer.add_video", { defaultValue: "Add video" })
-			: t("chat_drawer.add_photo")}${pendingTotal > 1 ? ` (${stepIndex}/${pendingTotal})` : ""}`
-		: null;
-	const step = pendingFile ? (
-		<DrawerAddMediaStep
-			key={stepIndex}
+	const stepTitle = pendingFile ? (
+		<MediaEditTitle
 			file={pendingFile}
-			isAdding={false}
-			onCancel={() => finishStep(null)}
-			onConfirm={(file, takenOnGrindr, looping) => finishStep({ file, takenOnGrindr, looping })}
+			index={stepIndex}
+			total={pendingTotal}
+			photoLabel={t("chat_drawer.add_photo")}
+			videoLabel={t("chat_drawer.add_video", { defaultValue: "Add video" })}
 		/>
+	) : null;
+	const step = pendingFile ? (
+		// Not keyed per file: the step stays mounted and swaps its preview, so
+		// the sheet keeps its height from one picked file to the next.
+		<MediaEditStep file={pendingFile} hasNext={stepIndex < pendingTotal} onConfirm={finishStep} />
 	) : null;
 
 	return {
 		actions,
 		inputs,
-		isUploading,
+		isUploading: uploadTiles.isUploading,
+		/** Placeholder tiles of the running upload round, with their progress. */
+		uploadTiles: uploadTiles.tiles,
 		step,
 		stepTitle,
-		/** Header X during the step: skips the rest, still uploads what was confirmed. */
-		stop: () => finishStep(null, true),
+		/** Header X during the step: cancels the pick, nothing is uploaded. */
+		stop: cancelSteps,
 	};
 }

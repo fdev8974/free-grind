@@ -151,6 +151,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 				Math.min(MAX_CHAT_MEDIA_BYTES, input.maxBodySize ?? MAX_CHAT_MEDIA_BYTES),
 				t("chat.attachments.too_large"),
 			);
+			const report = uploadProgressReporter(input.edit, input.onProgress);
 			const payload = await uploadStagedVideo(
 				input.file,
 				async (stagedId) =>
@@ -161,12 +162,13 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 						edit: await stagedEdit(stagedId, input.file, input.edit, {
 							onLandscapeKept: input.onLandscapeKept,
 							notSendableMessage: t("chat.errors.video_not_sendable"),
+							onConverting: (fraction) => report("converting", fraction),
 						}),
-						onProgress: uploadProgressReporter(input.edit).channel(),
+						onProgress: report.channel(),
 					}),
 				t("api.errors.upload_content"),
 				t,
-				undefined,
+				(fraction) => report("preparing", fraction),
 				await stagingRanges(input.file, input.edit),
 			);
 			if (payload === null) return null;

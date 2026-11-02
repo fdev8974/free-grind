@@ -10,6 +10,7 @@ import type {
 import type { InterestSentTapsResponse, InterestTapsResponse, InterestViewsResponse } from "./interest";
 import type { MultipartUpload } from "./chat-service";
 import type { VideoEdit } from "../services/videoEdit";
+import type { UploadProgress } from "../services/stagedVideoUpload";
 import type {
 	RightNowCreatePostRequest,
 	RightNowCreatePostResponse,
@@ -69,6 +70,8 @@ export interface UploadOwnAlbumVideoInput {
 	maxBodySize?: number;
 	edit?: VideoEdit | null;
 	onLandscapeKept?: () => void;
+	/** Where the upload is, as for a chat video (see uploadProgressReporter). */
+	onProgress?: (progress: UploadProgress) => void;
 }
 
 export interface ReorderOwnAlbumContentInput {

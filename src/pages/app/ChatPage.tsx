@@ -96,6 +96,7 @@ import { ChatFiltersOverlay } from "./chat/ChatFiltersOverlay";
 import { ChatThreadPanel } from "./chat/ChatThreadPanel";
 import { parseSlashCommand } from "./chat/slashCommands";
 import { ChatMediaSheet } from "./chat/ChatMediaSheet";
+import type { MediaEdit } from "./chat/MediaEditStep";
 import * as chatLog from "../../services/chatLog";
 import {
 	buildChatFiltersDraft,
@@ -855,21 +856,15 @@ export function ChatPage() {
 
 	const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
 	const [attachmentUpload, setAttachmentUpload] = useState<LocalUploadProgress | null>(null);
-	const [pendingAttachmentFile, setPendingAttachmentFile] =
-		useState<File | null>(null);
-	const [attachmentLooping, setAttachmentLooping] = useState(false);
-	const [attachmentTakenOnGrindr, setAttachmentTakenOnGrindr] = useState(false);
+	// The files picked to send, edited one after another in MediaEditSheet,
+	// and the conversation they were picked in.
+	const [pendingAttachments, setPendingAttachments] = useState<{ conversationId: string | null; files: File[] } | null>(null);
+	// The chat's own options for the file in the sheet; the sheet's toggles
+	// (looping, taken on Grindr) come with each confirmed file.
 	const [attachmentAddToDrawer, setAttachmentAddToDrawer] = useState(false);
 	const [attachmentMaxViews, setAttachmentMaxViews] = useState(2147483647);
-	// Several files picked at once: the ones still waiting for their dialog,
-	// and the ones confirmed so far, sent together after the last dialog.
-	const attachmentQueueRef = useRef<{
-		conversationId: string | null;
-		files: File[];
-		total: number;
-		prepared: { file: File; options: AttachmentSendOptions }[];
-	} | null>(null);
-	const [attachmentStep, setAttachmentStep] = useState<{ index: number; total: number } | null>(null);
+	// The files confirmed so far, sent once the last one is.
+	const preparedAttachmentsRef = useRef<{ file: File; options: AttachmentSendOptions }[]>([]);
 	const [attachmentSendProgress, setAttachmentSendProgress] = useState<{ done: number; total: number } | null>(null);
 	const [pendingAudioBlob, setPendingAudioBlob] = useState<Blob | null>(null);
 	const [pendingAudioDuration, setPendingAudioDuration] = useState(0);
@@ -3984,7 +3979,7 @@ export function ChatPage() {
 			lastLoadedConversationIdRef.current = null;
 			setIsDrawerOpen(false);
 			setDrawerMedia([]);
-			setPendingAttachmentFile(null);
+			setPendingAttachments(null);
 			return;
 		}
 
@@ -5901,42 +5896,6 @@ export function ChatPage() {
 		],
 	);
 
-	const cancelPendingAttachment = useCallback(() => {
-		setPendingAttachmentFile(null);
-		setAttachmentLooping(false);
-		setAttachmentTakenOnGrindr(false);
-		setAttachmentAddToDrawer(false);
-		setAttachmentMaxViews(2147483647);
-	}, []);
-
-	const confirmAttachmentFile = useCallback(
-		(file: File) => {
-			const options = {
-				looping: attachmentLooping,
-				takenOnGrindr: attachmentTakenOnGrindr,
-				maxViews: attachmentMaxViews,
-				addToDrawer: attachmentAddToDrawer,
-			};
-			// Part of a multi-file pick: held until the last dialog closes.
-			const queue = attachmentQueueRef.current;
-			if (queue) {
-				queue.prepared.push({ file, options });
-			} else {
-				void sendMediaAttachment(file, options);
-			}
-			setPendingAttachmentFile(null);
-			setAttachmentLooping(false);
-			setAttachmentTakenOnGrindr(false);
-			setAttachmentAddToDrawer(false);
-			setAttachmentMaxViews(2147483647);
-		},
-		[attachmentLooping, attachmentMaxViews, attachmentTakenOnGrindr, attachmentAddToDrawer, sendMediaAttachment],
-	);
-
-	const confirmPendingAttachment = useCallback(() => {
-		if (pendingAttachmentFile) confirmAttachmentFile(pendingAttachmentFile);
-	}, [pendingAttachmentFile, confirmAttachmentFile]);
-
 	// Sends a multi-file pick one after another, in pick order. Goes through
 	// the ref so each send sees the conversation (and cleared reply target)
 	// the previous one left behind.
@@ -5955,6 +5914,47 @@ export function ChatPage() {
 			}
 		},
 		[],
+	);
+
+	// Each file as it comes up in the sheet starts with the chat's defaults.
+	const showAttachmentFile = useCallback(
+		(file: File) => {
+			setAttachmentAddToDrawer(false);
+			// The 10-second disappearing timer default only applies to photos —
+			// videos keep their own existing default (a normal single-play video),
+			// unaffected by this preference.
+			setAttachmentMaxViews(file.type.startsWith("video/") ? 1 : defaultExpiringPhotos ? 1 : 2147483647);
+		},
+		[defaultExpiringPhotos],
+	);
+
+	const confirmAttachmentFile = useCallback(
+		(edit: MediaEdit) => {
+			preparedAttachmentsRef.current.push({
+				file: edit.file,
+				options: {
+					looping: edit.looping,
+					takenOnGrindr: edit.takenOnGrindr,
+					maxViews: attachmentMaxViews,
+					addToDrawer: attachmentAddToDrawer,
+				},
+			});
+		},
+		[attachmentMaxViews, attachmentAddToDrawer],
+	);
+
+	// The sheet closed: after the last file was confirmed everything is sent,
+	// otherwise the pick was cancelled and nothing is.
+	const finishAttachments = useCallback(
+		(confirmed: boolean) => {
+			const prepared = preparedAttachmentsRef.current;
+			preparedAttachmentsRef.current = [];
+			setPendingAttachments(null);
+			if (!confirmed || prepared.length === 0) return;
+			if (prepared.length === 1) void sendMediaAttachmentRef.current(prepared[0].file, prepared[0].options);
+			else void sendPreparedAttachments(prepared);
+		},
+		[sendPreparedAttachments],
 	);
 
 	const sendAudioBlob = useCallback(async (blob: Blob, durationMs: number) => {
@@ -7047,40 +7047,17 @@ export function ChatPage() {
 		setShareableAlbums((previous) => previous.filter((album) => album.albumId !== albumId));
 	}, []);
 
-	const openAttachmentDialogForFile = (file: File) => {
-		if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
-			toast.error(t("chat.attachments.only_image_video"));
-			return;
-		}
-
-		setPendingAttachmentFile(file);
-		setAttachmentLooping(false);
-		setAttachmentTakenOnGrindr(false);
-		setAttachmentAddToDrawer(false);
-		// The 10-second disappearing timer default only applies to photos —
-		// videos keep their own existing default (a normal single-play video),
-		// unaffected by this preference.
-		setAttachmentMaxViews(file.type.startsWith("video/") ? 1 : defaultExpiringPhotos ? 1 : 2147483647);
-	};
-
-	// Several files at once (picked, dropped, or shared in from Android's
-	// share sheet — see ShareTargetBridge) each go through the normal
-	// attachment dialog in turn — the next one opens once the previous was
-	// confirmed or dismissed; after the last, the confirmed ones are sent.
-	const openAttachmentDialogForFileRef = useRef(openAttachmentDialogForFile);
-	openAttachmentDialogForFileRef.current = openAttachmentDialogForFile;
+	// Picked, dropped, pasted or shared in from Android's share sheet (see
+	// ShareTargetBridge): the files go through MediaEditSheet one after
+	// another, then all of them are sent. Closing the sheet cancels the pick.
 	const openAttachmentDialogForFiles = (files: File[]) => {
 		const media = files.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"));
 		if (media.length === 0) {
 			if (files.length > 0) toast.error(t("chat.attachments.only_image_video"));
 			return;
 		}
-		const multiple = media.length > 1;
-		attachmentQueueRef.current = multiple
-			? { conversationId: selectedConversationId, files: media.slice(1), total: media.length, prepared: [] }
-			: null;
-		setAttachmentStep(multiple ? { index: 1, total: media.length } : null);
-		openAttachmentDialogForFile(media[0]);
+		preparedAttachmentsRef.current = [];
+		setPendingAttachments({ conversationId: selectedConversationId, files: media });
 	};
 	const openAttachmentDialogForFilesRef = useRef(openAttachmentDialogForFiles);
 	openAttachmentDialogForFilesRef.current = openAttachmentDialogForFiles;
@@ -7092,30 +7069,13 @@ export function ChatPage() {
 		if (!files || files.length === 0) return;
 		openAttachmentDialogForFilesRef.current(files);
 	}, [selectedConversationId, pendingSharedImages]);
-	const previousPendingAttachmentRef = useRef(pendingAttachmentFile);
+	// A pick belongs to the conversation it was made in.
 	useEffect(() => {
-		// Only advance when a dialog was open and just closed — on the render
-		// that queued the files, the first one's dialog isn't open *yet*.
-		const dialogJustClosed = previousPendingAttachmentRef.current != null && !pendingAttachmentFile;
-		previousPendingAttachmentRef.current = pendingAttachmentFile;
-		const queue = attachmentQueueRef.current;
-		if (!queue) return;
-		if (queue.conversationId !== selectedConversationId) {
-			attachmentQueueRef.current = null;
-			setAttachmentStep(null);
-			return;
+		if (pendingAttachments && pendingAttachments.conversationId !== selectedConversationId) {
+			preparedAttachmentsRef.current = [];
+			setPendingAttachments(null);
 		}
-		if (!dialogJustClosed) return;
-		const next = queue.files.shift();
-		if (next) {
-			setAttachmentStep({ index: queue.total - queue.files.length, total: queue.total });
-			openAttachmentDialogForFileRef.current(next);
-			return;
-		}
-		attachmentQueueRef.current = null;
-		setAttachmentStep(null);
-		if (queue.prepared.length > 0) void sendPreparedAttachments(queue.prepared);
-	}, [pendingAttachmentFile, selectedConversationId, sendPreparedAttachments]);
+	}, [pendingAttachments, selectedConversationId]);
 
 	const onAttachmentInput = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(event.target.files ?? []);
@@ -7124,7 +7084,7 @@ export function ChatPage() {
 	};
 
 	const onAttachmentPaste = (file: File) => {
-		openAttachmentDialogForFile(file);
+		openAttachmentDialogForFiles([file]);
 	};
 
 	const onAttachmentDrop = (files: File[]) => {
@@ -7409,19 +7369,14 @@ export function ChatPage() {
 			onAttachmentPaste={onAttachmentPaste}
 			onAttachmentDrop={onAttachmentDrop}
 			isUploadingAttachment={isUploadingAttachment}
-			pendingAttachmentFile={pendingAttachmentFile}
-			attachmentStep={attachmentStep}
-			attachmentLooping={attachmentLooping}
-			attachmentTakenOnGrindr={attachmentTakenOnGrindr}
+			pendingAttachmentFiles={pendingAttachments?.files ?? null}
 			attachmentAddToDrawer={attachmentAddToDrawer}
 			attachmentMaxViews={attachmentMaxViews}
-			setAttachmentLooping={setAttachmentLooping}
-			setAttachmentTakenOnGrindr={setAttachmentTakenOnGrindr}
 			setAttachmentAddToDrawer={setAttachmentAddToDrawer}
 			setAttachmentMaxViews={setAttachmentMaxViews}
-			confirmPendingAttachment={confirmPendingAttachment}
+			showAttachmentFile={showAttachmentFile}
 			confirmAttachmentFile={confirmAttachmentFile}
-			cancelPendingAttachment={cancelPendingAttachment}
+			finishAttachments={finishAttachments}
 			isAlbumPickerOpen={isAlbumPickerOpen}
 			isLoadingAlbums={isLoadingAlbums}
 			shareableAlbums={shareableAlbums}
