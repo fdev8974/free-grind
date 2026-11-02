@@ -79,6 +79,8 @@ export function MediaEditSheet({
 	onDone: (confirmed: boolean) => void;
 }) {
 	const [index, setIndex] = useState(0);
+	// The step is picking a photo's thumbnail (see thumbnailStep): its title then.
+	const [isThumbnailPhase, setIsThumbnailPhase] = useState(false);
 	const confirmedRef = useRef(false);
 	const closeRef = useRef<(() => void) | null>(null);
 	const file = files[index];
@@ -116,7 +118,7 @@ export function MediaEditSheet({
 						file={file}
 						index={index + 1}
 						total={files.length}
-						photoLabel={photoLabel}
+						photoLabel={isThumbnailPhase && thumbnailStep ? thumbnailStep.title : photoLabel}
 						videoLabel={videoLabel}
 					/>
 				}
@@ -137,6 +139,7 @@ export function MediaEditSheet({
 				showTakenOnGrindr={showTakenOnGrindr}
 				showLooping={showLooping}
 				thumbnailStep={thumbnailStep}
+				onThumbnailPhase={setIsThumbnailPhase}
 				onConfirm={confirm}
 			/>
 		</BottomSheet>

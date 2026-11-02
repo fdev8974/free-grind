@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, Plus, RefreshCw, Repeat, Video, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Film, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, Plus, RefreshCw, Repeat, Video, X } from "lucide-react";
 import type { AlbumMediaCount } from "../../../types/chat-page";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
@@ -596,27 +596,42 @@ export function DrawerMediaTile({
 		if (consumePreviewClick?.()) return;
 		onSelect?.(tile);
 	};
+	// No preview on this device (e.g. a video format the webview can't
+	// decode): the tile says so instead of staying blank.
+	const shownSrc = posterSrc ?? src;
+	const [failedSrc, setFailedSrc] = useState<string | null>(null);
+	const mediaFailed = failedSrc === shownSrc;
+	const failPreview = () => {
+		setFailedSrc(shownSrc);
+		onMediaError?.();
+	};
 	return (
 		<div
 			role="button"
 			tabIndex={onSelect && !muted ? 0 : -1}
-			{...previewProps}
+			// No peek of media that can't be shown here either.
+			{...(mediaFailed ? undefined : previewProps)}
 			onClick={(e) => select(e.currentTarget)}
 			onKeyDown={(e) => { if (e.key === "Enter") onSelect?.(e.currentTarget); }}
 			className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${onSelect ? "cursor-pointer" : "cursor-default"} ${busy ? "opacity-60" : ""} ${muted ? "pointer-events-none opacity-30" : ""}`}
 			style={{ outline: selected ? "2px solid var(--accent)" : "none", outlineOffset: "-2px" }}
 		>
-			{placeholder ?? (isVideo ? (
+			{placeholder ?? (mediaFailed ? (
+				<MediaPreviewFallback isVideo={isVideo} />
+			) : isVideo ? (
 				<>
 					{posterSrc ? (
-						<img src={proxyMediaUrl(posterSrc)} alt={alt ?? ""} draggable={false} onError={onMediaError} className={`h-full w-full object-cover ${mediaClassName}`} />
+						<img src={proxyMediaUrl(posterSrc)} alt={alt ?? ""} draggable={false} onError={failPreview} className={`h-full w-full object-cover ${mediaClassName}`} />
 					) : (
 						<video
 							src={proxyMediaUrl(src, { as: "video" })}
 							preload="metadata"
 							muted
-							onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
-							onError={onMediaError}
+							onLoadedMetadata={(e) => {
+								if (!videoHasPicture(e.currentTarget)) failPreview();
+								else e.currentTarget.currentTime = 0.001;
+							}}
+							onError={failPreview}
 							className={`h-full w-full object-cover ${mediaClassName}`}
 						/>
 					)}
@@ -627,7 +642,7 @@ export function DrawerMediaTile({
 					</div>
 				</>
 			) : (
-				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} onError={onMediaError} className={`h-full w-full object-cover ${mediaClassName}`} />
+				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} onError={failPreview} className={`h-full w-full object-cover ${mediaClassName}`} />
 			))}
 
 			{children}
@@ -664,21 +679,50 @@ export function DrawerMediaTile({
 export function DrawerUploadTile({ upload, label }: { upload: DrawerUpload; label?: string }) {
 	// Media already online goes through the proxy, like any other tile's.
 	const src = upload.isLocal ? upload.previewUrl : proxyMediaUrl(upload.previewUrl, upload.isVideo ? { as: "video" } : undefined);
+	const [previewFailed, setPreviewFailed] = useState(false);
 	return (
 		<div className={DRAWER_TILE_CLASS} aria-busy="true">
-			{upload.isVideo ? (
+			{upload.posterUrl ? (
+				<img src={upload.posterUrl} alt="" draggable={false} className="h-full w-full object-cover" />
+			) : previewFailed ? (
+				<MediaPreviewFallback isVideo={upload.isVideo} />
+			) : upload.isVideo ? (
 				<video
 					src={src}
 					preload="metadata"
 					muted
 					playsInline
-					onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
+					onLoadedMetadata={(e) => {
+						if (!videoHasPicture(e.currentTarget)) setPreviewFailed(true);
+						else e.currentTarget.currentTime = 0.001;
+					}}
+					onError={() => setPreviewFailed(true)}
 					className="h-full w-full object-cover"
 				/>
 			) : (
-				<img src={src} alt="" draggable={false} className="h-full w-full object-cover" />
+				<img src={src} alt="" draggable={false} onError={() => setPreviewFailed(true)} className="h-full w-full object-cover" />
 			)}
 			<MediaUploadOverlay progress={upload.progress} label={label} />
+		</div>
+	);
+}
+
+/** A video this device can't show a picture of: its format isn't decoded
+ * here (it loads, but without a picture), or it errors outright. */
+function videoHasPicture(video: HTMLVideoElement): boolean {
+	return video.videoWidth > 0 && video.videoHeight > 0;
+}
+
+/** In a tile whose media can't be shown on this device: what it is, and that
+ * there's no preview — not a blank or black tile. */
+export function MediaPreviewFallback({ isVideo }: { isVideo: boolean }) {
+	const { t } = useTranslation();
+	return (
+		<div className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-2 text-center text-[var(--text-muted)]">
+			{isVideo ? <Film className="h-6 w-6 opacity-60" /> : <Images className="h-6 w-6 opacity-60" />}
+			<span className="text-[10px] font-semibold uppercase tracking-wider">
+				{t("chat_drawer.no_preview", { defaultValue: "No preview" })}
+			</span>
 		</div>
 	);
 }

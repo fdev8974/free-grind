@@ -280,7 +280,10 @@ export function BottomSheet({
 		const historyId = historyIdRef.current;
 		if (!didPushHistoryRef.current) {
 			didPushHistoryRef.current = true;
-			history.pushState({ bottomSheet: true, bottomSheetId: historyId }, "");
+			// Keeps the router's state (location state, key, index): landing on
+			// this entry by a back press — e.g. one a sheet unmounted without
+			// popping left behind — mustn't lose it, like a profile's edit mode.
+			history.pushState({ ...(history.state as object | null), bottomSheet: true, bottomSheetId: historyId }, "");
 		}
 		const onPopState = () => {
 			// Ids grow in stacking order, so a pop that lands on this sheet's

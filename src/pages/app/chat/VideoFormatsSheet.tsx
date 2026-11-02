@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
+import { usePreferences } from "../../../contexts/PreferencesContext";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { SHEET_GROUP_CLASS } from "../../../components/ui/sheet-section";
 import { loadMediaSupport, type FormatSupport, type MediaSupport, type SendSupport } from "../../../services/mediaSupport";
@@ -116,12 +117,14 @@ function VideoFormatsList() {
 
 /**
  * The video upload sheet's header button: opens what this device does with
- * each video format (VideoFormatsList) over the sheet.
+ * each video format (VideoFormatsList) over the sheet. Developer mode only.
  */
 export function VideoFormatsButton({ isDesktop }: { isDesktop: boolean }) {
 	const { t } = useTranslation();
+	const { developerMode } = usePreferences();
 	const [open, setOpen] = useState(false);
 	const title = t("about_page.media.section", { defaultValue: "Video formats on this device" });
+	if (!developerMode) return null;
 	return (
 		<>
 			<button type="button" onClick={() => setOpen(true)} aria-label={title} title={title} className={SHEET_ICON_BUTTON_CLASS}>

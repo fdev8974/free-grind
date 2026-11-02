@@ -1,13 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { UploadPhase } from "../../../services/stagedVideoUpload";
+import { resolveVideoEdit } from "../../../services/videoEdit";
+import { editPoster } from "../../../services/videoReencode";
 import { DrawerUploadTile } from "./drawerUi";
 
 /** A file being uploaded, shown as a placeholder tile until the grid it
  * goes into has reloaded with it. `isLocal`: the preview is an object URL
  * of the picked file (revoked with the tile), else media already online
  * (e.g. drawer items going into an album). */
-export type DrawerUpload = { id: number; previewUrl: string; isLocal: boolean; isVideo: boolean; progress: number; phase?: UploadPhase };
+export type DrawerUpload = {
+	id: number;
+	previewUrl: string;
+	isLocal: boolean;
+	isVideo: boolean;
+	/** For a picked video: a still of what goes out (cut, turned upright,
+	 * see editPoster), shown instead of the whole original once it's made. */
+	posterUrl?: string;
+	progress: number;
+	phase?: UploadPhase;
+};
 
 /** What a tile previews: a picked file, or media that's already online. */
 export type UploadTileSource = File | { src: string; isVideo: boolean };
@@ -23,6 +35,8 @@ let nextUploadId = 1;
 export function useUploadTiles() {
 	const { t } = useTranslation();
 	const [uploads, setUploads] = useState<DrawerUpload[]>([]);
+	const uploadsRef = useRef(uploads);
+	uploadsRef.current = uploads;
 
 	const update = useCallback((id: number, change: Partial<DrawerUpload>) => {
 		setUploads((previous) => previous.map((upload) => (upload.id === id ? { ...upload, ...change } : upload)));
@@ -32,6 +46,7 @@ export function useUploadTiles() {
 		setUploads((previous) => previous.filter((upload) => {
 			if (!ids.includes(upload.id)) return true;
 			if (upload.isLocal) URL.revokeObjectURL(upload.previewUrl);
+			if (upload.posterUrl) URL.revokeObjectURL(upload.posterUrl);
 			return false;
 		}));
 	}, []);
@@ -46,8 +61,26 @@ export function useUploadTiles() {
 			progress: 0,
 		}));
 		setUploads((previous) => [...previous, ...round]);
+		// A picked video shows what is sent, like the chat bubble does: the
+		// still of its edit, not the whole original (e.g. a landscape video
+		// that goes out cropped upright).
+		sources.forEach((source, index) => {
+			if (!(source instanceof File) || !round[index].isVideo) return;
+			const { id } = round[index];
+			void (async () => {
+				const edit = await resolveVideoEdit(source);
+				const poster = edit ? await editPoster(source, edit) : null;
+				if (!poster) return;
+				// Done (or dropped) before the still was ready.
+				if (!uploadsRef.current.some((upload) => upload.id === id)) {
+					URL.revokeObjectURL(poster);
+					return;
+				}
+				update(id, { posterUrl: poster });
+			})();
+		});
 		return round.map(({ id }) => id);
-	}, []);
+	}, [update]);
 
 	/**
 	 * Runs one file's upload with its tile's progress: a video reports where
@@ -77,10 +110,9 @@ export function useUploadTiles() {
 	);
 
 	// Unmounted mid-round: the uploads go on, their previews don't.
-	const uploadsRef = useRef(uploads);
-	uploadsRef.current = uploads;
 	useEffect(() => () => uploadsRef.current.forEach((upload) => {
 		if (upload.isLocal) URL.revokeObjectURL(upload.previewUrl);
+		if (upload.posterUrl) URL.revokeObjectURL(upload.posterUrl);
 	}), []);
 
 	const tiles = uploads.map((upload) => (

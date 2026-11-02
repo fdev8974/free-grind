@@ -34,6 +34,7 @@ export function MediaEditStep({
 	showTakenOnGrindr = true,
 	showLooping = true,
 	thumbnailStep,
+	onThumbnailPhase,
 	onConfirm,
 }: {
 	file: File;
@@ -52,9 +53,12 @@ export function MediaEditStep({
 	/**
 	 * Photos get a second step after the edit (profile photos): a square
 	 * picked on the edited photo for the server-rendered thumbnail, handed
-	 * on as `thumbnail`. The hints say which step it is.
+	 * on as `thumbnail`. The edit looks as everywhere else; the thumbnail
+	 * step gets `title` as the sheet's title (see onThumbnailPhase).
 	 */
-	thumbnailStep?: { editHint: string; thumbnailHint: string; backLabel: string };
+	thumbnailStep?: { title: string; backLabel: string };
+	/** Whether the thumbnail step is shown, for the sheet's title; reported before it's painted. */
+	onThumbnailPhase?: (active: boolean) => void;
 	onConfirm: (edit: MediaEdit) => void | Promise<void>;
 }) {
 	const { t } = useTranslation();
@@ -76,6 +80,11 @@ export function MediaEditStep({
 	const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
 	const isThumbnailPhase = thumbnailFile != null;
 	const shownFile = thumbnailFile ?? file;
+	const onThumbnailPhaseRef = useRef(onThumbnailPhase);
+	onThumbnailPhaseRef.current = onThumbnailPhase;
+	useLayoutEffect(() => {
+		onThumbnailPhaseRef.current?.(isThumbnailPhase);
+	}, [isThumbnailPhase]);
 
 	// Moving on to the next picked file, its image or video has no size until
 	// it loaded — the step keeps its last height until then instead of the
@@ -112,7 +121,9 @@ export function MediaEditStep({
 
 	// A new preview (next file, or the thumbnail step's edited photo): fresh
 	// crop, nothing turned. Layout effect, so the swap never paints the step
-	// without its preview.
+	// without its preview. Also on every switch between edit and thumbnail:
+	// an untouched edit hands on `file` itself, so the shown file stays the
+	// same, but the thumbnail's square mustn't become the edit's crop.
 	useLayoutEffect(() => {
 		const isSwap = previousFileRef.current != null;
 		previousFileRef.current = shownFile;
@@ -125,7 +136,7 @@ export function MediaEditStep({
 		setCompletedCrop(undefined);
 		setTransformed(false);
 		return () => URL.revokeObjectURL(url);
-	}, [shownFile]);
+	}, [shownFile, isThumbnailPhase]);
 
 	// The edit starts on the whole image; the thumbnail's square is seeded
 	// once the image has its size (see onImageLoad).
@@ -222,11 +233,6 @@ export function MediaEditStep({
 			>
 			{/* Unmounted for the render that switches files, so the trimmer and
 			    crop start fresh for the next one. */}
-			{thumbnailStep && !isVideo && (
-				<p className="mb-2 text-xs text-[var(--text-muted)]">
-					{isThumbnailPhase ? thumbnailStep.thumbnailHint : thumbnailStep.editHint}
-				</p>
-			)}
 			{previewUrl && previewFile === shownFile && isVideo && (
 				<div className="flex min-h-full flex-col">
 					<VideoTrimmer
@@ -332,26 +338,25 @@ export function MediaEditStep({
 					)}
 				</div>
 				</div>
-				<div className="my-auto flex items-center justify-center gap-3 pt-2">
-					{/* The thumbnail is only picked, on the photo as edited. */}
-					{!isThumbnailPhase && (
-						<>
-							<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyTransform("flipH")} />
-							<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyTransform("rotateCw")} />
-						</>
-					)}
-					{showTakenOnGrindr && (
-						<>
-							{!isThumbnailPhase && <MediaToolDivider />}
-							<MediaToolButton
-								icon={<TakenOnGrindrToolIcon active={takenOnGrindr} />}
-								label={t("chat.attachments.taken_on_grindr")}
-								active={takenOnGrindr}
-								onClick={() => setTakenOnGrindr((value) => !value)}
-							/>
-						</>
-					)}
-				</div>
+				{/* None for the thumbnail: it's only picked, on the photo as edited
+				    (taken on Grindr was set then, its badge still shows). */}
+				{!isThumbnailPhase && (
+					<div className="my-auto flex items-center justify-center gap-3 pt-2">
+						<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyTransform("flipH")} />
+						<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyTransform("rotateCw")} />
+						{showTakenOnGrindr && (
+							<>
+								<MediaToolDivider />
+								<MediaToolButton
+									icon={<TakenOnGrindrToolIcon active={takenOnGrindr} />}
+									label={t("chat.attachments.taken_on_grindr")}
+									active={takenOnGrindr}
+									onClick={() => setTakenOnGrindr((value) => !value)}
+								/>
+							</>
+						)}
+					</div>
+				)}
 				</div>
 			)}
 			</div>

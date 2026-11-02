@@ -807,8 +807,8 @@ export function useProfileEditor() {
 				}
 
 				// Uploading only lands the image in the server-side pool — it doesn't
-				// select it into a profile slot. The picture drawer (back once the edit
-				// sheet closed) swaps the upload's placeholder for the new image, as a
+				// select it into a profile slot. The picture drawer (open under the
+				// edit sheet) swaps the upload's placeholder for the new image, as a
 				// pickable, not-yet-used tile.
 				setPoolImages((prev) => [
 					{ mediaHash: uploadedHash, type: 0, state: MEDIA_MODERATION_STATE.PENDING },

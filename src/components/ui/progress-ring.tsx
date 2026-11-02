@@ -41,17 +41,23 @@ export function ProgressRing({
 }
 
 /** Over a media preview while it uploads: the ring, and with `label` (e.g. a
- * video's phase) that and the percentage below it. Chat bubbles and the
- * drawers' upload placeholders. */
-export function MediaUploadOverlay({ progress, label }: { progress: number; label?: string }) {
+ * video's phase) that and the percentage below it. `progress: null` is work
+ * without a known end (e.g. the server still processing an upload): the ring
+ * spins and the label goes without a percentage. Chat bubbles, the drawers'
+ * upload placeholders, album items still processing. */
+export function MediaUploadOverlay({ progress, label }: { progress: number | null; label?: string }) {
+	// The preview dimmed as a whole, and a plain white ring on it (no disc
+	// behind): white reads on any picture, and the accent stays "selected".
 	return (
-		<div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/30">
-			<div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
-				<ProgressRing progress={progress} className="h-8 w-8" />
-			</div>
+		<div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/50 text-white">
+			{progress == null ? (
+				<ProgressRing progress={25} className="h-9 w-9 animate-spin drop-shadow" />
+			) : (
+				<ProgressRing progress={progress} className="h-9 w-9 drop-shadow" />
+			)}
 			{label ? (
-				<span className="max-w-[calc(100%-8px)] truncate rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
-					{label} · {Math.round(progress)}%
+				<span className="max-w-[calc(100%-8px)] truncate text-[11px] font-semibold tabular-nums drop-shadow">
+					{progress == null ? label : `${label} · ${Math.round(progress)}%`}
 				</span>
 			) : null}
 		</div>

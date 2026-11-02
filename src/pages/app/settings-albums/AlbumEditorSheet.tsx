@@ -14,7 +14,6 @@ import {
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
-import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import {
 	DndContext,
 	PointerSensor,
@@ -37,6 +36,7 @@ import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton, SHE
 import { NATIVE_SHEET_BG, SheetActionList, afterSheetClose } from "../../../components/ui/action-sheet";
 import { SheetSection, SheetTextInput } from "../../../components/ui/sheet-section";
 import { ProfileImage } from "../../../components/ui/profile-image";
+import { MediaUploadOverlay } from "../../../components/ui/progress-ring";
 import type { Album, AlbumDetail, AlbumLimits, AlbumMedia } from "../../../types/albums";
 import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import { appLog } from "../../../utils/logger";
@@ -49,6 +49,7 @@ import {
 	DrawerHeader,
 	DrawerMediaPreview,
 	DrawerMediaTile,
+	MediaPreviewFallback,
 	drawerGridClass,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
@@ -64,7 +65,7 @@ import {
 	getVideodimensions,
 	getVideoDurationMs,
 } from "./settingsAlbumsUtils";
-import { useOwnDrawerMedia } from "./useOwnDrawerMedia";
+import { downloadDrawerMedia, useOwnDrawerMedia } from "./useOwnDrawerMedia";
 
 type SortableAlbumMediaItemProps = {
 	item: AlbumMedia;
@@ -117,19 +118,19 @@ function SortableAlbumMediaItem({
 				posterSrc={isVideo ? imageUrl : undefined}
 				alt={t("settings_albums.media_alt", { index: index + 1 })}
 				mediaClassName={isRejected ? "opacity-40 grayscale" : ""}
+				// A preview that fails to load shows the tile's own "no preview";
+				// this only keeps the peek from opening it.
 				onMediaError={() => setPreviewFailed(true)}
-				placeholder={showPreview ? undefined : (
-					<div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-[var(--text-muted)]">
+				placeholder={isProcessing ? (
+					<div className="flex h-full w-full items-center justify-center text-[var(--text-muted)]">
 						{isVideo ? <Film className="h-7 w-7 opacity-50" /> : <Images className="h-7 w-7 opacity-50" />}
-						{isProcessing ? (
-							// In the middle, where the preview will be: a corner badge this long gets clipped.
-							<span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-500">
-								<Loader2 className="h-3 w-3 animate-spin" />
-								{t("settings_albums.processing", { defaultValue: "Processing" })}
-							</span>
-						) : null}
+						{/* Styled like the upload before it (see useUploadTiles), the ring
+						    spinning: the server doesn't say how far along it is. */}
+						<MediaUploadOverlay progress={null} label={t("settings_albums.processing", { defaultValue: "Processing" })} />
 					</div>
-				)}
+				) : !imageUrl ? (
+					<MediaPreviewFallback isVideo={isVideo} />
+				) : undefined}
 				previewProps={showPreview && peekSrc ? bindPreview({ src: peekSrc, isVideo, placeholderSrc: isVideo ? undefined : imageUrl }) : undefined}
 				consumePreviewClick={consumePreviewClick}
 				busy={isDeleting}
@@ -447,30 +448,6 @@ export function AlbumEditorSheet({
 		// Force-refresh — drawer media added since a previous picker session
 		// (e.g. from the chat screen) would be missing otherwise.
 		void loadDrawerMedia(true);
-	};
-
-	// Drawer item as a File, for uploading it to an album directly. A locally
-	// cached copy is a base64 data: URI, decoded here without a fetch; the CDN
-	// URL goes through plugin-http, the webview's own fetch is blocked by CORS.
-	const downloadDrawerMedia = async (item: DrawerMedia): Promise<File | null> => {
-		const extension = item.contentType.split("/")[1]?.split(";")[0] || "mp4";
-		const fileName = `drawer-${item.id}.${extension}`;
-		try {
-			const cachedUri = getCachedMediaUri(getDrawerMediaKey(item.id));
-			const base64 = cachedUri?.startsWith("data:") ? cachedUri.slice(cachedUri.indexOf(",") + 1) : null;
-			if (base64) {
-				const binary = atob(base64);
-				const bytes = new Uint8Array(binary.length);
-				for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-				return new File([bytes], fileName, { type: item.contentType });
-			}
-			const response = await tauriFetch(item.url);
-			if (!response.ok) throw new Error(`Download failed (${response.status})`);
-			return new File([await response.arrayBuffer()], fileName, { type: item.contentType });
-		} catch (downloadError) {
-			appLog.warn(`[AlbumEditorSheet] failed to download drawer media ${item.id}`, downloadError);
-			return null;
-		}
 	};
 
 	// Applies the album's limits (free slots, size, video count and length)
@@ -1120,6 +1097,9 @@ export function AlbumEditorSheet({
 				const remainingSlots = limits?.maxContentItemsPerAlbum != null
 					? Math.max(0, limits.maxContentItemsPerAlbum - mediaCounts.total)
 					: Infinity;
+				const remainingVideoSlots = limits?.maxVideosPerAlbum != null
+					? Math.max(0, limits.maxVideosPerAlbum - mediaCounts.videos)
+					: Infinity;
 				return (
 					<AlbumDrawerPickerSheet
 						media={drawerMedia}
@@ -1131,7 +1111,7 @@ export function AlbumEditorSheet({
 						closeRef={drawerPickerCloseRef}
 						isSubmitting={isAddingFromDrawer}
 						remainingSlots={remainingSlots}
-						maxItems={limits?.maxContentItemsPerAlbum ?? undefined}
+						remainingVideoSlots={remainingVideoSlots}
 						isDesktop={isDesktop}
 					/>
 				);
