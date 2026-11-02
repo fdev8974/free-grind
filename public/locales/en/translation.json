@@ -3039,6 +3039,8 @@
     "backup_note": "Exports are tied to your profile — a file can only be imported back into the same account it came from.",
     "media_storage": "Media Storage",
     "storage_used": "Storage used",
+    "backup_section": "Account Backup",
+    "storage_note": "Photos and videos you saved to your device from the app. Your chats and the app's cache aren't counted, and files you added to the same album or folder yourself aren't touched.",
     "storage_loading": "Calculating…",
     "storage_summary": "{{size}} across {{count}} files",
     "delete_all": "Delete all",

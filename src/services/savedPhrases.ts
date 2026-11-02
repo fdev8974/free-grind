@@ -87,11 +87,3 @@ export async function syncSavedPhrasesFromServer(
 		return null;
 	}
 }
-
-export function phrasesToTxt(phrases: string[]): string {
-	return normalizeSavedPhrases(phrases).join("\n");
-}
-
-export function parsePhrasesFromTxt(content: string): string[] {
-	return normalizeSavedPhrases(content.split(/\r?\n/g));
-}

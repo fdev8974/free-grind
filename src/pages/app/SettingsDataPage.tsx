@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Download,
 	FileDown,
+	Info,
 	Loader2,
 	RotateCcw,
 	ShieldCheck,
 	Trash2,
 	Upload,
 } from "lucide-react";
-import { CalendarDaysFilled, FileUpFilled, MessageSquareQuoteFilled } from "../../components/icons/FilledIcons";
+import { CalendarDaysFilled, FileUpFilled } from "../../components/icons/FilledIcons";
 import toast from "react-hot-toast";
 import { saveTextFile } from "../../services/saveTextFile";
 import { useTranslation } from "react-i18next";
@@ -41,7 +42,6 @@ import {
 import { loadEncounters } from "../../services/encounters";
 import { encountersToIcs } from "../../services/icsExport";
 import { deleteAllDownloadedMedia, getDownloadedMediaUsage, isAndroid, isIos } from "../../services/saveMedia";
-import { loadSavedPhrases, parsePhrasesFromTxt, phrasesToTxt, saveSavedPhrases } from "../../services/savedPhrases";
 import { resetAllSettings } from "../../utils/resetSettings";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import { appLog } from "../../utils/logger";
@@ -76,16 +76,8 @@ export function SettingsDataPage() {
 		selected: Set<BackupCategoryId>;
 	} | null>(null);
 
-	const [savedPhrases, setSavedPhrases] = useState<string[]>([]);
-	const [isExportingPhrases, setIsExportingPhrases] = useState(false);
-	const [isImportingPhrases, setIsImportingPhrases] = useState(false);
-	const phrasesInputRef = useRef<HTMLInputElement>(null);
 
 	const [isExportingEncounters, setIsExportingEncounters] = useState(false);
-
-	useEffect(() => {
-		void loadSavedPhrases().then(setSavedPhrases);
-	}, []);
 
 	const loadUsage = useCallback(async () => {
 		setIsLoadingUsage(true);
@@ -289,56 +281,6 @@ export function SettingsDataPage() {
 		});
 	};
 
-	const handleExportPhrasesTxt = async () => {
-		const content = phrasesToTxt(savedPhrases);
-		if (!content) {
-			toast.error(t("data_backup.phrases_export_empty", { defaultValue: "No saved phrases to export." }));
-			return;
-		}
-		setIsExportingPhrases(true);
-		try {
-			const fileName = `free-grind-saved-phrases-${new Date().toISOString().slice(0, 10)}.txt`;
-			await saveTextFile(fileName, `${content}\n`, "text/plain");
-
-			toast.success(
-				isAndroid()
-					? t("data_backup.phrases_export_success", { defaultValue: "Saved phrases exported." })
-					: isIos()
-						? t("data_backup.phrases_export_success_ios", {
-								defaultValue: "Saved phrases exported. Find it in the Files app under On My iPhone/iPad → Free Grind.",
-							})
-						: t("data_backup.phrases_export_success_desktop", { defaultValue: "Saved phrases exported to Downloads/FreeGrind." }),
-			);
-		} catch (error) {
-			toast.error(getErrorMessage(error, t("data_backup.phrases_export_failed", { defaultValue: "Failed to export saved phrases." })));
-		} finally {
-			setIsExportingPhrases(false);
-		}
-	};
-
-	const handleImportPhrasesFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		event.target.value = "";
-		if (!file) return;
-
-		setIsImportingPhrases(true);
-		try {
-			const content = await file.text();
-			const imported = parsePhrasesFromTxt(content);
-			if (imported.length === 0) {
-				toast.error(t("data_backup.phrases_import_empty", { defaultValue: "No valid phrases found in that file." }));
-				return;
-			}
-			const updated = await saveSavedPhrases(imported);
-			setSavedPhrases(updated);
-			toast.success(t("data_backup.phrases_import_success", { defaultValue: "Saved phrases imported." }));
-		} catch {
-			toast.error(t("data_backup.phrases_import_error", { defaultValue: "Failed to import saved phrases." }));
-		} finally {
-			setIsImportingPhrases(false);
-		}
-	};
-
 	const handleExportEncountersIcs = async () => {
 		setIsExportingEncounters(true);
 		try {
@@ -389,6 +331,9 @@ export function SettingsDataPage() {
 
 			<div className="grid gap-8">
 				<div>
+					<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+						{t("data_backup.backup_section", { defaultValue: "Account Backup" })}
+					</p>
 					<div className="native-group">
 						<button
 							id="data-export"
@@ -511,78 +456,16 @@ export function SettingsDataPage() {
 									{t("data_backup.delete_all", { defaultValue: "Delete all" })}
 								</RowActionPill>
 							</div>
-						</div>
-					</div>
 
-					{/* Saved Phrases */}
-					<div>
-						<p className="mb-2 px-1 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-							{t("data_backup.phrases_section", { defaultValue: "Saved Phrases" })}
-						</p>
-						<div className="native-group">
-							<button
-								id="data-phrases-export"
-								type="button"
-								onClick={() => void handleExportPhrasesTxt()}
-								disabled={savedPhrases.length === 0 || isExportingPhrases}
-								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${savedPhrases.length === 0 ? "opacity-50" : "hover-fill"} ${highlightId === "data-phrases-export" ? "animate-settings-highlight" : ""}`}
-							>
-								<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
-									<MessageSquareQuoteFilled className="h-5 w-5" />
-								</div>
-								<div className="min-w-0 flex-1">
-									<p className="text-sm font-semibold leading-snug">
-										{t("data_backup.phrases_export", { defaultValue: "Export .txt" })}
-									</p>
-									<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-										{t("data_backup.phrases_export_desc", {
-											defaultValue: "Save your saved phrases as a plain text file, one per line.",
-										})}
-									</p>
-								</div>
-								{isExportingPhrases ? (
-									<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-muted)]" />
-								) : (
-									<Download className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-								)}
-							</button>
-
-							<button
-								id="data-phrases-import"
-								type="button"
-								onClick={() => phrasesInputRef.current?.click()}
-								disabled={isImportingPhrases}
-								className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImportingPhrases ? "opacity-50" : "hover-fill"} ${highlightId === "data-phrases-import" ? "animate-settings-highlight" : ""}`}
-							>
-								<div className="shrink-0 rounded-2xl bg-violet-500/15 p-2.5 text-violet-400">
-									<Upload className="h-5 w-5" />
-								</div>
-								<div className="min-w-0 flex-1">
-									<p className="text-sm font-semibold leading-snug">
-										{isImportingPhrases
-											? t("data_backup.phrases_importing", { defaultValue: "Importing…" })
-											: t("data_backup.phrases_import", { defaultValue: "Import .txt" })}
-									</p>
-									<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-										{t("data_backup.phrases_import_desc", {
-											defaultValue: "One phrase per line — replaces the current list.",
-										})}
-									</p>
-								</div>
-								{isImportingPhrases ? (
-									<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-muted)]" />
-								) : (
-									<Upload className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-								)}
-							</button>
+							<div className="flex items-start gap-2.5 px-4 py-3">
+								<Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
+								<p className="text-xs leading-relaxed text-[var(--text-muted)]">
+									{t("data_backup.storage_note", {
+										defaultValue: "Photos and videos you saved to your device from the app. Your chats and the app's cache aren't counted, and files you added to the same album or folder yourself aren't touched.",
+									})}
+								</p>
+							</div>
 						</div>
-						<input
-							ref={phrasesInputRef}
-							type="file"
-							accept=".txt,text/plain"
-							className="hidden"
-							onChange={(event) => void handleImportPhrasesFile(event)}
-						/>
 					</div>
 
 					{/* Encounters */}

@@ -39,7 +39,6 @@ import {
 	MapPin,
 	Type,
 	Trash2,
-	Upload,
 	UserCircle,
 	UserX,
 	Workflow,
@@ -829,30 +828,6 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			}),
 			section: t("settings.search_sections.backup_restore"),
 			icon: FileUp,
-			iconClass: "bg-violet-500/15 text-violet-400",
-		},
-		{
-			id: "data-phrases-export",
-			route: "/settings/data",
-			anchor: "data-phrases-export",
-			label: t("data_backup.phrases_export", { defaultValue: "Export .txt" }),
-			description: t("data_backup.phrases_export_desc", {
-				defaultValue: "Save your saved phrases as a plain text file, one per line.",
-			}),
-			section: t("settings.search_sections.backup_restore"),
-			icon: MessageSquareQuote,
-			iconClass: "bg-teal-500/15 text-teal-400",
-		},
-		{
-			id: "data-phrases-import",
-			route: "/settings/data",
-			anchor: "data-phrases-import",
-			label: t("data_backup.phrases_import", { defaultValue: "Import .txt" }),
-			description: t("data_backup.phrases_import_desc", {
-				defaultValue: "One phrase per line — replaces the current list.",
-			}),
-			section: t("settings.search_sections.backup_restore"),
-			icon: Upload,
 			iconClass: "bg-violet-500/15 text-violet-400",
 		},
 		{

@@ -471,8 +471,8 @@ export async function getDownloadedMediaUsage(): Promise<{ count: number; totalB
 export type DeleteAllDownloadedMediaResult = { deleted: number; failed: number };
 
 /**
- * Deletes every file this app has ever saved to the device (manual saves
- * and auto-downloads alike) — precisely the tracked entries, nothing the
+ * Deletes every file the user has saved to the device from the app —
+ * precisely the tracked entries, nothing the
  * user added to the same album/folder themselves. Platform-specific:
  * iOS deletes tracked Photos assets from the "Free Grind" album,
  * Android removes each tracked MediaStore file, desktop removes each

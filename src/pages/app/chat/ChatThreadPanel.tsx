@@ -18,7 +18,6 @@ import {
 	MapPin,
 	Square,
 	Plus,
-	Settings2,
 	MessageCircleOff,
 	Flag,
 	MessageSquarePlus,
@@ -94,7 +93,7 @@ import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidde
 import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
 import { SheetSearchInput } from "../../../components/ui/sheet-section";
-import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
+import { BottomSheet, SheetClose, SheetCloseButton } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG, SheetActionList } from "../../../components/ui/action-sheet";
 import {
 	DndContext,
@@ -2866,21 +2865,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										</span>
 									)}
 								</div>
-								<div className="flex items-center gap-2">
-									<button
-										type="button"
-										onClick={() => {
-											afterSheetCloseRef.current = () => navigate("/settings/data");
-											savedPhrasesSheetCloseRef.current?.();
-										}}
-										className={SHEET_ICON_BUTTON_CLASS}
-										aria-label={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
-										title={t("chat.saved_phrases_manage", { defaultValue: "Manage" })}
-									>
-										<Settings2 className="h-4 w-4" />
-									</button>
-									<SheetCloseButton />
-								</div>
+								<SheetCloseButton />
 							</div>
 
 							{/* Add field: round add button inside, like a composer. */}

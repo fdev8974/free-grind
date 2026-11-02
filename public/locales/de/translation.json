@@ -3041,6 +3041,8 @@
         "backup_note": "Exporte sind an dein Profil gebunden – eine Datei kann nur in das Konto importiert werden, aus dem sie stammt.",
         "media_storage": "Medienspeicher",
         "storage_used": "Belegter Speicher",
+        "backup_section": "Konto-Backup",
+        "storage_note": "Fotos und Videos, die du aus der App auf deinem Gerät gespeichert hast. Chats und der App-Cache zählen nicht dazu, und Dateien, die du selbst im selben Album oder Ordner abgelegt hast, bleiben unberührt.",
         "storage_loading": "Wird berechnet…",
         "storage_summary": "{{size}} in {{count}} Dateien",
         "delete_all": "Alle löschen",
