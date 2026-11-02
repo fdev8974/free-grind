@@ -180,8 +180,22 @@ export async function stagingRanges(file: File, edit: VideoEdit | null | undefin
 	return merged;
 }
 
+// What the editor registers and the upload reads back, per File. Kept on
+// globalThis rather than in this module: a hot reload in dev leaves the
+// editor and the upload on different instances of it, and the upload then
+// finds no edit and sends the default (the first 15 s on bars) instead.
+const registry = ((globalThis as { __freeGrindVideoEdit?: VideoEditRegistry }).__freeGrindVideoEdit ??= {
+	points: new WeakMap(),
+	edits: new WeakMap(),
+});
+
+interface VideoEditRegistry {
+	points: WeakMap<File, Promise<TrimPoints | null>>;
+	edits: WeakMap<File, VideoEdit>;
+}
+
 // Cached per File: the editor and the upload both ask.
-const pointsByFile = new WeakMap<File, Promise<TrimPoints | null>>();
+const pointsByFile = registry.points;
 
 /**
  * The video's length, keyframes and shown size, or null when it isn't a
@@ -270,7 +284,7 @@ export function segmentFiles(file: File, count: number): File[] {
 	});
 }
 
-const editsByFile = new WeakMap<File, VideoEdit>();
+const editsByFile = registry.edits;
 
 /** Registers the editor's pick for `file`; the upload reads it back. */
 export function setVideoEdit(file: File, edit: VideoEdit | null): void {

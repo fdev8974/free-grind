@@ -1,4 +1,4 @@
-import { Images } from "lucide-react";
+import { Album, Images } from "lucide-react";
 import { PromptDialog } from "../../components/ui/prompt-dialog";
 import {
 	type FormEvent,
@@ -6790,9 +6790,20 @@ export function ChatPage() {
 		userId,
 	]);
 
+	// Your own album, still shared in this chat (as the drawer tells it: an
+	// album message for it that's viewable): it can be unshared from the viewer.
+	const isAlbumViewerSharedHere = useMemo(() => {
+		if (!albumViewer?.isOwn) return false;
+		return threadMessages.some(
+			(message) =>
+				getMessageAlbumId(message) === albumViewer.albumId &&
+				(message.body as { isViewable?: boolean } | null)?.isViewable === true,
+		);
+	}, [albumViewer, threadMessages]);
+
 	const albumMenuActions = useMemo<PhotoViewerMenuAction[]>(() => {
 		if (!albumViewer) return [];
-		return [
+		const actions: PhotoViewerMenuAction[] = [
 			{
 				key: "save-all",
 				label: t("profile_details.save_all"),
@@ -6801,7 +6812,17 @@ export function ChatPage() {
 				disabled: isSavingAlbumAll || albumViewer.content.length === 0,
 			},
 		];
-	}, [albumViewer, isSavingAlbumAll, t, handleSaveAllAlbumMedia]);
+		if (isAlbumViewerSharedHere) {
+			actions.push({
+				key: "stop-sharing",
+				label: t("chat.actions.stop_sharing", { defaultValue: "Stop Sharing" }),
+				icon: Album,
+				onClick: () => void handleStopAlbumShare(albumViewer.albumId),
+				disabled: isMutatingMessageId != null,
+			});
+		}
+		return actions;
+	}, [albumViewer, isSavingAlbumAll, t, handleSaveAllAlbumMedia, isAlbumViewerSharedHere, handleStopAlbumShare, isMutatingMessageId]);
 
 	const handleSaveAllProfilePhotos = useCallback(async () => {
 		if (!fullScreenProfilePhotos || isSavingAllProfilePhotos) return;
