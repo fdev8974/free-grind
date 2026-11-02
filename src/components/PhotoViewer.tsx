@@ -253,8 +253,8 @@ export function PhotoViewer({
 	const [isVideoMuted, setIsVideoMuted] = useState(true);
 	// Drives the fade of every chrome element (header, buttons, page-count
 	// pill, video controls, footer) on mobile — a tap on the media toggles
-	// this. Always treated as visible on desktop (see `chromeVisible` below),
-	// since this is a mobile-only gesture.
+	// this. On desktop it's only turned off while a video plays and the mouse
+	// rests (see the desktop auto-hide effect).
 	const [showChrome, setShowChrome] = useState(true);
 	// Vertical drag-to-dismiss (mobile, unzoomed): the media follows the finger
 	// while the backdrop fades; past the threshold it closes, otherwise snaps back.
@@ -506,10 +506,32 @@ export function PhotoViewer({
 	// (see the media click handler below) without pausing, which re-arms this
 	// same timer.
 	useEffect(() => {
-		if (!isCurrentVideo || !isVideoPlaying || !showChrome) return;
+		if (isDesktop || !isCurrentVideo || !isVideoPlaying || !showChrome) return;
 		const timer = setTimeout(() => setShowChrome(false), 2500);
 		return () => clearTimeout(timer);
-	}, [isCurrentVideo, isVideoPlaying, showChrome]);
+	}, [isDesktop, isCurrentVideo, isVideoPlaying, showChrome]);
+
+	// Desktop's take on it, as video players there do: the chrome (and the
+	// cursor) fade out once the mouse has rested a moment while it plays,
+	// and any movement brings them back. Never while scrubbing.
+	useEffect(() => {
+		if (!isDesktop) return;
+		if (!isCurrentVideo || !isVideoPlaying || isScrubbing) {
+			setShowChrome(true);
+			return;
+		}
+		let timer = setTimeout(() => setShowChrome(false), 2500);
+		const onMove = () => {
+			setShowChrome(true);
+			clearTimeout(timer);
+			timer = setTimeout(() => setShowChrome(false), 2500);
+		};
+		window.addEventListener("mousemove", onMove);
+		return () => {
+			clearTimeout(timer);
+			window.removeEventListener("mousemove", onMove);
+		};
+	}, [isDesktop, isCurrentVideo, isVideoPlaying, isScrubbing]);
 
 	useEffect(() => {
 		if (!isMenuOpen) return;
@@ -884,6 +906,18 @@ export function PhotoViewer({
 			if (e.key === "Escape") { e.stopPropagation(); closeAnimated(); return; }
 			if (e.key === "ArrowLeft") showPrev();
 			if (e.key === "ArrowRight") showNext();
+			// Space plays/pauses a video, as in any player — unless it's typed
+			// (the footer's reply bar). Prevented, so a focused button isn't
+			// clicked by it too.
+			if (e.key === " " && !e.repeat) {
+				const target = e.target as HTMLElement | null;
+				if (target?.closest("input, textarea, [contenteditable='true']")) return;
+				const el = mediaRef.current;
+				if (!(el instanceof HTMLVideoElement)) return;
+				e.preventDefault();
+				if (el.paused) void el.play();
+				else el.pause();
+			}
 		};
 		window.addEventListener("keydown", onKey, { capture: true });
 		return () => window.removeEventListener("keydown", onKey, { capture: true });
@@ -1050,11 +1084,12 @@ export function PhotoViewer({
 	const activeSlot = N <= 1 ? 0 : trackPos;
 	const canAnimate = dragOffset === 0 && !noTransition;
 	const footerContent = renderFooter ? renderFooter(centerIdx) : null;
-	// The tap-to-hide-chrome gesture is mobile-only — desktop keeps chrome on
-	// permanently (showChrome still exists in state there, it's just never
-	// toggled since the click handler below only flips it off-desktop).
+	// The tap-to-hide-chrome gesture is mobile-only; on desktop showChrome is
+	// only ever turned off by the resting mouse over a playing video (see the
+	// desktop auto-hide effect), which also hides the cursor then.
 	const dismissProgress = Math.min(1, Math.abs(dismissY) / (DISMISS_THRESHOLD_PX * 2.5));
-	const chromeVisible = (isDesktop || showChrome) && dismissY === 0 && !isClosing && !isHeroBeforeFlight;
+	const chromeVisible = showChrome && dismissY === 0 && !isClosing && !isHeroBeforeFlight;
+	const hideCursor = isDesktop && !showChrome;
 	const chromeFadeClass = `transition-opacity duration-300 ${chromeVisible ? "opacity-100" : "pointer-events-none opacity-0"}`;
 
 	return createPortal(
@@ -1064,7 +1099,7 @@ export function PhotoViewer({
 			// pan/fling or a Lenis scroll, which could swallow the next tap after
 			// closing. Gestures are all handled in JS.
 			data-lenis-prevent
-			className="fixed inset-0 z-[80] touch-none overscroll-none"
+			className={`fixed inset-0 z-[80] touch-none overscroll-none ${hideCursor ? "cursor-none [&_*]:!cursor-none" : ""}`}
 			onClick={closeAnimated}
 			style={{
 				// Once closing, taps go straight through to the page below, even
@@ -1229,7 +1264,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); showPrev(); }}
 						onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, showPrev)}
-						className="absolute left-4 top-1/2 z-[83] inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white shadow-lg backdrop-blur-md transition active:scale-90"
+						className={`absolute left-4 top-1/2 z-[83] glass-icon-btn inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] active:scale-90 ${chromeFadeClass}`}
 						aria-label={t("profile_details.previous_photo")}
 					>
 						<ChevronLeft className="h-5 w-5" />
@@ -1239,7 +1274,7 @@ export function PhotoViewer({
 						onClick={(e) => { e.stopPropagation(); showNext(); }}
 						onTouchStart={(e) => { e.stopPropagation(); gestureMovedRef.current = false; }}
 						onTouchEnd={(e) => handleButtonTouchEnd(e, showNext)}
-						className="absolute right-4 top-1/2 z-[83] inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white shadow-lg backdrop-blur-md transition active:scale-90"
+						className={`absolute right-4 top-1/2 z-[83] glass-icon-btn inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] active:scale-90 ${chromeFadeClass}`}
 						aria-label={t("profile_details.next_photo")}
 					>
 						<ChevronRight className="h-5 w-5" />
@@ -1272,9 +1307,9 @@ export function PhotoViewer({
 					type="button"
 					onClick={(e) => { e.stopPropagation(); toggleVideoPlay(); }}
 					aria-label={isVideoPlaying ? t("profile_details.pause_video", { defaultValue: "Pause" }) : t("profile_details.play_video", { defaultValue: "Play" })}
-					className={`absolute left-1/2 top-1/2 z-[84] flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/55 text-white shadow-lg backdrop-blur-md active:scale-90 ${chromeFadeClass}`}
+					className={`absolute left-1/2 top-1/2 z-[84] glass-icon-btn flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 ${chromeFadeClass}`}
 				>
-					{isVideoPlaying ? <Pause className="h-7 w-7" /> : <Play className="h-7 w-7 pl-0.5" />}
+					{isVideoPlaying ? <Pause className="h-9 w-9 fill-current" /> : <Play className="h-9 w-9 fill-current pl-0.5" />}
 				</button>
 			)}
 
@@ -1290,7 +1325,7 @@ export function PhotoViewer({
 					}`}
 					onClick={(e) => e.stopPropagation()}
 				>
-					<div className="flex w-full max-w-xl items-center gap-3 rounded-full border border-white/15 bg-black/45 py-1.5 pl-4 pr-1.5 text-white shadow-[0_4px_20px_rgba(0,0,0,0.35)] backdrop-blur-md">
+					<div className="flex w-full max-w-xl items-center gap-3 rounded-full bg-black/45 py-1.5 pl-4 pr-1.5 text-white shadow-[0_4px_20px_rgba(0,0,0,0.35)] backdrop-blur-md">
 						<span className="shrink-0 text-xs font-medium tabular-nums">{formatVideoTime(videoCurrentTime)}</span>
 						<div
 							ref={trackBarRef}
@@ -1338,7 +1373,7 @@ export function PhotoViewer({
 							onClick={toggleVideoMute}
 							aria-label={isVideoMuted ? t("profile_details.unmute_video", { defaultValue: "Unmute" }) : t("profile_details.mute_video", { defaultValue: "Mute" })}
 							aria-pressed={!isVideoMuted}
-							className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-90"
+							className="glass-icon-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition active:scale-90"
 						>
 							{isVideoMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
 						</button>

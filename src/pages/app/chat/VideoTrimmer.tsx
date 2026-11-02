@@ -29,10 +29,10 @@ const LABEL_GAP = 8;
 /** The white edge of what gets sent, as the photo crop draws it; rounded like the sheet cards. */
 const FRAME_CLASS = "pointer-events-none absolute inset-0 rounded-[20px] border-[3px] border-white/60";
 const PLAY_BUTTON_CLASS =
-	"absolute inset-0 m-auto flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm";
+	"glass-icon-btn absolute inset-0 m-auto flex h-12 w-12 items-center justify-center rounded-full text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition";
 /** The small sound button in the preview's corner. */
 const CORNER_BUTTON_CLASS =
-	"flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition active:scale-90 [&_svg]:h-4 [&_svg]:w-4";
+	"glass-icon-btn flex h-8 w-8 items-center justify-center rounded-full text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] transition active:scale-90 [&_svg]:h-4 [&_svg]:w-4";
 const CROP_CORNERS = [
 	"left-1.5 top-1.5 rounded-tl-[11px] border-l-2 border-t-2",
 	"right-1.5 top-1.5 rounded-tr-[11px] border-r-2 border-t-2",
@@ -593,7 +593,7 @@ export function VideoTrimmer({
 								))}
 								{/* Moves with the frame; a tap on the frame plays or pauses (see onCropUp). */}
 								<span className={`${PLAY_BUTTON_CLASS} pointer-events-none`}>
-									{playing ? <Pause className="h-6 w-6" /> : <Play className="ml-0.5 h-6 w-6" />}
+									{playing ? <Pause className="h-8 w-8 fill-current" /> : <Play className="ml-0.5 h-8 w-8 fill-current" />}
 								</span>
 							</div>
 						)}
@@ -610,7 +610,7 @@ export function VideoTrimmer({
 						}
 						className={PLAY_BUTTON_CLASS}
 					>
-						{playing ? <Pause className="h-6 w-6" /> : <Play className="ml-0.5 h-6 w-6" />}
+						{playing ? <Pause className="h-8 w-8 fill-current" /> : <Play className="ml-0.5 h-8 w-8 fill-current" />}
 					</button>
 				)}
 				{points && (
