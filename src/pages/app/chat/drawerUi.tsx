@@ -143,6 +143,9 @@ export function DrawerEmptyState({
 	);
 }
 
+/** DrawerMediaTile placeholder while its local copy is still being read back. */
+export const DRAWER_TILE_LOADING = <div className="h-full w-full animate-pulse bg-[var(--surface-2)]" />;
+
 export type DrawerPreviewMedia = {
 	src: string;
 	isVideo: boolean;

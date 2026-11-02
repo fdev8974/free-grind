@@ -10,13 +10,14 @@ import {
 	DrawerGrid,
 	DrawerHeader,
 	DrawerMediaPreview,
+	DRAWER_TILE_LOADING,
 	DrawerMediaTile,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
 import { useCallback, useMemo, useState, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
-import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
+import { getDrawerMediaKey, getDrawerMediaSrc } from "../../../services/mediaStore";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { useDrawerMediaDelete } from "../chat/useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "../chat/useDrawerUploadQueue";
@@ -166,20 +167,21 @@ export function AlbumDrawerPickerSheet({
 					{upload.uploadTiles}
 					{media.map((item) => {
 						const isVideo = item.contentType.startsWith("video/");
-						const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+						const mediaSrc = getDrawerMediaSrc(item);
 						const isSelected = selectedIds.has(item.id);
 						return (
 							<DrawerMediaTile
 								key={item.id}
-								src={mediaSrc}
+								src={mediaSrc ?? item.url}
 								isVideo={isVideo}
 								posterKey={getDrawerMediaKey(item.id)}
+								placeholder={mediaSrc == null ? DRAWER_TILE_LOADING : undefined}
 								takenOnGrindr={item.takenOnGrindr}
 								alt={t("chat_drawer.media_alt")}
 								selected={isSelected}
 								muted={!isSelected && !canAdd(selectedIds, isVideo)}
 								onSelect={() => toggleSelection(item.id, isVideo)}
-								previewProps={bindPreview({ src: mediaSrc, isVideo })}
+								previewProps={bindPreview({ src: mediaSrc ?? item.url, isVideo })}
 								consumePreviewClick={consumePreviewClick}
 								busy={deletion.deletingId === item.id}
 								// Hidden on selected tiles, like in the collection editor.

@@ -6,7 +6,7 @@ import { usePreferences } from "../../../contexts/PreferencesContext";
 import * as chatDb from "../../../services/chatDb";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { sortDrawerMediaByUsage } from "../chat/chatUtils";
-import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
+import { cacheDrawerMedia, getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
 import { appLog } from "../../../utils/logger";
 
 /** Drawer item as a File, to upload it elsewhere (an album, the profile).
@@ -53,6 +53,7 @@ export function useOwnDrawerMedia() {
 				chatDb.getDrawerMediaSendCounts(),
 			]);
 			const withCounts = items.map((item) => ({ ...item, sendCount: sendCounts.get(item.id) ?? 0 }));
+			cacheDrawerMedia(items);
 			setDrawerMedia(
 				sortDrawerMediaByFrequency ? sortDrawerMediaByUsage(withCounts) : withCounts,
 			);

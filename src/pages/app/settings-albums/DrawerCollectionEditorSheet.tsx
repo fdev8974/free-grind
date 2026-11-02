@@ -10,6 +10,7 @@ import {
 	DrawerGrid,
 	DrawerHeader,
 	DrawerMediaPreview,
+	DRAWER_TILE_LOADING,
 	DrawerMediaTile,
 	useDrawerMediaPreview,
 } from "../chat/drawerUi";
@@ -20,7 +21,7 @@ import { BottomSheet, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bot
 import { SheetSection, SheetTextInput } from "../../../components/ui/sheet-section";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
-import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
+import { getDrawerMediaKey, getDrawerMediaSrc } from "../../../services/mediaStore";
 import { appLog } from "../../../utils/logger";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
 import { useDrawerMediaDelete } from "../chat/useDrawerMediaDelete";
@@ -194,19 +195,20 @@ export function DrawerCollectionEditorSheet({
 					{media.map((item) => {
 						const isVideo = item.contentType.startsWith("video/");
 						const position = orderedSelection.indexOf(item.id) + 1;
-						const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+						const mediaSrc = getDrawerMediaSrc(item);
 						return (
 							<DrawerMediaTile
 								key={item.id}
-								src={mediaSrc}
+								src={mediaSrc ?? item.url}
 								isVideo={isVideo}
 								posterKey={getDrawerMediaKey(item.id)}
+								placeholder={mediaSrc == null ? DRAWER_TILE_LOADING : undefined}
 								takenOnGrindr={item.takenOnGrindr}
 								alt={t("chat_drawer.media_alt")}
 								selected={position > 0}
 								selectedContent={<span className="text-lg font-bold text-white drop-shadow">{position}</span>}
 								onSelect={isBusy ? undefined : () => toggleSelection(item.id)}
-								previewProps={bindPreview({ src: mediaSrc, isVideo })}
+								previewProps={bindPreview({ src: mediaSrc ?? item.url, isVideo })}
 								consumePreviewClick={consumePreviewClick}
 								busy={deletion.deletingId === item.id}
 								// Hidden on selected tiles, so it can't be hit while setting the order.

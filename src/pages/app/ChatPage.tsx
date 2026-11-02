@@ -126,7 +126,7 @@ import {
 	type ChatFiltersDraft,
 } from "./chat/chatUtils";
 import { loadChatFiltersDraft, saveChatFiltersDraft } from "./chat/chat-filters-storage";
-import { fetchAndStoreMedia, getCachedMediaUri, getDrawerMediaKey, getMessageFallbackMediaKey, hydrateMediaByMessageId, isSignedUrlExpired } from "../../services/mediaStore";
+import { cacheDrawerMedia, fetchAndStoreMedia, getCachedMediaUri, getDrawerMediaKey, getMessageFallbackMediaKey, hydrateMediaByMessageId, isSignedUrlExpired } from "../../services/mediaStore";
 import { albumCaptureInFlight, captureAlbum, captureAlbumsForMessages, deleteLocalAlbum, getLocalAlbum } from "../../services/albumStore";
 import { saveAllAlbumMedia, saveAllMedia } from "../../utils/albumMedia";
 import { formatDistance } from "./gridpage/utils";
@@ -6910,16 +6910,7 @@ export function ChatPage() {
 			// Cache each thumbnail/video locally by its stable media id, so
 			// re-opening the drawer renders instantly instead of re-hitting the
 			// (sometimes slow) server for every item again.
-			for (const item of media) {
-				void fetchAndStoreMedia({
-					mediaKey: getDrawerMediaKey(item.id),
-					kind: item.contentType?.startsWith("video/") ? "video" : "image",
-					url: item.url,
-					conversationId: null,
-					messageId: null,
-					viewOnce: false,
-				});
-			}
+			cacheDrawerMedia(media);
 			// The server no longer serving an item (deleted from the drawer,
 			// e.g. from another device) means it shouldn't linger in the local
 			// cache either.

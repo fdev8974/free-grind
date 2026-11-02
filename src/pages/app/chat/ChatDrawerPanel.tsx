@@ -31,6 +31,7 @@ import {
 	DrawerGrid,
 	DrawerHeader,
 	DrawerMediaPreview,
+	DRAWER_TILE_LOADING,
 	DrawerMediaTile,
 	DRAWER_TILE_CLASS,
 	DrawerTileCornerButton,
@@ -48,7 +49,7 @@ import { BottomSheet, SHEET_FOOTER_FIELD_CLASS, sheetButtonClass } from "../../.
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
-import { getCachedMediaUri, getDrawerMediaKey } from "../../../services/mediaStore";
+import { getCachedMediaUri, getDrawerMediaKey, getDrawerMediaSrc } from "../../../services/mediaStore";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
@@ -517,10 +518,12 @@ export function ChatDrawerPanel({
 				{coverItems.length > 0 ? (
 					<div className={`absolute inset-0 grid gap-0.5 bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] ${mosaicClass} ${mosaicRows}`}>
 						{coverItems.map((item, index) => {
-							const src = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+							const src = getDrawerMediaSrc(item);
 							// With three items the first spans the full left column.
 							const span = coverItems.length === 3 && index === 0 ? "row-span-2" : "";
-							return item.contentType.startsWith("video/") ? (
+							return src == null ? (
+								<div key={item.id} className={`min-h-0 animate-pulse bg-[var(--surface-2)] ${span}`} />
+							) : item.contentType.startsWith("video/") ? (
 								<VideoFirstFrame
 									key={item.id}
 									src={src}
@@ -708,7 +711,7 @@ export function ChatDrawerPanel({
 									{media.map((item) => {
 										const isSelected = selectedIds.has(item.id);
 										const isItemVideo = item.contentType.startsWith("video/");
-										const mediaSrc = getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url;
+										const mediaSrc = getDrawerMediaSrc(item);
 										// 1-based send position, previewing a selected collection's contents.
 										const collectionPosition = selectedCollection ? sendIds.indexOf(item.id) + 1 : 0;
 										const isBlocked = hasAlbumSelection || noConversation || (hasCollectionSelection && collectionPosition === 0);
@@ -717,14 +720,15 @@ export function ChatDrawerPanel({
 										return (
 											<DrawerMediaTile
 												key={item.id}
-												src={mediaSrc}
+												src={mediaSrc ?? item.url}
 												isVideo={isItemVideo}
 												posterKey={getDrawerMediaKey(item.id)}
+												placeholder={mediaSrc == null ? DRAWER_TILE_LOADING : undefined}
 												alt={t("chat_drawer.media_alt")}
 												selected={isSelected}
 												muted={isBlocked}
 												onSelect={isClickable ? () => toggleSelection(item.id, isItemVideo) : undefined}
-												previewProps={bindPreview({ src: mediaSrc, isVideo: isItemVideo })}
+												previewProps={bindPreview({ src: mediaSrc ?? item.url, isVideo: isItemVideo })}
 												consumePreviewClick={consumePreviewClick}
 												takenOnGrindr={item.takenOnGrindr}
 												busy={deletion.deletingId === item.id}

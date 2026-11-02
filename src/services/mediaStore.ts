@@ -15,6 +15,12 @@ import * as chatDb from "./chatDb";
 import type { MediaKind } from "../types/chat-db";
 import { appLog } from "../utils/logger";
 import { limitChatDbBlobRead } from "../utils/chatDbBlobLimiter";
+import { createLimiter } from "../utils/concurrencyLimit";
+
+// Downloads run through plugin-http, outside the media proxy's own fetch
+// slots — capped so a few hundred uncached items (a big drawer) don't all go
+// out at once and starve everything else loading meanwhile.
+const limitMediaDownload = createLimiter(8);
 
 // De-dupe concurrent fetches for the same key (e.g. multiple hydration passes
 // racing for the same image).
@@ -26,11 +32,22 @@ const inFlight = new Map<string, Promise<void>>();
 const memoryCache = new Map<string, string>();
 const cacheListeners = new Set<() => void>();
 
+let notifyScheduled = false;
+
 function setCachedMediaUri(mediaKey: string, uri: string): void {
 	memoryCache.set(mediaKey, uri);
-	for (const listener of cacheListeners) {
-		listener();
+	// Coalesced: a burst of hits (a few hundred drawer items read back from
+	// chatDb) re-renders subscribers once per frame, not once per item.
+	if (notifyScheduled) {
+		return;
 	}
+	notifyScheduled = true;
+	setTimeout(() => {
+		notifyScheduled = false;
+		for (const listener of cacheListeners) {
+			listener();
+		}
+	}, 16);
 }
 
 /** Synchronous read of the in-memory media cache. */
@@ -117,7 +134,7 @@ export type FetchAndStoreMediaParams = {
 
 async function downloadAndStore(params: FetchAndStoreMediaParams): Promise<void> {
 	const { mediaKey, kind, url, conversationId, messageId, viewOnce } = params;
-	const fetched = await fetchAndEncode(url);
+	const fetched = await limitMediaDownload(() => fetchAndEncode(url));
 
 	if (!fetched) {
 		await chatDb
@@ -229,6 +246,11 @@ export async function fetchAndStoreMedia(
 	return run;
 }
 
+/** True while fetchAndStoreMedia is still reading back or downloading `mediaKey`. */
+export function isMediaLookupPending(mediaKey: string): boolean {
+	return inFlight.has(mediaKey);
+}
+
 /**
  * Returns a ready-to-use data: URI for previously-stored media, or null if
  * not cached (yet, or the last fetch failed).
@@ -268,6 +290,35 @@ export function getMessageFallbackMediaKey(messageId: string): string {
  */
 export function getDrawerMediaKey(mediaId: number): string {
 	return `drawer:${mediaId}`;
+}
+
+/**
+ * Starts caching drawer items by their stable media id (read back from
+ * chatDb, or downloaded once), so tiles render from the local copy instead
+ * of fetching every item through the media proxy on each open.
+ */
+export function cacheDrawerMedia(items: readonly { id: number; url: string; contentType?: string | null }[]): void {
+	for (const item of items) {
+		void fetchAndStoreMedia({
+			mediaKey: getDrawerMediaKey(item.id),
+			kind: item.contentType?.startsWith("video/") ? "video" : "image",
+			url: item.url,
+			conversationId: null,
+			messageId: null,
+			viewOnce: false,
+		});
+	}
+}
+
+/**
+ * What a drawer tile shows: the local copy once read back, null while it's
+ * still being looked up (show a placeholder — falling back to the remote URL
+ * right away would send every item through the proxy at once), else the
+ * remote URL.
+ */
+export function getDrawerMediaSrc(item: { id: number; url: string }): string | null {
+	const key = getDrawerMediaKey(item.id);
+	return getCachedMediaUri(key) ?? (isMediaLookupPending(key) ? null : item.url);
 }
 
 /**
