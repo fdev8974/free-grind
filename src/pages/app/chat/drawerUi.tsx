@@ -446,16 +446,26 @@ export function DrawerHeader({
 	);
 }
 
-/** Placeholder tiles in the drawer grid's layout, shown while it loads. */
-export function DrawerGridSkeleton({ isDesktop = false, count }: { isDesktop?: boolean; count?: number }) {
-	const tiles = count ?? (isDesktop ? 12 : 9);
-	return (
-		<div className={drawerGridClass(isDesktop)} aria-busy="true">
+/** Placeholder tiles in the drawer grid's layout, shown while it loads.
+ * In an expanded sheet (or with `fill`) it fills the height it's given —
+ * enough tiles, clipped — instead of a few rows over empty space. Placed
+ * absolutely, so the tiles never make the scroll area scrollable. */
+export function DrawerGridSkeleton({ isDesktop = false, count, fill }: { isDesktop?: boolean; count?: number; fill?: boolean }) {
+	const isDetented = useIsBottomSheetDetented();
+	const fills = fill ?? isDetented;
+	const tiles = count ?? (fills ? 60 : isDesktop ? 12 : 9);
+	const grid = (
+		<div
+			className={`${drawerGridClass(isDesktop)} ${fills ? "absolute inset-0 content-start overflow-hidden" : ""}`}
+			aria-busy="true"
+		>
 			{Array.from({ length: tiles }, (_, i) => (
 				<div key={i} className="aspect-square animate-pulse rounded-lg bg-[var(--surface-2)]" />
 			))}
 		</div>
 	);
+	// h-full in a block scroll area, flex-1 in a flex column (see ChatDrawerPanel's tabs).
+	return fills ? <div className="relative h-full min-h-0 flex-1">{grid}</div> : grid;
 }
 
 /** Scrollable drawer content with the shared loading, error (with retry) and

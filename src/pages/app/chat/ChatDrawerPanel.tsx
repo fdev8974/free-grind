@@ -656,7 +656,8 @@ export function ChatDrawerPanel({
 
 						{/* Content Grid */}
 						<DrawerBody isLoading={(isLoading && !upload.isUploading) || !hasSlidIn} isDesktop={isDesktop} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
-								<div className="flex flex-col gap-3">
+								{/* min-h-full: a tab's loading skeleton fills the expanded sheet. */}
+								<div className="flex min-h-full flex-col gap-3">
 								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (
 										<DrawerGridSkeleton isDesktop={isDesktop} />
