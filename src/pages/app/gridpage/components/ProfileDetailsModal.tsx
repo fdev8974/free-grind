@@ -1354,7 +1354,7 @@ export function ProfileDetailsModal({
 	};
 	// The grid tile's photo is already cached: shown while the profile loads and
 	// under the first photo until its full size arrives, so opening doesn't
-	// flash an empty box first.
+	// flash an empty box first. Elsewhere a spinner holds the spot.
 	const browseCardImageUrl =
 		selectedBrowseCard?.primaryImageUrl && (!activeProfile || selectedBrowseCard.profileId === String(activeProfile.profileId))
 			? selectedBrowseCard.primaryImageUrl
@@ -2090,6 +2090,10 @@ export function ProfileDetailsModal({
 					className="absolute inset-0 z-10"
 					aria-label={t("profile_details.open_photo", { index: index + 1 })}
 				/>
+				{/* Covered by the photo once it has loaded. */}
+				<div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+					<Loader2 className="h-7 w-7 animate-spin text-white/60" />
+				</div>
 				{browseCardImageUrl && hash === activeProfilePhotoHashes[0] && (
 					<ProfileImage
 						src={browseCardImageUrl}
@@ -2433,11 +2437,13 @@ export function ProfileDetailsModal({
 			<div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-lenis-prevent>
 				{isLoadingActiveProfile && (
 					<div
-						className={browseCardImageUrl ? "overflow-hidden bg-black" : "animate-pulse bg-[var(--surface-2)]"}
+						className="flex items-center justify-center overflow-hidden bg-black"
 						style={{ height: variant === "page" ? PAGE_CAROUSEL_HEIGHT : "min(55dvh, calc((100vw - 3rem) * 1.25))" }}
 						aria-hidden="true"
 					>
-						{browseCardImageUrl && <ProfileImage src={browseCardImageUrl} alt="" className="h-full w-full object-cover" />}
+						{browseCardImageUrl
+							? <ProfileImage src={browseCardImageUrl} alt="" className="h-full w-full object-cover" />
+							: <Loader2 className="h-7 w-7 animate-spin text-white/60" />}
 					</div>
 				)}
 				{!isLoadingActiveProfile && !activeProfileError && activeProfile && (
@@ -2681,7 +2687,9 @@ export function ProfileDetailsModal({
 						<ProfileImage src={browseCardImageUrl} alt="" className="h-full w-full object-cover" />
 					</div>
 				) : (
-					<div className="relative shrink-0 animate-pulse overflow-hidden bg-[var(--surface-2)]" style={{ width: "54%" }} aria-hidden="true" />
+					<div className="relative flex shrink-0 items-center justify-center overflow-hidden bg-black" style={{ width: "54%" }} aria-hidden="true">
+						<Loader2 className="h-7 w-7 animate-spin text-white/60" />
+					</div>
 				))}
 				{isModalSplit && !isLoadingActiveProfile && !activeProfileError && activeProfile && (
 					<div
