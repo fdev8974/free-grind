@@ -160,7 +160,15 @@ export function ChatDrawerPanel({
 	const combined = !splitDrawerCategories;
 	const hasCombinedGroups = combined && (albums.length > 0 || collections.length > 0);
 	const showSection = (tab: DrawerTab) => combined || activeTab === tab;
-	const tabSwipe = useSwipeTabs<DrawerTab>(DRAWER_TABS, activeTab, setActiveTab, !combined);
+	// Switching tabs starts over: a pick from the tab left behind would
+	// otherwise keep its send/share footer up under a tab that doesn't show it.
+	const changeTab = useCallback((tab: DrawerTab) => {
+		setActiveTab(tab);
+		setSelectedIds(new Set());
+		setSelectedAlbumIds(new Set());
+		setSelectedCollectionId(null);
+	}, []);
+	const tabSwipe = useSwipeTabs<DrawerTab>(DRAWER_TABS, activeTab, changeTab, !combined);
 	const EXPIRY_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"];
 	const [albumExpirationType, setAlbumExpirationType] = useState<string>(defaultAlbumExpirationType);
 	const EXPIRY_LABELS: Record<string, string> = {
@@ -651,7 +659,7 @@ export function ChatDrawerPanel({
 								{ value: "albums" as const, label: t("chat_drawer.tab_albums", { defaultValue: "Albums" }) },
 								{ value: "collections" as const, label: t("chat_drawer.tab_collections", { defaultValue: "Collections" }) },
 							];
-							return <SlidingTabs<DrawerTab> tabs={tabs} value={activeTab} onChange={setActiveTab} className="mb-2 shrink-0" />;
+							return <SlidingTabs<DrawerTab> tabs={tabs} value={activeTab} onChange={changeTab} className="mb-2 shrink-0" />;
 						})()}
 
 						{/* Content Grid */}
