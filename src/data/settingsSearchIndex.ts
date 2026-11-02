@@ -698,6 +698,16 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-blue-500/15 text-blue-400",
 		},
 		{
+			id: "privacy-notify-album-updates",
+			route: "/settings/privacy",
+			anchor: "privacy-notify-album-updates",
+			label: t("privacy.notify_album_updates"),
+			description: t("privacy.notify_album_updates_desc"),
+			section: t("settings.search_sections.privacy"),
+			icon: Images,
+			iconClass: "bg-violet-500/15 text-violet-400",
+		},
+		{
 			id: "privacy-record-profile-views",
 			route: "/settings/privacy",
 			anchor: "privacy-record-profile-views",

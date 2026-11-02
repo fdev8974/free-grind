@@ -58,6 +58,8 @@ export interface UploadOwnAlbumContentInput {
 	multipart: MultipartUpload;
 	width?: number;
 	height?: number;
+	/** Whether the people the album is shared with hear about the upload. */
+	isFresh: boolean;
 }
 
 /**
@@ -67,6 +69,8 @@ export interface UploadOwnAlbumContentInput {
 export interface UploadOwnAlbumVideoInput {
 	albumId: string;
 	file: File;
+	/** As for UploadOwnAlbumContentInput. */
+	isFresh: boolean;
 	maxBodySize?: number;
 	edit?: VideoEdit | null;
 	onLandscapeKept?: () => void;

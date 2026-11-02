@@ -53,6 +53,7 @@ export function SettingsPrivacyPage() {
 		blurAlbumMedia,
 		blurRightNowMedia,
 		showAlbumSensitiveContentWarning,
+		notifyAlbumUpdates,
 		setPreferences,
 	} = usePreferences();
 
@@ -127,6 +128,16 @@ export function SettingsPrivacyPage() {
 								setShowReadReceiptToggle(checked);
 								void persistShowReadReceiptToggle(checked);
 							}}
+						/>
+						<ToggleRow
+							id="privacy-notify-album-updates"
+							highlighted={highlightId === "privacy-notify-album-updates"}
+							icon={<ImagesFilled className="h-5 w-5" />}
+							iconClass="bg-violet-500/15 text-violet-400"
+							label={t("privacy.notify_album_updates")}
+							description={t("privacy.notify_album_updates_desc")}
+							checked={notifyAlbumUpdates}
+							onChange={(checked) => void setPreferences({ notifyAlbumUpdates: checked })}
 						/>
 						<ToggleRow
 							id="privacy-record-profile-views"

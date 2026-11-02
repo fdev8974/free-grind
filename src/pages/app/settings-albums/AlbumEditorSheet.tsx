@@ -30,6 +30,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
+import { usePreferences } from "../../../contexts/PreferencesContext";
 import { CameraFilled, CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
@@ -213,6 +214,7 @@ export function AlbumEditorSheet({
 }: AlbumEditorSheetProps) {
 	const { t } = useTranslation();
 	const apiFunctions = useApiFunctions();
+	const { notifyAlbumUpdates } = usePreferences();
 	const albumId = album.albumId;
 	const [fetchedLimits, setFetchedLimits] = useState<AlbumLimits | null>(null);
 	const limits = limitsProp !== undefined ? limitsProp : fetchedLimits;
@@ -540,6 +542,7 @@ export function AlbumEditorSheet({
 					const streamed = await apiFunctions.uploadOwnAlbumVideo({
 						albumId,
 						file,
+						isFresh: notifyAlbumUpdates,
 						edit: await resolveVideoEdit(file, maxVideoMs),
 						onLandscapeKept: () =>
 							toast(t("chat.attachments.landscape_kept", {
@@ -552,7 +555,7 @@ export function AlbumEditorSheet({
 				}
 				const multipart = await buildMultipartBody(file);
 				const dims = isVideo ? await getVideodimensions(file) : undefined;
-				await apiFunctions.uploadOwnAlbumContent({ albumId, multipart, ...dims });
+				await apiFunctions.uploadOwnAlbumContent({ albumId, multipart, isFresh: notifyAlbumUpdates, ...dims });
 			});
 			return true;
 		} catch (uploadError) {

@@ -32,8 +32,6 @@ import type {
 	SearchProfilesParams,
 	SearchProfilesResponse,
 	SharedConversationImage,
-	UploadAlbumContentParams,
-	UploadAlbumContentResponse,
 	UploadChatMediaParams,
 	UploadChatMediaResponse,
 	UploadChatVideoParams,
@@ -699,22 +697,6 @@ export function createChatService(
 				await stagingRanges(params.file, params.edit),
 			);
 			return response === null ? null : uploadChatMediaResponseSchema.parse(response);
-		},
-
-		async uploadAlbumContent(
-			params: UploadAlbumContentParams,
-		): Promise<UploadAlbumContentResponse> {
-			const response = await fetchRest(`/v1/albums/${params.albumId}/content`, {
-				method: "POST",
-				rawBody: params.multipart.body,
-				contentType: params.multipart.contentType,
-			});
-			await assertSuccess(response, t("chat.errors.upload_media_failed"));
-			return z
-				.object({
-					contentId: z.coerce.number().int(),
-				})
-				.parse(await parseJsonSafe(response));
 		},
 
 		async shareAlbum(payload: ShareAlbumPayload) {

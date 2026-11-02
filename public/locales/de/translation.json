@@ -1132,6 +1132,8 @@
         "read_receipts_hidden_badge": "Lesebestätigungen für diesen Chat versteckt",
         "read_receipts_shown_badge": "Lesebestätigungen für diesen Chat werden gesendet",
         "profile_views": "Profilaufrufe",
+        "notify_album_updates": "Andere über Album-Updates benachrichtigen",
+        "notify_album_updates_desc": "Wenn du Fotos oder Videos zu einem Album hinzufügst, erfahren die Personen, mit denen du es geteilt hast, von den neuen Inhalten. Schalte dies aus, um Alben still zu aktualisieren.",
         "record_profile_views": "Profilaufrufe aufzeichnen",
         "record_profile_views_desc": "Lässt andere sehen, dass du ihr Profil besucht hast. Schalte dies aus, um Profile ohne Spuren zu durchstöbern.",
         "read_receipts_grid_unread_note": "Wenn Lesebestätigungen deaktiviert sind, kann der Server nicht wissen, dass du eine Nachricht gelesen hast — ein Chat kann daher im Grid weiterhin als ungelesen angezeigt werden, selbst nachdem du ihn gelesen oder gelöscht hast.",

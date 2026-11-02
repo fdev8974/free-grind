@@ -111,8 +111,8 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 			const query = new URLSearchParams();
 			if (input.width != null) query.set("width", String(input.width));
 			if (input.height != null) query.set("height", String(input.height));
-			const qs = query.toString();
-			const url = `/v1/albums/${input.albumId}/content${qs ? `?${qs}` : ""}`;
+			query.set("isFresh", String(input.isFresh));
+			const url = `/v1/albums/${input.albumId}/content?${query}`;
 			const response = await fetchRest(url, {
 				method: "POST",
 				rawBody: input.multipart.body,
@@ -158,6 +158,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 					invoke("upload_staged_album_video", {
 						stagedId,
 						albumId: Number(input.albumId),
+						isFresh: input.isFresh,
 						maxBodySize: input.maxBodySize ?? null,
 						edit: await stagedEdit(stagedId, input.file, input.edit, {
 							onLandscapeKept: input.onLandscapeKept,

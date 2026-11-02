@@ -1132,6 +1132,8 @@
     "read_receipts_hidden_badge": "Read receipts hidden for this chat",
     "read_receipts_shown_badge": "Read receipts sent for this chat",
     "profile_views": "Profile Views",
+    "notify_album_updates": "Notify Others About Album Updates",
+    "notify_album_updates_desc": "When you add photos or videos to an album, the people you've shared it with are told about the new content. Turn this off to update albums quietly.",
     "record_profile_views": "Record Profile Views",
     "record_profile_views_desc": "Let people see that you've viewed their profile. Turn this off to browse profiles without leaving a trace.",
     "read_receipts_grid_unread_note": "With read receipts off, there's no way to tell the server you've read a message — so a chat can still show up as unread on the Grid even after you've read or deleted it.",

@@ -200,9 +200,11 @@ fn is_length_out_of_range(body: &[u8]) -> bool {
         .is_some_and(|detail| detail.contains("is out of range for VIDEO"))
 }
 
-fn album_video_path(album_id: u64, probe: &Probe) -> String {
+/// `is_fresh` tells the server whether the upload should reach the people the
+/// album is shared with as an album update.
+fn album_video_path(album_id: u64, probe: &Probe, is_fresh: bool) -> String {
     format!(
-        "/v1/albums/{album_id}/content?width={}&height={}",
+        "/v1/albums/{album_id}/content?width={}&height={}&isFresh={is_fresh}",
         probe.width, probe.height
     )
 }
@@ -242,6 +244,7 @@ pub async fn upload_staged_album_video(
     lock: tauri::State<'_, UploadLock>,
     staged_id: String,
     album_id: u64,
+    is_fresh: bool,
     max_body_size: Option<u64>,
     edit: Option<VideoEdit>,
     on_progress: Channel<UploadProgress>,
@@ -252,7 +255,7 @@ pub async fn upload_staged_album_video(
         progress: Some(on_progress),
         multipart: true,
         max_body_size: max_body_size.unwrap_or(u64::MAX),
-        path_for: |probe: &Probe| album_video_path(album_id, probe),
+        path_for: |probe: &Probe| album_video_path(album_id, probe, is_fresh),
     };
     upload_staged_video(&app, &state, &lock, upload).await
 }
@@ -310,8 +313,8 @@ mod tests {
         let planned = plan_video(&TempFile::new(ROTATED).0).expect("planned");
 
         assert_eq!(
-            album_video_path(7, &planned.probe),
-            "/v1/albums/7/content?width=32&height=16"
+            album_video_path(7, &planned.probe, false),
+            "/v1/albums/7/content?width=32&height=16&isFresh=false"
         );
     }
 

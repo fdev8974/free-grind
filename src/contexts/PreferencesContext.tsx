@@ -209,6 +209,8 @@ const preferencesSchema = z.object({
 	defaultAlbumExpirationType: z
 		.enum(["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"])
 		.default("INDEFINITE"),
+	// Own album uploads are sent with isFresh, so the people the album is shared with hear about them.
+	notifyAlbumUpdates: z.boolean().default(false),
 });
 
 type Preferences = z.infer<typeof preferencesSchema>;
@@ -265,6 +267,7 @@ type PreferencesAction =
 	| { type: "SET_DEFAULT_CALL_CAMERA"; payload: Preferences["defaultCallCamera"] }
 	| { type: "SET_DEFAULT_EXPIRING_PHOTOS"; payload: boolean }
 	| { type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE"; payload: Preferences["defaultAlbumExpirationType"] }
+	| { type: "SET_NOTIFY_ALBUM_UPDATES"; payload: boolean }
 	| { type: "SET_RIGHT_NOW_STATUS"; payload: { id: number | null; expiresAt: number | null } }
 	| { type: "SET_ACCENT"; payload: { color: string; contrast: string } };
 
@@ -355,6 +358,8 @@ function preferencesReducer(
 			return { ...state, defaultExpiringPhotos: action.payload };
 		case "SET_DEFAULT_ALBUM_EXPIRATION_TYPE":
 			return { ...state, defaultAlbumExpirationType: action.payload };
+		case "SET_NOTIFY_ALBUM_UPDATES":
+			return { ...state, notifyAlbumUpdates: action.payload };
 		case "SET_RIGHT_NOW_STATUS":
 			return {
 				...state,
@@ -529,6 +534,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		showGridTapStatus: true,
 		defaultExpiringPhotos: false,
 		defaultAlbumExpirationType: "INDEFINITE",
+		notifyAlbumUpdates: false,
 		isLoading: true,
 	});
 
@@ -592,6 +598,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_SHOW_GRID_TAP_STATUS", payload: parsed.showGridTapStatus });
 					dispatch({ type: "SET_DEFAULT_EXPIRING_PHOTOS", payload: parsed.defaultExpiringPhotos });
 					dispatch({ type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE", payload: parsed.defaultAlbumExpirationType });
+					dispatch({ type: "SET_NOTIFY_ALBUM_UPDATES", payload: parsed.notifyAlbumUpdates });
 					dispatch({
 						type: "SET_ACCENT",
 						payload: { color: parsed.accentColor, contrast: parsed.accentContrast },
@@ -727,6 +734,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				showGridTapStatus: currentState.showGridTapStatus,
 				defaultExpiringPhotos: currentState.defaultExpiringPhotos,
 				defaultAlbumExpirationType: currentState.defaultAlbumExpirationType,
+				notifyAlbumUpdates: currentState.notifyAlbumUpdates,
 				activeRightNowId: currentState.activeRightNowId ?? null,
 				activeRightNowExpiresAt: currentState.activeRightNowExpiresAt ?? null,
 				activeRightNowHidden: currentState.activeRightNowHidden ?? false,
@@ -862,6 +870,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			if (newValues.defaultAlbumExpirationType !== undefined) {
 				dispatch({ type: "SET_DEFAULT_ALBUM_EXPIRATION_TYPE", payload: newValues.defaultAlbumExpirationType });
 			}
+			if (newValues.notifyAlbumUpdates !== undefined) {
+				dispatch({ type: "SET_NOTIFY_ALBUM_UPDATES", payload: newValues.notifyAlbumUpdates });
+			}
 			if (
 				newValues.activeRightNowId !== undefined ||
 				newValues.activeRightNowExpiresAt !== undefined
@@ -968,6 +979,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					showGridTapStatus: preferences.showGridTapStatus,
 					defaultExpiringPhotos: preferences.defaultExpiringPhotos,
 					defaultAlbumExpirationType: preferences.defaultAlbumExpirationType,
+					notifyAlbumUpdates: preferences.notifyAlbumUpdates,
 				}),
 			);
 		},
@@ -1019,6 +1031,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		showGridTapStatus: state.showGridTapStatus,
 		defaultExpiringPhotos: state.defaultExpiringPhotos,
 		defaultAlbumExpirationType: state.defaultAlbumExpirationType,
+		notifyAlbumUpdates: state.notifyAlbumUpdates,
 		setPreferences,
 		isLoading: state.isLoading || !isLocationLoaded,
 	};

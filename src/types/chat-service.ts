@@ -104,15 +104,6 @@ export interface UploadChatMediaResponse {
 	expiresAt: number | null;
 }
 
-export interface UploadAlbumContentParams {
-	albumId: number | string;
-	multipart: MultipartUpload;
-}
-
-export interface UploadAlbumContentResponse {
-	contentId: number;
-}
-
 export interface SharedAlbumProfile {
 	profileId: number;
 	expirationType: string | number;
