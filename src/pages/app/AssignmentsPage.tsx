@@ -87,12 +87,12 @@ function AssignmentDetailSheet({ assignment, onClose, isDesktop }: { assignment:
 			bg={NATIVE_SHEET_BG}
 			panelClassName={isDesktop ? "max-h-[85dvh] px-4" : "px-4"}
 		>
-			<div className="mb-3 flex shrink-0 items-start justify-between gap-3">
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
 				<div className="min-w-0">
 					<p className="break-all font-mono text-sm font-semibold text-[var(--text)]">{assignment.key}</p>
-					<div className="mt-1.5 flex items-center gap-2">
-						<span className="text-xs text-[var(--text-muted)]">{typeLabel(assignment.type)}</span>
-						<span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", valueClass(assignment.value))}>
+					<div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-snug text-[var(--text-muted)]">
+						<span>{typeLabel(assignment.type)}</span>
+						<span className={cn("rounded-full px-1.5 py-px text-[10px] font-semibold", valueClass(assignment.value))}>
 							{assignment.value || "—"}
 						</span>
 					</div>

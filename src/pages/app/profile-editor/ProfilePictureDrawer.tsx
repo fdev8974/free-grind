@@ -150,13 +150,9 @@ export function ProfilePictureDrawer({
 				bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
 				panelClassName="px-4"
 			>
-				<DrawerHeader title={t("profile_photo_drawer.title")} className="mb-1" />
+				<DrawerHeader title={t("profile_photo_drawer.title")} description={t("profile_photo_drawer.description")} className="mb-3" />
 
 				{addInputs}
-
-				<p className="mb-3 text-xs text-[var(--text-muted)]">
-					{t("profile_photo_drawer.description")}
-				</p>
 
 				<div className="mb-3 flex items-center gap-3 rounded-2xl ink-tint-8 p-3">
 					<div className="shrink-0 rounded-xl bg-amber-500/15 p-2 text-amber-400">

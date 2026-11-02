@@ -111,14 +111,15 @@ function EntryDetailSheet({ entry, onClose, isDesktop }: { entry: PushLogEntry; 
 
 	return (
 		<BottomSheet onClose={onClose} expandable isDesktop={isDesktop} bg={NATIVE_SHEET_BG} panelClassName={isDesktop ? "max-h-[85dvh] px-4" : "px-4"}>
-			<div className="mb-3 flex shrink-0 items-start justify-between gap-3">
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
 				<div className="min-w-0">
-					<div className="flex items-center gap-2">
-						<EventBadge event={event} className="px-1.5" />
-						<span className="rounded-full ink-tint-10 px-2 py-0.5 text-[11px] font-semibold text-[var(--text-muted)]">{entryKind(entry)}</span>
+					<p className="break-words text-sm font-semibold text-[var(--text)]">{entryTitle(entry)}</p>
+					<div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-snug text-[var(--text-muted)]">
+						<EventBadge event={event} className="px-1.5 !py-px" />
+						<span>
+							{entryKind(entry)} · {new Date(entry.at).toLocaleString()}
+						</span>
 					</div>
-					<p className="mt-1.5 break-words text-sm font-semibold text-[var(--text)]">{entryTitle(entry)}</p>
-					<p className="mt-0.5 text-xs text-[var(--text-muted)]">{new Date(entry.at).toLocaleString()}</p>
 				</div>
 				<SheetCloseButton />
 			</div>

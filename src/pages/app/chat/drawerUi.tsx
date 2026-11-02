@@ -403,19 +403,29 @@ export const DRAWER_ICON_BUTTON_CLASS = SHEET_ICON_BUTTON_CLASS;
  * Pass `onClose` to close through your own handler instead of the sheet's. */
 export function DrawerHeader({
 	title,
+	description,
 	actions,
 	onClose,
 	className = "mb-4",
 }: {
 	title: ReactNode;
+	/** Short muted line right under the title, beside the close button. */
+	description?: ReactNode;
 	actions?: ReactNode;
 	onClose?: () => void;
 	className?: string;
 }) {
 	const { t } = useTranslation();
 	return (
-		<div className={`flex items-center justify-between ${className}`}>
-			<h3 className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{title}</h3>
+		<div className={`flex items-center justify-between gap-3 ${className}`}>
+			{description ? (
+				<div className="min-w-0">
+					<h3 className="truncate text-sm font-semibold text-[var(--text)]">{title}</h3>
+					<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">{description}</p>
+				</div>
+			) : (
+				<h3 className="min-w-0 truncate text-sm font-semibold text-[var(--text)]">{title}</h3>
+			)}
 			<div className="flex shrink-0 items-center gap-2">
 				{actions}
 				{onClose ? (

@@ -83,20 +83,20 @@ function EntryDetailSheet({
 			bg={NATIVE_SHEET_BG}
 			panelClassName={isDesktop ? "max-h-[85dvh] px-4" : "px-4"}
 		>
-			<div className="mb-3 flex shrink-0 items-start justify-between gap-3">
+			<div className="mb-3 flex shrink-0 items-center justify-between gap-3">
 				<div className="min-w-0">
-					<div className="flex items-center gap-2">
-						<span className={cn("shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold", methodBadgeClass(entry.method))}>
+					<p className="break-all font-mono text-sm font-semibold text-[var(--text)]">{entry.path}</p>
+					<div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-snug text-[var(--text-muted)]">
+						<span className={cn("shrink-0 rounded-md px-1.5 py-px font-mono text-[10px] font-bold", methodBadgeClass(entry.method))}>
 							{entry.method}
 						</span>
-						<span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums", statusPillClass(entry))}>
+						<span className={cn("shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums", statusPillClass(entry))}>
 							{entry.status ?? "Error"}
 						</span>
+						<span className="tabular-nums">
+							{formatTimestamp(entry.timestamp)} · {entry.durationMs} ms · {entry.kind === "rest" ? "REST" : "Invoke"}
+						</span>
 					</div>
-					<p className="mt-1.5 break-all font-mono text-sm font-semibold text-[var(--text)]">{entry.path}</p>
-					<p className="mt-0.5 text-xs text-[var(--text-muted)]">
-						{formatTimestamp(entry.timestamp)} · {entry.durationMs} ms · {entry.kind === "rest" ? "REST" : "Invoke"}
-					</p>
 				</div>
 				<SheetCloseButton />
 			</div>

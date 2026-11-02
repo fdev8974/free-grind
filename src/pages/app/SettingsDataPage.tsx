@@ -643,18 +643,18 @@ export function SettingsDataPage() {
 
 			{pendingImport && (
 				<BottomSheet onClose={handleCancelImport} isDesktop={isDesktop} isProcessing={isImporting} panelClassName="max-h-[82dvh]">
-					<div className="flex items-center justify-between px-4 pb-3">
-						<p className="text-sm font-semibold text-[var(--text)]">
-							{t("data_backup.import_categories_title", { defaultValue: "What do you want to restore?" })}
-						</p>
+					<div className="flex items-center justify-between gap-3 px-4 pb-3">
+						<div className="min-w-0">
+							<p className="text-sm font-semibold text-[var(--text)]">
+								{t("data_backup.import_categories_title", { defaultValue: "What do you want to restore?" })}
+							</p>
+							<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+								{t("data_backup.import_categories_desc", { defaultValue: "Only categories present in this file can be restored." })}
+							</p>
+						</div>
 						<SheetCloseButton disabled={isImporting} />
 					</div>
 					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
-						<p className="mb-3 px-4 text-xs leading-relaxed text-[var(--text-muted)]">
-							{t("data_backup.import_categories_desc", {
-								defaultValue: "Only categories present in this file can be restored.",
-							})}
-						</p>
 						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleImportCategory} />
 					</div>
 					<BackupProgressBar kind="import" active={isImporting} />

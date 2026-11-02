@@ -66,11 +66,8 @@ export function SeasonalOverlaysSheet({ onClose }: { onClose: () => void }) {
 
 	return (
 		<BottomSheet onClose={onClose} isDesktop={isDesktop} bg={NATIVE_SHEET_BG} panelClassName={isDesktop ? "max-h-[82dvh] px-4" : "px-4"}>
-			<DrawerHeader title="Seasonal Overlays" />
+			<DrawerHeader title="Seasonal Overlays" description="Auto follows each window, On forces the theme outside it, Off suppresses it." className="mb-3" />
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4 pb-4" data-lenis-prevent>
-				<p className="mb-3 px-1 text-xs leading-snug text-[var(--text-muted)]">
-					Auto follows each window, On forces the theme outside it, Off suppresses it.
-				</p>
 				{/* One native group per season, its extra options as further rows in it. */}
 				<div className="space-y-4">
 					<div className={SHEET_GROUP_CLASS}>
