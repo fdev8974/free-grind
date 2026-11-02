@@ -1,5 +1,5 @@
 import { ChevronRight, FlaskConical } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import semver from "semver";
@@ -125,6 +125,21 @@ export function VersionAnnouncement({
 		onNext: step < items.length - 1 ? () => goTo(step + 1) : undefined,
 		onPrev: step > -1 ? () => goTo(step - 1) : undefined,
 	});
+
+	// The arrow keys page like a swipe (and likewise never close).
+	useEffect(() => {
+		const onKey = (event: KeyboardEvent) => {
+			if (event.key === "ArrowRight" && step < items.length - 1) {
+				setDirection(1);
+				setStep(step + 1);
+			} else if (event.key === "ArrowLeft" && step > -1) {
+				setDirection(-1);
+				setStep(step - 1);
+			}
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [step, items.length]);
 
 	const isFinalPage = isIntro ? items.length === 0 : isLastItem;
 	const Icon = item?.icon;

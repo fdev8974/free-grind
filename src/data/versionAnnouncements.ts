@@ -28,6 +28,7 @@ import {
 	NotebookPen,
 	PanelBottom,
 	Reply,
+	Scissors,
 	ScrollText,
 	Share,
 	Share2,
@@ -265,6 +266,11 @@ export const VERSION_ANNOUNCEMENTS: VersionAnnouncement[] = [
 				icon: Images,
 				title: "Redesigned Media Drawer",
 				description: "A completely reworked drawer for photos, videos, albums and collections: switch between views, press and hold to preview before sending, edit photos, and create, edit or delete albums and collections without leaving the chat.",
+			},
+			{
+				icon: Scissors,
+				title: "Video Editor",
+				description: "Pick the part of a video to send on a filmstrip and turn landscape videos upright with bars or a crop. Longer videos are no problem anymore: drag past 15 seconds and they're split into several clips of up to 15 seconds each, sent one after another — up to 2 minutes in total.",
 			},
 			{
 				icon: MapPin,
