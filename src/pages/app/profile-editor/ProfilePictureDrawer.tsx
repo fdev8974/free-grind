@@ -162,14 +162,12 @@ export function ProfilePictureDrawer({
 
 				{addInputs}
 
-				<div className="mb-3 flex items-center gap-3 rounded-2xl ink-tint-8 p-3">
-					<div className="shrink-0 rounded-xl bg-amber-500/15 p-2 text-amber-400">
-						<TriangleAlertFilled className="h-4 w-4" />
-					</div>
-					<p className="min-w-0 flex-1 text-xs leading-relaxed text-[var(--text-muted)]">
-						{t("profile_photo_drawer.nudity_notice")}
-					</p>
-				</div>
+				{/* A compact amber callout, as native apps flag guidance: the icon
+				    inline, no tile of its own, so it doesn't weigh like the photos. */}
+				<p className="mb-3 flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2.5 text-xs leading-snug text-[color-mix(in_srgb,#f59e0b_55%,var(--text))]">
+					<TriangleAlertFilled className="mt-px h-3.5 w-3.5 shrink-0 text-amber-400" />
+					<span className="min-w-0">{t("profile_photo_drawer.nudity_notice")}</span>
+				</p>
 
 				<DrawerBody
 					isDesktop={isDesktop}
