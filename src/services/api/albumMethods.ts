@@ -1,3 +1,4 @@
+import { stagingRanges } from "../videoEdit";
 import { invoke } from "@tauri-apps/api/core";
 import { z } from "zod";
 
@@ -42,7 +43,7 @@ import type {
 import type { RestFetcher } from "../../types/chat-service";
 import { ApiFunctionError, assertSuccess, parseJsonSafe } from "../apiHelpers";
 import { MAX_CHAT_MEDIA_BYTES, uploadStagedVideo } from "../stagedVideoUpload";
-import { assertUploadFits, stagedEdit } from "../videoReencode";
+import { assertUploadFits, stagedEdit, uploadProgressReporter } from "../videoReencode";
 
 export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, options?: { defaultValue?: string }) => string) {
 	return {
@@ -161,9 +162,12 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 							onLandscapeKept: input.onLandscapeKept,
 							notSendableMessage: t("chat.errors.video_not_sendable"),
 						}),
+						onProgress: uploadProgressReporter(input.edit).channel(),
 					}),
 				t("api.errors.upload_content"),
 				t,
+				undefined,
+				await stagingRanges(input.file, input.edit),
 			);
 			if (payload === null) return null;
 			const parsed = z.object({ contentId: z.coerce.number().int() }).safeParse(payload);

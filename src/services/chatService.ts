@@ -1,3 +1,4 @@
+import { stagingRanges } from "./videoEdit";
 import { invoke } from "@tauri-apps/api/core";
 import z from "zod";
 import {
@@ -49,7 +50,7 @@ import {
 import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
 import { MAX_CHAT_MEDIA_BYTES, uploadStagedVideo } from "./stagedVideoUpload";
-import { assertUploadFits, stagedEdit } from "./videoReencode";
+import { assertUploadFits, stagedEdit, uploadProgressReporter } from "./videoReencode";
 import { isPaywallError, withEntitlementBypass } from "./entitlementBypass";
 
 export { ApiFunctionError as ChatApiError };
@@ -674,17 +675,29 @@ export function createChatService(
 		 */
 		async uploadChatVideo(params: UploadChatVideoParams): Promise<UploadChatMediaResponse | null> {
 			await assertUploadFits(params.file, params.edit, MAX_CHAT_MEDIA_BYTES, t("chat.attachments.too_large"));
-			const upload = async (stagedId: string) =>
-				invoke("upload_staged_chat_video", {
+			const report = uploadProgressReporter(params.edit, params.onProgress);
+			const upload = async (stagedId: string) => {
+				const edit = await stagedEdit(stagedId, params.file, params.edit, {
+					onLandscapeKept: params.onLandscapeKept,
+					notSendableMessage: t("chat.errors.video_not_sendable"),
+					onConverting: (fraction) => report("converting", fraction),
+				});
+				return invoke("upload_staged_chat_video", {
 					stagedId,
 					looping: params.looping,
 					lengthMs: params.lengthMs ?? null,
-					edit: await stagedEdit(stagedId, params.file, params.edit, {
-						onLandscapeKept: params.onLandscapeKept,
-						notSendableMessage: t("chat.errors.video_not_sendable"),
-					}),
+					edit,
+					onProgress: report.channel(),
 				});
-			const response = await uploadStagedVideo(params.file, upload, t("chat.errors.upload_media_failed"), t);
+			};
+			const response = await uploadStagedVideo(
+				params.file,
+				upload,
+				t("chat.errors.upload_media_failed"),
+				t,
+				(fraction) => report("preparing", fraction),
+				await stagingRanges(params.file, params.edit),
+			);
 			return response === null ? null : uploadChatMediaResponseSchema.parse(response);
 		},
 

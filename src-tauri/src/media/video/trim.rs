@@ -536,12 +536,50 @@ fn aac_track(audio: &EncodedAudio, offset: u64) -> Option<Track> {
     })
 }
 
+/// The byte ranges of the file at `file_size` that a cut by `trim` reads its
+/// samples from, read off its `moov` box alone (`reader` may hold just that):
+/// so the webview can stage only those (see `upload::staged`). Ranges are
+/// sorted and those close together merged. `None` when it can't be cut.
+pub fn needed_ranges<R: Read + Seek>(reader: &mut R, file_size: u64, trim: Trim) -> io::Result<Option<Vec<(u64, u64)>>> {
+    // Gaps this small are cheaper to stage than to skip.
+    const MERGE_GAP: u64 = 64 * 1024;
+    let Some(movie) = read_movie_sized(reader, file_size)? else {
+        return Ok(None);
+    };
+    let Some(video) = movie.video() else {
+        return Ok(None);
+    };
+    let Some(window) = window(video, trim) else {
+        return Ok(None);
+    };
+    let sound = sound_in(&movie, video, &window, 0);
+    let mut spans: Vec<(u64, u64)> = window
+        .samples
+        .iter()
+        .chain(sound.iter().flat_map(|kept| kept.samples.iter()))
+        .map(|sample| (sample.offset, sample.offset + u64::from(sample.size)))
+        .collect();
+    spans.sort_unstable();
+    let mut merged: Vec<(u64, u64)> = Vec::new();
+    for (start, end) in spans {
+        match merged.last_mut() {
+            Some(last) if start <= last.1 + MERGE_GAP => last.1 = last.1.max(end),
+            _ => merged.push((start, end)),
+        }
+    }
+    Ok(Some(merged))
+}
+
 fn read_movie<R: Read + Seek>(reader: &mut R) -> io::Result<Option<Movie>> {
     let file_size = reader.seek(SeekFrom::End(0))?;
-    let whole = Span {
-        start: 0,
-        end: file_size,
-    };
+    read_movie_sized(reader, file_size)
+}
+
+/// As `read_movie`, for a reader that may hold less than the file: its
+/// sample offsets are checked against `file_size` instead.
+fn read_movie_sized<R: Read + Seek>(reader: &mut R, file_size: u64) -> io::Result<Option<Movie>> {
+    let end = reader.seek(SeekFrom::End(0))?;
+    let whole = Span { start: 0, end };
     let Some(moov) = find(reader, whole, b"moov")? else {
         return Ok(None);
     };
@@ -1810,5 +1848,29 @@ mod tests {
     fn av1_codec_strings_carry_profile_level_tier_and_depth() {
         assert_eq!(av1_codec(&[0x81, 0x08, 0x0C, 0]).as_deref(), Some("av01.0.08M.08"));
         assert_eq!(av1_codec(&[0x81, 0x2D, 0xC0, 0]).as_deref(), Some("av01.1.13H.10"));
+    }
+
+    #[test]
+    fn a_cut_from_only_the_needed_ranges_matches_one_from_the_whole_file() {
+        let bytes = movie();
+        let whole = Span { start: 0, end: bytes.len() as u64 };
+        let moov = find(&mut Cursor::new(&bytes), whole, b"moov").unwrap().unwrap();
+        let moov_bytes = &bytes[moov.start as usize..];
+        let trim = Trim { start_ms: 1500, max_ms: 1000 };
+        let ranges = needed_ranges(&mut Cursor::new(moov_bytes), bytes.len() as u64, trim)
+            .expect("read")
+            .expect("ranges");
+
+        // As the webview stages it: zeros, with the box headers, `moov` and the ranges in place.
+        let mut sparse = vec![0u8; bytes.len()];
+        let ftyp_len = boxed(b"ftyp", DEFAULT_FTYP).len();
+        sparse[..ftyp_len + 8].copy_from_slice(&bytes[..ftyp_len + 8]);
+        sparse[moov.start as usize..].copy_from_slice(moov_bytes);
+        for (start, end) in &ranges {
+            sparse[*start as usize..*end as usize].copy_from_slice(&bytes[*start as usize..*end as usize]);
+        }
+
+        assert!(ranges.iter().map(|(start, end)| end - start).sum::<u64>() < bytes.len() as u64);
+        assert_eq!(trimmed(&sparse, 1500, 1000), trimmed(&bytes, 1500, 1000));
     }
 }

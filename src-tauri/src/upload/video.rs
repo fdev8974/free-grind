@@ -8,12 +8,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::SystemTime;
 
+use serde::Serialize;
+use tauri::ipc::Channel;
 use tauri::{AppHandle, Runtime};
 
 use super::edit::{self, VideoEdit};
 use super::form::{FormPart, Framing};
 use super::staged::{SingleUse, StagedMedia};
-use super::stream::FileBody;
+use super::stream::{FileBody, Progress};
 use super::{io_error, UploadLock};
 use crate::commands::media_upload::upload_response;
 use crate::error::AppError;
@@ -59,10 +61,21 @@ fn plan_video(path: &Path) -> Result<PlannedVideo, AppError> {
     })
 }
 
+/// What the webview hears while a video goes out: `editing` while the cut
+/// is written, then `uploading` with the body's bytes sent of `total`.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UploadProgress {
+    phase: &'static str,
+    sent: u64,
+    total: u64,
+}
+
 struct VideoUpload<F> {
     staged_id: String,
     /// Uploaded instead of the staged file as it is (see `edit`).
     edit: Option<VideoEdit>,
+    progress: Option<Channel<UploadProgress>>,
     multipart: bool,
     max_body_size: u64,
     path_for: F,
@@ -84,9 +97,15 @@ async fn upload_staged_video<R: Runtime>(
     let staged: PathBuf = StagedMedia::of(app)
         .and_then(|staged| staged.path(&upload.staged_id))
         .map_err(io_error)?;
+    let tell = |phase: &'static str, sent: u64, total: u64| {
+        if let Some(channel) = &upload.progress {
+            let _ = channel.send(UploadProgress { phase, sent, total });
+        }
+    };
     let (staged, _edited_single_use) = match upload.edit {
         None => (staged, None),
         Some(edit) => {
+            tell("editing", 0, 0);
             let app = app.clone();
             let (path, single_use) = off_thread(move || edit::edited(&app, &staged, edit)).await??;
             (path, Some(single_use))
@@ -110,11 +129,22 @@ async fn upload_staged_video<R: Runtime>(
     }
     let path = (upload.path_for)(&planned.probe);
     let content_type = framing.content_type.clone();
+    let total = framing.size(planned.size);
+    tell("uploading", 0, total);
     let body = FileBody {
         path: staged,
         framing,
         content_len: planned.size,
         patches: planned.patches,
+        progress: upload.progress.clone().map(|channel| -> Progress {
+            Arc::new(move |sent| {
+                let _ = channel.send(UploadProgress {
+                    phase: "uploading",
+                    sent,
+                    total,
+                });
+            })
+        }),
     };
 
     // A large upload takes a while; one that started for one account must not
@@ -190,10 +220,12 @@ pub async fn upload_staged_chat_video(
     looping: bool,
     length_ms: Option<u64>,
     edit: Option<VideoEdit>,
+    on_progress: Channel<UploadProgress>,
 ) -> Result<serde_json::Value, AppError> {
     let upload = VideoUpload {
         staged_id,
         edit,
+        progress: Some(on_progress),
         multipart: false,
         max_body_size: MAX_CHAT_VIDEO_BYTES,
         path_for: |probe: &Probe| chat_video_path(probe, length_ms, looping),
@@ -212,10 +244,12 @@ pub async fn upload_staged_album_video(
     album_id: u64,
     max_body_size: Option<u64>,
     edit: Option<VideoEdit>,
+    on_progress: Channel<UploadProgress>,
 ) -> Result<serde_json::Value, AppError> {
     let upload = VideoUpload {
         staged_id,
         edit,
+        progress: Some(on_progress),
         multipart: true,
         max_body_size: max_body_size.unwrap_or(u64::MAX),
         path_for: |probe: &Probe| album_video_path(album_id, probe),

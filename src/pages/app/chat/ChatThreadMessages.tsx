@@ -172,13 +172,21 @@ function MediaBadge({ icon, label }: { icon: React.ReactNode; label: React.React
 	);
 }
 
-/** Centered upload ring over an optimistic image/video tile. */
-function MediaUploadOverlay({ progress }: { progress: number }) {
+/**
+ * Centered upload ring over an optimistic image/video tile; with a `label`
+ * (a video's phase, see UploadProgress) that and the percentage under it.
+ */
+function MediaUploadOverlay({ progress, label }: { progress: number; label?: string }) {
 	return (
-		<div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/30">
+		<div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/30">
 			<div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm">
 				<ProgressRing progress={progress} className="h-8 w-8" />
 			</div>
+			{label ? (
+				<span className="rounded-full bg-black/50 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+					{label} · {Math.round(progress)}%
+				</span>
+			) : null}
 		</div>
 	);
 }
@@ -1177,6 +1185,12 @@ export function ChatThreadMessages({
                     const failed = message.clientState === "failed";
                     const pending = message.clientState === "pending";
                     const uploadProgress = localUploadProgress?.messageId === message.messageId ? localUploadProgress.progress : null;
+                    const uploadPhase = localUploadProgress?.messageId === message.messageId ? localUploadProgress.phase : undefined;
+                    const uploadPhaseLabel = uploadPhase
+                        ? t(`chat.upload_phase.${uploadPhase}`, {
+                              defaultValue: { preparing: "Preparing", converting: "Converting", finishing: "Finishing", uploading: "Uploading" }[uploadPhase],
+                          })
+                        : undefined;
                     // Every message in an archived conversation is local-only by
                     // definition (the whole thread is gone from the API) — singling
                     // out individual messages with the badge/dimming is redundant
@@ -2081,7 +2095,7 @@ export function ChatThreadMessages({
                                                             <Play className="h-5 w-5 fill-white text-white" />
                                                         </div>
                                                     </div>
-                                                    {uploadProgress != null ? <MediaUploadOverlay progress={uploadProgress} /> : null}
+                                                    {uploadProgress != null ? <MediaUploadOverlay progress={uploadProgress} label={uploadPhaseLabel} /> : null}
                                                     {isVideoOnlyBubble && (
                                                         <div className="absolute inset-x-0 bottom-0 flex flex-col bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2 text-white">
                                                             <div className="flex items-center justify-between gap-2 text-[10px]">

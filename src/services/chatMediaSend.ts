@@ -8,6 +8,7 @@
  * the same), so sending one image to several chats uploads it only once.
  */
 
+import type { UploadProgress } from "./stagedVideoUpload";
 import toast from "react-hot-toast";
 
 import i18n from "../i18n";
@@ -52,6 +53,7 @@ export async function uploadChatVideo(
 	api: Pick<ApiFunctions, "uploadChatMedia" | "uploadChatVideo">,
 	file: File,
 	looping: boolean,
+	onProgress?: (progress: UploadProgress) => void,
 ): Promise<UploadChatMediaResponse> {
 	const lengthMs = await getVideoDurationMs(file);
 	const edit = await resolveVideoEdit(file);
@@ -60,6 +62,7 @@ export async function uploadChatVideo(
 		looping,
 		edit,
 		onLandscapeKept: warnLandscapeKept,
+		onProgress,
 		...(lengthMs != null ? { lengthMs } : {}),
 	});
 	if (streamed) return streamed;
@@ -72,11 +75,11 @@ export async function uploadChatVideo(
 export async function uploadChatMediaFile(
 	api: Pick<ApiFunctions, "uploadChatMedia" | "uploadChatVideo">,
 	file: File,
-	options: { looping: boolean; takenOnGrindr: boolean },
+	options: { looping: boolean; takenOnGrindr: boolean; onProgress?: (progress: UploadProgress) => void },
 ): Promise<UploadedChatMedia> {
 	const isVideo = file.type.startsWith("video/");
 	const uploaded = isVideo
-		? await uploadChatVideo(api, file, options.looping)
+		? await uploadChatVideo(api, file, options.looping, options.onProgress)
 		: await api.uploadChatMedia({
 				multipart: await buildBinaryUpload(file),
 				options: { looping: options.looping, takenOnGrindr: options.takenOnGrindr },

@@ -19,11 +19,18 @@
  */
 
 import { decode } from "@msgpack/msgpack";
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { z } from "zod";
 
 import { ApiFunctionError } from "./apiHelpers";
-import { appendStaged, bytesToBase64, createStaged, discardStaged } from "./stagedVideoUpload";
+import {
+	appendStaged,
+	bytesToBase64,
+	createStaged,
+	discardStaged,
+	type UploadPhase,
+	type UploadProgress,
+} from "./stagedVideoUpload";
 import { appLog } from "../utils/logger";
 import { loadTrimPoints, type PortraitMode, type TrimPoints, type VideoEdit } from "./videoEdit";
 
@@ -554,6 +561,37 @@ export async function assertUploadFits(
 	if (estimate > maxBytes) throw new ApiFunctionError(tooLargeMessage, 413, null);
 }
 
+/**
+ * Turns an upload's phases into one percentage for `onProgress`: each phase
+ * takes its share of the scale (re-encoding a large one, when the video is
+ * re-encoded at all), and never goes backwards. `channel()` is what
+ * upload_staged_*_video takes as `onProgress`, for its writing and sending.
+ */
+export function uploadProgressReporter(
+	edit: VideoEdit | null | undefined,
+	onProgress?: (progress: UploadProgress) => void,
+) {
+	const converts = !!edit && (edit.portrait !== null || edit.transcode) && canReencode();
+	const bands: Record<UploadPhase, [number, number]> = converts
+		? { preparing: [0, 8], converting: [8, 55], finishing: [55, 60], uploading: [60, 99] }
+		: { preparing: [0, 15], converting: [15, 15], finishing: [15, 20], uploading: [20, 99] };
+	let shown = 0;
+	const report = (phase: UploadPhase, fraction: number) => {
+		const [from, to] = bands[phase];
+		shown = Math.max(shown, from + (to - from) * Math.min(1, Math.max(0, fraction)));
+		onProgress?.({ phase, percent: shown });
+	};
+	report.channel = () => {
+		const channel = new Channel<{ phase: "editing" | "uploading"; sent: number; total: number }>();
+		channel.onmessage = (message) => {
+			if (message.phase === "editing") report("finishing", 0.5);
+			else report("uploading", message.total > 0 ? message.sent / message.total : 0);
+		};
+		return channel;
+	};
+	return report;
+}
+
 /** What upload_staged_*_video takes as `edit`. */
 export interface StagedEdit {
 	startMs: number;
@@ -583,13 +621,19 @@ export async function stagedEdit(
 	stagedId: string,
 	file: File,
 	edit: VideoEdit | null | undefined,
-	options: { onLandscapeKept?: () => void; notSendableMessage: string },
+	options: {
+		onLandscapeKept?: () => void;
+		notSendableMessage: string;
+		/** How far the re-encoding is, 0…1. */
+		onConverting?: (fraction: number) => void;
+	},
 ): Promise<StagedEdit | null> {
 	if (!edit) return null;
 	let reencoded: ReencodedVideo | null = null;
 	if (edit.portrait || edit.transcode) {
 		try {
-			reencoded = await reencodeVideo(stagedId, file, edit);
+			options.onConverting?.(0);
+			reencoded = await reencodeVideo(stagedId, file, edit, options.onConverting);
 		} catch (error) {
 			if (!(error instanceof ReencodeUnsupportedError)) throw error;
 			if (edit.matroska) throw new VideoNotSendableError(options.notSendableMessage);

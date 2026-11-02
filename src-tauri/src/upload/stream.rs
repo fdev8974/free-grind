@@ -13,12 +13,19 @@ use super::form::Framing;
 use crate::media::video::strip::{Patch, PatchedReader};
 
 const FILE_CHANGED: &str = "That file changed while it was uploading";
+/// How often `FileBody::progress` hears of the bytes read, at most.
+const PROGRESS_EVERY: u64 = 256 * 1024;
+
+/// Told how many bytes of the body have been read so far (and so handed to
+/// the connection), every `PROGRESS_EVERY` of them and once at the end.
+pub type Progress = Arc<dyn Fn(u64) + Send + Sync>;
 
 pub struct FileBody {
     pub path: PathBuf,
     pub framing: Framing,
     pub content_len: u64,
     pub patches: Arc<[Patch]>,
+    pub progress: Option<Progress>,
 }
 
 impl BodySource for FileBody {
@@ -33,11 +40,37 @@ impl BodySource for FileBody {
             read: 0,
             expected: self.content_len,
         };
-        Ok(Box::new(
-            Cursor::new(self.framing.head.clone())
-                .chain(content)
-                .chain(Cursor::new(self.framing.tail.clone())),
-        ))
+        let body = Cursor::new(self.framing.head.clone())
+            .chain(content)
+            .chain(Cursor::new(self.framing.tail.clone()));
+        Ok(match &self.progress {
+            Some(progress) => Box::new(Counted {
+                inner: body,
+                read: 0,
+                told: 0,
+                progress: Arc::clone(progress),
+            }),
+            None => Box::new(body),
+        })
+    }
+}
+
+struct Counted<R> {
+    inner: R,
+    read: u64,
+    told: u64,
+    progress: Progress,
+}
+
+impl<R: Read> Read for Counted<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let read = self.inner.read(buf)?;
+        self.read += read as u64;
+        if read == 0 || self.read - self.told >= PROGRESS_EVERY {
+            self.told = self.read;
+            (self.progress)(self.read);
+        }
+        Ok(read)
     }
 }
 
@@ -103,6 +136,7 @@ mod tests {
             }),
             content_len,
             patches: Arc::from(patches),
+            progress: None,
         }
     }
 

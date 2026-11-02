@@ -1,4 +1,5 @@
 import type { Message } from "./messages";
+import type { UploadPhase } from "../services/stagedVideoUpload";
 
 export type UiMessage = Message & {
 	clientState?: "pending" | "failed";
@@ -13,6 +14,8 @@ export type UiMessage = Message & {
 export type LocalUploadProgress = {
 	messageId: string;
 	progress: number;
+	/** What a video upload is doing just now (see UploadProgress). */
+	phase?: UploadPhase;
 };
 
 export type AlbumListItem = {

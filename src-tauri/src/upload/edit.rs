@@ -169,6 +169,24 @@ pub async fn video_trim_points(request: Request<'_>) -> Result<Option<TrimPoints
     .map_err(io_error)
 }
 
+/// The byte ranges of a video the cut `start_ms`…`+max_ms` reads, from its
+/// `moov` box (base64, cut out of the file by the webview) and the file's
+/// size; `None` when it can't be cut. See `trim::needed_ranges`.
+#[tauri::command]
+pub async fn video_needed_ranges(
+    moov: String,
+    file_size: u64,
+    start_ms: u64,
+    max_ms: u64,
+) -> Result<Option<Vec<(u64, u64)>>, AppError> {
+    let bytes = STANDARD
+        .decode(moov)
+        .map_err(|error| AppError::Media(error.to_string()))?;
+    off_thread(move || trim::needed_ranges(&mut Cursor::new(bytes), file_size, Trim { start_ms, max_ms }))
+        .await?
+        .map_err(io_error)
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct WindowBatch {

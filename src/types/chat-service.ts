@@ -1,3 +1,4 @@
+import type { UploadProgress } from "../services/stagedVideoUpload";
 import type { VideoEdit } from "../services/videoEdit";
 
 export interface RestResponse {
@@ -92,6 +93,8 @@ export interface UploadChatVideoParams {
 	lengthMs?: number;
 	edit?: VideoEdit | null;
 	onLandscapeKept?: () => void;
+	/** Where the upload is, as it goes (see UploadProgress). */
+	onProgress?: (progress: UploadProgress) => void;
 }
 
 export interface UploadChatMediaResponse {

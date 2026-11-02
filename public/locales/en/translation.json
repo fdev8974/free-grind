@@ -1577,6 +1577,12 @@
     "yesterday": "Yesterday",
     "retry": "Retry",
     "not_sent": "Not sent",
+    "upload_phase": {
+        "preparing": "Preparing",
+        "converting": "Converting",
+        "finishing": "Finishing",
+        "uploading": "Uploading"
+    },
     "loading": "Loading...",
     "load_more": "Load more",
     "load_older_messages": "Load older messages",

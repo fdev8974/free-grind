@@ -1577,6 +1577,12 @@
         "yesterday": "Gestern",
         "retry": "Wiederholen",
         "not_sent": "Nicht gesendet",
+        "upload_phase": {
+            "preparing": "Vorbereiten",
+            "converting": "Umwandeln",
+            "finishing": "Fertigstellen",
+            "uploading": "Hochladen"
+        },
         "loading": "Lade...",
         "load_more": "Mehr laden",
         "load_older_messages": "Ältere Nachrichten laden",

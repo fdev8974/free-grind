@@ -17,6 +17,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { z } from "zod";
 
+import { bytesToBase64 } from "./stagedVideoUpload";
+
 /** The chat endpoint's limit, as the official app trims to. */
 export const MAX_CHAT_VIDEO_MS = 15_000;
 
@@ -104,6 +106,18 @@ function measuredDurationMs(file: File): Promise<number> {
  * large video isn't read into memory to open the editor.
  */
 async function readMoov(file: File): Promise<Uint8Array | null> {
+	return (await readMoovLayout(file))?.moov ?? null;
+}
+
+/**
+ * The `moov` box and where it sits, with every top-level box's place
+ * (`headers`, as byte ranges: a whole `ftyp`, else the header): what Rust
+ * reads besides the samples, so what a sparse staging must hold.
+ */
+async function readMoovLayout(
+	file: File,
+): Promise<{ moov: Uint8Array; offset: number; headers: [number, number][] } | null> {
+	const headers: [number, number][] = [];
 	let offset = 0;
 	while (offset + 8 <= file.size) {
 		const header = new DataView(await file.slice(offset, offset + 16).arrayBuffer());
@@ -124,11 +138,46 @@ async function readMoov(file: File): Promise<Uint8Array | null> {
 		if (size < 8) return null;
 		if (type === "moov") {
 			if (size > MAX_MOOV_BYTES) return null;
-			return new Uint8Array(await file.slice(offset, offset + size).arrayBuffer());
+			return { moov: new Uint8Array(await file.slice(offset, offset + size).arrayBuffer()), offset, headers };
 		}
+		headers.push([offset, offset + (type === "ftyp" ? size : Math.min(size, 16))]);
 		offset += size;
 	}
 	return null;
+}
+
+/**
+ * The byte ranges of `file` that cutting it as `edit` says reads (its box
+ * headers, `moov`, and the picked part's samples), sorted and merged; null
+ * when the whole file has to be staged (no cut, Matroska, or a binary that
+ * can't tell).
+ */
+export async function stagingRanges(file: File, edit: VideoEdit | null | undefined): Promise<[number, number][] | null> {
+	if (!edit?.trim || edit.matroska) return null;
+	const layout = await readMoovLayout(file);
+	if (!layout) return null;
+	let samples: [number, number][] | null;
+	try {
+		samples = await invoke<[number, number][] | null>("video_needed_ranges", {
+			moov: bytesToBase64(layout.moov),
+			fileSize: file.size,
+			startMs: edit.startMs,
+			maxMs: edit.maxMs,
+		});
+	} catch {
+		return null;
+	}
+	if (!samples) return null;
+	const all = [...layout.headers, [layout.offset, layout.offset + layout.moov.length] as [number, number], ...samples].sort(
+		(a, b) => a[0] - b[0],
+	);
+	const merged: [number, number][] = [];
+	for (const [start, end] of all) {
+		const last = merged[merged.length - 1];
+		if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+		else merged.push([start, end]);
+	}
+	return merged;
 }
 
 // Cached per File: the editor and the upload both ask.

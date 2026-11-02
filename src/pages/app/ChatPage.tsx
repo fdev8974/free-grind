@@ -5766,15 +5766,21 @@ export function ChatPage() {
 			]);
 			}
 
-			setAttachmentUpload({ messageId: localMessageId, progress: 5 });
-			const progressId = window.setInterval(() => {
-				setAttachmentUpload((previous) => previous && { ...previous, progress: Math.min(92, previous.progress + 8) });
-			}, 260);
+			setAttachmentUpload({ messageId: localMessageId, progress: isVideo ? 0 : 5 });
+			// A photo is one quick request, shown as steady progress; a video
+			// reports where it really is (staging, re-encoding, sending).
+			const progressId = isVideo
+				? undefined
+				: window.setInterval(() => {
+						setAttachmentUpload((previous) => previous && { ...previous, progress: Math.min(92, previous.progress + 8) });
+					}, 260);
 
 			try {
 				uploaded ??= await uploadChatMediaFile(service, file, {
 					looping: options.looping,
 					takenOnGrindr: options.takenOnGrindr,
+					onProgress: ({ phase, percent }) =>
+						setAttachmentUpload((previous) => previous && { ...previous, progress: percent, phase }),
 				});
 				setAttachmentUpload((previous) => previous && { ...previous, progress: 96 });
 

@@ -2,9 +2,13 @@
 //! open-grind. The webview only has a `File`, so it appends it here in
 //! base64 chunks; Rust then reads it from disk instead of over IPC. Files are
 //! named by a UUID only, so a staged id can't reach anything else on disk.
+//!
+//! A video that is cut needn't come over whole: it can be staged sparse, at
+//! its full size with only the parts the cut reads written in place (see
+//! `trim::needed_ranges`), the rest left as zeros nobody reads.
 
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
 use base64::{engine::general_purpose::STANDARD, Engine as _};
@@ -43,6 +47,18 @@ impl StagedMedia {
 
     pub fn append(&self, id: &str, bytes: &[u8]) -> io::Result<()> {
         OpenOptions::new().append(true).open(self.path(id)?)?.write_all(bytes)
+    }
+
+    /// Writes `bytes` at `offset`, the file growing (with zeros) as needed.
+    pub fn write_at(&self, id: &str, offset: u64, bytes: &[u8]) -> io::Result<()> {
+        let mut file = OpenOptions::new().write(true).open(self.path(id)?)?;
+        file.seek(SeekFrom::Start(offset))?;
+        file.write_all(bytes)
+    }
+
+    /// Sets the file's length, a sparse one's to the original's.
+    pub fn resize(&self, id: &str, size: u64) -> io::Result<()> {
+        OpenOptions::new().write(true).open(self.path(id)?)?.set_len(size)
     }
 
     pub fn discard(&self, id: &str) -> io::Result<()> {
@@ -94,6 +110,24 @@ pub async fn append_staged_media(app: AppHandle, id: String, chunk: String) -> R
         .decode(chunk)
         .map_err(|error| AppError::Media(error.to_string()))?;
     off_thread(move || StagedMedia::of(&app)?.append(&id, &bytes))
+        .await?
+        .map_err(io_error)
+}
+
+/// Writes a base64 chunk at `offset`, for a sparse staging (see the module docs).
+#[tauri::command]
+pub async fn write_staged_media(app: AppHandle, id: String, offset: u64, chunk: String) -> Result<(), AppError> {
+    let bytes = STANDARD
+        .decode(chunk)
+        .map_err(|error| AppError::Media(error.to_string()))?;
+    off_thread(move || StagedMedia::of(&app)?.write_at(&id, offset, &bytes))
+        .await?
+        .map_err(io_error)
+}
+
+#[tauri::command]
+pub async fn resize_staged_media(app: AppHandle, id: String, size: u64) -> Result<(), AppError> {
+    off_thread(move || StagedMedia::of(&app)?.resize(&id, size))
         .await?
         .map_err(io_error)
 }

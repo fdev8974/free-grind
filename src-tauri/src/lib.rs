@@ -292,9 +292,12 @@ pub fn run() {
                 upload::staged::stage_media,
                 upload::staged::append_staged_media,
                 upload::staged::discard_staged_media,
+                upload::staged::write_staged_media,
+                upload::staged::resize_staged_media,
                 upload::video::upload_staged_chat_video,
                 upload::video::upload_staged_album_video,
                 upload::edit::video_trim_points,
+                upload::edit::video_needed_ranges,
                 upload::edit::video_decode_window,
             ])
             .build(context)
@@ -427,9 +430,12 @@ pub fn run() {
                 upload::staged::stage_media,
                 upload::staged::append_staged_media,
                 upload::staged::discard_staged_media,
+                upload::staged::write_staged_media,
+                upload::staged::resize_staged_media,
                 upload::video::upload_staged_chat_video,
                 upload::video::upload_staged_album_video,
                 upload::edit::video_trim_points,
+                upload::edit::video_needed_ranges,
                 upload::edit::video_decode_window,
             ])
             .run(context)
