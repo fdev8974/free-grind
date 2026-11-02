@@ -22,6 +22,7 @@ import type {
 } from "../types/chat-realtime";
 import { appLog } from "../utils/logger";
 import { logWsEventToTerminal } from "./tauriWebSocket";
+import { setWsConnectionState, traceWsFrame, traceWsStatus } from "./wsTrace";
 
 type BridgeEvent =
 	| { kind: "open" }
@@ -93,6 +94,7 @@ export class ChatRealtimeManager {
 		this.connected = false;
 		this.hasConnected = false;
 		this.clearPendingCommands(new Error("WebSocket stopped"));
+		setWsConnectionState("disconnected");
 		if (!options?.suppressStatus) {
 			this.setStatus("disconnected");
 		}
@@ -121,8 +123,10 @@ export class ChatRealtimeManager {
 			}
 			// The Rust side injects the session token itself.
 			const msg = { type: commandType, ref, payload };
-			appLog.debug("[chat-ws:send] outgoing", JSON.stringify(msg));
-			invoke("ws_send", { payload: JSON.stringify(msg) }).catch((err: unknown) => {
+			const raw = JSON.stringify(msg);
+			appLog.debug("[chat-ws:send] outgoing", raw);
+			traceWsFrame("out", raw);
+			invoke("ws_send", { payload: raw }).catch((err: unknown) => {
 				const pending = this.pendingCommands.get(ref);
 				if (!pending) return;
 				window.clearTimeout(pending.timer);
@@ -171,6 +175,12 @@ export class ChatRealtimeManager {
 	}
 
 	private handleEvent(event: BridgeEvent) {
+		if (event.kind === "message") {
+			traceWsFrame("in", event.data);
+		} else {
+			const { kind, ...details } = event;
+			traceWsStatus(kind, details);
+		}
 		switch (event.kind) {
 			case "open":
 				this.stateVersion += 1;
@@ -202,6 +212,7 @@ export class ChatRealtimeManager {
 		// some paths; only a real transition counts.
 		if (this.connected) return;
 		this.connected = true;
+		setWsConnectionState("connected");
 		this.setStatus("connected");
 		if (this.hasConnected) {
 			this.options.onReconnect?.();

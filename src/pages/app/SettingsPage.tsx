@@ -22,6 +22,7 @@ import {
 	RefreshCcw,
 	Search,
 	Terminal,
+	Cable,
 	X,
 	ScrollText,
 	Share2,
@@ -1265,6 +1266,13 @@ export function SettingsPage() {
 										"bg-slate-500/15 text-slate-400",
 										t("settings.api_inspector"),
 										t("settings.api_inspector_desc"),
+									)}
+									{navRow(
+										() => navigate("/settings/ws-explorer"),
+										<Cable className="h-5 w-5" />,
+										"bg-slate-500/15 text-slate-400",
+										"WebSocket Explorer",
+										"Every realtime frame sent and received, live. Send your own commands too.",
 									)}
 									{navRow(
 										() => void handleExportLogs(),
