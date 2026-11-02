@@ -843,6 +843,7 @@
     "limits_albums_used": "Albums",
     "limits_details": "Details",
     "collections_editor_hint": "Tap media in the order it should be sent. New uploads are added to your drawer.",
+    "collections_name_required": "Give the collection a name to save it.",
     "collections_save": "Save collection ({{count}})",
     "collections_item_count_one": "{{count}} item",
     "collections_item_count_other": "{{count}} items",

@@ -2033,13 +2033,21 @@ dialog::backdrop {
 	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) > .overflow-y-auto,
 	[data-sheet-panel] > :not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) > :not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) > .overflow-y-auto
 ):not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) {
-	margin-bottom: calc(-1 * (max(16px, env(safe-area-inset-bottom)) + 48px));
+	/* The spacer's height, for content that fills the area (min-h-full) to
+	   take off, or it would always scroll by this much: see .sheet-fill. */
+	--sheet-nav-spacer: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
+	margin-bottom: calc(-1 * var(--sheet-nav-spacer));
 	&::after {
 		content: "";
 		display: block;
 		flex-shrink: 0;
-		height: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
+		height: var(--sheet-nav-spacer);
 	}
+}
+/* Content that fills its sheet scroll area (like min-h-full) without making
+   it scrollable when short: the trailing spacer above comes on top of it. */
+.sheet-fill {
+	min-height: calc(100% - var(--sheet-nav-spacer, 0px));
 }
 /* Darkens the sheet towards the bottom edge, behind the system nav bar, so
  * its buttons/handle stay readable over content scrolling on behind it. Same

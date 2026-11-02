@@ -59,6 +59,9 @@ export function DrawerCollectionEditorSheet({
 	const { t } = useTranslation();
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [name, setName] = useState(collection?.name ?? "");
+	// Typed in (and maybe emptied again): only then, or once media is picked,
+	// does a missing name show as an error, not on a fresh, untouched sheet.
+	const [nameTouched, setNameTouched] = useState(false);
 	// Insertion order of the Set is the send order. Not filtered against the
 	// drawer here — it may still be loading; missing ids are pruned on save.
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(() => new Set(collection?.mediaIds ?? []));
@@ -83,6 +86,10 @@ export function DrawerCollectionEditorSheet({
 	}, []);
 	const upload = useDrawerUploadQueue({ onReloadMedia, onUploaded: appendUploaded });
 	const isBusy = upload.isUploading || isSaving;
+	const nameMissing = !name.trim();
+	const showNameError = nameMissing && (nameTouched || orderedSelection.length > 0);
+	// The save button only comes up once there's something to save: a name and media.
+	const canSave = !nameMissing && orderedSelection.length > 0;
 
 	// Deleting removes the media from the drawer itself, so every collection
 	// using it loses it too (removed from them by useDrawerMediaDelete).
@@ -160,12 +167,22 @@ export function DrawerCollectionEditorSheet({
 			<SheetSection title={t("settings_albums.name_label", { defaultValue: "Name" })} className="mb-4">
 				<SheetTextInput
 					value={name}
-					onChange={setName}
+					onChange={(value) => {
+						setName(value);
+						setNameTouched(true);
+					}}
 					placeholder={t("settings_albums.collections_name_placeholder")}
 					maxLength={100}
 					disabled={isBusy}
+					invalid={showNameError}
 				/>
-				<p className="mt-2 px-1 text-xs text-[var(--text-muted)]">{t("settings_albums.collections_editor_hint")}</p>
+				{showNameError ? (
+					<p className="mt-2 px-1 text-xs font-medium text-red-400" role="alert">
+						{t("settings_albums.collections_name_required", { defaultValue: "Give the collection a name to save it." })}
+					</p>
+				) : (
+					<p className="mt-2 px-1 text-xs text-[var(--text-muted)]">{t("settings_albums.collections_editor_hint")}</p>
+				)}
 			</SheetSection>
 
 			<DrawerBody
@@ -221,17 +238,19 @@ export function DrawerCollectionEditorSheet({
 				</DrawerGrid>
 			</DrawerBody>
 
-			<DrawerFooter>
-				<button
-					type="button"
-					onClick={() => void handleSave()}
-					disabled={isBusy || !name.trim() || orderedSelection.length === 0}
-					className={DRAWER_PRIMARY_BUTTON_CLASS}
-				>
-					{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-					<span>{t("settings_albums.collections_save", { count: orderedSelection.length })}</span>
-				</button>
-			</DrawerFooter>
+			{canSave || isSaving ? (
+				<DrawerFooter>
+					<button
+						type="button"
+						onClick={() => void handleSave()}
+						disabled={isBusy}
+						className={DRAWER_PRIMARY_BUTTON_CLASS}
+					>
+						{isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+						<span>{t("settings_albums.collections_save", { count: orderedSelection.length })}</span>
+					</button>
+				</DrawerFooter>
+			) : null}
 			</>
 			)}
 			<DrawerMediaPreview media={drawerPreview} />

@@ -287,7 +287,8 @@ export function SheetMoreButton({
 }
 
 /** Plain text field for a sheet (e.g. a name), same look as SheetSearchInput.
- * Enter or leaving the field calls `onCommit`; `trailing` sits inside on the right. */
+ * Enter or leaving the field calls `onCommit`; `trailing` sits inside on the right.
+ * `invalid` outlines it in red (its message is the caller's, below it). */
 export function SheetTextInput({
 	value,
 	onChange,
@@ -297,6 +298,7 @@ export function SheetTextInput({
 	disabled,
 	autoFocus,
 	trailing,
+	invalid,
 	accentColor = "var(--accent)",
 }: {
 	value: string;
@@ -307,11 +309,13 @@ export function SheetTextInput({
 	disabled?: boolean;
 	autoFocus?: boolean;
 	trailing?: ReactNode;
+	invalid?: boolean;
 	accentColor?: string;
 }) {
 	return (
-		<div className="relative" style={{ "--chip-accent": accentColor } as CSSProperties}>
+		<div className="relative" style={{ "--chip-accent": invalid ? "#f87171" : accentColor } as CSSProperties}>
 			<input
+				aria-invalid={invalid || undefined}
 				type="text"
 				value={value}
 				onChange={(event) => onChange(event.target.value)}
@@ -329,6 +333,7 @@ export function SheetTextInput({
 				className={cn(
 					"h-11 w-full rounded-xl border border-transparent bg-[var(--surface-2)] px-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--chip-accent)] disabled:opacity-60",
 					trailing ? "pr-10" : undefined,
+					invalid ? "border-[var(--chip-accent)]" : undefined,
 				)}
 			/>
 			{trailing && (

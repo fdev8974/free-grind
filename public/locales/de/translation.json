@@ -843,6 +843,7 @@
         "limits_albums_used": "Alben",
         "limits_details": "Details",
         "collections_editor_hint": "Tippe die Medien in der Reihenfolge an, in der sie gesendet werden sollen. Neue Uploads werden zu deiner Galerie hinzugefügt.",
+        "collections_name_required": "Gib der Collection einen Namen, um sie zu speichern.",
         "collections_save": "Sammlung speichern ({{count}})",
         "collections_item_count_one": "{{count}} Element",
         "collections_item_count_other": "{{count}} Elemente",
