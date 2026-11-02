@@ -230,6 +230,9 @@ export function defaultVideoEdit(points: TrimPoints, maxMs = MAX_CHAT_VIDEO_MS):
 	return { startMs: 0, maxMs: Math.min(maxMs, points.durationMs), trim, portrait, ...basis };
 }
 
+/** The longest pick that may be split into parts (8 of them at 15 s). */
+export const MAX_SPLIT_MS = 2 * 60_000;
+
 /** A split's parts shorter than this are dropped: the trimmer's shortest pick. */
 const MIN_SEGMENT_MS = 1000;
 

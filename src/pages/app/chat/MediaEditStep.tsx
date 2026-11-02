@@ -389,9 +389,19 @@ export function MediaEditStep({
 				<button type="button" onClick={() => void confirm()} className={sheetButtonClass()}>
 					{goesOn ? null : confirmIcon}
 					<span className="truncate">
-						{goesOn
-							? t("chat.attachments.next", { defaultValue: "Next" })
-							: confirmLabel ?? t("chat_drawer.add_to_drawer")}
+						{(() => {
+							const label = goesOn
+								? t("chat.attachments.next", { defaultValue: "Next" })
+								: confirmLabel ?? t("chat_drawer.add_to_drawer");
+							// A split video says how many go out, so it never happens unnoticed.
+							return isVideo && segments
+								? t("chat.attachments.confirm_videos", {
+										defaultValue: "{{label}} · {{count}} videos",
+										label,
+										count: segments.length,
+									})
+								: label;
+						})()}
 					</span>
 				</button>
 			</DrawerFooter>
