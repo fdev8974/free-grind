@@ -155,7 +155,7 @@ export function VersionChangesLink({ from, to }: { from: string | null | undefin
 				</button>
 			</div>
 			{open && (
-				<BottomSheet onClose={() => setOpen(false)} isDesktop={isDesktop} expandable panelClassName="max-h-[85dvh]" zIndex="z-[150]">
+				<BottomSheet onClose={() => setOpen(false)} isDesktop={isDesktop} expandable panelClassName={isDesktop ? "max-h-[85dvh]" : ""} zIndex="z-[150]">
 					<div className="flex items-start justify-between gap-3 px-4 pb-3">
 						<p className="min-w-0 pt-1 text-base font-semibold leading-snug text-[var(--text)]">
 							{t("update_prompt.changes_title", { defaultValue: "What's changed" })}
