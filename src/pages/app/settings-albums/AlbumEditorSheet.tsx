@@ -607,7 +607,7 @@ export function AlbumEditorSheet({
 		try {
 			if (images.length > 0) {
 				// One request for all photos; each tile shows it.
-				const request = apiFunctions.addOwnAlbumContentByIds({ albumId, ids: images.map((item) => item.id) });
+				const request = apiFunctions.addOwnAlbumContentByIds({ albumId, ids: images.map((item) => item.id), isFresh: notifyAlbumUpdates });
 				try {
 					await Promise.all(images.map((item) => uploadTiles.track(tileFor.get(item.id)!, false, () => request)));
 					added += images.length;

@@ -86,6 +86,8 @@ export interface ReorderOwnAlbumContentInput {
 export interface AddOwnAlbumContentByIdsInput {
 	albumId: string;
 	ids: number[];
+	/** As for UploadOwnAlbumContentInput. */
+	isFresh: boolean;
 }
 
 export interface DeleteOwnAlbumContentInput {

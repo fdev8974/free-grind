@@ -198,7 +198,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 			input: AddOwnAlbumContentByIdsInput,
 		): Promise<{ ok: true }> {
 			const response = await fetchRest(
-				`/v1/albums/${input.albumId}/content/chat/list-by-id?isFresh=true`,
+				`/v1/albums/${input.albumId}/content/chat/list-by-id?isFresh=${input.isFresh}`,
 				{
 					method: "POST",
 					body: { ids: input.ids },
