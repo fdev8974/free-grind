@@ -511,6 +511,15 @@ export async function reconcileReappearedConversation(
 	if (!stored?.blockState) {
 		return null;
 	}
+	// A reappearance can't tell us *we* unblocked them — an inbox response
+	// requested just before (or served stale right after) our own block still
+	// lists the conversation, which would otherwise flip a fresh block into
+	// "You were unblocked" until reconcileBlockStateWithBlockedList re-blocks
+	// it. Our own unblock is handled by the mutation (applySelfBlockAction), a
+	// cross-device one by reconcileBlockStateWithBlockedList.
+	if (stored.blockState === "blocked_by_me") {
+		return null;
+	}
 	if (!(await claimBlockStateTransition(conversationId, null).catch(() => false))) {
 		return null;
 	}
@@ -607,7 +616,9 @@ export async function reconcileArchivedConversationForProfile(
 	isProfileFound: (profileId: string) => Promise<boolean>,
 ): Promise<void> {
 	const stored = await chatDb.findConversationByProfileId(profileId).catch(() => null);
-	if (!stored?.archived) {
+	// Activity from someone we blocked isn't a sign of an unblock — see
+	// reconcileReappearedConversation.
+	if (!stored?.archived || stored.blockState === "blocked_by_me") {
 		return;
 	}
 

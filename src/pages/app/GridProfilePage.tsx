@@ -56,7 +56,9 @@ const profileRouteParamsSchema = z.object({
 function unarchiveConversationIfArchived(profileId: string) {
 	void findConversationByProfileId(profileId)
 		.then(async (stored) => {
-			if (!stored?.archived) {
+			// A profile we blocked can still load fine — that says nothing about
+			// an unblock; our own unblock is handled by the mutation.
+			if (!stored?.archived || stored.blockState === "blocked_by_me") {
 				return;
 			}
 			const isSelf = consumeSelfBlockAction(stored.conversationId, "unblock");
@@ -120,6 +122,7 @@ export function GridProfilePage() {
 	const [chatContactStatus, setChatContactStatus] = useState<ChatContactIndexRecord | null>(null);
 	const [localNickname, setLocalNickname] = useState<string | null>(null);
 	const [isSnapshotProfile, setIsSnapshotProfile] = useState(false);
+	const [profileReloadKey, setProfileReloadKey] = useState(0);
 
 	const [mutatingFavoriteProfileId, setMutatingFavoriteProfileId] = useState<string | null>(
 		null,
@@ -304,6 +307,12 @@ export function GridProfilePage() {
 		: undefined;
 
 	useEffect(() => {
+		if (profileId) {
+			void apiFunctions.recordProfileView(profileId);
+		}
+	}, [apiFunctions, profileId]);
+
+	useEffect(() => {
 		if (!profileId) {
 			setActiveProfile(null);
 			setActiveProfileError(t("api.errors.invalid_profile_id"));
@@ -314,8 +323,6 @@ export function GridProfilePage() {
 
 		let cancelled = false;
 		setIsSnapshotProfile(false);
-
-		void apiFunctions.recordProfileView(profileId);
 
 		const loadLocalSnapshot = async (): Promise<ProfileDetail | null> => {
 			const stored = await getProfileSnapshot(profileId).catch(() => null);
@@ -400,7 +407,7 @@ export function GridProfilePage() {
 		return () => {
 			cancelled = true;
 		};
-	}, [apiFunctions, profileId]);
+	}, [apiFunctions, profileId, profileReloadKey]);
 
 	const activeProfilePhotoHashes = useMemo(() => {
 		if (!activeProfile) {
@@ -475,6 +482,10 @@ export function GridProfilePage() {
 	const performUnblockProfile = async (targetProfileId: string) => {
 		try {
 			await unblockProfileMutation(targetProfileId);
+			// While blocked, the live fetch only returned a stub, so we're showing
+			// the local snapshot (which hides the chat bar) — refetch now that the
+			// real profile is readable again.
+			setProfileReloadKey((key) => key + 1);
 			toast.success(t("profile_details.unblock_success"));
 		} catch (error) {
 			toast.error(
