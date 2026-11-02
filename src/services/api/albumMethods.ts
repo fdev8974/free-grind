@@ -1,3 +1,6 @@
+import { invoke } from "@tauri-apps/api/core";
+import { z } from "zod";
+
 import {
 	albumDetailSchema,
 	albumLimitsSchema,
@@ -33,10 +36,13 @@ import type {
 	RenameOwnAlbumInput,
 	UnshareAlbumInput,
 	UploadOwnAlbumContentInput,
+	UploadOwnAlbumVideoInput,
 	GetSharedAlbumsInput,
 } from "../../types/api-functions";
 import type { RestFetcher } from "../../types/chat-service";
 import { ApiFunctionError, assertSuccess, parseJsonSafe } from "../apiHelpers";
+import { uploadStagedVideo } from "../stagedVideoUpload";
+import { stagedEdit } from "../videoReencode";
 
 export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, options?: { defaultValue?: string }) => string) {
 	return {
@@ -130,6 +136,32 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 			}
 
 			return { contentId };
+		},
+
+		/**
+		 * Streams a video from disk into the album (see stagedVideoUpload), cut
+		 * and turned upright as `edit` says (see videoEdit); its width and
+		 * height come from the file itself, Rust-side.
+		 */
+		async uploadOwnAlbumVideo(input: UploadOwnAlbumVideoInput): Promise<{ contentId: number } | null> {
+			const payload = await uploadStagedVideo(
+				input.file,
+				async (stagedId) =>
+					invoke("upload_staged_album_video", {
+						stagedId,
+						albumId: Number(input.albumId),
+						maxBodySize: input.maxBodySize ?? null,
+						edit: await stagedEdit(stagedId, input.edit, input.onLandscapeKept),
+					}),
+				t("api.errors.upload_content"),
+				t,
+			);
+			if (payload === null) return null;
+			const parsed = z.object({ contentId: z.coerce.number().int() }).safeParse(payload);
+			if (!parsed.success) {
+				throw new ApiFunctionError(t("api.errors.invalid_upload_response"), 0, payload);
+			}
+			return { contentId: parsed.data.contentId };
 		},
 
 		async reorderOwnAlbumContent(

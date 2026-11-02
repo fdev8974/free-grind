@@ -24,12 +24,22 @@ async fn send_upload(
         .send()
         .await
         .map_err(|e| AppError::from_client_error(e, &client))?;
+    upload_response(response)
+}
 
+/// The upload response as JSON, or the error a non-2xx status stands for.
+pub(crate) fn upload_response(response: grindr::RawResponse) -> Result<serde_json::Value, AppError> {
     if !(200..300).contains(&response.status) {
+        eprintln!(
+            "[upload] refused with {}: {}",
+            response.status,
+            String::from_utf8_lossy(&response.body)
+        );
         if let Some(reason) = rejection_reason(&response.body) {
             return Err(AppError::MediaRejected {
                 status: response.status,
                 reason,
+                detail: problem_detail(&response.body),
             });
         }
         return Err(AppError::from(grindr::GrindrError::from_response(
@@ -59,6 +69,17 @@ fn rejection_reason(body: &[u8]) -> Option<String> {
     ["timestamp_drift", "nonce_replayed"]
         .into_iter()
         .find(|reason| text.contains(reason))
+        .map(str::to_owned)
+}
+
+/// The RFC-7807 `detail` of an error body (e.g. "Image parsing failed for
+/// WEBP. …"), which says more than its `type`.
+fn problem_detail(body: &[u8]) -> Option<String> {
+    serde_json::from_slice::<serde_json::Value>(body)
+        .ok()?
+        .get("detail")?
+        .as_str()
+        .filter(|detail| !detail.trim().is_empty())
         .map(str::to_owned)
 }
 

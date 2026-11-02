@@ -1,6 +1,5 @@
 import {
 	AlertTriangle,
-	Clock,
 	Film,
 	GripVertical,
 	Images,
@@ -52,7 +51,9 @@ import {
 	DrawerHeader,
 } from "../chat/drawerUi";
 import type { DrawerMedia } from "../chat/ChatDrawerPanel";
+import { resolveVideoEdit } from "../../../services/videoEdit";
 import { AlbumDrawerPickerSheet } from "./AlbumDrawerPickerSheet";
+import { AlbumVideoEditSheet } from "./AlbumVideoEditSheet";
 import {
 	buildMultipartBody,
 	countAlbumMedia,
@@ -113,7 +114,13 @@ function SortableAlbumMediaItem({
 			) : (
 				<div className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 bg-[var(--surface)] text-[var(--text-muted)]">
 					{isVideo ? <Film className="h-7 w-7 opacity-50" /> : <Images className="h-7 w-7 opacity-50" />}
-					{isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin opacity-70" /> : null}
+					{isProcessing ? (
+						// In the middle, where the preview will be: a corner badge this long gets clipped.
+						<span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-500">
+							<Loader2 className="h-3 w-3 animate-spin" />
+							{t("settings_albums.processing", { defaultValue: "Processing" })}
+						</span>
+					) : null}
 				</div>
 			)}
 
@@ -125,22 +132,12 @@ function SortableAlbumMediaItem({
 				</div>
 			)}
 
-			{(isProcessing || isRejected) && (
-				<div className="absolute left-1.5 top-1.5">
-					<span
-						className={[
-							"inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm",
-							isRejected ? "bg-red-500/90" : "bg-amber-500/90",
-						].join(" ")}
-					>
-						{isRejected ? (
-							<AlertTriangle className="h-2.5 w-2.5" />
-						) : (
-							<Clock className="h-2.5 w-2.5" />
-						)}
-						{isRejected
-							? t("settings_albums.rejected", { defaultValue: "Rejected" })
-							: t("settings_albums.processing", { defaultValue: "Processing" })}
+			{isRejected && (
+				// Clear of the rounded corner and of the grip on the right.
+				<div className="absolute left-2 top-2 max-w-[calc(100%-3rem)]">
+					<span className="inline-flex max-w-full items-center gap-0.5 rounded-md bg-red-500/90 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm">
+						<AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+						<span className="truncate">{t("settings_albums.rejected", { defaultValue: "Rejected" })}</span>
 					</span>
 				</div>
 			)}
@@ -215,12 +212,16 @@ export function AlbumEditorSheet({
 	const albumId = album.albumId;
 	const [fetchedLimits, setFetchedLimits] = useState<AlbumLimits | null>(null);
 	const limits = limitsProp !== undefined ? limitsProp : fetchedLimits;
+	// Album videos get trimmed to the plan's length (it isn't enforced server-side).
+	const maxVideoMs = limits?.maxVideoLength ?? Number.POSITIVE_INFINITY;
 	const [albumName, setAlbumName] = useState(album.albumName?.trim() ?? "");
 	const [editingName, setEditingName] = useState(album.albumName?.trim() ?? "");
 	const [isSavingEdit, setIsSavingEdit] = useState(false);
 	const [detail, setDetail] = useState<AlbumDetail | undefined>(initialDetail);
 	const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 	const [isUploading, setIsUploading] = useState(false);
+	const [editingVideo, setEditingVideo] = useState<File | null>(null);
+	const videoEditDoneRef = useRef<((keep: boolean) => void) | null>(null);
 	const [isReordering, setIsReordering] = useState(false);
 	const [deletingContentId, setDeletingContentId] = useState<string | null>(null);
 	const [confirmDeleteContentId, setConfirmDeleteContentId] = useState<string | null>(null);
@@ -521,18 +522,11 @@ export function AlbumEditorSheet({
 				}
 				videoSlotsLeft -= 1;
 
-				if (limits?.maxVideoLength != null || limits?.minVideoLength != null) {
+				// A video over maxVideoLength gets trimmed to it (see uploadFilesToAlbum).
+				if (limits?.minVideoLength != null) {
 					const durationMs = await getVideoDurationMs(file);
 					if (durationMs != null) {
-						if (limits.maxVideoLength != null && durationMs > limits.maxVideoLength) {
-							toast.error(t("settings_albums.error_video_too_long", {
-								defaultValue: "\"{{name}}\" is too long (max {{max}}).",
-								name: file.name,
-								max: formatMs(limits.maxVideoLength),
-							}));
-							continue;
-						}
-						if (limits.minVideoLength != null && durationMs < limits.minVideoLength) {
+						if (durationMs < limits.minVideoLength) {
 							toast.error(t("settings_albums.error_video_too_short", {
 								defaultValue: "\"{{name}}\" is too short (min {{min}}).",
 								name: file.name,
@@ -550,10 +544,26 @@ export function AlbumEditorSheet({
 		return valid;
 	};
 
+	// Videos stream from disk, cut to the editor's pick or the plan's
+	// maxVideoLength and upright (see videoEdit); a binary without streaming
+	// sends them whole instead.
 	const uploadFilesToAlbum = async (files: File[]) => {
 		for (const file of files) {
-			const multipart = await buildMultipartBody(file);
 			const isVideo = file.type.startsWith("video/");
+			if (isVideo) {
+				const streamed = await apiFunctions.uploadOwnAlbumVideo({
+					albumId,
+					file,
+					edit: await resolveVideoEdit(file, maxVideoMs),
+					onLandscapeKept: () =>
+						toast(t("chat.attachments.landscape_kept", {
+							defaultValue: "This device can't turn the video upright, so it was sent in landscape. The official app may not show it properly.",
+						})),
+					...(limits?.maxContentSize != null ? { maxBodySize: limits.maxContentSize } : {}),
+				});
+				if (streamed) continue;
+			}
+			const multipart = await buildMultipartBody(file);
 			const dims = isVideo ? await getVideodimensions(file) : undefined;
 			await apiFunctions.uploadOwnAlbumContent({ albumId, multipart, ...dims });
 		}
@@ -597,11 +607,29 @@ export function AlbumEditorSheet({
 		}
 	};
 
+	// Each picked video goes through the edit sheet first; resolves whether
+	// to add it. The sheet may report twice (confirm, then its close).
+	const editVideo = (file: File) =>
+		new Promise<boolean>((resolve) => {
+			videoEditDoneRef.current = resolve;
+			setEditingVideo(file);
+		});
+	const finishVideoEdit = (keep: boolean) => {
+		const done = videoEditDoneRef.current;
+		videoEditDoneRef.current = null;
+		setEditingVideo(null);
+		done?.(keep);
+	};
+
 	const handleUploadInputChange = async (event: ChangeEvent<HTMLInputElement>) => {
 		const files = Array.from(event.target.files ?? []);
 		event.target.value = "";
 		if (!files.length || isUploading) return;
-		const valid = await filterAlbumUploads(files);
+		const filtered = await filterAlbumUploads(files);
+		const valid: File[] = [];
+		for (const file of filtered) {
+			if (!file.type.startsWith("video/") || (await editVideo(file))) valid.push(file);
+		}
 		if (valid.length === 0) return;
 		setIsUploading(true);
 		try {
@@ -1052,6 +1080,9 @@ export function AlbumEditorSheet({
 					/>
 				);
 			})() : null}
+			{editingVideo && (
+				<AlbumVideoEditSheet file={editingVideo} maxMs={maxVideoMs} isDesktop={isDesktop} onDone={finishVideoEdit} />
+			)}
 		</>
 	);
 }

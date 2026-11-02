@@ -115,14 +115,17 @@ export function mediaUploadErrorToApiFunctionError(
 	t: (key: string, options?: { defaultValue?: string }) => string,
 ): ApiFunctionError {
 	if (error && typeof error === "object" && (error as { kind?: unknown }).kind === "MediaRejected") {
-		const { status, reason } = ((error as { message?: unknown }).message ?? {}) as {
+		const { status, reason, detail } = ((error as { message?: unknown }).message ?? {}) as {
 			status?: unknown;
 			reason?: unknown;
+			detail?: unknown;
 		};
 		const known = typeof reason === "string" ? MEDIA_REJECTION_MESSAGES[reason] : undefined;
+		// The server's own detail says why (bad_request/internal_error alone don't).
+		const why = typeof detail === "string" && detail ? `${String(reason)}: ${detail}` : String(reason);
 		const message = known
 			? t(known.key, { defaultValue: known.defaultValue })
-			: `${t("api.errors.media_rejected", { defaultValue: "The server rejected the upload" })} (${String(reason)})`;
+			: `${t("api.errors.media_rejected", { defaultValue: "The server rejected the upload" })} (${why})`;
 		return new ApiFunctionError(message, typeof status === "number" ? status : 0, error);
 	}
 	const base = commandErrorToApiFunctionError(error, fallback);

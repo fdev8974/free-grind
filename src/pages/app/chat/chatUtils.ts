@@ -162,16 +162,21 @@ export async function buildBinaryUpload(file: File): Promise<{
 	};
 }
 
-/** Whole seconds, or 0 when the browser can't read the duration. */
-export function getVideoDurationSeconds(file: File): Promise<number> {
-	return new Promise<number>((resolve) => {
+/**
+ * Milliseconds, as the upload `length` expects, or null when the webview
+ * can't read the duration. Streamed uploads read the length from the file
+ * itself and use this only when the file has none (src-tauri/src/upload/video.rs).
+ */
+export function getVideoDurationMs(file: File): Promise<number | null> {
+	return new Promise<number | null>((resolve) => {
 		const vid = document.createElement("video");
 		vid.preload = "metadata";
 		vid.onloadedmetadata = () => {
-			resolve(isFinite(vid.duration) ? Math.round(vid.duration) : 0);
+			const { duration } = vid;
+			resolve(Number.isFinite(duration) && duration > 0 ? Math.round(duration * 1000) : null);
 			URL.revokeObjectURL(vid.src);
 		};
-		vid.onerror = () => { resolve(0); URL.revokeObjectURL(vid.src); };
+		vid.onerror = () => { resolve(null); URL.revokeObjectURL(vid.src); };
 		vid.src = URL.createObjectURL(file);
 	});
 }

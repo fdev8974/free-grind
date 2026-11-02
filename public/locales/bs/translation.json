@@ -1675,7 +1675,7 @@
             "send": "Pošalji",
             "send_expiring": "Pošalji nestajuće",
             "uploading": "Otpremanje priloga",
-            "too_large": "Prilog je prevelik. Ograničenje je 12 MB."
+            "too_large": "Prilog je prevelik. Ograničenje je 120 MB."
         },
         "nicknames": {
             "set": "Postavi nadimak",

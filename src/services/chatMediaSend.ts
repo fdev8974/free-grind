@@ -8,47 +8,79 @@
  * the same), so sending one image to several chats uploads it only once.
  */
 
+import toast from "react-hot-toast";
+
+import i18n from "../i18n";
 import type { createApiFunctions } from "./apiFunctions";
 import { fetchAndStoreMedia } from "./mediaStore";
-import { buildBinaryUpload, extractImageHashFromSignedUrl, getMediaCaptureTarget, videoMessageViews } from "../pages/app/chat/chatUtils";
+import {
+	buildBinaryUpload,
+	extractImageHashFromSignedUrl,
+	getMediaCaptureTarget,
+	getVideoDurationMs,
+	videoMessageViews,
+} from "../pages/app/chat/chatUtils";
+import { MAX_CHAT_MEDIA_BYTES } from "./stagedVideoUpload";
+import { resolveVideoEdit } from "./videoEdit";
 import type { Message } from "../types/messages";
 import type { UploadChatMediaResponse } from "../types/chat-service";
 
 type ApiFunctions = ReturnType<typeof createApiFunctions>;
 
-export const MAX_CHAT_MEDIA_BYTES = 12 * 1024 * 1024;
 /** maxViews meaning "no limit" — the attachment dialog's default. */
 export const UNLIMITED_VIEWS = 2147483647;
 
 export type UploadedChatMedia = UploadChatMediaResponse & { isVideo: boolean };
 
+function warnLandscapeKept() {
+	toast(
+		i18n.t("chat.attachments.landscape_kept", {
+			defaultValue: "This device can't turn the video upright, so it was sent in landscape. The official app may not show it properly.",
+		}),
+	);
+}
+
+/**
+ * Streams the video from disk (see stagedVideoUpload), cut to the window the
+ * editor picked, or its first 15 s, and turned portrait when it's landscape
+ * (see videoEdit). On a binary that predates streaming it is sent whole
+ * instead. The webview's reading of the length is only a fallback for files
+ * without one of their own. Videos are never signed: only in-app photo
+ * captures are.
+ */
+export async function uploadChatVideo(
+	api: Pick<ApiFunctions, "uploadChatMedia" | "uploadChatVideo">,
+	file: File,
+	looping: boolean,
+): Promise<UploadChatMediaResponse> {
+	const lengthMs = await getVideoDurationMs(file);
+	const edit = await resolveVideoEdit(file);
+	const streamed = await api.uploadChatVideo({
+		file,
+		looping,
+		edit,
+		onLandscapeKept: warnLandscapeKept,
+		...(lengthMs != null ? { lengthMs } : {}),
+	});
+	if (streamed) return streamed;
+	return api.uploadChatMedia({
+		multipart: await buildBinaryUpload(file),
+		options: { looping, takenOnGrindr: false, length: lengthMs ?? 0 },
+	});
+}
+
 export async function uploadChatMediaFile(
-	api: Pick<ApiFunctions, "uploadChatMedia">,
+	api: Pick<ApiFunctions, "uploadChatMedia" | "uploadChatVideo">,
 	file: File,
 	options: { looping: boolean; takenOnGrindr: boolean },
 ): Promise<UploadedChatMedia> {
 	const isVideo = file.type.startsWith("video/");
-	let durationSeconds: number | undefined;
-	if (isVideo) {
-		durationSeconds = await new Promise<number>((resolve) => {
-			const video = document.createElement("video");
-			video.preload = "metadata";
-			const objectUrl = URL.createObjectURL(file);
-			video.onloadedmetadata = () => {
-				URL.revokeObjectURL(objectUrl);
-				resolve(Math.ceil(video.duration));
-			};
-			video.onerror = () => {
-				URL.revokeObjectURL(objectUrl);
-				resolve(0);
-			};
-			video.src = objectUrl;
-		});
-	}
-	const uploaded = await api.uploadChatMedia({
-		multipart: await buildBinaryUpload(file),
-		options: { looping: options.looping, takenOnGrindr: options.takenOnGrindr, durationSeconds },
-	});
+	const uploaded = isVideo
+		? await uploadChatVideo(api, file, options.looping)
+		: await api.uploadChatMedia({
+				multipart: await buildBinaryUpload(file),
+				options: { looping: options.looping, takenOnGrindr: options.takenOnGrindr },
+			});
 	return { ...uploaded, isVideo };
 }
 
@@ -109,7 +141,7 @@ export type BatchSendResult = { sent: number; failed: number };
  * message — a failed upload counts once for every recipient it was meant for.
  */
 export async function sendChatMediaBatch(
-	api: Pick<ApiFunctions, "uploadChatMedia" | "sendMessage">,
+	api: Pick<ApiFunctions, "uploadChatMedia" | "uploadChatVideo" | "sendMessage">,
 	files: File[],
 	recipientProfileIds: Array<number | string>,
 	options: { maxViews: number },
@@ -122,7 +154,8 @@ export async function sendChatMediaBatch(
 	for (const file of files) {
 		let uploaded: UploadedChatMedia;
 		try {
-			if (file.size > MAX_CHAT_MEDIA_BYTES) throw new Error("too large");
+			// Videos are checked Rust-side, after the cut that may shrink them.
+			if (!file.type.startsWith("video/") && file.size > MAX_CHAT_MEDIA_BYTES) throw new Error("too large");
 			uploaded = await uploadChatMediaFile(api, file, { looping: false, takenOnGrindr: false });
 		} catch {
 			failed += recipientProfileIds.length;

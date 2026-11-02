@@ -27,9 +27,12 @@ const MEDIA_ERROR_MESSAGES: Record<string, string> = {
 	too_large: "This photo is too large to upload (max. 64 MB).",
 	heic_unsupported: "HEIC photos aren't supported on this device. Please convert it to JPEG first.",
 	video_unstrippable: "This video's metadata can't be removed safely, so it wasn't uploaded.",
+	upload_too_large: "This file is too large to upload.",
+	video_too_long: "This video is too long for chat. Share it through an album instead.",
+	video_untrimmable: "This video can't be shortened or turned upright. Try a different one.",
 };
 
-function mediaErrorCode(error: unknown): string | null {
+export function mediaErrorCode(error: unknown): string | null {
 	if (error && typeof error === "object" && (error as { kind?: unknown }).kind === "Media") {
 		const code = (error as { message?: unknown }).message;
 		return typeof code === "string" ? code : null;
@@ -44,7 +47,8 @@ function isMissingCommand(error: unknown): boolean {
 	return typeof error === "string" && /^Command sanitize_upload_media not found/.test(error);
 }
 
-function toUploadError(error: unknown): ApiFunctionError {
+/** A user-facing ApiFunctionError for a media pipeline error (`AppError::Media`). */
+export function toUploadError(error: unknown): ApiFunctionError {
 	if (isMissingCommand(error)) {
 		const message = i18n.t("api.errors.media_app_outdated", {
 			defaultValue: "This app installation is too old to upload photos and videos. Please install the latest version.",

@@ -1690,7 +1690,7 @@
             "send": "Pošlji",
             "send_expiring": "Pošlji izginjajoče",
             "uploading": "Nalaganje priloge",
-            "too_large": "Priloga je prevelika. Omejitev je 12 MB."
+            "too_large": "Priloga je prevelika. Omejitev je 120 MB."
         },
         "nicknames": {
             "set": "Nastavi vzdevek",

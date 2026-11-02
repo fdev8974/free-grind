@@ -3,11 +3,11 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { appLog } from "../../../utils/logger";
-import { buildBinaryUpload, getVideoDurationSeconds } from "./chatUtils";
+import { uploadChatVideo } from "../../../services/chatMediaSend";
+import { MAX_CHAT_MEDIA_BYTES } from "../../../services/stagedVideoUpload";
+import { buildBinaryUpload } from "./chatUtils";
 import { DrawerAddMediaStep } from "./DrawerAddMediaStep";
 import { useDrawerAddActions } from "./drawerUi";
-
-const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 type PreparedUpload = { file: File; takenOnGrindr: boolean; looping: boolean };
 
@@ -46,21 +46,19 @@ export function useDrawerUploadQueue({
 			setUploadProgress({ done: 0, total: batch.length });
 			for (const [index, { file, takenOnGrindr, looping }] of batch.entries()) {
 				const isVideo = file.type.startsWith("video/");
-				if (file.size > MAX_UPLOAD_BYTES) {
+				// Videos are checked Rust-side, after the cut that may shrink them.
+				if (!isVideo && file.size > MAX_CHAT_MEDIA_BYTES) {
 					toast.error(t("chat.attachments.too_large"));
 					setUploadProgress({ done: index + 1, total: batch.length });
 					continue;
 				}
 				try {
-					const durationSeconds = isVideo ? await getVideoDurationSeconds(file) : undefined;
-					const uploaded = await service.uploadChatMedia({
-						multipart: await buildBinaryUpload(file),
-						options: {
-							looping: isVideo ? looping : false,
-							takenOnGrindr: isVideo ? false : takenOnGrindr,
-							...(durationSeconds != null ? { durationSeconds } : {}),
-						},
-					});
+					const uploaded = isVideo
+						? await uploadChatVideo(service, file, looping)
+						: await service.uploadChatMedia({
+								multipart: await buildBinaryUpload(file),
+								options: { looping: false, takenOnGrindr },
+							});
 					await service.addMediaToDrawer(uploaded.mediaId);
 					uploadedMedia.push({ mediaId: uploaded.mediaId, isVideo });
 				} catch (uploadError) {

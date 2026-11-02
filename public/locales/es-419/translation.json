@@ -1675,7 +1675,7 @@
             "send": "Enviar",
             "send_expiring": "Enviar expirando",
             "uploading": "Subiendo archivo",
-            "too_large": "El archivo es demasiado grande. El límite es 12MB."
+            "too_large": "El archivo es demasiado grande. El límite es 120MB."
         },
         "nicknames": {
             "set": "Establecer apodo",

@@ -1675,7 +1675,7 @@
             "send": "Enviar",
             "send_expiring": "Enviar expirando",
             "uploading": "Carregando anexo",
-            "too_large": "O anexo é muito grande. O limite é de 12 MB."
+            "too_large": "O anexo é muito grande. O limite é de 120 MB."
         },
         "nicknames": {
             "set": "Apelido definido",

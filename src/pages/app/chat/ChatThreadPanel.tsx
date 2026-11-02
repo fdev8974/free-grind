@@ -37,6 +37,7 @@ import {
 	Repeat,
 } from "lucide-react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
+import { VideoTrimmer } from "./VideoTrimmer";
 import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, SendHorizontalFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -97,7 +98,7 @@ import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { getShowReadReceiptToggle, isReadReceiptsHidden, toggleReadReceiptsHidden, useReadReceiptsChanged } from "../../../utils/privacy";
 import { toggleAutoTranslate } from "../../../utils/autoTranslate";
 import { useMessageTranslations } from "../../../hooks/useMessageTranslations";
-import { SheetSearchInput, SheetToggleList } from "../../../components/ui/sheet-section";
+import { SheetSearchInput } from "../../../components/ui/sheet-section";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_ICON_BUTTON_CLASS } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG, SheetActionList } from "../../../components/ui/action-sheet";
@@ -150,7 +151,7 @@ import {
 	SAVED_PHRASES_UPDATED_EVENT,
 } from "../../../services/savedPhrases";
 import { useScrollRowFade } from "../../../hooks/useScrollRowFade";
-import { DrawerEmptyState, ExpiryToggleButton, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon, VideoExpiryButton } from "./drawerUi";
+import { AddToDrawerChip, DrawerEmptyState, ExpiryToggleButton, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon, VideoExpiryButton } from "./drawerUi";
 import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { useNicknameNameChange } from "../../../hooks/useNicknameNameChange";
@@ -2872,26 +2873,25 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							isProcessing={isUploadingAttachment}
 							isDesktop={isDesktop}
 							bg={NATIVE_SHEET_BG}
-							footerLeft={(() => {
-								const isVideo = pendingAttachmentFile.type.startsWith("video/");
-								// Photos: unlimited or 10s, a single toggle. Videos also have "repeat".
-								if (!isVideo) {
-									return (
+							footerLeft={
+								<>
+									{pendingAttachmentFile.type.startsWith("video/") ? (
+										<VideoExpiryButton
+											value={attachmentMaxViews}
+											onChange={setAttachmentMaxViews}
+											isDesktop={isDesktop}
+										/>
+									) : (
+										// Photos: unlimited or 10s, a single toggle.
 										<ExpiryToggleButton
 											expiring={attachmentMaxViews !== 2147483647}
 											onChange={(expiring) => setAttachmentMaxViews(expiring ? 1 : 2147483647)}
 											expiringLabel={t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}
 										/>
-									);
-								}
-								return (
-									<VideoExpiryButton
-										value={attachmentMaxViews}
-										onChange={setAttachmentMaxViews}
-										isDesktop={isDesktop}
-									/>
-								);
-							})()}
+									)}
+									<AddToDrawerChip checked={attachmentAddToDrawer} onChange={setAttachmentAddToDrawer} />
+								</>
+							}
 						>
 							<div className="flex min-h-0 flex-1 flex-col">
 							{/* Scrollable preview area */}
@@ -2899,17 +2899,19 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							{attachmentPreviewUrl && (
 								pendingAttachmentFile.type.startsWith("video/") ? (
 									<div className="px-4 pb-3">
-										<div style={{ borderRadius: "1rem", clipPath: "inset(0 round 1rem)" }}>
-											<video src={attachmentPreviewUrl} controls className="w-full object-contain" style={{ maxHeight: "40dvh" }} />
-										</div>
-										<div className="mt-3 flex items-center justify-center gap-3">
-											<MediaToolButton
-												icon={<Repeat />}
-												label={t("chat.attachments.looping")}
-												active={attachmentLooping}
-												onClick={() => setAttachmentLooping(!attachmentLooping)}
-											/>
-										</div>
+										<VideoTrimmer
+											file={pendingAttachmentFile}
+											src={attachmentPreviewUrl}
+											previewHeight="40dvh"
+											tools={
+												<MediaToolButton
+													icon={<Repeat />}
+													label={t("chat.attachments.looping")}
+													active={attachmentLooping}
+													onClick={() => setAttachmentLooping(!attachmentLooping)}
+												/>
+											}
+										/>
 									</div>
 								) : (
 									<div className="px-4 pb-3">
@@ -2917,15 +2919,23 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											<style>{`
 												@keyframes attach-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
 												.attach-logo-shine { animation: attach-logo-shine 2.8s ease-in-out infinite; }
-												.attach-crop .ReactCrop__crop-mask { display: none !important; } .attach-crop .ReactCrop__crop-selection { background-image: none !important; animation: none !important; outline: none !important; border: 3px solid rgba(255,255,255,0.6) !important; border-radius: 11px !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5) !important; }
-												.attach-crop .ord-n, .attach-crop .ord-s, .attach-crop .ord-e, .attach-crop .ord-w { display: none !important; }
-												.attach-crop .ReactCrop__drag-handle { background: transparent !important; border: none !important; width: 15px !important; height: 15px !important; }
-												.attach-crop .ord-nw { transform: translate(4px, 4px) !important; border-top: 2px solid white !important; border-left: 2px solid white !important; border-top-left-radius: 4px !important; }
-												.attach-crop .ord-ne { transform: translate(-4px, 4px) !important; border-top: 2px solid white !important; border-right: 2px solid white !important; border-top-right-radius: 4px !important; }
-												.attach-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
-												.attach-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
+												.attach-crop .ReactCrop__crop-mask { display: none !important; } .attach-crop .ReactCrop__crop-selection { background-image: none !important; animation: none !important; outline: none !important; border: 3px solid rgba(255,255,255,0.6) !important; border-radius: 20px !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5) !important; }
+												.attach-crop .ReactCrop__drag-handle.ord-n, .attach-crop .ReactCrop__drag-handle.ord-s, .attach-crop .ReactCrop__drag-handle.ord-e, .attach-crop .ReactCrop__drag-handle.ord-w { display: none !important; }
+												.attach-crop .ReactCrop__drag-handle { background: transparent !important; border: none !important; width: 18px !important; height: 18px !important; }
+												.attach-crop .ord-nw { transform: none !important; top: 6px !important; left: 6px !important; border-top: 2px solid white !important; border-left: 2px solid white !important; border-top-left-radius: 11px !important; }
+												.attach-crop .ord-ne { transform: none !important; top: 6px !important; right: 6px !important; border-top: 2px solid white !important; border-right: 2px solid white !important; border-top-right-radius: 11px !important; }
+												.attach-crop .ord-sw { transform: none !important; bottom: 6px !important; left: 6px !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 11px !important; }
+												.attach-crop .ord-se { transform: none !important; bottom: 6px !important; right: 6px !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 11px !important; }
+												.attach-crop .ReactCrop__drag-handle::after { content: ""; position: absolute; inset: -16px; } /* grabbable well beyond the drawn corner */
+												/* The straight edges resize too, through invisible bars (none for a fixed aspect, where only corners can). */
+												.attach-crop { --rc-drag-bar-size: 24px; }
+												.attach-crop:not(.ReactCrop--fixed-aspect) .ReactCrop__drag-bar { display: block !important; }
+												.attach-crop .ord-nw, .attach-crop .ord-se { cursor: nwse-resize !important; }
+												.attach-crop .ord-ne, .attach-crop .ord-sw { cursor: nesw-resize !important; }
+												.attach-crop .ReactCrop__drag-bar.ord-n, .attach-crop .ReactCrop__drag-bar.ord-s { cursor: ns-resize !important; }
+												.attach-crop .ReactCrop__drag-bar.ord-e, .attach-crop .ReactCrop__drag-bar.ord-w { cursor: ew-resize !important; }
 											`}</style>
-											<div className="relative overflow-hidden rounded-2xl">
+											<div className="relative overflow-hidden rounded-[20px]">
 											<ReactCrop
 												crop={attachmentCrop}
 												onChange={(c) => { setIsDraggingAttachmentCrop(true); setAttachmentCrop(c); }}
@@ -2966,20 +2976,6 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									</div>
 								)
 							)}
-							</div>
-							{/* Options, pinned below the preview */}
-							<div className="shrink-0 px-4 pb-3 pt-2">
-								<SheetToggleList
-									items={[
-										{
-											key: "add-to-drawer",
-											checked: attachmentAddToDrawer,
-											onChange: setAttachmentAddToDrawer,
-											label: t("chat.attachments.add_to_drawer", { defaultValue: "Add to drawer" }),
-											description: t("chat.attachments.add_to_drawer_description", { defaultValue: "Also save this to your drawer so you can send it again later" }),
-										},
-									]}
-								/>
 							</div>
 						</div>
 						</BottomDrawer>

@@ -54,15 +54,23 @@ export function ProfilePhotoFlows({ photos }: { photos: ProfileEditorState["phot
 										<style>{`
 											@keyframes photo-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
 											.photo-logo-shine { animation: photo-logo-shine 2.8s ease-in-out infinite; }
-											.photo-crop .ReactCrop__crop-mask { display: none !important; } .photo-crop .ReactCrop__crop-selection { background-image: none !important; animation: none !important; outline: none !important; border: 3px solid rgba(255,255,255,0.6) !important; border-radius: 11px !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5) !important; }
-											.photo-crop .ord-n, .photo-crop .ord-s, .photo-crop .ord-e, .photo-crop .ord-w { display: none !important; }
-											.photo-crop .ReactCrop__drag-handle { background: transparent !important; border: none !important; width: 15px !important; height: 15px !important; }
-											.photo-crop .ord-nw { transform: translate(4px, 4px) !important; border-top: 2px solid white !important; border-left: 2px solid white !important; border-top-left-radius: 4px !important; }
-											.photo-crop .ord-ne { transform: translate(-4px, 4px) !important; border-top: 2px solid white !important; border-right: 2px solid white !important; border-top-right-radius: 4px !important; }
-											.photo-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
-											.photo-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
+											.photo-crop .ReactCrop__crop-mask { display: none !important; } .photo-crop .ReactCrop__crop-selection { background-image: none !important; animation: none !important; outline: none !important; border: 3px solid rgba(255,255,255,0.6) !important; border-radius: 20px !important; box-shadow: 0 0 0 9999px rgba(0,0,0,0.5) !important; }
+											.photo-crop .ReactCrop__drag-handle.ord-n, .photo-crop .ReactCrop__drag-handle.ord-s, .photo-crop .ReactCrop__drag-handle.ord-e, .photo-crop .ReactCrop__drag-handle.ord-w { display: none !important; }
+											.photo-crop .ReactCrop__drag-handle { background: transparent !important; border: none !important; width: 18px !important; height: 18px !important; }
+											.photo-crop .ord-nw { transform: none !important; top: 6px !important; left: 6px !important; border-top: 2px solid white !important; border-left: 2px solid white !important; border-top-left-radius: 11px !important; }
+											.photo-crop .ord-ne { transform: none !important; top: 6px !important; right: 6px !important; border-top: 2px solid white !important; border-right: 2px solid white !important; border-top-right-radius: 11px !important; }
+											.photo-crop .ord-sw { transform: none !important; bottom: 6px !important; left: 6px !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 11px !important; }
+											.photo-crop .ord-se { transform: none !important; bottom: 6px !important; right: 6px !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 11px !important; }
+											.photo-crop .ReactCrop__drag-handle::after { content: ""; position: absolute; inset: -16px; } /* grabbable well beyond the drawn corner */
+											/* The straight edges resize too, through invisible bars (none for a fixed aspect, where only corners can). */
+											.photo-crop { --rc-drag-bar-size: 24px; }
+											.photo-crop:not(.ReactCrop--fixed-aspect) .ReactCrop__drag-bar { display: block !important; }
+											.photo-crop .ord-nw, .photo-crop .ord-se { cursor: nwse-resize !important; }
+											.photo-crop .ord-ne, .photo-crop .ord-sw { cursor: nesw-resize !important; }
+											.photo-crop .ReactCrop__drag-bar.ord-n, .photo-crop .ReactCrop__drag-bar.ord-s { cursor: ns-resize !important; }
+											.photo-crop .ReactCrop__drag-bar.ord-e, .photo-crop .ReactCrop__drag-bar.ord-w { cursor: ew-resize !important; }
 										`}</style>
-										<div data-sheet-no-drag className="relative overflow-hidden rounded-2xl">
+										<div data-sheet-no-drag className="relative overflow-hidden rounded-[20px]">
 											<ReactCrop
 												key={photos.uploadStep}
 												crop={photos.crop}

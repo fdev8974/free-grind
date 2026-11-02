@@ -1675,7 +1675,7 @@
             "send": "Envoyer",
             "send_expiring": "Envoyer éphémère",
             "uploading": "Importation en cours de la pièce jointe...",
-            "too_large": "Le fichier est trop volumineux. La limite est de 12 Mo."
+            "too_large": "Le fichier est trop volumineux. La limite est de 120 Mo."
         },
         "nicknames": {
             "set": "Définir un surnom",

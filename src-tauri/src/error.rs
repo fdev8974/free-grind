@@ -45,7 +45,8 @@ pub enum AppError {
     /// A media upload the server refused for a documented reason: moderation
     /// (`banned_image` / `banned_video`, 422 problem body) or the device-key
     /// signature (`timestamp_drift` / `nonce_replayed`).
-    MediaRejected { status: u16, reason: String },
+    /// `detail` is the problem body's own explanation, when it has one.
+    MediaRejected { status: u16, reason: String, detail: Option<String> },
     /// Upload normalization refused a file before it was sent; the message
     /// is one of `media::codes`.
     Media(String),
@@ -81,9 +82,10 @@ impl fmt::Display for AppError {
             AppError::NotSignedIn => write!(f, "Not signed in"),
             AppError::SessionStale => write!(f, "Could not refresh the session"),
             AppError::Api { code, message } => write!(f, "API error {code}: {message}"),
-            AppError::MediaRejected { status, reason } => {
-                write!(f, "Media rejected ({status}): {reason}")
-            }
+            AppError::MediaRejected { status, reason, detail } => match detail {
+                Some(detail) => write!(f, "Media rejected ({status}): {reason}: {detail}"),
+                None => write!(f, "Media rejected ({status}): {reason}"),
+            },
             AppError::Media(code) => write!(f, "Media error: {code}"),
             AppError::Unauthorized { code, message } => {
                 write!(f, "Unauthorized ({code}): {message}")

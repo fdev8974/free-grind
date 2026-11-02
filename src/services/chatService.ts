@@ -35,6 +35,7 @@ import type {
 	UploadAlbumContentResponse,
 	UploadChatMediaParams,
 	UploadChatMediaResponse,
+	UploadChatVideoParams,
 } from "../types/chat-service";
 
 import { runAutomationRulesForSender } from "../utils/automationRules";
@@ -47,6 +48,8 @@ import {
 } from "../utils/privacy";
 import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
+import { uploadStagedVideo } from "./stagedVideoUpload";
+import { stagedEdit } from "./videoReencode";
 import { isPaywallError, withEntitlementBypass } from "./entitlementBypass";
 
 export { ApiFunctionError as ChatApiError };
@@ -56,6 +59,13 @@ export { ApiFunctionError as ChatApiError };
 // (chatDb-backed) pagination — archived conversations, and the "server
 // exhausted" fallthrough for live ones — can match it instead of drifting.
 export const MESSAGE_PAGE_LIMIT = 20;
+
+const uploadChatMediaResponseSchema = z.object({
+	mediaId: z.coerce.number().int(),
+	mediaHash: z.string().nullable().optional().default(null),
+	url: z.string().nullable().optional().default(null),
+	expiresAt: z.coerce.number().nullable().optional().default(null),
+});
 
 function sortConversations(entries: ConversationEntry[]): ConversationEntry[] {
 	return [...entries].sort((a, b) => {
@@ -647,28 +657,31 @@ export function createChatService(
 					body: Array.from(params.multipart.body),
 					contentType: params.multipart.contentType,
 					takenOnGrindr: params.options.takenOnGrindr,
-					length: params.options.durationSeconds ?? null,
+					length: params.options.length ?? null,
 					looping: params.options.looping,
 				});
 			} catch (error) {
 				throw mediaUploadErrorToApiFunctionError(error, t("chat.errors.upload_media_failed"), t);
 			}
 
-			const parsed = z
-				.object({
-					mediaId: z.coerce.number().int(),
-					mediaHash: z.string().nullable().optional().default(null),
-					url: z.string().nullable().optional().default(null),
-					expiresAt: z.coerce.number().nullable().optional().default(null),
-				})
-				.parse(response);
+			return uploadChatMediaResponseSchema.parse(response);
+		},
 
-			return {
-				mediaId: parsed.mediaId,
-				mediaHash: parsed.mediaHash,
-				url: parsed.url,
-				expiresAt: parsed.expiresAt,
-			};
+		/**
+		 * Streams a video from disk (see stagedVideoUpload) to the unsigned
+		 * chat endpoint, cut and turned portrait as `edit` says (see
+		 * videoEdit); null when this binary can't, see uploadChatMedia.
+		 */
+		async uploadChatVideo(params: UploadChatVideoParams): Promise<UploadChatMediaResponse | null> {
+			const upload = async (stagedId: string) =>
+				invoke("upload_staged_chat_video", {
+					stagedId,
+					looping: params.looping,
+					lengthMs: params.lengthMs ?? null,
+					edit: await stagedEdit(stagedId, params.edit, params.onLandscapeKept),
+				});
+			const response = await uploadStagedVideo(params.file, upload, t("chat.errors.upload_media_failed"), t);
+			return response === null ? null : uploadChatMediaResponseSchema.parse(response);
 		},
 
 		async uploadAlbumContent(

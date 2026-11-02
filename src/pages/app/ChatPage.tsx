@@ -148,6 +148,7 @@ import { isReadReceiptsHidden, markServerUnreadReadLocally, setLocalReadMarker }
 import { clearChatNotifications } from "../../services/localNotify";
 import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
 import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatMediaSend";
+import { MAX_CHAT_MEDIA_BYTES } from "../../services/stagedVideoUpload";
 import { TakenOnGrindrBadge } from "./chat/TakenOnGrindrBadge";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
@@ -5687,7 +5688,8 @@ export function ChatPage() {
 				return;
 			}
 
-			if (file.size > 12 * 1024 * 1024) {
+			// Videos are checked Rust-side, after the cut that may shrink them.
+			if (!isVideo && file.size > MAX_CHAT_MEDIA_BYTES) {
 				toast.error(t("chat.attachments.too_large"));
 				return;
 			}
@@ -5932,7 +5934,7 @@ export function ChatPage() {
 			}
 			const uploaded = await service.uploadChatMedia({
 				multipart: { body: audioBytes, contentType },
-				options: { looping: false, takenOnGrindr: false, durationSeconds: durationMs },
+				options: { looping: false, takenOnGrindr: false, length: durationMs },
 			});
 			setAudioUpload((previous) => previous && { ...previous, progress: 96 });
 			const sentMessage = await service.sendMessage({

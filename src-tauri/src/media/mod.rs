@@ -6,6 +6,8 @@
 pub mod photo;
 pub mod video;
 
+use std::io::{Cursor, Read};
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use tauri::{AppHandle, Runtime};
@@ -22,6 +24,9 @@ pub mod codes {
     pub const TOO_LARGE: &str = "too_large";
     pub const HEIC_UNSUPPORTED: &str = "heic_unsupported";
     pub const VIDEO_UNSTRIPPABLE: &str = "video_unstrippable";
+    pub const UPLOAD_TOO_LARGE: &str = "upload_too_large";
+    pub const VIDEO_TOO_LONG: &str = "video_too_long";
+    pub const VIDEO_UNTRIMMABLE: &str = "video_untrimmable";
 }
 
 pub struct Sanitized {
@@ -48,18 +53,28 @@ pub async fn sanitize<R: Runtime>(
         });
     }
     if video::sniff::is_video(&bytes) {
-        let bytes = off_thread(move || {
-            let uploaded_at = video::strip::movie_time(SystemTime::now());
-            video::strip::strip(bytes, uploaded_at)
-        })
-        .await?
-        .ok_or_else(|| media_error(codes::VIDEO_UNSTRIPPABLE))?;
+        let bytes = off_thread(move || strip_in_memory(bytes))
+            .await?
+            .ok_or_else(|| media_error(codes::VIDEO_UNSTRIPPABLE))?;
         return Ok(Sanitized {
             bytes,
             content_type: VIDEO_MP4,
         });
     }
     Err(media_error(codes::NOT_MEDIA))
+}
+
+/// The stripped video, or `None` when it can't be stripped safely. Large
+/// videos don't come through here but through `crate::upload`, which streams
+/// them from disk with the same patches.
+fn strip_in_memory(bytes: Vec<u8>) -> Option<Vec<u8>> {
+    let uploaded_at = video::strip::movie_time(SystemTime::now());
+    let patches = video::strip::plan(&mut Cursor::new(&bytes), uploaded_at).ok()??;
+    let mut stripped = Vec::with_capacity(bytes.len());
+    video::strip::PatchedReader::new(Cursor::new(bytes), Arc::from(patches))
+        .read_to_end(&mut stripped)
+        .ok()?;
+    Some(stripped)
 }
 
 pub(crate) async fn off_thread<T: Send + 'static>(

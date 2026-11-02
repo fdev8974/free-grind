@@ -6,6 +6,7 @@ import "react-image-crop/dist/ReactCrop.css";
 import { sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { DrawerFooter, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon } from "./drawerUi";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
+import { VideoTrimmer } from "./VideoTrimmer";
 
 /**
  * The "add to drawer" step every media drawer runs a picked file through
@@ -114,18 +115,18 @@ export function DrawerAddMediaStep({
 			<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>
 			{previewUrl && isVideo && (
 				<div className="mb-4 flex justify-center">
-					<div className="overflow-hidden rounded-2xl" style={{ clipPath: "inset(0 round 1rem)" }}>
-						<video src={previewUrl} controls className="block max-h-[50dvh] w-full" style={{ maxWidth: "100%" }} />
-					</div>
-				</div>
-			)}
-			{previewUrl && isVideo && (
-				<div className="mb-4 flex items-center justify-center gap-3">
-					<MediaToolButton
-						icon={<Repeat />}
-						label={t("chat.attachments.looping")}
-						active={looping}
-						onClick={() => setLooping((value) => !value)}
+					<VideoTrimmer
+						file={file}
+						src={previewUrl}
+						previewHeight="45dvh"
+						tools={
+							<MediaToolButton
+								icon={<Repeat />}
+								label={t("chat.attachments.looping")}
+								active={looping}
+								onClick={() => setLooping((value) => !value)}
+							/>
+						}
 					/>
 				</div>
 			)}
@@ -139,24 +140,29 @@ export function DrawerAddMediaStep({
 							animation: none !important;
 							outline: none !important;
 							border: 3px solid rgba(255,255,255,0.6) !important;
-							border-radius: 11px !important;
+							border-radius: 20px !important;
 							box-shadow: 0 0 0 9999px rgba(0,0,0,0.5) !important;
 						}
-						.drawer-crop .ord-n,
-						.drawer-crop .ord-s,
-						.drawer-crop .ord-e,
-						.drawer-crop .ord-w { display: none !important; }
+						.drawer-crop .ReactCrop__drag-handle.ord-n, .drawer-crop .ReactCrop__drag-handle.ord-s, .drawer-crop .ReactCrop__drag-handle.ord-e, .drawer-crop .ReactCrop__drag-handle.ord-w { display: none !important; }
 
 						.drawer-crop .ReactCrop__drag-handle {
 							background: transparent !important;
 							border: none !important;
-							width: 15px !important;
-							height: 15px !important;
+							width: 18px !important;
+							height: 18px !important;
 						}
-						.drawer-crop .ord-nw { transform: translate(4px, 4px) !important; border-top: 2px solid white !important; border-left: 2px solid white !important; border-top-left-radius: 4px !important; }
-						.drawer-crop .ord-ne { transform: translate(-4px, 4px) !important; border-top: 2px solid white !important; border-right: 2px solid white !important; border-top-right-radius: 4px !important; }
-						.drawer-crop .ord-sw { transform: translate(4px, -4px) !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 4px !important; }
-						.drawer-crop .ord-se { transform: translate(-4px, -4px) !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 4px !important; }
+						.drawer-crop .ord-nw { transform: none !important; top: 6px !important; left: 6px !important; border-top: 2px solid white !important; border-left: 2px solid white !important; border-top-left-radius: 11px !important; }
+						.drawer-crop .ord-ne { transform: none !important; top: 6px !important; right: 6px !important; border-top: 2px solid white !important; border-right: 2px solid white !important; border-top-right-radius: 11px !important; }
+						.drawer-crop .ord-sw { transform: none !important; bottom: 6px !important; left: 6px !important; border-bottom: 2px solid white !important; border-left: 2px solid white !important; border-bottom-left-radius: 11px !important; }
+						.drawer-crop .ord-se { transform: none !important; bottom: 6px !important; right: 6px !important; border-bottom: 2px solid white !important; border-right: 2px solid white !important; border-bottom-right-radius: 11px !important; }
+						.drawer-crop .ReactCrop__drag-handle::after { content: ""; position: absolute; inset: -16px; } /* grabbable well beyond the drawn corner */
+						/* The straight edges resize too, through invisible bars (none for a fixed aspect, where only corners can). */
+						.drawer-crop { --rc-drag-bar-size: 24px; }
+						.drawer-crop:not(.ReactCrop--fixed-aspect) .ReactCrop__drag-bar { display: block !important; }
+						.drawer-crop .ord-nw, .drawer-crop .ord-se { cursor: nwse-resize !important; }
+						.drawer-crop .ord-ne, .drawer-crop .ord-sw { cursor: nesw-resize !important; }
+						.drawer-crop .ReactCrop__drag-bar.ord-n, .drawer-crop .ReactCrop__drag-bar.ord-s { cursor: ns-resize !important; }
+						.drawer-crop .ReactCrop__drag-bar.ord-e, .drawer-crop .ReactCrop__drag-bar.ord-w { cursor: ew-resize !important; }
 
 						@keyframes logo-shine {
 							0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); }
@@ -164,7 +170,7 @@ export function DrawerAddMediaStep({
 						}
 						.logo-shine { animation: logo-shine 2.8s ease-in-out infinite; }
 					`}</style>
-					<div data-sheet-no-drag className="relative overflow-hidden rounded-2xl">
+					<div data-sheet-no-drag className="relative overflow-hidden rounded-[20px]">
 					<ReactCrop
 						crop={crop}
 						onChange={(c) => {

@@ -1660,7 +1660,7 @@
             "send": "Versturen",
             "send_expiring": "Verdwijnend versturen",
             "uploading": "Bijlage uploaden",
-            "too_large": "Bijlage is te groot. De limiet is 12 MB."
+            "too_large": "Bijlage is te groot. De limiet is 120 MB."
         },
         "nicknames": {
             "set": "Bijnaam instellen",

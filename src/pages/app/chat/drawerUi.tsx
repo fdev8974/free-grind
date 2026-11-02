@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, RefreshCw, Repeat, Video, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, FolderCheck, FolderPlus, Loader2, Play, RefreshCw, Repeat, Video, X } from "lucide-react";
 import type { AlbumMediaCount } from "../../../types/chat-page";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
@@ -827,6 +827,42 @@ export function ExpiryToggleButton({
 		>
 			{expiring ? <Hourglass className="h-4 w-4 animate-hourglass-rotate" /> : <InfinityIcon className="h-4 w-4" />}
 			<span>{expiring ? expiringLabel : unlimitedLabel}</span>
+		</button>
+	);
+}
+
+/** Footer chip of the upload sheets: also save what's sent to the drawer.
+ * Same pill as ExpiryToggleButton, accent-ringed while on; just the icon on
+ * phones, so the send button keeps its room. */
+export function AddToDrawerChip({
+	checked,
+	onChange,
+	disabled,
+}: {
+	checked: boolean;
+	onChange: (checked: boolean) => void;
+	disabled?: boolean;
+}) {
+	const { t } = useTranslation();
+	return (
+		<button
+			type="button"
+			onClick={() => {
+				haptic(10);
+				onChange(!checked);
+			}}
+			disabled={disabled}
+			aria-pressed={checked}
+			aria-label={t("chat.attachments.add_to_drawer", { defaultValue: "Add to drawer" })}
+			title={t("chat.attachments.add_to_drawer_description", {
+				defaultValue: "Also save this to your drawer so you can send it again later",
+			})}
+			className={`inline-flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 sm:w-auto sm:px-4 ${
+				checked ? EXPIRY_ACTIVE_CLASS : EXPIRY_IDLE_CLASS
+			}`}
+		>
+			{checked ? <FolderCheck className="h-5 w-5 sm:h-4 sm:w-4" /> : <FolderPlus className="h-5 w-5 sm:h-4 sm:w-4" />}
+			<span className="hidden sm:inline">{t("chat.attachments.add_to_drawer_chip", { defaultValue: "Drawer" })}</span>
 		</button>
 	);
 }

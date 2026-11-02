@@ -6,6 +6,7 @@ mod media;
 mod media_proxy;
 mod state;
 mod storage;
+mod upload;
 mod windows_instance;
 
 use crate::state::AppState;
@@ -151,12 +152,14 @@ pub fn run() {
             .plugin(api::facebook_oauth::plugin())
             .plugin(api::google_oauth::plugin())
             .manage(AppState::default())
+            .manage(upload::UploadLock::default())
             .manage(media_proxy::MediaProxy::default())
             .plugin(media_proxy_flag())
             .register_asynchronous_uri_scheme_protocol(media_proxy::SCHEME, media_proxy::handle)
             .setup(|app| {
                 let app_handle = app.handle().clone();
                 init_client(&app_handle);
+                upload::staged::discard_all(&app_handle);
 
                 #[cfg(target_os = "linux")]
                 create_linux_main_window(app)?;
@@ -286,6 +289,13 @@ pub fn run() {
                 commands::media_upload::upload_profile_image,
                 commands::media_upload::upload_chat_media,
                 commands::media_sanitize::sanitize_upload_media,
+                upload::staged::stage_media,
+                upload::staged::append_staged_media,
+                upload::staged::discard_staged_media,
+                upload::video::upload_staged_chat_video,
+                upload::video::upload_staged_album_video,
+                upload::edit::video_trim_points,
+                upload::edit::video_decode_window,
             ])
             .build(context)
             .expect("error while running tauri application");
@@ -348,6 +358,7 @@ pub fn run() {
 
         builder
             .manage(AppState::default())
+            .manage(upload::UploadLock::default())
             .manage(media_proxy::MediaProxy::default())
             .plugin(media_proxy_flag())
             .register_asynchronous_uri_scheme_protocol(media_proxy::SCHEME, media_proxy::handle)
@@ -357,6 +368,7 @@ pub fn run() {
                 eprintln!("Free Grind binary {} starting", app.package_info().version);
                 let app_handle = app.handle().clone();
                 init_client(&app_handle);
+                upload::staged::discard_all(&app_handle);
                 Ok(())
             })
             .invoke_handler(tauri::generate_handler![
@@ -412,6 +424,13 @@ pub fn run() {
                 commands::media_upload::upload_profile_image,
                 commands::media_upload::upload_chat_media,
                 commands::media_sanitize::sanitize_upload_media,
+                upload::staged::stage_media,
+                upload::staged::append_staged_media,
+                upload::staged::discard_staged_media,
+                upload::video::upload_staged_chat_video,
+                upload::video::upload_staged_album_video,
+                upload::edit::video_trim_points,
+                upload::edit::video_decode_window,
             ])
             .run(context)
             .expect("error while running tauri application");
