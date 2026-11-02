@@ -352,6 +352,13 @@ function MessageContextMenu({
 	);
 }
 
+/**
+ * Photo and video bubbles (not GIFs) all have this size, portrait 3:4, so a
+ * bubble takes its final room before its media has loaded and nothing jumps
+ * when it does; the media is cropped to fill it (the viewer shows it whole).
+ */
+const MEDIA_BUBBLE_SIZE = "aspect-[3/4] w-60 sm:w-64";
+
 export function ChatThreadMessages({
 	isDesktop,
 	bottomInset = 0,
@@ -1733,7 +1740,7 @@ export function ChatThreadMessages({
                                             <img
                                                 src={proxyMediaUrl(imageUrl)}
                                                 alt={t("chat.thread.shared_alt")}
-                                                className={`${message.type === "Giphy" && hasReply ? "max-h-96 w-full object-cover" : isImageOnlyBubble ? "max-h-80 w-full object-cover" : "max-h-64 w-full object-cover"} ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`}
+                                                className={`${message.type === "Giphy" ? (hasReply ? "max-h-96 w-full object-cover" : isImageOnlyBubble ? "max-h-80 w-full object-cover" : "max-h-64 w-full object-cover") : `${MEDIA_BUBBLE_SIZE} bg-[var(--surface-2)] object-cover`} ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`}
                                             />
                                             {isExpiringImage ? (
                                                 <MediaBadge icon={<Eye className="h-3.5 w-3.5" />} label={t("chat.attachments.view_once")} />
@@ -1928,7 +1935,7 @@ export function ChatThreadMessages({
                                         ) : null}
 
                                         {isExpiredImage ? (
-                                            <div className={`relative flex items-center justify-center overflow-hidden bg-[var(--surface-2)] ${isImageOnlyBubble ? `w-full ${hasReply ? "" : `rounded-2xl ${tailCorner}`}` : "mb-2 rounded-xl border border-black/10"}`} style={{ minHeight: "12rem", minWidth: "12rem" }}>
+                                            <div className={`relative flex items-center justify-center overflow-hidden bg-[var(--surface-2)] ${MEDIA_BUBBLE_SIZE} ${isImageOnlyBubble ? (hasReply ? "" : `rounded-2xl ${tailCorner}`) : "mb-2 rounded-xl border border-black/10"}`}>
                                                 <div className="flex flex-col items-center gap-1.5 text-[var(--text-muted)]">
                                                     <ImageOff className="h-6 w-6" />
                                                     <span className="text-xs font-medium">{t("chat.thread.image_expired")}</span>
@@ -1942,7 +1949,7 @@ export function ChatThreadMessages({
                                         ) : null}
 
                                         {isExpiredVideo ? (
-                                            <div className={`relative flex items-center justify-center overflow-hidden bg-[var(--surface-2)] ${isVideoOnlyBubble ? `w-full ${hasReply ? "" : `rounded-2xl ${tailCorner}`}` : "mb-2 rounded-xl border border-black/10"}`} style={{ minHeight: "12rem", minWidth: "16rem" }}>
+                                            <div className={`relative flex items-center justify-center overflow-hidden bg-[var(--surface-2)] ${MEDIA_BUBBLE_SIZE} ${isVideoOnlyBubble ? (hasReply ? "" : `rounded-2xl ${tailCorner}`) : "mb-2 rounded-xl border border-black/10"}`}>
                                                 <div className="flex flex-col items-center gap-1.5 text-[var(--text-muted)]">
                                                     <VideoOff className="h-6 w-6" />
                                                     <span className="text-xs font-medium">{t("chat.thread.video_expired")}</span>
@@ -1963,9 +1970,9 @@ export function ChatThreadMessages({
                                                 <div
                                                     role="button"
                                                     tabIndex={0}
-                                                    className={`group/media relative block overflow-hidden bg-black ${
+                                                    className={`group/media relative block overflow-hidden bg-black ${MEDIA_BUBBLE_SIZE} ${
                                                         isVideoOnlyBubble
-                                                            ? `w-full ${hasReply ? "" : `rounded-2xl ${tailCorner}`}`
+                                                            ? hasReply ? "" : `rounded-2xl ${tailCorner}`
                                                             : `mb-2 rounded-xl border border-black/10 ${shouldBlurIncomingMedia ? "cursor-pointer" : ""}`
                                                     }`}
                                                     onMouseEnter={() => handleMediaMouseEnter(message.messageId)}
@@ -2015,7 +2022,7 @@ export function ChatThreadMessages({
                                                             const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
                                                             if (badge) badge.style.opacity = "1";
                                                         }}
-                                                        className={`w-full object-cover opacity-0 ${PRIVACY_BLUR_TRANSITION_CLASS} ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"} ${mediaBlurClassName}`}
+                                                        className={`h-full w-full object-cover opacity-0 ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`}
                                                     />
                                                         );
                                                         return (
@@ -2027,7 +2034,7 @@ export function ChatThreadMessages({
                                                                         const spinner = e.currentTarget.parentElement?.querySelector<HTMLElement>(".js-video-spinner");
                                                                         if (spinner) spinner.style.display = "none";
                                                                     }}
-                                                                    className={`w-full object-cover ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"}`}
+                                                                    className="h-full w-full object-cover"
                                                                 />
                                                                 {!pending && !failed && (
                                                                     <video
@@ -2126,14 +2133,11 @@ export function ChatThreadMessages({
                                         const rxPreviewUrl = rxCachedThumbUri
                                             ?? (typeof rxBody?.previewUrl === "string" ? rxBody.previewUrl : null);
                                         const rxAlbumId = typeof rxBody?.albumId === "number" ? rxBody.albumId : null;
-                                        const rxLabel = mine
-                                            ? t("chat.preview.tapped_album_photo_theirs")
-                                            : t("chat.preview.tapped_album_photo_yours");
                                         return (
                                             <>
                                                 <button
                                                     type="button"
-                                                    className={`group/media relative block overflow-hidden rounded-2xl ${tailCorner} ${isDesktop ? "w-full" : "w-36"}`}
+                                                    className={`group/media relative block overflow-hidden rounded-2xl bg-[var(--surface-2)] ${tailCorner} ${MEDIA_BUBBLE_SIZE}`}
                                                     onClick={(event) => {
                                                         event.stopPropagation();
                                                         if (!rxAlbumId) return;
@@ -2153,10 +2157,14 @@ export function ChatThreadMessages({
                                                     onMouseLeave={() => handleMediaMouseLeave(message.messageId)}
                                                 >
                                                     {rxPreviewUrl ? (
-                                                        <img src={proxyMediaUrl(rxPreviewUrl)} alt="" className={`aspect-square w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`} />
-                                                    ) : (
-                                                        <div className="h-48 w-full bg-[var(--surface-2)]" />
-                                                    )}
+                                                        <img src={proxyMediaUrl(rxPreviewUrl)} alt="" className={`h-full w-full object-cover ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`} />
+                                                    ) : null}
+                                                    {/* What the bubble is, in the badge photos and videos use; the
+                                                        bubble's corner stays for reactions to this message itself. */}
+                                                    <MediaBadge
+                                                        icon={<span className="text-[13px] leading-none">{getReactionEmoji(1)}</span>}
+                                                        label={t("chat.thread.album_tap", { defaultValue: "Album tap" })}
+                                                    />
                                                     <div className="absolute inset-x-0 bottom-0 flex flex-col bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2 text-white">
                                                         <div className="flex items-center justify-between gap-2 text-[10px]">
                                                             <div className="flex items-center opacity-90">
@@ -2176,7 +2184,6 @@ export function ChatThreadMessages({
                                                         </div>
                                                     </div>
                                                 </button>
-                                                <p className={`mt-1 text-xs opacity-60 ${mine ? "text-right" : "text-left"}`}>{rxLabel}</p>
                                             </>
                                         );
                                     })() : null}
@@ -2383,7 +2390,7 @@ export function ChatThreadMessages({
                                                 ref={(el) => { if (el) reactionButtonRefs.current.set(message.messageId, el); else reactionButtonRefs.current.delete(message.messageId); }}
                                                 onClick={() => void handleReact(message)}
                                                 className={`${hasOtherReaction ? "group/rxn " : ""}text-lg inline-flex ${fireButtonClass} absolute z-10 transition-opacity ${
-                                                    message.reactions.length > 0 || isAlbumReactionBubble ? "opacity-100" : "opacity-0 hover:opacity-25"
+                                                    message.reactions.length > 0 ? "opacity-100" : "opacity-0 hover:opacity-25"
                                                 }`}
                                             >
                                                 {hasOtherReaction ? (
@@ -2399,7 +2406,7 @@ export function ChatThreadMessages({
                                             <span
                                                 ref={(el) => { if (el) reactionButtonRefs.current.set(message.messageId, el); else reactionButtonRefs.current.delete(message.messageId); }}
                                                 className={`text-lg inline-flex pointer-events-none ${fireButtonClass} absolute z-10 transition-opacity ${
-                                                message.reactions.length > 0 || isAlbumReactionBubble ? "opacity-100" : "opacity-0"
+                                                message.reactions.length > 0 ? "opacity-100" : "opacity-0"
                                             }`}>
                                                 {reactionContent}
                                             </span>
