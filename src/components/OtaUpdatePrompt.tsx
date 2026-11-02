@@ -23,6 +23,7 @@ import { VersionCompare, VersionCompareLink, type VersionCompareSide } from "./u
 import { hourCycleOptions } from "../utils/timeFormat";
 import { formatRelativeTime } from "../utils/relativeTime";
 import { GITHUB_OTA_SIGNING_URL, githubCompareUrl } from "../utils/githubIssues";
+import { VersionChangesLink } from "./VersionChangesSheet";
 
 /** CI publishes bundles with notes like "Automated OTA upload for <sha> on <channel>". */
 function noteCommit(notes: string | null): string | null {
@@ -202,7 +203,8 @@ export function OtaUpdatePromptView({
 	const progressOnly = update.autoStart === true;
 	const hideButtons = progressOnly && !failed;
 	// The running frontend is the installed build, so its commit is the diff base.
-	const compareUrl = githubCompareUrl(import.meta.env.VITE_COMMIT_HASH, update.commit ?? noteCommit(update.notes));
+	const newCommit = update.commit ?? noteCommit(update.notes);
+	const compareUrl = githubCompareUrl(import.meta.env.VITE_COMMIT_HASH, newCommit);
 
 	return (
 		<FullscreenPrompt
@@ -285,14 +287,11 @@ export function OtaUpdatePromptView({
 					description={t("ota_prompt.auto_desc", { defaultValue: "Install future frontend updates without asking." })}
 				/>}
 			</div>
-			<VersionCompareLink
-				url={compareUrl ?? GITHUB_OTA_SIGNING_URL}
-				label={
-					compareUrl
-						? t("update_prompt.view_changes", { defaultValue: "See what's changed" })
-						: t("onboarding.updates_more", { defaultValue: "More about that" })
-				}
-			/>
+			{compareUrl ? (
+				<VersionChangesLink from={import.meta.env.VITE_COMMIT_HASH} to={newCommit} />
+			) : (
+				<VersionCompareLink url={GITHUB_OTA_SIGNING_URL} label={t("onboarding.updates_more", { defaultValue: "More about that" })} />
+			)}
 		</FullscreenPrompt>
 	);
 }

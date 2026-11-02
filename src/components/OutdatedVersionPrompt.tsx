@@ -9,9 +9,9 @@ import { describeApkUpdateError, useApkUpdate } from "../services/apkUpdate";
 import { getCurrentHotswapChannel, isHotswapAvailable, whenStartupHotswapSettled } from "../services/hotswap";
 import { areUpdateChecksEnabled } from "../services/updateChecks";
 import { formatRelativeTime } from "../utils/relativeTime";
-import { VersionCompare, VersionCompareLink } from "./ui/version-compare";
+import { VersionCompare } from "./ui/version-compare";
+import { VersionChangesLink } from "./VersionChangesSheet";
 import { RELEASES_URL } from "../config/links-config";
-import { githubCompareUrl } from "../utils/githubIssues";
 
 const DEFAULT_RELEASES_URL = RELEASES_URL;
 // Used when the release lookup fails: assume the running version is current,
@@ -198,7 +198,6 @@ export function OutdatedVersionPromptView({
 	const latestReleasedAgo = releasedAgo(t, releaseInfo, releaseInfo.latestVersion);
 	// Only worth saying when more than one release was skipped.
 	const releasesAhead = (releaseInfo.releases ?? []).filter((release) => isOlderVersion(appVersion, release.version)).length;
-	const compareUrl = githubCompareUrl(import.meta.env.VITE_COMMIT_HASH, releaseInfo.commit);
 
 	const footer = apkUpdate.supported ? (
 		<>
@@ -324,9 +323,7 @@ export function OutdatedVersionPromptView({
 					}}
 				/>
 			</div>
-			{compareUrl && (
-				<VersionCompareLink url={compareUrl} label={t("update_prompt.view_changes", { defaultValue: "See what's changed" })} />
-			)}
+			<VersionChangesLink from={import.meta.env.VITE_COMMIT_HASH} to={releaseInfo.commit} />
 		</FullscreenPrompt>
 	);
 }
