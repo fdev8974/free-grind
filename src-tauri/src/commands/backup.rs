@@ -11,13 +11,16 @@
 //!   media/<n>.bin         - raw bytes for each blob column, referenced from its
 //!                           row as { "$mediaRef": "media/<n>.bin" } instead of
 //!                           inlining base64 text
+//!   remote/<category>.json - data that lives on the server rather than in sqlite
+//!                           (e.g. favorite notes), fetched by the frontend and handed
+//!                           in as JSON; import hands it back for the frontend to re-upload
 //!   manifest.json        - { version, exportedAt, ownerUserId, categories, rowCounts }
 //!                           (written last so it can carry per-table row counts;
 //!                           readers look it up by name, so entry order doesn't matter)
 //!
 //! `categories` lets the caller include/exclude whole groups of tables
 //! (chat messages, media/albums, saved phrases, saved locations, settings,
-//! sexual health - see `BACKUP_CATEGORY_IDS` in `src/services/backupRestore.ts`)
+//! sexual health, favorite notes - see `BACKUP_CATEGORY_IDS` in `src/services/backupRestore.ts`)
 //! instead of always doing a full all-or-nothing export/import.
 //!
 //! Blob columns (data_base64 etc.) are stored as base64 TEXT in the sqlite
@@ -308,6 +311,9 @@ pub struct ImportOutcome {
     ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     rows_imported: Option<u64>,
+    /// The selected `REMOTE_CATEGORY_IDS` entries found in the archive, keyed by category.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    remote_entries: Option<Map<String, Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<&'static str>,
 }
@@ -329,6 +335,14 @@ pub struct BackupInspection {
 /// costs nothing to handle gracefully rather than hide every table).
 const ALL_CATEGORY_IDS: &[&str] =
     &["chat_messages", "media_albums", "saved_phrases", "saved_locations", "settings", "sexual_health"];
+
+/// Categories backed by a `remote/<category>.json` entry instead of sqlite
+/// tables. Whitelisted so a caller-supplied key can't name an arbitrary entry.
+const REMOTE_CATEGORY_IDS: &[&str] = &["favorite_notes"];
+
+fn remote_entry_name(category: &str) -> String {
+    format!("remote/{category}.json")
+}
 
 enum ManifestCheck {
     Valid { categories: Vec<String>, exported_at: i64, row_counts: HashMap<String, u64> },
@@ -483,6 +497,7 @@ pub async fn export_backup_to_file(
     owner_user_id: i64,
     dest_path: String,
     categories: Vec<String>,
+    remote_entries: Option<Map<String, Value>>,
 ) -> Result<(), AppError> {
     run_blocking(move || {
         let dest = PathBuf::from(dest_path);
@@ -493,7 +508,8 @@ pub async fn export_backup_to_file(
             }
             let db_path = resolve_db_path(&app, &db_file_name)?;
             let mut progress = ProgressEmitter::new(Some(&app), EXPORT_PROGRESS_EVENT);
-            write_export_archive(&db_path, owner_user_id, &partial, &categories, &mut progress)?;
+            let remote_entries = remote_entries.unwrap_or_default();
+            write_export_archive(&db_path, owner_user_id, &partial, &categories, &remote_entries, &mut progress)?;
             std::fs::rename(&partial, &dest)?;
             Ok(())
         })();
@@ -510,6 +526,7 @@ fn write_export_archive(
     owner_user_id: i64,
     out_path: &Path,
     categories: &[String],
+    remote_entries: &Map<String, Value>,
     progress: &mut ProgressEmitter,
 ) -> Result<(), AppError> {
     let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
@@ -632,6 +649,17 @@ fn write_export_archive(
         progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done, rows_total: Some(rows_total) });
     }
 
+    for (category, value) in remote_entries {
+        if !REMOTE_CATEGORY_IDS.contains(&category.as_str()) || !categories.contains(category) {
+            continue;
+        }
+        zip.start_file(remote_entry_name(category).as_str(), text_options)?;
+        zip.write_all(value.to_string().as_bytes())?;
+        if let Some(rows) = value.as_array() {
+            row_counts.insert(category.clone(), json!(rows.len()));
+        }
+    }
+
     zip.start_file("manifest.json", text_options)?;
     let manifest = json!({
         "version": BACKUP_VERSION,
@@ -700,10 +728,24 @@ fn import_archive(
 
     let row_counts = match read_and_validate_manifest(&mut archive, owner_user_id)? {
         ManifestCheck::Invalid(error) => {
-            return Ok(ImportOutcome { ok: false, rows_imported: None, error: Some(error) });
+            return Ok(ImportOutcome { ok: false, rows_imported: None, remote_entries: None, error: Some(error) });
         }
         ManifestCheck::Valid { row_counts, .. } => row_counts,
     };
+
+    let mut remote_entries = Map::new();
+    for category in REMOTE_CATEGORY_IDS.iter().copied().filter(|c| categories.iter().any(|s| s == c)) {
+        let mut entry = match archive.by_name(&remote_entry_name(category)) {
+            Ok(entry) => entry,
+            Err(ZipError::FileNotFound) => continue,
+            Err(e) => return Err(e.into()),
+        };
+        let mut text = String::new();
+        entry.read_to_string(&mut text)?;
+        let value: Value = serde_json::from_str(&text)
+            .map_err(|e| AppError::Backup(format!("corrupt {category} entry: {e}")))?;
+        remote_entries.insert(category.to_string(), value);
+    }
 
     // A second handle on the same file: a table's jsonl entry streams from
     // `archive` while the media it references is read from this one,
@@ -718,7 +760,7 @@ fn import_archive(
     match result {
         Ok(rows_imported) => {
             conn.execute_batch("COMMIT")?;
-            Ok(ImportOutcome { ok: true, rows_imported: Some(rows_imported), error: None })
+            Ok(ImportOutcome { ok: true, rows_imported: Some(rows_imported), remote_entries: Some(remote_entries), error: None })
         }
         Err(e) => {
             let _ = conn.execute_batch("ROLLBACK");
@@ -958,8 +1000,14 @@ mod tests {
             }
         }
 
-        let categories: Vec<String> = ALL_CATEGORY_IDS.iter().map(|s| s.to_string()).collect();
-        write_export_archive(&src_db, 42, &archive, &categories, &mut ProgressEmitter::new(None, "")).unwrap();
+        let mut categories: Vec<String> = ALL_CATEGORY_IDS.iter().map(|s| s.to_string()).collect();
+        categories.push("favorite_notes".into());
+        let notes = json!([{ "counterpartyId": "123", "notes": "hi", "phoneNumber": "" }]);
+        let mut remote_entries = Map::new();
+        remote_entries.insert("favorite_notes".into(), notes.clone());
+        // Not whitelisted: must not end up in the archive.
+        remote_entries.insert("../evil".into(), json!([]));
+        write_export_archive(&src_db, 42, &archive, &categories, &remote_entries, &mut ProgressEmitter::new(None, "")).unwrap();
 
         create_schema(&Connection::open(&dst_db).unwrap());
         let wrong_owner =
@@ -970,6 +1018,8 @@ mod tests {
             import_archive(&dst_db, 42, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
         assert!(outcome.ok);
         assert_eq!(outcome.rows_imported, Some(EXPORT_TABLES.len() as u64 * 3));
+        let expected_remote: Map<String, Value> = [("favorite_notes".to_string(), notes)].into_iter().collect();
+        assert_eq!(outcome.remote_entries, Some(expected_remote));
 
         let dst = Connection::open(&dst_db).unwrap();
         for table in EXPORT_TABLES {
@@ -1007,7 +1057,7 @@ mod tests {
 
         let categories: Vec<String> = ALL_CATEGORY_IDS.iter().map(|s| s.to_string()).collect();
         let started = Instant::now();
-        write_export_archive(&src_db, 42, &archive, &categories, &mut ProgressEmitter::new(None, "")).unwrap();
+        write_export_archive(&src_db, 42, &archive, &categories, &Map::new(), &mut ProgressEmitter::new(None, "")).unwrap();
         println!(
             "export: {:?}, {} MB",
             started.elapsed(),

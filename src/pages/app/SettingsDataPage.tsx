@@ -21,6 +21,7 @@ import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
+import { useApiFunctions } from "../../hooks/useApiFunctions";
 import * as chatDb from "../../services/chatDb";
 import {
 	BACKUP_CATEGORY_IDS,
@@ -28,9 +29,11 @@ import {
 	cleanupTempFile,
 	copyPickedFileToTemp,
 	exportBackup,
+	fetchRemoteBackupEntries,
 	importBackupFile,
 	inspectBackupFile,
 	pickBackupFile,
+	restoreRemoteBackupEntries,
 	type BackupCategoryId,
 	type BackupExportDestination,
 	type BackupReadProgress,
@@ -48,6 +51,7 @@ export function SettingsDataPage() {
 	const { t } = useTranslation();
 	const highlightId = useSettingsHighlight();
 	const { userId } = useAuth();
+	const apiFunctions = useApiFunctions();
 
 	const [usage, setUsage] = useState<{ count: number; totalBytes: number } | null>(null);
 	const [isLoadingUsage, setIsLoadingUsage] = useState(true);
@@ -141,7 +145,10 @@ export function SettingsDataPage() {
 			// The SQL read, base64 decode, zip compression and the copy to the
 			// final location all happen natively (src-tauri/src/commands/backup.rs)
 			// on a worker thread — nothing of the archive crosses the JS bridge.
-			const saved = await exportBackup(chatDb.getActiveChatDbFileName(), userId, Array.from(exportCategories), exportDestination);
+			// Server-side categories (favorite notes) are fetched here and written into the archive as is.
+			const categories = Array.from(exportCategories);
+			const remoteEntries = await fetchRemoteBackupEntries(apiFunctions, categories);
+			const saved = await exportBackup(chatDb.getActiveChatDbFileName(), userId, categories, exportDestination, remoteEntries);
 			if (!saved) return false;
 			toast.success(
 				exportDestination === "picker"
@@ -226,6 +233,15 @@ export function SettingsDataPage() {
 				showImportError(result.error);
 				return;
 			}
+			const remote = await restoreRemoteBackupEntries(apiFunctions, result.remoteEntries);
+			if (remote.failed > 0) {
+				toast.error(
+					t("data_backup.import_notes_failed", {
+						defaultValue: "{{count}} favorite notes couldn't be restored.",
+						count: remote.failed,
+					}),
+				);
+			}
 			// A full import can touch conversations, messages, and every
 			// setting (automation, privacy, browse filters, location, etc.),
 			// each of which is otherwise cached in memory or React state and
@@ -234,7 +250,7 @@ export function SettingsDataPage() {
 			toast.success(
 				t("data_backup.import_success", {
 					defaultValue: "Imported {{count}} rows. Reloading…",
-					count: result.rowsImported,
+					count: result.rowsImported + remote.restored,
 				}),
 			);
 			await cleanupTempFile(pendingImport.tempPath);

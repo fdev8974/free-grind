@@ -5,6 +5,7 @@ import { open as openFileDialog, save } from "@tauri-apps/plugin-dialog";
 import { BaseDirectory, mkdir, open, remove } from "@tauri-apps/plugin-fs";
 import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-fs-api";
 import { isAndroid, isIos } from "./saveMedia";
+import type { createApiFunctions } from "./apiFunctions";
 
 /**
  * Mirrors `EXPORT_TABLES[].category` in `src-tauri/src/commands/backup.rs` —
@@ -16,7 +17,8 @@ export type BackupCategoryId =
 	| "saved_phrases"
 	| "saved_locations"
 	| "settings"
-	| "sexual_health";
+	| "sexual_health"
+	| "favorite_notes";
 
 export const BACKUP_CATEGORY_IDS: BackupCategoryId[] = [
 	"chat_messages",
@@ -25,13 +27,19 @@ export const BACKUP_CATEGORY_IDS: BackupCategoryId[] = [
 	"saved_locations",
 	"settings",
 	"sexual_health",
+	"favorite_notes",
 ];
+
+type ApiFunctions = ReturnType<typeof createApiFunctions>;
+type FavoriteNote = { counterpartyId: string; notes: string; phoneNumber: string };
 
 export type BackupInspection =
 	| { ok: true; categories: BackupCategoryId[]; exportedAt: number }
 	| { ok: false; error: "wrong_owner" | "invalid_format" };
 
-export type ImportBackupResult = { ok: true; rowsImported: number } | { ok: false; error: "wrong_owner" | "invalid_format" };
+export type ImportBackupResult =
+	| { ok: true; rowsImported: number; remoteEntries?: Partial<Record<BackupCategoryId, unknown>> }
+	| { ok: false; error: "wrong_owner" | "invalid_format" };
 
 /** Payload of the `backup-export-progress` / `backup-import-progress` events emitted by backup.rs. */
 export type BackupProgress = {
@@ -186,8 +194,71 @@ export function exportBackupToFile(
 	ownerUserId: number,
 	destPath: string,
 	categories: BackupCategoryId[],
+	remoteEntries: Partial<Record<BackupCategoryId, unknown>> = {},
 ): Promise<void> {
-	return invoke("export_backup_to_file", { dbFileName, ownerUserId, destPath, categories });
+	return invoke("export_backup_to_file", { dbFileName, ownerUserId, destPath, categories, remoteEntries });
+}
+
+/** Fetches the selected server-side categories (`REMOTE_CATEGORY_IDS` in backup.rs), to be passed to `exportBackup`. */
+export async function fetchRemoteBackupEntries(
+	api: ApiFunctions,
+	categories: BackupCategoryId[],
+): Promise<Partial<Record<BackupCategoryId, unknown>>> {
+	const entries: Partial<Record<BackupCategoryId, unknown>> = {};
+	if (categories.includes("favorite_notes")) {
+		entries.favorite_notes = (await api.getFavoriteNotes()).map(({ counterpartyId, notes, phoneNumber }) => ({
+			counterpartyId,
+			notes,
+			phoneNumber,
+		}));
+	}
+	return entries;
+}
+
+/**
+ * Re-uploads the server-side categories an import handed back. Like the
+ * table import this merges rather than replaces: the backup's notes are laid
+ * over the ones currently on the server (backup wins per profile) and sent in
+ * one bulk replace, so notes added since the backup survive and the restore is
+ * safe to run again. Returns the number of entries restored and of those that failed.
+ */
+export async function restoreRemoteBackupEntries(
+	api: ApiFunctions,
+	entries: Partial<Record<BackupCategoryId, unknown>> | undefined,
+): Promise<{ restored: number; failed: number }> {
+	const raw = Array.isArray(entries?.favorite_notes) ? (entries.favorite_notes as Partial<FavoriteNote>[]) : [];
+	const notes = raw.filter((note) => note?.counterpartyId && (note.notes || note.phoneNumber)) as FavoriteNote[];
+	if (notes.length === 0) return { restored: 0, failed: 0 };
+
+	try {
+		// Inside the try: without the current list a bulk replace would wipe every newer note.
+		const merged = new Map<string, FavoriteNote>();
+		for (const note of [...(await api.getFavoriteNotes()), ...notes]) {
+			if (!note.notes && !note.phoneNumber) continue;
+			merged.set(String(note.counterpartyId), note);
+		}
+		await api.replaceFavoriteNotes(
+			Array.from(merged.values(), (note) => ({
+				counterpartyId: Number(note.counterpartyId),
+				notes: note.notes ?? "",
+				phoneNumber: note.phoneNumber ?? "",
+			})),
+		);
+		return { restored: notes.length, failed: 0 };
+	} catch {
+		// The bulk endpoint is undocumented beyond its name; fall back to one upsert per profile.
+		let restored = 0;
+		let failed = 0;
+		for (const note of notes) {
+			try {
+				await api.saveProfileNote(String(note.counterpartyId), { notes: note.notes ?? "", phoneNumber: note.phoneNumber ?? "" });
+				restored++;
+			} catch {
+				failed++;
+			}
+		}
+		return { restored, failed };
+	}
 }
 
 /** Where `exportBackup` puts the archive. "picker" is the system save/export dialog, which also reaches cloud storage like Google Drive. */
@@ -206,12 +277,13 @@ export async function exportBackup(
 	ownerUserId: number,
 	categories: BackupCategoryId[],
 	destination: BackupExportDestination = "downloads",
+	remoteEntries: Partial<Record<BackupCategoryId, unknown>> = {},
 ): Promise<boolean> {
 	const fileName = `free-grind-data-${new Date().toISOString().slice(0, 10)}.zip`;
 
 	if (isIos()) {
 		if (destination === "downloads") {
-			await exportBackupToFile(dbFileName, ownerUserId, await join(await documentDir(), "FreeGrind", fileName), categories);
+			await exportBackupToFile(dbFileName, ownerUserId, await join(await documentDir(), "FreeGrind", fileName), categories, remoteEntries);
 			return true;
 		}
 		// iOS has no "pick a path, write later" dialog: the plugin's save()
@@ -220,7 +292,7 @@ export async function exportBackup(
 		// finished archive goes exactly there first, then gets handed over.
 		const stagedPath = await join(await documentDir(), fileName);
 		try {
-			await exportBackupToFile(dbFileName, ownerUserId, stagedPath, categories);
+			await exportBackupToFile(dbFileName, ownerUserId, stagedPath, categories, remoteEntries);
 			return (await save({ defaultPath: fileName })) != null;
 		} finally {
 			// Staged in Documents, outside the scratch dir cleanupTempFile is limited to.
@@ -233,7 +305,7 @@ export async function exportBackup(
 		const destPath =
 			destination === "picker" ? await save({ defaultPath, filters: [{ name: "Free Grind backup", extensions: ["zip"] }] }) : defaultPath;
 		if (!destPath) return false;
-		await exportBackupToFile(dbFileName, ownerUserId, destPath, categories);
+		await exportBackupToFile(dbFileName, ownerUserId, destPath, categories, remoteEntries);
 		return true;
 	}
 
@@ -246,7 +318,7 @@ export async function exportBackup(
 	// and then copied over natively.
 	const tempPath = await tempZipPath("export");
 	try {
-		await exportBackupToFile(dbFileName, ownerUserId, tempPath, categories);
+		await exportBackupToFile(dbFileName, ownerUserId, tempPath, categories, remoteEntries);
 		if (pickedUri) {
 			await invoke("copy_file_to_android_uri", { srcPath: tempPath, destUri: pickedUri });
 			return true;
