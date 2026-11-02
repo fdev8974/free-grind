@@ -1352,6 +1352,13 @@ export function ProfileDetailsModal({
 		const url = getProfileImageUrl(hash, size);
 		return resolveAvatarSrc(hash, url, { cache: isChatLinkedProfile, sourceUrl: url }) ?? url;
 	};
+	// The grid tile's photo is already cached: shown while the profile loads and
+	// under the first photo until its full size arrives, so opening doesn't
+	// flash an empty box first.
+	const browseCardImageUrl =
+		selectedBrowseCard?.primaryImageUrl && (!activeProfile || selectedBrowseCard.profileId === String(activeProfile.profileId))
+			? selectedBrowseCard.primaryImageUrl
+			: null;
 	const isRightNowSlideActive = carouselHashes[mobileCarouselPhotoIndex] === RIGHT_NOW_SLIDE_HASH;
 	carouselTotalRef.current = carouselHashes.length;
 
@@ -2083,10 +2090,18 @@ export function ProfileDetailsModal({
 					className="absolute inset-0 z-10"
 					aria-label={t("profile_details.open_photo", { index: index + 1 })}
 				/>
+				{browseCardImageUrl && hash === activeProfilePhotoHashes[0] && (
+					<ProfileImage
+						src={browseCardImageUrl}
+						alt=""
+						className="absolute inset-0 h-full w-full object-cover"
+						revealed={!photoReveal.isBlurred(hash)}
+					/>
+				)}
 				<ProfileImage
 					src={getSlideImageUrl(hash)}
 					alt={t("profile_details.photo_alt", { name: activeProfileName })}
-					className="h-full w-full object-cover"
+					className="relative h-full w-full object-cover"
 					revealed={!photoReveal.isBlurred(hash)}
 				/>
 			</>
@@ -2418,10 +2433,12 @@ export function ProfileDetailsModal({
 			<div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-lenis-prevent>
 				{isLoadingActiveProfile && (
 					<div
-						className="animate-pulse bg-[var(--surface-2)]"
+						className={browseCardImageUrl ? "overflow-hidden bg-black" : "animate-pulse bg-[var(--surface-2)]"}
 						style={{ height: variant === "page" ? PAGE_CAROUSEL_HEIGHT : "min(55dvh, calc((100vw - 3rem) * 1.25))" }}
 						aria-hidden="true"
-					/>
+					>
+						{browseCardImageUrl && <ProfileImage src={browseCardImageUrl} alt="" className="h-full w-full object-cover" />}
+					</div>
 				)}
 				{!isLoadingActiveProfile && !activeProfileError && activeProfile && (
 					<div
@@ -2646,11 +2663,11 @@ export function ProfileDetailsModal({
 
 	return (
 		<div
-			className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-6"
+			className="fixed inset-0 z-[60] flex animate-backdrop-in items-center justify-center bg-black/60 p-6"
 			onClick={handleBackdropClose}
 		>
 			<div
-				className="native-card flex w-full max-w-[min(80vw,1300px)] overflow-hidden rounded-2xl"
+				className="native-card flex w-full max-w-[min(80vw,1300px)] animate-modal-zoom-in overflow-hidden rounded-2xl motion-reduce:animate-none"
 				style={{
 					flexDirection: isModalSplit ? "row" : "column",
 					maxHeight: isModalSplit ? "calc(100dvh - 8rem)" : "calc(100dvh - 1.5rem)",
@@ -2659,9 +2676,13 @@ export function ProfileDetailsModal({
 				onClick={(event) => event.stopPropagation()}
 			>
 				{/* Left panel: full-height photo carousel (split mode only) */}
-				{isModalSplit && isLoadingActiveProfile && (
+				{isModalSplit && isLoadingActiveProfile && (browseCardImageUrl ? (
+					<div className="relative shrink-0 overflow-hidden bg-black" style={{ width: "54%" }} aria-hidden="true">
+						<ProfileImage src={browseCardImageUrl} alt="" className="h-full w-full object-cover" />
+					</div>
+				) : (
 					<div className="relative shrink-0 animate-pulse overflow-hidden bg-[var(--surface-2)]" style={{ width: "54%" }} aria-hidden="true" />
-				)}
+				))}
 				{isModalSplit && !isLoadingActiveProfile && !activeProfileError && activeProfile && (
 					<div
 						className="relative shrink-0 overflow-hidden bg-black"

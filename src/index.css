@@ -21,6 +21,8 @@
 	--animate-modal-out: modal-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 	--animate-modal-top-in: modal-top-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 	--animate-modal-top-out: modal-top-out 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+	/* Desktop profile card: a slight zoom in on open */
+	--animate-modal-zoom-in: modal-zoom-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 	--animate-backdrop-in: backdrop-in 0.35s ease-out forwards;
 	--animate-backdrop-out: backdrop-out 0.25s ease-in forwards;
 	--animate-tooltip-in: tooltip-in 0.2s ease-out forwards;
@@ -112,6 +114,10 @@
 	@keyframes modal-out {
 		from { opacity: 1; transform: scale(1) translateY(0) translateZ(0.1px); }
 		to { opacity: 0; transform: scale(0.92) translateY(15px); }
+	}
+	@keyframes modal-zoom-in {
+		from { opacity: 0; transform: scale(0.96); }
+		to { opacity: 1; transform: none; }
 	}
 	@keyframes modal-top-in {
 		from { opacity: 0; transform: scale(0.92) translateY(-15px); }
