@@ -2884,24 +2884,28 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							isProcessing={isUploadingAttachment}
 							isDesktop={isDesktop}
 							bg={NATIVE_SHEET_BG}
+							headerActions={
+								<AddToDrawerChip
+									checked={attachmentAddToDrawer}
+									onChange={setAttachmentAddToDrawer}
+									disabled={isUploadingAttachment}
+								/>
+							}
 							footerLeft={
-								<>
-									{pendingAttachmentFile.type.startsWith("video/") ? (
-										<VideoExpiryButton
-											value={attachmentMaxViews}
-											onChange={setAttachmentMaxViews}
-											isDesktop={isDesktop}
-										/>
-									) : (
-										// Photos: unlimited or 10s, a single toggle.
-										<ExpiryToggleButton
-											expiring={attachmentMaxViews !== 2147483647}
-											onChange={(expiring) => setAttachmentMaxViews(expiring ? 1 : 2147483647)}
-											expiringLabel={t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}
-										/>
-									)}
-									<AddToDrawerChip checked={attachmentAddToDrawer} onChange={setAttachmentAddToDrawer} />
-								</>
+								pendingAttachmentFile.type.startsWith("video/") ? (
+									<VideoExpiryButton
+										value={attachmentMaxViews}
+										onChange={setAttachmentMaxViews}
+										isDesktop={isDesktop}
+									/>
+								) : (
+									// Photos: unlimited or 10s, a single toggle.
+									<ExpiryToggleButton
+										expiring={attachmentMaxViews !== 2147483647}
+										onChange={(expiring) => setAttachmentMaxViews(expiring ? 1 : 2147483647)}
+										expiringLabel={t("chat_drawer.expiry.ten_seconds", { defaultValue: "10s" })}
+									/>
+								)
 							}
 						>
 							<div className="flex min-h-0 flex-1 flex-col">
@@ -2909,7 +2913,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							<div className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
 							{attachmentPreviewUrl && (
 								pendingAttachmentFile.type.startsWith("video/") ? (
-									<div className="px-4 pb-3">
+									<div className="flex min-h-full flex-col px-4 pb-3">
 										<VideoTrimmer
 											file={pendingAttachmentFile}
 											src={attachmentPreviewUrl}
@@ -2925,7 +2929,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										/>
 									</div>
 								) : (
-									<div className="px-4 pb-3">
+									<div className="flex min-h-full flex-col px-4 pb-3">
 										<div className="flex justify-center">
 											<style>{`
 												@keyframes attach-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
@@ -2973,7 +2977,8 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											)}
 											</div>
 										</div>
-										<div className="mt-3 flex items-center justify-center gap-3">
+										{/* Centered in the room left above the footer, as under a video. */}
+										<div className="my-auto flex items-center justify-center gap-3 pt-3 pb-2">
 											<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyAttachmentTransform("flipH")} />
 											<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyAttachmentTransform("rotateCw")} />
 											<MediaToolDivider />

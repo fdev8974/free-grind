@@ -275,6 +275,12 @@ export function VideoTrimmer({
 			ref={videoRef}
 			src={src}
 			playsInline
+			preload="auto"
+			// Some videos stay blank at 0 until they're seeked; this also puts a
+			// remounted element (on a Bars/Crop switch) back at the picked start.
+			onLoadedMetadata={(event) => {
+				event.currentTarget.currentTime = Math.max(startMs / 1000, 0.001);
+			}}
 			onTimeUpdate={onTimeUpdate}
 			onPlay={() => setPlaying(true)}
 			onPause={() => setPlaying(false)}
@@ -285,7 +291,7 @@ export function VideoTrimmer({
 	);
 
 	return (
-		<div className="flex w-full flex-col items-center gap-3">
+		<div className="flex w-full flex-1 flex-col items-center gap-3">
 			<div className="relative flex justify-center">
 				{reencodes && mode === "pad" ? (
 					// Upright on black bars, as it will be sent.
@@ -443,8 +449,9 @@ export function VideoTrimmer({
 			)}
 
 			{(reencodes || tools) && (
-				// The same round tool row as under a photo.
-				<div className="flex items-center justify-center gap-3">
+				// The same round tool row as under a photo, centered in whatever
+				// room the sheet has left below the timeline.
+				<div className="my-auto flex items-center justify-center gap-3 py-2">
 					{reencodes && (
 						<>
 							<MediaToolButton

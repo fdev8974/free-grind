@@ -12,6 +12,8 @@ interface BottomDrawerProps {
 	zIndex?: string;
 	isDesktop?: boolean;
 	footerLeft?: ReactNode;
+	/** Small controls in the header, left of the close button. */
+	headerActions?: ReactNode;
 	/** Sheet background class, see BottomSheet's `bg`. */
 	bg?: string;
 	children: ReactNode;
@@ -27,6 +29,7 @@ export function BottomDrawer({
 	zIndex = "z-[60]",
 	isDesktop = false,
 	footerLeft,
+	headerActions,
 	bg,
 	children,
 }: BottomDrawerProps) {
@@ -40,7 +43,10 @@ export function BottomDrawer({
 		>
 			<div className="flex items-center justify-between px-4 pb-3">
 				<p className="text-sm font-semibold text-[var(--text)]">{title}</p>
-				<SheetCloseButton disabled={isProcessing} />
+				<div className="flex items-center gap-2">
+					{headerActions}
+					<SheetCloseButton disabled={isProcessing} />
+				</div>
 			</div>
 			{children}
 			<div className={`flex shrink-0 gap-2.5 px-4 ${SHEET_FOOTER_FADE_CLASS}`}>

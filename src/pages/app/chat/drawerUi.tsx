@@ -831,9 +831,9 @@ export function ExpiryToggleButton({
 	);
 }
 
-/** Footer chip of the upload sheets: also save what's sent to the drawer.
- * Same pill as ExpiryToggleButton, accent-ringed while on; just the icon on
- * phones, so the send button keeps its room. */
+/** Header chip of the upload sheets, next to the close button: also save
+ * what's sent to the drawer. As tall and tinted as the close button, the
+ * accent while on. */
 export function AddToDrawerChip({
 	checked,
 	onChange,
@@ -857,12 +857,14 @@ export function AddToDrawerChip({
 			title={t("chat.attachments.add_to_drawer_description", {
 				defaultValue: "Also save this to your drawer so you can send it again later",
 			})}
-			className={`inline-flex h-12 w-12 shrink-0 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-[transform,background-color,color] duration-150 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50 sm:w-auto sm:px-4 ${
-				checked ? EXPIRY_ACTIVE_CLASS : EXPIRY_IDLE_CLASS
+			className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full pl-2.5 pr-3 text-xs font-semibold transition active:scale-95 disabled:pointer-events-none disabled:opacity-40 ${
+				checked
+					? "bg-[color-mix(in_srgb,var(--accent)_18%,transparent)] text-[var(--accent-readable)]"
+					: "ink-tint-8 text-[var(--text-muted)] hover:ink-tint-12 hover:text-[var(--text)]"
 			}`}
 		>
-			{checked ? <FolderCheck className="h-5 w-5 sm:h-4 sm:w-4" /> : <FolderPlus className="h-5 w-5 sm:h-4 sm:w-4" />}
-			<span className="hidden sm:inline">{t("chat.attachments.add_to_drawer_chip", { defaultValue: "Drawer" })}</span>
+			{checked ? <FolderCheck className="h-3.5 w-3.5" /> : <FolderPlus className="h-3.5 w-3.5" />}
+			<span>{t("chat.attachments.add_to_drawer_chip", { defaultValue: "Drawer" })}</span>
 		</button>
 	);
 }
