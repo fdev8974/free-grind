@@ -650,6 +650,15 @@ async function captureAlbumFromMessageIfNeeded(
  * conversation would surface it in the chat's own received-albums list as if
  * it were the other participant's content.
  */
+/**
+ * The background capture already running for `albumId` (started when its
+ * share message came in), if any; opening the album waits on that rather
+ * than downloading the same content a second time.
+ */
+export function albumCaptureInFlight(albumId: number): Promise<void> | undefined {
+	return captureInFlight.get(albumId);
+}
+
 export function captureAlbumsForMessages(
 	messages: UiMessage[],
 	conversationId: string,

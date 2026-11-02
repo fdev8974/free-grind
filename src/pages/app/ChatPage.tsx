@@ -124,7 +124,7 @@ import {
 } from "./chat/chatUtils";
 import { loadChatFiltersDraft, saveChatFiltersDraft } from "./chat/chat-filters-storage";
 import { fetchAndStoreMedia, getCachedMediaUri, getDrawerMediaKey, getMessageFallbackMediaKey, hydrateMediaByMessageId, isSignedUrlExpired } from "../../services/mediaStore";
-import { captureAlbum, captureAlbumsForMessages, deleteLocalAlbum, getLocalAlbum } from "../../services/albumStore";
+import { albumCaptureInFlight, captureAlbum, captureAlbumsForMessages, deleteLocalAlbum, getLocalAlbum } from "../../services/albumStore";
 import { saveAllAlbumMedia, saveAllMedia } from "../../utils/albumMedia";
 import { formatDistance } from "./gridpage/utils";
 import { captureReplyPreviewsForMessages } from "../../services/replyMediaStore";
@@ -6434,7 +6434,12 @@ export function ChatPage() {
 			// was first received.
 			const cached = await getLocalAlbum(albumId).catch(() => null);
 			if (albumViewerCancelledRef.current) return;
-			if (cached) {
+			// While its share message's capture is still downloading, the cache
+			// holds only part of the album; showing that would have the rest pop
+			// in later. Then it's kept back for when the live fetch fails.
+			const showCached = cached !== null && albumCaptureInFlight(albumId) === undefined;
+			let shownLive = false;
+			if (cached && showCached) {
 				setAlbumViewer({ ...cached, isOwn: isOwnAlbum });
 				if (!useSheet) setAlbumViewerMediaIndex(resolveIndex(cached.content));
 				setIsAlbumViewerLoading(false);
@@ -6455,16 +6460,34 @@ export function ChatPage() {
 			try {
 				const details = await service.getAlbum(albumId);
 				if (albumViewerCancelledRef.current) return;
-				await captureAlbum({
-					albumId: details.albumId,
-					albumName: details.albumName,
-					content: details.content,
-					ownerProfileId: null,
-					conversationId: null,
-					sharedViaMessageId: null,
-					remainingViews: null,
-					isViewable: null,
-				});
+				// All of the album at once, straight away: what's cached from the
+				// cache, the rest from the server, rather than only once everything
+				// is downloaded below.
+				if (details.content.length > 0) {
+					const cachedById = new Map((cached?.content ?? []).map((item) => [item.contentId, item] as const));
+					const live = details.content.map((item) => cachedById.get(item.contentId) ?? item);
+					setAlbumViewer({
+						albumId: details.albumId,
+						albumName: details.albumName ?? cached?.albumName ?? null,
+						content: live,
+						isOwn: isOwnAlbum,
+					});
+					if (!useSheet && !showCached) setAlbumViewerMediaIndex(resolveIndex(live));
+					setIsAlbumViewerLoading(false);
+					shownLive = true;
+				}
+				// The capture its share message started may be under way already.
+				await (albumCaptureInFlight(albumId) ??
+					captureAlbum({
+						albumId: details.albumId,
+						albumName: details.albumName,
+						content: details.content,
+						ownerProfileId: null,
+						conversationId: null,
+						sharedViaMessageId: null,
+						remainingViews: null,
+						isViewable: null,
+					}));
 				const merged = await getLocalAlbum(albumId);
 				if (albumViewerCancelledRef.current) return;
 				// The local cache has no notion of order (it's keyed by content
@@ -6527,7 +6550,13 @@ export function ChatPage() {
 				}
 			} catch (error) {
 				if (albumViewerCancelledRef.current) return;
-				if (!cached) {
+				if (shownLive) {
+					// Only the download failed; the live content stays on show.
+				} else if (cached && !showCached) {
+					// Offline or gone: the part that's cached is better than nothing.
+					setAlbumViewer({ ...cached, isOwn: isOwnAlbum });
+					if (!useSheet) setAlbumViewerMediaIndex(resolveIndex(cached.content));
+				} else if (!cached) {
 					setAlbumViewer(null);
 					setAlbumViewerMediaIndex(null);
 					setIsAlbumMediaSheetOpen(false);
