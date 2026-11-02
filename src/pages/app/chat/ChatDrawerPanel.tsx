@@ -23,7 +23,7 @@ import {
 	drawerGridClass,
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
-	DrawerActionBar,
+	DrawerAddTile,
 	DrawerBody,
 	DrawerGridSkeleton,
 	DrawerEmptyState,
@@ -440,11 +440,11 @@ export function ChatDrawerPanel({
 				tabIndex={0}
 				onClick={() => { if (hasSelection) return; setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); }}
 				onKeyDown={(e) => { if (e.key === "Enter" && !hasSelection) { setSelectedAlbumIds(prev => { const n = new Set(prev); n.has(album.albumId) ? n.delete(album.albumId) : n.add(album.albumId); return n; }); } }}
-				className={`${DRAWER_TILE_CLASS} cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+				className={`${DRAWER_TILE_CLASS} drawer-tile-zoom cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
 				{cover ? (
 					<>
-						<img src={proxyMediaUrl(cover)} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover" style={{ filter: "blur(3px)" }} />
+						<img src={proxyMediaUrl(cover)} alt="" className="drawer-tile-media absolute inset-0 h-full w-full scale-110 object-cover" style={{ filter: "blur(3px)" }} />
 						<div className="absolute inset-0 bg-black/25" />
 					</>
 				) : (
@@ -521,10 +521,10 @@ export function ChatDrawerPanel({
 				})}
 				onClick={() => { if (consumePreviewClick()) return; if (!dimmed) toggleCollectionSelection(collection); }}
 				onKeyDown={(e) => { if (e.key === "Enter" && !dimmed) toggleCollectionSelection(collection); }}
-				className={`${DRAWER_TILE_CLASS} no-touch-callout cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
+				className={`${DRAWER_TILE_CLASS} drawer-tile-zoom no-touch-callout cursor-pointer transition ${dimmed ? "opacity-30 pointer-events-none" : ""}`}
 			>
 				{coverItems.length > 0 ? (
-					<div className={`absolute inset-0 grid gap-0.5 bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] ${mosaicClass} ${mosaicRows}`}>
+					<div className={`drawer-tile-media absolute inset-0 grid gap-0.5 bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)] ${mosaicClass} ${mosaicRows}`}>
 						{coverItems.map((item, index) => {
 							const src = getDrawerMediaSrc(item);
 							// With three items the first spans the full left column.
@@ -577,20 +577,22 @@ export function ChatDrawerPanel({
 	// Capture / upload actions, shown as the first tiles of the media grid.
 	const actionsDisabled = upload.isUploading || hasSelection || hasAlbumSelection || hasCollectionSelection || noConversation;
 	const drawerActions = upload.actions;
-	// Not split into categories and no albums yet: there's no albums tab with
-	// its own create button, so it joins the grid's action row (the empty
-	// drawer's buttons below get it the same way).
-	const gridActions = combined && albums.length === 0 && !isLoadingAlbums && canCreateAlbum
-		? [
-			...drawerActions,
-			{
-				key: "create-album",
-				icon: isCreatingAlbum ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagesFilled className="h-4 w-4" />,
-				label: t("chat_drawer.albums_create", { defaultValue: "Create album" }),
-				onClick: () => void handleCreateAlbum(),
-			},
-		]
-		: drawerActions;
+	// One action each, so their tiles run them without a sheet. Album
+	// creation is hidden once the plan's album limit is reached.
+	const createAlbumActions = canCreateAlbum
+		? [{
+			key: "create-album",
+			icon: <Plus />,
+			label: t("chat_drawer.albums_create", { defaultValue: "Create album" }),
+			onClick: () => void handleCreateAlbum(),
+		}]
+		: [];
+	const createCollectionActions = [{
+		key: "create-collection",
+		icon: <Plus />,
+		label: t("chat_drawer.collections_create", { defaultValue: "Create collection" }),
+		onClick: () => setEditingCollection(null),
+	}];
 
 	return (
 		<>
@@ -695,17 +697,19 @@ export function ChatDrawerPanel({
 								)}
 								{!combined && ((activeTab === "albums" && albums.length > 0) || (activeTab === "collections" && collections.length > 0)) && (
 									<div className={drawerGridClass(isDesktop)}>
-										{/* Like the media tab's add actions: a create row above the albums. */}
-										{/* Hidden once the plan's album limit is reached. */}
-										{activeTab === "albums" && canCreateAlbum && (
-											<DrawerActionBar
+										{/* Like the media tab's add tile: a create tile first among the albums. */}
+										{activeTab === "albums" ? (
+											<DrawerAddTile
+												label={t("chat_drawer.albums_create", { defaultValue: "Create album" })}
+												actions={createAlbumActions}
+												isDesktop={isDesktop}
 												disabled={isCreatingAlbum}
-												actions={[{
-													key: "create-album",
-													icon: isCreatingAlbum ? <Loader2 className="animate-spin" /> : <Plus />,
-													label: t("chat_drawer.albums_create", { defaultValue: "Create album" }),
-													onClick: () => void handleCreateAlbum(),
-												}]}
+											/>
+										) : (
+											<DrawerAddTile
+												label={t("chat_drawer.collections_create", { defaultValue: "Create collection" })}
+												actions={createCollectionActions}
+												isDesktop={isDesktop}
 											/>
 										)}
 										{activeTab === "albums" ? albumTiles : collectionTiles}
@@ -713,7 +717,30 @@ export function ChatDrawerPanel({
 								)}
 								{showSection("media") && (media.length > 0 || hasCombinedGroups || upload.isUploading) && (
 								<DrawerGrid isDesktop={isDesktop}>
-									<DrawerActionBar actions={gridActions} disabled={actionsDisabled || isCreatingAlbum} />
+									<DrawerAddTile
+										label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
+										actions={drawerActions}
+										isDesktop={isDesktop}
+										disabled={actionsDisabled}
+									/>
+									{/* Not split into categories: no albums or collections tab with
+									    their own create tiles, so they come along here. */}
+									{combined && (
+										<>
+											<DrawerAddTile
+												label={t("chat_drawer.albums_create", { defaultValue: "Create album" })}
+												actions={createAlbumActions}
+												isDesktop={isDesktop}
+												disabled={actionsDisabled || isCreatingAlbum}
+											/>
+											<DrawerAddTile
+												label={t("chat_drawer.collections_create", { defaultValue: "Create collection" })}
+												actions={createCollectionActions}
+												isDesktop={isDesktop}
+												disabled={actionsDisabled}
+											/>
+										</>
+									)}
 									{upload.uploadTiles}
 									{/* Not split into categories: albums and collections share the media grid. */}
 									{combined && albumTiles}
@@ -770,8 +797,8 @@ export function ChatDrawerPanel({
 										title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
 										hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
 									>
-										{/* Not split into categories: there is no albums tab with its own create link, so it joins the actions. */}
-										<div className={`grid w-full gap-2 ${combined ? "max-w-md grid-cols-4" : "max-w-sm grid-cols-3"}`}>
+										{/* Not split into categories: there are no albums or collections tabs with their own create tiles, so they join the actions. */}
+										<div className={`grid w-full gap-2 ${combined ? "max-w-lg grid-cols-5" : "max-w-sm grid-cols-3"}`}>
 											{drawerActions.map((action) => (
 												<DrawerActionButton
 													key={action.key}
@@ -787,6 +814,14 @@ export function ChatDrawerPanel({
 													label={t("chat_drawer.albums_create", { defaultValue: "Create album" })}
 													onClick={() => void handleCreateAlbum()}
 													disabled={!canCreateAlbum || isCreatingAlbum}
+												/>
+											)}
+											{combined && (
+												<DrawerActionButton
+													icon={<Layers className="h-4 w-4" />}
+													label={t("chat_drawer.collections_create", { defaultValue: "Create collection" })}
+													onClick={() => setEditingCollection(null)}
+													disabled={actionsDisabled}
 												/>
 											)}
 										</div>

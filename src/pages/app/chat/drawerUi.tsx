@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Check, ChevronDown, Eye, Film, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, Plus, RefreshCw, Repeat, Video, X } from "lucide-react";
@@ -58,9 +58,10 @@ export function DrawerActionButton({ icon, label, onClick, disabled, layout = "c
 }
 
 /** Capture/upload actions as one flat row across the top of a media grid
- * (it spans all columns): much lower than a square tile, borderless, on a
- * see-through text tint (like the sheet chips), so it reads on every sheet
- * background; a darkened fill vanished on the plain dark theme. */
+ * (it spans all columns): a light toolbar rather than a row of tiles, so it
+ * doesn't weigh as much as the media below. No fill of its own (nothing to
+ * vanish on the plain dark theme): accent icon and label, thin dividers
+ * between, a see-through text tint (like the sheet chips) on hover/press. */
 export function DrawerActionBar({
 	actions,
 	disabled,
@@ -70,19 +71,21 @@ export function DrawerActionBar({
 }) {
 	if (actions.length === 0) return null;
 	return (
-		<div className="col-span-full flex gap-1.5">
-			{actions.map((action) => (
-				<button
-					key={action.key}
-					type="button"
-					onClick={action.onClick}
-					disabled={disabled}
-					className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg ink-tint-10 px-2 text-[var(--text)] transition active:scale-[0.97] hover:ink-tint-14 active:ink-tint-18 disabled:pointer-events-none disabled:opacity-40"
-				>
-					{/* Icon sized here rather than by the caller, so the bar doesn't depend on the icon's own classes. */}
-					<span className="flex shrink-0 items-center justify-center text-[var(--accent-readable)] [&_svg]:h-[18px] [&_svg]:w-[18px]">{action.icon}</span>
-					<span className="truncate text-[12.5px] font-semibold">{action.label}</span>
-				</button>
+		<div className="col-span-full flex items-center">
+			{actions.map((action, index) => (
+				<Fragment key={action.key}>
+					{index > 0 && <span aria-hidden="true" className="h-5 w-px shrink-0 bg-[var(--border)]" />}
+					<button
+						type="button"
+						onClick={action.onClick}
+						disabled={disabled}
+						className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 text-[var(--accent-readable)] transition active:scale-[0.97] hover:ink-tint-8 active:ink-tint-12 disabled:pointer-events-none disabled:opacity-40"
+					>
+						{/* Icon sized here rather than by the caller, so the bar doesn't depend on the icon's own classes. */}
+						<span className="flex shrink-0 items-center justify-center [&_svg]:h-[18px] [&_svg]:w-[18px]">{action.icon}</span>
+						<span className="truncate text-[13px] font-semibold">{action.label}</span>
+					</button>
+				</Fragment>
 			))}
 		</div>
 	);
@@ -642,7 +645,8 @@ export function DrawerMediaTile({
 			{...(mediaFailed ? undefined : previewProps)}
 			onClick={(e) => select(e.currentTarget)}
 			onKeyDown={(e) => { if (e.key === "Enter") onSelect?.(e.currentTarget); }}
-			className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${onSelect ? "cursor-pointer" : "cursor-default"} ${busy ? "opacity-60" : ""} ${muted ? "pointer-events-none opacity-30" : ""}`}
+			// drawer-tile-zoom: the picture zooms in on hover (see index.css), only where a click does something.
+			className={`${DRAWER_TILE_CLASS} no-touch-callout transition ${onSelect ? "drawer-tile-zoom cursor-pointer" : "cursor-default"} ${busy ? "opacity-60" : ""} ${muted ? "pointer-events-none opacity-30" : ""}`}
 			style={{ outline: selected ? "2px solid var(--accent)" : "none", outlineOffset: "-2px" }}
 		>
 			{placeholder ?? (mediaFailed ? (
@@ -650,13 +654,13 @@ export function DrawerMediaTile({
 			) : isVideo ? (
 				<>
 					{posterSrc ? (
-						<img src={proxyMediaUrl(posterSrc)} alt={alt ?? ""} draggable={false} onError={failPreview} className={`h-full w-full object-cover ${mediaClassName}`} />
+						<img src={proxyMediaUrl(posterSrc)} alt={alt ?? ""} draggable={false} onError={failPreview} className={`drawer-tile-media h-full w-full object-cover ${mediaClassName}`} />
 					) : (
 						<VideoFirstFrame
 							src={src}
 							posterKey={posterKey}
 							onFail={failPreview}
-							className={`h-full w-full object-cover ${mediaClassName}`}
+							className={`drawer-tile-media h-full w-full object-cover ${mediaClassName}`}
 						/>
 					)}
 					<div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20">
@@ -666,7 +670,7 @@ export function DrawerMediaTile({
 					</div>
 				</>
 			) : (
-				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} onError={failPreview} className={`h-full w-full object-cover ${mediaClassName}`} />
+				<img src={proxyMediaUrl(src)} alt={alt ?? ""} draggable={false} onError={failPreview} className={`drawer-tile-media h-full w-full object-cover ${mediaClassName}`} />
 			))}
 
 			{children}
@@ -977,12 +981,77 @@ export function AddToDrawerChip({
 	);
 }
 
-export type DrawerAddAction = { key: string; label: string; icon: ReactNode; onClick: () => void };
+/** One of a drawer's add actions; `description` and `iconClassName` (its
+ * tile's colors) are for the add sheet's rows (see DrawerAddTile). */
+export type DrawerAddAction = {
+	key: string;
+	label: string;
+	icon: ReactElement<{ className?: string }>;
+	description?: string;
+	iconClassName?: string;
+	onClick: () => void;
+};
+
+/**
+ * A drawer's "add" tile, the first in its grid: one action runs straight
+ * away; several (take a photo, record a video, upload…) open an action sheet
+ * listing them all, like the album editor's "Add media".
+ */
+export function DrawerAddTile({
+	actions,
+	label,
+	isDesktop,
+	disabled,
+}: {
+	actions: DrawerAddAction[];
+	/** The tile's caption, e.g. "Add media" or "Create album". */
+	label: string;
+	isDesktop: boolean;
+	disabled?: boolean;
+}) {
+	const [isSheetOpen, setIsSheetOpen] = useState(false);
+	if (actions.length === 0) return null;
+	const only = actions.length === 1 ? actions[0] : null;
+	return (
+		<>
+			<button
+				type="button"
+				onClick={() => (only ? only.onClick() : setIsSheetOpen(true))}
+				disabled={disabled}
+				className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg ink-tint-8 p-2 text-[var(--text)] transition hover:ink-tint-12 active:scale-[0.97] active:ink-tint-14 disabled:pointer-events-none disabled:opacity-40"
+			>
+				<span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-contrast)]">
+					<Plus className="h-5 w-5" strokeWidth={2.5} />
+				</span>
+				<span className="line-clamp-2 text-center text-xs font-semibold leading-tight">{label}</span>
+			</button>
+			{/* Portalled out of the drawer: inside its (transformed) panel the
+			    sheet's fixed position would be the panel's, and it got cut off. */}
+			{isSheetOpen && createPortal(
+				<SheetActionList
+					title={label}
+					onClose={() => setIsSheetOpen(false)}
+					isDesktop={isDesktop}
+					actions={actions.map((action) => ({
+						key: action.key,
+						icon: action.icon,
+						iconClassName: action.iconClassName,
+						label: action.label,
+						description: action.description,
+						// Clicked synchronously, so a file picker still counts as a user gesture.
+						onSelect: action.onClick,
+					}))}
+				/>,
+				document.body,
+			)}
+		</>
+	);
+}
 
 /**
  * The drawer's add actions (take photo, record video, upload from device):
- * render `inputs` once in the sheet and `actions` as DrawerActionBar /
- * DrawerActionButton. `onFiles` gets whatever was picked.
+ * render `inputs` once in the sheet and `actions` in a DrawerAddTile (or the
+ * empty state's DrawerActionButtons). `onFiles` gets whatever was picked.
  */
 export function useDrawerAddActions({
 	onFiles,
@@ -1007,12 +1076,36 @@ export function useDrawerAddActions({
 	};
 
 	const actions: DrawerAddAction[] = [
-		{ key: "photo", label: t("chat_drawer.take_photo"), icon: <CameraFilled className="h-4 w-4" />, input: cameraInputRef },
+		{
+			key: "photo",
+			label: t("chat_drawer.take_photo"),
+			description: t("chat_drawer.take_photo_desc", { defaultValue: "Take a new one with the camera" }),
+			icon: <CameraFilled className="h-4 w-4" />,
+			iconClassName: "bg-sky-500/15 text-sky-400",
+			input: cameraInputRef,
+		},
 		...(allowVideo
-			? [{ key: "video", label: t("chat_drawer.record_video", { defaultValue: "Record video" }), icon: <Video className="h-4 w-4 fill-current" />, input: cameraVideoInputRef }]
+			? [{
+				key: "video",
+				label: t("chat_drawer.record_video", { defaultValue: "Record video" }),
+				description: t("chat_drawer.record_video_desc", { defaultValue: "Record a new one with the camera" }),
+				icon: <Video className="h-4 w-4 fill-current" />,
+				iconClassName: "bg-rose-500/15 text-rose-400",
+				input: cameraVideoInputRef,
+			}]
 			: []),
-		{ key: "upload", label: t("chat_drawer.add_media", { defaultValue: "Add media" }), icon: <CameraPlusFilled className="h-4 w-4" />, input: uploadInputRef },
-	].map(({ key, label, icon, input }) => ({ key, label, icon, onClick: () => input.current?.click() }));
+		{
+			key: "upload",
+			// The add tile's sheet is "Add media" already; this is where from.
+			label: t("settings_albums.add_upload", { defaultValue: "Upload from device" }),
+			description: allowVideo
+				? t("chat_drawer.add_media_desc", { defaultValue: "Photos and videos stored on this device" })
+				: t("chat_drawer.add_photo_desc", { defaultValue: "Photos stored on this device" }),
+			icon: <CameraPlusFilled className="h-4 w-4" />,
+			iconClassName: "bg-violet-500/15 text-violet-400",
+			input: uploadInputRef,
+		},
+	].map(({ input, ...action }) => ({ ...action, onClick: () => input.current?.click() }));
 
 	const inputs = (
 		<>

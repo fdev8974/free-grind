@@ -1841,6 +1841,18 @@ dialog::backdrop {
 /* Also the bare glyph buttons over video (the media viewer's arrows, play
    button and sound toggle, the trimmer's): no chip of their own, only a
    drop shadow, until hovered. */
+/* Drawer tiles: the picture inside zooms in a little under the pointer, so a
+   pickable tile answers before it's clicked. Clipped by the tile, whose
+   edge stays put; desktop only, like the hovers here. */
+.drawer-tile-media {
+	transition: scale 250ms ease-out;
+}
+/* `scale`, not `transform`: it adds to a transform the picture already has
+   (a blurred album cover is scaled up to hide its soft edge). */
+:root:not(.touch-ui) .drawer-tile-zoom:hover .drawer-tile-media {
+	scale: 1.06;
+}
+
 :root:not(.touch-ui) .header-icon-btn:not(:disabled):hover,
 :root:not(.touch-ui) .bar-icon-btn:not(:disabled):hover,
 :root:not(.touch-ui) .glass-icon-btn:not(:disabled):hover {

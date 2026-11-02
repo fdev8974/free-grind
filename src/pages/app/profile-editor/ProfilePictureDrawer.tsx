@@ -1,9 +1,10 @@
-import { ImageIcon, Inbox, Loader2, Plus, Upload } from "lucide-react";
+import { ImageIcon, Inbox, Loader2, Plus } from "lucide-react";
 import { TriangleAlertFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
 	DrawerActionButton,
-	DrawerActionBar,
+	DrawerAddTile,
+	type DrawerAddAction,
 	DrawerBody,
 	DrawerEmptyState,
 	DrawerFooter,
@@ -17,7 +18,7 @@ import {
 import { useCallback, useState, type MutableRefObject, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "../../../components/ui/bottom-sheet";
-import { SheetActionList, afterSheetClose } from "../../../components/ui/action-sheet";
+import { afterSheetClose } from "../../../components/ui/action-sheet";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { getProfileImageUrl, getThumbImageUrl } from "../../../utils/media";
 import { MEDIA_MODERATION_STATE } from "./profileEditorUtils";
@@ -82,13 +83,20 @@ export function ProfilePictureDrawer({
 		[onUploadFile],
 	);
 	const { actions: deviceActions, inputs: addInputs } = useDrawerAddActions({ onFiles: onPickFiles, allowVideo: false });
-	// "Add media" picks from the device or the chat drawer; its device pick
-	// stays the action's own, clicked from the choice synchronously so it
-	// still counts as a user gesture.
-	const [isAddChoiceOpen, setIsAddChoiceOpen] = useState(false);
-	const uploadFromDevice = deviceActions.find((action) => action.key === "upload")?.onClick;
-	const addActions = onAddFromDrawer
-		? deviceActions.map((action) => (action.key === "upload" ? { ...action, onClick: () => setIsAddChoiceOpen(true) } : action))
+	// Plus picking from the chat drawer, listed with them in the add tile's sheet.
+	const addActions: DrawerAddAction[] = onAddFromDrawer
+		? [
+			...deviceActions,
+			{
+				key: "drawer",
+				icon: <Inbox className="h-4 w-4" />,
+				iconClassName: "bg-emerald-500/15 text-emerald-400",
+				label: t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" }),
+				description: t("profile_photo_drawer.add_drawer_desc", { defaultValue: "Photos saved in your chat drawer" }),
+				// Once the add sheet has popped its history entry (from the empty state's button, right away).
+				onClick: () => afterSheetClose(onAddFromDrawer),
+			},
+		]
 		: deviceActions;
 
 	const toggleSelection = useCallback(
@@ -175,7 +183,7 @@ export function ProfilePictureDrawer({
 							title={t("profile_photo_drawer.empty")}
 							hint={t("profile_photo_drawer.empty_hint", { defaultValue: "Take a photo or upload one from your device to add it to your profile." })}
 						>
-							<div className="grid w-full max-w-xs grid-cols-2 gap-2">
+							<div className="grid w-full max-w-sm gap-2" style={{ gridTemplateColumns: `repeat(${addActions.length}, minmax(0, 1fr))` }}>
 								{addActions.map((action) => (
 									<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isSelecting} />
 								))}
@@ -184,8 +192,13 @@ export function ProfilePictureDrawer({
 					) : undefined}
 				>
 					<DrawerGrid isDesktop={isDesktop}>
-						{/* Add actions as the grid's first row, like the chat drawer. */}
-						<DrawerActionBar actions={addActions} disabled={isSelecting || hasSelection} />
+						{/* The add tile first, like the chat drawer. */}
+						<DrawerAddTile
+							label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
+							actions={addActions}
+							isDesktop={isDesktop}
+							disabled={isSelecting || hasSelection}
+						/>
 						{uploadTiles}
 						{visibleImages.map((image) => {
 							const isPending = image.state === MEDIA_MODERATION_STATE.PENDING;
@@ -269,32 +282,6 @@ export function ProfilePictureDrawer({
 				<DrawerMediaPreview media={imagePreview} />
 			</BottomSheet>
 
-			{isAddChoiceOpen && onAddFromDrawer && (
-				<SheetActionList
-					title={t("chat_drawer.add_media", { defaultValue: "Add media" })}
-					onClose={() => setIsAddChoiceOpen(false)}
-					isDesktop={isDesktop}
-					actions={[
-						{
-							key: "upload",
-							icon: Upload,
-							iconClassName: "bg-sky-500/15 text-sky-400",
-							label: t("settings_albums.add_upload", { defaultValue: "Upload from device" }),
-							description: t("profile_photo_drawer.add_upload_desc", { defaultValue: "Photos stored on this device" }),
-							onSelect: () => uploadFromDevice?.(),
-						},
-						{
-							key: "drawer",
-							icon: Inbox,
-							iconClassName: "bg-violet-500/15 text-violet-400",
-							label: t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" }),
-							description: t("profile_photo_drawer.add_drawer_desc", { defaultValue: "Photos saved in your chat drawer" }),
-							// Once this sheet has popped its history entry.
-							onSelect: () => afterSheetClose(onAddFromDrawer),
-						},
-					]}
-				/>
-			)}
 		</>
 	);
 }
