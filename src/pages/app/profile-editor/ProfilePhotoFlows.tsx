@@ -96,6 +96,7 @@ export function ProfilePhotoFlows({ photos }: { photos: ProfileEditorState["phot
 					videoLabel={t("profile_editor.photo_upload.title")}
 					confirmLabel={t("profile_editor.photo_upload.confirm")}
 					showLooping={false}
+					allowVideoSplit={false}
 					thumbnailStep={{
 						title: t("profile_editor.photo_upload.thumbnail_title", { defaultValue: "Select Thumbnail" }),
 						backLabel: t("profile_editor.photo_upload.back", { defaultValue: "Back" }),

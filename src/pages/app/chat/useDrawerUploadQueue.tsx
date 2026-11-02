@@ -8,7 +8,7 @@ import { MAX_CHAT_MEDIA_BYTES } from "../../../services/stagedVideoUpload";
 import { buildBinaryUpload } from "./chatUtils";
 import { useDrawerAddActions } from "./drawerUi";
 import { MediaEditTitle } from "./MediaEditSheet";
-import { MediaEditStep, type MediaEdit } from "./MediaEditStep";
+import { MediaEditStep, mediaEditFiles, type MediaEdit } from "./MediaEditStep";
 import { useUploadTiles } from "./useUploadTiles";
 
 type PreparedUpload = MediaEdit;
@@ -105,7 +105,7 @@ export function useDrawerUploadQueue({
 	// Moves to the next picked file. After the last one, everything confirmed uploads.
 	const finishStep = useCallback(
 		(prepared: PreparedUpload) => {
-			preparedRef.current.push(prepared);
+			preparedRef.current.push(...mediaEditFiles(prepared));
 			const rest = pendingFiles.slice(1);
 			setPendingFiles(rest);
 			if (rest.length > 0) return;

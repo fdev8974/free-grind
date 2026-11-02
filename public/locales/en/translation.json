@@ -1848,6 +1848,10 @@
       "trim_length": "{{length}} s",
       "trim_length_max": "{{length}} s (max.)",
       "trim_too_large": "About {{size}} MB, over the {{max}} MB limit. Pick a shorter part.",
+      "split": "Split into {{length}} s parts",
+      "split_parts": "{{count}} parts",
+      "split_hint": "Uploaded as {{count}} videos of up to {{length}} s, one after another.",
+      "split_too_large": "A part is about {{size}} MB, over the {{max}} MB limit.",
       "landscape_unsupported": "This device can't turn landscape videos upright, so it's sent as it is. The official app may not show it properly.",
       "landscape_kept": "This device can't turn the video upright, so it was sent in landscape. The official app may not show it properly."
     },

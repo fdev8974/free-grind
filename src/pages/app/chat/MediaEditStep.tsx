@@ -13,8 +13,21 @@ import { VideoTrimmer } from "./VideoTrimmer";
 export type ThumbnailCrop = { left: number; top: number; right: number; bottom: number };
 
 /** What a confirmed MediaEditStep hands on: the edited file and its toggles,
- * and with `thumbnailStep` the square picked for the thumbnail. */
-export type MediaEdit = { file: File; takenOnGrindr: boolean; looping: boolean; thumbnail?: ThumbnailCrop };
+ * with `thumbnailStep` the square picked for the thumbnail, and for a video
+ * split into parts (see VideoTrimmer's onSplit) the parts, to go out in
+ * order in place of `file` (see mediaEditFiles). */
+export type MediaEdit = {
+	file: File;
+	takenOnGrindr: boolean;
+	looping: boolean;
+	thumbnail?: ThumbnailCrop;
+	segments?: File[];
+};
+
+/** A confirmed edit as the files it goes out as: its parts when split, else itself. */
+export function mediaEditFiles(edit: MediaEdit): MediaEdit[] {
+	return edit.segments?.map((segment) => ({ ...edit, file: segment, segments: undefined })) ?? [edit];
+}
 
 /**
  * The edit step every picked photo or video goes through before it's sent
@@ -33,6 +46,7 @@ export function MediaEditStep({
 	maxVideoMs,
 	showTakenOnGrindr = true,
 	showLooping = true,
+	allowVideoSplit = true,
 	thumbnailStep,
 	onThumbnailPhase,
 	onConfirm,
@@ -50,6 +64,8 @@ export function MediaEditStep({
 	maxVideoMs?: number;
 	showTakenOnGrindr?: boolean;
 	showLooping?: boolean;
+	/** A video over the limit can be split into parts (see MediaEdit's segments). */
+	allowVideoSplit?: boolean;
 	/**
 	 * Photos get a second step after the edit (profile photos): a square
 	 * picked on the edited photo for the server-rendered thumbnail, handed
@@ -65,6 +81,8 @@ export function MediaEditStep({
 	const isVideo = file.type.startsWith("video/");
 	const [takenOnGrindr, setTakenOnGrindr] = useState(false);
 	const [looping, setLooping] = useState(false);
+	// The video's parts while it's split in the trimmer.
+	const [segments, setSegments] = useState<File[] | null>(null);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [crop, setCrop] = useState<Crop | undefined>(undefined);
 	const [isDraggingCrop, setIsDraggingCrop] = useState(false);
@@ -117,6 +135,7 @@ export function MediaEditStep({
 		setThumbnailFile(null);
 		setTakenOnGrindr(false);
 		setLooping(false);
+		setSegments(null);
 	}, [file]);
 
 	// A new preview (next file, or the thumbnail step's edited photo): fresh
@@ -195,7 +214,7 @@ export function MediaEditStep({
 
 	const confirm = useCallback(async () => {
 		if (isVideo) {
-			await onConfirm({ file, takenOnGrindr: false, looping });
+			await onConfirm({ file, takenOnGrindr: false, looping, ...(segments ? { segments } : {}) });
 			return;
 		}
 		if (thumbnailFile) {
@@ -217,7 +236,7 @@ export function MediaEditStep({
 			return;
 		}
 		await onConfirm({ file: edited, takenOnGrindr, looping: false });
-	}, [file, thumbnailFile, thumbnailStep, completedCrop, transformed, onConfirm, isVideo, takenOnGrindr, looping]);
+	}, [file, thumbnailFile, thumbnailStep, completedCrop, transformed, onConfirm, isVideo, takenOnGrindr, looping, segments]);
 
 	// Confirming only moves on: to the next picked file, or to the thumbnail.
 	const goesOn = hasNext || (!!thumbnailStep && !isVideo && !isThumbnailPhase);
@@ -241,6 +260,7 @@ export function MediaEditStep({
 						previewHeight="45dvh"
 						maxMs={maxVideoMs}
 						onReady={releaseSwapHeight}
+						onSplit={allowVideoSplit ? setSegments : undefined}
 						tools={showLooping ? (
 							<MediaToolButton
 								icon={<Repeat />}

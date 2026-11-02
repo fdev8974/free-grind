@@ -1129,6 +1129,8 @@ export function AlbumEditorSheet({
 					// Album uploads take neither.
 					showTakenOnGrindr={false}
 					showLooping={false}
+					// An album takes a single video, so a split has nowhere to go.
+					allowVideoSplit={false}
 					isDesktop={isDesktop}
 					zIndex="z-[70]"
 					onConfirmFile={(edit) => editedFilesRef.current.push(edit.file)}

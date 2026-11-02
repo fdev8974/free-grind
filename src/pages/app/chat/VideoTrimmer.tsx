@@ -1,5 +1,5 @@
-import { Crop, Play, RectangleVertical } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { Crop, Play, RectangleVertical, Scissors } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -8,7 +8,9 @@ import {
 	editBasis,
 	isLandscape,
 	loadTrimPoints,
+	segmentFiles,
 	setVideoEdit,
+	splitSegments,
 	type PortraitMode,
 	type TrimPoints,
 } from "../../../services/videoEdit";
@@ -55,6 +57,9 @@ const EDGE_SPEED = 0.8;
  * second, anywhere: the cut skips to the start with an edit list), and for a landscape video the choice of how it turns upright:
  * black bars, or a 9:16 frame dragged over the picture like the photo crop.
  * The pick is registered against `file` (see videoEdit) for the upload.
+ * With `onSplit`, a video over `maxMs` can instead be split whole into parts
+ * of at most `maxMs`: each part is a stand-in File with its own edit, handed
+ * to `onSplit` to be sent one after another (null while it isn't split).
  */
 export function VideoTrimmer({
 	file,
@@ -64,6 +69,7 @@ export function VideoTrimmer({
 	maxBytes = MAX_CHAT_MEDIA_BYTES,
 	tools,
 	onReady,
+	onSplit,
 }: {
 	file: File;
 	src: string;
@@ -76,6 +82,8 @@ export function VideoTrimmer({
 	/** Once the video and its timeline are shown at their full height (or
 	 * failed to load) — until then the trimmer is still growing. */
 	onReady?: () => void;
+	/** Offers the split (see above); gets the parts, or null. */
+	onSplit?: (segments: File[] | null) => void;
 }) {
 	const { t } = useTranslation();
 	const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -95,6 +103,8 @@ export function VideoTrimmer({
 	const [videoLoaded, setVideoLoaded] = useState(false);
 	const onReadyRef = useRef(onReady);
 	onReadyRef.current = onReady;
+	const onSplitRef = useRef(onSplit);
+	onSplitRef.current = onSplit;
 	const [startMs, setStartMs] = useState(0);
 	const [endMs, setEndMs] = useState(0);
 	const [playing, setPlaying] = useState(false);
@@ -103,11 +113,21 @@ export function VideoTrimmer({
 	const [dragCursor, setDragCursor] = useState<"cursor-grabbing" | "cursor-ew-resize" | null>(null);
 	// Where the shown part of the timeline starts (see viewMs).
 	const [viewStart, setViewStart] = useState(0);
+	const [split, setSplit] = useState(false);
 
 	const durationMs = points?.durationMs ?? 0;
+	const canSplit = !!onSplit && Number.isFinite(maxMs) && durationMs > maxMs;
+	const splitting = split && canSplit;
+	// Split, the whole video is picked: the selection spans it, cut into parts.
+	const segments = useMemo(() => (splitting ? splitSegments(durationMs, maxMs) : null), [splitting, durationMs, maxMs]);
+	const segmentCount = segments?.length ?? 0;
+	const parts = useMemo(() => (segmentCount > 0 ? segmentFiles(file, segmentCount) : null), [file, segmentCount]);
+	const shownStart = splitting ? 0 : startMs;
+	const shownEnd = splitting ? durationMs : endMs;
 	// A long video shows only part of itself, swiped through, rather than
-	// squeezing the selection to a sliver.
-	const viewMs = Number.isFinite(maxMs) && durationMs > maxMs * ZOOM ? maxMs * ZOOM : durationMs;
+	// squeezing the selection to a sliver; split, it's shown whole.
+	const unsplitViewMs = Number.isFinite(maxMs) && durationMs > maxMs * ZOOM ? maxMs * ZOOM : durationMs;
+	const viewMs = splitting ? durationMs : unsplitViewMs;
 	const zoomed = viewMs < durationMs;
 	const clampView = (at: number) => Math.max(0, Math.min(durationMs - viewMs, at));
 	const landscape = points ? isLandscape(points) : false;
@@ -147,6 +167,7 @@ export function VideoTrimmer({
 			setStartMs(0);
 			setEndMs(loaded ? Math.min(loaded.durationMs, maxMs) : 0);
 			setViewStart(0);
+			setSplit(false);
 			setMode("pad");
 			setCropLeft(loaded ? (1 - cropWidthFraction(loaded)) / 2 : 0);
 		});
@@ -173,9 +194,24 @@ export function VideoTrimmer({
 		// Whole milliseconds: the upload takes them as integers.
 		const start = Math.round(startMs);
 		const basis = editBasis(points);
+		if (segments && parts) {
+			segments.forEach((segment, index) => {
+				const segmentStart = Math.round(segment.startMs);
+				setVideoEdit(parts[index], {
+					startMs: segmentStart,
+					maxMs: Math.round(segment.startMs + segment.maxMs) - segmentStart,
+					trim: true,
+					portrait,
+					...basis,
+				});
+			});
+			onSplitRef.current?.(parts);
+			return;
+		}
+		onSplitRef.current?.(null);
 		const edit = { startMs: start, maxMs: Math.round(endMs) - start, trim, portrait, ...basis };
 		setVideoEdit(file, trim || portrait || basis.transcode ? edit : null);
-	}, [file, points, startMs, endMs, landscape, reencodes, mode, cropLeft]);
+	}, [file, points, startMs, endMs, landscape, reencodes, mode, cropLeft, segments, parts]);
 
 	const seekTo = useCallback((ms: number) => {
 		const video = videoRef.current;
@@ -187,7 +223,7 @@ export function VideoTrimmer({
 		const video = videoRef.current;
 		if (!video || !points) return;
 		const at = video.currentTime * 1000;
-		if (at >= endMs || at < startMs - 250) video.currentTime = startMs / 1000;
+		if (at >= shownEnd || at < shownStart - 250) video.currentTime = shownStart / 1000;
 	};
 
 	// The playhead follows every frame while playing (timeupdate only comes a
@@ -198,21 +234,30 @@ export function VideoTrimmer({
 		const follow = () => {
 			const video = videoRef.current;
 			const playhead = playheadRef.current;
-			if (video && playhead && endMs > startMs) {
-				const at = Math.min(Math.max(video.currentTime * 1000, startMs), endMs);
-				playhead.style.left = `${((at - startMs) / (endMs - startMs)) * 100}%`;
+			if (video && playhead && shownEnd > shownStart) {
+				const at = Math.min(Math.max(video.currentTime * 1000, shownStart), shownEnd);
+				playhead.style.left = `${((at - shownStart) / (shownEnd - shownStart)) * 100}%`;
 			}
 			frame = requestAnimationFrame(follow);
 		};
 		frame = requestAnimationFrame(follow);
 		return () => cancelAnimationFrame(frame);
-	}, [playing, startMs, endMs]);
+	}, [playing, shownStart, shownEnd]);
 
 	const togglePlay = () => {
 		const video = videoRef.current;
 		if (!video) return;
 		if (video.paused) void video.play();
 		else video.pause();
+	};
+
+	// The view goes whole for the split, and back to the picked part after.
+	const toggleSplit = () => {
+		videoRef.current?.pause();
+		const next = !split;
+		setSplit(next);
+		setViewStart(next ? 0 : Math.max(0, Math.min(durationMs - unsplitViewMs, startMs)));
+		seekTo(next ? 0 : startMs);
 	};
 
 	// The selection never leaves the shown part of the timeline: times are
@@ -292,6 +337,11 @@ export function VideoTrimmer({
 	const onStripDown = (event: PointerEvent<HTMLDivElement>) => {
 		const handle = (event.target as HTMLElement).closest<HTMLElement>("[data-trim-handle]")?.dataset.trimHandle;
 		const at = msAt(event.clientX);
+		// Split, nothing is picked: a tap only shows that moment.
+		if (splitting) {
+			seekTo(at);
+			return;
+		}
 		const inside = at >= startMs && at <= endMs;
 		event.currentTarget.setPointerCapture(event.pointerId);
 		videoRef.current?.pause();
@@ -382,20 +432,24 @@ export function VideoTrimmer({
 	// Where on the shown part of the timeline a time sits; `span` is a length.
 	const percent = (ms: number) => `${viewMs > 0 ? ((ms - viewStart) / viewMs) * 100 : 0}%`;
 	const span = (ms: number) => `${viewMs > 0 ? (ms / viewMs) * 100 : 0}%`;
-	const selectedMs = endMs - startMs;
-	const atLimit = durationMs > maxMs && selectedMs >= maxMs - 50;
-	// What the pick will weigh as uploaded, told before anything is made.
+	const selectedMs = shownEnd - shownStart;
+	const atLimit = !splitting && durationMs > maxMs && selectedMs >= maxMs - 50;
+	// What the pick will weigh as uploaded, told before anything is made;
+	// split, what its heaviest part will.
 	const estimatedBytes = points
-		? estimateUploadBytes(
-				points,
-				{
-					startMs,
-					maxMs: selectedMs,
-					trim: true,
-					portrait: landscape ? (mode === "crop" && reencodes ? { mode: "crop", left: cropLeft } : { mode: "pad" }) : null,
-					...editBasis(points),
-				},
-				file.size,
+		? Math.max(
+				...(segments ?? [{ startMs, maxMs: selectedMs }]).map((part) =>
+					estimateUploadBytes(
+						points,
+						{
+							...part,
+							trim: true,
+							portrait: landscape ? (mode === "crop" && reencodes ? { mode: "crop", left: cropLeft } : { mode: "pad" }) : null,
+							...editBasis(points),
+						},
+						file.size,
+					),
+				),
 			)
 		: 0;
 	const tooLarge = estimatedBytes > maxBytes;
@@ -411,8 +465,8 @@ export function VideoTrimmer({
 		const end = endLabelRef.current;
 		if (!strip || !start || !length || !end || viewMs <= 0) return;
 		const width = strip.clientWidth;
-		const frameLeft = ((startMs - viewStart) / viewMs) * width;
-		const frameRight = ((endMs - viewStart) / viewMs) * width;
+		const frameLeft = ((shownStart - viewStart) / viewMs) * width;
+		const frameRight = ((shownEnd - viewStart) / viewMs) * width;
 		const lengthX = (frameLeft + frameRight) / 2 - length.offsetWidth / 2;
 		const startX = Math.min(frameLeft, lengthX - LABEL_GAP - start.offsetWidth);
 		const endX = Math.max(frameRight - end.offsetWidth, lengthX + length.offsetWidth + LABEL_GAP);
@@ -445,7 +499,7 @@ export function VideoTrimmer({
 			// Some videos stay blank at 0 until they're seeked; this also puts a
 			// remounted element (on a Bars/Crop switch) back at the picked start.
 			onLoadedMetadata={(event) => {
-				event.currentTarget.currentTime = Math.max(startMs / 1000, 0.001);
+				event.currentTarget.currentTime = Math.max(shownStart / 1000, 0.001);
 			}}
 			onLoadedData={() => setVideoLoaded(true)}
 			onError={() => setVideoLoaded(true)}
@@ -533,15 +587,15 @@ export function VideoTrimmer({
 					    the bright filmstrip peek out. */}
 					<div
 						className="absolute inset-y-0 left-0 rounded-l-[20px] bg-black/65 backdrop-grayscale"
-						style={{ width: `calc(max(0%, ${percent(startMs)}) + 20px)` }}
+						style={{ width: `calc(max(0%, ${percent(shownStart)}) + 20px)` }}
 					/>
 					<div
 						className="absolute inset-y-0 right-0 rounded-r-[20px] bg-black/65 backdrop-grayscale"
-						style={{ left: `calc(min(100%, ${percent(endMs)}) - 20px)` }}
+						style={{ left: `calc(min(100%, ${percent(shownEnd)}) - 20px)` }}
 					/>
 					<div
 						className="absolute inset-y-0 rounded-[20px] bg-[var(--accent)] p-[3px] shadow-[0_4px_14px_rgba(0,0,0,0.45),0_0_12px_color-mix(in_srgb,var(--accent)_35%,transparent)]"
-						style={{ left: percent(startMs), width: span(selectedMs) }}
+						style={{ left: percent(shownStart), width: span(selectedMs) }}
 					>
 						{/* The picked part of the filmstrip again, clipped to the window's
 						    rounded corners on the frame's fill: one edge, so no seam. */}
@@ -549,12 +603,32 @@ export function VideoTrimmer({
 							<div
 								className="absolute inset-y-0 bg-black/40"
 								style={{
-									left: `${(-startMs / selectedMs) * 100}%`,
+									left: `${(-shownStart / selectedMs) * 100}%`,
 									width: `${(durationMs / selectedMs) * 100}%`,
 								}}
 							>
 								{filmstrip}
 							</div>
+							{/* Split: each part numbered, and where one ends and the next
+							    begins a bar like the frame, marked like its grips. */}
+							{segments?.map((segment, index) => (
+								<span
+									key={segment.startMs}
+									className="absolute top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black/60 px-1 text-[10px] font-semibold tabular-nums text-white backdrop-blur-sm"
+									style={{ left: `calc(${(segment.startMs / durationMs) * 100}% + ${index === 0 ? 8 : 10}px)` }}
+								>
+									{index + 1}
+								</span>
+							))}
+							{segments?.slice(1).map((segment) => (
+								<span
+									key={segment.startMs}
+									className="absolute inset-y-0 flex w-1.5 -translate-x-1/2 items-center justify-center bg-[var(--accent)] shadow-[0_0_10px_rgba(0,0,0,0.6)]"
+									style={{ left: `${(segment.startMs / durationMs) * 100}%` }}
+								>
+									<span className="h-3.5 w-0.5 rounded-full bg-[var(--accent-contrast)]" />
+								</span>
+							))}
 							{/* The playhead, only while playing; its track is inset so the
 							    bar stays clear of the window's rounded corners. */}
 							<div className="absolute inset-x-2.5 inset-y-0">
@@ -566,8 +640,8 @@ export function VideoTrimmer({
 								/>
 							</div>
 						</div>
-						{/* Grips on the frame's sides, wider to grab than they look. */}
-						{(["start", "end"] as const).map((handle) => (
+						{/* Grips on the frame's sides, wider to grab than they look; none split. */}
+						{!splitting && (["start", "end"] as const).map((handle) => (
 							<div
 								key={handle}
 								data-trim-handle={handle}
@@ -595,13 +669,15 @@ export function VideoTrimmer({
 					{/* Start, length and end follow the frame (see layoutLabels). */}
 					<div className="relative mt-2 h-4 text-xs tabular-nums">
 						<span ref={startLabelRef} className="absolute top-0 whitespace-nowrap font-medium text-[var(--text)]">
-							{formatTime(startMs)}
+							{formatTime(shownStart)}
 						</span>
 						<span
 							ref={lengthLabelRef}
 							className={`absolute top-0 whitespace-nowrap ${tooLarge ? "font-semibold text-red-400" : "text-[var(--text-muted)]"}`}
 						>
-							{atLimit
+							{splitting
+								? t("chat.attachments.split_parts", { defaultValue: "{{count}} parts", count: segmentCount })
+								: atLimit
 								? t("chat.attachments.trim_length_max", {
 										defaultValue: "{{length}} s (max.)",
 										length: (selectedMs / 1000).toFixed(1),
@@ -612,15 +688,30 @@ export function VideoTrimmer({
 									})}
 						</span>
 						<span ref={endLabelRef} className="absolute top-0 whitespace-nowrap font-medium text-[var(--text)]">
-							{formatTime(endMs)}
+							{formatTime(shownEnd)}
 						</span>
 					</div>
 					{tooLarge && (
 						<p className="mt-2 text-center text-xs text-red-400">
-							{t("chat.attachments.trim_too_large", {
-								defaultValue: "About {{size}} MB, over the {{max}} MB limit. Pick a shorter part.",
-								size: megabytes(estimatedBytes),
-								max: megabytes(maxBytes),
+							{splitting
+								? t("chat.attachments.split_too_large", {
+										defaultValue: "A part is about {{size}} MB, over the {{max}} MB limit.",
+										size: megabytes(estimatedBytes),
+										max: megabytes(maxBytes),
+									})
+								: t("chat.attachments.trim_too_large", {
+										defaultValue: "About {{size}} MB, over the {{max}} MB limit. Pick a shorter part.",
+										size: megabytes(estimatedBytes),
+										max: megabytes(maxBytes),
+									})}
+						</p>
+					)}
+					{splitting && !tooLarge && (
+						<p className="mt-2 text-center text-xs text-[var(--text-muted)]">
+							{t("chat.attachments.split_hint", {
+								defaultValue: "Uploaded as {{count}} videos of up to {{length}} s, one after another.",
+								count: segmentCount,
+								length: Math.round(maxMs / 1000),
 							})}
 						</p>
 					)}
@@ -640,7 +731,7 @@ export function VideoTrimmer({
 				</div>
 			)}
 
-			{(reencodes || tools) && (
+			{(reencodes || canSplit || tools) && (
 				// The same round tool row as under a photo, centered in whatever
 				// room the sheet has left below the timeline.
 				<div className="my-auto flex items-center justify-center gap-3 pt-2">
@@ -660,7 +751,18 @@ export function VideoTrimmer({
 							/>
 						</>
 					)}
-					{reencodes && tools && <MediaToolDivider />}
+					{reencodes && (canSplit || tools) && <MediaToolDivider />}
+					{canSplit && (
+						<MediaToolButton
+							icon={<Scissors />}
+							label={t("chat.attachments.split", {
+								defaultValue: "Split into {{length}} s parts",
+								length: Math.round(maxMs / 1000),
+							})}
+							active={splitting}
+							onClick={toggleSplit}
+						/>
+					)}
 					{tools}
 				</div>
 			)}

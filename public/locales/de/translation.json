@@ -1848,6 +1848,10 @@
             "trim_length": "{{length}} s",
             "trim_length_max": "{{length}} s (max.)",
             "trim_too_large": "Etwa {{size}} MB, über dem Limit von {{max}} MB. Wähle einen kürzeren Ausschnitt.",
+            "split": "In {{length}}-s-Teile aufteilen",
+            "split_parts": "{{count}} Teile",
+            "split_hint": "Wird als {{count}} Videos mit je bis zu {{length}} s nacheinander hochgeladen.",
+            "split_too_large": "Ein Teil hat etwa {{size}} MB, über dem Limit von {{max}} MB.",
             "landscape_unsupported": "Dieses Gerät kann Querformat-Videos nicht hochkant umwandeln, deshalb wird es so gesendet, wie es ist. Die offizielle App zeigt es eventuell nicht richtig an.",
             "landscape_kept": "Dieses Gerät kann das Video nicht hochkant umwandeln, deshalb wurde es im Querformat gesendet. Die offizielle App zeigt es eventuell nicht richtig an."
         },

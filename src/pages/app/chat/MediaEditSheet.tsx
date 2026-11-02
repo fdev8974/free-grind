@@ -3,7 +3,7 @@ import { useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode 
 import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
 import { BottomSheet, SheetStepBadge } from "../../../components/ui/bottom-sheet";
 import { DrawerHeader } from "./drawerUi";
-import { MediaEditStep, type MediaEdit } from "./MediaEditStep";
+import { MediaEditStep, mediaEditFiles, type MediaEdit } from "./MediaEditStep";
 import { VideoFormatsButton } from "./VideoFormatsSheet";
 
 /** A MediaEditStep's header title: what's being done to this file, and
@@ -49,6 +49,7 @@ export function MediaEditSheet({
 	maxVideoMs,
 	showTakenOnGrindr,
 	showLooping,
+	allowVideoSplit,
 	thumbnailStep,
 	isDesktop,
 	zIndex,
@@ -68,6 +69,8 @@ export function MediaEditSheet({
 	maxVideoMs?: number;
 	showTakenOnGrindr?: boolean;
 	showLooping?: boolean;
+	/** See MediaEditStep's allowVideoSplit. */
+	allowVideoSplit?: boolean;
 	/** See MediaEditStep's thumbnailStep. */
 	thumbnailStep?: ComponentProps<typeof MediaEditStep>["thumbnailStep"];
 	isDesktop: boolean;
@@ -75,6 +78,7 @@ export function MediaEditSheet({
 	/** Each file as it comes up, before it's painted — for per-file options
 	 * the caller keeps (e.g. the chat's expiry). */
 	onFileShown?: (file: File) => void;
+	/** Once per file that goes out: a split video's parts each in turn. */
 	onConfirmFile: (edit: MediaEdit) => void;
 	onDone: (confirmed: boolean) => void;
 }) {
@@ -94,7 +98,7 @@ export function MediaEditSheet({
 	}, [file]);
 
 	const confirm = (edit: MediaEdit) => {
-		onConfirmFile(edit);
+		for (const part of mediaEditFiles(edit)) onConfirmFile(part);
 		if (hasNext) {
 			setIndex(index + 1);
 			return;
@@ -138,6 +142,7 @@ export function MediaEditSheet({
 				maxVideoMs={maxVideoMs}
 				showTakenOnGrindr={showTakenOnGrindr}
 				showLooping={showLooping}
+				allowVideoSplit={allowVideoSplit}
 				thumbnailStep={thumbnailStep}
 				onThumbnailPhase={setIsThumbnailPhase}
 				onConfirm={confirm}

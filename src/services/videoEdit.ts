@@ -230,6 +230,43 @@ export function defaultVideoEdit(points: TrimPoints, maxMs = MAX_CHAT_VIDEO_MS):
 	return { startMs: 0, maxMs: Math.min(maxMs, points.durationMs), trim, portrait, ...basis };
 }
 
+/** A split's parts shorter than this are dropped: the trimmer's shortest pick. */
+const MIN_SEGMENT_MS = 1000;
+
+/**
+ * Where a video split into parts of at most `maxMs` cuts: `maxMs` long each,
+ * the rest last (dropped when it's under a second).
+ */
+export function splitSegments(durationMs: number, maxMs = MAX_CHAT_VIDEO_MS): { startMs: number; maxMs: number }[] {
+	const segments: { startMs: number; maxMs: number }[] = [];
+	for (let start = 0; start < durationMs; start += maxMs) {
+		const length = Math.min(maxMs, durationMs - start);
+		if (length >= MIN_SEGMENT_MS || segments.length === 0) segments.push({ startMs: start, maxMs: length });
+	}
+	return segments;
+}
+
+/**
+ * `count` stand-ins for `file`, one per part of a split: the same bytes
+ * (nothing is copied), each a File of its own so it carries its own edit
+ * (see setVideoEdit). Named "clip (2⁄3).mp4" and so on.
+ */
+export function segmentFiles(file: File, count: number): File[] {
+	const dot = file.name.lastIndexOf(".");
+	const stem = dot > 0 ? file.name.slice(0, dot) : file.name;
+	const extension = dot > 0 ? file.name.slice(dot) : "";
+	const points = pointsByFile.get(file);
+	return Array.from({ length: count }, (_, index) => {
+		const segment = new File([file], `${stem} (${index + 1}⁄${count})${extension}`, {
+			type: file.type,
+			lastModified: file.lastModified,
+		});
+		// Same video, same points: the upload needn't read them again.
+		if (points) pointsByFile.set(segment, points);
+		return segment;
+	});
+}
+
 const editsByFile = new WeakMap<File, VideoEdit>();
 
 /** Registers the editor's pick for `file`; the upload reads it back. */
