@@ -5,6 +5,8 @@ export type UiMessage = Message & {
 	_localOnly?: boolean;
 	/** Content kept locally despite the server wiping it via unsend. */
 	localHistory?: boolean;
+	/** While a video uploads: a still of the part being sent (see editPoster). */
+	localPoster?: string;
 };
 
 /** Upload progress (0–100) of one optimistic local-upload: message. */

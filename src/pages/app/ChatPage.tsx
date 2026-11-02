@@ -149,6 +149,8 @@ import { clearChatNotifications } from "../../services/localNotify";
 import { takePendingSharedImages, usePendingSharedImages } from "../../services/sharedImages";
 import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatMediaSend";
 import { MAX_CHAT_MEDIA_BYTES } from "../../services/stagedVideoUpload";
+import { resolveVideoEdit } from "../../services/videoEdit";
+import { editPoster } from "../../services/videoReencode";
 import { TakenOnGrindrBadge } from "./chat/TakenOnGrindrBadge";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
@@ -292,6 +294,7 @@ function captureMediaForMessages(
 }
 
 type ScrollAnchor = { messageId: string; offset: number };
+type AttachmentSendOptions = { looping: boolean; takenOnGrindr: boolean; maxViews: number; addToDrawer: boolean };
 
 /**
  * The topmost message still (partly) visible in the thread, and how far its
@@ -857,6 +860,16 @@ export function ChatPage() {
 	const [attachmentTakenOnGrindr, setAttachmentTakenOnGrindr] = useState(false);
 	const [attachmentAddToDrawer, setAttachmentAddToDrawer] = useState(false);
 	const [attachmentMaxViews, setAttachmentMaxViews] = useState(2147483647);
+	// Several files picked at once: the ones still waiting for their dialog,
+	// and the ones confirmed so far, sent together after the last dialog.
+	const attachmentQueueRef = useRef<{
+		conversationId: string | null;
+		files: File[];
+		total: number;
+		prepared: { file: File; options: AttachmentSendOptions }[];
+	} | null>(null);
+	const [attachmentStep, setAttachmentStep] = useState<{ index: number; total: number } | null>(null);
+	const [attachmentSendProgress, setAttachmentSendProgress] = useState<{ done: number; total: number } | null>(null);
 	const [pendingAudioBlob, setPendingAudioBlob] = useState<Blob | null>(null);
 	const [pendingAudioDuration, setPendingAudioDuration] = useState(0);
 	const [isSendingAudio, setIsSendingAudio] = useState(false);
@@ -5662,12 +5675,7 @@ export function ChatPage() {
 	const sendMediaAttachment = useCallback(
 		async (
 			file: File,
-			options: {
-				looping: boolean;
-				takenOnGrindr: boolean;
-				maxViews: number;
-				addToDrawer: boolean;
-			},
+			options: AttachmentSendOptions,
 		) => {
 			if (!userId) {
 				return;
@@ -5698,6 +5706,9 @@ export function ChatPage() {
 
 			const localMessageId = `local-upload:${Date.now()}:${Math.random()}`;
 			const objectUrl = URL.createObjectURL(file);
+			// The bubble shows the trimmed, upright part rather than the whole original.
+			const videoEdit = isVideo ? await resolveVideoEdit(file) : null;
+			const localPoster = videoEdit ? await editPoster(file, videoEdit) : null;
 			setThreadMessages((previous) => [
 				...previous,
 				{
@@ -5715,6 +5726,7 @@ export function ChatPage() {
 					replyPreview: null,
 					dynamic: false,
 					clientState: "pending",
+					localPoster: localPoster ?? undefined,
 				},
 			]);
 
@@ -5758,6 +5770,9 @@ export function ChatPage() {
 					}
 					return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
 				});
+
+				// Kept on failure: the failed bubble still shows it.
+				if (localPoster) URL.revokeObjectURL(localPoster);
 
 				if (selectedConversation) {
 					syncConversation((conversation) => ({
@@ -5842,39 +5857,21 @@ export function ChatPage() {
 		setAttachmentMaxViews(2147483647);
 	}, []);
 
-	const confirmPendingAttachment = useCallback(() => {
-		if (!pendingAttachmentFile) {
-			return;
-		}
-
-		void sendMediaAttachment(pendingAttachmentFile, {
-			looping: attachmentLooping,
-			takenOnGrindr: attachmentTakenOnGrindr,
-			maxViews: attachmentMaxViews,
-			addToDrawer: attachmentAddToDrawer,
-		});
-		setPendingAttachmentFile(null);
-		setAttachmentLooping(false);
-		setAttachmentTakenOnGrindr(false);
-		setAttachmentAddToDrawer(false);
-		setAttachmentMaxViews(2147483647);
-	}, [
-		attachmentLooping,
-		attachmentMaxViews,
-		attachmentTakenOnGrindr,
-		attachmentAddToDrawer,
-		pendingAttachmentFile,
-		sendMediaAttachment,
-	]);
-
 	const confirmAttachmentFile = useCallback(
 		(file: File) => {
-			void sendMediaAttachment(file, {
+			const options = {
 				looping: attachmentLooping,
 				takenOnGrindr: attachmentTakenOnGrindr,
 				maxViews: attachmentMaxViews,
 				addToDrawer: attachmentAddToDrawer,
-			});
+			};
+			// Part of a multi-file pick: held until the last dialog closes.
+			const queue = attachmentQueueRef.current;
+			if (queue) {
+				queue.prepared.push({ file, options });
+			} else {
+				void sendMediaAttachment(file, options);
+			}
 			setPendingAttachmentFile(null);
 			setAttachmentLooping(false);
 			setAttachmentTakenOnGrindr(false);
@@ -5882,6 +5879,30 @@ export function ChatPage() {
 			setAttachmentMaxViews(2147483647);
 		},
 		[attachmentLooping, attachmentMaxViews, attachmentTakenOnGrindr, attachmentAddToDrawer, sendMediaAttachment],
+	);
+
+	const confirmPendingAttachment = useCallback(() => {
+		if (pendingAttachmentFile) confirmAttachmentFile(pendingAttachmentFile);
+	}, [pendingAttachmentFile, confirmAttachmentFile]);
+
+	// Sends a multi-file pick one after another, in pick order. Goes through
+	// the ref so each send sees the conversation (and cleared reply target)
+	// the previous one left behind.
+	const sendMediaAttachmentRef = useRef(sendMediaAttachment);
+	sendMediaAttachmentRef.current = sendMediaAttachment;
+	const sendPreparedAttachments = useCallback(
+		async (prepared: { file: File; options: AttachmentSendOptions }[]) => {
+			setAttachmentSendProgress({ done: 0, total: prepared.length });
+			try {
+				for (const [index, { file, options }] of prepared.entries()) {
+					await sendMediaAttachmentRef.current(file, options);
+					setAttachmentSendProgress({ done: index + 1, total: prepared.length });
+				}
+			} finally {
+				setAttachmentSendProgress(null);
+			}
+		},
+		[],
 	);
 
 	const sendAudioBlob = useCallback(async (blob: Blob, durationMs: number) => {
@@ -6954,51 +6975,72 @@ export function ChatPage() {
 		setAttachmentMaxViews(file.type.startsWith("video/") ? 1 : defaultExpiringPhotos ? 1 : 2147483647);
 	};
 
-	// Images shared in from Android's share sheet (see ShareTargetBridge):
-	// the chosen chat takes them, then each goes through the normal
+	// Several files at once (picked, dropped, or shared in from Android's
+	// share sheet — see ShareTargetBridge) each go through the normal
 	// attachment dialog in turn — the next one opens once the previous was
-	// sent or dismissed.
-	const pendingSharedImages = usePendingSharedImages();
-	const sharedImageQueueRef = useRef<{ conversationId: string; files: File[] } | null>(null);
+	// confirmed or dismissed; after the last, the confirmed ones are sent.
 	const openAttachmentDialogForFileRef = useRef(openAttachmentDialogForFile);
 	openAttachmentDialogForFileRef.current = openAttachmentDialogForFile;
+	const openAttachmentDialogForFiles = (files: File[]) => {
+		const media = files.filter((file) => file.type.startsWith("image/") || file.type.startsWith("video/"));
+		if (media.length === 0) {
+			if (files.length > 0) toast.error(t("chat.attachments.only_image_video"));
+			return;
+		}
+		const multiple = media.length > 1;
+		attachmentQueueRef.current = multiple
+			? { conversationId: selectedConversationId, files: media.slice(1), total: media.length, prepared: [] }
+			: null;
+		setAttachmentStep(multiple ? { index: 1, total: media.length } : null);
+		openAttachmentDialogForFile(media[0]);
+	};
+	const openAttachmentDialogForFilesRef = useRef(openAttachmentDialogForFiles);
+	openAttachmentDialogForFilesRef.current = openAttachmentDialogForFiles;
+
+	const pendingSharedImages = usePendingSharedImages();
 	useEffect(() => {
 		if (!selectedConversationId || !pendingSharedImages) return;
 		const files = takePendingSharedImages(selectedConversationId);
 		if (!files || files.length === 0) return;
-		sharedImageQueueRef.current = { conversationId: selectedConversationId, files: files.slice(1) };
-		openAttachmentDialogForFileRef.current(files[0]);
+		openAttachmentDialogForFilesRef.current(files);
 	}, [selectedConversationId, pendingSharedImages]);
 	const previousPendingAttachmentRef = useRef(pendingAttachmentFile);
 	useEffect(() => {
 		// Only advance when a dialog was open and just closed — on the render
-		// that queued the images, the first one's dialog isn't open *yet*.
+		// that queued the files, the first one's dialog isn't open *yet*.
 		const dialogJustClosed = previousPendingAttachmentRef.current != null && !pendingAttachmentFile;
 		previousPendingAttachmentRef.current = pendingAttachmentFile;
-		const queue = sharedImageQueueRef.current;
+		const queue = attachmentQueueRef.current;
 		if (!queue) return;
 		if (queue.conversationId !== selectedConversationId) {
-			sharedImageQueueRef.current = null;
+			attachmentQueueRef.current = null;
+			setAttachmentStep(null);
 			return;
 		}
 		if (!dialogJustClosed) return;
 		const next = queue.files.shift();
-		if (queue.files.length === 0) sharedImageQueueRef.current = null;
-		if (next) openAttachmentDialogForFileRef.current(next);
-	}, [pendingAttachmentFile, selectedConversationId]);
-
-	const onAttachmentInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		event.target.value = "";
-		if (!file) {
+		if (next) {
+			setAttachmentStep({ index: queue.total - queue.files.length, total: queue.total });
+			openAttachmentDialogForFileRef.current(next);
 			return;
 		}
+		attachmentQueueRef.current = null;
+		setAttachmentStep(null);
+		if (queue.prepared.length > 0) void sendPreparedAttachments(queue.prepared);
+	}, [pendingAttachmentFile, selectedConversationId, sendPreparedAttachments]);
 
-		openAttachmentDialogForFile(file);
+	const onAttachmentInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(event.target.files ?? []);
+		event.target.value = "";
+		openAttachmentDialogForFiles(files);
 	};
 
 	const onAttachmentPaste = (file: File) => {
 		openAttachmentDialogForFile(file);
+	};
+
+	const onAttachmentDrop = (files: File[]) => {
+		openAttachmentDialogForFiles(files);
 	};
 
 	/**
@@ -7277,8 +7319,10 @@ export function ChatPage() {
 			attachmentInputRef={attachmentInputRef}
 			onAttachmentInput={onAttachmentInput}
 			onAttachmentPaste={onAttachmentPaste}
+			onAttachmentDrop={onAttachmentDrop}
 			isUploadingAttachment={isUploadingAttachment}
 			pendingAttachmentFile={pendingAttachmentFile}
+			attachmentStep={attachmentStep}
 			attachmentLooping={attachmentLooping}
 			attachmentTakenOnGrindr={attachmentTakenOnGrindr}
 			attachmentAddToDrawer={attachmentAddToDrawer}
@@ -7306,6 +7350,7 @@ export function ChatPage() {
 			drawerMedia={drawerMedia}
 			isSendingDrawerMedia={isSendingDrawerMedia}
 			drawerSendProgress={drawerSendProgress}
+			attachmentSendProgress={attachmentSendProgress}
 			onLoadDrawerMedia={loadDrawerMedia}
 			onSendDrawerMedia={sendDrawerMedia}
 			onDrawerMediaDeleted={removeDrawerMediaFromList}

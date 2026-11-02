@@ -120,13 +120,15 @@ function toBytes(source: AllowSharedBufferSource): Uint8Array {
  */
 function drawPortrait(
 	context: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D,
-	frame: VideoFrame,
+	frame: CanvasImageSource,
+	frameWidth: number,
+	frameHeight: number,
 	rotation: number,
 	portrait: PortraitMode,
 ) {
 	const sideways = rotation === 90 || rotation === 270;
-	const shownWidth = sideways ? frame.displayHeight : frame.displayWidth;
-	const shownHeight = sideways ? frame.displayWidth : frame.displayHeight;
+	const shownWidth = sideways ? frameHeight : frameWidth;
+	const shownHeight = sideways ? frameWidth : frameHeight;
 	let scale = Math.min(OUTPUT_WIDTH / shownWidth, OUTPUT_HEIGHT / shownHeight);
 	let centerX = OUTPUT_WIDTH / 2;
 	if (portrait.mode === "crop") {
@@ -140,10 +142,53 @@ function drawPortrait(
 	context.save();
 	context.translate(centerX, OUTPUT_HEIGHT / 2);
 	context.rotate((rotation * Math.PI) / 180);
-	const width = frame.displayWidth * scale;
-	const height = frame.displayHeight * scale;
+	const width = frameWidth * scale;
+	const height = frameHeight * scale;
 	context.drawImage(frame, -width / 2, -height / 2, width, height);
 	context.restore();
+}
+
+/**
+ * A still of what `edit` sends, for the chat bubble while it uploads: the
+ * first frame of the picked part, upright as it will be (see drawPortrait).
+ * Null when the webview can't seek or draw the video.
+ */
+export async function editPoster(file: File, edit: VideoEdit): Promise<string | null> {
+	const video = document.createElement("video");
+	video.muted = true;
+	video.playsInline = true;
+	video.preload = "auto";
+	const src = URL.createObjectURL(file);
+	video.src = src;
+	const settled = (event: "loadeddata" | "seeked") =>
+		new Promise<void>((resolve, reject) => {
+			const timer = window.setTimeout(() => reject(new Error("timed out")), 3000);
+			video.addEventListener(event, () => { window.clearTimeout(timer); resolve(); }, { once: true });
+			video.addEventListener("error", () => { window.clearTimeout(timer); reject(video.error); }, { once: true });
+		});
+	try {
+		await settled("loadeddata");
+		const seeked = settled("seeked");
+		video.currentTime = edit.startMs / 1000 + 0.001;
+		await seeked;
+		// The element is drawn upright already, so no rotation here.
+		const upright = edit.portrait !== null && canReencode();
+		const canvas = document.createElement("canvas");
+		canvas.width = upright ? OUTPUT_WIDTH : video.videoWidth;
+		canvas.height = upright ? OUTPUT_HEIGHT : video.videoHeight;
+		const context = canvas.getContext("2d");
+		if (!context || canvas.width === 0) return null;
+		if (upright && edit.portrait) drawPortrait(context, video, video.videoWidth, video.videoHeight, 0, edit.portrait);
+		else context.drawImage(video, 0, 0, canvas.width, canvas.height);
+		const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.8));
+		return blob ? URL.createObjectURL(blob) : null;
+	} catch {
+		return null;
+	} finally {
+		video.removeAttribute("src");
+		video.load();
+		URL.revokeObjectURL(src);
+	}
 }
 
 function makeCanvas(): {
@@ -236,7 +281,7 @@ export async function reencodePortrait(
 	const decoder = new VideoDecoder({
 		output: (frame) => {
 			try {
-				drawPortrait(drawing.context, frame, first.rotation, portrait);
+				drawPortrait(drawing.context, frame, frame.displayWidth, frame.displayHeight, first.rotation, portrait);
 				const drawn = new VideoFrame(drawing.canvas, {
 					timestamp: frame.timestamp,
 					...(frame.duration != null ? { duration: frame.duration } : {}),

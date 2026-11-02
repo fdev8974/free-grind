@@ -232,8 +232,11 @@ type ChatThreadPanelProps = {
 	attachmentInputRef: { current: HTMLInputElement | null };
 	onAttachmentInput: (event: React.ChangeEvent<HTMLInputElement>) => void;
 	onAttachmentPaste: (file: File) => void;
+	onAttachmentDrop: (files: File[]) => void;
 	isUploadingAttachment: boolean;
 	pendingAttachmentFile: File | null;
+	/** Which of several files picked at once the dialog shows. */
+	attachmentStep: { index: number; total: number } | null;
 	attachmentLooping: boolean;
 	attachmentTakenOnGrindr: boolean;
 	attachmentAddToDrawer: boolean;
@@ -268,6 +271,8 @@ type ChatThreadPanelProps = {
 	isSendingDrawerMedia: boolean;
 	/** Progress of a running drawer send, shown on the composer's send button. */
 	drawerSendProgress?: { done: number; total: number } | null;
+	/** Several picked files being sent one after another. */
+	attachmentSendProgress?: { done: number; total: number } | null;
 	onLoadDrawerMedia: () => void | Promise<void>;
 	onSendDrawerMedia: (mediaIds: number[], maxViews?: number) => Promise<void>;
 	onDrawerMediaDeleted: (mediaId: number) => void;
@@ -316,6 +321,16 @@ const PENDING_AUDIO_FILL_CLASS = "bg-[color-mix(in_srgb,var(--accent)_14%,var(--
 function composerFillClass(isRecording: boolean, recordingMs: number): string {
 	if (!isRecording) return "bg-[var(--surface-2)]";
 	return recordingMs >= 50_000 ? "bg-red-500/15" : PENDING_AUDIO_FILL_CLASS;
+}
+
+/** "2/5" on the send button while several media go out one after another; nothing for a single one. */
+function SendCountBadge({ progress }: { progress: { done: number; total: number } | null }) {
+	if (!progress || progress.total <= 1) return null;
+	return (
+		<span className="absolute -right-1 -top-1 min-w-[1.25rem] rounded-full bg-[var(--surface)] px-1 text-center text-[10px] font-semibold leading-4 tabular-nums text-[var(--text)] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+			{Math.min(progress.done + 1, progress.total)}/{progress.total}
+		</span>
+	);
 }
 
 
@@ -788,8 +803,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		attachmentInputRef,
 		onAttachmentInput,
 		onAttachmentPaste,
+		onAttachmentDrop,
 		isUploadingAttachment,
 		pendingAttachmentFile,
+		attachmentStep,
 		attachmentLooping,
 		attachmentTakenOnGrindr,
 		attachmentAddToDrawer,
@@ -829,6 +846,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		drawerMedia,
 		isSendingDrawerMedia,
 		drawerSendProgress = null,
+		attachmentSendProgress = null,
 		onLoadDrawerMedia,
 		onSendDrawerMedia,
 		onDrawerMediaDeleted,
@@ -1410,12 +1428,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 		event.preventDefault();
 		dragCounterRef.current = 0;
 		setIsDraggingFile(false);
-		const file = Array.from(event.dataTransfer.files).find(
-			(candidate) => candidate.type.startsWith("image/") || candidate.type.startsWith("video/"),
-		);
-		if (file) {
-			onAttachmentPaste(file);
-		}
+		onAttachmentDrop(Array.from(event.dataTransfer.files));
 	};
 
 	const renderThread = (selectedConversation || targetProfileId) ? (
@@ -2706,17 +2719,18 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								>
 									<Square className={`h-5 w-5 fill-current`} />
 								</button>
-							) : isUploadingAttachment ? (
+							) : isUploadingAttachment || attachmentSendProgress ? (
 								// Image/video upload in flight (the composer is locked meanwhile):
 								// the send button carries its progress, as the bubble does.
 								<button
 									key="attachment-upload"
 									type="button"
 									disabled
-									className={`shrink-0 inline-flex h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] items-center justify-center`}
+									className={`relative shrink-0 inline-flex h-10 w-10 rounded-full bg-[var(--accent)] text-[var(--accent-contrast)] items-center justify-center`}
 									aria-label={t("chat.sending")}
 								>
 									<ProgressRing progress={attachmentUpload?.progress ?? 0} className="h-5 w-5" />
+									<SendCountBadge progress={attachmentSendProgress} />
 								</button>
 							) : isSendingDrawerMedia && draft.trim().length === 0 && !isSending ? (
 								// Drawer send in flight (its sheet is already closed): the send
@@ -2729,11 +2743,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 									aria-label={t("chat.sending")}
 								>
 									<Loader2 className={`h-5 w-5 animate-spin`} />
-									{drawerSendProgress && drawerSendProgress.total > 1 ? (
-										<span className="absolute -right-1 -top-1 min-w-[1.25rem] rounded-full bg-[var(--surface)] px-1 text-center text-[10px] font-semibold leading-4 tabular-nums text-[var(--text)] shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
-											{Math.min(drawerSendProgress.done + 1, drawerSendProgress.total)}/{drawerSendProgress.total}
-										</span>
-									) : null}
+									<SendCountBadge progress={drawerSendProgress} />
 								</button>
 							) : draft.trim().length > 0 || isSending ? (
 								// Distinct keys: if React reused one <button> across these
@@ -2848,6 +2858,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 								ref={attachmentInputRef}
 								onChange={onAttachmentInput}
 								accept="image/*,video/*"
+								multiple
 								className="hidden"
 							/>
 						</div>
@@ -2858,11 +2869,11 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 
 					{pendingAttachmentFile ? (
 						<BottomDrawer
-							title={
+							title={`${
 								pendingAttachmentFile.type.startsWith("video/")
 									? t("chat.attachments.upload_video", { defaultValue: "Upload Video" })
 									: t("chat.attachments.upload_picture", { defaultValue: "Upload Picture" })
-							}
+							}${attachmentStep ? ` (${attachmentStep.index}/${attachmentStep.total})` : ""}`}
 							onClose={cancelPendingAttachment}
 							onConfirm={() => void handleConfirmAttachment()}
 							confirmLabel={

@@ -1994,7 +1994,19 @@ export function ChatThreadMessages({
                                                     <div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
                                                         <Loader2 className="h-5 w-5 animate-spin text-white/60" />
                                                     </div>
-                                                    <video
+{message.localPoster ? (
+                                                        // Uploading: a still of the trimmed, upright part being sent.
+                                                        <img
+                                                            src={message.localPoster}
+                                                            alt=""
+                                                            onLoad={(e) => {
+                                                                const spinner = e.currentTarget.parentElement?.querySelector<HTMLElement>(".js-video-spinner");
+                                                                if (spinner) spinner.style.display = "none";
+                                                            }}
+                                                            className={`w-full object-cover ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"}`}
+                                                        />
+                                                    ) : (
+                                                                                                        <video
                                                         preload="metadata"
                                                         muted
                                                         src={proxyMediaUrl(videoUrl, { as: "video" })}
@@ -2010,6 +2022,7 @@ export function ChatThreadMessages({
                                                         }}
                                                         className={`w-full object-cover opacity-0 ${PRIVACY_BLUR_TRANSITION_CLASS} ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"} ${mediaBlurClassName}`}
                                                     />
+                                                    )}
                                                     {isLimitedVideo && (
                                                         videoMaxViews === 1 ? (
                                                             <MediaBadge icon={<Eye className="h-3.5 w-3.5" />} label={t("chat.attachments.view_once")} />
