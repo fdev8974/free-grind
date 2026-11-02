@@ -2,6 +2,7 @@ import { ChevronRight, ExternalLink, GitCommitHorizontal, Loader2 } from "lucide
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetCloseButton } from "./ui/bottom-sheet";
+import { NATIVE_SHEET_BG } from "./ui/action-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { REPO_URL } from "../config/links-config";
 import { githubCompareUrl, openExternalUrl } from "../utils/githubIssues";
@@ -155,7 +156,7 @@ export function VersionChangesLink({ from, to }: { from: string | null | undefin
 				</button>
 			</div>
 			{open && (
-				<BottomSheet onClose={() => setOpen(false)} isDesktop={isDesktop} expandable panelClassName={isDesktop ? "max-h-[85dvh]" : ""} zIndex="z-[150]">
+				<BottomSheet onClose={() => setOpen(false)} isDesktop={isDesktop} expandable bg={NATIVE_SHEET_BG} panelClassName={isDesktop ? "max-h-[85dvh]" : ""} zIndex="z-[150]">
 					<div className="flex items-start justify-between gap-3 px-4 pb-3">
 						<p className="min-w-0 pt-1 text-base font-semibold leading-snug text-[var(--text)]">
 							{t("update_prompt.changes_title", { defaultValue: "What's changed" })}
