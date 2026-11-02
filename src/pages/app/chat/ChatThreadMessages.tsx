@@ -1361,7 +1361,17 @@ export function ChatThreadMessages({
                         return (replyAlbumId != null ? getCachedAlbumCoverUri(replyAlbumId) : null)
                             ?? getMessageAlbumCoverUrl(src);
                     })();
-                    const replyThumbUrl = replyAlbumCoverUrl
+                    // A reply to a profile-photo reply quotes that message (its text),
+                    // as the chat shows it, not the photo it was about.
+                    const repliesToPhotoReply =
+                        (replyToMsg?.type ?? replyToMsgRef?.type ?? replyPreviewRaw?.type) === "ProfilePhotoReply";
+                    const photoReplyBody = (replyToMsg?.body
+                        ?? (message.replyToMessage as Record<string, unknown> | null | undefined)?.body) as Record<string, unknown> | null | undefined;
+                    const photoReplyText = repliesToPhotoReply && typeof photoReplyBody?.photoContentReply === "string"
+                        && photoReplyBody.photoContentReply.trim().length > 0
+                        ? photoReplyBody.photoContentReply.trim()
+                        : null;
+                    const replyThumbUrl = repliesToPhotoReply ? null : replyAlbumCoverUrl
                         ?? replyImageUrl
                         ?? cachedReplyHashUri
                         ?? (replyImageHash ? getThumbImageUrl(replyImageHash, "320x320") : null)
@@ -1396,8 +1406,9 @@ export function ChatThreadMessages({
                     const replyTargetType = replyToMsg?.type ?? replyToMsgRef?.type;
                     const isReplyTargetUnsupported =
                         replyTargetType != null && !KNOWN_REPLY_TYPES.has(replyTargetType);
-                    const replyDescription =
-                        message.type === "AlbumContentReply" || replyTargetType === "AlbumContentReply"
+                    const replyDescription = repliesToPhotoReply
+                        ? photoReplyText ?? t("chat.thread.profile_photo")
+                        : message.type === "AlbumContentReply" || replyTargetType === "AlbumContentReply"
                             ? t("chat.thread.album_image")
                             : replyTargetType === "AlbumContentReaction"
                                 ? t("chat.thread.reacted_to_image")
