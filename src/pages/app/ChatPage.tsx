@@ -449,6 +449,7 @@ export function ChatPage() {
 	} | null>(null);
 	// Cancels the post-restore hold (see the older-load restore effect).
 	const olderLoadHoldCleanupRef = useRef<(() => void) | null>(null);
+	const threadBottomHoldCleanupRef = useRef<(() => void) | null>(null);
 	const selectedConversationUnreadCountRef = useRef(0);
 	// Per-conversation result of loadInbox's server-side preview fallback,
 	// keyed by the lastActivityTimestamp it was fetched for.
@@ -4048,6 +4049,8 @@ export function ChatPage() {
 		olderLoadSnapshotRef.current = null;
 		preserveThreadScrollRef.current = false;
 		skipNextThreadScrollEffectRef.current = true;
+		// The restored anchor takes over from any open-time pin to the end.
+		threadBottomHoldCleanupRef.current?.();
 		const container = threadScrollContainerRef.current;
 		if (!container) return;
 
@@ -4088,7 +4091,63 @@ export function ChatPage() {
 
 	useEffect(() => () => olderLoadHoldCleanupRef.current?.(), [selectedConversationId]);
 
-	useEffect(() => {
+	// Keeps a freshly opened thread pinned to its end while its content is
+	// still settling (images/videos finishing loading, the live page replacing
+	// the cached one), until the reader touches the list or it's had time to
+	// settle. A single scroll would otherwise leave the view somewhere above
+	// the end once the content above it grows.
+	const holdThreadAtBottom = useCallback(() => {
+		threadBottomHoldCleanupRef.current?.();
+		const container = threadScrollContainerRef.current;
+		if (!container) {
+			scrollThreadToBottom();
+			return;
+		}
+		const pin = () => {
+			container.scrollTop = container.scrollHeight;
+		};
+		pin();
+		const resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(pin) : null;
+		const observeChildren = () => {
+			for (const child of Array.from(container.children)) resizeObserver?.observe(child);
+		};
+		observeChildren();
+		const mutationObserver = new MutationObserver(() => {
+			observeChildren();
+			pin();
+		});
+		mutationObserver.observe(container, { childList: true, subtree: true });
+		const stop = () => {
+			window.clearTimeout(timer);
+			resizeObserver?.disconnect();
+			mutationObserver.disconnect();
+			container.removeEventListener("load", pin, true);
+			container.removeEventListener("loadedmetadata", pin, true);
+			container.removeEventListener("touchstart", stop);
+			container.removeEventListener("wheel", stop);
+			container.removeEventListener("pointerdown", stop);
+			container.removeEventListener("keydown", stop);
+			if (threadBottomHoldCleanupRef.current === stop) threadBottomHoldCleanupRef.current = null;
+		};
+		const timer = window.setTimeout(stop, 2500);
+		container.addEventListener("load", pin, true);
+		container.addEventListener("loadedmetadata", pin, true);
+		container.addEventListener("touchstart", stop, { passive: true });
+		container.addEventListener("wheel", stop, { passive: true });
+		container.addEventListener("pointerdown", stop);
+		container.addEventListener("keydown", stop);
+		threadBottomHoldCleanupRef.current = stop;
+	}, [scrollThreadToBottom]);
+
+	// Unmount only — switching conversations already replaces the hold, and a
+	// passive cleanup keyed on the conversation could run after the layout
+	// effect below has started the new one.
+	useEffect(() => () => threadBottomHoldCleanupRef.current?.(), []);
+
+	// Layout effect so a newly loaded thread is never painted scrolled to its
+	// top first (the messages land asynchronously, so a passive effect would
+	// only run after that frame).
+	useLayoutEffect(() => {
 		if (!threadMessages.length) {
 			lastMessageIdRef.current = null;
 			return;
@@ -4122,12 +4181,14 @@ export function ChatPage() {
 		// real thread lands) or if I was already near the bottom (so an
 		// incoming message from the other side doesn't yank someone reading
 		// older history back down).
-		if (isNewConversation || (isNewMessageArrival && (iSentLastMessage || isNearBottom))) {
+		if (isNewConversation) {
+			holdThreadAtBottom();
+		} else if (isNewMessageArrival && (iSentLastMessage || isNearBottom)) {
 			scrollThreadToBottom();
 		}
 
 		lastLoadedConversationIdRef.current = selectedConversationId;
-	}, [threadMessages, selectedConversationId, scrollThreadToBottom, userId]);
+	}, [threadMessages, selectedConversationId, scrollThreadToBottom, holdThreadAtBottom, userId]);
 
 	useEffect(() => {
 		indexConversations(conversations);

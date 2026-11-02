@@ -54,6 +54,7 @@ import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { appLog } from "../../../utils/logger";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { VideoFirstFrame } from "../../../components/VideoFirstFrame";
 import type { Album as OwnAlbum, AlbumLimits } from "../../../types/albums";
 import { useCreateAlbum } from "../settings-albums/useCreateAlbum";
 import { AlbumEditorSheet } from "../settings-albums/AlbumEditorSheet";
@@ -506,6 +507,7 @@ export function ChatDrawerPanel({
 						.map((item) => ({
 							src: getCachedMediaUri(getDrawerMediaKey(item.id)) ?? item.url,
 							isVideo: item.contentType.startsWith("video/"),
+							posterKey: getDrawerMediaKey(item.id),
 						})),
 				})}
 				onClick={() => { if (consumePreviewClick()) return; if (!dimmed) toggleCollectionSelection(collection); }}
@@ -519,12 +521,10 @@ export function ChatDrawerPanel({
 							// With three items the first spans the full left column.
 							const span = coverItems.length === 3 && index === 0 ? "row-span-2" : "";
 							return item.contentType.startsWith("video/") ? (
-								<video
+								<VideoFirstFrame
 									key={item.id}
-									src={proxyMediaUrl(src, { as: "video" })}
-									preload="metadata"
-									muted
-									onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
+									src={src}
+									posterKey={getDrawerMediaKey(item.id)}
 									className={`h-full w-full min-h-0 object-cover ${span}`}
 								/>
 							) : (
@@ -719,6 +719,7 @@ export function ChatDrawerPanel({
 												key={item.id}
 												src={mediaSrc}
 												isVideo={isItemVideo}
+												posterKey={getDrawerMediaKey(item.id)}
 												alt={t("chat_drawer.media_alt")}
 												selected={isSelected}
 												muted={isBlocked}

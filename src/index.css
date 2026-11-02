@@ -56,6 +56,14 @@
 	/* Expiring things (album bubbles, the drawer's expiry toggle): flips over
 	   like a real hourglass, then rests while the sand runs. */
 	--animate-hourglass-rotate: hourglass-rotate 2.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+	/* Loading indicators for things that are usually ready right away (e.g. a
+	   video preview's stored still): only shown once loading takes a moment. */
+	--animate-delayed-appear: delayed-appear 0.2s ease-out 0.3s both;
+
+	@keyframes delayed-appear {
+		from { opacity: 0; }
+		to { opacity: 1; }
+	}
 
 	@keyframes morph-glow {
 		0%, 100% {

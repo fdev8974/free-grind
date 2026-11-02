@@ -173,6 +173,7 @@ export function AlbumDrawerPickerSheet({
 								key={item.id}
 								src={mediaSrc}
 								isVideo={isVideo}
+								posterKey={getDrawerMediaKey(item.id)}
 								takenOnGrindr={item.takenOnGrindr}
 								alt={t("chat_drawer.media_alt")}
 								selected={isSelected}

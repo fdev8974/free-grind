@@ -200,6 +200,7 @@ export function DrawerCollectionEditorSheet({
 								key={item.id}
 								src={mediaSrc}
 								isVideo={isVideo}
+								posterKey={getDrawerMediaKey(item.id)}
 								takenOnGrindr={item.takenOnGrindr}
 								alt={t("chat_drawer.media_alt")}
 								selected={position > 0}

@@ -473,6 +473,7 @@ export function ChatMediaSheet({
 							key={item.mediaKey}
 							src={item.dataUri}
 							isVideo={item.kind === "video"}
+							posterKey={item.mediaKey}
 							onSelect={(tile) => {
 								setViewerHeroRect(getHeroRectFromElement(tile));
 								setViewerIndex(idx);

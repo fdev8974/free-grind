@@ -599,6 +599,24 @@ async function initChatDbSchema(db: Database): Promise<void> {
 			"CREATE INDEX IF NOT EXISTS idx_message_translations_conversation ON message_translations(conversation_id, target_lang)",
 		);
 
+		// First-frame stills of videos (chat messages, drawer media, ...), keyed
+		// like media_files (msg:<messageId>, drawer:<mediaId>, ...): captured
+		// once by the tile showing the video, so later renders show the still
+		// instead of decoding the whole video again. Derived data — safe to
+		// lose, it's just captured again. conversation_id is set for chat
+		// media only, so those go with their conversation.
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS media_posters (
+				poster_key TEXT PRIMARY KEY,
+				conversation_id TEXT,
+				data_uri TEXT NOT NULL,
+				created_at INTEGER NOT NULL
+			)
+		`);
+		await db.execute(
+			"CREATE INDEX IF NOT EXISTS idx_media_posters_conversation ON media_posters(conversation_id)",
+		);
+
 	});
 }
 
@@ -1405,6 +1423,9 @@ export async function deleteConversationCascade(
 		await db.execute("DELETE FROM message_translations WHERE conversation_id = $1", [
 			conversationId,
 		]);
+		await db.execute("DELETE FROM media_posters WHERE conversation_id = $1", [
+			conversationId,
+		]);
 		await db.execute("DELETE FROM conversations WHERE conversation_id = $1", [
 			conversationId,
 		]);
@@ -1443,6 +1464,10 @@ export async function mergeConversationInto(
 		);
 		await db.execute(
 			"UPDATE media_files SET conversation_id = $2 WHERE conversation_id = $1",
+			[sourceConversationId, targetConversationId],
+		);
+		await db.execute(
+			"UPDATE media_posters SET conversation_id = $2 WHERE conversation_id = $1",
 			[sourceConversationId, targetConversationId],
 		);
 		await db.execute(
@@ -1928,7 +1953,50 @@ export async function deleteMessageRow(messageId: string): Promise<void> {
 	await executeWithLockRetry(db, "delete-message", async () => {
 		await db.execute("DELETE FROM messages WHERE message_id = $1", [messageId]);
 		await db.execute("DELETE FROM message_translations WHERE message_id = $1", [messageId]);
+		await db.execute("DELETE FROM media_posters WHERE poster_key = $1", [`msg:${messageId}`]);
 	});
+}
+
+// ---------------------------------------------------------------------------
+// Media posters (first-frame stills of videos)
+// ---------------------------------------------------------------------------
+
+export async function getMediaPosters(posterKeys: string[]): Promise<Map<string, string>> {
+	const result = new Map<string, string>();
+	if (posterKeys.length === 0) {
+		return result;
+	}
+	const db = await getDb();
+	// Chunked to stay under SQLite's bound-parameter limit.
+	for (let i = 0; i < posterKeys.length; i += 500) {
+		const chunk = posterKeys.slice(i, i + 500);
+		const placeholders = chunk.map((_, index) => `$${index + 1}`).join(", ");
+		const rows = await db.select<{ poster_key: string; data_uri: string }[]>(
+			`SELECT poster_key, data_uri FROM media_posters WHERE poster_key IN (${placeholders})`,
+			chunk,
+		);
+		for (const row of rows) result.set(row.poster_key, row.data_uri);
+	}
+	return result;
+}
+
+export async function upsertMediaPoster(
+	posterKey: string,
+	conversationId: string | null,
+	dataUri: string,
+): Promise<void> {
+	const db = await getDb();
+	await db.execute(
+		`
+		INSERT INTO media_posters (poster_key, conversation_id, data_uri, created_at)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT(poster_key) DO UPDATE SET
+			conversation_id = COALESCE(excluded.conversation_id, media_posters.conversation_id),
+			data_uri = excluded.data_uri,
+			created_at = excluded.created_at
+		`,
+		[posterKey, conversationId, dataUri, Date.now()],
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -2129,6 +2197,7 @@ export async function deleteMediaFile(mediaKey: string): Promise<void> {
 	const db = await getDb();
 	await executeWithLockRetry(db, "delete-media-file", async () => {
 		await db.execute("DELETE FROM media_files WHERE media_key = $1", [mediaKey]);
+		await db.execute("DELETE FROM media_posters WHERE poster_key = $1", [mediaKey]);
 	});
 }
 
@@ -2145,11 +2214,16 @@ export async function deleteStaleDrawerMediaFiles(currentMediaKeys: string[]): P
 	await executeWithLockRetry(db, "delete-stale-drawer-media", async () => {
 		if (currentMediaKeys.length === 0) {
 			await db.execute("DELETE FROM media_files WHERE media_key LIKE 'drawer:%'");
+			await db.execute("DELETE FROM media_posters WHERE poster_key LIKE 'drawer:%'");
 			return;
 		}
 		const placeholders = currentMediaKeys.map((_, i) => `$${i + 1}`).join(", ");
 		await db.execute(
 			`DELETE FROM media_files WHERE media_key LIKE 'drawer:%' AND media_key NOT IN (${placeholders})`,
+			currentMediaKeys,
+		);
+		await db.execute(
+			`DELETE FROM media_posters WHERE poster_key LIKE 'drawer:%' AND poster_key NOT IN (${placeholders})`,
 			currentMediaKeys,
 		);
 	});

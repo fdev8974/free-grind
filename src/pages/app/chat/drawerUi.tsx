@@ -8,6 +8,7 @@ import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseB
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { VideoFirstFrame } from "../../../components/VideoFirstFrame";
 import { SheetActionList } from "../../../components/ui/action-sheet";
 import { MediaUploadOverlay } from "../../../components/ui/progress-ring";
 import type { DrawerUpload } from "./useUploadTiles";
@@ -147,6 +148,8 @@ export type DrawerPreviewMedia = {
 	isVideo: boolean;
 	/** Already-loaded lower-res image to show until `src` has loaded (images only). */
 	placeholderSrc?: string;
+	/** Videos in a group peek: stable key of the stored first frame (see VideoFirstFrame). */
+	posterKey?: string;
 };
 /** A group peek (a collection): all its media at once, in order. */
 export type DrawerPreviewGroup = { title: string; items: DrawerPreviewMedia[] };
@@ -566,6 +569,7 @@ export function DrawerMediaTile({
 	consumePreviewClick,
 	mediaClassName = "",
 	posterSrc,
+	posterKey,
 	placeholder,
 	onMediaError,
 	takenOnGrindr = false,
@@ -592,6 +596,8 @@ export function DrawerMediaTile({
 	mediaClassName?: string;
 	/** For a video: this still is shown instead of loading the video itself. */
 	posterSrc?: string;
+	/** For a video without `posterSrc`: stable key its first frame is stored under (see VideoFirstFrame). */
+	posterKey?: string;
 	/** Shown instead of the media, e.g. while the server still processes it. */
 	placeholder?: ReactNode;
 	onMediaError?: () => void;
@@ -633,15 +639,10 @@ export function DrawerMediaTile({
 					{posterSrc ? (
 						<img src={proxyMediaUrl(posterSrc)} alt={alt ?? ""} draggable={false} onError={failPreview} className={`h-full w-full object-cover ${mediaClassName}`} />
 					) : (
-						<video
-							src={proxyMediaUrl(src, { as: "video" })}
-							preload="metadata"
-							muted
-							onLoadedMetadata={(e) => {
-								if (!videoHasPicture(e.currentTarget)) failPreview();
-								else e.currentTarget.currentTime = 0.001;
-							}}
-							onError={failPreview}
+						<VideoFirstFrame
+							src={src}
+							posterKey={posterKey}
+							onFail={failPreview}
 							className={`h-full w-full object-cover ${mediaClassName}`}
 						/>
 					)}
@@ -1024,14 +1025,7 @@ function DrawerPreviewGroupGrid({ group }: { group: DrawerPreviewGroup }) {
 				{visible.map((item, index) => (
 					<div key={`${item.src}-${index}`} className="relative aspect-square overflow-hidden rounded-md bg-black">
 						{item.isVideo ? (
-							<video
-								src={proxyMediaUrl(item.src, { as: "video" })}
-								preload="metadata"
-								muted
-								playsInline
-								onLoadedMetadata={(e) => { e.currentTarget.currentTime = 0.001; }}
-								className="h-full w-full object-cover"
-							/>
+							<VideoFirstFrame src={item.src} posterKey={item.posterKey} className="h-full w-full object-cover" />
 						) : (
 							<img src={proxyMediaUrl(item.src)} alt="" className="h-full w-full object-cover" />
 						)}

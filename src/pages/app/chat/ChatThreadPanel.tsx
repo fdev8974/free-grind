@@ -74,8 +74,9 @@ import {
 	getAlbumContentReplyTarget,
 	getMessageAlbumCoverUrl,
 	getMediaCaptureTarget,
+	isLocalClientMessageId,
 } from "./chatUtils";
-import { getCachedMediaUri } from "../../../services/mediaStore";
+import { getCachedMediaUri, getMessageFallbackMediaKey } from "../../../services/mediaStore";
 import { getCachedAlbumContentThumbUri, getCachedAlbumCoverUri, isAlbumCachedLocally } from "../../../services/albumStore";
 import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
 import { useMediaBlur } from "../../../hooks/useProfilePhotoPrivacy";
@@ -150,6 +151,8 @@ import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { useNicknameNameChange } from "../../../hooks/useNicknameNameChange";
 import { NicknameMenuItemLabel, NicknameNameChangeBadge } from "../../../components/NicknameNameHint";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
+import { getMessagePosterKey } from "../../../services/videoPosterStore";
+import { VideoFirstFrame } from "../../../components/VideoFirstFrame";
 import type { HeroRect } from "../../../components/PhotoViewer";
 
 type ChatThreadPanelProps = {
@@ -2300,9 +2303,12 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							// time a video's signed URL is used here it may already have
 							// expired (same reasoning as the in-thread reply-quote bar).
 							const videoCaptureTarget = isVideoReply ? getMediaCaptureTarget(rtm) : null;
-							const cachedVideoUri = videoCaptureTarget?.kind === "video"
-								? getCachedMediaUri(videoCaptureTarget.mediaKey)
+							const fallbackVideoUri = isVideoReply
+								? getCachedMediaUri(getMessageFallbackMediaKey(rtm.messageId))
 								: null;
+							const cachedVideoUri = (videoCaptureTarget?.kind === "video"
+								? getCachedMediaUri(videoCaptureTarget.mediaKey)
+								: null) ?? (fallbackVideoUri?.startsWith("data:video/") ? fallbackVideoUri : null);
 							const videoUrl = isVideoReply ? (cachedVideoUri ?? getMessageVideoUrl(rtm)) : null;
 							const thumbUrl = (() => {
 								if (isImageReply) {
@@ -2353,16 +2359,17 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										</div>
 									) : videoUrl ? (
 										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-black">
-											<div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
+											<div className="js-video-spinner pointer-events-none absolute inset-0 flex animate-delayed-appear items-center justify-center">
 												<Loader2 className="h-3.5 w-3.5 animate-spin text-white/60" />
 											</div>
-											<video
-												muted
-												preload="metadata"
-												src={proxyMediaUrl(videoUrl, { as: "video" })}
-												onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-												onSeeked={(e) => {
-													const el = e.currentTarget;
+											<VideoFirstFrame
+												src={videoUrl}
+												posterKey={getMessagePosterKey(rtm.messageId)}
+												conversationId={selectedConversation?.data.conversationId ?? null}
+												// The quoted message's bubble is in the thread and captures it itself.
+												waitForCapture
+												capture={!isLocalClientMessageId(rtm.messageId)}
+												onReady={(el) => {
 													el.style.opacity = "1";
 													const parent = el.parentElement;
 													const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");

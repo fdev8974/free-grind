@@ -9,7 +9,7 @@ import { PromptDialog } from "../../../components/ui/prompt-dialog";
 import { AudioMessagePlayer } from "./AudioMessagePlayer";
 import { MediaUploadOverlay } from "../../../components/ui/progress-ring";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import React, { Fragment, useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect } from "react";
+import React, { Fragment, useEffect, useState, useMemo, useCallback, useRef, useLayoutEffect, useSyncExternalStore } from "react";
 
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
@@ -20,6 +20,13 @@ import type { ConversationEntry, Message } from "../../../types/messages";
 import type { AlbumMediaCount, LocalUploadProgress, UiMessage } from "../../../types/chat-page";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getMessageFallbackMediaKey } from "../../../services/mediaStore";
+import {
+	getMessagePosterKey,
+	getVideoPoster,
+	getVideoPostersVersion,
+	subscribeVideoPosters,
+} from "../../../services/videoPosterStore";
+import { VideoFirstFrame } from "../../../components/VideoFirstFrame";
 import { useAlbumCache } from "../../../hooks/useAlbumCache";
 import {
     ensureAlbumCacheChecked,
@@ -487,6 +494,10 @@ export function ChatThreadMessages({
 		prevReactionCountsRef.current.clear();
 		reactionButtonRefs.current.clear();
 	}, [selectedConversation.data.conversationId]);
+
+	// Stored first-frame stills of videos (see videoPosterStore) — subscribed
+	// so bubbles drop their spinner once a lookup lands.
+	useSyncExternalStore(subscribeVideoPosters, getVideoPostersVersion);
 
 	const handleCopy = useCallback(async (message: UiMessage) => {
 		const location = getMessageLocation(message);
@@ -1299,9 +1310,14 @@ export function ChatThreadMessages({
                         ? getCachedMediaUri(replyToMsgCaptureTarget.mediaKey)
                         : null;
                     const replyImageUrl = cachedReplyImageUri ?? (replyToMsg ? getMessageImageUrl(replyToMsg) : null);
-                    const cachedReplyVideoUri = replyToMsgCaptureTarget?.kind === "video"
-                        ? getCachedMediaUri(replyToMsgCaptureTarget.mediaKey)
+                    // Like the bubble's own lookup: the primary key can miss although
+                    // the bytes are stored under the message-id copy.
+                    const fallbackReplyMediaUri = replyToMsgId
+                        ? getCachedMediaUri(getMessageFallbackMediaKey(replyToMsgId))
                         : null;
+                    const cachedReplyVideoUri = (replyToMsgCaptureTarget?.kind === "video"
+                        ? getCachedMediaUri(replyToMsgCaptureTarget.mediaKey)
+                        : null) ?? (fallbackReplyMediaUri?.startsWith("data:video/") ? fallbackReplyMediaUri : null);
                     const replyVideoUrl = replyIsVideo
                         ? (cachedReplyVideoUri ?? (replyToMsg ? getMessageVideoUrl(replyToMsg) : null))
                         : null;
@@ -1664,16 +1680,17 @@ export function ChatThreadMessages({
                                                 </div>
                                             ) : replyVideoUrl ? (
                                                 <div className="relative w-14 shrink-0 self-stretch overflow-hidden bg-black">
-                                                    <div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
+                                                    <div className="js-video-spinner pointer-events-none absolute inset-0 flex animate-delayed-appear items-center justify-center">
                                                         <Loader2 className="h-3.5 w-3.5 animate-spin text-white/60" />
                                                     </div>
-                                                    <video
-                                                        muted
-                                                        preload="metadata"
-                                                        src={proxyMediaUrl(replyVideoUrl, { as: "video" })}
-                                                        onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-                                                        onSeeked={(e) => {
-                                                            const el = e.currentTarget;
+                                                    <VideoFirstFrame
+                                                        src={replyVideoUrl}
+                                                        // Same still as the quoted message's own bubble.
+                                                        posterKey={replyToMsgId ? getMessagePosterKey(replyToMsgId) : null}
+                                                        conversationId={selectedConversation.data.conversationId}
+                                                        // The quoted bubble is in this thread and captures it itself.
+                                                        waitForCapture={replyToMsg != null}
+                                                        onReady={(el) => {
                                                             el.style.opacity = "1";
                                                             const parent = el.parentElement;
                                                             const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");
@@ -1976,6 +1993,14 @@ export function ChatThreadMessages({
                                             const videoMaxViews = typeof msgBody?.maxViews === "number" ? msgBody.maxViews : 2147483647;
                                             // Unlimited videos are sent with MAX_VIDEO_VIEWS, older ones with 2147483647.
                                             const isLimitedVideo = videoMaxViews < MAX_VIDEO_VIEWS;
+                                            // While uploading, and after until the video's own first
+                                            // frame is there: the still of what was sent, which also
+                                            // holds the bubble's size (see sentMediaEchoes).
+                                            const localPoster = message.localPoster ?? sentMediaEcho(message.messageId)?.poster;
+                                            const posterKey = getMessagePosterKey(message.messageId);
+                                            // A still captured earlier and already in memory shows right
+                                            // away — no spinner, play badge visible from the start.
+                                            const hasStoredPoster = !localPoster && Boolean(getVideoPoster(posterKey));
                                             return (
                                                 <div
                                                     role="button"
@@ -2009,31 +2034,29 @@ export function ChatThreadMessages({
                                                     })}
                                                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") e.currentTarget.click(); }}
                                                 >
-                                                    <div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
-                                                        <Loader2 className="h-5 w-5 animate-spin text-white/60" />
-                                                    </div>
+                                                    {hasStoredPoster ? null : (
+                                                        <div className="js-video-spinner pointer-events-none absolute inset-0 flex animate-delayed-appear items-center justify-center">
+                                                            <Loader2 className="h-5 w-5 animate-spin text-white/60" />
+                                                        </div>
+                                                    )}
                                                     {(() => {
-                                                        // While uploading, and after until the video's own first
-                                                        // frame is there: the still of what was sent, which also
-                                                        // holds the bubble's size (see sentMediaEchoes).
-                                                        const poster = message.localPoster ?? sentMediaEcho(message.messageId)?.poster;
+                                                        const poster = localPoster;
                                                         if (!poster) return (
-                                                    <video
-                                                        preload="metadata"
-                                                        muted
-                                                        src={proxyMediaUrl(videoUrl, { as: "video" })}
-                                                        onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
-                                                        onSeeked={(e) => {
-                                                            const el = e.currentTarget;
-                                                            el.style.opacity = "1";
-                                                            const parent = el.parentElement;
-                                                            const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");
-                                                            if (spinner) spinner.style.display = "none";
-                                                            const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
-                                                            if (badge) badge.style.opacity = "1";
-                                                        }}
-                                                        className={`h-full w-full object-cover opacity-0 ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`}
-                                                    />
+                                                            <VideoFirstFrame
+                                                                src={videoUrl}
+                                                                posterKey={posterKey}
+                                                                conversationId={selectedConversation.data.conversationId}
+                                                                capture={!pending && !failed && !isLocalClientMessageId(message.messageId)}
+                                                                onReady={(el) => {
+                                                                    el.style.opacity = "1";
+                                                                    const parent = el.parentElement;
+                                                                    const spinner = parent?.querySelector<HTMLElement>(".js-video-spinner");
+                                                                    if (spinner) spinner.style.display = "none";
+                                                                    const badge = parent?.querySelector<HTMLElement>(".js-video-play-badge");
+                                                                    if (badge) badge.style.opacity = "1";
+                                                                }}
+                                                                className={`h-full w-full object-cover ${hasStoredPoster ? "" : "opacity-0"} ${PRIVACY_BLUR_TRANSITION_CLASS} ${mediaBlurClassName}`}
+                                                            />
                                                         );
                                                         return (
                                                             <>
@@ -2074,7 +2097,7 @@ export function ChatThreadMessages({
                                                         )
                                                     )}
                                                     <div
-                                                        className={`js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200`}
+                                                        className={`js-video-play-badge pointer-events-none absolute inset-0 flex items-center justify-center ${hasStoredPoster ? "" : "opacity-0"} transition-opacity duration-200`}
                                                     >
                                                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 backdrop-blur-sm transition group-hover/media:bg-black/80">
                                                             <Play className="h-5 w-5 fill-white text-white" />
