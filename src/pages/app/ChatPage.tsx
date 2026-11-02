@@ -82,9 +82,11 @@ import {
 import {
 	INBOX_REVALIDATE_AFTER_MS,
 	INBOX_RIGHT_NOW_MAX_AGE_MS,
+	getArchivedInboxSnapshot,
 	getInboxFilterKey,
 	getInboxSnapshot,
 	recordLiveInboxPage,
+	setArchivedInboxSnapshot,
 	setInboxSnapshot,
 } from "./chat/inboxFreshness";
 import { useInboxRevalidation } from "./chat/useInboxRevalidation";
@@ -176,6 +178,18 @@ const OFFLINE_INBOX_FALLBACK_LIMIT = 100;
 // live API's actual page size (~190 conversations/page) so scrolling
 // behaves the same either way.
 const LOCAL_INBOX_PAGE_SIZE = 190;
+// How many of a conversation's newest stored messages the inbox hydrations
+// scan for a preview fallback before falling back to its whole history.
+const PREVIEW_FALLBACK_SCAN_LIMIT = 20;
+
+async function findLocalPreviewFallbackMessage(conversationId: string) {
+	const recent = await chatDb.getMessagesPage(conversationId, { limit: PREVIEW_FALLBACK_SCAN_LIMIT });
+	const message = findPreviewFallbackMessage(recent);
+	if (message || recent.length < PREVIEW_FALLBACK_SCAN_LIMIT) {
+		return message;
+	}
+	return findPreviewFallbackMessage(await chatDb.getMessages(conversationId));
+}
 
 // Filters that change the /v4/inbox request itself (pinned/archived/hidden
 // are applied client-side only). While any is active the list has to come
@@ -463,13 +477,22 @@ export function ChatPage() {
 	// happens to contain at any given moment. A conversation that's gone from
 	// the server by definition never comes back via /v4/inbox to repopulate
 	// `conversations` on its own, so it can't be the source for this.
+	// Seeded from the previous mount's snapshot (like `conversations`), so
+	// archived chats don't pop into an already-rendered list once the chatDb
+	// hydration below lands.
 	const [archivedConversations, setArchivedConversations] = useState<
 		Map<string, { reason: ArchivedReason; entry: ConversationEntry }>
-	>(new Map());
+	>(() => new Map(getArchivedInboxSnapshot(userId) ?? []));
 	const archivedConversationsRef = useRef(archivedConversations);
 	useEffect(() => {
 		archivedConversationsRef.current = archivedConversations;
-	}, [archivedConversations]);
+		if (userId != null) {
+			setArchivedInboxSnapshot(userId, archivedConversations);
+		}
+	}, [archivedConversations, userId]);
+	// Ids seeded from that snapshot — the hydration drops any of them chatDb
+	// no longer has archived (unarchived while this page wasn't mounted).
+	const archivedSnapshotIdsRef = useRef(new Set(archivedConversations.keys()));
 	const [nextPage, setNextPage] = useState<number | null>(null);
 	const [isLoadingInbox, setIsLoadingInbox] = useState(() => getInboxSnapshot(userId) == null);
 	const [isLoadingMoreInbox, setIsLoadingMoreInbox] = useState(false);
@@ -1462,7 +1485,7 @@ export function ChatPage() {
 				appLog.debug(
 					`[ChatPage] hydrated ${archived.length} archived conversation(s) from chatDb`,
 				);
-				if (archived.length === 0) {
+				if (archived.length === 0 && archivedSnapshotIdsRef.current.size === 0) {
 					return;
 				}
 				// Same fallback as loadInbox: the stored preview can be null if it
@@ -1473,8 +1496,7 @@ export function ChatPage() {
 						if (!isPreviewUnhelpful(c.entry.data.preview)) {
 							return c;
 						}
-						const messages = await chatDb.getMessages(c.conversationId);
-						const message = findPreviewFallbackMessage(messages);
+						const message = await findLocalPreviewFallbackMessage(c.conversationId);
 						if (!message) {
 							return c;
 						}
@@ -1508,8 +1530,15 @@ export function ChatPage() {
 				if (cancelled) {
 					return;
 				}
+				const staleSnapshotIds = [...archivedSnapshotIdsRef.current].filter(
+					(id) => !stillArchivedIds.has(id),
+				);
+				archivedSnapshotIdsRef.current = new Set();
 				setArchivedConversations((previous) => {
 					const next = new Map(previous);
+					for (const id of staleSnapshotIds) {
+						next.delete(id);
+					}
 					for (const c of withPreviews) {
 						if (!stillArchivedIds.has(c.conversationId)) {
 							continue;
@@ -1559,7 +1588,7 @@ export function ChatPage() {
 					if (!isPreviewUnhelpful(c.entry.data.preview)) {
 						return c.entry;
 					}
-					const message = findPreviewFallbackMessage(await chatDb.getMessages(c.conversationId));
+					const message = await findLocalPreviewFallbackMessage(c.conversationId);
 					return message
 						? { ...c.entry, data: { ...c.entry.data, preview: buildPreviewFromMessage(message, t) } }
 						: c.entry;

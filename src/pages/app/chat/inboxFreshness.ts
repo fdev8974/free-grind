@@ -14,11 +14,15 @@
  *   stale row lives on, and to count a row the server *didn't* return as
  *   checked anyway (otherwise a conversation the server has dropped would be
  *   refetched forever).
- * - snapshot / scrollAnchors: the last unfiltered list and where it was
- *   scrolled to, so a remount can render and restore synchronously.
+ * - snapshot / archivedSnapshot / scrollAnchors: the last unfiltered list,
+ *   the archived chats mixed into it, and where it was scrolled to, so a
+ *   remount can render and restore synchronously.
  */
 
+import type { ArchivedReason } from "../../../types/chat-db";
 import type { ConversationEntry } from "../../../types/messages";
+
+export type ArchivedInboxSnapshot = ReadonlyMap<string, { reason: ArchivedReason; entry: ConversationEntry }>;
 
 // How old a visible row's live data may get before the scroll-idle check
 // refetches its page.
@@ -49,6 +53,7 @@ type InboxPageRecord = {
 
 type UserInboxState = {
 	snapshot: ConversationEntry[] | null;
+	archivedSnapshot: ArchivedInboxSnapshot | null;
 	scrollAnchors: InboxScrollAnchor[];
 	liveAt: Map<string, number>;
 	pagesByFilterKey: Map<string, Map<number, InboxPageRecord>>;
@@ -61,7 +66,7 @@ let version = 0;
 function getState(userId: number): UserInboxState {
 	let state = stateByUser.get(userId);
 	if (!state) {
-		state = { snapshot: null, scrollAnchors: [], liveAt: new Map(), pagesByFilterKey: new Map() };
+		state = { snapshot: null, archivedSnapshot: null, scrollAnchors: [], liveAt: new Map(), pagesByFilterKey: new Map() };
 		stateByUser.set(userId, state);
 	}
 	return state;
@@ -91,6 +96,14 @@ export function getInboxSnapshot(userId: number | null): ConversationEntry[] | n
 
 export function setInboxSnapshot(userId: number, entries: ConversationEntry[]): void {
 	getState(userId).snapshot = entries;
+}
+
+export function getArchivedInboxSnapshot(userId: number | null): ArchivedInboxSnapshot | null {
+	return userId == null ? null : (stateByUser.get(userId)?.archivedSnapshot ?? null);
+}
+
+export function setArchivedInboxSnapshot(userId: number, entries: ArchivedInboxSnapshot): void {
+	getState(userId).archivedSnapshot = entries;
 }
 
 export function getInboxScrollAnchors(userId: number | null): InboxScrollAnchor[] {
