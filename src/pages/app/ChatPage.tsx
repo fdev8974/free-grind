@@ -5277,7 +5277,7 @@ export function ChatPage() {
 		async (
 			text: string,
 			retryMessageId?: string,
-			options?: { includeReplyContext?: boolean },
+			options?: { includeReplyContext?: boolean; replyToMessageId?: string | null },
 		) => {
 			if (!userId) {
 				return;
@@ -5298,12 +5298,13 @@ export function ChatPage() {
 			}
 
 			const includeReplyContext = options?.includeReplyContext ?? true;
-			const selectedReplyMessage =
-				includeReplyContext && replyTargetMessageId
-					? (threadMessages.find(
-							(message) => message.messageId === replyTargetMessageId,
-						) ?? null)
-					: null;
+			// A retry goes out as the reply the failed message was.
+			const replyId = options?.replyToMessageId !== undefined
+				? options.replyToMessageId
+				: includeReplyContext ? replyTargetMessageId : null;
+			const selectedReplyMessage = replyId
+				? (threadMessages.find((message) => message.messageId === replyId) ?? null)
+				: null;
 			const replySnippet = selectedReplyMessage
 				? getMessagePreviewLabel(selectedReplyMessage, t).trim()
 				: "";
@@ -5672,10 +5673,28 @@ export function ChatPage() {
 	// to avoid a forward reference to a not-yet-initialized const.
 	const loadDrawerMediaRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
+	// What a failed attachment needs to be retried, by its local message id:
+	// the file and choices, the reply it was sent as, and how far it got (an
+	// upload that went through isn't repeated, nor is adding it to the drawer).
+	const failedAttachmentsRef = useRef(
+		new Map<
+			string,
+			{
+				file: File;
+				options: AttachmentSendOptions;
+				replyToMessageId: string | null;
+				uploaded: Awaited<ReturnType<typeof uploadChatMediaFile>> | null;
+				addedToDrawer: boolean;
+				urls: string[];
+			}
+		>(),
+	);
+
 	const sendMediaAttachment = useCallback(
 		async (
 			file: File,
 			options: AttachmentSendOptions,
+			retryMessageId?: string,
 		) => {
 			if (!userId) {
 				return;
@@ -5704,11 +5723,26 @@ export function ChatPage() {
 
 			setIsUploadingAttachment(true);
 
-			const localMessageId = `local-upload:${Date.now()}:${Math.random()}`;
+			const retry = retryMessageId ? failedAttachmentsRef.current.get(retryMessageId) : undefined;
+			if (retryMessageId) failedAttachmentsRef.current.delete(retryMessageId);
+			const localMessageId = retry && retryMessageId ? retryMessageId : `local-upload:${Date.now()}:${Math.random()}`;
+			const replyToMessageId = retry ? retry.replyToMessageId : replyTargetMessageId;
+			let uploaded = retry?.uploaded ?? null;
+			let addedToDrawer = retry?.addedToDrawer ?? false;
+			// The bubble's object URLs live until it's sent; a failed one still shows them.
+			let urls = retry?.urls ?? [];
+			if (retry) {
+				setThreadMessages((previous) =>
+					previous.map((message) =>
+						message.messageId === localMessageId ? { ...message, clientState: "pending" } : message,
+					),
+				);
+			} else {
 			const objectUrl = URL.createObjectURL(file);
 			// The bubble shows the trimmed, upright part rather than the whole original.
 			const videoEdit = isVideo ? await resolveVideoEdit(file) : null;
 			const localPoster = videoEdit ? await editPoster(file, videoEdit) : null;
+			urls = localPoster ? [objectUrl, localPoster] : [objectUrl];
 			setThreadMessages((previous) => [
 				...previous,
 				{
@@ -5722,13 +5756,14 @@ export function ChatPage() {
 					type: isVideo ? "Video" : "Image",
 					chat1Type: isVideo ? "video" : "image",
 					body: { url: objectUrl },
-					replyToMessage: replyTargetMessageId ? { messageId: replyTargetMessageId } : null,
+					replyToMessage: replyToMessageId ? { messageId: replyToMessageId } : null,
 					replyPreview: null,
 					dynamic: false,
 					clientState: "pending",
 					localPoster: localPoster ?? undefined,
 				},
 			]);
+			}
 
 			setAttachmentUpload({ messageId: localMessageId, progress: 5 });
 			const progressId = window.setInterval(() => {
@@ -5736,15 +5771,16 @@ export function ChatPage() {
 			}, 260);
 
 			try {
-				const uploaded = await uploadChatMediaFile(service, file, {
+				uploaded ??= await uploadChatMediaFile(service, file, {
 					looping: options.looping,
 					takenOnGrindr: options.takenOnGrindr,
 				});
 				setAttachmentUpload((previous) => previous && { ...previous, progress: 96 });
 
-				if (options.addToDrawer) {
+				if (options.addToDrawer && !addedToDrawer) {
 					try {
 						await service.addMediaToDrawer(uploaded.mediaId);
+						addedToDrawer = true;
 						void loadDrawerMediaRef.current();
 					} catch (error) {
 						toast.error(
@@ -5756,10 +5792,10 @@ export function ChatPage() {
 				// Also captures the sent media into chatDb (see chatMediaSend).
 				const sentMessage = await sendUploadedChatMedia(service, uploaded, targetProfileIdValue, {
 					maxViews: options.maxViews,
-					replyToMessageId: replyTargetMessageId,
+					replyToMessageId,
 				});
 
-				setReplyTargetMessageId(null);
+				if (!retry) setReplyTargetMessageId(null);
 				setThreadMessages((previous) => {
 					const merged = previous
 						.filter((message) => message.messageId !== localMessageId)
@@ -5771,8 +5807,7 @@ export function ChatPage() {
 					return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
 				});
 
-				// Kept on failure: the failed bubble still shows it.
-				if (localPoster) URL.revokeObjectURL(localPoster);
+				for (const url of urls) URL.revokeObjectURL(url);
 
 				if (selectedConversation) {
 					syncConversation((conversation) => ({
@@ -5816,6 +5851,14 @@ export function ChatPage() {
 				}
 
 			} catch (error) {
+				failedAttachmentsRef.current.set(localMessageId, {
+					file,
+					options,
+					replyToMessageId,
+					uploaded,
+					addedToDrawer,
+					urls,
+				});
 				setThreadMessages((previous) =>
 					previous.map((message) =>
 						message.messageId === localMessageId
@@ -5832,7 +5875,6 @@ export function ChatPage() {
 				window.clearInterval(progressId);
 				setAttachmentUpload(null);
 				setIsUploadingAttachment(false);
-				URL.revokeObjectURL(objectUrl);
 			}
 		},
 		[
@@ -6048,6 +6090,13 @@ export function ChatPage() {
 			return;
 		}
 
+		const failedAttachment = failedAttachmentsRef.current.get(message.messageId);
+		if (failedAttachment) {
+			void sendMediaAttachment(failedAttachment.file, failedAttachment.options, message.messageId);
+			return;
+		}
+
+		// Media whose file is gone (it failed before a reload) has to be picked again.
 		if (message.type === "Image" || message.type === "ExpiringImage") {
 			toast.error(t("chat.errors.reupload_image"));
 			return;
@@ -6064,7 +6113,7 @@ export function ChatPage() {
 		}
 
 		void sendTextMessage(body.text, message.messageId, {
-			includeReplyContext: false,
+			replyToMessageId: (message.replyToMessage as { messageId?: string } | null | undefined)?.messageId ?? null,
 		});
 	};
 
