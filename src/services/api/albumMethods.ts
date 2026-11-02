@@ -41,8 +41,8 @@ import type {
 } from "../../types/api-functions";
 import type { RestFetcher } from "../../types/chat-service";
 import { ApiFunctionError, assertSuccess, parseJsonSafe } from "../apiHelpers";
-import { uploadStagedVideo } from "../stagedVideoUpload";
-import { stagedEdit } from "../videoReencode";
+import { MAX_CHAT_MEDIA_BYTES, uploadStagedVideo } from "../stagedVideoUpload";
+import { assertUploadFits, stagedEdit } from "../videoReencode";
 
 export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, options?: { defaultValue?: string }) => string) {
 	return {
@@ -144,6 +144,12 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 		 * height come from the file itself, Rust-side.
 		 */
 		async uploadOwnAlbumVideo(input: UploadOwnAlbumVideoInput): Promise<{ contentId: number } | null> {
+			await assertUploadFits(
+				input.file,
+				input.edit,
+				Math.min(MAX_CHAT_MEDIA_BYTES, input.maxBodySize ?? MAX_CHAT_MEDIA_BYTES),
+				t("chat.attachments.too_large"),
+			);
 			const payload = await uploadStagedVideo(
 				input.file,
 				async (stagedId) =>
@@ -151,7 +157,10 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 						stagedId,
 						albumId: Number(input.albumId),
 						maxBodySize: input.maxBodySize ?? null,
-						edit: await stagedEdit(stagedId, input.edit, input.onLandscapeKept),
+						edit: await stagedEdit(stagedId, input.file, input.edit, {
+							onLandscapeKept: input.onLandscapeKept,
+							notSendableMessage: t("chat.errors.video_not_sendable"),
+						}),
 					}),
 				t("api.errors.upload_content"),
 				t,

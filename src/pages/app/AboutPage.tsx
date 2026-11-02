@@ -55,7 +55,6 @@ function ProjectRow({
 
 const externalIcon = <ExternalLink className="h-4 w-4 opacity-60" />;
 
-
 export function AboutPage() {
 	const { t } = useTranslation();
 	const { developerMode, setPreferences } = usePreferences();

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, FolderCheck, FolderPlus, Loader2, Play, RefreshCw, Repeat, Video, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, Plus, RefreshCw, Repeat, Video, X } from "lucide-react";
 import type { AlbumMediaCount } from "../../../types/chat-page";
 import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
 import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
@@ -863,7 +863,7 @@ export function AddToDrawerChip({
 					: "ink-tint-8 text-[var(--text-muted)] hover:ink-tint-12 hover:text-[var(--text)]"
 			}`}
 		>
-			{checked ? <FolderCheck className="h-3.5 w-3.5" /> : <FolderPlus className="h-3.5 w-3.5" />}
+			{checked ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />}
 			<span>{t("chat.attachments.add_to_drawer_chip", { defaultValue: "Drawer" })}</span>
 		</button>
 	);

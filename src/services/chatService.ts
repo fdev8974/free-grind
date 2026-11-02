@@ -48,8 +48,8 @@ import {
 } from "../utils/privacy";
 import { ApiFunctionError, assertSuccess, mediaUploadErrorToApiFunctionError, parseJsonSafe } from "./apiHelpers";
 import { sendViaRealtime } from "./chatRealtime";
-import { uploadStagedVideo } from "./stagedVideoUpload";
-import { stagedEdit } from "./videoReencode";
+import { MAX_CHAT_MEDIA_BYTES, uploadStagedVideo } from "./stagedVideoUpload";
+import { assertUploadFits, stagedEdit } from "./videoReencode";
 import { isPaywallError, withEntitlementBypass } from "./entitlementBypass";
 
 export { ApiFunctionError as ChatApiError };
@@ -673,12 +673,16 @@ export function createChatService(
 		 * videoEdit); null when this binary can't, see uploadChatMedia.
 		 */
 		async uploadChatVideo(params: UploadChatVideoParams): Promise<UploadChatMediaResponse | null> {
+			await assertUploadFits(params.file, params.edit, MAX_CHAT_MEDIA_BYTES, t("chat.attachments.too_large"));
 			const upload = async (stagedId: string) =>
 				invoke("upload_staged_chat_video", {
 					stagedId,
 					looping: params.looping,
 					lengthMs: params.lengthMs ?? null,
-					edit: await stagedEdit(stagedId, params.edit, params.onLandscapeKept),
+					edit: await stagedEdit(stagedId, params.file, params.edit, {
+						onLandscapeKept: params.onLandscapeKept,
+						notSendableMessage: t("chat.errors.video_not_sendable"),
+					}),
 				});
 			const response = await uploadStagedVideo(params.file, upload, t("chat.errors.upload_media_failed"), t);
 			return response === null ? null : uploadChatMediaResponseSchema.parse(response);

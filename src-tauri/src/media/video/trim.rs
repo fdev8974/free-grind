@@ -6,8 +6,10 @@
 //!   since decoding has to begin there, and an edit list skips what comes
 //!   before the start, so playback begins exactly where it was picked.
 //! - `decode_window` hands the window's encoded video to the webview, which
-//!   re-encodes it (landscape → portrait, see src/services/videoReencode.ts),
-//!   and `mux` puts the result together with the original sound, copied as is.
+//!   re-encodes it to H.264 (upright, see src/services/videoReencode.ts);
+//!   `mux` puts the result together with the original sound, copied as is,
+//!   and `mux_encoded` with the sound the webview re-encoded to AAC (always
+//!   so for a Matroska original, see `super::matroska`).
 //!
 //! Only video and sound tracks are kept, and only what playback needs of
 //! them: track/media headers (the display matrix included), the handler, the
@@ -33,6 +35,9 @@ const TKHD_MATRIX: (usize, usize) = (40, 52);
 /// A visual sample entry's fixed fields before its child boxes.
 const VISUAL_ENTRY_LEN: usize = 78;
 const ENCODED_TIMESCALE: u32 = 90_000;
+const MOVIE_TIMESCALE: u32 = 1000;
+/// Samples per AAC-LC frame.
+const AAC_FRAME: u64 = 1024;
 const DEFAULT_FTYP: &[u8] = b"isom\0\0\x02\0isomiso2avc1mp41";
 
 /// Anything `trim`/`mux` read samples from.
@@ -46,7 +51,12 @@ pub struct Trim {
 }
 
 /// What the editor needs: the video's length, its keyframes (where a cut can
-/// start), and its size as shown, rotation applied.
+/// start), and its size as shown, rotation applied. `compatible`: it is
+/// H.264 with AAC sound (or none) already, so a cut can copy it as it is;
+/// anything else is re-encoded. `container`: "mp4" or "matroska".
+/// `bytes_by_second[n]`: the media bytes (all kept tracks) in the first `n`
+/// seconds, so the editor can tell what a cut weighs before it's made;
+/// empty when it can't be told (Matroska, which is re-encoded anyway).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TrimPoints {
@@ -54,6 +64,9 @@ pub struct TrimPoints {
     pub keyframes_ms: Vec<u64>,
     pub width: u32,
     pub height: u32,
+    pub compatible: bool,
+    pub container: &'static str,
+    pub bytes_by_second: Vec<u64>,
 }
 
 /// The window's encoded video, for a `VideoDecoder`: `codec` and
@@ -66,6 +79,9 @@ pub struct DecodeWindow {
     pub coded_width: u32,
     pub coded_height: u32,
     pub rotation: u16,
+    /// How far past the first frame the picked start lies; frames before it
+    /// are only decoded to get to the ones that are kept.
+    pub lead_us: i64,
     pub samples: Vec<WindowSample>,
 }
 
@@ -80,12 +96,24 @@ pub struct WindowSample {
 }
 
 /// The webview's re-encoded video: H.264 chunks in decode order, stored back
-/// to back, with `avcc` as their decoder configuration.
+/// to back, with `avcc` as their decoder configuration, timed from the
+/// picked start; then, when it re-encoded the sound too, its AAC frames.
 #[derive(Debug, Clone)]
 pub struct Encoded {
     pub width: u32,
     pub height: u32,
     pub avcc: Vec<u8>,
+    pub chunks: Vec<EncodedChunk>,
+    pub audio: Option<EncodedAudio>,
+}
+
+/// AAC frames stored right after the video's chunks; `config` is the
+/// encoder's AudioSpecificConfig.
+#[derive(Debug, Clone)]
+pub struct EncodedAudio {
+    pub sample_rate: u32,
+    pub channels: u16,
+    pub config: Vec<u8>,
     pub chunks: Vec<EncodedChunk>,
 }
 
@@ -179,30 +207,157 @@ pub fn trim_points<R: Read + Seek>(reader: &mut R) -> io::Result<Option<TrimPoin
     let Some(moov) = find(reader, Span { start: 0, end }, b"moov")? else {
         return Ok(None);
     };
+    let mut points = None;
+    let mut sound_is_aac = true;
+    // Bytes per whole second, of every track that would be kept.
+    let mut per_second: Vec<u64> = Vec::new();
+    let mut weighed = true;
     for trak in children(reader, moov.body)?.into_iter().filter(|child| child.is(b"trak")) {
         let Some(mdia) = find(reader, trak.body, b"mdia")? else {
             continue;
         };
-        if handler_type(reader, mdia.body)? != Some(*b"vide") {
-            continue;
+        let handler = handler_type(reader, mdia.body)?;
+        if matches!(handler.as_ref(), Some(b"soun") | Some(b"vide")) {
+            weighed &= add_bytes_by_second(reader, mdia, &mut per_second)?;
         }
-        let Some((timescale, timings)) = track_timing(reader, mdia)? else {
-            return Ok(None);
-        };
-        let to_ms = |ticks: u64| (u128::from(ticks) * 1000 / u128::from(timescale)) as u64;
-        let total: u64 = timings.iter().map(|timing| u64::from(timing.duration)).sum();
-        return Ok(Some(TrimPoints {
-            duration_ms: to_ms(total),
-            keyframes_ms: timings
-                .iter()
-                .filter(|timing| timing.sync)
-                .map(|timing| to_ms(timing.dts))
-                .collect(),
-            width: shown.width,
-            height: shown.height,
-        }));
+        match handler {
+            Some(handler) if &handler == b"soun" => {
+                sound_is_aac &= sample_entry(reader, mdia)?.is_some_and(|stsd| is_aac(&stsd));
+            }
+            Some(handler) if &handler == b"vide" && points.is_none() => {
+                let Some((timescale, timings)) = track_timing(reader, mdia)? else {
+                    return Ok(None);
+                };
+                let h264 = sample_entry(reader, mdia)?
+                    .is_some_and(|stsd| matches!(stsd.get(20..24), Some(b"avc1" | b"avc3")));
+                let to_ms = |ticks: u64| (u128::from(ticks) * 1000 / u128::from(timescale)) as u64;
+                let total: u64 = timings.iter().map(|timing| u64::from(timing.duration)).sum();
+                points = Some(TrimPoints {
+                    duration_ms: to_ms(total),
+                    keyframes_ms: timings
+                        .iter()
+                        .filter(|timing| timing.sync)
+                        .map(|timing| to_ms(timing.dts))
+                        .collect(),
+                    width: shown.width,
+                    height: shown.height,
+                    compatible: h264,
+                    container: "mp4",
+                    bytes_by_second: Vec::new(),
+                });
+            }
+            _ => {}
+        }
     }
-    Ok(None)
+    let bytes_by_second = if weighed {
+        let mut total = 0u64;
+        std::iter::once(0)
+            .chain(per_second.iter().map(|bytes| {
+                total += bytes;
+                total
+            }))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    Ok(points.map(|points| TrimPoints {
+        compatible: points.compatible && sound_is_aac,
+        bytes_by_second,
+        ..points
+    }))
+}
+
+/// Adds a track's sample sizes to the whole second each sample starts in,
+/// from `stts` and `stsz` alone; false when those don't line up.
+fn add_bytes_by_second<R: Read + Seek>(reader: &mut R, mdia: Located, per_second: &mut Vec<u64>) -> io::Result<bool> {
+    let Some((timescale, timings)) = track_timing(reader, mdia)? else {
+        return Ok(false);
+    };
+    let Some(stbl) = find_path(reader, mdia.body, &[*b"minf", *b"stbl"])? else {
+        return Ok(false);
+    };
+    let tables = children(reader, stbl.body)?;
+    let Some(stsz) = table(reader, &tables, b"stsz")? else {
+        return Ok(false);
+    };
+    let Some(sizes) = sample_sizes(&stsz, timings.len()) else {
+        return Ok(false);
+    };
+    for (timing, size) in timings.iter().zip(sizes) {
+        let second = (timing.dts / u64::from(timescale)) as usize;
+        if second >= per_second.len() {
+            per_second.resize(second + 1, 0);
+        }
+        per_second[second] += u64::from(size);
+    }
+    Ok(true)
+}
+
+/// The sizes `stsz` lists, when it lists `count` of them.
+fn sample_sizes(stsz: &[u8], count: usize) -> Option<Vec<u32>> {
+    let (fixed, listed) = (be_u32(stsz, 4)?, be_u32(stsz, 8)? as usize);
+    if listed != count {
+        return None;
+    }
+    if fixed != 0 {
+        return Some(vec![fixed; count]);
+    }
+    Some(stsz.get(12..12 + count * 4)?.chunks_exact(4).filter_map(|size| be_u32(size, 0)).collect())
+}
+
+/// A track's whole `stsd` box.
+fn sample_entry<R: Read + Seek>(reader: &mut R, mdia: Located) -> io::Result<Option<Vec<u8>>> {
+    let Some(stbl) = find_path(reader, mdia.body, &[*b"minf", *b"stbl"])? else {
+        return Ok(None);
+    };
+    match children(reader, stbl.body)?.into_iter().find(|table| table.is(b"stsd")) {
+        Some(stsd) => read_whole(reader, stsd).map(Some),
+        None => Ok(None),
+    }
+}
+
+/// Whether a sound `stsd` holds AAC: an `mp4a` entry whose `esds` names
+/// MPEG-4 (or MPEG-2 AAC) audio.
+fn is_aac(stsd: &[u8]) -> bool {
+    if stsd.get(20..24) != Some(b"mp4a") {
+        return false;
+    }
+    // QuickTime's sound entry versions put `esds` at different depths;
+    // searching the entry for it covers them all.
+    let Some(at) = stsd.windows(4).position(|window| window == b"esds") else {
+        return false;
+    };
+    let mut descriptor = stsd.get(at + 8..).unwrap_or_default();
+    let read_tag = |bytes: &mut &[u8], tag: u8| -> Option<()> {
+        if *bytes.first()? != tag {
+            return None;
+        }
+        let mut index = 1;
+        // An expandable length: up to four bytes, 7 bits each.
+        while bytes.get(index)? & 0x80 != 0 && index < 4 {
+            index += 1;
+        }
+        *bytes = bytes.get(index + 1..)?;
+        Some(())
+    };
+    let object_type = (|| {
+        read_tag(&mut descriptor, 0x03)?;
+        let flags = *descriptor.get(2)?;
+        let mut skip = 3;
+        if flags & 0x80 != 0 {
+            skip += 2;
+        }
+        if flags & 0x40 != 0 {
+            skip += 1 + usize::from(*descriptor.get(skip)?);
+        }
+        if flags & 0x20 != 0 {
+            skip += 2;
+        }
+        descriptor = descriptor.get(skip..)?;
+        read_tag(&mut descriptor, 0x04)?;
+        descriptor.first().copied()
+    })();
+    matches!(object_type, Some(0x40 | 0x66 | 0x67 | 0x68))
 }
 
 /// Writes the window to `out`, its samples copied as they are; `None` when
@@ -246,6 +401,7 @@ pub fn decode_window<R: Read + Seek>(reader: &mut R, trim: Trim) -> io::Result<O
     };
     let first_shown = first_shown(window.samples).unwrap_or(0);
     let to_us = |ticks: i64| (i128::from(ticks) * 1_000_000 / i128::from(video.timescale)) as i64;
+    let lead_us = to_us(i64::try_from(window.lead).unwrap_or(i64::MAX));
     let samples = window
         .samples
         .iter()
@@ -263,12 +419,14 @@ pub fn decode_window<R: Read + Seek>(reader: &mut R, trim: Trim) -> io::Result<O
         coded_width,
         coded_height,
         rotation: rotation(&video.tkhd),
+        lead_us,
         samples,
     }))
 }
 
 /// Writes `encoded` (read from `encoded_reader`) as the video, together with
-/// the original's sound inside the same window, copied as is.
+/// the original's sound inside the same window, copied as is and played from
+/// the picked start (the re-encoded video starts there already).
 pub fn mux<R: Read + Seek, E: Read + Seek, W: Write>(
     original: &mut R,
     encoded_reader: &mut E,
@@ -288,17 +446,94 @@ pub fn mux<R: Read + Seek, E: Read + Seek, W: Write>(
     let Some(reencoded) = encoded_track(encoded) else {
         return Ok(None);
     };
-    // The re-encoded frames start at the window's first one too.
-    let skip = (u128::from(window.lead) * u128::from(ENCODED_TIMESCALE) / u128::from(video.timescale)) as u64;
     let mut kept = vec![Kept {
         track: &reencoded,
         samples: &reencoded.samples,
         source: 1,
-        skip,
+        skip: 0,
     }];
     kept.extend(sound_in(&movie, video, &window, 0));
     let mut sources: [&mut dyn Source; 2] = [original, encoded_reader];
     write_movie(&mut sources, &movie, &kept, true, out)
+}
+
+/// Writes `encoded` alone as a new MP4: its video, and its AAC sound when
+/// there is any. The original isn't read, so it can be any container.
+pub fn mux_encoded<E: Read + Seek, W: Write>(
+    encoded_reader: &mut E,
+    encoded: &Encoded,
+    out: &mut W,
+) -> io::Result<Option<()>> {
+    let Some(video) = encoded_track(encoded) else {
+        return Ok(None);
+    };
+    let video_bytes: u64 = encoded.chunks.iter().map(|chunk| u64::from(chunk.size)).sum();
+    let sound = match &encoded.audio {
+        Some(audio) => match aac_track(audio, video_bytes) {
+            Some(track) => Some(track),
+            None => return Ok(None),
+        },
+        None => None,
+    };
+    let movie = Movie {
+        ftyp: boxed(b"ftyp", DEFAULT_FTYP),
+        mvhd: mvhd_body(MOVIE_TIMESCALE),
+        timescale: MOVIE_TIMESCALE,
+        tracks: Vec::new(),
+    };
+    let mut kept = vec![Kept {
+        track: &video,
+        samples: &video.samples,
+        source: 0,
+        skip: 0,
+    }];
+    if let Some(sound) = &sound {
+        kept.push(Kept {
+            track: sound,
+            samples: &sound.samples,
+            source: 0,
+            skip: 0,
+        });
+    }
+    let mut sources: [&mut dyn Source; 1] = [encoded_reader];
+    write_movie(&mut sources, &movie, &kept, true, out)
+}
+
+/// The AAC frames as a sound track, 1024 samples each, stored from `offset`.
+fn aac_track(audio: &EncodedAudio, offset: u64) -> Option<Track> {
+    if audio.chunks.is_empty() || audio.sample_rate == 0 || audio.config.is_empty() {
+        return None;
+    }
+    let mut at = offset;
+    let samples = audio
+        .chunks
+        .iter()
+        .enumerate()
+        .map(|(index, chunk)| {
+            let sample = Sample {
+                timing: Timing {
+                    dts: index as u64 * AAC_FRAME,
+                    duration: AAC_FRAME as u32,
+                    cts: 0,
+                    sync: true,
+                },
+                offset: at,
+                size: chunk.size,
+            };
+            at += u64::from(chunk.size);
+            sample
+        })
+        .collect();
+    Some(Track {
+        handler: *b"soun",
+        timescale: audio.sample_rate,
+        tkhd: sound_tkhd(),
+        mdhd: mdhd(audio.sample_rate),
+        hdlr: hdlr(b"soun", b"SoundHandler"),
+        media_boxes: vec![full_box(b"smhd", 0, 0, &[0; 4]), self_contained_dinf()],
+        stsd: mp4a_stsd(audio),
+        samples,
+    })
 }
 
 fn read_movie<R: Read + Seek>(reader: &mut R) -> io::Result<Option<Movie>> {
@@ -591,18 +826,7 @@ fn layout_from(
     timings: &[Timing],
     file_size: u64,
 ) -> Option<Vec<Sample>> {
-    let (fixed, count) = (be_u32(stsz, 4)?, be_u32(stsz, 8)?);
-    if count as usize != timings.len() {
-        return None;
-    }
-    let sizes: Vec<u32> = if fixed != 0 {
-        vec![fixed; count as usize]
-    } else {
-        stsz.get(12..12 + count as usize * 4)?
-            .chunks_exact(4)
-            .filter_map(|size| be_u32(size, 0))
-            .collect()
-    };
+    let sizes = sample_sizes(stsz, timings.len())?;
     let runs = entries(stsc, 4, 12)?;
     // Several sample descriptions would need their chunks kept apart.
     if runs.iter().any(|run| be_u32(run, 8) != Some(1)) {
@@ -837,13 +1061,37 @@ fn decoder_config(stsd: &[u8]) -> Option<(String, Vec<u8>, u32, u32)> {
             let hvcc = child(b"hvcC")?;
             Some((hevc_codec(&format, hvcc)?, hvcc.to_vec(), coded_width, coded_height))
         }
+        b"vp09" => {
+            // vpcC: version and flags, profile, level, bit depth in the high nibble.
+            let vpcc = child(b"vpcC")?;
+            let codec = format!("vp09.{:02}.{:02}.{:02}", vpcc.get(4)?, vpcc.get(5)?, vpcc.get(6)? >> 4);
+            Some((codec, Vec::new(), coded_width, coded_height))
+        }
+        b"av01" => {
+            let av1c = child(b"av1C")?;
+            Some((av1_codec(av1c)?, av1c.to_vec(), coded_width, coded_height))
+        }
         _ => None,
     }
 }
 
+/// `av01.<profile>.<level><tier>.<bit depth>` from an `av1C` (Matroska's
+/// CodecPrivate holds the same).
+pub(crate) fn av1_codec(av1c: &[u8]) -> Option<String> {
+    let first = *av1c.get(1)?;
+    let second = *av1c.get(2)?;
+    let tier = if second & 0x80 != 0 { "H" } else { "M" };
+    let depth = match (second & 0x40 != 0, second & 0x20 != 0) {
+        (true, true) => 12,
+        (true, false) => 10,
+        _ => 8,
+    };
+    Some(format!("av01.{}.{:02}{tier}.{depth:02}", first >> 5, first & 0x1f))
+}
+
 /// `hvc1.<space><profile>.<compat, bit-reversed>.<tier><level>.<constraints>`
 /// as in ISO/IEC 14496-15 Annex E.
-fn hevc_codec(format: &[u8; 4], hvcc: &[u8]) -> Option<String> {
+pub(crate) fn hevc_codec(format: &[u8; 4], hvcc: &[u8]) -> Option<String> {
     let first = *hvcc.get(1)?;
     let space = ["", "A", "B", "C"][usize::from(first >> 6)];
     let tier = if first & 0x20 != 0 { "H" } else { "L" };
@@ -905,6 +1153,30 @@ fn visual_tkhd(width: u32, height: u32) -> Vec<u8> {
     body
 }
 
+fn sound_tkhd() -> Vec<u8> {
+    let mut body = visual_tkhd(0, 0);
+    // version/flags 4, times 8, id 4, reserved 4, duration 4, reserved 8,
+    // layer 2, alternate group 2: the volume follows, full for sound.
+    body[36..38].copy_from_slice(&0x0100u16.to_be_bytes());
+    body
+}
+
+/// A version 0 `mvhd` body: rate and volume 1, the identity matrix.
+fn mvhd_body(timescale: u32) -> Vec<u8> {
+    let mut body = vec![0u8; 12];
+    body.extend_from_slice(&timescale.to_be_bytes());
+    body.extend_from_slice(&[0; 4]); // duration, patched
+    body.extend_from_slice(&0x0001_0000u32.to_be_bytes());
+    body.extend_from_slice(&0x0100u16.to_be_bytes());
+    body.extend_from_slice(&[0; 10]);
+    for cell in [0x0001_0000u32, 0, 0, 0, 0x0001_0000, 0, 0, 0, 0x4000_0000] {
+        body.extend_from_slice(&cell.to_be_bytes());
+    }
+    body.extend_from_slice(&[0; 24]);
+    body.extend_from_slice(&1u32.to_be_bytes()); // next track id, renumbered
+    body
+}
+
 fn mdhd(timescale: u32) -> Vec<u8> {
     let mut body = vec![0u8; 12];
     body.extend_from_slice(&timescale.to_be_bytes());
@@ -946,6 +1218,45 @@ fn avc1_stsd(encoded: &Encoded) -> Vec<u8> {
     let mut body = 1u32.to_be_bytes().to_vec();
     body.extend(boxed(b"avc1", &entry));
     full_box(b"stsd", 0, 0, &body)
+}
+
+fn mp4a_stsd(audio: &EncodedAudio) -> Vec<u8> {
+    let mut entry = vec![0u8; 6];
+    entry.extend_from_slice(&1u16.to_be_bytes()); // data reference index
+    entry.extend_from_slice(&[0; 8]);
+    entry.extend_from_slice(&audio.channels.to_be_bytes());
+    entry.extend_from_slice(&16u16.to_be_bytes()); // sample size
+    entry.extend_from_slice(&[0; 4]);
+    entry.extend_from_slice(&(audio.sample_rate.min(0xFFFF) << 16).to_be_bytes());
+    entry.extend(full_box(b"esds", 0, 0, &es_descriptor(&audio.config)));
+    let mut body = 1u32.to_be_bytes().to_vec();
+    body.extend(boxed(b"mp4a", &entry));
+    full_box(b"stsd", 0, 0, &body)
+}
+
+/// The `esds` ES_Descriptor for AAC (ISO/IEC 14496-1): MPEG-4 audio, the
+/// AudioSpecificConfig as its decoder-specific info.
+fn es_descriptor(config: &[u8]) -> Vec<u8> {
+    let tagged = |tag: u8, body: &[u8]| {
+        let mut out = vec![tag];
+        let mut length = body.len();
+        let mut bytes = vec![(length & 0x7f) as u8];
+        length >>= 7;
+        while length > 0 {
+            bytes.push(0x80 | (length & 0x7f) as u8);
+            length >>= 7;
+        }
+        out.extend(bytes.iter().rev());
+        out.extend_from_slice(body);
+        out
+    };
+    let mut decoder_config = vec![0x40, 0x15]; // MPEG-4 audio, audio stream
+    decoder_config.extend_from_slice(&[0; 3 + 4 + 4]); // buffer size, max and average bitrate
+    decoder_config.extend(tagged(0x05, config));
+    let mut es = vec![0, 1, 0]; // ES id 1, no flags
+    es.extend(tagged(0x04, &decoder_config));
+    es.extend(tagged(0x06, &[0x02]));
+    tagged(0x03, &es)
 }
 
 /// `(count, value)` pairs for consecutive equal values, as `stts`/`ctts`.
@@ -1265,6 +1576,12 @@ mod tests {
                 keyframes_ms: vec![0, 1000],
                 width: 16,
                 height: 16,
+                // The test sound's `mp4a` has no `esds`, so isn't known as AAC.
+                compatible: false,
+                container: "mp4",
+                // Frames 10…19 (20…29 bytes) and 20 sounds of 4 bytes in the
+                // first second, frames 20…24 and 10 sounds in the half after.
+                bytes_by_second: vec![0, (20..30).sum::<u64>() + 80, (20..35).sum::<u64>() + 120],
             })
         );
         assert!(out.starts_with(&boxed(b"ftyp", DEFAULT_FTYP)));
@@ -1340,6 +1657,7 @@ mod tests {
         let original = movie();
         let frames: Vec<Vec<u8>> = (0..10).map(|index| vec![0xE0 | index as u8; 7]).collect();
         let encoded = Encoded {
+            audio: None,
             width: 16,
             height: 28,
             avcc: vec![1, 0x64, 0, 0x1f, 0xff, 0xe0, 0],
@@ -1371,6 +1689,7 @@ mod tests {
     #[test]
     fn reordered_chunks_get_decode_times_and_composition_offsets() {
         let encoded = Encoded {
+            audio: None,
             width: 16,
             height: 16,
             avcc: vec![1, 0x64, 0, 0x1f],
@@ -1393,6 +1712,7 @@ mod tests {
     #[test]
     fn an_encoding_that_does_not_open_on_a_keyframe_is_refused() {
         let encoded = Encoded {
+            audio: None,
             width: 16,
             height: 16,
             avcc: vec![1, 0x64, 0, 0x1f],
@@ -1434,5 +1754,61 @@ mod tests {
         assert_eq!(with([0, one, minus, 0]), 90);
         assert_eq!(with([minus, 0, 0, minus]), 180);
         assert_eq!(with([0, minus, one, 0]), 270);
+    }
+
+    fn aac() -> EncodedAudio {
+        EncodedAudio {
+            sample_rate: 48_000,
+            channels: 2,
+            // AAC-LC, 48 kHz, stereo.
+            config: vec![0x11, 0x90],
+            chunks: (0..4).map(|_| EncodedChunk { size: 6, timestamp_us: 0, key: true }).collect(),
+        }
+    }
+
+    #[test]
+    fn an_aac_sample_entry_is_known_as_aac() {
+        assert!(is_aac(&mp4a_stsd(&aac())));
+        let mut other = mp4a_stsd(&aac());
+        let at = other.windows(2).position(|window| window == [0x40, 0x15]).expect("object type");
+        other[at] = 0x6B; // MP3
+        assert!(!is_aac(&other));
+    }
+
+    #[test]
+    fn re_encoded_video_and_sound_make_a_movie_of_their_own() {
+        let frames: Vec<Vec<u8>> = (0..10).map(|index| vec![0xE0 | index as u8; 7]).collect();
+        let aac_frames: Vec<Vec<u8>> = (0..4).map(|index| vec![0xA0 | index as u8; 6]).collect();
+        let encoded = Encoded {
+            width: 720,
+            height: 1280,
+            avcc: vec![1, 0x42, 0xE0, 0x1f, 0xff, 0xe0, 0],
+            chunks: (0..10)
+                .map(|index| EncodedChunk {
+                    size: 7,
+                    timestamp_us: index * 100_000,
+                    key: index == 0,
+                })
+                .collect(),
+            audio: Some(aac()),
+        };
+        let mut out = Vec::new();
+        let stored: Vec<u8> = frames.iter().chain(&aac_frames).flatten().copied().collect();
+        mux_encoded(&mut Cursor::new(stored), &encoded, &mut out).expect("mux").expect("muxed");
+
+        let movie = parsed(&out);
+        assert_eq!(sample_data(&out, movie.video().expect("video")), frames);
+        let track = sound(&movie);
+        assert_eq!(sample_data(&out, track), aac_frames);
+        assert_eq!(track.timescale, 48_000);
+        let points = trim_points(&mut Cursor::new(&out)).expect("points").expect("points");
+        assert!(points.compatible);
+        assert_eq!((points.width, points.height), (720, 1280));
+    }
+
+    #[test]
+    fn av1_codec_strings_carry_profile_level_tier_and_depth() {
+        assert_eq!(av1_codec(&[0x81, 0x08, 0x0C, 0]).as_deref(), Some("av01.0.08M.08"));
+        assert_eq!(av1_codec(&[0x81, 0x2D, 0xC0, 0]).as_deref(), Some("av01.1.13H.10"));
     }
 }

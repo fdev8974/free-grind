@@ -5,20 +5,22 @@ import { useTranslation } from "react-i18next";
 import {
 	MAX_CHAT_VIDEO_MS,
 	cropWidthFraction,
+	editBasis,
 	isLandscape,
 	loadTrimPoints,
 	setVideoEdit,
 	type PortraitMode,
 	type TrimPoints,
 } from "../../../services/videoEdit";
-import { canReencode } from "../../../services/videoReencode";
+import { MAX_CHAT_MEDIA_BYTES } from "../../../services/stagedVideoUpload";
+import { canReencode, estimateUploadBytes } from "../../../services/videoReencode";
 import { MediaToolButton, MediaToolDivider } from "./drawerUi";
 import { useFilmstrip } from "./useFilmstrip";
 
 const MIN_MS = 1000;
 const FILMSTRIP_FRAMES = 8;
-/** How far the filmstrip sits inside its track; labels may use that room. */
-const STRIP_INSET = 4;
+/** How far labels may reach past the filmstrip's ends (none: it fills its track). */
+const STRIP_INSET = 0;
 const LABEL_GAP = 8;
 /** The white edge of what gets sent, as the photo crop draws it; rounded like the sheet cards. */
 const FRAME_CLASS = "pointer-events-none absolute inset-0 rounded-[20px] border-[3px] border-white/60";
@@ -37,6 +39,15 @@ function formatTime(ms: number): string {
 }
 
 type Drag = { kind: "start" | "end" | "move"; pointerId: number; grabMs: number };
+/** A swipe on the zoomed timeline outside the selection; a tap jumps the selection there. */
+type Pan = { pointerId: number; downX: number; viewStart: number; atMs: number; moved: boolean };
+
+/** At most this many times the longest pick is shown at once, so the selection stays wide. */
+const ZOOM = 3;
+/** How close to the strip's ends a drag starts scrolling the timeline, in px. */
+const EDGE_ZONE = 32;
+/** The fastest edge scroll, in shown widths per second. */
+const EDGE_SPEED = 0.8;
 
 /**
  * The video step of the attachment, drawer and album sheets: a preview, a
@@ -50,12 +61,15 @@ export function VideoTrimmer({
 	src,
 	maxMs = MAX_CHAT_VIDEO_MS,
 	previewHeight = "40dvh",
+	maxBytes = MAX_CHAT_MEDIA_BYTES,
 	tools,
 }: {
 	file: File;
 	src: string;
 	maxMs?: number;
 	previewHeight?: string;
+	/** The upload's size limit; a pick estimated over it is flagged. */
+	maxBytes?: number;
 	/** More tool buttons (e.g. looping), in the row with the upright choice. */
 	tools?: ReactNode;
 }) {
@@ -68,6 +82,9 @@ export function VideoTrimmer({
 	const endLabelRef = useRef<HTMLSpanElement | null>(null);
 	const playheadRef = useRef<HTMLSpanElement | null>(null);
 	const dragRef = useRef<Drag | null>(null);
+	const panRef = useRef<Pan | null>(null);
+	// Where a drag's pointer is, for the edge scroll (see the effect below dragTo).
+	const pointerXRef = useRef<number | null>(null);
 	const cropDragRef = useRef<{ pointerId: number; grabX: number; downX: number } | null>(null);
 	const [points, setPoints] = useState<TrimPoints | null>(null);
 	const [startMs, setStartMs] = useState(0);
@@ -76,12 +93,40 @@ export function VideoTrimmer({
 	const [mode, setMode] = useState<PortraitMode["mode"]>("pad");
 	const [cropLeft, setCropLeft] = useState(0);
 	const [dragCursor, setDragCursor] = useState<"cursor-grabbing" | "cursor-ew-resize" | null>(null);
+	// Where the shown part of the timeline starts (see viewMs).
+	const [viewStart, setViewStart] = useState(0);
 
 	const durationMs = points?.durationMs ?? 0;
+	// A long video shows only part of itself, swiped through, rather than
+	// squeezing the selection to a sliver.
+	const viewMs = Number.isFinite(maxMs) && durationMs > maxMs * ZOOM ? maxMs * ZOOM : durationMs;
+	const zoomed = viewMs < durationMs;
+	const clampView = (at: number) => Math.max(0, Math.min(durationMs - viewMs, at));
 	const landscape = points ? isLandscape(points) : false;
 	const reencodes = landscape && canReencode();
 	const cropWidth = points ? cropWidthFraction(points) : 1;
-	const thumbs = useFilmstrip(src, durationMs, FILMSTRIP_FRAMES);
+	// About FILMSTRIP_FRAMES frames across the shown part, however long the video.
+	const slotMs = viewMs / FILMSTRIP_FRAMES;
+	const thumbs = useFilmstrip(src, durationMs, slotMs, viewStart, viewStart + viewMs);
+	// The whole video's filmstrip, each frame at its time; placed by the caller.
+	const filmstrip = (
+		<>
+			{[...thumbs].map(([slot, thumb]) => (
+				<img
+					key={slot}
+					src={thumb}
+					alt=""
+					draggable={false}
+					className="absolute inset-y-0 h-full object-cover"
+					style={{
+						left: `${((slot * slotMs) / durationMs) * 100}%`,
+						// A pixel over, so neighbours meet without a hairline gap.
+						width: `calc(${(slotMs / durationMs) * 100}% + 1px)`,
+					}}
+				/>
+			))}
+		</>
+	);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -91,6 +136,7 @@ export function VideoTrimmer({
 			setPoints(loaded);
 			setStartMs(0);
 			setEndMs(loaded ? Math.min(loaded.durationMs, maxMs) : 0);
+			setViewStart(0);
 			setMode("pad");
 			setCropLeft(loaded ? (1 - cropWidthFraction(loaded)) / 2 : 0);
 		});
@@ -112,8 +158,9 @@ export function VideoTrimmer({
 				: { mode: "pad" };
 		// Whole milliseconds: the upload takes them as integers.
 		const start = Math.round(startMs);
-		const edit = { startMs: start, maxMs: Math.round(endMs) - start, trim, portrait };
-		setVideoEdit(file, trim || portrait ? edit : null);
+		const basis = editBasis(points);
+		const edit = { startMs: start, maxMs: Math.round(endMs) - start, trim, portrait, ...basis };
+		setVideoEdit(file, trim || portrait || basis.transcode ? edit : null);
 	}, [file, points, startMs, endMs, landscape, reencodes, mode, cropLeft]);
 
 	const seekTo = useCallback((ms: number) => {
@@ -154,53 +201,140 @@ export function VideoTrimmer({
 		else video.pause();
 	};
 
+	// The selection never leaves the shown part of the timeline: times are
+	// held to it, and the view only moves when it's swiped.
+	const viewEnd = viewStart + viewMs;
 	const msAt = (clientX: number) => {
 		const rect = stripRef.current?.getBoundingClientRect();
-		if (!rect || rect.width === 0) return 0;
-		return Math.max(0, Math.min(durationMs, ((clientX - rect.left) / rect.width) * durationMs));
+		if (!rect || rect.width === 0) return viewStart;
+		return Math.max(viewStart, Math.min(viewEnd, viewStart + ((clientX - rect.left) / rect.width) * viewMs));
 	};
 
 	const dragTo = (drag: Drag, at: number) => {
 		if (drag.kind === "start") {
-			const next = Math.max(0, endMs - maxMs, Math.min(at, endMs - MIN_MS));
+			const next = Math.max(viewStart, endMs - maxMs, Math.min(at, endMs - MIN_MS));
 			setStartMs(next);
 			seekTo(next);
 		} else if (drag.kind === "end") {
-			const next = Math.min(durationMs, startMs + maxMs, Math.max(at, startMs + MIN_MS));
+			const next = Math.min(viewEnd, startMs + maxMs, Math.max(at, startMs + MIN_MS));
 			setEndMs(next);
 			seekTo(next);
 		} else {
 			const length = endMs - startMs;
-			const next = Math.max(0, Math.min(durationMs - length, at - drag.grabMs));
+			const next = Math.max(viewStart, Math.min(viewEnd - length, at - drag.grabMs));
 			setStartMs(next);
 			setEndMs(next + length);
 			seekTo(next);
 		}
 	};
 
+	// Held at either end of the strip, a drag scrolls the timeline on under the
+	// selection, which stays at that end and goes along through the video;
+	// faster the further into (or past) the end the pointer is.
+	const latest = useRef({ startMs, endMs, viewStart });
+	latest.current = { startMs, endMs, viewStart };
+	useEffect(() => {
+		if (!zoomed || !dragCursor) return;
+		let frame = 0;
+		let last = performance.now();
+		const step = (now: number) => {
+			const elapsed = Math.min(now - last, 50);
+			last = now;
+			frame = requestAnimationFrame(step);
+			const drag = dragRef.current;
+			const rect = stripRef.current?.getBoundingClientRect();
+			const x = pointerXRef.current;
+			if (!drag || !rect || x === null) return;
+			const intoLeft = rect.left + EDGE_ZONE - x;
+			const intoRight = x - (rect.right - EDGE_ZONE);
+			const direction = intoLeft > 0 && drag.kind !== "end" ? -1 : intoRight > 0 && drag.kind !== "start" ? 1 : 0;
+			if (direction === 0) return;
+			const depth = Math.min(2, Math.max(intoLeft, intoRight) / EDGE_ZONE);
+			const { startMs: start, endMs: end, viewStart: view } = latest.current;
+			const nextView = clampView(view + direction * depth * EDGE_SPEED * viewMs * (elapsed / 1000));
+			if (nextView === view) return;
+			let nextStart = start;
+			let nextEnd = end;
+			if (drag.kind === "move") {
+				nextStart = direction < 0 ? nextView : nextView + viewMs - (end - start);
+				nextEnd = nextStart + (end - start);
+			} else if (drag.kind === "start") {
+				nextStart = Math.max(nextView, end - maxMs);
+				// At its longest the selection can't follow; the view stays with it.
+				if (nextStart > nextView) return;
+			} else {
+				nextEnd = Math.min(nextView + viewMs, start + maxMs);
+				if (nextEnd < nextView + viewMs) return;
+			}
+			setViewStart(nextView);
+			setStartMs(nextStart);
+			setEndMs(nextEnd);
+			seekTo(drag.kind === "end" ? nextEnd : nextStart);
+		};
+		frame = requestAnimationFrame(step);
+		return () => cancelAnimationFrame(frame);
+	}, [zoomed, dragCursor, viewMs, maxMs, durationMs, seekTo]);
+
 	const onStripDown = (event: PointerEvent<HTMLDivElement>) => {
 		const handle = (event.target as HTMLElement).closest<HTMLElement>("[data-trim-handle]")?.dataset.trimHandle;
 		const at = msAt(event.clientX);
 		const inside = at >= startMs && at <= endMs;
+		event.currentTarget.setPointerCapture(event.pointerId);
+		videoRef.current?.pause();
+		// Zoomed, outside the selection swipes the timeline; a tap there jumps (onStripUp).
+		if (zoomed && !handle && !inside) {
+			panRef.current = { pointerId: event.pointerId, downX: event.clientX, viewStart, atMs: at, moved: false };
+			setDragCursor("cursor-grabbing");
+			return;
+		}
 		const kind = handle === "start" || handle === "end" ? handle : "move";
 		// Outside the selection it jumps there, centered on the pointer.
 		const drag: Drag = { kind, pointerId: event.pointerId, grabMs: inside ? at - startMs : (endMs - startMs) / 2 };
 		dragRef.current = drag;
 		setDragCursor(kind === "move" ? "cursor-grabbing" : "cursor-ew-resize");
-		event.currentTarget.setPointerCapture(event.pointerId);
-		videoRef.current?.pause();
 		if (kind === "move" && !inside) dragTo(drag, at);
 	};
 
 	const onStripMove = (event: PointerEvent<HTMLDivElement>) => {
+		const pan = panRef.current;
+		if (pan?.pointerId === event.pointerId) {
+			const width = stripRef.current?.clientWidth ?? 0;
+			const moved = event.clientX - pan.downX;
+			if (Math.abs(moved) > 4) pan.moved = true;
+			if (!pan.moved || width === 0) return;
+			const view = clampView(pan.viewStart - (moved / width) * viewMs);
+			setViewStart(view);
+			// The edge the view moves past pushes the selection along, keeping it in view.
+			const length = endMs - startMs;
+			const pushed = Math.max(view, Math.min(view + viewMs - length, startMs));
+			if (pushed !== startMs) {
+				setStartMs(pushed);
+				setEndMs(pushed + length);
+				seekTo(pushed);
+			}
+			return;
+		}
 		const drag = dragRef.current;
-		if (drag?.pointerId === event.pointerId) dragTo(drag, msAt(event.clientX));
+		if (drag?.pointerId === event.pointerId) {
+			pointerXRef.current = event.clientX;
+			dragTo(drag, msAt(event.clientX));
+		}
 	};
 
 	const onStripUp = (event: PointerEvent<HTMLDivElement>) => {
+		const pan = panRef.current;
+		if (pan?.pointerId === event.pointerId) {
+			panRef.current = null;
+			setDragCursor(null);
+			if (!pan.moved && event.type === "pointerup") {
+				dragTo({ kind: "move", pointerId: event.pointerId, grabMs: (endMs - startMs) / 2 }, pan.atMs);
+			}
+			return;
+		}
 		const drag = dragRef.current;
 		if (drag?.pointerId !== event.pointerId) return;
 		dragRef.current = null;
+		pointerXRef.current = null;
 		setDragCursor(null);
 	};
 
@@ -231,9 +365,27 @@ export function VideoTrimmer({
 		if (event.type === "pointerup" && Math.abs(event.clientX - drag.downX) < 4) togglePlay();
 	};
 
-	const percent = (ms: number) => `${durationMs > 0 ? (ms / durationMs) * 100 : 0}%`;
+	// Where on the shown part of the timeline a time sits; `span` is a length.
+	const percent = (ms: number) => `${viewMs > 0 ? ((ms - viewStart) / viewMs) * 100 : 0}%`;
+	const span = (ms: number) => `${viewMs > 0 ? (ms / viewMs) * 100 : 0}%`;
 	const selectedMs = endMs - startMs;
 	const atLimit = durationMs > maxMs && selectedMs >= maxMs - 50;
+	// What the pick will weigh as uploaded, told before anything is made.
+	const estimatedBytes = points
+		? estimateUploadBytes(
+				points,
+				{
+					startMs,
+					maxMs: selectedMs,
+					trim: true,
+					portrait: landscape ? (mode === "crop" && reencodes ? { mode: "crop", left: cropLeft } : { mode: "pad" }) : null,
+					...editBasis(points),
+				},
+				file.size,
+			)
+		: 0;
+	const tooLarge = estimatedBytes > maxBytes;
+	const megabytes = (bytes: number) => Math.ceil(bytes / (1024 * 1024));
 
 	// The start time sits under the frame's left edge, the end time under its
 	// right edge and the length in the middle; when the frame is too narrow
@@ -243,10 +395,10 @@ export function VideoTrimmer({
 		const start = startLabelRef.current;
 		const length = lengthLabelRef.current;
 		const end = endLabelRef.current;
-		if (!strip || !start || !length || !end || durationMs <= 0) return;
+		if (!strip || !start || !length || !end || viewMs <= 0) return;
 		const width = strip.clientWidth;
-		const frameLeft = (startMs / durationMs) * width;
-		const frameRight = (endMs / durationMs) * width;
+		const frameLeft = ((startMs - viewStart) / viewMs) * width;
+		const frameRight = ((endMs - viewStart) / viewMs) * width;
 		const lengthX = (frameLeft + frameRight) / 2 - length.offsetWidth / 2;
 		const startX = Math.min(frameLeft, lengthX - LABEL_GAP - start.offsetWidth);
 		const endX = Math.max(frameRight - end.offsetWidth, lengthX + length.offsetWidth + LABEL_GAP);
@@ -344,9 +496,9 @@ export function VideoTrimmer({
 
 			{points && (
 				<div className="w-full pt-1">
-				{/* A track as wide, tinted and rounded as the sheet's cards. The
-				    filmstrip sits 4px inside it and the frame on the filmstrip, both
-				    rounded to match, so every corner runs parallel to the track's. */}
+				{/* A track as wide and rounded as the sheet's cards, filled by the
+				    filmstrip; the frame sits on it, flush with its outer edge at either
+				    end, and its window rounded 3px less so the corners run parallel. */}
 				<div
 					onPointerDown={onStripDown}
 					onPointerMove={onStripMove}
@@ -354,39 +506,38 @@ export function VideoTrimmer({
 					onPointerCancel={onStripUp}
 					className={`relative h-16 touch-none select-none rounded-[20px] [background:color-mix(in_srgb,var(--sheet-bg,var(--surface))_93%,var(--text))] ${dragCursor ?? "cursor-grab"}`}
 				>
-				<div ref={stripRef} className="absolute inset-1">
-					<div className="absolute inset-0 flex overflow-hidden rounded-2xl bg-black/40">
-						{thumbs.map((thumb) => (
-							<img key={thumb} src={thumb} alt="" draggable={false} className="h-full min-w-0 flex-1 object-cover" />
-						))}
+				<div ref={stripRef} className="absolute inset-0">
+					<div className="absolute inset-0 overflow-hidden rounded-[20px] bg-black/40">
+						{/* The whole video's filmstrip, slid to the shown part. */}
+						<div className="absolute inset-y-0" style={{ left: span(-viewStart), width: span(durationMs) }}>
+							{filmstrip}
+						</div>
 					</div>
 					{/* Dimmed up to under the frame, so its rounded corners don't let
 					    the bright filmstrip peek out. */}
 					<div
-						className="absolute inset-y-0 left-0 rounded-l-2xl bg-black/65 backdrop-grayscale"
-						style={{ width: `calc(${percent(startMs)} + 16px)` }}
+						className="absolute inset-y-0 left-0 rounded-l-[20px] bg-black/65 backdrop-grayscale"
+						style={{ width: `calc(max(0%, ${percent(startMs)}) + 20px)` }}
 					/>
 					<div
-						className="absolute inset-y-0 right-0 rounded-r-2xl bg-black/65 backdrop-grayscale"
-						style={{ left: `calc(${percent(endMs)} - 16px)` }}
+						className="absolute inset-y-0 right-0 rounded-r-[20px] bg-black/65 backdrop-grayscale"
+						style={{ left: `calc(min(100%, ${percent(endMs)}) - 20px)` }}
 					/>
 					<div
-						className="absolute inset-y-0 rounded-2xl bg-[var(--accent)] p-[3px] shadow-[0_4px_14px_rgba(0,0,0,0.45),0_0_12px_color-mix(in_srgb,var(--accent)_35%,transparent)]"
-						style={{ left: percent(startMs), width: percent(selectedMs) }}
+						className="absolute inset-y-0 rounded-[20px] bg-[var(--accent)] p-[3px] shadow-[0_4px_14px_rgba(0,0,0,0.45),0_0_12px_color-mix(in_srgb,var(--accent)_35%,transparent)]"
+						style={{ left: percent(startMs), width: span(selectedMs) }}
 					>
 						{/* The picked part of the filmstrip again, clipped to the window's
 						    rounded corners on the frame's fill: one edge, so no seam. */}
-						<div className="pointer-events-none relative h-full w-full overflow-hidden rounded-[13px]">
+						<div className="pointer-events-none relative h-full w-full overflow-hidden rounded-[17px]">
 							<div
-								className="absolute inset-y-0 flex bg-black/40"
+								className="absolute inset-y-0 bg-black/40"
 								style={{
 									left: `${(-startMs / selectedMs) * 100}%`,
 									width: `${(durationMs / selectedMs) * 100}%`,
 								}}
 							>
-								{thumbs.map((thumb) => (
-									<img key={thumb} src={thumb} alt="" draggable={false} className="h-full min-w-0 flex-1 object-cover" />
-								))}
+								{filmstrip}
 							</div>
 							{/* The playhead, only while playing; its track is inset so the
 							    bar stays clear of the window's rounded corners. */}
@@ -426,11 +577,14 @@ export function VideoTrimmer({
 				</div>
 				</div>
 					{/* Start, length and end follow the frame (see layoutLabels). */}
-					<div className="relative mx-1 mt-2 h-4 text-xs tabular-nums">
+					<div className="relative mt-2 h-4 text-xs tabular-nums">
 						<span ref={startLabelRef} className="absolute top-0 whitespace-nowrap font-medium text-[var(--text)]">
 							{formatTime(startMs)}
 						</span>
-						<span ref={lengthLabelRef} className="absolute top-0 whitespace-nowrap text-[var(--text-muted)]">
+						<span
+							ref={lengthLabelRef}
+							className={`absolute top-0 whitespace-nowrap ${tooLarge ? "font-semibold text-red-400" : "text-[var(--text-muted)]"}`}
+						>
 							{atLimit
 								? t("chat.attachments.trim_length_max", {
 										defaultValue: "{{length}} s (max.)",
@@ -445,13 +599,35 @@ export function VideoTrimmer({
 							{formatTime(endMs)}
 						</span>
 					</div>
+					{tooLarge && (
+						<p className="mt-2 text-center text-xs text-red-400">
+							{t("chat.attachments.trim_too_large", {
+								defaultValue: "About {{size}} MB, over the {{max}} MB limit. Pick a shorter part.",
+								size: megabytes(estimatedBytes),
+								max: megabytes(maxBytes),
+							})}
+						</p>
+					)}
+					{zoomed && (
+						// Where the shown part and the selection sit in the whole video.
+						<div className="relative mt-2.5 h-1 overflow-hidden rounded-full ink-tint-8">
+							<div
+								className="absolute inset-y-0 rounded-full bg-[color-mix(in_srgb,var(--text)_28%,transparent)]"
+								style={{ left: `${(viewStart / durationMs) * 100}%`, width: `${(viewMs / durationMs) * 100}%` }}
+							/>
+							<div
+								className="absolute inset-y-0 rounded-full bg-[var(--accent)]"
+								style={{ left: `${(startMs / durationMs) * 100}%`, width: `max(4px, ${(selectedMs / durationMs) * 100}%)` }}
+							/>
+						</div>
+					)}
 				</div>
 			)}
 
 			{(reencodes || tools) && (
 				// The same round tool row as under a photo, centered in whatever
 				// room the sheet has left below the timeline.
-				<div className="my-auto flex items-center justify-center gap-3 py-2">
+				<div className="my-auto flex items-center justify-center gap-3 pt-2">
 					{reencodes && (
 						<>
 							<MediaToolButton

@@ -1,23 +1,31 @@
 /**
- * videoReencode.ts — turns a landscape video portrait for the official app,
- * which can't show landscape: the window's frames are decoded with WebCodecs,
- * drawn onto a 9:16 canvas (centered on black, or the picked full-height
- * crop), and encoded to H.264. Both run on the
- * platform's (usually hardware) codecs; JavaScript only moves frames along,
- * and they stay GPU-side as VideoFrames.
+ * videoReencode.ts — re-encodes a video into what the official app plays
+ * everywhere: H.264 (Baseline) video with AAC-LC sound, in MP4. Used for any
+ * video that isn't that already (HEVC, VP8/VP9/AV1, sound in another codec,
+ * Matroska/WebM), and for landscape ones, which the official app can't show:
+ * those are drawn onto a 9:16 canvas (centered on black, or the picked
+ * full-height crop).
  *
- * Rust hands over the window's encoded frames (video_decode_window) and puts
- * the result together with the original sound, copied as is
- * (upload_staged_chat_video with `edit.reencoded`, see media/video/trim.rs).
+ * Video: Rust hands over the window's encoded frames (video_decode_window,
+ * MP4 or Matroska), WebCodecs decodes them, frames outside the picked part
+ * are dropped and the rest drawn and encoded, on the platform's (usually
+ * hardware) codecs; they stay GPU-side as VideoFrames. Sound: the engine
+ * decodes the file's sound track (decodeAudioData, any container it plays)
+ * and AudioEncoder turns the picked part into AAC.
+ *
+ * Rust then writes the MP4 (upload_staged_chat_video with `edit.reencoded`,
+ * see media/video/trim.rs); without re-encoded sound it copies the
+ * original's, played from the picked start.
  */
 
 import { decode } from "@msgpack/msgpack";
 import { invoke } from "@tauri-apps/api/core";
 import { z } from "zod";
 
+import { ApiFunctionError } from "./apiHelpers";
 import { appendStaged, bytesToBase64, createStaged, discardStaged } from "./stagedVideoUpload";
 import { appLog } from "../utils/logger";
-import type { PortraitMode, VideoEdit } from "./videoEdit";
+import { loadTrimPoints, type PortraitMode, type TrimPoints, type VideoEdit } from "./videoEdit";
 
 const OUTPUT_WIDTH = 720;
 const OUTPUT_HEIGHT = 1280;
@@ -27,15 +35,32 @@ const BATCH_BYTES = 4 * 1024 * 1024;
 const FLUSH_BYTES = 2 * 1024 * 1024;
 // Frames in flight before the pipeline waits for the codecs to catch up.
 const MAX_QUEUED = 8;
-// Level 4.0 covers 720×1280 at 30 fps; High first, Baseline as the last resort.
-const ENCODER_CODECS = ["avc1.640028", "avc1.4D4028", "avc1.42E028"];
+// Baseline level 3.1 covers 720×1280 at 30 fps (3.0 stops at 720×576);
+// Constrained Baseline first, plain Baseline and Main 3.1 as fallbacks.
+const ENCODER_CODECS = ["avc1.42E01F", "avc1.42001F", "avc1.4D401F"];
+const AUDIO_CODEC = "mp4a.40.2";
+const AUDIO_SAMPLE_RATE = 48_000;
+const AUDIO_BITRATE = 128_000;
+// AudioData handed to the encoder at a time, in frames.
+const AUDIO_BLOCK = 4096;
+// decodeAudioData holds the whole sound track decoded; past this, the
+// original sound is copied (MP4) or left out (Matroska) instead.
+const MAX_AUDIO_SOURCE_BYTES = 512 * 1024 * 1024;
 
-/** The device can't re-encode this video; send it as it is (with a warning). */
+/** The device can't re-encode this video (send it as it is, if it can go). */
 export class ReencodeUnsupportedError extends Error {
 	constructor(reason: string) {
 		super(`Video can't be re-encoded here: ${reason}`);
 		this.name = "ReencodeUnsupportedError";
 	}
+}
+
+export interface ReencodedAudio {
+	sampleRate: number;
+	channels: number;
+	/** The encoder's AudioSpecificConfig, base64. */
+	config: string;
+	chunks: { size: number; timestampUs: number; key: boolean }[];
 }
 
 export interface ReencodedVideo {
@@ -45,6 +70,8 @@ export interface ReencodedVideo {
 	/** The encoder's avcC, base64. */
 	avcc: string;
 	chunks: { size: number; timestampUs: number; key: boolean }[];
+	/** Staged after the video's chunks; null when the original's is copied. */
+	audio: ReencodedAudio | null;
 }
 
 const batchSchema = z.object({
@@ -53,6 +80,8 @@ const batchSchema = z.object({
 	codedWidth: z.number(),
 	codedHeight: z.number(),
 	rotation: z.number(),
+	// Older binaries cut at the keyframe and had no lead.
+	leadUs: z.number().default(0),
 	total: z.number(),
 	samples: z.array(
 		z.object({
@@ -90,12 +119,24 @@ async function readBatch(stagedId: string, edit: VideoEdit, from: number): Promi
 	return unpacked == null ? null : batchSchema.parse(unpacked);
 }
 
-async function pickEncoderConfig(): Promise<VideoEncoderConfig | null> {
+/**
+ * The size the video goes out at: 720×1280 when it's turned upright, else
+ * its own (as shown) scaled down to fit 720×1280, in even pixels as H.264
+ * wants them.
+ */
+function outputSize(edit: VideoEdit): { width: number; height: number } {
+	if (edit.portrait) return { width: OUTPUT_WIDTH, height: OUTPUT_HEIGHT };
+	const scale = Math.min(1, OUTPUT_WIDTH / edit.width, OUTPUT_HEIGHT / edit.height);
+	const even = (value: number) => Math.max(2, Math.round((value * scale) / 2) * 2);
+	return { width: even(edit.width), height: even(edit.height) };
+}
+
+async function pickEncoderConfig(width: number, height: number): Promise<VideoEncoderConfig | null> {
 	for (const codec of ENCODER_CODECS) {
 		const config: VideoEncoderConfig = {
 			codec,
-			width: OUTPUT_WIDTH,
-			height: OUTPUT_HEIGHT,
+			width,
+			height,
 			bitrate: BITRATE,
 			framerate: 30,
 			avc: { format: "avc" },
@@ -114,9 +155,10 @@ function toBytes(source: AllowSharedBufferSource): Uint8Array {
 }
 
 /**
- * Draws `frame` turned upright onto the canvas: fitted on black (`pad`), or
- * scaled to the full height and shifted so the picked 9:16 frame fills it
- * (`crop`). Rotating around the frame's center keeps both independent of it.
+ * Draws `frame` turned upright onto the `width`×`height` canvas: fitted on
+ * black (`pad`, or no `portrait` at all), or scaled to the full height and
+ * shifted so the picked 9:16 frame fills it (`crop`). Rotating around the
+ * frame's center keeps both independent of it.
  */
 function drawPortrait(
 	context: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D,
@@ -124,27 +166,29 @@ function drawPortrait(
 	frameWidth: number,
 	frameHeight: number,
 	rotation: number,
-	portrait: PortraitMode,
+	portrait: PortraitMode | null,
+	width = OUTPUT_WIDTH,
+	height = OUTPUT_HEIGHT,
 ) {
 	const sideways = rotation === 90 || rotation === 270;
 	const shownWidth = sideways ? frameHeight : frameWidth;
 	const shownHeight = sideways ? frameWidth : frameHeight;
-	let scale = Math.min(OUTPUT_WIDTH / shownWidth, OUTPUT_HEIGHT / shownHeight);
-	let centerX = OUTPUT_WIDTH / 2;
-	if (portrait.mode === "crop") {
-		scale = OUTPUT_HEIGHT / shownHeight;
+	let scale = Math.min(width / shownWidth, height / shownHeight);
+	let centerX = width / 2;
+	if (portrait?.mode === "crop") {
+		scale = height / shownHeight;
 		const cropWidth = Math.min(shownWidth, (shownHeight * 9) / 16);
 		const cropCenter = Math.min(Math.max(portrait.left, 0), 1) * shownWidth + cropWidth / 2;
-		centerX = OUTPUT_WIDTH / 2 + (shownWidth / 2 - Math.min(cropCenter, shownWidth - cropWidth / 2)) * scale;
+		centerX = width / 2 + (shownWidth / 2 - Math.min(cropCenter, shownWidth - cropWidth / 2)) * scale;
 	}
 	context.fillStyle = "#000";
-	context.fillRect(0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+	context.fillRect(0, 0, width, height);
 	context.save();
-	context.translate(centerX, OUTPUT_HEIGHT / 2);
+	context.translate(centerX, height / 2);
 	context.rotate((rotation * Math.PI) / 180);
-	const width = frameWidth * scale;
-	const height = frameHeight * scale;
-	context.drawImage(frame, -width / 2, -height / 2, width, height);
+	const drawnWidth = frameWidth * scale;
+	const drawnHeight = frameHeight * scale;
+	context.drawImage(frame, -drawnWidth / 2, -drawnHeight / 2, drawnWidth, drawnHeight);
 	context.restore();
 }
 
@@ -191,50 +235,144 @@ export async function editPoster(file: File, edit: VideoEdit): Promise<string | 
 	}
 }
 
-function makeCanvas(): {
+function makeCanvas(width: number, height: number): {
 	canvas: OffscreenCanvas | HTMLCanvasElement;
 	context: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D;
 } | null {
 	if (typeof OffscreenCanvas !== "undefined") {
-		const canvas = new OffscreenCanvas(OUTPUT_WIDTH, OUTPUT_HEIGHT);
+		const canvas = new OffscreenCanvas(width, height);
 		const context = canvas.getContext("2d");
 		return context ? { canvas, context } : null;
 	}
 	const canvas = document.createElement("canvas");
-	canvas.width = OUTPUT_WIDTH;
-	canvas.height = OUTPUT_HEIGHT;
+	canvas.width = width;
+	canvas.height = height;
 	const context = canvas.getContext("2d");
 	return context ? { canvas, context } : null;
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 4));
 
+/** Whether this webview can encode AAC (Linux' WebKit, for one, can't). */
+async function aacConfig(channels: number): Promise<AudioEncoderConfig | null> {
+	if (typeof AudioEncoder === "undefined" || typeof AudioData === "undefined") return null;
+	const config: AudioEncoderConfig = {
+		codec: AUDIO_CODEC,
+		sampleRate: AUDIO_SAMPLE_RATE,
+		numberOfChannels: channels,
+		bitrate: AUDIO_BITRATE,
+	};
+	const support = await AudioEncoder.isConfigSupported(config).catch(() => null);
+	return support?.supported ? config : null;
+}
+
+/** The file's sound, decoded at 48 kHz; null when it has none the engine plays. */
+async function decodeSound(file: File): Promise<AudioBuffer | null> {
+	if (file.size > MAX_AUDIO_SOURCE_BYTES || typeof OfflineAudioContext === "undefined") return null;
+	try {
+		const context = new OfflineAudioContext(1, 1, AUDIO_SAMPLE_RATE);
+		return await context.decodeAudioData(await file.arrayBuffer());
+	} catch {
+		return null;
+	}
+}
+
 /**
- * Re-encodes the edit's window of the staged video to a 720×1280 portrait
- * H.264 stream, staged for upload_staged_chat_video. Throws
- * ReencodeUnsupportedError when this device can't decode or encode it.
+ * The picked part of the file's sound as AAC-LC frames (at most stereo),
+ * with their bytes; null when there's no sound or no AAC encoder.
  */
-export async function reencodePortrait(
+async function encodeSound(
+	file: File,
+	edit: VideoEdit,
+): Promise<{ audio: Omit<ReencodedAudio, "config"> & { config: Uint8Array }; data: Uint8Array[] } | null> {
+	const sound = await decodeSound(file);
+	if (!sound || sound.length === 0) return null;
+	const channels = Math.min(sound.numberOfChannels, 2);
+	const config = await aacConfig(channels);
+	if (!config) return null;
+
+	const from = Math.min(sound.length, Math.round((edit.startMs / 1000) * sound.sampleRate));
+	const to = Math.min(sound.length, from + Math.round((edit.maxMs / 1000) * sound.sampleRate));
+	if (to <= from) return null;
+
+	let failure: unknown = null;
+	let description: Uint8Array | null = null;
+	const chunks: ReencodedAudio["chunks"] = [];
+	const data: Uint8Array[] = [];
+	const encoder = new AudioEncoder({
+		output: (chunk, metadata) => {
+			const bytes = new Uint8Array(chunk.byteLength);
+			chunk.copyTo(bytes);
+			const config = metadata?.decoderConfig?.description;
+			if (config && !description) description = toBytes(config);
+			chunks.push({ size: bytes.length, timestampUs: chunk.timestamp, key: true });
+			data.push(bytes);
+		},
+		error: (error) => {
+			failure ??= error;
+		},
+	});
+	try {
+		encoder.configure(config);
+		const planes = Array.from({ length: channels }, (_, channel) => sound.getChannelData(channel));
+		for (let at = from; at < to && !failure; at += AUDIO_BLOCK) {
+			const frames = Math.min(AUDIO_BLOCK, to - at);
+			const block = new Float32Array(frames * channels);
+			planes.forEach((plane, channel) => block.set(plane.subarray(at, at + frames), channel * frames));
+			const audioData = new AudioData({
+				format: "f32-planar",
+				sampleRate: sound.sampleRate,
+				numberOfFrames: frames,
+				numberOfChannels: channels,
+				timestamp: Math.round(((at - from) / sound.sampleRate) * 1_000_000),
+				data: block,
+			});
+			encoder.encode(audioData);
+			audioData.close();
+			while (!failure && encoder.encodeQueueSize > MAX_QUEUED) await settle();
+		}
+		await encoder.flush();
+		if (failure) throw failure;
+	} catch (error) {
+		appLog.warn("[videoReencode] sound not re-encoded", error);
+		return null;
+	} finally {
+		if (encoder.state !== "closed") encoder.close();
+	}
+	// Set in the encoder's callback, which TypeScript doesn't follow.
+	const specificConfig = description as Uint8Array | null;
+	if (!specificConfig || chunks.length === 0) return null;
+	return { audio: { sampleRate: AUDIO_SAMPLE_RATE, channels, config: specificConfig, chunks }, data };
+}
+
+/**
+ * Re-encodes the edit's part of the staged video to H.264 (720×1280 upright
+ * for a landscape one, else its own size up to that) and its sound to AAC,
+ * staged for upload_staged_*_video. `file` is the same video, for its sound.
+ * Throws ReencodeUnsupportedError when this device can't decode or encode
+ * the picture.
+ */
+export async function reencodeVideo(
 	stagedId: string,
+	file: File,
 	edit: VideoEdit,
 	onProgress?: (fraction: number) => void,
 ): Promise<ReencodedVideo> {
-	const portrait = edit.portrait;
-	if (!portrait) throw new ReencodeUnsupportedError("not landscape");
 	if (!canReencode()) throw new ReencodeUnsupportedError("no WebCodecs");
 	const first = await readBatch(stagedId, edit, 0);
 	if (!first) throw new ReencodeUnsupportedError("codec not supported");
 	const decoderConfig: VideoDecoderConfig = {
 		codec: first.codec,
-		description: first.description,
+		...(first.description.length > 0 ? { description: first.description } : {}),
 		codedWidth: first.codedWidth,
 		codedHeight: first.codedHeight,
 	};
 	const decodable = await VideoDecoder.isConfigSupported(decoderConfig).catch(() => null);
 	if (!decodable?.supported) throw new ReencodeUnsupportedError(`can't decode ${first.codec}`);
-	const encoderConfig = await pickEncoderConfig();
+	const size = outputSize(edit);
+	const encoderConfig = await pickEncoderConfig(size.width, size.height);
 	if (!encoderConfig) throw new ReencodeUnsupportedError("no H.264 encoder");
-	const drawing = makeCanvas();
+	const drawing = makeCanvas(size.width, size.height);
 	if (!drawing) throw new ReencodeUnsupportedError("no canvas");
 
 	const outputId = await createStaged();
@@ -259,6 +397,11 @@ export async function reencodePortrait(
 		pendingBytes = 0;
 		writes = writes.then(() => appendStaged(outputId, joined));
 	};
+	const stage = (data: Uint8Array) => {
+		pending.push(data);
+		pendingBytes += data.length;
+		if (pendingBytes >= FLUSH_BYTES) flushPending();
+	};
 
 	const encoder = new VideoEncoder({
 		output: (chunk, metadata) => {
@@ -267,9 +410,7 @@ export async function reencodePortrait(
 			const description = metadata?.decoderConfig?.description;
 			if (description && !avcc) avcc = toBytes(description);
 			chunks.push({ size: data.length, timestampUs: chunk.timestamp, key: chunk.type === "key" });
-			pending.push(data);
-			pendingBytes += data.length;
-			if (pendingBytes >= FLUSH_BYTES) flushPending();
+			stage(data);
 		},
 		error: (error) => {
 			failure ??= error;
@@ -277,17 +418,32 @@ export async function reencodePortrait(
 	});
 	encoder.configure(encoderConfig);
 
+	// Only the picked part is kept, timed from its start; the frames before
+	// it are decoded just to get there.
+	const keepFrom = first.leadUs;
+	const keepUntil = first.leadUs + edit.maxMs * 1000;
 	let lastKeyUs = Number.NEGATIVE_INFINITY;
 	const decoder = new VideoDecoder({
 		output: (frame) => {
 			try {
-				drawPortrait(drawing.context, frame, frame.displayWidth, frame.displayHeight, first.rotation, portrait);
+				if (frame.timestamp < keepFrom || frame.timestamp >= keepUntil) return;
+				const timestamp = frame.timestamp - keepFrom;
+				drawPortrait(
+					drawing.context,
+					frame,
+					frame.displayWidth,
+					frame.displayHeight,
+					first.rotation,
+					edit.portrait,
+					size.width,
+					size.height,
+				);
 				const drawn = new VideoFrame(drawing.canvas, {
-					timestamp: frame.timestamp,
+					timestamp,
 					...(frame.duration != null ? { duration: frame.duration } : {}),
 				});
-				const keyFrame = frame.timestamp - lastKeyUs >= KEYFRAME_EVERY_US;
-				if (keyFrame) lastKeyUs = frame.timestamp;
+				const keyFrame = timestamp - lastKeyUs >= KEYFRAME_EVERY_US;
+				if (keyFrame) lastKeyUs = timestamp;
 				encoder.encode(drawn, { keyFrame });
 				drawn.close();
 			} catch (error) {
@@ -303,6 +459,8 @@ export async function reencodePortrait(
 	decoder.configure(decoderConfig);
 
 	try {
+		// The sound is decoded while the picture is; both are staged once done.
+		const sound = encodeSound(file, edit);
 		let batch: Batch | null = first;
 		let from = 0;
 		while (batch && batch.samples.length > 0) {
@@ -327,15 +485,21 @@ export async function reencodePortrait(
 		await decoder.flush();
 		await encoder.flush();
 		if (failure) throw failure;
+		if (!avcc || chunks.length === 0) throw new ReencodeUnsupportedError("the encoder produced nothing");
+		const encodedSound = await sound;
+		if (encodedSound) encodedSound.data.forEach(stage);
+		else appLog.warn("[videoReencode] sound kept as it is (or there is none)");
 		flushPending();
 		await writes;
-		if (!avcc || chunks.length === 0) throw new ReencodeUnsupportedError("the encoder produced nothing");
 		return {
 			stagedId: outputId,
-			width: OUTPUT_WIDTH,
-			height: OUTPUT_HEIGHT,
+			width: size.width,
+			height: size.height,
 			avcc: bytesToBase64(avcc),
 			chunks,
+			audio: encodedSound
+				? { ...encodedSound.audio, config: bytesToBase64(encodedSound.audio.config) }
+				: null,
 		};
 	} catch (error) {
 		await writes.catch(() => undefined);
@@ -349,6 +513,47 @@ export async function reencodePortrait(
 	}
 }
 
+// What a file carries besides its media (headers, sample tables), on top.
+const CONTAINER_OVERHEAD = 64 * 1024;
+
+/**
+ * About how large the upload of `file` with `edit` will be, before any of it
+ * is made: a re-encoding at its bitrates (with some room), a lossless cut
+ * from the media bytes Rust counted per second (see TrimPoints), from its
+ * keyframe on. Whole seconds make it a little generous, never short.
+ */
+export function estimateUploadBytes(points: TrimPoints, edit: VideoEdit | null, fileSize: number): number {
+	if (!edit) return fileSize;
+	if ((edit.portrait || edit.transcode) && canReencode()) {
+		const seconds = edit.maxMs / 1000;
+		return Math.round(((BITRATE + AUDIO_BITRATE) / 8) * seconds * 1.05) + CONTAINER_OVERHEAD;
+	}
+	const index = points.bytesBySecond;
+	if (index.length < 2) {
+		return Math.round(fileSize * Math.min(1, edit.maxMs / Math.max(1, points.durationMs)));
+	}
+	const keyframe = points.keyframesMs.reduce((latest, at) => (at <= edit.startMs ? at : latest), 0);
+	const from = Math.min(index.length - 1, Math.floor(keyframe / 1000));
+	const to = Math.min(index.length - 1, Math.ceil((edit.startMs + edit.maxMs) / 1000));
+	return Math.round((index[to] - index[from]) * 1.01) + CONTAINER_OVERHEAD;
+}
+
+/**
+ * Throws `tooLargeMessage` (as an ApiFunctionError, shown as it is) when the
+ * upload would come out over `maxBytes`, so it's refused before anything is
+ * staged or sent.
+ */
+export async function assertUploadFits(
+	file: File,
+	edit: VideoEdit | null | undefined,
+	maxBytes: number,
+	tooLargeMessage: string,
+): Promise<void> {
+	const points = await loadTrimPoints(file);
+	const estimate = points ? estimateUploadBytes(points, edit ?? null, file.size) : file.size;
+	if (estimate > maxBytes) throw new ApiFunctionError(tooLargeMessage, 413, null);
+}
+
 /** What upload_staged_*_video takes as `edit`. */
 export interface StagedEdit {
 	startMs: number;
@@ -357,24 +562,39 @@ export interface StagedEdit {
 }
 
 /**
- * Turns `edit` into the upload's cut, re-encoding the staged video upright
- * first when it's landscape. Where this device can't, `onLandscapeKept`
- * runs and the video goes on landscape. Null when nothing needs cutting.
+ * A video this device can neither re-encode nor send as it is (Matroska);
+ * an ApiFunctionError so the upload passes its message on as it is.
+ */
+export class VideoNotSendableError extends ApiFunctionError {
+	constructor(message: string) {
+		super(message, 0, null);
+		this.name = "VideoNotSendableError";
+	}
+}
+
+/**
+ * Turns `edit` into the upload's cut, re-encoding the staged video first
+ * when it's landscape or not H.264 with AAC. Where this device can't, an MP4
+ * goes on as it is (`onLandscapeKept` runs for a landscape one), and a
+ * Matroska file can't go at all (VideoNotSendableError with
+ * `notSendableMessage`). Null when nothing needs cutting.
  */
 export async function stagedEdit(
 	stagedId: string,
+	file: File,
 	edit: VideoEdit | null | undefined,
-	onLandscapeKept?: () => void,
+	options: { onLandscapeKept?: () => void; notSendableMessage: string },
 ): Promise<StagedEdit | null> {
 	if (!edit) return null;
 	let reencoded: ReencodedVideo | null = null;
-	if (edit.portrait) {
+	if (edit.portrait || edit.transcode) {
 		try {
-			reencoded = await reencodePortrait(stagedId, edit);
+			reencoded = await reencodeVideo(stagedId, file, edit);
 		} catch (error) {
 			if (!(error instanceof ReencodeUnsupportedError)) throw error;
-			appLog.warn("[videoReencode] landscape video sent as it is", error);
-			onLandscapeKept?.();
+			if (edit.matroska) throw new VideoNotSendableError(options.notSendableMessage);
+			appLog.warn("[videoReencode] video sent as it is", error);
+			if (edit.portrait) options.onLandscapeKept?.();
 		}
 	}
 	return edit.trim || reencoded ? { startMs: edit.startMs, maxMs: edit.maxMs, reencoded } : null;

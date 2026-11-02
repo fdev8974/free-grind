@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { VideoTrimmer } from "./VideoTrimmer";
+import { VideoFormatsButton } from "./VideoFormatsSheet";
 import { BananaFilled, BellOffFilled, StickerFilled, CameraPlusFilled, EyeFilled, MicFilled, EyeOffFilled, ImagesFilled, MapPinFilled, MessageCircleXFilled, MessageSquareQuoteFilled, PencilLineFilled, SendHorizontalFilled, ShieldCheckFilled, UserFilled, VideoOffFilled } from "../../../components/icons/FilledIcons";
 import { useTranslation } from "react-i18next";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -2885,11 +2886,14 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							isDesktop={isDesktop}
 							bg={NATIVE_SHEET_BG}
 							headerActions={
-								<AddToDrawerChip
-									checked={attachmentAddToDrawer}
-									onChange={setAttachmentAddToDrawer}
-									disabled={isUploadingAttachment}
-								/>
+								<>
+									{pendingAttachmentFile.type.startsWith("video/") && <VideoFormatsButton isDesktop={isDesktop} />}
+									<AddToDrawerChip
+										checked={attachmentAddToDrawer}
+										onChange={setAttachmentAddToDrawer}
+										disabled={isUploadingAttachment}
+									/>
+								</>
 							}
 							footerLeft={
 								pendingAttachmentFile.type.startsWith("video/") ? (
@@ -2913,7 +2917,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							<div className="min-h-0 flex-1 overflow-y-auto" data-lenis-prevent>
 							{attachmentPreviewUrl && (
 								pendingAttachmentFile.type.startsWith("video/") ? (
-									<div className="flex min-h-full flex-col px-4 pb-3">
+									<div className="flex min-h-full flex-col px-4">
 										<VideoTrimmer
 											file={pendingAttachmentFile}
 											src={attachmentPreviewUrl}
@@ -2929,7 +2933,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 										/>
 									</div>
 								) : (
-									<div className="flex min-h-full flex-col px-4 pb-3">
+									<div className="flex min-h-full flex-col px-4">
 										<div className="flex justify-center">
 											<style>{`
 												@keyframes attach-logo-shine { 0%, 100% { filter: drop-shadow(0 0 2px rgba(255,140,0,0.3)) brightness(1); } 50% { filter: drop-shadow(0 0 7px rgba(255,140,0,0.95)) brightness(1.25); } }
@@ -2978,7 +2982,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											</div>
 										</div>
 										{/* Centered in the room left above the footer, as under a video. */}
-										<div className="my-auto flex items-center justify-center gap-3 pt-3 pb-2">
+										<div className="my-auto flex items-center justify-center gap-3 pt-3">
 											<MediaToolButton icon={<SquareCenterlineDashedHorizontal />} label="Flip horizontal" onClick={() => void applyAttachmentTransform("flipH")} />
 											<MediaToolButton icon={<RotateCw />} label="Rotate clockwise" onClick={() => void applyAttachmentTransform("rotateCw")} />
 											<MediaToolDivider />

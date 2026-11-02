@@ -1,4 +1,5 @@
 pub mod boxes;
+pub mod matroska;
 pub mod probe;
 pub mod sniff;
 pub mod strip;

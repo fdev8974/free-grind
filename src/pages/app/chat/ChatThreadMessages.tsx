@@ -1,5 +1,6 @@
 import { MapPinFilled } from "../../../components/icons/FilledIcons";
-import { Album, Ban, Copy, Download, Eye, History, Hourglass, ImagePlay, Images, Languages, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
+import { Album, Ban, CircleAlert, Copy, Download, Eye, History, Hourglass, ImagePlay, Images, Languages, Loader2, Lock, MessageCircleQuestion, MessageSquarePlus, Mic, MoreVertical, PhoneOff, Play, Repeat2, Reply, RotateCw, ShieldCheck, Trash2, Undo2, Video, VideoOff, ImageOff } from "lucide-react";
+import { sentMediaEcho } from "./sentMediaEchoes";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
 import { createPortal } from "react-dom";
 import { MapLocationPreview } from "../gridpage/components/MapLocationPreview";
@@ -1539,7 +1540,7 @@ export function ChatThreadMessages({
                         (!isLatestShare || !msgBody?.isViewable);
 
                     return (
-                    <Fragment key={message.messageId}>
+                    <Fragment key={sentMediaEcho(message.messageId)?.key ?? message.messageId}>
                         <div
                             data-message-id={message.messageId}
                             ref={(element) => {
@@ -1994,19 +1995,13 @@ export function ChatThreadMessages({
                                                     <div className="js-video-spinner pointer-events-none absolute inset-0 flex items-center justify-center">
                                                         <Loader2 className="h-5 w-5 animate-spin text-white/60" />
                                                     </div>
-{message.localPoster ? (
-                                                        // Uploading: a still of the trimmed, upright part being sent.
-                                                        <img
-                                                            src={message.localPoster}
-                                                            alt=""
-                                                            onLoad={(e) => {
-                                                                const spinner = e.currentTarget.parentElement?.querySelector<HTMLElement>(".js-video-spinner");
-                                                                if (spinner) spinner.style.display = "none";
-                                                            }}
-                                                            className={`w-full object-cover ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"}`}
-                                                        />
-                                                    ) : (
-                                                                                                        <video
+                                                    {(() => {
+                                                        // While uploading, and after until the video's own first
+                                                        // frame is there: the still of what was sent, which also
+                                                        // holds the bubble's size (see sentMediaEchoes).
+                                                        const poster = message.localPoster ?? sentMediaEcho(message.messageId)?.poster;
+                                                        if (!poster) return (
+                                                    <video
                                                         preload="metadata"
                                                         muted
                                                         src={proxyMediaUrl(videoUrl, { as: "video" })}
@@ -2022,7 +2017,38 @@ export function ChatThreadMessages({
                                                         }}
                                                         className={`w-full object-cover opacity-0 ${PRIVACY_BLUR_TRANSITION_CLASS} ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"} ${mediaBlurClassName}`}
                                                     />
-                                                    )}
+                                                        );
+                                                        return (
+                                                            <>
+                                                                <img
+                                                                    src={poster}
+                                                                    alt=""
+                                                                    onLoad={(e) => {
+                                                                        const spinner = e.currentTarget.parentElement?.querySelector<HTMLElement>(".js-video-spinner");
+                                                                        if (spinner) spinner.style.display = "none";
+                                                                    }}
+                                                                    className={`w-full object-cover ${isVideoOnlyBubble ? "max-h-80" : "max-h-64"}`}
+                                                                />
+                                                                {!pending && !failed && (
+                                                                    <video
+                                                                        preload="metadata"
+                                                                        muted
+                                                                        src={proxyMediaUrl(videoUrl, { as: "video" })}
+                                                                        // A new source (the cached copy, say) fades in again over the still.
+                                                                        onLoadStart={(e) => { e.currentTarget.style.opacity = "0"; }}
+                                                                        onLoadedMetadata={(e) => { (e.currentTarget as HTMLVideoElement).currentTime = 0.001; }}
+                                                                        onSeeked={(e) => {
+                                                                            const el = e.currentTarget;
+                                                                            el.style.opacity = "1";
+                                                                            const badge = el.parentElement?.querySelector<HTMLElement>(".js-video-play-badge");
+                                                                            if (badge) badge.style.opacity = "1";
+                                                                        }}
+                                                                        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-200"
+                                                                    />
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
                                                     {isLimitedVideo && (
                                                         videoMaxViews === 1 ? (
                                                             <MediaBadge icon={<Eye className="h-3.5 w-3.5" />} label={t("chat.attachments.view_once")} />
@@ -2412,13 +2438,21 @@ export function ChatThreadMessages({
                                     ) : null}
 
                                     {failed ? (
-                                        <button
-                                            type="button"
-                                            onClick={(event) => { event.stopPropagation(); handleRetry(message); }}
-                                            className="mt-1 rounded-lg bg-[color-mix(in_srgb,var(--surface)_72%,transparent)] px-2 py-1 text-[11px] font-semibold"
-                                        >
-                                            {t("chat.retry")}
-                                        </button>
+                                        // Under the bubble, on its side: what went wrong and the way out, hard to miss.
+                                        <div className={`mt-1.5 flex w-full items-center gap-2 ${mine ? "justify-end" : "justify-start"}`}>
+                                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-400">
+                                                <CircleAlert className="h-3.5 w-3.5" />
+                                                {t("chat.not_sent", { defaultValue: "Not sent" })}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={(event) => { event.stopPropagation(); handleRetry(message); }}
+                                                className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition active:scale-95 hover:bg-red-600"
+                                            >
+                                                <RotateCw className="h-3.5 w-3.5" strokeWidth={2.5} />
+                                                {t("chat.retry")}
+                                            </button>
+                                        </div>
                                     ) : null}
                                 </div>
 

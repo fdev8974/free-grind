@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { NATIVE_SHEET_BG } from "../../../components/ui/action-sheet";
 import { BottomDrawer } from "../../../components/ui/bottom-drawer";
+import { VideoFormatsButton } from "../chat/VideoFormatsSheet";
 import { VideoTrimmer } from "../chat/VideoTrimmer";
 
 /**
@@ -38,6 +39,7 @@ export function AlbumVideoEditSheet({
 			onConfirm={() => onDone(true)}
 			confirmLabel={t("settings_albums.add_video", { defaultValue: "Add to album" })}
 			isDesktop={isDesktop}
+			headerActions={<VideoFormatsButton isDesktop={isDesktop} />}
 			bg={NATIVE_SHEET_BG}
 			zIndex="z-[70]"
 		>

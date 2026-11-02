@@ -151,6 +151,7 @@ import { sendUploadedChatMedia, uploadChatMediaFile } from "../../services/chatM
 import { MAX_CHAT_MEDIA_BYTES } from "../../services/stagedVideoUpload";
 import { resolveVideoEdit } from "../../services/videoEdit";
 import { editPoster } from "../../services/videoReencode";
+import { rememberSentMedia } from "./chat/sentMediaEchoes";
 import { TakenOnGrindrBadge } from "./chat/TakenOnGrindrBadge";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
@@ -5796,6 +5797,9 @@ export function ChatPage() {
 				});
 
 				if (!retry) setReplyTargetMessageId(null);
+				// The bubble stays the same one (key, still) as it turns into the sent message.
+				const [objectUrl, poster] = urls;
+				rememberSentMedia(sentMessage.messageId, localMessageId, poster);
 				setThreadMessages((previous) => {
 					const merged = previous
 						.filter((message) => message.messageId !== localMessageId)
@@ -5807,7 +5811,7 @@ export function ChatPage() {
 					return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
 				});
 
-				for (const url of urls) URL.revokeObjectURL(url);
+				if (objectUrl) URL.revokeObjectURL(objectUrl);
 
 				if (selectedConversation) {
 					syncConversation((conversation) => ({

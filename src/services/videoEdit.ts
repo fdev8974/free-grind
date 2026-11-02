@@ -7,9 +7,11 @@
  * works out the default for a file that never went through the editor (the
  * share sheet, say).
  *
- * The cut itself happens Rust-side (src-tauri/src/media/video/trim.rs): a
- * portrait video is cut losslessly at a keyframe, a landscape one is first
- * re-encoded upright (videoReencode.ts).
+ * What goes out is always MP4 with H.264 video and AAC sound. A portrait
+ * video that is that already is cut losslessly Rust-side
+ * (src-tauri/src/media/video/trim.rs); anything else (HEVC, other sound,
+ * landscape, Matroska/WebM) is re-encoded in the webview first
+ * (videoReencode.ts).
  */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -23,6 +25,10 @@ const trimPointsSchema = z.object({
 	keyframesMs: z.array(z.number()),
 	width: z.number(),
 	height: z.number(),
+	// Older binaries only knew MP4 and didn't say.
+	compatible: z.boolean().default(true),
+	container: z.enum(["mp4", "matroska"]).default("mp4"),
+	bytesBySecond: z.array(z.number()).default([]),
 });
 
 export type TrimPoints = z.infer<typeof trimPointsSchema>;
@@ -37,17 +43,61 @@ export type PortraitMode = { mode: "pad" } | { mode: "crop"; left: number };
 /**
  * `startMs`/`maxMs`: the window to send. `trim`: that window is less than
  * the whole video, so it gets cut. `portrait`: the video is landscape and
- * gets re-encoded upright, as the mode says.
+ * gets re-encoded upright, as the mode says. `transcode`: it isn't H.264
+ * with AAC sound, so it gets re-encoded either way. `matroska`: it can't go
+ * out any other way. `width`/`height`: its size as shown.
  */
 export interface VideoEdit {
 	startMs: number;
 	maxMs: number;
 	trim: boolean;
 	portrait: PortraitMode | null;
+	transcode: boolean;
+	matroska: boolean;
+	width: number;
+	height: number;
+}
+
+/** The parts of a VideoEdit that come from the video itself. */
+export function editBasis(points: TrimPoints): Pick<VideoEdit, "transcode" | "matroska" | "width" | "height"> {
+	return {
+		transcode: !points.compatible,
+		matroska: points.container === "matroska",
+		width: points.width,
+		height: points.height,
+	};
 }
 
 // A `moov` box beyond this is not one we'd parse anyway.
 const MAX_MOOV_BYTES = 64 * 1024 * 1024;
+// A Matroska file's info and tracks come first, well within this.
+const MATROSKA_HEAD_BYTES = 4 * 1024 * 1024;
+const EBML_MAGIC = [0x1a, 0x45, 0xdf, 0xa3];
+
+/** What Rust reads the trim points from: the `moov` box, or a Matroska head. */
+async function readHead(file: File): Promise<Uint8Array | null> {
+	const magic = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+	if (EBML_MAGIC.every((byte, index) => magic[index] === byte)) {
+		return new Uint8Array(await file.slice(0, MATROSKA_HEAD_BYTES).arrayBuffer());
+	}
+	return readMoov(file);
+}
+
+/** The length the webview's player reads, for a file that doesn't say. */
+function measuredDurationMs(file: File): Promise<number> {
+	return new Promise((resolve) => {
+		const video = document.createElement("video");
+		const url = URL.createObjectURL(file);
+		const done = (ms: number) => {
+			URL.revokeObjectURL(url);
+			resolve(ms);
+		};
+		video.preload = "metadata";
+		video.onloadedmetadata = () => done(Number.isFinite(video.duration) ? Math.round(video.duration * 1000) : 0);
+		video.onerror = () => done(0);
+		video.src = url;
+	});
+}
 
 /**
  * The file's top-level `moov` box, found by reading only box headers, so a
@@ -92,11 +142,14 @@ export function loadTrimPoints(file: File): Promise<TrimPoints | null> {
 	let points = pointsByFile.get(file);
 	if (!points) {
 		points = (async () => {
-			const moov = await readMoov(file);
-			if (!moov) return null;
+			const head = await readHead(file);
+			if (!head) return null;
 			try {
-				const result = await invoke<unknown>("video_trim_points", moov);
-				return result == null ? null : trimPointsSchema.parse(result);
+				const result = await invoke<unknown>("video_trim_points", head);
+				if (result == null) return null;
+				const parsed = trimPointsSchema.parse(result);
+				if (parsed.durationMs === 0) parsed.durationMs = await measuredDurationMs(file);
+				return parsed.durationMs > 0 ? parsed : null;
 			} catch {
 				return null;
 			}
@@ -116,14 +169,16 @@ export function cropWidthFraction(points: Pick<TrimPoints, "width" | "height">):
 }
 
 /**
- * The edit a video needs when nobody picked one: its first `maxMs`, and
- * upright on black bars when it's landscape (nothing of it gets lost).
+ * The edit a video needs when nobody picked one: its first `maxMs`, upright
+ * on black bars when it's landscape (nothing of it gets lost), re-encoded
+ * when it isn't H.264 with AAC.
  */
 export function defaultVideoEdit(points: TrimPoints, maxMs = MAX_CHAT_VIDEO_MS): VideoEdit | null {
 	const trim = points.durationMs > maxMs;
 	const portrait: PortraitMode | null = isLandscape(points) ? { mode: "pad" } : null;
-	if (!trim && !portrait) return null;
-	return { startMs: 0, maxMs: Math.min(maxMs, points.durationMs), trim, portrait };
+	const basis = editBasis(points);
+	if (!trim && !portrait && !basis.transcode) return null;
+	return { startMs: 0, maxMs: Math.min(maxMs, points.durationMs), trim, portrait, ...basis };
 }
 
 const editsByFile = new WeakMap<File, VideoEdit>();
