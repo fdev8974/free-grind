@@ -54,6 +54,9 @@ export function useOwnDrawerMedia() {
 			]);
 			const withCounts = items.map((item) => ({ ...item, sendCount: sendCounts.get(item.id) ?? 0 }));
 			cacheDrawerMedia(items);
+			// Same as the chat drawer: what the server no longer serves shouldn't
+			// linger in the local cache (or end up re-uploaded from a backup).
+			void chatDb.deleteStaleDrawerMediaFiles(items.map((item) => getDrawerMediaKey(item.id)));
 			setDrawerMedia(
 				sortDrawerMediaByFrequency ? sortDrawerMediaByUsage(withCounts) : withCounts,
 			);

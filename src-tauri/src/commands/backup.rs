@@ -78,6 +78,33 @@ struct TableSpec {
     category: &'static str,
     columns: &'static [&'static str],
     blob_columns: &'static [&'static str],
+    /// Splits a table across categories: only rows matching `where_sql`, stored
+    /// in their own archive entry `tables/<name>.<suffix>.jsonl`. A table split
+    /// this way is listed once per part.
+    filter: Option<RowFilter>,
+}
+
+#[derive(Clone, Copy)]
+struct RowFilter {
+    suffix: &'static str,
+    where_sql: &'static str,
+    /// Archives from before the split hold the whole table in the plain
+    /// `tables/<name>.jsonl`; exactly one part reads that instead.
+    reads_unsplit: bool,
+}
+
+impl TableSpec {
+    /// Names this part in the archive and the manifest's row counts.
+    fn entry_key(&self) -> String {
+        match self.filter {
+            Some(filter) => format!("{}.{}", self.name, filter.suffix),
+            None => self.name.to_string(),
+        }
+    }
+
+    fn entry_name(&self) -> String {
+        format!("tables/{}.jsonl", self.entry_key())
+    }
 }
 
 /// Mirrors `FULL_EXPORT_TABLES` in `src/services/chatDb.ts` exactly, including
@@ -108,6 +135,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
             "updated_at",
         ],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "conversation_meta",
@@ -115,6 +143,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
         category: "chat_messages",
         columns: &["conversation_id", "last_read_timestamp"],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "messages",
@@ -137,6 +166,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
             "updated_at",
         ],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "media_files",
@@ -155,6 +185,26 @@ const EXPORT_TABLES: &[TableSpec] = &[
             "fetched_at",
         ],
         blob_columns: &["data_base64"],
+        filter: Some(RowFilter { suffix: "chat", where_sql: "media_key NOT LIKE 'drawer:%'", reads_unsplit: true }),
+    },
+    TableSpec {
+        name: "media_files",
+        primary_key: "media_key",
+        category: "drawer_media",
+        columns: &[
+            "media_key",
+            "conversation_id",
+            "message_id",
+            "kind",
+            "mime_type",
+            "data_base64",
+            "view_once",
+            "size_bytes",
+            "fetch_status",
+            "fetched_at",
+        ],
+        blob_columns: &["data_base64"],
+        filter: Some(RowFilter { suffix: "drawer", where_sql: "media_key LIKE 'drawer:%'", reads_unsplit: false }),
     },
     TableSpec {
         name: "albums",
@@ -172,6 +222,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
             "updated_at",
         ],
         blob_columns: &["preview_cover_base64"],
+        filter: None,
     },
     TableSpec {
         name: "album_media",
@@ -188,6 +239,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
             "fetched_at",
         ],
         blob_columns: &["data_base64", "thumb_data_base64"],
+        filter: None,
     },
     TableSpec {
         name: "avatars",
@@ -195,13 +247,15 @@ const EXPORT_TABLES: &[TableSpec] = &[
         category: "media_albums",
         columns: &["media_hash", "data_base64", "mime_type", "fetched_at"],
         blob_columns: &["data_base64"],
+        filter: None,
     },
     TableSpec {
         name: "drawer_collections",
         primary_key: "id",
-        category: "media_albums",
+        category: "drawer_media",
         columns: &["id", "name", "media_ids_json", "created_at", "updated_at"],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "settings",
@@ -209,6 +263,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
         category: "settings",
         columns: &["key", "value"],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "saved_phrases",
@@ -216,6 +271,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
         category: "saved_phrases",
         columns: &["phrase", "created_at"],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "saved_locations",
@@ -223,6 +279,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
         category: "saved_locations",
         columns: &["id", "name", "geohash", "lat", "lon", "created_at"],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "sexual_health_prep_doses",
@@ -230,6 +287,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
         category: "sexual_health",
         columns: &["id", "taken_at", "scheme", "dose_role", "note", "created_at"],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "sexual_health_encounters",
@@ -246,6 +304,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
             "created_at",
         ],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "sexual_health_appointments",
@@ -262,6 +321,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
             "created_at",
         ],
         blob_columns: &[],
+        filter: None,
     },
     TableSpec {
         name: "sexual_health_sti_tests",
@@ -269,7 +329,34 @@ const EXPORT_TABLES: &[TableSpec] = &[
         category: "sexual_health",
         columns: &["id", "tested_at", "test_type", "result", "note", "created_at"],
         blob_columns: &[],
+        filter: None,
     },
+    TableSpec {
+        name: "own_profile_photos",
+        primary_key: "media_hash",
+        category: "profile_photos",
+        columns: &["media_hash", "position", "mime_type", "data_base64"],
+        blob_columns: &["data_base64"],
+        filter: None,
+    },
+    TableSpec {
+        name: "own_blocked_profiles",
+        primary_key: "profile_id",
+        category: "blocked_profiles",
+        columns: &["profile_id"],
+        blob_columns: &[],
+        filter: None,
+    },
+];
+
+/// Data that only lives on the server (own photos, block list), recorded
+/// locally so a backup has it: restored into a different profile, it goes to
+/// the second table instead, where the app picks it up to upload/block again
+/// (src/services/ownProfilePhotos.ts, ownBlocklist.ts) without touching the
+/// new profile's own record.
+const RESTORED_INTO: &[(&str, &str)] = &[
+    ("own_profile_photos", "restored_profile_photos"),
+    ("own_blocked_profiles", "restored_blocked_profiles"),
 ];
 
 #[derive(Clone, Serialize)]
@@ -406,6 +493,11 @@ fn read_and_validate_manifest(archive: &mut Archive) -> Result<ManifestCheck, Ap
 /// in a conversation with oneself, so it's dropped instead.
 const SELF_CONVERSATION_SKIP_TABLES: &[&str] = &["conversations", "conversation_meta", "messages", "media_files"];
 
+/// `getDrawerMediaKey` in src/services/mediaStore.ts.
+const DRAWER_MEDIA_KEY_PREFIX: &str = "drawer:";
+/// `RESTORED_DRAWER_KEY_PREFIX` in src/services/restoredDrawerMedia.ts.
+const RESTORED_DRAWER_MEDIA_KEY_PREFIX: &str = "restored-drawer:";
+
 /// Rewrites references to the profile a backup was exported from so they point
 /// at the profile it's restored into. Matches only whole values - a number, an
 /// exact id string, a `<id>:<id>` conversation id (kept in the server's
@@ -523,6 +615,17 @@ impl ProfileRemap {
             }
             row_map.insert("conversation_id".into(), Value::Null);
         }
+
+        // The old profile's drawer isn't on this profile's server drawer, so the
+        // app would purge its cached files as stale; parked under their own
+        // prefix they wait to be re-uploaded (src/services/restoredDrawerMedia.ts).
+        if table.name == "media_files" {
+            if let Some(Value::String(key)) = row_map.get_mut("media_key") {
+                if let Some(media_id) = key.strip_prefix(DRAWER_MEDIA_KEY_PREFIX) {
+                    *key = format!("{RESTORED_DRAWER_MEDIA_KEY_PREFIX}{media_id}");
+                }
+            }
+        }
         true
     }
 }
@@ -592,7 +695,8 @@ fn json_to_rusqlite(value: &Value) -> Result<rusqlite::types::Value, AppError> {
     })
 }
 
-fn build_upsert_sql(table: &TableSpec) -> String {
+/// `target` is the table rows are written to - `table.name` unless redirected by `RESTORED_INTO`.
+fn build_upsert_sql(table: &TableSpec, target: &str) -> String {
     let cols_csv = table.columns.join(", ");
     let placeholders = (1..=table.columns.len())
         .map(|i| format!("?{i}"))
@@ -606,9 +710,11 @@ fn build_upsert_sql(table: &TableSpec) -> String {
         .map(|c| format!("{c} = excluded.{c}"))
         .collect::<Vec<_>>()
         .join(", ");
+    // A key-only table (e.g. own_blocked_profiles) has nothing to update.
+    let on_conflict = if update_set.is_empty() { "DO NOTHING".to_string() } else { format!("DO UPDATE SET {update_set}") };
     format!(
-        "INSERT INTO {} ({cols_csv}) VALUES ({placeholders}) ON CONFLICT({}) DO UPDATE SET {update_set}",
-        table.name, table.primary_key
+        "INSERT INTO {target} ({cols_csv}) VALUES ({placeholders}) ON CONFLICT({}) {on_conflict}",
+        table.primary_key
     )
 }
 
@@ -682,13 +788,14 @@ fn write_export_archive(
         if !table_exists(&conn, table.name)? {
             continue;
         }
+        let where_clause = table.filter.map(|f| format!(" WHERE {}", f.where_sql)).unwrap_or_default();
         let rows_total = conn
-            .query_row(&format!("SELECT COUNT(*) FROM {}", table.name), [], |r| r.get::<_, i64>(0))
+            .query_row(&format!("SELECT COUNT(*) FROM {}{where_clause}", table.name), [], |r| r.get::<_, i64>(0))
             .map_err(|e| AppError::Backup(format!("failed to count {}: {e}", table.name)))?
             as u64;
         progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done: 0, rows_total: Some(rows_total) });
 
-        let entry_name = format!("tables/{}.jsonl", table.name);
+        let entry_name = table.entry_name();
         // A zip writer only has one open entry at a time: starting a media/<n>.bin
         // entry closes the current one, so a table with blob columns can't
         // stream its jsonl while it also writes media. Its rows (blob refs
@@ -700,7 +807,7 @@ fn write_export_archive(
         }
 
         let select_sql = format!(
-            "SELECT {} FROM {} ORDER BY {}",
+            "SELECT {} FROM {}{where_clause} ORDER BY {}",
             table.columns.join(", "),
             table.name,
             table.primary_key
@@ -776,7 +883,7 @@ fn write_export_archive(
             zip.write_all(&buffered_jsonl)?;
         }
 
-        row_counts.insert(table.name.to_string(), json!(rows_done));
+        row_counts.insert(table.entry_key(), json!(rows_done));
         progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done, rows_total: Some(rows_total) });
     }
 
@@ -920,20 +1027,26 @@ fn import_tables(
     let mut slice_bytes: usize = 0;
 
     for (table_index, table) in tables.into_iter().enumerate() {
-        let rows_total = row_counts.get(table.name).copied();
+        let rows_total = row_counts.get(&table.entry_key()).copied();
         progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done: 0, rows_total });
 
-        if !table_exists(conn, table.name)? {
+        let target = remap
+            .and_then(|_| RESTORED_INTO.iter().find(|(own, _)| *own == table.name))
+            .map_or(table.name, |(_, restored)| *restored);
+        if !table_exists(conn, target)? {
             continue;
         }
-        let entry_name = format!("tables/{}.jsonl", table.name);
+        let mut entry_name = table.entry_name();
+        if archive.index_for_name(&entry_name).is_none() && table.filter.is_some_and(|f| f.reads_unsplit) {
+            entry_name = format!("tables/{}.jsonl", table.name);
+        }
         let entry = match archive.by_name(&entry_name) {
             Ok(entry) => entry,
             Err(ZipError::FileNotFound) => continue,
             Err(e) => return Err(e.into()),
         };
 
-        let upsert_sql = build_upsert_sql(table);
+        let upsert_sql = build_upsert_sql(table, target);
         let mut rows_done: u64 = 0;
 
         for line in BufReader::with_capacity(COPY_BUFFER_SIZE, entry).lines() {
@@ -1074,8 +1187,23 @@ mod tests {
     use super::*;
     use rusqlite::types::Value as SqlValue;
 
-    fn create_schema(conn: &Connection) {
+    /// One spec per sqlite table: a split table's other parts name the same one.
+    fn tables() -> impl Iterator<Item = &'static TableSpec> {
+        EXPORT_TABLES.iter().filter(|t| t.filter.is_none_or(|f| f.reads_unsplit))
+    }
+
+    fn all_categories() -> Vec<String> {
+        let mut categories: Vec<String> = Vec::new();
         for table in EXPORT_TABLES {
+            if !categories.iter().any(|c| c == table.category) {
+                categories.push(table.category.to_string());
+            }
+        }
+        categories
+    }
+
+    fn create_schema(conn: &Connection) {
+        for table in tables() {
             let cols = table
                 .columns
                 .iter()
@@ -1108,14 +1236,16 @@ mod tests {
 
         let src = Connection::open(&src_db).unwrap();
         create_schema(&src);
-        for table in EXPORT_TABLES {
+        for table in tables() {
             for i in 0..3usize {
                 let values: Vec<SqlValue> = table
                     .columns
                     .iter()
                     .map(|&c| {
                         if c == table.primary_key {
-                            SqlValue::Text(format!("{}-{i}", table.name))
+                            // One drawer row, so both parts of the split media_files table round-trip.
+                            let prefix = if table.name == "media_files" && i == 2 { "drawer:" } else { "" };
+                            SqlValue::Text(format!("{prefix}{}-{i}", table.name))
                         } else if table.blob_columns.contains(&c) {
                             match i {
                                 0 => SqlValue::Text(BASE64.encode((0..5000).map(|b| (b * 7 + i) as u8).collect::<Vec<_>>())),
@@ -1138,7 +1268,7 @@ mod tests {
             }
         }
 
-        let mut categories: Vec<String> = ALL_CATEGORY_IDS.iter().map(|s| s.to_string()).collect();
+        let mut categories = all_categories();
         categories.push("favorite_notes".into());
         let notes = json!([{ "counterpartyId": "123", "notes": "hi", "phoneNumber": "" }]);
         let mut remote_entries = Map::new();
@@ -1151,12 +1281,12 @@ mod tests {
         let outcome =
             import_archive(&dst_db, 42, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
         assert!(outcome.ok);
-        assert_eq!(outcome.rows_imported, Some(EXPORT_TABLES.len() as u64 * 3));
+        assert_eq!(outcome.rows_imported, Some(tables().count() as u64 * 3));
         let expected_remote: Map<String, Value> = [("favorite_notes".to_string(), notes)].into_iter().collect();
         assert_eq!(outcome.remote_entries, Some(expected_remote));
 
         let dst = Connection::open(&dst_db).unwrap();
-        for table in EXPORT_TABLES {
+        for table in tables() {
             assert_eq!(dump(&src, table), dump(&dst, table), "table {} differs after round trip", table.name);
         }
 
@@ -1184,14 +1314,25 @@ mod tests {
                        ('m2', '300:500', 500, '{"text":"hi"}', NULL),
                        ('local-system:SystemBlocked:400:500:1700000000000', '400:500', 0, NULL, NULL);
             INSERT INTO albums (album_id, owner_profile_id, conversation_id) VALUES ('a1', 500, '300:500');
+            INSERT INTO media_files (media_key, kind) VALUES ('drawer:77', 'image');
             INSERT INTO settings (key, value) VALUES ('localReadMarkers', '{"400:500":"m1"}');
+            INSERT INTO own_profile_photos (media_hash, position) VALUES ('abc', 0);
+            INSERT INTO own_blocked_profiles (profile_id) VALUES ('400');
             "#,
         )
         .unwrap();
-        let categories: Vec<String> = ALL_CATEGORY_IDS.iter().map(|s| s.to_string()).collect();
+        let categories = all_categories();
         write_export_archive(&src_db, 500, &archive, &categories, &Map::new(), &mut ProgressEmitter::new(None, "")).unwrap();
 
-        create_schema(&Connection::open(&dst_db).unwrap());
+        let dst = Connection::open(&dst_db).unwrap();
+        create_schema(&dst);
+        dst.execute_batch(
+            "CREATE TABLE restored_profile_photos (media_hash PRIMARY KEY, position, mime_type, data_base64, uploaded_hash);
+             CREATE TABLE restored_blocked_profiles (profile_id PRIMARY KEY);
+             INSERT INTO own_blocked_profiles (profile_id) VALUES ('999');",
+        )
+        .unwrap();
+        drop(dst);
         let outcome =
             import_archive(&dst_db, 300, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
         assert!(outcome.ok);
@@ -1224,7 +1365,16 @@ mod tests {
             300
         );
         assert_eq!(text("SELECT conversation_id FROM albums"), None);
-        assert_eq!(text("SELECT value FROM settings").as_deref(), Some(r#"{"300:400":"m1"}"#));
+        assert_eq!(
+            text("SELECT value FROM settings WHERE key = 'localReadMarkers'").as_deref(),
+            Some(r#"{"300:400":"m1"}"#)
+        );
+        // The new profile's own record stays untouched; the old one waits in restored_*.
+        assert_eq!(text("SELECT group_concat(media_hash) FROM restored_profile_photos").as_deref(), Some("abc"));
+        assert_eq!(text("SELECT group_concat(media_hash) FROM own_profile_photos"), None);
+        assert_eq!(text("SELECT group_concat(profile_id) FROM restored_blocked_profiles").as_deref(), Some("400"));
+        assert_eq!(text("SELECT group_concat(profile_id) FROM own_blocked_profiles").as_deref(), Some("999"));
+        assert_eq!(text("SELECT group_concat(media_key) FROM media_files").as_deref(), Some("restored-drawer:77"));
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -1255,7 +1405,7 @@ mod tests {
         }
         drop(dst);
 
-        let categories: Vec<String> = ALL_CATEGORY_IDS.iter().map(|s| s.to_string()).collect();
+        let categories = all_categories();
         let started = Instant::now();
         write_export_archive(&src_db, 42, &archive, &categories, &Map::new(), &mut ProgressEmitter::new(None, "")).unwrap();
         println!(

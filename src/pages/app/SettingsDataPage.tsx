@@ -16,9 +16,9 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../components/PageHeader";
 import { RowActionPill } from "../../components/ui/row-action-pill";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
+import { BackupExportSheet } from "../../components/BackupExportSheet";
 import { BackupProgressBar, BackupReadStatus } from "../../components/BackupProgressBar";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../components/ui/bottom-sheet";
-import { Chip } from "../../components/ui/chip";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
@@ -29,14 +29,11 @@ import {
 	backupErrorMessage as getErrorMessage,
 	cleanupTempFile,
 	copyPickedFileToTemp,
-	exportBackup,
-	fetchRemoteBackupEntries,
 	importBackupFile,
 	inspectBackupFile,
 	pickBackupFile,
 	restoreRemoteBackupEntries,
 	type BackupCategoryId,
-	type BackupExportDestination,
 	type BackupReadProgress,
 } from "../../services/backupRestore";
 import { loadEncounters } from "../../services/encounters";
@@ -57,7 +54,6 @@ export function SettingsDataPage() {
 	const [isLoadingUsage, setIsLoadingUsage] = useState(true);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-	const [isExporting, setIsExporting] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);
 	const [readProgress, setReadProgress] = useState<BackupReadProgress | null>(null);
 	const [isResetting, setIsResetting] = useState(false);
@@ -65,11 +61,7 @@ export function SettingsDataPage() {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const isDesktop = useDesktopBreakpoint();
 
-	const [exportCategories, setExportCategories] = useState<Set<BackupCategoryId>>(new Set(BACKUP_CATEGORY_IDS));
-	const [exportDestination, setExportDestination] = useState<BackupExportDestination>("downloads");
-	const [showExportCategoryPicker, setShowExportCategoryPicker] = useState(false);
-	// Closes the export picker animated once the export has finished.
-	const exportSheetCloseRef = useRef<(() => void) | null>(null);
+	const [showExportSheet, setShowExportSheet] = useState(false);
 	const [pendingImport, setPendingImport] = useState<{
 		tempPath: string;
 		categories: BackupCategoryId[];
@@ -123,42 +115,12 @@ export function SettingsDataPage() {
 		}
 	};
 
-	const handleExport = async (): Promise<boolean> => {
+	const openExportSheet = () => {
 		if (userId == null) {
 			toast.error(t("data_backup.export_no_user", { defaultValue: "You must be signed in to export." }));
-			return false;
+			return;
 		}
-		if (exportCategories.size === 0) {
-			toast.error(t("data_backup.export_no_categories", { defaultValue: "Choose at least one category to export." }));
-			return false;
-		}
-		setIsExporting(true);
-		try {
-			// The SQL read, base64 decode, zip compression and the copy to the
-			// final location all happen natively (src-tauri/src/commands/backup.rs)
-			// on a worker thread — nothing of the archive crosses the JS bridge.
-			// Server-side categories (favorite notes) are fetched here and written into the archive as is.
-			const categories = Array.from(exportCategories);
-			const remoteEntries = await fetchRemoteBackupEntries(apiFunctions, categories);
-			const saved = await exportBackup(chatDb.getActiveChatDbFileName(), userId, categories, exportDestination, remoteEntries);
-			if (!saved) return false;
-			toast.success(
-				exportDestination === "picker"
-					? t("data_backup.export_success_picker", { defaultValue: "Data exported to the chosen location." })
-					: isAndroid()
-						? t("data_backup.export_success", { defaultValue: "Data exported." })
-					: isIos()
-						? t("data_backup.export_success_ios", { defaultValue: "Data exported. Find it in the Files app under On My iPhone/iPad → Free Grind." })
-						: t("data_backup.export_success_desktop", { defaultValue: "Data exported to Downloads/FreeGrind." }),
-			);
-			return true;
-		} catch (error) {
-			appLog.error("[SettingsDataPage] backup export failed", error);
-			toast.error(getErrorMessage(error, t("data_backup.export_failed", { defaultValue: "Failed to export data." })));
-			return false;
-		} finally {
-			setIsExporting(false);
-		}
+		setShowExportSheet(true);
 	};
 
 	const showImportError = () => {
@@ -265,18 +227,6 @@ export function SettingsDataPage() {
 		});
 	};
 
-	const toggleExportCategory = (id: BackupCategoryId) => {
-		setExportCategories((prev) => {
-			const next = new Set(prev);
-			if (next.has(id)) {
-				next.delete(id);
-			} else {
-				next.add(id);
-			}
-			return next;
-		});
-	};
-
 	const handleExportEncountersIcs = async () => {
 		setIsExportingEncounters(true);
 		try {
@@ -334,9 +284,8 @@ export function SettingsDataPage() {
 						<button
 							id="data-export"
 							type="button"
-							onClick={() => setShowExportCategoryPicker(true)}
-							disabled={isExporting}
-							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isExporting ? "opacity-50" : "hover-fill"} ${highlightId === "data-export" ? "animate-settings-highlight" : ""}`}
+							onClick={openExportSheet}
+							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill ${highlightId === "data-export" ? "animate-settings-highlight" : ""}`}
 						>
 							<div className="shrink-0 rounded-2xl bg-teal-500/15 p-2.5 text-teal-400">
 								<FileDown className="h-5 w-5" />
@@ -351,11 +300,7 @@ export function SettingsDataPage() {
 									})}
 								</p>
 							</div>
-							{isExporting ? (
-								<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-muted)]" />
-							) : (
-								<Download className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
-							)}
+							<Download className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 						</button>
 
 						<button
@@ -409,7 +354,7 @@ export function SettingsDataPage() {
 							<ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
 							<p className="text-xs leading-relaxed text-[var(--text-muted)]">
 								{t("data_backup.backup_note", {
-									defaultValue: "Exports are tied to your profile — a file can only be imported back into the same account it came from.",
+									defaultValue: "A backup can also be imported into a different profile, e.g. after a ban: chats, albums, and drawer media are moved over to it.",
 								})}
 							</p>
 						</div>
@@ -562,79 +507,14 @@ export function SettingsDataPage() {
 				onCancel={() => setShowResetConfirm(false)}
 			/>
 
-			{showExportCategoryPicker && (
-				<BottomSheet
-					onClose={() => setShowExportCategoryPicker(false)}
-					closeRef={exportSheetCloseRef}
+			{showExportSheet && userId != null && (
+				<BackupExportSheet
+					profileId={userId}
+					dbFileName={chatDb.getActiveChatDbFileName()}
+					categories={BACKUP_CATEGORY_IDS}
 					isDesktop={isDesktop}
-					isProcessing={isExporting}
-					panelClassName="max-h-[82dvh]"
-				>
-					<div className="flex items-center justify-between px-4 pb-3">
-						<p className="text-sm font-semibold text-[var(--text)]">
-							{t("data_backup.export_categories_title", { defaultValue: "What do you want to export?" })}
-						</p>
-						<SheetCloseButton disabled={isExporting} />
-					</div>
-					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
-						<BackupCategoryPicker categories={BACKUP_CATEGORY_IDS} selected={exportCategories} onToggle={toggleExportCategory} />
-						<div className="px-4 pt-4">
-							<p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-								{t("data_backup.export_destination_title", { defaultValue: "Save to" })}
-							</p>
-							<div className="flex flex-wrap gap-2">
-								<Chip selected={exportDestination === "downloads"} disabled={isExporting} onClick={() => setExportDestination("downloads")}>
-									{isIos()
-										? t("data_backup.export_destination_device", { defaultValue: "This device" })
-										: t("data_backup.export_destination_downloads", { defaultValue: "Downloads" })}
-								</Chip>
-								<Chip selected={exportDestination === "picker"} disabled={isExporting} onClick={() => setExportDestination("picker")}>
-									{t("data_backup.export_destination_picker", { defaultValue: "Choose location…" })}
-								</Chip>
-							</div>
-							<p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
-								{exportDestination === "downloads"
-									? isIos()
-										? t("data_backup.export_destination_device_hint_ios", {
-												defaultValue: "Saved in the Files app under On My iPhone/iPad → Free Grind.",
-											})
-										: t("data_backup.export_destination_downloads_hint", { defaultValue: "Saved to Downloads/FreeGrind on this device." })
-									: isAndroid() || isIos()
-										? t("data_backup.export_destination_picker_hint", {
-												defaultValue: "Pick any folder or cloud storage, e.g. Google Drive (requires the Drive app).",
-											})
-										: t("data_backup.export_destination_picker_hint_desktop", {
-												defaultValue: "Pick any folder, e.g. one synced by Google Drive for desktop.",
-											})}
-							</p>
-						</div>
-					</div>
-					<BackupProgressBar kind="export" active={isExporting} />
-					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
-						<SheetClose
-							disabled={isExporting}
-							className={sheetButtonClass("secondary")}
-						>
-							{t("common.cancel", { defaultValue: "Cancel" })}
-						</SheetClose>
-						<button
-							type="button"
-							onClick={() => {
-								void (async () => {
-									const success = await handleExport();
-									if (success) {
-										exportSheetCloseRef.current?.();
-									}
-								})();
-							}}
-							disabled={isExporting || exportCategories.size === 0}
-							className={sheetButtonClass()}
-						>
-							{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-							<span>{t("data_backup.export_confirm", { defaultValue: "Export" })}</span>
-						</button>
-					</div>
-				</BottomSheet>
+					onClose={() => setShowExportSheet(false)}
+				/>
 			)}
 
 			{pendingImport && (

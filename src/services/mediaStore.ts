@@ -246,6 +246,29 @@ export async function fetchAndStoreMedia(
 	return run;
 }
 
+/**
+ * Reads already-stored media into the in-memory cache, for media with no URL
+ * to fall back on (e.g. restored drawer media waiting for upload). Never throws.
+ */
+export function hydrateStoredMedia(mediaKey: string): void {
+	if (memoryCache.has(mediaKey) || inFlight.has(mediaKey)) {
+		return;
+	}
+	const run = (async () => {
+		try {
+			const stored = await limitChatDbBlobRead(() => chatDb.getMediaFile(mediaKey));
+			if (stored?.fetchStatus === "ok") {
+				setCachedMediaUri(mediaKey, toDataUri(stored.mimeType, stored.dataBase64));
+			}
+		} catch (error) {
+			appLog.warn("[mediaStore] reading stored media failed", { mediaKey, error });
+		} finally {
+			inFlight.delete(mediaKey);
+		}
+	})();
+	inFlight.set(mediaKey, run);
+}
+
 /** True while fetchAndStoreMedia is still reading back or downloading `mediaKey`. */
 export function isMediaLookupPending(mediaKey: string): boolean {
 	return inFlight.has(mediaKey);

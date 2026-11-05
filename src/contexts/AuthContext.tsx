@@ -35,6 +35,9 @@ import { loadPrivacyCache } from "../utils/privacy";
 import { loadAutoTranslateCache } from "../utils/autoTranslate";
 import { loadSeenCache } from "../services/seenStore";
 import { runInboxSync } from "../services/inboxSync";
+import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
+import { syncOwnProfilePhotos } from "../services/ownProfilePhotos";
+import { runRestoredBlocklist, syncOwnBlocklist } from "../services/ownBlocklist";
 import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
 import { mintRecaptchaToken, RecaptchaError, type RecaptchaFailure } from "../services/recaptcha";
@@ -652,6 +655,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// way, and safe to start before the automation cache below finishes
 				// loading (runAutomationRulesForSender no-ops until it has).
 				void runTapsAutomationSync(apiFunctions, () => currentUserIdRef.current === userId);
+				// Fire-and-forget: slowly re-uploads drawer media restored from
+				// another profile's backup (see restoredDrawerMedia.ts) — guarded the
+				// same way, since the api uploads into whichever profile is active.
+				void runRestoredDrawerUpload(apiFunctions, () => currentUserIdRef.current === userId);
+				// Fire-and-forget: records this profile's own photos locally so a
+				// backup still has them once the account can't read its profile
+				// anymore, e.g. after a ban (see ownProfilePhotos.ts).
+				void syncOwnProfilePhotos(apiFunctions, () => currentUserIdRef.current === userId);
+				// Fire-and-forget, same idea for the block list: recorded for later
+				// backups, and a restored one blocked again bit by bit (ownBlocklist.ts).
+				void (async () => {
+					const isCurrent = () => currentUserIdRef.current === userId;
+					await runRestoredBlocklist(apiFunctions, userId, isCurrent);
+					await syncOwnBlocklist(apiFunctions, isCurrent);
+				})();
 			}
 
 			const cacheMs: Record<string, number> = {};

@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/useAuth";
 import { LoadingScreen } from "./LoadingScreen";
 import { RestoreBackupOffer } from "./RestoreBackupOffer";
+import { RestoredProfilePhotosPrompt } from "./RestoredProfilePhotosPrompt";
 import { LegalAgreementsGate } from "./LegalAgreementsPrompt";
 import { AccountWarningsGate } from "./AccountWarningsPrompt";
 import * as chatDb from "../services/chatDb";
@@ -62,7 +63,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 	return (
 		<LegalAgreementsGate userId={userId}>
-			<AccountWarningsGate userId={userId}>{children}</AccountWarningsGate>
+			<AccountWarningsGate userId={userId}>
+				{children}
+				<RestoredProfilePhotosPrompt userId={userId} />
+			</AccountWarningsGate>
 		</LegalAgreementsGate>
 	);
 }

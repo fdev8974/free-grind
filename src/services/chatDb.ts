@@ -541,6 +541,32 @@ async function initChatDbSchema(db: Database): Promise<void> {
 			// never existed / already migrated
 		}
 
+		// The profile's own photos (bytes included) and block list, recorded on
+		// every profile load so a backup still has them once a ban locks the
+		// account out of its profile. A backup restored into a different profile
+		// lands in the restored_* tables instead (backup.rs's `restored_into`),
+		// waiting to be uploaded/blocked again — see ownProfilePhotos.ts and
+		// ownBlocklist.ts.
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS own_profile_photos (
+				media_hash TEXT PRIMARY KEY,
+				position INTEGER NOT NULL,
+				mime_type TEXT,
+				data_base64 TEXT
+			)
+		`);
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS restored_profile_photos (
+				media_hash TEXT PRIMARY KEY,
+				position INTEGER NOT NULL,
+				mime_type TEXT,
+				data_base64 TEXT,
+				uploaded_hash TEXT
+			)
+		`);
+		await db.execute("CREATE TABLE IF NOT EXISTS own_blocked_profiles (profile_id TEXT PRIMARY KEY)");
+		await db.execute("CREATE TABLE IF NOT EXISTS restored_blocked_profiles (profile_id TEXT PRIMARY KEY)");
+
 		await db.execute(`
 			CREATE TABLE IF NOT EXISTS block_events (
 				id TEXT PRIMARY KEY,
@@ -1200,6 +1226,27 @@ export async function removeMediaFromDrawerCollections(mediaId: number): Promise
 
 	notifyDrawerCollectionsChanged();
 	return getDrawerCollections();
+}
+
+/** For drawer media re-uploaded under a new id (see restoredDrawerMedia.ts):
+ * points every collection at the new ids, keeping their order. */
+export async function remapDrawerCollectionMediaIds(newIds: ReadonlyMap<number, number>): Promise<void> {
+	if (newIds.size === 0) return;
+	const affected = (await getDrawerCollections()).filter((collection) => collection.mediaIds.some((id) => newIds.has(id)));
+	if (affected.length === 0) return;
+
+	const db = await getDb();
+	const now = Date.now();
+	await executeWithLockRetry(db, "remap-drawer-collection-media-ids", async () => {
+		for (const collection of affected) {
+			await db.execute(
+				"UPDATE drawer_collections SET media_ids_json = $2, updated_at = $3 WHERE id = $1",
+				[collection.id, JSON.stringify(collection.mediaIds.map((id) => newIds.get(id) ?? id)), now],
+			);
+		}
+	});
+
+	notifyDrawerCollectionsChanged();
 }
 
 /** Unhides a conversation only if it's currently hidden, reporting whether it
@@ -2203,6 +2250,24 @@ export async function getMediaFileByMessageId(
 }
 
 /** Removes one cached media entry (e.g. a single drawer item the user deleted). */
+/** Key and kind only (no data) of the cached media whose key starts with `prefix`. */
+export async function listMediaFilesWithPrefix(prefix: string): Promise<{ mediaKey: string; kind: string }[]> {
+	const db = await getDb();
+	const rows = await db.select<{ media_key: string; kind: string }[]>(
+		"SELECT media_key, kind FROM media_files WHERE substr(media_key, 1, length($1)) = $1",
+		[prefix],
+	);
+	return rows.map((row) => ({ mediaKey: row.media_key, kind: row.kind }));
+}
+
+/** Moves cached media to a new key, e.g. once restored drawer media has its new drawer id. */
+export async function renameMediaFile(fromKey: string, toKey: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "rename-media-file", async () => {
+		await db.execute("UPDATE media_files SET media_key = $2 WHERE media_key = $1", [fromKey, toKey]);
+	});
+}
+
 export async function deleteMediaFile(mediaKey: string): Promise<void> {
 	const db = await getDb();
 	await executeWithLockRetry(db, "delete-media-file", async () => {
@@ -2715,6 +2780,114 @@ export async function deleteDownloadedMediaEntries(identifiers: string[]): Promi
 // ---------------------------------------------------------------------------
 // Settings (generic per-profile key/value store — JSON-encoded values)
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Own profile photos and block list (see ownProfilePhotos.ts, ownBlocklist.ts)
+// ---------------------------------------------------------------------------
+
+/** Records the profile's photo order; keeps the bytes of photos still on it, drops the rest. */
+export async function replaceOwnProfilePhotos(mediaHashes: string[]): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "replace-own-profile-photos", async () => {
+		const placeholders = mediaHashes.map((_, i) => `$${i + 1}`).join(", ");
+		await db.execute(
+			mediaHashes.length > 0
+				? `DELETE FROM own_profile_photos WHERE media_hash NOT IN (${placeholders})`
+				: "DELETE FROM own_profile_photos",
+			mediaHashes,
+		);
+		for (const [position, mediaHash] of mediaHashes.entries()) {
+			await db.execute(
+				`INSERT INTO own_profile_photos (media_hash, position) VALUES ($1, $2)
+				ON CONFLICT(media_hash) DO UPDATE SET position = excluded.position`,
+				[mediaHash, position],
+			);
+		}
+	});
+}
+
+export async function listOwnProfilePhotosWithoutData(): Promise<string[]> {
+	const db = await getDb();
+	const rows = await db.select<{ media_hash: string }[]>(
+		"SELECT media_hash FROM own_profile_photos WHERE data_base64 IS NULL ORDER BY position",
+	);
+	return rows.map((row) => row.media_hash);
+}
+
+export async function setOwnProfilePhotoData(mediaHash: string, mimeType: string | null, dataBase64: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "set-own-profile-photo-data", async () => {
+		await db.execute("UPDATE own_profile_photos SET mime_type = $2, data_base64 = $3 WHERE media_hash = $1", [
+			mediaHash,
+			mimeType,
+			dataBase64,
+		]);
+	});
+}
+
+export type RestoredProfilePhoto = {
+	mediaHash: string;
+	mimeType: string | null;
+	dataBase64: string | null;
+	/** Set once uploaded to this profile, so an interrupted restore doesn't upload it twice. */
+	uploadedHash: string | null;
+};
+
+export async function listRestoredProfilePhotos(): Promise<RestoredProfilePhoto[]> {
+	const db = await getDb();
+	const rows = await db.select<{ media_hash: string; mime_type: string | null; data_base64: string | null; uploaded_hash: string | null }[]>(
+		"SELECT media_hash, mime_type, data_base64, uploaded_hash FROM restored_profile_photos ORDER BY position",
+	);
+	return rows.map((row) => ({
+		mediaHash: row.media_hash,
+		mimeType: row.mime_type,
+		dataBase64: row.data_base64,
+		uploadedHash: row.uploaded_hash,
+	}));
+}
+
+export async function countRestoredProfilePhotos(): Promise<number> {
+	const db = await getDb();
+	const rows = await db.select<{ count: number }[]>("SELECT COUNT(*) AS count FROM restored_profile_photos");
+	return rows[0]?.count ?? 0;
+}
+
+export async function markRestoredProfilePhotoUploaded(mediaHash: string, uploadedHash: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "mark-restored-profile-photo-uploaded", async () => {
+		await db.execute("UPDATE restored_profile_photos SET uploaded_hash = $2 WHERE media_hash = $1", [mediaHash, uploadedHash]);
+	});
+}
+
+export async function clearRestoredProfilePhotos(): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "clear-restored-profile-photos", async () => {
+		await db.execute("DELETE FROM restored_profile_photos");
+	});
+}
+
+export async function replaceOwnBlockedProfiles(profileIds: string[]): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "replace-own-blocked-profiles", async () => {
+		await db.execute("DELETE FROM own_blocked_profiles");
+		for (const profileId of profileIds) {
+			await db.execute("INSERT OR IGNORE INTO own_blocked_profiles (profile_id) VALUES ($1)", [profileId]);
+		}
+	});
+}
+
+export async function listRestoredBlockedProfiles(): Promise<string[]> {
+	const db = await getDb();
+	const rows = await db.select<{ profile_id: string }[]>("SELECT profile_id FROM restored_blocked_profiles");
+	return rows.map((row) => String(row.profile_id));
+}
+
+export async function deleteRestoredBlockedProfile(profileId: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "delete-restored-blocked-profile", async () => {
+		await db.execute("DELETE FROM restored_blocked_profiles WHERE profile_id = $1", [profileId]);
+	});
+}
 
 export async function getSetting<T>(key: string): Promise<T | null> {
 	const db = await getDb();

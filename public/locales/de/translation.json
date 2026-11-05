@@ -1987,6 +1987,7 @@
         "add_video": "Video hinzufügen",
         "delete_media": "Medien löschen",
         "media_alt": "Galerie-Medien",
+        "restoring": "Wird wiederhergestellt",
         "take_photo": "Foto aufnehmen",
         "upload_photo": "Foto hochladen",
         "add_media": "Medien hinzufügen",
@@ -2575,9 +2576,19 @@
         "description": "Dein Login-Token ist abgelaufen. Bitte melde dich erneut an, um fortzufahren.",
         "sign_out": "Erneut anmelden"
     },
+    "restored_photos": {
+        "title": "Profilbilder wiederherstellen?",
+        "message": "Dein Backup enthält {{count}} Profilbilder deines vorherigen Profils. Hochladen und als Profilbilder dieses Profils verwenden?",
+        "warning": "Grindr erkennt Fotos eines gesperrten Kontos möglicherweise wieder – dadurch kann auch dieses Profil gesperrt werden.",
+        "confirm": "Fotos hochladen",
+        "dismiss": "Nicht hochladen",
+        "uploading": "Profilbilder werden wiederhergestellt…",
+        "success": "{{count}} Profilbilder wiederhergestellt.",
+        "failed": "Nicht alle Profilbilder konnten wiederhergestellt werden. Du wirst beim nächsten Mal erneut gefragt."
+    },
     "account_status": {
         "sign_out": "Abmelden",
-        "backup_data": "Daten für ein neues Profil sichern",
+        "backup_data": "Daten sichern",
         "banned": {
             "title": "Konto gesperrt",
             "description": "Grindr hat dieses Konto gesperrt{{reason}}. Du kannst dich erst wieder anmelden, wenn die Sperre aufgehoben ist.",
@@ -2989,6 +3000,9 @@
     "data_backup": {
         "category_chat_messages": "Chatnachrichten",
         "category_media_albums": "Medien & Alben",
+        "category_drawer_media": "Drawer-Medien",
+        "category_profile_photos": "Profilbilder",
+        "category_blocked_profiles": "Blockierte Profile",
         "category_saved_phrases": "Gespeicherte Phrasen",
         "category_saved_locations": "Gespeicherte Standorte",
         "category_settings": "Einstellungen",
@@ -3048,7 +3062,7 @@
         "export_card_desc": "Speichere dein gesamtes Konto in einer Datei: Unterhaltungen, Nachrichten, Alben, Avatare, zwischengespeicherte Fotos/Videos, gespeicherte Phrasen, gespeicherte Orte und alle App-Einstellungen.",
         "import": "Daten importieren",
         "import_card_desc": "Führe eine zuvor exportierte Datei wieder zusammen – vorhandene Daten werden nicht gelöscht. Die App wird danach neu geladen.",
-        "backup_note": "Exporte sind an dein Profil gebunden – eine Datei kann nur in das Konto importiert werden, aus dem sie stammt.",
+        "backup_note": "Ein Backup lässt sich auch in ein anderes Profil importieren, z. B. nach einer Sperre: Chats, Alben und Drawer-Medien werden darauf übertragen.",
         "media_storage": "Medienspeicher",
         "storage_used": "Belegter Speicher",
         "backup_section": "Konto-Backup",

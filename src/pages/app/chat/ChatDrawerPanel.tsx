@@ -49,7 +49,12 @@ import { BottomSheet, SHEET_FOOTER_FIELD_CLASS, sheetButtonClass } from "../../.
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
-import { getCachedMediaUri, getDrawerMediaKey, getDrawerMediaSrc } from "../../../services/mediaStore";
+import { getCachedMediaUri, getDrawerMediaKey, getDrawerMediaSrc, hydrateStoredMedia } from "../../../services/mediaStore";
+import {
+	listRestoredDrawerMedia,
+	subscribeToRestoredDrawerMedia,
+	type RestoredDrawerMedia,
+} from "../../../services/restoredDrawerMedia";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
@@ -77,6 +82,41 @@ export interface DrawerMedia {
 	 * from the drawer, used to sort most-used media first. See chatDb's
 	 * drawer_media_usage table. */
 	sendCount: number;
+}
+
+/**
+ * Drawer media restored from another profile's backup that's still waiting
+ * for its background upload (see restoredDrawerMedia.ts). Each finished upload
+ * reloads the drawer through `onUploaded`, where it then shows up for real.
+ */
+function useRestoredDrawerMedia(onUploaded: () => void | Promise<void>): RestoredDrawerMedia[] {
+	const [items, setItems] = useState<RestoredDrawerMedia[]>([]);
+	const onUploadedRef = useRef(onUploaded);
+	onUploadedRef.current = onUploaded;
+
+	useEffect(() => {
+		let cancelled = false;
+		const load = () => {
+			listRestoredDrawerMedia()
+				.then((next) => {
+					if (cancelled) return;
+					setItems(next);
+					for (const item of next) hydrateStoredMedia(item.mediaKey);
+				})
+				.catch((error: unknown) => appLog.warn("[ChatDrawerPanel] loading restored drawer media failed", error));
+		};
+		load();
+		const unsubscribe = subscribeToRestoredDrawerMedia(() => {
+			load();
+			void onUploadedRef.current();
+		});
+		return () => {
+			cancelled = true;
+			unsubscribe();
+		};
+	}, []);
+
+	return items;
 }
 
 type DrawerTab = "media" | "albums" | "collections";
@@ -137,6 +177,7 @@ export function ChatDrawerPanel({
 	// Re-renders once a background fetch lands a drawer item in the local
 	// media cache, so it can swap in the cached copy without waiting for a DB read.
 	useLocalMediaCache();
+	const restoredMedia = useRestoredDrawerMedia(onLoadMedia);
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<number>>(new Set());
@@ -715,7 +756,7 @@ export function ChatDrawerPanel({
 										{activeTab === "albums" ? albumTiles : collectionTiles}
 									</div>
 								)}
-								{showSection("media") && (media.length > 0 || hasCombinedGroups || upload.isUploading) && (
+								{showSection("media") && (media.length > 0 || restoredMedia.length > 0 || hasCombinedGroups || upload.isUploading) && (
 								<DrawerGrid isDesktop={isDesktop}>
 									<DrawerAddTile
 										label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
@@ -788,10 +829,32 @@ export function ChatDrawerPanel({
 											</DrawerMediaTile>
 										);
 									})}
+									{/* Restored from another profile's backup, uploaded bit by bit in the background. */}
+									{restoredMedia.map(({ mediaKey, isVideo }) => {
+										const src = getCachedMediaUri(mediaKey);
+										return (
+											<DrawerMediaTile
+												key={mediaKey}
+												src={src ?? ""}
+												isVideo={isVideo}
+												posterKey={mediaKey}
+												placeholder={src == null ? DRAWER_TILE_LOADING : undefined}
+												alt={t("chat_drawer.media_alt")}
+												busy
+											>
+												<div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/45 text-white">
+													<Loader2 className="h-4 w-4 animate-spin" />
+													<span className="text-[10px] font-semibold uppercase tracking-widest">
+														{t("chat_drawer.restoring", { defaultValue: "Restoring" })}
+													</span>
+												</div>
+											</DrawerMediaTile>
+										);
+									})}
 								</DrawerGrid>
 								)}
 								{/* Empty drawer: the add actions on their own, as the way in. */}
-								{showSection("media") && media.length === 0 && !hasCombinedGroups && !upload.isUploading && (
+								{showSection("media") && media.length === 0 && restoredMedia.length === 0 && !hasCombinedGroups && !upload.isUploading && (
 									<DrawerEmptyState
 										icon={<ImagesFilled className="h-5 w-5" />}
 										title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}

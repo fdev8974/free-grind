@@ -21,11 +21,10 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BotFilled, ClockFilled, UserFilled } from "./icons/FilledIcons";
-import { BackupProgressBar } from "./BackupProgressBar";
-import { BACKUP_CATEGORY_IDS, backupErrorMessage, exportBackup } from "../services/backupRestore";
+import { BackupExportSheet } from "./BackupExportSheet";
+import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
+import { BACKUP_CATEGORY_IDS } from "../services/backupRestore";
 import { chatDbFileNameFor, hasChatDbFile } from "../services/chatDb";
-import { isAndroid, isIos } from "../services/saveMedia";
-import { appLog } from "../utils/logger";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
 import { CardDetailsSheet, GuidelineBlock, RichText } from "./GuidelineViolationParts";
 import { useAuth } from "../contexts/useAuth";
@@ -397,7 +396,7 @@ function ReasonCard({ ban, expiresAt, now }: { ban: BanSummary; expiresAt?: numb
 	const remaining = expiresAt != null ? expiryMs(expiresAt) - now : 0;
 
 	return (
-		<section className={`${fullscreenCardClass} overflow-hidden text-left`}>
+		<section className="native-group text-left">
 			<div className="px-4 py-4">
 				<div className="flex items-center justify-between gap-3">
 					<p className={CARD_LABEL_CLASS}>{t("account_status.reason_label", { defaultValue: "Ban reason" })}</p>
@@ -499,18 +498,12 @@ function AgreementCheckbox({ checked, onChange, disabled }: { checked: boolean; 
 	);
 }
 
-/** Every local category: the server-side ones can't be fetched with a banned account. */
+/** A hard ban has no session, so the server-side categories can't be fetched; a restriction still has one. */
 const LOCAL_BACKUP_CATEGORIES = BACKUP_CATEGORY_IDS.filter((category) => category !== "favorite_notes");
 
-/**
- * Exports the profile's local data straight from its own db file (which needn't
- * be the active one), so it can be restored into a new profile. Null while the
- * profile is unknown or has no local data on this device.
- */
-function useBackupExport(profileId: number | null | undefined) {
-	const { t } = useTranslation();
+/** Whether this device has local data for the profile, i.e. anything to back up into a new profile. */
+function useHasLocalData(profileId: number | null | undefined): boolean {
 	const [hasData, setHasData] = useState(false);
-	const [exporting, setExporting] = useState(false);
 
 	useEffect(() => {
 		setHasData(false);
@@ -526,28 +519,7 @@ function useBackupExport(profileId: number | null | undefined) {
 		};
 	}, [profileId]);
 
-	if (profileId == null || !hasData) return null;
-
-	const start = () => {
-		setExporting(true);
-		exportBackup(chatDbFileNameFor(profileId), profileId, LOCAL_BACKUP_CATEGORIES)
-			.then(() =>
-				toast.success(
-					isAndroid()
-						? t("data_backup.export_success", { defaultValue: "Data exported." })
-						: isIos()
-							? t("data_backup.export_success_ios", { defaultValue: "Data exported. Find it in the Files app under On My iPhone/iPad → Free Grind." })
-							: t("data_backup.export_success_desktop", { defaultValue: "Data exported to Downloads/FreeGrind." }),
-				),
-			)
-			.catch((error: unknown) => {
-				appLog.error("[AccountStatusPrompt] backup export failed", error);
-				toast.error(backupErrorMessage(error, t("data_backup.export_failed", { defaultValue: "Failed to export data." })));
-			})
-			.finally(() => setExporting(false));
-	};
-
-	return { exporting, start };
+	return profileId != null && hasData;
 }
 
 export function AccountStatusPromptView({
@@ -564,7 +536,9 @@ export function AccountStatusPromptView({
 }) {
 	const { t } = useTranslation();
 	const now = useTimedBanNow(status);
-	const backup = useBackupExport(backupProfileId);
+	const isDesktop = useDesktopBreakpoint();
+	const canBackup = useHasLocalData(backupProfileId);
+	const [showBackupSheet, setShowBackupSheet] = useState(false);
 	const [accepting, setAccepting] = useState(false);
 	const [agreed, setAgreed] = useState(false);
 	// banDetails.isAgreementCompleted decides when Grindr says; only without
@@ -612,6 +586,14 @@ export function AccountStatusPromptView({
 	if (copyDetails) {
 		links.push({ key: "copy", icon: Copy, label: t("account_status.banned.copy_details", { defaultValue: "Copy details" }), onClick: copyDetails });
 	}
+	if (canBackup) {
+		links.push({
+			key: "backup",
+			icon: Download,
+			label: t("account_status.backup_data", { defaultValue: "Back up data" }),
+			onClick: () => setShowBackupSheet(true),
+		});
+	}
 
 	const acceptBanAgreement =
 		agreementPending && onAcceptBanAgreement
@@ -655,21 +637,10 @@ export function AccountStatusPromptView({
 							<ExternalLink className="h-4 w-4" />
 						</button>
 					)}
-					{backup && (
-						<>
-							<BackupProgressBar kind="export" active={backup.exporting} />
-							<button type="button" onClick={backup.start} disabled={backup.exporting} className={fullscreenSecondaryButtonClass}>
-								<span className="inline-flex items-center gap-1.5">
-									{backup.exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-									{t("account_status.backup_data", { defaultValue: "Back up data for a new profile" })}
-								</span>
-							</button>
-						</>
-					)}
 					<button
 						type="button"
 						onClick={onSignOut}
-						disabled={accepting || backup?.exporting}
+						disabled={accepting}
 						className={acceptBanAgreement || appealButton ? fullscreenSecondaryButtonClass : fullscreenPrimaryButtonClass}
 					>
 						{t("account_status.sign_out", { defaultValue: "Sign Out" })}
@@ -704,6 +675,16 @@ export function AccountStatusPromptView({
 					) : null}
 					{acceptBanAgreement ? <AgreementCheckbox checked={agreed} onChange={setAgreed} disabled={accepting} /> : null}
 				</div>
+			) : null}
+			{showBackupSheet && backupProfileId != null ? (
+				<BackupExportSheet
+					profileId={backupProfileId}
+					dbFileName={chatDbFileNameFor(backupProfileId)}
+					categories={status?.kind === "banned" ? LOCAL_BACKUP_CATEGORIES : BACKUP_CATEGORY_IDS}
+					isDesktop={isDesktop}
+					zIndex="z-[150]"
+					onClose={() => setShowBackupSheet(false)}
+				/>
 			) : null}
 		</FullscreenPrompt>
 	);

@@ -1987,6 +1987,7 @@
     "add_video": "Add video",
     "delete_media": "Delete media",
     "media_alt": "Drawer media",
+    "restoring": "Restoring",
     "take_photo": "Take photo",
     "upload_photo": "Upload photo",
     "add_media": "Add media",
@@ -2575,9 +2576,19 @@
     "description": "Your login token has expired. Please sign in again to continue.",
     "sign_out": "Sign In Again"
   },
+  "restored_photos": {
+    "title": "Restore profile photos?",
+    "message": "Your backup contains {{count}} profile photos from your previous profile. Upload them and use them as this profile's photos?",
+    "warning": "Grindr may recognize photos of a banned account, which can get this profile banned too.",
+    "confirm": "Upload photos",
+    "dismiss": "Don't upload",
+    "uploading": "Restoring profile photos…",
+    "success": "{{count}} profile photos restored.",
+    "failed": "Couldn't restore all profile photos. You'll be asked again next time."
+  },
   "account_status": {
     "sign_out": "Sign Out",
-    "backup_data": "Back up data for a new profile",
+    "backup_data": "Back up data",
     "banned": {
       "title": "Account Banned",
       "description": "Grindr has banned this account{{reason}}. You can't sign in until the ban is lifted.",
@@ -2987,6 +2998,9 @@
   "data_backup": {
     "category_chat_messages": "Chat messages",
     "category_media_albums": "Media & albums",
+    "category_drawer_media": "Drawer media",
+    "category_profile_photos": "Profile photos",
+    "category_blocked_profiles": "Blocked profiles",
     "category_saved_phrases": "Saved phrases",
     "category_saved_locations": "Saved locations",
     "category_settings": "Settings",
@@ -3046,7 +3060,7 @@
     "export_card_desc": "Save your entire account to a file: conversations, messages, albums, avatars, cached photos/videos, saved phrases, saved locations, and every app setting.",
     "import": "Import data",
     "import_card_desc": "Merge a previously exported file back in — nothing already here is erased. The app reloads afterwards.",
-    "backup_note": "Exports are tied to your profile — a file can only be imported back into the same account it came from.",
+    "backup_note": "A backup can also be imported into a different profile, e.g. after a ban: chats, albums, and drawer media are moved over to it.",
     "media_storage": "Media Storage",
     "storage_used": "Storage used",
     "backup_section": "Account Backup",

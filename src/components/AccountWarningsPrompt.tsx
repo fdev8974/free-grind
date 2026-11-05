@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ChevronRight, ExternalLink, Flag, Loader2, TriangleAlert } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
-import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
+import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { CardDetailsSheet, GuidelineBlock, RichText } from "./GuidelineViolationParts";
 import { useAccountWarnings, useAcknowledgeAccountWarnings } from "../hooks/queries/useWarningQueries";
 import type { AccountWarning } from "../services/api/warningsMethods";
@@ -26,7 +26,7 @@ function WarningCard({ warning }: { warning: AccountWarning }) {
 	const text = warningText(warning.warning, t);
 
 	return (
-		<article className={`${fullscreenCardClass} overflow-hidden text-left`}>
+		<article className="native-group text-left">
 			<div className="flex items-start gap-3 px-4 py-4">
 				<div className="shrink-0 rounded-2xl ink-tint-8 p-2.5 text-[var(--accent)]">
 					<Flag className="h-5 w-5" />

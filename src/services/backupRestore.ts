@@ -14,6 +14,9 @@ import type { createApiFunctions } from "./apiFunctions";
 export type BackupCategoryId =
 	| "chat_messages"
 	| "media_albums"
+	| "drawer_media"
+	| "profile_photos"
+	| "blocked_profiles"
 	| "saved_phrases"
 	| "saved_locations"
 	| "settings"
@@ -23,6 +26,9 @@ export type BackupCategoryId =
 export const BACKUP_CATEGORY_IDS: BackupCategoryId[] = [
 	"chat_messages",
 	"media_albums",
+	"drawer_media",
+	"profile_photos",
+	"blocked_profiles",
 	"saved_phrases",
 	"saved_locations",
 	"settings",

@@ -6,19 +6,20 @@ import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import type { GuidelineText } from "../utils/guidelineViolations";
 
 /**
- * A full-width row at the bottom of a card that opens `children` in a
- * bottom sheet, so the long explanations don't stretch the prompt itself.
+ * A full-width row, the last tile of a card's .native-group, that opens
+ * `children` in a bottom sheet, so the long explanations don't stretch the
+ * prompt itself. Wrapped so the open sheet doesn't become a tile of its own.
  */
 export function CardDetailsSheet({ label, title, children }: { label: string; title: string; children: ReactNode }) {
 	const [open, setOpen] = useState(false);
 	const isDesktop = useDesktopBreakpoint();
 
 	return (
-		<>
+		<div>
 			<button
 				type="button"
 				onClick={() => setOpen(true)}
-				className="flex w-full items-center justify-between gap-3 border-t border-[var(--border)] px-4 py-3 text-left text-sm font-semibold text-[var(--accent)] transition hover:ink-tint-6"
+				className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-[var(--accent)] transition hover:ink-tint-6"
 			>
 				{label}
 				<ChevronRight className="h-4 w-4 shrink-0" />
@@ -34,7 +35,7 @@ export function CardDetailsSheet({ label, title, children }: { label: string; ti
 					</div>
 				</BottomSheet>
 			)}
-		</>
+		</div>
 	);
 }
 
