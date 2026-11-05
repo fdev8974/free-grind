@@ -5,8 +5,8 @@
  * full-size bytes included) in the own_profile_photos table — the
  * "profile_photos" backup category.
  *
- * Restored into a different profile, import (src-tauri/src/commands/backup.rs)
- * writes them to restored_profile_photos instead. Uploading those is the
+ * Import (src-tauri/src/commands/backup.rs) writes them to
+ * restored_profile_photos instead, also when restoring into the same profile. Uploading those is the
  * user's call (RestoredProfilePrompt): Grindr may recognize a banned
  * account's photos. Uploads go one at a time with a pause in between, record
  * their progress so an interrupted run resumes, and only once all are up is
@@ -17,6 +17,7 @@ import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
 import { fetchAndEncode } from "./mediaStore";
 import { recordOwnProfileDetails } from "./ownProfileDetails";
+import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
 import { setSavedAccountDisplayName, setSavedAccountPhotoHash } from "./savedAccountProfiles";
 import { sanitizeUploadFile } from "./uploadSanitize";
 import {
@@ -71,8 +72,33 @@ export async function countPendingRestoredProfilePhotos(): Promise<number> {
 	return Math.min(await chatDb.countRestoredProfilePhotos(), MAX_PROFILE_PHOTOS);
 }
 
+/** Hashes of the photos on `profile` (raw /v4/me/profile), primary first. */
+export function profilePhotoHashes(profile: Record<string, unknown>): string[] {
+	const parsed = profileSchema.safeParse(profile);
+	if (!parsed.success) return [];
+	return (parsed.data.medias ?? []).map((item) => item.mediaHash ?? "").filter((hash) => validateMediaHash(hash));
+}
+
+/**
+ * Discards the restored photos if the profile already shows exactly those, in
+ * that order (a backup of this same profile, unchanged since). Resolves to how
+ * many are left pending.
+ */
+export async function keepRestoredProfilePhotosIfChanged(currentHashes: string[]): Promise<number> {
+	const restored = (await chatDb.listRestoredProfilePhotos()).slice(0, MAX_PROFILE_PHOTOS);
+	if (restored.length === 0) return 0;
+	const unchanged =
+		restored.length === currentHashes.length && restored.every((photo, i) => (photo.uploadedHash ?? photo.mediaHash) === currentHashes[i]);
+	if (unchanged) {
+		await chatDb.clearRestoredProfilePhotos();
+		return 0;
+	}
+	return restored.length;
+}
+
 export async function dismissRestoredProfilePhotos(): Promise<void> {
 	await chatDb.clearRestoredProfilePhotos();
+	reportRestoreTask("profile_photos", null);
 }
 
 async function toFile(photo: chatDb.RestoredProfilePhoto): Promise<File | null> {
@@ -89,16 +115,40 @@ async function toFile(photo: chatDb.RestoredProfilePhoto): Promise<File | null> 
  */
 export async function uploadRestoredProfilePhotos(api: ApiFunctions, isCurrent: () => boolean): Promise<number> {
 	const photos = (await chatDb.listRestoredProfilePhotos()).slice(0, MAX_PROFILE_PHOTOS);
+	// +1 for pointing the profile at them once all are up.
+	const total = photos.length + 1;
+	reportRestoreTask("profile_photos", { state: "running", done: 0, total });
+	try {
+		const count = await uploadPhotos(api, isCurrent, photos);
+		reportRestoreTask("profile_photos", { state: "done", done: total, total });
+		return count;
+	} catch (error) {
+		reportRestoreTask("profile_photos", isCurrent() ? { state: "failed", done: 0, total } : null);
+		throw error;
+	}
+}
+
+async function uploadPhotos(api: ApiFunctions, isCurrent: () => boolean, photos: chatDb.RestoredProfilePhoto[]): Promise<number> {
+	const current = unwrapOwnProfile(await api.getMyOwnProfile());
+	// Restoring into the same profile: photos still on it are reused, not uploaded twice.
+	const onProfile = new Set(current ? profilePhotoHashes(current) : []);
 	const uploaded: string[] = [];
 
 	for (const photo of photos) {
 		if (photo.uploadedHash) {
 			uploaded.push(photo.uploadedHash);
+			advanceRestoreTask("profile_photos");
+			continue;
+		}
+		if (onProfile.has(photo.mediaHash)) {
+			uploaded.push(photo.mediaHash);
+			advanceRestoreTask("profile_photos");
 			continue;
 		}
 		const file = await toFile(photo);
 		if (!file) {
 			appLog.warn("[ownProfilePhotos] restored photo has no data, skipping", { hash: photo.mediaHash });
+			advanceRestoreTask("profile_photos");
 			continue;
 		}
 		if (uploaded.length > 0) await sleep(UPLOAD_DELAY_MS + Math.random() * UPLOAD_DELAY_JITTER_MS);
@@ -115,6 +165,7 @@ export async function uploadRestoredProfilePhotos(api: ApiFunctions, isCurrent: 
 		if (!newHash) throw new Error("upload returned no media hash");
 		await chatDb.markRestoredProfilePhotoUploaded(photo.mediaHash, newHash);
 		uploaded.push(newHash);
+		advanceRestoreTask("profile_photos");
 	}
 
 	if (uploaded.length > 0) {

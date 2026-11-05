@@ -2,13 +2,14 @@
  * Keeps the profile's details (name, about me, tags, looking for, stats, ...)
  * restorable from a backup, like ownProfilePhotos.ts does for the photos:
  * every profile load records them in own_profile_details — the
- * "profile_details" backup category. Restored into a different profile, import
- * (src-tauri/src/commands/backup.rs) writes them to restored_profile_details,
- * and RestoredProfilePrompt lets the user apply them.
+ * "profile_details" backup category. Import (src-tauri/src/commands/backup.rs)
+ * writes them to restored_profile_details, also when restoring into the same
+ * profile, and RestoredProfilePrompt lets the user apply them.
  */
 
 import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
+import { reportRestoreTask } from "./restoreStatus";
 import { unwrapOwnProfile } from "../pages/app/profile-editor/profileEditorUtils";
 
 type ApiFunctions = ReturnType<typeof createApiFunctions>;
@@ -58,8 +59,24 @@ export async function hasRestoredProfileDetails(): Promise<boolean> {
 	return (await chatDb.getRestoredProfileDetails()) != null;
 }
 
+/**
+ * Discards restored details that already match `current` (the profile as just
+ * read from the server), e.g. a backup of this same profile that hasn't been
+ * changed since. Resolves to whether any differing details are left to apply.
+ */
+export async function keepRestoredProfileDetailsIfChanged(current: Record<string, unknown>): Promise<boolean> {
+	const restored = await chatDb.getRestoredProfileDetails();
+	if (!restored) return false;
+	const changed = RESTORABLE_PROFILE_FIELDS.some(
+		(field) => field in restored && JSON.stringify(restored[field] ?? null) !== JSON.stringify(current[field] ?? null),
+	);
+	if (!changed) await chatDb.clearRestoredProfileDetails();
+	return changed;
+}
+
 export async function dismissRestoredProfileDetails(): Promise<void> {
 	await chatDb.clearRestoredProfileDetails();
+	reportRestoreTask("profile_details", null);
 }
 
 /**
@@ -70,14 +87,21 @@ export async function dismissRestoredProfileDetails(): Promise<void> {
 export async function applyRestoredProfileDetails(api: ApiFunctions, isCurrent: () => boolean): Promise<void> {
 	const restored = await chatDb.getRestoredProfileDetails();
 	if (!restored) return;
-	const current = unwrapOwnProfile(await api.getMyOwnProfile());
-	if (!current) throw new Error("own profile unavailable");
-	const merged: Record<string, unknown> = { ...current };
-	for (const field of RESTORABLE_PROFILE_FIELDS) {
-		if (field in restored) merged[field] = restored[field];
+	reportRestoreTask("profile_details", { state: "running", done: 0, total: 1 });
+	try {
+		const current = unwrapOwnProfile(await api.getMyOwnProfile());
+		if (!current) throw new Error("own profile unavailable");
+		const merged: Record<string, unknown> = { ...current };
+		for (const field of RESTORABLE_PROFILE_FIELDS) {
+			if (field in restored) merged[field] = restored[field];
+		}
+		// The api always talks to the active profile: never write into another one.
+		if (!isCurrent()) throw new Error("profile changed");
+		await api.replaceMyProfile(merged);
+		await chatDb.clearRestoredProfileDetails();
+		reportRestoreTask("profile_details", { state: "done", done: 1, total: 1 });
+	} catch (error) {
+		reportRestoreTask("profile_details", isCurrent() ? { state: "failed", done: 0, total: 1 } : null);
+		throw error;
 	}
-	// The api always talks to the active profile: never write into another one.
-	if (!isCurrent()) throw new Error("profile changed");
-	await api.replaceMyProfile(merged);
-	await chatDb.clearRestoredProfileDetails();
 }

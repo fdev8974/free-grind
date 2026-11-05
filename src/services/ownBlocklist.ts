@@ -4,7 +4,7 @@
  * records it in the own_blocked_profiles table — the "blocked_profiles"
  * backup category.
  *
- * Restored into a different profile, import (src-tauri/src/commands/backup.rs)
+ * Import (src-tauri/src/commands/backup.rs), also into the same profile,
  * writes it to restored_blocked_profiles instead, and runRestoredBlocklist
  * blocks those profiles again in the background. Deliberately slow and
  * sequential, like inboxSync.ts: one block at a time with a pause in between,
@@ -13,6 +13,7 @@
 
 import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
+import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
 import { appLog } from "../utils/logger";
 
 type ApiFunctions = ReturnType<typeof createApiFunctions>;
@@ -58,21 +59,25 @@ export async function runRestoredBlocklist(api: ApiFunctions, ownProfileId: numb
 			}
 		}
 		appLog.info("[ownBlocklist] restoring blocked profiles", { count: remaining.length });
+		const total = remaining.length;
+		let done = 0;
+		reportRestoreTask("blocked_profiles", { state: total > 0 ? "running" : "done", done, total });
 
 		let consecutiveFailures = 0;
 		while (remaining.length > 0) {
 			await sleep(BLOCK_DELAY_MS + Math.random() * BLOCK_DELAY_JITTER_MS);
 			// The api always talks to the active profile: never block from another one.
-			if (!isCurrent()) return;
+			if (!isCurrent()) return reportRestoreTask("blocked_profiles", null);
 			const profileId = remaining.shift() as string;
 			try {
 				await api.blockProfile(profileId);
 				consecutiveFailures = 0;
 			} catch (error) {
-				if (!isCurrent()) return;
+				if (!isCurrent()) return reportRestoreTask("blocked_profiles", null);
 				appLog.warn("[ownBlocklist] blocking failed", { profileId, error });
 				if (++consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
 					appLog.warn("[ownBlocklist] stopping after repeated failures, resuming on next start");
+					reportRestoreTask("blocked_profiles", { state: "paused", done, total });
 					return;
 				}
 				// A profile that can't be blocked (e.g. deleted) goes to the back, not in the way.
@@ -80,7 +85,10 @@ export async function runRestoredBlocklist(api: ApiFunctions, ownProfileId: numb
 				continue;
 			}
 			await chatDb.deleteRestoredBlockedProfile(profileId);
+			done++;
+			advanceRestoreTask("blocked_profiles");
 		}
+		reportRestoreTask("blocked_profiles", { state: "done", done, total });
 	} catch (error) {
 		appLog.warn("[ownBlocklist] restoring block list failed", error);
 	} finally {

@@ -59,9 +59,12 @@ export type BackupProgress = {
 	rowsTotal?: number;
 };
 
-/** Progress of reading a picked backup before its categories are known: copying
- * it to a scratch path (bytes only when the copy runs in JS), then checking it. */
+/** Progress of reading a picked backup before its categories are known: waiting
+ * for the picked file to arrive (the WebView hands a picked `File` over only
+ * once it's done preparing it, which for a large backup takes a while), copying
+ * it to a scratch path, then checking it. */
 export type BackupReadProgress =
+	| { stage: "opening" }
 	| { stage: "copying"; bytesDone?: number; bytesTotal?: number }
 	| { stage: "checking" };
 
@@ -126,21 +129,27 @@ export async function copyPickedFileToTemp(
  * routes the whole archive through JS, which was slow and flaky for large
  * media backups. Resolves to null if the picker was cancelled.
  */
-export async function pickBackupFileToTempAndroid(onCopying?: () => void): Promise<string | null> {
+export async function pickBackupFileToTempAndroid(
+	onCopying?: (bytesDone?: number, bytesTotal?: number) => void,
+): Promise<string | null> {
 	const [uri] = await AndroidFs.showOpenFilePicker({
 		// Some file managers report zips as octet-stream; the inspection step
 		// rejects anything that isn't actually a backup anyway.
 		mimeTypes: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
 	});
 	if (!uri) return null;
-	// Picked: the native copy reports no progress, so only its start.
 	onCopying?.();
+	const unlisten = await listen<{ bytesDone: number; bytesTotal?: number }>("backup-copy-progress", (event) =>
+		onCopying?.(event.payload.bytesDone, event.payload.bytesTotal),
+	);
 	const path = await tempZipPath("import");
 	try {
 		await invoke("copy_android_uri_to_file", { srcUri: uri, destPath: path });
 	} catch (error) {
 		await cleanupTempFile(path);
 		throw error;
+	} finally {
+		unlisten();
 	}
 	return path;
 }
@@ -161,8 +170,10 @@ export async function pickBackupFileDesktop(): Promise<string | null> {
 
 /**
  * Opens the platform's backup picker and hands the result to `onPicked` as a
- * stage for it to run: on Android the native copy, on desktop the picked path
- * as is. `fallbackToInput` opens the `<input type="file">` instead: always on
+ * stage for it to run: on Android the picker plus the native copy (which
+ * reports progress only once a file was picked), on desktop the picked path
+ * as is. Resolves once the dialog closed; on desktop without `onPicked` if it
+ * was cancelled. `fallbackToInput` opens the `<input type="file">` instead: always on
  * iOS, and on desktop when the native dialog isn't available (e.g. a plain
  * browser in dev).
  */
@@ -171,7 +182,9 @@ export async function pickBackupFile(
 	fallbackToInput: () => void,
 ): Promise<void> {
 	if (isAndroid()) {
-		onPicked((report) => pickBackupFileToTempAndroid(() => report({ stage: "copying" })));
+		onPicked((report) =>
+			pickBackupFileToTempAndroid((bytesDone, bytesTotal) => report({ stage: "copying", bytesDone, bytesTotal })),
+		);
 		return;
 	}
 	if (isIos()) {
@@ -354,6 +367,34 @@ export async function exportBackup(
 
 export function inspectBackupFile(srcPath: string): Promise<BackupInspection> {
 	return invoke("inspect_backup_file", { srcPath });
+}
+
+/** A backup found in the default export folder by `list_local_backups` in backup.rs. */
+export type LocalBackup = {
+	/** Absolute path, readable in place: pass it straight to inspect/import. */
+	path: string;
+	fileName: string;
+	sizeBytes: number;
+	modifiedAt: number;
+	exportedAt: number;
+	ownerUserId: number;
+	categories: BackupCategoryId[];
+	conversationCount?: number;
+	messageCount?: number;
+};
+
+/**
+ * Backups sitting in the folder `exportBackup` writes to by default
+ * (Downloads/FreeGrind, Documents/FreeGrind on iOS), newest first. On Android
+ * only files this install created are visible. Empty on any error, e.g. in a
+ * plain browser in dev.
+ */
+export async function listLocalBackups(): Promise<LocalBackup[]> {
+	try {
+		return await invoke<LocalBackup[]>("list_local_backups");
+	} catch {
+		return [];
+	}
 }
 
 export function importBackupFile(

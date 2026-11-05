@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { RestoreStatusEntry } from "../../components/RestoreStatus";
 import { useLogoutToNextAccount } from "../../hooks/useLogoutToNextAccount";
 import { getVersion } from "@tauri-apps/api/app";
 import { RELEASES_URL } from "../../config/links-config";
@@ -853,6 +854,8 @@ export function SettingsPage() {
 						</div>
 					) : (
 					<div className="grid gap-6">
+						{/* Only while restore work is still running in the background. */}
+						<RestoreStatusEntry variant="banner" />
 
 						{/* Profile — the active profile is the primary focus (tap it to edit
 						    your profile), with the account switcher folded in below it for

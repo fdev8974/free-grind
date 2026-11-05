@@ -18,6 +18,8 @@ import { RowActionPill } from "../../components/ui/row-action-pill";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
 import { BackupExportSheet } from "../../components/BackupExportSheet";
 import { BackupProgressBar, BackupReadStatus } from "../../components/BackupProgressBar";
+import { LocalBackupList, useLocalBackups } from "../../components/LocalBackupList";
+import { RestoreStatusEntry } from "../../components/RestoreStatus";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
 import { useAuth } from "../../contexts/useAuth";
@@ -62,6 +64,10 @@ export function SettingsDataPage() {
 	const isDesktop = useDesktopBreakpoint();
 
 	const [showExportSheet, setShowExportSheet] = useState(false);
+	const localBackups = useLocalBackups();
+	const [showLocalBackups, setShowLocalBackups] = useState(false);
+	const [selectedLocalPath, setSelectedLocalPath] = useState<string | null>(null);
+	const [pickingOtherFile, setPickingOtherFile] = useState(false);
 	const [pendingImport, setPendingImport] = useState<{
 		tempPath: string;
 		categories: BackupCategoryId[];
@@ -159,6 +165,35 @@ export function SettingsDataPage() {
 			setIsImporting(false);
 		}
 	};
+
+	/** Resolves once the picked file was read (or the picker cancelled); right
+	 * away for the <input> fallback, whose result arrives through onChange. */
+	const openBackupPicker = () =>
+		new Promise<void>((resolve) => {
+			let picked = false;
+			void pickBackupFile(
+				(stage) => {
+					picked = true;
+					void handleImportFile(stage).finally(resolve);
+				},
+				() => {
+					setReadProgress({ stage: "opening" });
+					fileInputRef.current?.click();
+				},
+			).finally(() => {
+				// Cancelled, or the <input> fallback (its result arrives through onChange).
+				if (!picked) resolve();
+			});
+		});
+
+	// The <input> fallback's "Opening file…" ends on change, or here if the picker was dismissed.
+	useEffect(() => {
+		const input = fileInputRef.current;
+		if (!input) return;
+		const onCancel = () => setReadProgress((prev) => (prev?.stage === "opening" ? null : prev));
+		input.addEventListener("cancel", onCancel);
+		return () => input.removeEventListener("cancel", onCancel);
+	}, []);
 
 	const handleCancelImport = () => {
 		if (pendingImport) {
@@ -281,6 +316,7 @@ export function SettingsDataPage() {
 						{t("data_backup.backup_section", { defaultValue: "Account Backup" })}
 					</p>
 					<div className="native-group">
+						<RestoreStatusEntry variant="row" />
 						<button
 							id="data-export"
 							type="button"
@@ -307,10 +343,11 @@ export function SettingsDataPage() {
 							id="data-import"
 							type="button"
 							onClick={() => {
-								void pickBackupFile(
-									(stage) => void handleImportFile(stage),
-									() => fileInputRef.current?.click(),
-								);
+								if (localBackups && localBackups.length > 0) {
+									setShowLocalBackups(true);
+								} else {
+									openBackupPicker();
+								}
 							}}
 							disabled={isImporting}
 							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover-fill"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
@@ -332,7 +369,7 @@ export function SettingsDataPage() {
 									</p>
 								)}
 							</div>
-							{isImporting ? (
+							{isImporting || readProgress ? (
 								<Loader2 className="h-4 w-4 shrink-0 animate-spin text-[var(--text-muted)]" />
 							) : (
 								<Upload className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
@@ -346,6 +383,7 @@ export function SettingsDataPage() {
 							onChange={(event) => {
 								const file = event.target.files?.[0];
 								event.target.value = "";
+								if (!file) setReadProgress(null);
 								if (file) void handleImportFile((report) => copyPickedFileToTemp(file, (bytesDone, bytesTotal) => report({ stage: "copying", bytesDone, bytesTotal })));
 							}}
 						/>
@@ -515,6 +553,65 @@ export function SettingsDataPage() {
 					isDesktop={isDesktop}
 					onClose={() => setShowExportSheet(false)}
 				/>
+			)}
+
+			{showLocalBackups && localBackups && (
+				<BottomSheet
+					onClose={() => setShowLocalBackups(false)}
+					isDesktop={isDesktop}
+					isProcessing={isImporting}
+					panelClassName="max-h-[82dvh]"
+				>
+					<div className="flex items-center justify-between gap-3 px-4 pb-3">
+						<div className="min-w-0">
+							<p className="text-sm font-semibold text-[var(--text)]">
+								{t("local_backups.sheet_title", { defaultValue: "Choose a backup" })}
+							</p>
+							<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+								{t("local_backups.sheet_desc", { defaultValue: "These backups were found in Downloads/FreeGrind on this device." })}
+							</p>
+						</div>
+						<SheetCloseButton disabled={isImporting} />
+					</div>
+					<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4" data-lenis-prevent>
+						<LocalBackupList
+							backups={localBackups}
+							currentUserId={userId}
+							disabled={isImporting}
+							busyPath={selectedLocalPath}
+							busyProgress={readProgress}
+							onSelect={(backup) => {
+								// The sheet stays open, with the status in the picked row, until the
+								// backup is read; then the category sheet takes over.
+								setSelectedLocalPath(backup.path);
+								void handleImportFile(async () => backup.path).finally(() => {
+									setSelectedLocalPath(null);
+									setShowLocalBackups(false);
+								});
+							}}
+						/>
+					</div>
+					{pickingOtherFile && readProgress ? <BackupReadStatus progress={readProgress} className="px-4 pb-3" /> : null}
+					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
+						<button
+							type="button"
+							onClick={() => {
+								// Stays open with the status below until the file is read; then the
+								// category sheet takes over.
+								setPickingOtherFile(true);
+								void openBackupPicker().finally(() => {
+									setPickingOtherFile(false);
+									setShowLocalBackups(false);
+								});
+							}}
+							disabled={isImporting}
+							className={sheetButtonClass("secondary")}
+						>
+							{pickingOtherFile && readProgress ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUpFilled className="h-4 w-4" />}
+							<span>{t("local_backups.choose_other", { defaultValue: "Choose another file…" })}</span>
+						</button>
+					</div>
+				</BottomSheet>
 			)}
 
 			{pendingImport && (

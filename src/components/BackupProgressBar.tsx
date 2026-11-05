@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { backupProgressFraction, listenBackupProgress, type BackupProgress, type BackupReadProgress } from "../services/backupRestore";
 import { formatBytes } from "../utils/formatBytes";
@@ -36,7 +37,7 @@ export function BackupProgressBar({ kind, active }: { kind: "export" | "import";
 		<div className="px-4 pb-1 pt-2">
 			<div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
 				<div
-					className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-300 ${fraction == null ? "w-1/3 animate-pulse" : ""}`}
+					className={`h-full rounded-full bg-[var(--accent)] ${fraction == null ? "w-2/5 animate-progress-indeterminate" : "transition-[width] duration-300"}`}
 					style={fraction == null ? undefined : { width: `${Math.round(fraction * 100)}%` }}
 				/>
 			</div>
@@ -64,11 +65,21 @@ export function BackupReadStatus({ progress, className = "" }: { progress: Backu
 	const fraction =
 		progress.stage === "copying" && progress.bytesTotal ? Math.min((progress.bytesDone ?? 0) / progress.bytesTotal, 1) : null;
 
+	// While the picker is still open there's nothing to measure: no bar, just a spinner.
+	if (progress.stage === "opening") {
+		return (
+			<p className={`flex items-center gap-1.5 text-xs text-[var(--text-muted)] ${className}`}>
+				<Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+				{t("data_backup.read_opening", { defaultValue: "Opening file…" })}
+			</p>
+		);
+	}
+
 	return (
 		<div className={className}>
 			<div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-2)]">
 				<div
-					className={`h-full rounded-full bg-[var(--accent)] transition-[width] duration-300 ${fraction == null ? "w-1/3 animate-pulse" : ""}`}
+					className={`h-full rounded-full bg-[var(--accent)] ${fraction == null ? "w-2/5 animate-progress-indeterminate" : "transition-[width] duration-300"}`}
 					style={fraction == null ? undefined : { width: `${Math.round(fraction * 100)}%` }}
 				/>
 			</div>

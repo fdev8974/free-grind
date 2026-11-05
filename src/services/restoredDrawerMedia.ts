@@ -15,6 +15,7 @@ import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
 import { uploadChatVideo } from "./chatMediaSend";
 import { getDrawerMediaKey } from "./mediaStore";
+import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
 import { MAX_CHAT_MEDIA_BYTES } from "./stagedVideoUpload";
 import { buildBinaryUpload } from "../pages/app/chat/chatUtils";
 import { appLog } from "../utils/logger";
@@ -105,25 +106,33 @@ export async function runRestoredDrawerUpload(api: ApiFunctions, isCurrent: () =
 		const pending = await listRestoredDrawerMedia();
 		if (pending.length === 0) return;
 		appLog.info("[restoredDrawerMedia] uploading restored drawer media", { count: pending.length });
+		reportRestoreTask("drawer_media", { state: "running", done: 0, total: pending.length });
 
 		let consecutiveFailures = 0;
+		let done = 0;
 		for (const { mediaKey } of pending) {
 			await sleep(UPLOAD_DELAY_MS + Math.random() * UPLOAD_DELAY_JITTER_MS);
-			if (!isCurrent()) return;
+			if (!isCurrent()) return reportRestoreTask("drawer_media", null);
 			try {
 				await uploadOne(api, mediaKey, isCurrent);
 				consecutiveFailures = 0;
 			} catch (error) {
-				if (!isCurrent()) return;
+				if (!isCurrent()) return reportRestoreTask("drawer_media", null);
 				appLog.warn("[restoredDrawerMedia] upload failed", { mediaKey, error });
 				if (++consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
 					appLog.warn("[restoredDrawerMedia] stopping after repeated failures, resuming on next start");
+					reportRestoreTask("drawer_media", { state: "paused", done, total: pending.length });
 					return;
 				}
 				continue;
 			}
+			done++;
+			advanceRestoreTask("drawer_media");
 			notify();
 		}
+		// A file that failed once (without three failures in a row) waits for the next start.
+		const left = (await listRestoredDrawerMedia()).length;
+		reportRestoreTask("drawer_media", left > 0 ? { state: "paused", done, total: pending.length } : { state: "done", done, total: done });
 	} finally {
 		running = false;
 	}

@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileArchive, FileUp, Loader2, Lock, UploadCloud } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
 import { BackupProgressBar, BackupReadStatus } from "./BackupProgressBar";
+import { LocalBackupList, useLocalBackups } from "./LocalBackupList";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
@@ -28,6 +29,17 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 	const isDesktop = useDesktopBreakpoint();
 	const apiFunctions = useApiFunctions();
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const localBackups = useLocalBackups();
+	const [selectedLocalPath, setSelectedLocalPath] = useState<string | null>(null);
+
+	// The <input> fallback's "Opening file…" ends on change, or here if the picker was dismissed.
+	useEffect(() => {
+		const input = fileInputRef.current;
+		if (!input) return;
+		const onCancel = () => setReadProgress((prev) => (prev?.stage === "opening" ? null : prev));
+		input.addEventListener("cancel", onCancel);
+		return () => input.removeEventListener("cancel", onCancel);
+	}, []);
 
 	const [isBusy, setIsBusy] = useState(false);
 	const [isDragging, setIsDragging] = useState(false);
@@ -69,6 +81,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 			if (tempPath != null) await cleanupTempFile(tempPath);
 		} finally {
 			setReadProgress(null);
+			setSelectedLocalPath(null);
 			setIsBusy(false);
 		}
 	};
@@ -151,7 +164,10 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					onClick={() => {
 						void pickBackupFile(
 							(stage) => void handleFilePicked(stage),
-							() => fileInputRef.current?.click(),
+							() => {
+								setReadProgress({ stage: "opening" });
+								fileInputRef.current?.click();
+							},
 						);
 					}}
 					onDragOver={(event) => {
@@ -176,7 +192,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					}`}
 				>
 					<span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--accent-contrast)] shadow-lg shadow-[var(--accent)]/20 transition group-hover:scale-105">
-						{isBusy ? <Loader2 className="h-7 w-7 animate-spin" /> : <UploadCloud className="h-7 w-7" />}
+						{isBusy || readProgress ? <Loader2 className="h-7 w-7 animate-spin" /> : <UploadCloud className="h-7 w-7" />}
 					</span>
 					<span className="space-y-1">
 						<span className="block font-semibold text-[var(--text)]">
@@ -202,11 +218,31 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					onChange={(event) => {
 						const file = event.target.files?.[0];
 						event.target.value = "";
+						if (!file) setReadProgress(null);
 						if (file) void handleFilePicked((report) => copyPickedFileToTemp(file, (bytesDone, bytesTotal) => report({ stage: "copying", bytesDone, bytesTotal })));
 					}}
 				/>
 
-				<p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
+				{localBackups && localBackups.length > 0 ? (
+					<div className="mt-6">
+						<p className="mb-2 px-1 text-left text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+							{t("local_backups.found_title", { defaultValue: "Found on this device" })}
+						</p>
+						<LocalBackupList
+							backups={localBackups}
+							currentUserId={userId}
+							disabled={isBusy}
+							busyPath={selectedLocalPath}
+							busyProgress={readProgress}
+							onSelect={(backup) => {
+								setSelectedLocalPath(backup.path);
+								void handleFilePicked(async () => backup.path);
+							}}
+						/>
+					</div>
+				) : null}
+
+				<p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[var(--text-muted)]">
 					<Lock className="h-3.5 w-3.5" />
 					{t("restore_offer.local_hint", { defaultValue: "Your backup stays on this device." })}
 				</p>

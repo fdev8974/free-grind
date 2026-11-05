@@ -58,6 +58,8 @@ use crate::error::AppError;
 const BACKUP_VERSION: i64 = 2;
 const EXPORT_PROGRESS_EVENT: &str = "backup-export-progress";
 const IMPORT_PROGRESS_EVENT: &str = "backup-import-progress";
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+const COPY_PROGRESS_EVENT: &str = "backup-copy-progress";
 /// Time-based rather than row-based: one media row can be several MB, so a
 /// fixed row interval left the UI without any update for minutes.
 const PROGRESS_INTERVAL: Duration = Duration::from_millis(150);
@@ -357,11 +359,13 @@ const EXPORT_TABLES: &[TableSpec] = &[
     },
 ];
 
-/// Data that only lives on the server (own photos, block list), recorded
-/// locally so a backup has it: restored into a different profile, it goes to
-/// the second table instead, where the app picks it up to upload/block again
-/// (src/services/ownProfilePhotos.ts, ownBlocklist.ts) without touching the
-/// new profile's own record.
+/// Data that only lives on the server (own profile details, photos, block
+/// list), recorded locally so a backup has it. Import always writes it to the
+/// second table, where the app picks it up to apply/upload/block again
+/// (src/services/ownProfileDetails.ts, ownProfilePhotos.ts, ownBlocklist.ts).
+/// Also when restoring into the same profile: the own record is only a mirror
+/// of the server, rewritten on every start, so a restore landing there was
+/// silently lost.
 const RESTORED_INTO: &[(&str, &str)] = &[
     ("own_profile_details", "restored_profile_details"),
     ("own_profile_photos", "restored_profile_photos"),
@@ -948,6 +952,102 @@ pub async fn inspect_backup_file(src_path: String) -> Result<BackupInspection, A
     .await
 }
 
+/// A valid backup found in the app's default export folder by `list_local_backups`.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalBackup {
+    path: String,
+    file_name: String,
+    size_bytes: u64,
+    /// File mtime in ms, as a fallback for sorting when `exported_at` is missing.
+    modified_at: i64,
+    exported_at: i64,
+    owner_user_id: i64,
+    categories: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    conversation_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    message_count: Option<u64>,
+}
+
+/// The folder `exportBackup` (src/services/backupRestore.ts) writes to by
+/// default: Downloads/FreeGrind on desktop and Android, Documents/FreeGrind on iOS.
+async fn local_backup_dir(app: &AppHandle) -> Option<PathBuf> {
+    #[cfg(target_os = "android")]
+    {
+        use tauri_plugin_android_fs::{AndroidFsExt, PublicGeneralPurposeDir};
+        // Path access only sees files this app created (until a reinstall),
+        // which is exactly what an export to Downloads/FreeGrind produces.
+        #[allow(deprecated)]
+        let download = app
+            .android_fs_async()
+            .public_storage()
+            .resolve_path(None, PublicGeneralPurposeDir::Download)
+            .await
+            .ok()?;
+        Some(download.join("FreeGrind"))
+    }
+    #[cfg(target_os = "ios")]
+    {
+        Some(app.path().document_dir().ok()?.join("FreeGrind"))
+    }
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        Some(app.path().download_dir().ok()?.join("FreeGrind"))
+    }
+}
+
+fn read_local_backup(path: &Path) -> Option<LocalBackup> {
+    let metadata = std::fs::metadata(path).ok()?;
+    let mut archive = open_archive(path.to_str()?).ok()?;
+    let ManifestCheck::Valid { owner_user_id, categories, exported_at, row_counts } = read_and_validate_manifest(&mut archive).ok()? else {
+        return None;
+    };
+    let modified_at = metadata
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map_or(0, |d| d.as_millis() as i64);
+    Some(LocalBackup {
+        path: path.to_string_lossy().into_owned(),
+        file_name: path.file_name()?.to_string_lossy().into_owned(),
+        size_bytes: metadata.len(),
+        modified_at,
+        exported_at,
+        owner_user_id,
+        categories,
+        conversation_count: row_counts.get("conversations").copied(),
+        message_count: row_counts.get("messages").copied(),
+    })
+}
+
+fn scan_backup_dir(dir: &Path) -> Vec<LocalBackup> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut backups: Vec<LocalBackup> = entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file() && path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("zip")))
+        // Unreadable or non-backup zips are just left out of the list.
+        .filter_map(|path| read_local_backup(&path))
+        .collect();
+    backups.sort_by_key(|b| std::cmp::Reverse(if b.exported_at > 0 { b.exported_at } else { b.modified_at }));
+    backups
+}
+
+/// Lists the backups in the default export folder (see `local_backup_dir`),
+/// newest first, so restore can offer them without going through a file
+/// picker. Only the manifest of each archive is read. Never fails: a missing
+/// or inaccessible folder just yields an empty list.
+#[tauri::command]
+pub async fn list_local_backups(app: AppHandle) -> Result<Vec<LocalBackup>, AppError> {
+    let Some(dir) = local_backup_dir(&app).await else {
+        return Ok(Vec::new());
+    };
+    run_blocking(move || Ok(scan_backup_dir(&dir))).await
+}
+
 #[tauri::command]
 pub async fn import_backup_from_file(
     app: AppHandle,
@@ -1039,8 +1139,9 @@ fn import_tables(
         let rows_total = row_counts.get(&table.entry_key()).copied();
         progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done: 0, rows_total });
 
-        let target = remap
-            .and_then(|_| RESTORED_INTO.iter().find(|(own, _)| *own == table.name))
+        let target = RESTORED_INTO
+            .iter()
+            .find(|(own, _)| *own == table.name)
             .map_or(table.name, |(_, restored)| *restored);
         if !table_exists(conn, target)? {
             continue;
@@ -1134,10 +1235,39 @@ fn import_tables(
     Ok(total_rows_imported)
 }
 
+/// Payload of `backup-copy-progress`: bytes of a picked backup copied so far
+/// by `copy_android_uri_to_file`. `bytes_total` is missing when the content
+/// provider doesn't report a size.
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
-fn copy_to_file(src: impl Read, mut dest: File) -> Result<(), AppError> {
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CopyProgress {
+    bytes_done: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bytes_total: Option<u64>,
+}
+
+#[cfg_attr(not(target_os = "android"), allow(dead_code))]
+fn copy_to_file(src: impl Read, mut dest: File, mut on_progress: impl FnMut(u64)) -> Result<(), AppError> {
     let mut reader = BufReader::with_capacity(COPY_BUFFER_SIZE, src);
-    std::io::copy(&mut reader, &mut dest)?;
+    let mut buffer = vec![0u8; COPY_BUFFER_SIZE];
+    let mut done = 0u64;
+    let mut last_emit: Option<Instant> = None;
+    loop {
+        let n = match reader.read(&mut buffer) {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e.into()),
+        };
+        dest.write_all(&buffer[..n])?;
+        done += n as u64;
+        if last_emit.is_none_or(|t| t.elapsed() >= PROGRESS_INTERVAL) {
+            on_progress(done);
+            last_emit = Some(Instant::now());
+        }
+    }
+    on_progress(done);
     dest.flush()?;
     // Some content providers hand out pipes/sockets, which can't be fsync'd.
     let _ = dest.sync_all();
@@ -1159,7 +1289,7 @@ pub async fn copy_file_to_android_uri(app: AppHandle, src_path: String, dest_uri
             .open_file_writable(&uri)
             .await
             .map_err(|e| AppError::Backup(format!("failed to open destination: {e}")))?;
-        run_blocking(move || copy_to_file(File::open(&src_path)?, dest)).await
+        run_blocking(move || copy_to_file(File::open(&src_path)?, dest, |_| {})).await
     }
     #[cfg(not(target_os = "android"))]
     {
@@ -1177,12 +1307,18 @@ pub async fn copy_android_uri_to_file(app: AppHandle, src_uri: Value, dest_path:
         use tauri_plugin_android_fs::{AndroidFsExt, FileUri};
         let uri: FileUri = serde_json::from_value(src_uri)
             .map_err(|e| AppError::Backup(format!("invalid source uri: {e}")))?;
-        let src = app
-            .android_fs_async()
+        let fs = app.android_fs_async();
+        let bytes_total = fs.get_len(&uri).await.ok().filter(|&len| len > 0);
+        let src = fs
             .open_file_readable(&uri)
             .await
             .map_err(|e| AppError::Backup(format!("failed to open picked file: {e}")))?;
-        run_blocking(move || copy_to_file(src, File::create(&dest_path)?)).await
+        run_blocking(move || {
+            copy_to_file(src, File::create(&dest_path)?, |bytes_done| {
+                let _ = app.emit(COPY_PROGRESS_EVENT, CopyProgress { bytes_done, bytes_total });
+            })
+        })
+        .await
     }
     #[cfg(not(target_os = "android"))]
     {
@@ -1223,9 +1359,27 @@ mod tests {
         }
     }
 
+    /// Same columns as the own table; the app's restored_profile_photos also has uploaded_hash.
+    fn create_restored_schema(conn: &Connection) {
+        for (own, restored) in RESTORED_INTO {
+            let table = tables().find(|t| t.name == *own).unwrap();
+            let cols = table
+                .columns
+                .iter()
+                .map(|&c| if c == table.primary_key { format!("{c} PRIMARY KEY") } else { c.to_string() })
+                .collect::<Vec<_>>()
+                .join(", ");
+            conn.execute_batch(&format!("CREATE TABLE {restored} ({cols})")).unwrap();
+        }
+    }
+
     fn dump(conn: &Connection, table: &TableSpec) -> Vec<Vec<SqlValue>> {
+        dump_from(conn, table, table.name)
+    }
+
+    fn dump_from(conn: &Connection, table: &TableSpec, source: &str) -> Vec<Vec<SqlValue>> {
         let mut stmt = conn
-            .prepare(&format!("SELECT {} FROM {} ORDER BY {}", table.columns.join(", "), table.name, table.primary_key))
+            .prepare(&format!("SELECT {} FROM {source} ORDER BY {}", table.columns.join(", "), table.primary_key))
             .unwrap();
         stmt.query_map([], |row| (0..table.columns.len()).map(|i| row.get::<_, SqlValue>(i)).collect())
             .unwrap()
@@ -1286,7 +1440,11 @@ mod tests {
         remote_entries.insert("../evil".into(), json!([]));
         write_export_archive(&src_db, 42, &archive, &categories, &remote_entries, &mut ProgressEmitter::new(None, "")).unwrap();
 
-        create_schema(&Connection::open(&dst_db).unwrap());
+        {
+            let dst = Connection::open(&dst_db).unwrap();
+            create_schema(&dst);
+            create_restored_schema(&dst);
+        }
         let outcome =
             import_archive(&dst_db, 42, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
         assert!(outcome.ok);
@@ -1296,7 +1454,12 @@ mod tests {
 
         let dst = Connection::open(&dst_db).unwrap();
         for table in tables() {
-            assert_eq!(dump(&src, table), dump(&dst, table), "table {} differs after round trip", table.name);
+            // Server-side data waits in restored_* even for the same profile; the own record stays untouched.
+            let target = RESTORED_INTO.iter().find(|(own, _)| *own == table.name).map_or(table.name, |(_, r)| *r);
+            assert_eq!(dump(&src, table), dump_from(&dst, table, target), "table {} differs after round trip", table.name);
+            if target != table.name {
+                assert!(dump(&dst, table).is_empty(), "own table {} was written to", table.name);
+            }
         }
 
         let _ = std::fs::remove_dir_all(&dir);

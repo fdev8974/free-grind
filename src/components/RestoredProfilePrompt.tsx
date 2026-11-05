@@ -14,12 +14,17 @@ import {
 	applyRestoredProfileDetails,
 	dismissRestoredProfileDetails,
 	hasRestoredProfileDetails,
+	keepRestoredProfileDetailsIfChanged,
 } from "../services/ownProfileDetails";
 import {
 	countPendingRestoredProfilePhotos,
 	dismissRestoredProfilePhotos,
+	keepRestoredProfilePhotosIfChanged,
+	profilePhotoHashes,
 	uploadRestoredProfilePhotos,
 } from "../services/ownProfilePhotos";
+import { unwrapOwnProfile } from "../pages/app/profile-editor/profileEditorUtils";
+import { SHOW_RESTORED_PROFILE_PROMPT_EVENT } from "../services/restoreStatus";
 import { appLog } from "../utils/logger";
 
 type Pending = { details: boolean; photos: number };
@@ -41,19 +46,46 @@ export function RestoredProfilePrompt({ userId }: { userId: number }) {
 	const [applyPhotos, setApplyPhotos] = useState(true);
 	const userIdRef = useRef(userId);
 	userIdRef.current = userId;
+	// Bumped to check again on request, e.g. from the restore status sheet.
+	const [checkNonce, setCheckNonce] = useState(0);
+
+	useEffect(() => {
+		const handleShow = () => setCheckNonce((n) => n + 1);
+		window.addEventListener(SHOW_RESTORED_PROFILE_PROMPT_EVENT, handleShow);
+		return () => window.removeEventListener(SHOW_RESTORED_PROFILE_PROMPT_EVENT, handleShow);
+	}, []);
 
 	useEffect(() => {
 		if (!settingsReady) return;
 		let cancelled = false;
-		Promise.all([hasRestoredProfileDetails(), countPendingRestoredProfilePhotos()])
-			.then(([details, photos]) => {
-				if (!cancelled && (details || photos > 0)) setPending({ details, photos });
+		const check = async (): Promise<Pending | null> => {
+			let [details, photos] = await Promise.all([hasRestoredProfileDetails(), countPendingRestoredProfilePhotos()]);
+			if (!details && photos === 0) return null;
+			// A backup of this same profile brings along what's on it already:
+			// only ask about what differs. Without the current profile (offline,
+			// banned) everything restored is offered.
+			const current = await apiFunctions
+				.getMyOwnProfile()
+				.then(unwrapOwnProfile)
+				.catch((error: unknown) => {
+					appLog.warn("[RestoredProfilePrompt] loading current profile failed", error);
+					return null;
+				});
+			if (current && userIdRef.current === userId) {
+				if (details) details = await keepRestoredProfileDetailsIfChanged(current);
+				if (photos > 0) photos = await keepRestoredProfilePhotosIfChanged(profilePhotoHashes(current));
+			}
+			return details || photos > 0 ? { details, photos } : null;
+		};
+		check()
+			.then((next) => {
+				if (!cancelled && next) setPending(next);
 			})
 			.catch((error: unknown) => appLog.warn("[RestoredProfilePrompt] checking restored profile failed", error));
 		return () => {
 			cancelled = true;
 		};
-	}, [settingsReady, userId]);
+	}, [settingsReady, userId, checkNonce]);
 
 	const isOpen = pending != null;
 	const close = () => setPending(null);
