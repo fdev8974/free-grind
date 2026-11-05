@@ -199,7 +199,10 @@ jobs:
   reproducible-build:
     needs: create-release
     strategy:
-      fail-fast: true
+      # One builder failing (e.g. snapshot.debian.org down) shouldn't cancel
+      # the others: `verify` still needs all of them, and `gh run rerun
+      # --failed` then only repeats the ones that broke.
+      fail-fast: false
       matrix:
         artifact: [linux, android, windows, frontend]
         builder: [1, 2]

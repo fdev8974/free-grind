@@ -18,10 +18,11 @@ RUN echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian/$
 	&& echo "deb [check-valid-until=no] http://snapshot.debian.org/archive/debian-security/${SNAPSHOT} bookworm-security main" >> /etc/apt/sources.list \
 	&& rm -f /etc/apt/sources.list.d/debian.sources
 
-RUN apt-get -qq -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 update \
-	&& DEBIAN_FRONTEND=noninteractive apt-get -qq install -y --no-install-recommends \
-		ca-certificates curl git unzip xz-utils file \
-	&& rm -rf /var/lib/apt/lists/*
+# Retries the snapshot downloads through its outages.
+COPY apt-install.sh /usr/local/bin/apt-install
+
+RUN sh /usr/local/bin/apt-install \
+		ca-certificates curl git unzip xz-utils file
 
 ARG NODE_VERSION
 # node-v24.21.0-linux-x64.tar.xz from https://nodejs.org/dist/v24.21.0/SHASUMS256.txt
@@ -53,10 +54,8 @@ FROM base AS frontend
 # --- Shared by the Rust builds ------------------------------------------------
 FROM base AS rust
 
-RUN apt-get -qq -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 update \
-	&& DEBIAN_FRONTEND=noninteractive apt-get -qq install -y --no-install-recommends \
-		build-essential clang libclang-dev pkg-config cmake ninja-build perl \
-	&& rm -rf /var/lib/apt/lists/*
+RUN sh /usr/local/bin/apt-install \
+		build-essential clang libclang-dev pkg-config cmake ninja-build perl
 
 ARG RUST_VERSION
 # rustup-init 1.28.2; rustup itself verifies every toolchain component it downloads.
@@ -74,13 +73,11 @@ ENV PATH=/opt/cargo/bin:$PATH
 # --- Linux .deb / .rpm / .AppImage --------------------------------------------
 FROM rust AS linux
 
-RUN apt-get -qq -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 update \
-	&& DEBIAN_FRONTEND=noninteractive apt-get -qq install -y --no-install-recommends \
+RUN sh /usr/local/bin/apt-install \
 		libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libxdo-dev libssl-dev \
 		libayatana-appindicator3-dev librsvg2-dev \
 		libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-		binutils dpkg-dev rpm squashfs-tools \
-	&& rm -rf /var/lib/apt/lists/*
+		binutils dpkg-dev rpm squashfs-tools
 
 # tauri's AppImage bundler downloads linuxdeploy's "continuous" build on every
 # run, which can't be pinned; ci/build/linux.sh assembles the AppImage itself
@@ -97,10 +94,8 @@ FROM rust AS windows
 
 # clang-cl and lld-link stand in for MSVC's cl.exe and link.exe; nasm builds
 # BoringSSL's assembly; makensis builds the installer.
-RUN apt-get -qq -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5 update \
-	&& DEBIAN_FRONTEND=noninteractive apt-get -qq install -y --no-install-recommends \
+RUN sh /usr/local/bin/apt-install \
 		clang-19 lld-19 llvm-19 nasm scons zlib1g-dev \
-	&& rm -rf /var/lib/apt/lists/* \
 	&& ln -s /usr/lib/llvm-19/bin/clang /usr/local/bin/clang-cl \
 	&& for tool in lld-link llvm-rc llvm-lib llvm-ar; do \
 		ln -s "/usr/lib/llvm-19/bin/$tool" "/usr/local/bin/$tool"; \
