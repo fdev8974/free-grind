@@ -448,6 +448,7 @@ export function GridProfilePage() {
 	const handleSendQuickMessage = async (targetProfileId: string, text: string) => {
 		try {
 			await apiFunctions.sendText({ targetProfileId: Number(targetProfileId), text });
+			toast.success(t("chat.toasts.message_sent", { defaultValue: "Message sent" }));
 		} catch (error) {
 			toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
 		}

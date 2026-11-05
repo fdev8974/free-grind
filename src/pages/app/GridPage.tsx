@@ -1401,6 +1401,15 @@ export function GridPage() {
 		handleSelectProfile(profileId);
 	};
 
+	const handleSendQuickMessage = async (targetProfileId: string, text: string) => {
+		try {
+			await apiFunctions.sendText({ targetProfileId: Number(targetProfileId), text });
+			toast.success(t("chat.toasts.message_sent", { defaultValue: "Message sent" }));
+		} catch (error) {
+			toast.error(error instanceof Error ? error.message : t("chat.errors.send_failed"));
+		}
+	};
+
 	const handleSendProfilePhotoReply = async (targetProfileId: string, imageHash: string, text: string) => {
 		try {
 			await apiFunctions.sendMessage({
@@ -2198,6 +2207,7 @@ export function GridPage() {
 				onPrevProfile={prevCardProfileId ? () => setActiveProfileId(prevCardProfileId) : undefined}
 				onNextProfile={nextCardProfileId ? () => setActiveProfileId(nextCardProfileId) : undefined}
 				onMessageProfile={handleMessageProfile}
+				onSendQuickMessage={handleSendQuickMessage}
 				onSendProfilePhotoReply={handleSendProfilePhotoReply}
 				onTagClick={handleTagClick}
 				onTriangleProfile={handleTriangleProfile}

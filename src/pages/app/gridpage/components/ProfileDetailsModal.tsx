@@ -2167,8 +2167,9 @@ export function ProfileDetailsModal({
 	// Message turns into a filled send button once there's text.
 	const renderQuickMessageBar = (paddingBottom: string) => {
 		const sendDraft = () => {
-			if (!quickMessageDraft.trim()) return;
-			onSendQuickMessage?.(String(messageProfileId), quickMessageDraft.trim());
+			// Without a handler there's nowhere to send it, so keep the draft.
+			if (!quickMessageDraft.trim() || !onSendQuickMessage) return;
+			onSendQuickMessage(String(messageProfileId), quickMessageDraft.trim());
 			setQuickMessageDraft("");
 		};
 		const hasDraft = quickMessageDraft.trim().length > 0;
@@ -2195,26 +2196,28 @@ export function ProfileDetailsModal({
 					>
 						{/* Just the field floats as a pill; tap and chat sit next to it.
 						    It fades out while the tap picker is open. */}
-						<div
+						{/* A form so Enter (and the mobile keyboard's send key) submits natively. */}
+						<form
 							className="min-w-0 flex-1 rounded-full bg-[color-mix(in_srgb,var(--surface)_82%,transparent)] p-1 shadow-[0_2px_6px_rgba(0,0,0,0.18),0_8px_28px_rgba(0,0,0,0.32)] ring-1 ring-[var(--border)]/50 backdrop-blur-xl focus-within:ring-2 focus-within:ring-[var(--accent)]"
 							style={{
 								pointerEvents: barInputVisible ? "auto" : "none",
 								opacity: barInputVisible ? 1 : 0,
 								transition: barInputVisible ? "opacity 0.25s" : "opacity 0.12s",
 							}}
+							onSubmit={(e) => {
+								e.preventDefault();
+								sendDraft();
+							}}
 						>
 							<input
 								type="text"
 								value={quickMessageDraft}
 								onChange={(e) => setQuickMessageDraft(e.target.value)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter") sendDraft();
-								}}
 								enterKeyHint="send"
 								placeholder={t("profile_details.quick_message_placeholder", "Message...")}
 								className="h-10 w-full bg-transparent px-4 text-[15px] text-[var(--text)] placeholder:text-[var(--text-muted)] outline-none"
 							/>
-						</div>
+						</form>
 						<div
 							className="transition-[max-width] duration-200 ease-out"
 							style={{ maxWidth: barTapPickerOpen ? `${3 * 52}px` : "0px", overflowX: barTapPickerOpen ? "visible" : "clip", overflowY: "visible" }}

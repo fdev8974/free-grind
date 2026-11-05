@@ -1927,7 +1927,8 @@
             "album_reply_sent": "Antwort gesendet",
             "album_share_stopped": "Album-Freigabe beendet.",
             "album_removed_locally": "Album von deinem Gerät entfernt",
-            "photo_reply_sent": "Antwort gesendet"
+            "photo_reply_sent": "Antwort gesendet",
+            "message_sent": "Nachricht gesendet"
         },
         "new_conversation": {
             "title": "Neue Unterhaltung",
