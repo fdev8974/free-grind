@@ -25,15 +25,6 @@ export function createFavoritesMethods(fetchRest: RestFetcher, t: (key: string) 
 			return response.json() as Promise<Array<{ notes: string; phoneNumber: string; counterpartyId: string }>>;
 		},
 
-		/** Replaces the whole notes list in one request — profiles left out lose their note. */
-		async replaceFavoriteNotes(notes: Array<{ counterpartyId: number; notes: string; phoneNumber: string }>): Promise<void> {
-			const response = await fetchRest("/v1/favorites/notes", {
-				method: "PUT",
-				body: { notes },
-			});
-			await assertSuccess(response, t("favorites.replace_notes_failed"));
-		},
-
 		async getProfileNote(targetProfileId: string): Promise<{ notes: string; phoneNumber: string }> {
 			const response = await fetchRest(`/v1/favorites/notes/${targetProfileId}`, {
 				method: "GET",

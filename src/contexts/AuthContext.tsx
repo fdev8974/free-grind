@@ -38,6 +38,7 @@ import { runInboxSync } from "../services/inboxSync";
 import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
 import { syncOwnProfile } from "../services/ownProfilePhotos";
 import { runRestoredBlocklist, syncOwnBlocklist } from "../services/ownBlocklist";
+import { runRestoredFavorites } from "../services/restoredFavorites";
 import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
 import { mintRecaptchaToken, RecaptchaError, type RecaptchaFailure } from "../services/recaptcha";
@@ -681,10 +682,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				void syncOwnProfile(apiFunctions, userId, () => currentUserIdRef.current === userId);
 				// Fire-and-forget, same idea for the block list: recorded for later
 				// backups, and a restored one blocked again bit by bit (ownBlocklist.ts).
+				// Restored favorites follow the same way (restoredFavorites.ts), after the
+				// blocks so the two never hit the server at the same time.
 				void (async () => {
 					const isCurrent = () => currentUserIdRef.current === userId;
 					await runRestoredBlocklist(apiFunctions, userId, isCurrent);
 					await syncOwnBlocklist(apiFunctions, isCurrent);
+					await runRestoredFavorites(apiFunctions, userId, isCurrent);
 				})();
 			}
 

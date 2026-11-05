@@ -12,8 +12,8 @@
 //!                           row as { "$mediaRef": "media/<n>.bin" } instead of
 //!                           inlining base64 text
 //!   remote/<category>.json - data that lives on the server rather than in sqlite
-//!                           (e.g. favorite notes), fetched by the frontend and handed
-//!                           in as JSON; import hands it back for the frontend to re-upload
+//!                           (favorites with their notes), fetched by the frontend and
+//!                           handed in as JSON; import queues it in restored_* tables
 //!   manifest.json        - { version, exportedAt, ownerUserId, categories, rowCounts }
 //!                           (written last so it can carry per-table row counts;
 //!                           readers look it up by name, so entry order doesn't matter)
@@ -25,7 +25,7 @@
 //!
 //! `categories` lets the caller include/exclude whole groups of tables
 //! (chat messages, media/albums, saved phrases, saved locations, settings,
-//! sexual health, favorite notes - see `BACKUP_CATEGORY_IDS` in `src/services/backupRestore.ts`)
+//! sexual health, favorites - see `BACKUP_CATEGORY_IDS` in `src/services/backupRestore.ts`)
 //! instead of always doing a full all-or-nothing export/import.
 //!
 //! Blob columns (data_base64 etc.) are stored as base64 TEXT in the sqlite
@@ -416,9 +416,6 @@ pub struct ImportOutcome {
     ok: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     rows_imported: Option<u64>,
-    /// The selected `REMOTE_CATEGORY_IDS` entries found in the archive, keyed by category.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    remote_entries: Option<Map<String, Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<&'static str>,
 }
@@ -443,7 +440,7 @@ const ALL_CATEGORY_IDS: &[&str] =
 
 /// Categories backed by a `remote/<category>.json` entry instead of sqlite
 /// tables. Whitelisted so a caller-supplied key can't name an arbitrary entry.
-const REMOTE_CATEGORY_IDS: &[&str] = &["favorite_notes"];
+const REMOTE_CATEGORY_IDS: &[&str] = &["favorites"];
 
 fn remote_entry_name(category: &str) -> String {
     format!("remote/{category}.json")
@@ -900,7 +897,14 @@ fn write_export_archive(
         progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done, rows_total: Some(rows_total) });
     }
 
-    for (category, value) in remote_entries {
+    // A banned profile has no session left to ask the server, so its favorites
+    // come from the favorite flag the inbox sync stored on its conversations.
+    let mut remote_entries = remote_entries.clone();
+    if categories.iter().any(|c| c == "favorites") && !remote_entries.contains_key("favorites") {
+        remote_entries.insert("favorites".into(), Value::Array(local_favorite_profiles(&conn)?));
+    }
+
+    for (category, value) in &remote_entries {
         if !REMOTE_CATEGORY_IDS.contains(&category.as_str()) || !categories.contains(category) {
             continue;
         }
@@ -928,6 +932,56 @@ fn write_export_archive(
         .map_err(|e| AppError::Backup(format!("failed to flush archive: {e}")))?
         .sync_all()?;
     Ok(())
+}
+
+/// Favorites, like the block list, are set again slowly in the background
+/// (src/services/restoredFavorites.ts) instead of all at once right after the
+/// import, so they're queued in restored_favorite_profiles with their note.
+/// Expects an open transaction.
+fn queue_restored_favorites(conn: &Connection, entries: Option<&Value>, owner_user_id: i64) -> Result<u64, AppError> {
+    let Some(entries) = entries.and_then(Value::as_array) else {
+        return Ok(0);
+    };
+    // Normally created by the app's migrations (chatDb.ts); a db that hasn't run them yet still takes the queue.
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS restored_favorite_profiles (profile_id TEXT PRIMARY KEY, notes TEXT, phone_number TEXT)",
+    )?;
+    let own_id = owner_user_id.to_string();
+    let mut queued = 0;
+    for entry in entries {
+        let profile_id = match entry.get("profileId") {
+            Some(Value::String(id)) => id.clone(),
+            Some(Value::Number(id)) => id.to_string(),
+            _ => continue,
+        };
+        // A profile can't favorite itself.
+        if profile_id.is_empty() || !profile_id.bytes().all(|b| b.is_ascii_digit()) || profile_id == own_id {
+            continue;
+        }
+        let text = |key: &str| entry.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string);
+        queued += conn
+            .prepare_cached(
+                "INSERT INTO restored_favorite_profiles (profile_id, notes, phone_number) VALUES (?1, ?2, ?3)
+                 ON CONFLICT(profile_id) DO UPDATE SET notes = excluded.notes, phone_number = excluded.phone_number",
+            )?
+            .execute(rusqlite::params![profile_id, text("notes"), text("phoneNumber")])? as u64;
+    }
+    Ok(queued)
+}
+
+/// Same shape as the frontend's `FavoriteProfile` entries.
+fn local_favorite_profiles(conn: &Connection) -> Result<Vec<Value>, AppError> {
+    if !table_exists(conn, "conversations")? {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn.prepare(
+        "SELECT DISTINCT other_profile_id, name FROM conversations
+         WHERE favorite = 1 AND other_profile_id IS NOT NULL AND other_profile_id != ''",
+    )?;
+    let rows = stmt.query_map([], |row| {
+        Ok(json!({ "profileId": row.get::<_, String>(0)?, "displayName": row.get::<_, Option<String>>(1)? }))
+    })?;
+    Ok(rows.collect::<Result<_, _>>()?)
 }
 
 #[tauri::command]
@@ -1075,7 +1129,7 @@ fn import_archive(
 
     let (remap, row_counts) = match read_and_validate_manifest(&mut archive)? {
         ManifestCheck::Invalid(error) => {
-            return Ok(ImportOutcome { ok: false, rows_imported: None, remote_entries: None, error: Some(error) });
+            return Ok(ImportOutcome { ok: false, rows_imported: None, error: Some(error) });
         }
         ManifestCheck::Valid { owner_user_id: backup_owner, row_counts, .. } => {
             (ProfileRemap::new(backup_owner, owner_user_id), row_counts)
@@ -1105,12 +1159,14 @@ fn import_archive(
     conn.busy_timeout(Duration::from_secs(30))?;
     conn.execute_batch("BEGIN IMMEDIATE")?;
 
+    let restored_favorites = remote_entries.remove("favorites");
     let result =
-        import_tables(&conn, &mut archive, &mut media_archive, categories, &row_counts, remap.as_ref(), progress);
+        import_tables(&conn, &mut archive, &mut media_archive, categories, &row_counts, remap.as_ref(), progress)
+            .and_then(|rows| Ok(rows + queue_restored_favorites(&conn, restored_favorites.as_ref(), owner_user_id)?));
     match result {
         Ok(rows_imported) => {
             conn.execute_batch("COMMIT")?;
-            Ok(ImportOutcome { ok: true, rows_imported: Some(rows_imported), remote_entries: Some(remote_entries), error: None })
+            Ok(ImportOutcome { ok: true, rows_imported: Some(rows_imported), error: None })
         }
         Err(e) => {
             let _ = conn.execute_batch("ROLLBACK");
@@ -1432,10 +1488,15 @@ mod tests {
         }
 
         let mut categories = all_categories();
-        categories.push("favorite_notes".into());
-        let notes = json!([{ "counterpartyId": "123", "notes": "hi", "phoneNumber": "" }]);
+        categories.push("favorites".into());
+        let favorites = json!([
+            { "profileId": "123", "displayName": "a", "notes": "hi", "phoneNumber": "" },
+            { "profileId": 124 },
+            // The importing profile itself: skipped.
+            { "profileId": "42" },
+        ]);
         let mut remote_entries = Map::new();
-        remote_entries.insert("favorite_notes".into(), notes.clone());
+        remote_entries.insert("favorites".into(), favorites);
         // Not whitelisted: must not end up in the archive.
         remote_entries.insert("../evil".into(), json!([]));
         write_export_archive(&src_db, 42, &archive, &categories, &remote_entries, &mut ProgressEmitter::new(None, "")).unwrap();
@@ -1448,9 +1509,7 @@ mod tests {
         let outcome =
             import_archive(&dst_db, 42, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
         assert!(outcome.ok);
-        assert_eq!(outcome.rows_imported, Some(tables().count() as u64 * 3));
-        let expected_remote: Map<String, Value> = [("favorite_notes".to_string(), notes)].into_iter().collect();
-        assert_eq!(outcome.remote_entries, Some(expected_remote));
+        assert_eq!(outcome.rows_imported, Some(tables().count() as u64 * 3 + 2));
 
         let dst = Connection::open(&dst_db).unwrap();
         for table in tables() {

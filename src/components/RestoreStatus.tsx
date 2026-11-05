@@ -6,6 +6,7 @@ import { useAuth } from "../contexts/useAuth";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { runRestoredBlocklist } from "../services/ownBlocklist";
+import { runRestoredFavorites } from "../services/restoredFavorites";
 import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
 import {
 	SHOW_RESTORED_PROFILE_PROMPT_EVENT,
@@ -20,6 +21,7 @@ function useTaskLabels(): Record<RestoreTaskId, string> {
 		profile_details: t("restore_status.task_profile_details", { defaultValue: "Profile details" }),
 		profile_photos: t("restore_status.task_profile_photos", { defaultValue: "Profile photos" }),
 		blocked_profiles: t("restore_status.task_blocked_profiles", { defaultValue: "Blocked profiles" }),
+		favorites: t("restore_status.task_favorites", { defaultValue: "Favorites" }),
 		drawer_media: t("restore_status.task_drawer_media", { defaultValue: "Drawer media" }),
 	};
 }
@@ -102,6 +104,7 @@ function RestoreStatusSheet({ tasks, onClose }: { tasks: RestoreTask[]; onClose:
 		const isCurrent = () => userIdRef.current === userId;
 		if (id === "drawer_media") void runRestoredDrawerUpload(apiFunctions, isCurrent);
 		if (id === "blocked_profiles") void runRestoredBlocklist(apiFunctions, userId, isCurrent);
+		if (id === "favorites") void runRestoredFavorites(apiFunctions, userId, isCurrent);
 	};
 
 	const review = () => {

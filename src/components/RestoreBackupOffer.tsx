@@ -8,7 +8,6 @@ import { LocalBackupList, useLocalBackups } from "./LocalBackupList";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./ui/bottom-sheet";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
-import { useApiFunctions } from "../hooks/useApiFunctions";
 import * as chatDb from "../services/chatDb";
 import {
 	backupErrorMessage as getErrorMessage,
@@ -17,7 +16,6 @@ import {
 	importBackupFile,
 	inspectBackupFile,
 	pickBackupFile,
-	restoreRemoteBackupEntries,
 	type BackupCategoryId,
 	type BackupReadProgress,
 } from "../services/backupRestore";
@@ -27,7 +25,6 @@ import { appLog } from "../utils/logger";
 export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone: () => void }) {
 	const { t } = useTranslation();
 	const isDesktop = useDesktopBreakpoint();
-	const apiFunctions = useApiFunctions();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const localBackups = useLocalBackups();
 	const [selectedLocalPath, setSelectedLocalPath] = useState<string | null>(null);
@@ -107,17 +104,8 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 				showImportError();
 				return;
 			}
-			const remote = await restoreRemoteBackupEntries(apiFunctions, result.remoteEntries);
-			if (remote.failed > 0) {
-				toast.error(
-					t("data_backup.import_notes_failed", {
-						defaultValue: "{{count}} favorite notes couldn't be restored.",
-						count: remote.failed,
-					}),
-				);
-			}
 			toast.success(
-				t("restore_offer.import_success", { defaultValue: "Imported {{count}} rows. Reloading…", count: result.rowsImported + remote.restored }),
+				t("restore_offer.import_success", { defaultValue: "Imported {{count}} rows. Reloading…", count: result.rowsImported }),
 			);
 			await cleanupTempFile(pendingImport.tempPath);
 			setPendingImport(null);

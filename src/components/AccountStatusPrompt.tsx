@@ -498,9 +498,6 @@ function AgreementCheckbox({ checked, onChange, disabled }: { checked: boolean; 
 	);
 }
 
-/** A hard ban has no session, so the server-side categories can't be fetched; a restriction still has one. */
-const LOCAL_BACKUP_CATEGORIES = BACKUP_CATEGORY_IDS.filter((category) => category !== "favorite_notes");
-
 /** Whether this device has local data for the profile, i.e. anything to back up into a new profile. */
 function useHasLocalData(profileId: number | null | undefined): boolean {
 	const [hasData, setHasData] = useState(false);
@@ -680,7 +677,9 @@ export function AccountStatusPromptView({
 				<BackupExportSheet
 					profileId={backupProfileId}
 					dbFileName={chatDbFileNameFor(backupProfileId)}
-					categories={status?.kind === "banned" ? LOCAL_BACKUP_CATEGORIES : BACKUP_CATEGORY_IDS}
+					categories={BACKUP_CATEGORY_IDS}
+					// A hard ban has no session: favorites then come from the local conversations, without notes.
+					offline={status?.kind === "banned"}
 					isDesktop={isDesktop}
 					zIndex="z-[150]"
 					onClose={() => setShowBackupSheet(false)}

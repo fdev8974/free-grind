@@ -7,6 +7,7 @@ import { BackupProgressBar } from "./BackupProgressBar";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./ui/bottom-sheet";
 import { Chip } from "./ui/chip";
 import { useApiFunctions } from "../hooks/useApiFunctions";
+import { usePreferences } from "../contexts/PreferencesContext";
 import {
 	backupErrorMessage,
 	exportBackup,
@@ -28,6 +29,7 @@ export function BackupExportSheet({
 	categories,
 	isDesktop,
 	zIndex,
+	offline = false,
 	onClose,
 }: {
 	profileId: number;
@@ -36,10 +38,13 @@ export function BackupExportSheet({
 	categories: BackupCategoryId[];
 	isDesktop: boolean;
 	zIndex?: string;
+	/** No session (banned): server-side categories come from local data, see fetchRemoteBackupEntries. */
+	offline?: boolean;
 	onClose: () => void;
 }) {
 	const { t } = useTranslation();
 	const apiFunctions = useApiFunctions();
+	const { geohash } = usePreferences();
 	const [selected, setSelected] = useState<Set<BackupCategoryId>>(() => new Set(categories));
 	const [destination, setDestination] = useState<BackupExportDestination>("downloads");
 	const [isExporting, setIsExporting] = useState(false);
@@ -68,9 +73,9 @@ export function BackupExportSheet({
 			// The SQL read, base64 decode, zip compression and the copy to the
 			// final location all happen natively (src-tauri/src/commands/backup.rs)
 			// on a worker thread — nothing of the archive crosses the JS bridge.
-			// Server-side categories (favorite notes) are fetched here and written into the archive as is.
+			// Server-side categories (favorites with their notes) are fetched here and written into the archive as is.
 			const chosen = Array.from(selected);
-			const remoteEntries = await fetchRemoteBackupEntries(apiFunctions, chosen);
+			const remoteEntries = await fetchRemoteBackupEntries(apiFunctions, chosen, { geohash, offline });
 			const saved = await exportBackup(dbFileName, profileId, chosen, destination, remoteEntries);
 			if (!saved) return;
 			toast.success(

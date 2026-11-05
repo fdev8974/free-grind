@@ -6,6 +6,8 @@ import { BaseDirectory, mkdir, open, remove } from "@tauri-apps/plugin-fs";
 import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-fs-api";
 import { isAndroid, isIos } from "./saveMedia";
 import type { createApiFunctions } from "./apiFunctions";
+import { assertSuccess, parseJsonSafe } from "./apiHelpers";
+import { inboxResponseSchema } from "../types/messages";
 
 /**
  * Mirrors `EXPORT_TABLES[].category` in `src-tauri/src/commands/backup.rs` —
@@ -22,7 +24,7 @@ export type BackupCategoryId =
 	| "saved_locations"
 	| "settings"
 	| "sexual_health"
-	| "favorite_notes";
+	| "favorites";
 
 export const BACKUP_CATEGORY_IDS: BackupCategoryId[] = [
 	"chat_messages",
@@ -35,11 +37,52 @@ export const BACKUP_CATEGORY_IDS: BackupCategoryId[] = [
 	"saved_locations",
 	"settings",
 	"sexual_health",
-	"favorite_notes",
+	"favorites",
 ];
 
 type ApiFunctions = ReturnType<typeof createApiFunctions>;
-type FavoriteNote = { counterpartyId: string; notes: string; phoneNumber: string };
+/** One `remote/favorites.json` entry; read back by `queue_restored_favorites` in backup.rs. */
+type FavoriteProfile = { profileId: string; displayName?: string | null; notes?: string; phoneNumber?: string };
+
+/** Guards both paging loops below against a server that never stops handing out a next page. */
+const MAX_FAVORITE_PAGES = 200;
+
+/**
+ * Collects every favorited profile. There's no endpoint listing them, so it
+ * combines the inbox filtered to favorites (everyone favorited with a chat)
+ * with cascade's favorites filter for the rest. The inbox is fetched raw:
+ * `listConversations` runs the automation rules on what it loads.
+ */
+async function fetchFavoriteProfiles(api: ApiFunctions, geohash: string | null | undefined): Promise<FavoriteProfile[]> {
+	const favorites = new Map<string, FavoriteProfile>();
+
+	for (let page = 1, count = 0; count < MAX_FAVORITE_PAGES; count++) {
+		const response = await api.request(`/v4/inbox?page=${page}`, { method: "POST", body: { favoritesOnly: true } });
+		await assertSuccess(response, "Loading favorites from the inbox failed");
+		const parsed = inboxResponseSchema.parse(await parseJsonSafe(response));
+		for (const entry of parsed.entries) {
+			const profileId = entry.data.participants[0]?.profileId;
+			if (profileId != null) favorites.set(String(profileId), { profileId: String(profileId), displayName: entry.data.name || null });
+		}
+		if (parsed.nextPage == null || parsed.nextPage === page) break;
+		page = parsed.nextPage;
+	}
+
+	// Cascade needs a location; without one only the inbox's favorites are saved.
+	if (geohash) {
+		let page: number | undefined;
+		for (let count = 0; count < MAX_FAVORITE_PAGES; count++) {
+			const { cards, nextPage } = await api.getBrowseCards({ geohash, page, filters: { favorites: true } });
+			for (const card of cards) {
+				if (!favorites.has(card.profileId)) favorites.set(card.profileId, { profileId: card.profileId, displayName: card.displayName });
+			}
+			if (nextPage == null || nextPage === page || cards.length === 0) break;
+			page = nextPage;
+		}
+	}
+
+	return Array.from(favorites.values());
+}
 
 export type BackupInspection =
 	| { ok: true; categories: BackupCategoryId[]; exportedAt: number }
@@ -220,66 +263,33 @@ export function exportBackupToFile(
 	return invoke("export_backup_to_file", { dbFileName, ownerUserId, destPath, categories, remoteEntries });
 }
 
-/** Fetches the selected server-side categories (`REMOTE_CATEGORY_IDS` in backup.rs), to be passed to `exportBackup`. */
+/**
+ * Fetches the selected server-side categories (`REMOTE_CATEGORY_IDS` in
+ * backup.rs), to be passed to `exportBackup`. Favorites carry their note: one
+ * can only be saved on a favorite, so both are restored together, the note
+ * right after its profile is favorited again (restoredFavorites.ts).
+ * `offline` (a banned profile, no session) skips the server: backup.rs then
+ * takes the favorites from the local conversations instead, without notes.
+ */
 export async function fetchRemoteBackupEntries(
 	api: ApiFunctions,
 	categories: BackupCategoryId[],
+	{ geohash, offline = false }: { geohash: string | null | undefined; offline?: boolean },
 ): Promise<Partial<Record<BackupCategoryId, unknown>>> {
 	const entries: Partial<Record<BackupCategoryId, unknown>> = {};
-	if (categories.includes("favorite_notes")) {
-		entries.favorite_notes = (await api.getFavoriteNotes()).map(({ counterpartyId, notes, phoneNumber }) => ({
-			counterpartyId,
-			notes,
-			phoneNumber,
-		}));
+	if (offline) return entries;
+	if (categories.includes("favorites")) {
+		const [profiles, notes] = await Promise.all([fetchFavoriteProfiles(api, geohash), api.getFavoriteNotes()]);
+		const favorites = new Map(profiles.map((profile) => [profile.profileId, profile]));
+		for (const { counterpartyId, notes: text, phoneNumber } of notes) {
+			if (!text && !phoneNumber) continue;
+			const profileId = String(counterpartyId);
+			// A note means a favorite, also one neither the inbox nor cascade turned up.
+			favorites.set(profileId, { ...favorites.get(profileId), profileId, notes: text, phoneNumber });
+		}
+		entries.favorites = Array.from(favorites.values());
 	}
 	return entries;
-}
-
-/**
- * Re-uploads the server-side categories an import handed back. Like the
- * table import this merges rather than replaces: the backup's notes are laid
- * over the ones currently on the server (backup wins per profile) and sent in
- * one bulk replace, so notes added since the backup survive and the restore is
- * safe to run again. Returns the number of entries restored and of those that failed.
- */
-export async function restoreRemoteBackupEntries(
-	api: ApiFunctions,
-	entries: Partial<Record<BackupCategoryId, unknown>> | undefined,
-): Promise<{ restored: number; failed: number }> {
-	const raw = Array.isArray(entries?.favorite_notes) ? (entries.favorite_notes as Partial<FavoriteNote>[]) : [];
-	const notes = raw.filter((note) => note?.counterpartyId && (note.notes || note.phoneNumber)) as FavoriteNote[];
-	if (notes.length === 0) return { restored: 0, failed: 0 };
-
-	try {
-		// Inside the try: without the current list a bulk replace would wipe every newer note.
-		const merged = new Map<string, FavoriteNote>();
-		for (const note of [...(await api.getFavoriteNotes()), ...notes]) {
-			if (!note.notes && !note.phoneNumber) continue;
-			merged.set(String(note.counterpartyId), note);
-		}
-		await api.replaceFavoriteNotes(
-			Array.from(merged.values(), (note) => ({
-				counterpartyId: Number(note.counterpartyId),
-				notes: note.notes ?? "",
-				phoneNumber: note.phoneNumber ?? "",
-			})),
-		);
-		return { restored: notes.length, failed: 0 };
-	} catch {
-		// The bulk endpoint is undocumented beyond its name; fall back to one upsert per profile.
-		let restored = 0;
-		let failed = 0;
-		for (const note of notes) {
-			try {
-				await api.saveProfileNote(String(note.counterpartyId), { notes: note.notes ?? "", phoneNumber: note.phoneNumber ?? "" });
-				restored++;
-			} catch {
-				failed++;
-			}
-		}
-		return { restored, failed };
-	}
 }
 
 /** Where `exportBackup` puts the archive. "picker" is the system save/export dialog, which also reaches cloud storage like Google Drive. */

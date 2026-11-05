@@ -56,7 +56,7 @@ const LEGACY_CHAT_DB = `sqlite:${LEGACY_CHAT_DB_FILENAME}`;
 // on it. BUMP THIS whenever initChatDbSchema changes (new table, index,
 // column or data fix) — otherwise existing installs skip the setup and never
 // get the change; only fresh installs would.
-const CHAT_DB_SCHEMA_VERSION = 3;
+const CHAT_DB_SCHEMA_VERSION = 4;
 const SLOW_DB_OPEN_MS = 2_000;
 const SQLITE_LOCK_RETRY_DELAYS_MS = [30, 80, 180, 350] as const;
 
@@ -569,6 +569,10 @@ async function initChatDbSchema(db: Database): Promise<void> {
 		await db.execute("CREATE TABLE IF NOT EXISTS restored_profile_details (key TEXT PRIMARY KEY, data_json TEXT)");
 		await db.execute("CREATE TABLE IF NOT EXISTS own_blocked_profiles (profile_id TEXT PRIMARY KEY)");
 		await db.execute("CREATE TABLE IF NOT EXISTS restored_blocked_profiles (profile_id TEXT PRIMARY KEY)");
+		// Favorites from a backup with their note, set again bit by bit (restoredFavorites.ts); filled by backup.rs.
+		await db.execute(
+			"CREATE TABLE IF NOT EXISTS restored_favorite_profiles (profile_id TEXT PRIMARY KEY, notes TEXT, phone_number TEXT)",
+		);
 
 		await db.execute(`
 			CREATE TABLE IF NOT EXISTS block_events (
@@ -2924,6 +2928,23 @@ export async function deleteRestoredBlockedProfile(profileId: string): Promise<v
 	const db = await getDb();
 	await executeWithLockRetry(db, "delete-restored-blocked-profile", async () => {
 		await db.execute("DELETE FROM restored_blocked_profiles WHERE profile_id = $1", [profileId]);
+	});
+}
+
+export type RestoredFavoriteProfile = { profileId: string; notes: string | null; phoneNumber: string | null };
+
+export async function listRestoredFavoriteProfiles(): Promise<RestoredFavoriteProfile[]> {
+	const db = await getDb();
+	const rows = await db.select<{ profile_id: string; notes: string | null; phone_number: string | null }[]>(
+		"SELECT profile_id, notes, phone_number FROM restored_favorite_profiles",
+	);
+	return rows.map((row) => ({ profileId: String(row.profile_id), notes: row.notes, phoneNumber: row.phone_number }));
+}
+
+export async function deleteRestoredFavoriteProfile(profileId: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "delete-restored-favorite-profile", async () => {
+		await db.execute("DELETE FROM restored_favorite_profiles WHERE profile_id = $1", [profileId]);
 	});
 }
 

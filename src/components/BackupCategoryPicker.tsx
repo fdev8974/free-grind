@@ -16,7 +16,7 @@ function useBackupCategoryLabels(): Record<BackupCategoryId, string> {
 		saved_locations: t("data_backup.category_saved_locations", { defaultValue: "Saved locations" }),
 		settings: t("data_backup.category_settings", { defaultValue: "Settings" }),
 		sexual_health: t("data_backup.category_sexual_health", { defaultValue: "Sexual health" }),
-		favorite_notes: t("data_backup.category_favorite_notes", { defaultValue: "Favorite notes" }),
+		favorites: t("data_backup.category_favorites", { defaultValue: "Favorites & notes" }),
 	};
 }
 

@@ -2,8 +2,8 @@
  * Status of the restore work that keeps running in the background after a
  * backup import (server-side data the import can only queue locally): profile
  * details and photos (ownProfileDetails.ts / ownProfilePhotos.ts, applied once
- * the user agrees in RestoredProfilePrompt), the block list (ownBlocklist.ts)
- * and drawer media (restoredDrawerMedia.ts).
+ * the user agrees in RestoredProfilePrompt), the block list (ownBlocklist.ts),
+ * favorites (restoredFavorites.ts) and drawer media (restoredDrawerMedia.ts).
  *
  * What's still left comes from the restored_* tables, so it survives a
  * restart; the runners add live progress on top through `reportRestoreTask`.
@@ -12,9 +12,15 @@
 import { useCallback, useEffect, useState } from "react";
 import * as chatDb from "./chatDb";
 
-export type RestoreTaskId = "profile_details" | "profile_photos" | "blocked_profiles" | "drawer_media";
+export type RestoreTaskId = "profile_details" | "profile_photos" | "blocked_profiles" | "favorites" | "drawer_media";
 
-export const RESTORE_TASK_IDS: RestoreTaskId[] = ["profile_details", "profile_photos", "blocked_profiles", "drawer_media"];
+export const RESTORE_TASK_IDS: RestoreTaskId[] = [
+	"profile_details",
+	"profile_photos",
+	"blocked_profiles",
+	"favorites",
+	"drawer_media",
+];
 
 /**
  * - waiting_decision: profile details/photos the user hasn't agreed to apply yet
@@ -67,13 +73,20 @@ export function advanceRestoreTask(id: RestoreTaskId): void {
 }
 
 async function remainingCounts(): Promise<Record<RestoreTaskId, number>> {
-	const [details, photos, blocked, drawer] = await Promise.all([
+	const [details, photos, blocked, favorites, drawer] = await Promise.all([
 		chatDb.getRestoredProfileDetails().then((d) => (d ? 1 : 0)),
 		chatDb.countRestoredProfilePhotos(),
 		chatDb.listRestoredBlockedProfiles().then((ids) => ids.length),
+		chatDb.listRestoredFavoriteProfiles().then((ids) => ids.length),
 		chatDb.listMediaFilesWithPrefix("restored-drawer:").then((files) => files.length),
 	]);
-	return { profile_details: details, profile_photos: photos, blocked_profiles: blocked, drawer_media: drawer };
+	return {
+		profile_details: details,
+		profile_photos: photos,
+		blocked_profiles: blocked,
+		favorites,
+		drawer_media: drawer,
+	};
 }
 
 /** The tasks with anything left to do or finished this session, in a fixed order. */
