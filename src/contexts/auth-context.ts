@@ -48,8 +48,11 @@ export interface AuthState {
 
 export interface SavedAccountMeta {
 	profileId: string;
+	/** For a Google/Facebook sign-in, whatever id the vendor showed — often opaque. */
 	email: string;
 	lastUsedAt: number;
+	/** How the account signs in: "Email", "Google" or "Facebook". */
+	kind?: string;
 }
 
 export interface SignUpData {

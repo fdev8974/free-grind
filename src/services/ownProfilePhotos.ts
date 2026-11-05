@@ -16,9 +16,11 @@
 import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
 import { fetchAndEncode } from "./mediaStore";
+import { setSavedAccountDisplayName, setSavedAccountPhotoHash } from "./savedAccountProfiles";
 import { sanitizeUploadFile } from "./uploadSanitize";
 import {
 	buildSquareThumbCoords,
+	getProfilePhotoHash,
 	MAX_PROFILE_PHOTOS,
 	profileSchema,
 	unwrapOwnProfile,
@@ -35,11 +37,17 @@ function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Records the profile's current photos, downloading the ones not stored yet. Never throws. */
-export async function syncOwnProfilePhotos(api: ApiFunctions, isCurrent: () => boolean): Promise<void> {
+/**
+ * Records the profile's current photos, downloading the ones not stored yet.
+ * The same read also refreshes the account switcher's name and avatar for
+ * this profile, which GridPage only does while it's open. Never throws.
+ */
+export async function syncOwnProfilePhotos(api: ApiFunctions, profileId: number, isCurrent: () => boolean): Promise<void> {
 	try {
 		const parsed = profileSchema.safeParse(unwrapOwnProfile(await api.getMyOwnProfile()));
 		if (!parsed.success || !isCurrent()) return;
+		setSavedAccountDisplayName(String(profileId), parsed.data.displayName ?? null);
+		setSavedAccountPhotoHash(String(profileId), getProfilePhotoHash(parsed.data));
 		const hashes = (parsed.data.medias ?? [])
 			.map((item) => item.mediaHash ?? "")
 			.filter((hash) => validateMediaHash(hash));

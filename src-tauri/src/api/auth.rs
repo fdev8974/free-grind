@@ -625,8 +625,12 @@ impl SigningKeyStorage {
 #[serde(rename_all = "camelCase")]
 pub struct SavedAccountMeta {
     pub profile_id: String,
+    /// For a Google/Facebook sign-in, whatever id the vendor showed (often opaque).
     pub email: String,
     pub last_used_at: u64,
+    /// How the account signs in; missing (so Email) in indexes saved before it was recorded.
+    #[serde(default)]
+    pub kind: grindr::SessionKind,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -689,16 +693,19 @@ impl AuthStorage {
         set_slot_bytes(&account_slot(&profile_id), &bytes)?;
 
         let email = session.credentials.email.clone();
+        let kind = session.credentials.kind.clone();
         let mut index = Self::read_account_index()?;
         let now = chrono::Utc::now().timestamp() as u64;
         if let Some(existing) = index.iter_mut().find(|account| account.profile_id == profile_id) {
             existing.email = email;
             existing.last_used_at = now;
+            existing.kind = kind;
         } else {
             index.push(SavedAccountMeta {
                 profile_id,
                 email,
                 last_used_at: now,
+                kind,
             });
         }
         Self::write_account_index(&index)

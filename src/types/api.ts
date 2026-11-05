@@ -161,6 +161,8 @@ export const methodSchemas = {
 				profileId: z.string(),
 				email: z.string(),
 				lastUsedAt: z.coerce.number().int().nonnegative(),
+				/** grindr.rs's SessionKind; "Email" for accounts saved before it was recorded. */
+				kind: z.string().optional(),
 			}),
 		),
 	},

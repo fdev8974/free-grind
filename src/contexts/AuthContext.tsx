@@ -137,7 +137,10 @@ type AuthAction =
 function authReducer(state: AuthState, action: AuthAction): AuthState {
 	switch (action.type) {
 		case "SET_USER":
-			return { ...state, userId: action.payload, error: null, tokenExpired: false, accountStatus: null };
+			// Login/switch results carry the profile id as a string at runtime
+			// (callMethod doesn't run the response schemas' coercion), which then
+			// broke every i64 command argument, e.g. the backup's ownerUserId.
+			return { ...state, userId: Number(action.payload), error: null, tokenExpired: false, accountStatus: null };
 		case "CLEAR_USER":
 			return { ...state, userId: null, tokenExpired: false, accountStatus: null };
 		case "SET_LOADING":
@@ -662,7 +665,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// Fire-and-forget: records this profile's own photos locally so a
 				// backup still has them once the account can't read its profile
 				// anymore, e.g. after a ban (see ownProfilePhotos.ts).
-				void syncOwnProfilePhotos(apiFunctions, () => currentUserIdRef.current === userId);
+				void syncOwnProfilePhotos(apiFunctions, userId, () => currentUserIdRef.current === userId);
 				// Fire-and-forget, same idea for the block list: recorded for later
 				// backups, and a restored one blocked again bit by bit (ownBlocklist.ts).
 				void (async () => {

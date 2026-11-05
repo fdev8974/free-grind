@@ -79,7 +79,7 @@ import { OutdatedVersionPromptView, fetchLatestRelease, isOlderVersion, type Rel
 import { AccountStatusPromptView } from "../../components/AccountStatusPrompt";
 import { TestReminderPromptView } from "../../components/TestReminderPrompt";
 import { TokenExpiredPromptView } from "../../components/TokenExpiredPrompt";
-import type { AccountStatus } from "../../contexts/auth-context";
+import type { AccountStatus, SavedAccountMeta } from "../../contexts/auth-context";
 import { areUpdateChecksEnabled, setUpdateChecksEnabled, subscribeUpdateChecks } from "../../services/updateChecks";
 import { Avatar } from "../../components/ui/avatar";
 import { getThumbImageUrl } from "../../utils/media";
@@ -356,6 +356,14 @@ function ContributorChannelDialog({
 export function SettingsPage() {
 	const { t } = useTranslation();
 	const { userId, savedAccounts, switchAccount, removeSavedAccount } = useAuth();
+	// A Google/Facebook account's `email` is the vendor's id, often opaque:
+	// without a profile name, the profile id says more.
+	const accountName = (profileId: string, account: SavedAccountMeta | undefined, displayName: string | null | undefined) =>
+		displayName ||
+		((account?.kind ?? "Email") === "Email" ? account?.email : null) ||
+		t("settings.account_profile_fallback", { defaultValue: "Profile {{id}}", id: profileId });
+	const withSignInMethod = (account: SavedAccountMeta | undefined, text: string) =>
+		account?.kind === "Google" || account?.kind === "Facebook" ? `${account.kind} · ${text}` : text;
 	const inboxSyncStatus = useInboxSyncStatus(userId);
 	const inboxSyncDisplay = describeInboxSyncStatus(inboxSyncStatus, t);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -874,10 +882,10 @@ export function SettingsPage() {
 												/>
 												<div className="min-w-0 flex-1">
 													<p className="truncate text-sm font-semibold leading-snug">
-														{activeProfile?.displayName || activeAccount?.email || t("settings.profile_editor")}
+														{accountName(String(userId), activeAccount, activeProfile?.displayName)}
 													</p>
 													<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-														{t("settings.profile_editor_desc")}
+														{withSignInMethod(activeAccount, t("settings.profile_editor_desc"))}
 													</p>
 												</div>
 											</button>
@@ -930,10 +938,10 @@ export function SettingsPage() {
 													</div>
 													<div className="min-w-0 flex-1">
 														<p className="truncate text-sm font-semibold leading-snug">
-															{savedProfile.displayName || account.email || account.profileId}
+															{accountName(account.profileId, account, savedProfile.displayName)}
 														</p>
 														<p className="text-xs text-[var(--text-muted)] leading-snug mt-0.5">
-															{t("settings.account_tap_to_switch", { defaultValue: "Tap to switch" })}
+															{withSignInMethod(account, t("settings.account_tap_to_switch", { defaultValue: "Tap to switch" }))}
 														</p>
 													</div>
 												</button>

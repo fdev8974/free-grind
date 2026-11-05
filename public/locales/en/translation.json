@@ -115,6 +115,7 @@
     "chat_sync_preparing": "Preparing chat sync…",
     "chat_sync_preparing_desc": "Runs in the background and won't slow down the app.",
     "account_tap_to_switch": "Tap to switch",
+    "account_profile_fallback": "Profile {{id}}",
     "add_account": "Add account",
     "add_account_desc": "Sign in with another account",
     "logout_confirm_title": "Log out?",

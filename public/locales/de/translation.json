@@ -115,6 +115,7 @@
         "chat_sync_preparing": "Chat-Synchronisierung wird vorbereitet…",
         "chat_sync_preparing_desc": "Läuft im Hintergrund und verlangsamt die App nicht.",
         "account_tap_to_switch": "Tippen zum Wechseln",
+        "account_profile_fallback": "Profil {{id}}",
         "add_account": "Konto hinzufügen",
         "add_account_desc": "Mit einem anderen Konto anmelden",
         "logout_confirm_title": "Abmelden?",
