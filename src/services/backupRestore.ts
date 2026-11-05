@@ -35,11 +35,11 @@ type FavoriteNote = { counterpartyId: string; notes: string; phoneNumber: string
 
 export type BackupInspection =
 	| { ok: true; categories: BackupCategoryId[]; exportedAt: number }
-	| { ok: false; error: "wrong_owner" | "invalid_format" };
+	| { ok: false; error: "invalid_format" };
 
 export type ImportBackupResult =
 	| { ok: true; rowsImported: number; remoteEntries?: Partial<Record<BackupCategoryId, unknown>> }
-	| { ok: false; error: "wrong_owner" | "invalid_format" };
+	| { ok: false; error: "invalid_format" };
 
 /** Payload of the `backup-export-progress` / `backup-import-progress` events emitted by backup.rs. */
 export type BackupProgress = {
@@ -344,8 +344,8 @@ export async function exportBackup(
 	}
 }
 
-export function inspectBackupFile(srcPath: string, ownerUserId: number): Promise<BackupInspection> {
-	return invoke("inspect_backup_file", { srcPath, ownerUserId });
+export function inspectBackupFile(srcPath: string): Promise<BackupInspection> {
+	return invoke("inspect_backup_file", { srcPath });
 }
 
 export function importBackupFile(

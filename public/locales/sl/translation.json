@@ -2814,7 +2814,6 @@
         "categories_title": "Kaj želiš obnoviti?",
         "categories_desc": "Obnoviti je mogoče samo kategorije, ki so v tej datoteki.",
         "confirm": "Obnovi",
-        "import_wrong_owner": "Ta izvoz pripada drugemu profilu in ga tukaj ni mogoče uvoziti.",
         "import_invalid": "Ta datoteka ni veljaven izvoz podatkov.",
         "import_success": "Uvoženih vrstic: {{count}}. Ponovno nalaganje…",
         "import_failed": "Branje varnostne kopije ni uspelo.",

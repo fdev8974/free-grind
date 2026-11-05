@@ -130,18 +130,22 @@ const PREVIEW_RELEASE_INFO = {
 const PREVIEW_BAN_STATUS: AccountStatus = {
 	kind: "banned",
 	info: { kind: "profile", code: 27, message: "Profile is banned", subReason: "DRUG_SALES", automated: true },
+	profileId: null,
 };
 const PREVIEW_DEVICE_BAN_STATUS: AccountStatus = {
 	kind: "banned",
 	info: { kind: "device", code: 28, message: "Account banned" },
+	profileId: null,
 };
 const PREVIEW_NETWORK_BAN_STATUS: AccountStatus = {
 	kind: "banned",
 	info: { kind: "network", code: 31, message: "Suspicious network" },
+	profileId: null,
 };
 const PREVIEW_UNDERAGE_BAN_STATUS: AccountStatus = {
 	kind: "banned",
 	info: { kind: "underage", code: 35, message: "Underage", subReason: "UNDERAGE_ACCESS", automated: false },
+	profileId: null,
 };
 // Built on selection so the expiry is relative to now: still running, or
 // already over with the ban agreement waiting to be accepted.
@@ -687,6 +691,7 @@ export function SettingsPage() {
 			<FullscreenPortal className="z-[110]">
 				<AccountStatusPromptView
 					status={previewAccountStatus}
+					backupProfileId={userId}
 					onSignOut={() => setPreviewAccountStatus(null)}
 					onAcceptBanAgreement={async () => setPreviewAccountStatus(null)}
 				/>

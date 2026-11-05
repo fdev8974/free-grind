@@ -7,9 +7,13 @@ import type { BanInfo, Restriction } from "../types/api";
  * that's still valid but the account needs the user to resolve something
  * (age verification, a timed ban, ...) — see AccountStatusPrompt.tsx, gated
  * the same way as TokenExpiredGate.
+ *
+ * A restriction always belongs to the signed-in `userId`; a ban carries its
+ * own `profileId`, since switching to a banned account leaves `userId` on the
+ * previous one (null when unknown, e.g. a ban on a fresh sign-in).
  */
 export type AccountStatus =
-	| { kind: "banned"; info: BanInfo }
+	| { kind: "banned"; info: BanInfo; profileId: number | null }
 	| { kind: "restriction"; restriction: Restriction }
 	| null;
 

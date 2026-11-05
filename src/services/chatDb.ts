@@ -68,6 +68,16 @@ export function getActiveChatDbFileName(): string {
 	return activeChatDbName.replace(/^sqlite:/, "");
 }
 
+/** Bare filename (in AppData) of a profile's own db file, whether or not it's the active one. */
+export function chatDbFileNameFor(profileId: number): string {
+	return `chat-${profileId}.sqlite3`;
+}
+
+/** Whether this device has a db file for the profile, i.e. any local data to back up. */
+export function hasChatDbFile(profileId: number): Promise<boolean> {
+	return exists(chatDbFileNameFor(profileId), { baseDir: BaseDirectory.AppData });
+}
+
 /**
  * True as soon as this profile has ever had a conversation synced or
  * restored locally on this device. Used to gate the post-login "restore
@@ -683,7 +693,7 @@ async function executeWithLockRetry(
  * target file's existence so it only ever runs once per account.
  */
 async function migrateLegacyDbIfNeeded(profileId: number): Promise<void> {
-	const targetFilename = `chat-${profileId}.sqlite3`;
+	const targetFilename = chatDbFileNameFor(profileId);
 	try {
 		const [targetExists, legacyExists] = await Promise.all([
 			exists(targetFilename, { baseDir: BaseDirectory.AppData }),
@@ -708,7 +718,7 @@ async function migrateLegacyDbIfNeeded(profileId: number): Promise<void> {
  * data from a previous one, and switching back needs no refetch.
  */
 export async function setActiveChatDbUser(profileId: number | null): Promise<void> {
-	const nextDbName = profileId != null ? `sqlite:chat-${profileId}.sqlite3` : LEGACY_CHAT_DB;
+	const nextDbName = profileId != null ? `sqlite:${chatDbFileNameFor(profileId)}` : LEGACY_CHAT_DB;
 	if (nextDbName === activeChatDbName && dbPromise) {
 		return;
 	}

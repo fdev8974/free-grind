@@ -2790,7 +2790,6 @@
         "categories_title": "O que você quer restaurar?",
         "categories_desc": "Apenas as categorias presentes neste arquivo podem ser restauradas.",
         "confirm": "Restaurar",
-        "import_wrong_owner": "Esta exportação pertence a outro perfil e não pode ser importada aqui.",
         "import_invalid": "Este arquivo não é uma exportação de dados válida.",
         "import_success": "{{count}} linhas importadas. Recarregando…",
         "import_failed": "Falha ao ler o arquivo de backup.",

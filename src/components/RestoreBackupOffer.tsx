@@ -43,12 +43,8 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 		onDone();
 	};
 
-	const showImportError = (error: "wrong_owner" | "invalid_format") => {
-		toast.error(
-			error === "wrong_owner"
-				? t("restore_offer.import_wrong_owner", { defaultValue: "This export belongs to a different profile and can't be imported here." })
-				: t("restore_offer.import_invalid", { defaultValue: "This file isn't a valid data export." }),
-		);
+	const showImportError = () => {
+		toast.error(t("restore_offer.import_invalid", { defaultValue: "This file isn't a valid data export." }));
 	};
 
 	/** `stage` copies the picked archive to a local scratch path (null = picker
@@ -60,9 +56,9 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 			tempPath = await stage(setReadProgress);
 			if (tempPath == null) return;
 			setReadProgress({ stage: "checking" });
-			const inspection = await inspectBackupFile(tempPath, userId);
+			const inspection = await inspectBackupFile(tempPath);
 			if (!inspection.ok) {
-				showImportError(inspection.error);
+				showImportError();
 				await cleanupTempFile(tempPath);
 				return;
 			}
@@ -95,7 +91,7 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 				Array.from(pendingImport.selected),
 			);
 			if (!result.ok) {
-				showImportError(result.error);
+				showImportError();
 				return;
 			}
 			const remote = await restoreRemoteBackupEntries(apiFunctions, result.remoteEntries);

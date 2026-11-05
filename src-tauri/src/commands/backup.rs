@@ -18,6 +18,11 @@
 //!                           (written last so it can carry per-table row counts;
 //!                           readers look it up by name, so entry order doesn't matter)
 //!
+//! A backup can be restored into any profile: when `ownerUserId` differs from
+//! the profile being restored into, import rewrites every reference to the old
+//! profile id (conversation ids, sender ids, ids inside JSON columns) to the
+//! new one - see `ProfileRemap`.
+//!
 //! `categories` lets the caller include/exclude whole groups of tables
 //! (chat messages, media/albums, saved phrases, saved locations, settings,
 //! sexual health, favorite notes - see `BACKUP_CATEGORY_IDS` in `src/services/backupRestore.ts`)
@@ -345,7 +350,7 @@ fn remote_entry_name(category: &str) -> String {
 }
 
 enum ManifestCheck {
-    Valid { categories: Vec<String>, exported_at: i64, row_counts: HashMap<String, u64> },
+    Valid { owner_user_id: i64, categories: Vec<String>, exported_at: i64, row_counts: HashMap<String, u64> },
     Invalid(&'static str),
 }
 
@@ -357,8 +362,8 @@ fn open_archive(path: &str) -> Result<Archive, AppError> {
 }
 
 /// Shared by `inspect_backup_file` and `import_backup_from_file` so the
-/// version/owner validation rules can't drift between the two.
-fn read_and_validate_manifest(archive: &mut Archive, owner_user_id: i64) -> Result<ManifestCheck, AppError> {
+/// validation rules can't drift between the two.
+fn read_and_validate_manifest(archive: &mut Archive) -> Result<ManifestCheck, AppError> {
     let manifest: Value = {
         let mut manifest_file = match archive.by_name("manifest.json") {
             Ok(file) => file,
@@ -376,10 +381,10 @@ fn read_and_validate_manifest(archive: &mut Archive, owner_user_id: i64) -> Resu
     if version != Some(BACKUP_VERSION) {
         return Ok(ManifestCheck::Invalid("invalid_format"));
     }
-    let manifest_owner = manifest.get("ownerUserId").and_then(Value::as_i64);
-    if manifest_owner != Some(owner_user_id) {
-        return Ok(ManifestCheck::Invalid("wrong_owner"));
-    }
+    // Needed to remap a backup restored into a different profile.
+    let Some(owner_user_id) = manifest.get("ownerUserId").and_then(Value::as_i64) else {
+        return Ok(ManifestCheck::Invalid("invalid_format"));
+    };
 
     let exported_at = manifest.get("exportedAt").and_then(Value::as_i64).unwrap_or(0);
     let categories = manifest
@@ -393,7 +398,133 @@ fn read_and_validate_manifest(archive: &mut Archive, owner_user_id: i64) -> Resu
         .map(|obj| obj.iter().filter_map(|(k, v)| v.as_u64().map(|n| (k.clone(), n))).collect())
         .unwrap_or_default();
 
-    Ok(ManifestCheck::Valid { categories, exported_at, row_counts })
+    Ok(ManifestCheck::Valid { owner_user_id, categories, exported_at, row_counts })
+}
+
+/// Tables whose rows only make sense inside their conversation: a row from the
+/// chat between the backup's profile and the one it's restored into would land
+/// in a conversation with oneself, so it's dropped instead.
+const SELF_CONVERSATION_SKIP_TABLES: &[&str] = &["conversations", "conversation_meta", "messages", "media_files"];
+
+/// Rewrites references to the profile a backup was exported from so they point
+/// at the profile it's restored into. Matches only whole values - a number, an
+/// exact id string, a `<id>:<id>` conversation id (kept in the server's
+/// ascending order), or the conversation id inside a local system message id -
+/// so ids embedded in other text like media CDN URLs are left alone.
+struct ProfileRemap {
+    from: i64,
+    to: i64,
+    from_str: String,
+    to_str: String,
+}
+
+impl ProfileRemap {
+    fn new(from: i64, to: i64) -> Option<Self> {
+        (from != to).then(|| Self { from, to, from_str: from.to_string(), to_str: to.to_string() })
+    }
+
+    fn parse_conversation_id(s: &str) -> Option<(i64, i64)> {
+        let (a, b) = s.split_once(':')?;
+        let is_id = |part: &str| !part.is_empty() && part.bytes().all(|c| c.is_ascii_digit());
+        if !is_id(a) || !is_id(b) {
+            return None;
+        }
+        Some((a.parse().ok()?, b.parse().ok()?))
+    }
+
+    fn remap_string(&self, s: &str) -> Option<String> {
+        if s == self.from_str {
+            return Some(self.to_str.clone());
+        }
+        // `local-system:<type>:<conversation id>:<timestamp>`, see insertSystemMessage in chatDb.ts.
+        if let Some(rest) = s.strip_prefix("local-system:") {
+            let (kind, rest) = rest.split_once(':')?;
+            let (conversation_id, timestamp) = rest.rsplit_once(':')?;
+            let conversation_id = self.remap_conversation_id(conversation_id)?;
+            return Some(format!("local-system:{kind}:{conversation_id}:{timestamp}"));
+        }
+        self.remap_conversation_id(s)
+    }
+
+    fn remap_conversation_id(&self, s: &str) -> Option<String> {
+        let (a, b) = Self::parse_conversation_id(s)?;
+        if a != self.from && b != self.from {
+            return None;
+        }
+        let other = if a == self.from { b } else { a };
+        Some(format!("{}:{}", other.min(self.to), other.max(self.to)))
+    }
+
+    /// Returns whether anything changed.
+    fn remap_value(&self, value: &mut Value) -> bool {
+        match value {
+            Value::Number(n) if n.as_i64() == Some(self.from) => {
+                *value = json!(self.to);
+                true
+            }
+            Value::String(s) => match self.remap_string(s) {
+                Some(remapped) => {
+                    *s = remapped;
+                    true
+                }
+                None => false,
+            },
+            Value::Array(items) => items.iter_mut().fold(false, |changed, item| self.remap_value(item) | changed),
+            Value::Object(obj) => {
+                let mut changed = false;
+                for (key, mut item) in std::mem::take(obj) {
+                    changed |= self.remap_value(&mut item);
+                    let key = match self.remap_string(&key) {
+                        Some(remapped) => {
+                            changed = true;
+                            remapped
+                        }
+                        None => key,
+                    };
+                    obj.insert(key, item);
+                }
+                changed
+            }
+            _ => false,
+        }
+    }
+
+    fn is_self_conversation(&self, value: Option<&Value>) -> bool {
+        value
+            .and_then(Value::as_str)
+            .and_then(Self::parse_conversation_id)
+            .is_some_and(|(a, b)| a == self.to && b == self.to)
+    }
+
+    /// Returns false if the row should be skipped.
+    fn remap_row(&self, table: &TableSpec, row_map: &mut Map<String, Value>) -> bool {
+        for col in table.columns.iter().copied().filter(|c| !table.blob_columns.contains(c)) {
+            let Some(value) = row_map.get_mut(col) else {
+                continue;
+            };
+            // JSON columns are stored as text: rewrite inside them, and only
+            // re-serialize when something changed.
+            if let Value::String(text) = value {
+                if text.starts_with('{') || text.starts_with('[') {
+                    if let Ok(mut parsed) = serde_json::from_str::<Value>(text) {
+                        if self.remap_value(&mut parsed) {
+                            *text = parsed.to_string();
+                        }
+                        continue;
+                    }
+                }
+            }
+            self.remap_value(value);
+        }
+
+        if self.is_self_conversation(row_map.get("conversation_id")) {
+            if SELF_CONVERSATION_SKIP_TABLES.contains(&table.name) {
+                return false;
+            }
+            row_map.insert("conversation_id".into(), Value::Null);
+        }
+        true
+    }
 }
 
 fn resolve_db_path(app: &AppHandle, db_file_name: &str) -> Result<PathBuf, AppError> {
@@ -680,7 +811,7 @@ fn write_export_archive(
 }
 
 #[tauri::command]
-pub async fn inspect_backup_file(src_path: String, owner_user_id: i64) -> Result<BackupInspection, AppError> {
+pub async fn inspect_backup_file(src_path: String) -> Result<BackupInspection, AppError> {
     run_blocking(move || {
         let file = File::open(&src_path)?;
         let mut archive = match ZipArchive::new(BufReader::with_capacity(COPY_BUFFER_SIZE, file)) {
@@ -691,7 +822,7 @@ pub async fn inspect_backup_file(src_path: String, owner_user_id: i64) -> Result
             }
         };
 
-        Ok(match read_and_validate_manifest(&mut archive, owner_user_id)? {
+        Ok(match read_and_validate_manifest(&mut archive)? {
             ManifestCheck::Invalid(error) => BackupInspection { ok: false, categories: None, exported_at: None, error: Some(error) },
             ManifestCheck::Valid { categories, exported_at, .. } => {
                 BackupInspection { ok: true, categories: Some(categories), exported_at: Some(exported_at), error: None }
@@ -726,11 +857,13 @@ fn import_archive(
 ) -> Result<ImportOutcome, AppError> {
     let mut archive = open_archive(src_path)?;
 
-    let row_counts = match read_and_validate_manifest(&mut archive, owner_user_id)? {
+    let (remap, row_counts) = match read_and_validate_manifest(&mut archive)? {
         ManifestCheck::Invalid(error) => {
             return Ok(ImportOutcome { ok: false, rows_imported: None, remote_entries: None, error: Some(error) });
         }
-        ManifestCheck::Valid { row_counts, .. } => row_counts,
+        ManifestCheck::Valid { owner_user_id: backup_owner, row_counts, .. } => {
+            (ProfileRemap::new(backup_owner, owner_user_id), row_counts)
+        }
     };
 
     let mut remote_entries = Map::new();
@@ -756,7 +889,8 @@ fn import_archive(
     conn.busy_timeout(Duration::from_secs(30))?;
     conn.execute_batch("BEGIN IMMEDIATE")?;
 
-    let result = import_tables(&conn, &mut archive, &mut media_archive, categories, &row_counts, progress);
+    let result =
+        import_tables(&conn, &mut archive, &mut media_archive, categories, &row_counts, remap.as_ref(), progress);
     match result {
         Ok(rows_imported) => {
             conn.execute_batch("COMMIT")?;
@@ -776,6 +910,7 @@ fn import_tables(
     media_archive: &mut Archive,
     categories: &[String],
     row_counts: &HashMap<String, u64>,
+    remap: Option<&ProfileRemap>,
     progress: &mut ProgressEmitter,
 ) -> Result<u64, AppError> {
     let tables = selected_tables(categories);
@@ -814,6 +949,9 @@ fn import_tables(
 
             let pk_present = row_map.get(table.primary_key).map(|v| !v.is_null()).unwrap_or(false);
             if !pk_present {
+                continue;
+            }
+            if remap.is_some_and(|remap| !remap.remap_row(table, &mut row_map)) {
                 continue;
             }
 
@@ -1010,10 +1148,6 @@ mod tests {
         write_export_archive(&src_db, 42, &archive, &categories, &remote_entries, &mut ProgressEmitter::new(None, "")).unwrap();
 
         create_schema(&Connection::open(&dst_db).unwrap());
-        let wrong_owner =
-            import_archive(&dst_db, 7, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
-        assert_eq!(wrong_owner.error, Some("wrong_owner"));
-
         let outcome =
             import_archive(&dst_db, 42, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
         assert!(outcome.ok);
@@ -1025,6 +1159,72 @@ mod tests {
         for table in EXPORT_TABLES {
             assert_eq!(dump(&src, table), dump(&dst, table), "table {} differs after round trip", table.name);
         }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A backup restored into a different profile points everything at the new id.
+    #[test]
+    fn import_into_other_profile_remaps_owner_id() {
+        let dir = std::env::temp_dir().join(format!("fg-backup-remap-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let src_db = dir.join("src.sqlite3");
+        let dst_db = dir.join("dst.sqlite3");
+        let archive = dir.join("backup.zip");
+        // Old 500, new 300: other profile 400 sorts between them, so the id order flips.
+        let src = Connection::open(&src_db).unwrap();
+        create_schema(&src);
+        src.execute_batch(
+            r#"
+            INSERT INTO conversations (conversation_id, other_profile_id, participants_json, preview_json)
+                VALUES ('400:500', '400', '[{"profileId":400}]', '{"conversationId":{"value":"400:500"},"senderId":500}'),
+                       ('300:500', '300', '[{"profileId":300}]', NULL);
+            INSERT INTO messages (message_id, conversation_id, sender_id, body_json, reactions_json)
+                VALUES ('m1', '400:500', 500, '{"url":"https://cdn.example/500/abc"}', '[{"profileId":500,"reactionType":1}]'),
+                       ('m2', '300:500', 500, '{"text":"hi"}', NULL),
+                       ('local-system:SystemBlocked:400:500:1700000000000', '400:500', 0, NULL, NULL);
+            INSERT INTO albums (album_id, owner_profile_id, conversation_id) VALUES ('a1', 500, '300:500');
+            INSERT INTO settings (key, value) VALUES ('localReadMarkers', '{"400:500":"m1"}');
+            "#,
+        )
+        .unwrap();
+        let categories: Vec<String> = ALL_CATEGORY_IDS.iter().map(|s| s.to_string()).collect();
+        write_export_archive(&src_db, 500, &archive, &categories, &Map::new(), &mut ProgressEmitter::new(None, "")).unwrap();
+
+        create_schema(&Connection::open(&dst_db).unwrap());
+        let outcome =
+            import_archive(&dst_db, 300, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
+        assert!(outcome.ok);
+
+        let dst = Connection::open(&dst_db).unwrap();
+        let text = |sql: &str| dst.query_row(sql, [], |r| r.get::<_, Option<String>>(0)).unwrap();
+        assert_eq!(text("SELECT group_concat(conversation_id) FROM conversations").as_deref(), Some("300:400"));
+        assert_eq!(
+            text("SELECT preview_json FROM conversations").as_deref(),
+            Some(r#"{"conversationId":{"value":"300:400"},"senderId":300}"#)
+        );
+        assert_eq!(
+            text("SELECT group_concat(message_id) FROM (SELECT message_id FROM messages ORDER BY message_id)").as_deref(),
+            Some("local-system:SystemBlocked:300:400:1700000000000,m1")
+        );
+        assert_eq!(
+            dst.query_row("SELECT sender_id FROM messages WHERE message_id = 'm1'", [], |r| r.get::<_, i64>(0)).unwrap(),
+            300
+        );
+        assert_eq!(
+            text("SELECT body_json FROM messages WHERE message_id = 'm1'").as_deref(),
+            Some(r#"{"url":"https://cdn.example/500/abc"}"#)
+        );
+        assert_eq!(
+            text("SELECT reactions_json FROM messages WHERE message_id = 'm1'").as_deref(),
+            Some(r#"[{"profileId":300,"reactionType":1}]"#)
+        );
+        assert_eq!(
+            dst.query_row("SELECT owner_profile_id FROM albums", [], |r| r.get::<_, i64>(0)).unwrap(),
+            300
+        );
+        assert_eq!(text("SELECT conversation_id FROM albums"), None);
+        assert_eq!(text("SELECT value FROM settings").as_deref(), Some(r#"{"300:400":"m1"}"#));
 
         let _ = std::fs::remove_dir_all(&dir);
     }

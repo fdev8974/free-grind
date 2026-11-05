@@ -2577,6 +2577,7 @@
     },
     "account_status": {
         "sign_out": "Abmelden",
+        "backup_data": "Daten für ein neues Profil sichern",
         "banned": {
             "title": "Konto gesperrt",
             "description": "Grindr hat dieses Konto gesperrt{{reason}}. Du kannst dich erst wieder anmelden, wenn die Sperre aufgehoben ist.",
@@ -3021,7 +3022,6 @@
         "export_success_ios": "Daten exportiert. Du findest sie in der Dateien-App unter „Auf meinem iPhone/iPad“ → Free Grind.",
         "export_success_desktop": "Daten nach Downloads/FreeGrind exportiert.",
         "export_failed": "Daten konnten nicht exportiert werden.",
-        "import_wrong_owner": "Dieser Export gehört zu einem anderen Profil und kann hier nicht importiert werden.",
         "import_invalid": "Diese Datei ist kein gültiger Datenexport.",
         "import_no_user": "Du musst angemeldet sein, um zu importieren.",
         "import_failed": "Daten konnten nicht importiert werden.",
@@ -3082,7 +3082,6 @@
         "categories_title": "Was möchtest du wiederherstellen?",
         "categories_desc": "Nur Kategorien, die in dieser Datei enthalten sind, können wiederhergestellt werden.",
         "confirm": "Wiederherstellen",
-        "import_wrong_owner": "Dieser Export gehört zu einem anderen Profil und kann hier nicht importiert werden.",
         "import_invalid": "Diese Datei ist kein gültiger Datenexport.",
         "import_success": "{{count}} Einträge importiert. Wird neu geladen…",
         "import_failed": "Sicherungsdatei konnte nicht gelesen werden.",

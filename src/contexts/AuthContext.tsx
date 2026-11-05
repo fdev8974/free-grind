@@ -201,11 +201,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	// A hard login/refresh rejection — the account is banned outright (no
 	// session was established) or Grindr is rate-limiting attempts. Returns
 	// whether the error was one of these, so callers can skip their normal
-	// generic-error toast.
-	const handleAccountBlock = (error: unknown): boolean => {
+	// generic-error toast. `profileId` is the account signed into, when known.
+	const handleAccountBlock = (error: unknown, profileId: number | null = null): boolean => {
 		const ban = asBanned(error);
 		if (ban) {
-			dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: ban } });
+			dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: ban, profileId } });
 			return true;
 		}
 		if (asAppError(error)?.kind === "RateLimited") {
@@ -552,7 +552,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				toast.success(i18n.t("auth.toasts.switched_account"));
 			}
 		} catch (error) {
-			if (handleAccountBlock(error)) {
+			if (handleAccountBlock(error, Number(profileId))) {
 				throw error;
 			}
 			const appError = asAppError(error);
@@ -718,7 +718,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					appLog.warn("[Auth] auth:banned event with unexpected payload", event.payload);
 					return;
 				}
-				dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: parsed.data } });
+				dispatch({
+					type: "SET_ACCOUNT_STATUS",
+					payload: { kind: "banned", info: parsed.data, profileId: currentUserIdRef.current },
+				});
 			}),
 			listen<unknown>("auth:restriction", (event) => {
 				const parsed = restrictionSchema.safeParse(event.payload);

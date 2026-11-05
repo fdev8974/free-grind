@@ -2766,7 +2766,6 @@
         "categories_title": "Wat wil je herstellen?",
         "categories_desc": "Alleen categorieën die in dit bestand staan kunnen worden hersteld.",
         "confirm": "Herstellen",
-        "import_wrong_owner": "Deze export hoort bij een ander profiel en kan hier niet worden geïmporteerd.",
         "import_invalid": "Dit bestand is geen geldige gegevensexport.",
         "import_success": "{{count}} rijen geïmporteerd. Herladen…",
         "import_failed": "Back-upbestand lezen mislukt.",

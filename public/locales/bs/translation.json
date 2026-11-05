@@ -2790,7 +2790,6 @@
         "categories_title": "Šta želiš vratiti?",
         "categories_desc": "Mogu se vratiti samo kategorije koje postoje u ovoj datoteci.",
         "confirm": "Vrati",
-        "import_wrong_owner": "Ovaj izvoz pripada drugom profilu i ne može se uvesti ovdje.",
         "import_invalid": "Ova datoteka nije ispravan izvoz podataka.",
         "import_success": "Uvezeno redova: {{count}}. Ponovno učitavanje…",
         "import_failed": "Čitanje rezervne kopije nije uspjelo.",

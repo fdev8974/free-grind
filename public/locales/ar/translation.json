@@ -2862,7 +2862,6 @@
         "categories_title": "عايز تسترجع إيه؟",
         "categories_desc": "الفئات الموجودة في الملف ده بس اللي تقدر تسترجعها.",
         "confirm": "استرجاع",
-        "import_wrong_owner": "التصدير ده تبع بروفايل تاني ومش هينفع يتستورد هنا.",
         "import_invalid": "الملف ده مش تصدير بيانات صالح.",
         "import_success": "Imported {{count}} rows. Reloading…",
         "import_failed": "فشل قراءة ملف الباك أب.",

@@ -7,6 +7,7 @@ import {
 	CircleCheck,
 	Clock,
 	Copy,
+	Download,
 	ExternalLink,
 	Globe,
 	Info,
@@ -20,6 +21,11 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { BotFilled, ClockFilled, UserFilled } from "./icons/FilledIcons";
+import { BackupProgressBar } from "./BackupProgressBar";
+import { BACKUP_CATEGORY_IDS, backupErrorMessage, exportBackup } from "../services/backupRestore";
+import { chatDbFileNameFor, hasChatDbFile } from "../services/chatDb";
+import { isAndroid, isIos } from "../services/saveMedia";
+import { appLog } from "../utils/logger";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass, fullscreenCardClass } from "./FullscreenPrompt";
 import { CardDetailsSheet, GuidelineBlock, RichText } from "./GuidelineViolationParts";
 import { useAuth } from "../contexts/useAuth";
@@ -493,17 +499,72 @@ function AgreementCheckbox({ checked, onChange, disabled }: { checked: boolean; 
 	);
 }
 
+/** Every local category: the server-side ones can't be fetched with a banned account. */
+const LOCAL_BACKUP_CATEGORIES = BACKUP_CATEGORY_IDS.filter((category) => category !== "favorite_notes");
+
+/**
+ * Exports the profile's local data straight from its own db file (which needn't
+ * be the active one), so it can be restored into a new profile. Null while the
+ * profile is unknown or has no local data on this device.
+ */
+function useBackupExport(profileId: number | null | undefined) {
+	const { t } = useTranslation();
+	const [hasData, setHasData] = useState(false);
+	const [exporting, setExporting] = useState(false);
+
+	useEffect(() => {
+		setHasData(false);
+		if (profileId == null) return;
+		let cancelled = false;
+		hasChatDbFile(profileId)
+			.then((found) => {
+				if (!cancelled) setHasData(found);
+			})
+			.catch(() => {});
+		return () => {
+			cancelled = true;
+		};
+	}, [profileId]);
+
+	if (profileId == null || !hasData) return null;
+
+	const start = () => {
+		setExporting(true);
+		exportBackup(chatDbFileNameFor(profileId), profileId, LOCAL_BACKUP_CATEGORIES)
+			.then(() =>
+				toast.success(
+					isAndroid()
+						? t("data_backup.export_success", { defaultValue: "Data exported." })
+						: isIos()
+							? t("data_backup.export_success_ios", { defaultValue: "Data exported. Find it in the Files app under On My iPhone/iPad → Free Grind." })
+							: t("data_backup.export_success_desktop", { defaultValue: "Data exported to Downloads/FreeGrind." }),
+				),
+			)
+			.catch((error: unknown) => {
+				appLog.error("[AccountStatusPrompt] backup export failed", error);
+				toast.error(backupErrorMessage(error, t("data_backup.export_failed", { defaultValue: "Failed to export data." })));
+			})
+			.finally(() => setExporting(false));
+	};
+
+	return { exporting, start };
+}
+
 export function AccountStatusPromptView({
 	status,
+	backupProfileId,
 	onSignOut,
 	onAcceptBanAgreement,
 }: {
 	status: AccountStatus;
+	/** The profile whose local data the "Back up data" button exports; hidden when null. */
+	backupProfileId?: number | null;
 	onSignOut: () => void;
 	onAcceptBanAgreement?: () => Promise<void>;
 }) {
 	const { t } = useTranslation();
 	const now = useTimedBanNow(status);
+	const backup = useBackupExport(backupProfileId);
 	const [accepting, setAccepting] = useState(false);
 	const [agreed, setAgreed] = useState(false);
 	// banDetails.isAgreementCompleted decides when Grindr says; only without
@@ -594,10 +655,21 @@ export function AccountStatusPromptView({
 							<ExternalLink className="h-4 w-4" />
 						</button>
 					)}
+					{backup && (
+						<>
+							<BackupProgressBar kind="export" active={backup.exporting} />
+							<button type="button" onClick={backup.start} disabled={backup.exporting} className={fullscreenSecondaryButtonClass}>
+								<span className="inline-flex items-center gap-1.5">
+									{backup.exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+									{t("account_status.backup_data", { defaultValue: "Back up data for a new profile" })}
+								</span>
+							</button>
+						</>
+					)}
 					<button
 						type="button"
 						onClick={onSignOut}
-						disabled={accepting}
+						disabled={accepting || backup?.exporting}
 						className={acceptBanAgreement || appealButton ? fullscreenSecondaryButtonClass : fullscreenPrimaryButtonClass}
 					>
 						{t("account_status.sign_out", { defaultValue: "Sign Out" })}
@@ -646,7 +718,7 @@ export function AccountStatusPromptView({
  * an asynchronous auth:banned event pushed mid-session.
  */
 export function AccountStatusGate({ children }: { children: ReactNode }) {
-	const { accountStatus, acceptBanAgreement } = useAuth();
+	const { accountStatus, userId, acceptBanAgreement } = useAuth();
 	const logoutToNextAccount = useLogoutToNextAccount();
 
 	if (!accountStatus) {
@@ -657,6 +729,7 @@ export function AccountStatusGate({ children }: { children: ReactNode }) {
 		<div className="app-shell">
 			<AccountStatusPromptView
 				status={accountStatus}
+				backupProfileId={accountStatus.kind === "banned" ? accountStatus.profileId : userId}
 				onSignOut={() => void logoutToNextAccount().catch(() => {})}
 				onAcceptBanAgreement={acceptBanAgreement}
 			/>
