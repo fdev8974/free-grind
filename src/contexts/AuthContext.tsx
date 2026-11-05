@@ -36,7 +36,7 @@ import { loadAutoTranslateCache } from "../utils/autoTranslate";
 import { loadSeenCache } from "../services/seenStore";
 import { runInboxSync } from "../services/inboxSync";
 import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
-import { syncOwnProfilePhotos } from "../services/ownProfilePhotos";
+import { syncOwnProfile } from "../services/ownProfilePhotos";
 import { runRestoredBlocklist, syncOwnBlocklist } from "../services/ownBlocklist";
 import { runTapsAutomationSync } from "../services/tapsSync";
 import { syncSavedPhrasesFromServer } from "../services/savedPhrases";
@@ -662,10 +662,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// another profile's backup (see restoredDrawerMedia.ts) — guarded the
 				// same way, since the api uploads into whichever profile is active.
 				void runRestoredDrawerUpload(apiFunctions, () => currentUserIdRef.current === userId);
-				// Fire-and-forget: records this profile's own photos locally so a
-				// backup still has them once the account can't read its profile
-				// anymore, e.g. after a ban (see ownProfilePhotos.ts).
-				void syncOwnProfilePhotos(apiFunctions, userId, () => currentUserIdRef.current === userId);
+				// Fire-and-forget: records this profile's own details and photos
+				// locally so a backup still has them once the account can't read its
+				// profile anymore, e.g. after a ban (see ownProfilePhotos.ts).
+				void syncOwnProfile(apiFunctions, userId, () => currentUserIdRef.current === userId);
 				// Fire-and-forget, same idea for the block list: recorded for later
 				// backups, and a restored one blocked again bit by bit (ownBlocklist.ts).
 				void (async () => {

@@ -332,6 +332,14 @@ const EXPORT_TABLES: &[TableSpec] = &[
         filter: None,
     },
     TableSpec {
+        name: "own_profile_details",
+        primary_key: "key",
+        category: "profile_details",
+        columns: &["key", "data_json"],
+        blob_columns: &[],
+        filter: None,
+    },
+    TableSpec {
         name: "own_profile_photos",
         primary_key: "media_hash",
         category: "profile_photos",
@@ -355,6 +363,7 @@ const EXPORT_TABLES: &[TableSpec] = &[
 /// (src/services/ownProfilePhotos.ts, ownBlocklist.ts) without touching the
 /// new profile's own record.
 const RESTORED_INTO: &[(&str, &str)] = &[
+    ("own_profile_details", "restored_profile_details"),
     ("own_profile_photos", "restored_profile_photos"),
     ("own_blocked_profiles", "restored_blocked_profiles"),
 ];

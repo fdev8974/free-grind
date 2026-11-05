@@ -7,7 +7,7 @@
  *
  * Restored into a different profile, import (src-tauri/src/commands/backup.rs)
  * writes them to restored_profile_photos instead. Uploading those is the
- * user's call (RestoredProfilePhotosPrompt): Grindr may recognize a banned
+ * user's call (RestoredProfilePrompt): Grindr may recognize a banned
  * account's photos. Uploads go one at a time with a pause in between, record
  * their progress so an interrupted run resumes, and only once all are up is
  * the profile pointed at them, in the old order.
@@ -16,6 +16,7 @@
 import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
 import { fetchAndEncode } from "./mediaStore";
+import { recordOwnProfileDetails } from "./ownProfileDetails";
 import { setSavedAccountDisplayName, setSavedAccountPhotoHash } from "./savedAccountProfiles";
 import { sanitizeUploadFile } from "./uploadSanitize";
 import {
@@ -38,14 +39,17 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Records the profile's current photos, downloading the ones not stored yet.
- * The same read also refreshes the account switcher's name and avatar for
- * this profile, which GridPage only does while it's open. Never throws.
+ * Records the profile's current details (ownProfileDetails.ts) and photos,
+ * downloading the photos not stored yet. The same read also refreshes the
+ * account switcher's name and avatar for this profile, which GridPage only
+ * does while it's open. Never throws.
  */
-export async function syncOwnProfilePhotos(api: ApiFunctions, profileId: number, isCurrent: () => boolean): Promise<void> {
+export async function syncOwnProfile(api: ApiFunctions, profileId: number, isCurrent: () => boolean): Promise<void> {
 	try {
-		const parsed = profileSchema.safeParse(unwrapOwnProfile(await api.getMyOwnProfile()));
-		if (!parsed.success || !isCurrent()) return;
+		const raw = unwrapOwnProfile(await api.getMyOwnProfile());
+		const parsed = profileSchema.safeParse(raw);
+		if (!raw || !parsed.success || !isCurrent()) return;
+		await recordOwnProfileDetails(raw);
 		setSavedAccountDisplayName(String(profileId), parsed.data.displayName ?? null);
 		setSavedAccountPhotoHash(String(profileId), getProfilePhotoHash(parsed.data));
 		const hashes = (parsed.data.medias ?? [])
@@ -58,7 +62,7 @@ export async function syncOwnProfilePhotos(api: ApiFunctions, profileId: number,
 			if (fetched) await chatDb.setOwnProfilePhotoData(hash, fetched.mimeType, fetched.base64);
 		}
 	} catch (error) {
-		appLog.warn("[ownProfilePhotos] recording own profile photos failed", error);
+		appLog.warn("[ownProfilePhotos] recording own profile failed", error);
 	}
 }
 

@@ -2577,15 +2577,19 @@
         "description": "Dein Login-Token ist abgelaufen. Bitte melde dich erneut an, um fortzufahren.",
         "sign_out": "Erneut anmelden"
     },
-    "restored_photos": {
-        "title": "Profilbilder wiederherstellen?",
-        "message": "Dein Backup enthält {{count}} Profilbilder deines vorherigen Profils. Hochladen und als Profilbilder dieses Profils verwenden?",
-        "warning": "Grindr erkennt Fotos eines gesperrten Kontos möglicherweise wieder – dadurch kann auch dieses Profil gesperrt werden.",
-        "confirm": "Fotos hochladen",
-        "dismiss": "Nicht hochladen",
-        "uploading": "Profilbilder werden wiederhergestellt…",
-        "success": "{{count}} Profilbilder wiederhergestellt.",
-        "failed": "Nicht alle Profilbilder konnten wiederhergestellt werden. Du wirst beim nächsten Mal erneut gefragt."
+    "restored_profile": {
+        "title": "Vorheriges Profil übernehmen?",
+        "message": "Dein Backup enthält dein vorheriges Profil. Wähle aus, was du für dieses Profil übernehmen möchtest.",
+        "details": "Profilangaben",
+        "details_desc": "Name, Über mich, Tags, Suche nach, Statistiken und die übrigen Profilinfos.",
+        "photos": "Profilbilder",
+        "photos_desc": "{{count}} Fotos, erneut hochgeladen und in derselben Reihenfolge gesetzt.",
+        "warning": "Grindr erkennt Fotos und Profiltexte eines gesperrten Kontos möglicherweise wieder – dadurch kann auch dieses Profil gesperrt werden.",
+        "discard": "Nicht übernehmen",
+        "apply": "Übernehmen",
+        "applying": "Profil wird wiederhergestellt…",
+        "success": "Profil wiederhergestellt.",
+        "failed": "Nicht alles konnte wiederhergestellt werden. Du wirst beim nächsten Mal erneut gefragt."
     },
     "account_status": {
         "sign_out": "Abmelden",
@@ -3002,6 +3006,7 @@
         "category_chat_messages": "Chatnachrichten",
         "category_media_albums": "Medien & Alben",
         "category_drawer_media": "Drawer-Medien",
+        "category_profile_details": "Profilangaben",
         "category_profile_photos": "Profilbilder",
         "category_blocked_profiles": "Blockierte Profile",
         "category_saved_phrases": "Gespeicherte Phrasen",

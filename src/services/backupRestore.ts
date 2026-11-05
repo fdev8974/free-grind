@@ -15,6 +15,7 @@ export type BackupCategoryId =
 	| "chat_messages"
 	| "media_albums"
 	| "drawer_media"
+	| "profile_details"
 	| "profile_photos"
 	| "blocked_profiles"
 	| "saved_phrases"
@@ -27,6 +28,7 @@ export const BACKUP_CATEGORY_IDS: BackupCategoryId[] = [
 	"chat_messages",
 	"media_albums",
 	"drawer_media",
+	"profile_details",
 	"profile_photos",
 	"blocked_profiles",
 	"saved_phrases",

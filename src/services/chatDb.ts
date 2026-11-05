@@ -56,7 +56,7 @@ const LEGACY_CHAT_DB = `sqlite:${LEGACY_CHAT_DB_FILENAME}`;
 // on it. BUMP THIS whenever initChatDbSchema changes (new table, index,
 // column or data fix) — otherwise existing installs skip the setup and never
 // get the change; only fresh installs would.
-const CHAT_DB_SCHEMA_VERSION = 2;
+const CHAT_DB_SCHEMA_VERSION = 3;
 const SLOW_DB_OPEN_MS = 2_000;
 const SQLITE_LOCK_RETRY_DELAYS_MS = [30, 80, 180, 350] as const;
 
@@ -564,6 +564,9 @@ async function initChatDbSchema(db: Database): Promise<void> {
 				uploaded_hash TEXT
 			)
 		`);
+		// One row (key "profile"): the restorable profile fields as JSON, see ownProfileDetails.ts.
+		await db.execute("CREATE TABLE IF NOT EXISTS own_profile_details (key TEXT PRIMARY KEY, data_json TEXT)");
+		await db.execute("CREATE TABLE IF NOT EXISTS restored_profile_details (key TEXT PRIMARY KEY, data_json TEXT)");
 		await db.execute("CREATE TABLE IF NOT EXISTS own_blocked_profiles (profile_id TEXT PRIMARY KEY)");
 		await db.execute("CREATE TABLE IF NOT EXISTS restored_blocked_profiles (profile_id TEXT PRIMARY KEY)");
 
@@ -2782,8 +2785,43 @@ export async function deleteDownloadedMediaEntries(identifiers: string[]): Promi
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Own profile photos and block list (see ownProfilePhotos.ts, ownBlocklist.ts)
+// Own profile details, photos and block list (see ownProfileDetails.ts,
+// ownProfilePhotos.ts, ownBlocklist.ts)
 // ---------------------------------------------------------------------------
+
+const PROFILE_DETAILS_KEY = "profile";
+
+export async function setOwnProfileDetails(details: Record<string, unknown>): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "set-own-profile-details", async () => {
+		await db.execute(
+			`INSERT INTO own_profile_details (key, data_json) VALUES ($1, $2)
+			ON CONFLICT(key) DO UPDATE SET data_json = excluded.data_json`,
+			[PROFILE_DETAILS_KEY, JSON.stringify(details)],
+		);
+	});
+}
+
+export async function getRestoredProfileDetails(): Promise<Record<string, unknown> | null> {
+	const db = await getDb();
+	const rows = await db.select<{ data_json: string | null }[]>(
+		"SELECT data_json FROM restored_profile_details WHERE key = $1",
+		[PROFILE_DETAILS_KEY],
+	);
+	try {
+		const parsed: unknown = rows[0]?.data_json ? JSON.parse(rows[0].data_json) : null;
+		return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : null;
+	} catch {
+		return null;
+	}
+}
+
+export async function clearRestoredProfileDetails(): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "clear-restored-profile-details", async () => {
+		await db.execute("DELETE FROM restored_profile_details");
+	});
+}
 
 /** Records the profile's photo order; keeps the bytes of photos still on it, drops the rest. */
 export async function replaceOwnProfilePhotos(mediaHashes: string[]): Promise<void> {

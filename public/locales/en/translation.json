@@ -2577,15 +2577,19 @@
     "description": "Your login token has expired. Please sign in again to continue.",
     "sign_out": "Sign In Again"
   },
-  "restored_photos": {
-    "title": "Restore profile photos?",
-    "message": "Your backup contains {{count}} profile photos from your previous profile. Upload them and use them as this profile's photos?",
-    "warning": "Grindr may recognize photos of a banned account, which can get this profile banned too.",
-    "confirm": "Upload photos",
-    "dismiss": "Don't upload",
-    "uploading": "Restoring profile photos…",
-    "success": "{{count}} profile photos restored.",
-    "failed": "Couldn't restore all profile photos. You'll be asked again next time."
+  "restored_profile": {
+    "title": "Take over your previous profile?",
+    "message": "Your backup contains your previous profile. Choose what to use for this profile.",
+    "details": "Profile details",
+    "details_desc": "Name, about me, tags, looking for, stats and the rest of your profile info.",
+    "photos": "Profile photos",
+    "photos_desc": "{{count}} photos, uploaded again and set in the same order.",
+    "warning": "Grindr may recognize a banned account's photos and profile text, which can get this profile banned too.",
+    "discard": "Don't take over",
+    "apply": "Take over",
+    "applying": "Restoring your profile…",
+    "success": "Profile restored.",
+    "failed": "Couldn't restore everything. You'll be asked again next time."
   },
   "account_status": {
     "sign_out": "Sign Out",
@@ -3000,6 +3004,7 @@
     "category_chat_messages": "Chat messages",
     "category_media_albums": "Media & albums",
     "category_drawer_media": "Drawer media",
+    "category_profile_details": "Profile details",
     "category_profile_photos": "Profile photos",
     "category_blocked_profiles": "Blocked profiles",
     "category_saved_phrases": "Saved phrases",
