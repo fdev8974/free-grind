@@ -162,6 +162,7 @@ export function SingleSelectField({
 					onClose={() => setIsOpen(false)}
 					isDesktop={isDesktop}
 					expandable={options.length > 8}
+					closeLabel={t("common.cancel", { defaultValue: "Cancel" })}
 				/>,
 				document.body,
 			)}

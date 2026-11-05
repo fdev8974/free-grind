@@ -1,6 +1,6 @@
 import { Check, Loader2 } from "lucide-react";
 import { useState, type ComponentType, type ReactNode } from "react";
-import { BottomSheet, SheetCloseButton, useBottomSheetClose } from "./bottom-sheet";
+import { BottomSheet, SHEET_FOOTER_CLASS, SheetClose, SheetCloseButton, sheetButtonClass, useBottomSheetClose } from "./bottom-sheet";
 import { NATIVE_SHEET_BG } from "./action-sheet";
 import { cn } from "../../utils/cn";
 
@@ -38,6 +38,9 @@ interface SelectSheetProps<T extends string> {
 	accentContrast?: string;
 	/** Below the list, e.g. a loading or error note. */
 	footer?: ReactNode;
+	/** Adds a footer button that closes the sheet without picking, like the
+	 * multi-select sheets' footer (e.g. "Cancel" in the profile editor). */
+	closeLabel?: string;
 	zIndex?: string;
 	/** For long option lists: opens at `mediumDetent` and can be dragged up to almost full screen. */
 	expandable?: boolean;
@@ -76,6 +79,7 @@ function SelectSheetContent<T extends string>({
 	accentColor = "var(--accent)",
 	accentContrast = "var(--accent-contrast)",
 	footer,
+	closeLabel,
 }: Omit<SelectSheetProps<T>, "onClose" | "isDesktop" | "zIndex">) {
 	const close = useBottomSheetClose();
 	const [pending, setPending] = useState<T | null>(null);
@@ -161,6 +165,13 @@ function SelectSheetContent<T extends string>({
 				})}
 			</div>
 			{footer}
+			{closeLabel && (
+				<div className={SHEET_FOOTER_CLASS}>
+					<SheetClose disabled={pending !== null} className={sheetButtonClass("secondary")}>
+						{closeLabel}
+					</SheetClose>
+				</div>
+			)}
 		</>
 	);
 }

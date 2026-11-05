@@ -244,6 +244,7 @@ function LastTestedField({
 					onClose={() => setIsOpen(false)}
 					isDesktop={isDesktop}
 					expandable
+					closeLabel={t("common.cancel", { defaultValue: "Cancel" })}
 				/>,
 				document.body,
 			)}
@@ -744,14 +745,17 @@ export function ProfileEditorFormSections({ editor }: { editor: ProfileEditorSta
 				{secondStack}
 			</div>
 
-			{isTagsDialogOpen && (
+			{/* Portaled like the row pickers: inside the editor panel the sheet was
+			    laid out within the profile column on desktop, not over the page. */}
+			{isTagsDialogOpen && createPortal(
 				<TagsPickerDialog
 					selected={tagList}
 					max={MAX_PROFILE_TAGS}
 					maxMessage={t("profile_editor.errors.max_selection", { count: MAX_PROFILE_TAGS })}
 					onToggle={(tagKey) => onDraftChange("profileTagsText", toggleProfileTagText(draft.profileTagsText, tagKey))}
 					onClose={() => setIsTagsDialogOpen(false)}
-				/>
+				/>,
+				document.body,
 			)}
 		</>
 	);
