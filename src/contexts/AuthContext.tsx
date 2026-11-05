@@ -207,11 +207,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	// A hard login/refresh rejection — the account is banned outright (no
 	// session was established) or Grindr is rate-limiting attempts. Returns
 	// whether the error was one of these, so callers can skip their normal
-	// generic-error toast. `profileId` is the account signed into, when known.
+	// generic-error toast. `profileId` is the account signed into, when known;
+	// otherwise the one the ban response names. The ban screen needs it to
+	// offer a backup of that profile's local data.
 	const handleAccountBlock = (error: unknown, profileId: number | null = null): boolean => {
 		const ban = asBanned(error);
 		if (ban) {
-			dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: ban, profileId } });
+			const fromResponse = ban.profileId ? Number(ban.profileId) : NaN;
+			const banned = profileId ?? (Number.isSafeInteger(fromResponse) && fromResponse > 0 ? fromResponse : null);
+			dispatch({ type: "SET_ACCOUNT_STATUS", payload: { kind: "banned", info: ban, profileId: banned } });
 			return true;
 		}
 		if (asAppError(error)?.kind === "RateLimited") {
@@ -260,6 +264,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		}
 	};
 
+	/** The saved account signed into with this email before, if any: the fallback
+	 * for a ban response that doesn't name the profile. */
+	const savedProfileIdForEmail = (email: string): number | null => {
+		const normalized = email.trim().toLowerCase();
+		const account = savedAccounts.find((saved) => saved.email.trim().toLowerCase() === normalized);
+		const id = account ? Number(account.profileId) : NaN;
+		return Number.isSafeInteger(id) && id > 0 ? id : null;
+	};
+
 	const login = async (email: string, password: string, { keepDevice }: LoginOptions = {}) => {
 		// The sign-in endpoint the last attempt went to, for the SMS page's report.
 		let endpoint = "/v8/sessions";
@@ -302,7 +315,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				appLog.info("[Auth] login: SMS verification required");
 				throw new SmsVerificationRequiredError(verification.profileId, { endpoint, body: verification.body });
 			}
-			if (handleAccountBlock(error)) {
+			if (handleAccountBlock(error, savedProfileIdForEmail(email))) {
 				throw error;
 			}
 			if (error instanceof RecaptchaError) {

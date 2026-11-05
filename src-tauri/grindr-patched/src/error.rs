@@ -184,6 +184,9 @@ pub struct BanInfo {
 	pub sub_reason: Option<String>,
 	/// Body `isBanAutomated`, if present.
 	pub automated: Option<bool>,
+	/// Body `profileId`, if present: the banned profile, which a ban during
+	/// sign-in doesn't otherwise reveal.
+	pub profile_id: Option<String>,
 }
 
 impl std::fmt::Display for BanInfo {

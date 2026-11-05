@@ -7,6 +7,8 @@ export const banInfoSchema = z.object({
 	reason: z.string().nullish(),
 	subReason: z.string().nullish(),
 	automated: z.boolean().nullish(),
+	/** The banned profile, when the server's response names it. */
+	profileId: z.string().nullish(),
 });
 export type BanInfo = z.infer<typeof banInfoSchema>;
 

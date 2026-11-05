@@ -360,15 +360,8 @@ pub(crate) fn parse_api_error(bytes: &[u8], http_status: u16) -> GrindrError {
 	let (code, message) = extract_api_error(bytes, http_status);
 
 	if code == VERIFICATION_REQUIRED_CODE {
-		let profile_id = serde_json::from_slice::<serde_json::Value>(bytes)
-			.ok()
-			.and_then(|json| match json.get("profileId")? {
-				serde_json::Value::String(id) => Some(id.clone()),
-				serde_json::Value::Number(id) => Some(id.to_string()),
-				_ => None,
-			});
 		return GrindrError::VerificationRequired {
-			profile_id,
+			profile_id: body_profile_id(bytes),
 			message,
 			body: String::from_utf8_lossy(bytes).into_owned(),
 		};
@@ -383,6 +376,17 @@ pub(crate) fn parse_api_error(bytes: &[u8], http_status: u16) -> GrindrError {
 		429 => GrindrError::RateLimited,
 		_ => GrindrError::Api { code, message },
 	}
+}
+
+/// The body's `profileId`, sent as a string or a number.
+fn body_profile_id(bytes: &[u8]) -> Option<String> {
+	serde_json::from_slice::<serde_json::Value>(bytes)
+		.ok()
+		.and_then(|json| match json.get("profileId")? {
+			serde_json::Value::String(id) => Some(id.clone()),
+			serde_json::Value::Number(id) => Some(id.to_string()),
+			_ => None,
+		})
 }
 
 fn ban_info(
@@ -402,6 +406,7 @@ fn ban_info(
 			.and_then(|v| v.as_str())
 			.map(str::to_owned),
 		automated: field("isBanAutomated").and_then(|v| v.as_bool()),
+		profile_id: body_profile_id(bytes),
 	}
 }
 
@@ -627,6 +632,19 @@ mod tests {
 		assert_eq!(info.code, 27);
 		assert_eq!(info.sub_reason.as_deref(), Some("DRUG_SALES"));
 		assert_eq!(info.automated, Some(true));
+		assert_eq!(info.profile_id, None);
+	}
+
+	#[test]
+	fn from_response_reads_banned_profile_id() {
+		let err = GrindrError::from_response(
+			403,
+			br#"{"code":27,"message":"Profile is banned","profileId":"927511499","type":null,"reason":null,"isBanAutomated":null,"banSubReason":null}"#,
+		);
+		let GrindrError::Banned(info) = err else {
+			panic!("expected Banned, got {err:?}");
+		};
+		assert_eq!(info.profile_id.as_deref(), Some("927511499"));
 	}
 
 	#[test]

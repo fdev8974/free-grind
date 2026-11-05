@@ -11,6 +11,9 @@ pub struct BanInfo {
     pub reason: Option<String>,
     pub sub_reason: Option<String>,
     pub automated: Option<bool>,
+    /// The banned profile, when the response names it (a ban during sign-in
+    /// otherwise leaves it unknown, and with it whose local data to back up).
+    pub profile_id: Option<String>,
 }
 
 impl From<grindr::BanInfo> for BanInfo {
@@ -29,6 +32,7 @@ impl From<grindr::BanInfo> for BanInfo {
             reason: b.reason,
             sub_reason: b.sub_reason,
             automated: b.automated,
+            profile_id: b.profile_id,
         }
     }
 }
