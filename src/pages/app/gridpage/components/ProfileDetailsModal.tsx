@@ -194,6 +194,27 @@ function getProfileStatusDisplay(
 // Same height as the photo carousel in the page variant.
 const PAGE_CAROUSEL_HEIGHT = "min(78dvh, calc(100vw * 1.55))";
 
+// A single touchpad swipe fires dozens of wheel events (and keeps firing while it
+// coasts), so a run of events without a pause this long counts as one gesture.
+const WHEEL_GESTURE_GAP_MS = 200;
+
+type WheelGestureState = { lastEventAt: number; direction: number; captured: boolean };
+
+function createWheelGestureState(): WheelGestureState {
+	return { lastEventAt: -Infinity, direction: 0, captured: false };
+}
+
+/** Returns the scroll direction if this wheel event starts a new gesture, otherwise 0. */
+function startsWheelGesture(state: WheelGestureState, deltaY: number): number {
+	const direction = Math.sign(deltaY);
+	if (direction === 0) return 0;
+	const now = performance.now();
+	const isNew = now - state.lastEventAt > WHEEL_GESTURE_GAP_MS || direction !== state.direction;
+	state.lastEventAt = now;
+	state.direction = direction;
+	return isNew ? direction : 0;
+}
+
 /** Neighbouring profile's photo and name, sitting just off-screen next to the swipeable page. */
 function ProfileSwipePreviewPanel({
 	preview,
@@ -701,6 +722,7 @@ export function ProfileDetailsModal({
 	const mobileCarouselRef = useRef<HTMLDivElement | null>(null);
 	const carouselIndexRef = useRef(0);
 	const carouselTotalRef = useRef(0);
+	const splitWheelGestureRef = useRef<WheelGestureState>(createWheelGestureState());
 	const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 	const pageWrapRef = useRef<HTMLDivElement | null>(null);
 	const profileSwipeRef = useRef({ startX: 0, startY: 0, decided: false, horizontal: false, dragging: false, lastDelta: 0, pastThreshold: false });
@@ -1261,17 +1283,20 @@ export function ProfileDetailsModal({
 	useEffect(() => {
 		const el = mobileCarouselRef.current;
 		if (!el || isModalSplit) return;
+		const gesture = createWheelGestureState();
 		const onWheel = (e: WheelEvent) => {
-			const idx = carouselIndexRef.current;
-			const total = carouselTotalRef.current;
-			if (e.deltaY > 0 && idx < total - 1) {
-				e.preventDefault();
-				setMobileCarouselPhotoIndex((i) => Math.min(i + 1, total - 1));
-			} else if (e.deltaY < 0 && idx > 0) {
-				e.preventDefault();
-				setMobileCarouselPhotoIndex((i) => Math.max(i - 1, 0));
+			const direction = startsWheelGesture(gesture, e.deltaY);
+			if (direction !== 0) {
+				const idx = carouselIndexRef.current;
+				const total = carouselTotalRef.current;
+				// At boundary the gesture isn't captured → scroll propagates normally
+				gesture.captured = direction > 0 ? idx < total - 1 : idx > 0;
+				if (gesture.captured) {
+					setMobileCarouselPhotoIndex((i) => Math.min(Math.max(i + direction, 0), total - 1));
+				}
 			}
-			// At boundary: don't preventDefault → scroll propagates normally
+			// Swallow the rest of a captured gesture so its coasting doesn't scroll the page
+			if (gesture.captured && e.deltaY !== 0) e.preventDefault();
 		};
 		el.addEventListener("wheel", onWheel, { passive: false });
 		return () => el.removeEventListener("wheel", onWheel);
@@ -2699,8 +2724,10 @@ export function ProfileDetailsModal({
 						style={{ width: "54%" }}
 						onWheel={(e) => {
 							e.preventDefault();
-							if (e.deltaY > 0) setMobileCarouselPhotoIndex((i) => Math.min(i + 1, carouselHashes.length - 1));
-							else if (e.deltaY < 0) setMobileCarouselPhotoIndex((i) => Math.max(i - 1, 0));
+							const direction = startsWheelGesture(splitWheelGestureRef.current, e.deltaY);
+							if (direction !== 0) {
+								setMobileCarouselPhotoIndex((i) => Math.min(Math.max(i + direction, 0), carouselHashes.length - 1));
+							}
 						}}
 					>
 						{isRightNowSlideActive && (
