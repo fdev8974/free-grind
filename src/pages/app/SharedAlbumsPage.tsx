@@ -901,7 +901,7 @@ export function SharedAlbumsPage() {
 			<PullToRefreshContainer
 				className="app-screen flex h-dvh flex-col w-full !px-0 !pb-0 overflow-x-hidden"
 				contentClassName="flex flex-1 flex-col min-h-0"
-				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}
+				style={{ overflow: "visible", overflowX: "hidden", paddingTop: "calc(var(--safe-area-top) + 10px)" }}
 				onRefresh={handleRefresh}
 				isDisabled={isLoading || isRefreshing}
 				isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
@@ -991,7 +991,7 @@ export function SharedAlbumsPage() {
 				</header>
 
 				<FeedScrollContainer ref={feedContainerRef}>
-					<div className="mx-auto w-full max-w-6xl rail:max-w-none px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[var(--page-bottom)]">
+					<div className="mx-auto w-full max-w-6xl rail:max-w-none px-[var(--app-px)] pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[var(--page-bottom)]">
 						{isLoading ? (
 							<div
 								className="grid gap-4"

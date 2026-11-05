@@ -2111,7 +2111,7 @@ export function GridPage() {
 				<FeedScrollContainer ref={feedContainerRef}>
 					<div
 						className={cn(
-							"transition-opacity duration-0 pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[var(--page-bottom)]",
+							"transition-opacity duration-0 pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[var(--page-bottom)]",
 							hasSavedScroll && !hasRestoredScroll && cards.length > 0 && !isLoadingCards
 								? "opacity-0"
 								: "opacity-100",

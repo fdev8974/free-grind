@@ -90,7 +90,7 @@ export function SexualHealthPage() {
 	];
 
 	return (
-		<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}>
+		<section className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(var(--safe-area-top) + 10px)" }}>
 			<header className="relative z-20 flex shrink-0 flex-col pb-3 pointer-events-none">
 				<PageHeaderBackground color="var(--accent)" />
 				<div className="pointer-events-auto mx-auto grid w-full max-w-4xl gap-3 px-4 sm:px-5 rail:max-w-none rail:px-[var(--app-px)]">
@@ -149,7 +149,7 @@ export function SexualHealthPage() {
 			</header>
 
 			<FeedScrollContainer {...tabSwipe}>
-				<div className="mx-auto w-full max-w-4xl rail:max-w-none pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
+				<div className="mx-auto w-full max-w-4xl rail:max-w-none pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
 					{activeTab === "doses" && (
 						<SexualHealthDosesTab
 							headerSlotEl={headerSlotEl}
@@ -173,7 +173,7 @@ export function SexualHealthPage() {
 				className="pointer-events-none fixed bottom-0 left-[var(--nav-rail-width,0px)] right-0 z-[55] hidden h-36 rail:block"
 				style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 45%, transparent 100%)" }}
 			/>
-			<div className="fixed left-[var(--nav-rail-width,0px)] right-0 bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.75rem)] rail:bottom-[var(--page-bottom)] z-[60] pointer-events-none">
+			<div className="fixed left-[var(--nav-rail-width,0px)] right-0 bottom-[calc(var(--nav-height,var(--safe-area-bottom))+0.75rem)] rail:bottom-[var(--page-bottom)] z-[60] pointer-events-none">
 				<div className="relative mx-auto h-full w-full max-w-4xl rail:max-w-none px-4 md:px-10">
 					{/* Desktop: the FAB renders as a pill centered at the bottom (see RightNowPage). */}
 					<div ref={setFabSlotEl} className="absolute bottom-0 right-[16%] translate-x-1/2 rail:right-1/2 pointer-events-auto empty:pointer-events-none" />

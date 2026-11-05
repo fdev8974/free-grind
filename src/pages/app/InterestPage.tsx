@@ -657,7 +657,7 @@ export function InterestPage() {
 				onTouchStart={handleTouchStart}
 				onTouchEnd={handleTouchEnd}
 			>
-				<div className="mx-auto w-full max-w-4xl rail:max-w-none pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[var(--page-bottom)] px-0">
+				<div className="mx-auto w-full max-w-4xl rail:max-w-none pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[var(--page-bottom)] px-0">
 					{(isLoading && (activeItems.length === 0 || isDemoLoading)) ? (
 						isViewsGrid ? (
 							<InterestViewsGridSkeleton />

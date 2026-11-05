@@ -32,7 +32,7 @@ export function AuthShell({
 				{/* Header */}
 				<div
 					className="animate-fade-in relative flex shrink-0 flex-col items-center px-6 pb-10 text-center"
-					style={{ paddingTop: "max(64px, env(safe-area-inset-top))" }}
+					style={{ paddingTop: "max(64px, var(--safe-area-top))" }}
 				>
 					<img
 						src={freeGrindLogo}
@@ -62,12 +62,12 @@ export function AuthShell({
 					{footer ? (
 						<div
 							className="mt-6 text-center"
-							style={{ paddingBottom: "max(24px, calc(env(safe-area-inset-bottom) + 16px))" }}
+							style={{ paddingBottom: "max(24px, calc(var(--safe-area-bottom) + 16px))" }}
 						>
 							{footer}
 						</div>
 					) : (
-						<div style={{ paddingBottom: "max(24px, calc(env(safe-area-inset-bottom) + 16px))" }} />
+						<div style={{ paddingBottom: "max(24px, calc(var(--safe-area-bottom) + 16px))" }} />
 					)}
 				</div>
 			</div>

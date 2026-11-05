@@ -631,7 +631,7 @@ export function NavBar() {
 							? cn(
 									"w-full border-t border-[var(--border)] pt-1.5",
 									// 3-button navigation: sit right on the system buttons, no gap.
-									systemNavInset > 0 ? "pb-[env(safe-area-inset-bottom,0px)]" : "pb-[calc(env(safe-area-inset-bottom,0px)+0.375rem)]",
+									systemNavInset > 0 ? "pb-[var(--safe-area-bottom)]" : "pb-[calc(var(--safe-area-bottom)+0.375rem)]",
 								)
 							: transparent
 								? // Cardless: extra side padding keeps the outer tabs off the curve.

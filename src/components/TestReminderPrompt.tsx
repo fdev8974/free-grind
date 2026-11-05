@@ -57,8 +57,8 @@ export function TestReminderPromptView({
 				<div
 					className="flex flex-1 flex-col items-center justify-center px-8 text-center"
 					style={{
-						paddingTop: "max(48px, env(safe-area-inset-top))",
-						paddingBottom: "max(24px, env(safe-area-inset-bottom))",
+						paddingTop: "max(48px, var(--safe-area-top))",
+						paddingBottom: "max(24px, var(--safe-area-bottom))",
 					}}
 				>
 					<div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]">
@@ -79,7 +79,7 @@ export function TestReminderPromptView({
 
 				<div
 					className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
-					style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
+					style={{ paddingBottom: "max(28px, calc(var(--safe-area-bottom) + 12px))" }}
 				>
 					<button
 						type="button"

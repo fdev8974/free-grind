@@ -484,7 +484,7 @@ export function VideoGalleryPage() {
 
 	return (
 		<>
-			<div className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 10px)" }}>
+			<div className="app-screen flex h-dvh w-full flex-col overflow-x-hidden !px-0 !pb-0" style={{ paddingTop: "calc(var(--safe-area-top) + 10px)" }}>
 				<header className="pointer-events-none relative z-20 shrink-0">
 					<PageHeaderBackground color="var(--accent)" />
 					<div className="pointer-events-auto mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 sm:px-5 rail:max-w-none rail:px-[var(--app-px)]">
@@ -545,7 +545,7 @@ export function VideoGalleryPage() {
 				</header>
 
 				<FeedScrollContainer>
-					<div className="mx-auto w-full max-w-6xl rail:max-w-none px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[var(--page-bottom)]">
+					<div className="mx-auto w-full max-w-6xl rail:max-w-none px-[var(--app-px)] pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[var(--page-bottom)]">
 						{isLoading ? (
 							<div
 								className="grid gap-3"

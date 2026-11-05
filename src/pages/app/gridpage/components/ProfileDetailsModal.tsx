@@ -2580,7 +2580,7 @@ export function ProfileDetailsModal({
 						)}
 					</div>
 				)}
-				<div className={`p-4 sm:p-5 ${isEditingOwnProfile ? "pb-0 sm:pb-0" : variant === "page" ? "pb-[calc(env(safe-area-inset-bottom,0px)+6rem)] sm:pb-[calc(env(safe-area-inset-bottom,0px)+6rem)]" : "pb-28"}`}>
+				<div className={`p-4 sm:p-5 ${isEditingOwnProfile ? "pb-0 sm:pb-0" : variant === "page" ? "pb-[calc(var(--safe-area-bottom)+6rem)] sm:pb-[calc(var(--safe-area-bottom)+6rem)]" : "pb-28"}`}>
 					{isLoadingActiveProfile ? (
 						<ProfileDetailsSkeleton />
 					) : activeProfileError ? (
@@ -2645,7 +2645,7 @@ export function ProfileDetailsModal({
 
 			{/* Floating message bar, like the chat's composer */}
 			{messageProfileId && !isOwnProfile &&
-				renderQuickMessageBar(variant === "page" ? "calc(env(safe-area-inset-bottom,0px) + 0.75rem)" : "0.75rem")}
+				renderQuickMessageBar(variant === "page" ? "calc(var(--safe-area-bottom) + 0.75rem)" : "0.75rem")}
 		</>
 	);
 

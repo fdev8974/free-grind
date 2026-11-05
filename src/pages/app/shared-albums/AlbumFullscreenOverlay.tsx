@@ -89,8 +89,8 @@ export function AlbumFullscreenOverlay({
 					aria-label={t("shared_albums.close_fullscreen")}
 					className="absolute"
 					style={{
-						right: "calc(env(safe-area-inset-right, 0px) + 12px)",
-						top: "calc(env(safe-area-inset-top, 0px) + 12px)",
+						right: "calc(var(--safe-area-right) + 12px)",
+						top: "calc(var(--safe-area-top) + 12px)",
 					}}
 				>
 					<X className="h-5 w-5" />

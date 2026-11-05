@@ -814,7 +814,7 @@ export function SettingsPage() {
 
 			{/* Same scroll container as Interest / Right Now: fades content out under the header. */}
 			<FeedScrollContainer>
-				<div className="mx-auto w-full max-w-[var(--content-max)] rail:max-w-none px-[var(--app-px)] pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+clamp(92px,10vw,114px))] rail:pb-[var(--page-bottom)]">
+				<div className="mx-auto w-full max-w-[var(--content-max)] rail:max-w-none px-[var(--app-px)] pt-3 pb-[calc(var(--safe-area-bottom)+clamp(92px,10vw,114px))] rail:pb-[var(--page-bottom)]">
 					{searchQuery.trim() ? (
 						<div className="grid gap-6">
 							{searchResults.length === 0 ? (

@@ -1291,11 +1291,11 @@ export function PhotoViewer({
 					className={`absolute left-1/2 z-[83] -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white shadow-[0_2px_8px_rgba(0,0,0,0.3)] backdrop-blur-md ${chromeFadeClass} ${
 						isCurrentVideo
 							? footerContent
-								? "bottom-[calc(env(safe-area-inset-bottom,0px)+9.75rem)]"
-								: "bottom-[calc(env(safe-area-inset-bottom,0px)+5.25rem)]"
+								? "bottom-[calc(var(--safe-area-bottom)+9.75rem)]"
+								: "bottom-[calc(var(--safe-area-bottom)+5.25rem)]"
 							: footerContent
-								? "bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]"
-								: "bottom-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]"
+								? "bottom-[calc(var(--safe-area-bottom)+5.5rem)]"
+								: "bottom-[calc(var(--safe-area-bottom)+1.25rem)]"
 					}`}
 				>
 					{centerIdx + 1} / {N}
@@ -1320,8 +1320,8 @@ export function PhotoViewer({
 				<div
 					className={`absolute inset-x-0 z-[84] flex justify-center px-4 sm:px-8 ${chromeFadeClass} ${
 						footerContent
-							? "bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]"
-							: "bottom-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]"
+							? "bottom-[calc(var(--safe-area-bottom)+5.5rem)]"
+							: "bottom-[calc(var(--safe-area-bottom)+1.25rem)]"
 					}`}
 					onClick={(e) => e.stopPropagation()}
 				>

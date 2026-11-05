@@ -5,8 +5,8 @@ export function LoadingScreen() {
 		<div
 			className="fixed inset-0 z-[300] flex flex-col items-center justify-center gap-6 bg-[var(--bg)]"
 			style={{
-				paddingTop: "env(safe-area-inset-top)",
-				paddingBottom: "env(safe-area-inset-bottom)",
+				paddingTop: "var(--safe-area-top)",
+				paddingBottom: "var(--safe-area-bottom)",
 			}}
 		>
 			<div className="relative flex h-24 w-24 items-center justify-center">

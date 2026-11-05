@@ -212,7 +212,7 @@ export function AppToaster() {
 				zIndex: 9999,
 				// Offset the toast container to avoid overlapping with the device status bar or notch.
 				// We use a larger offset to ensure visibility even if env() is not populated.
-				top: "calc(env(safe-area-inset-top, 0px) + 54px)",
+				top: "calc(var(--safe-area-top) + 54px)",
 				left: 16,
 				right: 16,
 				bottom: 16,

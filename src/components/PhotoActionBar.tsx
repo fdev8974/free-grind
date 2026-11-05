@@ -67,7 +67,7 @@ export function PhotoActionBar({ onSendText, onReact, reacted = false, placehold
 			className="px-3"
 			style={{
 				paddingTop: "3.5rem",
-				paddingBottom: "calc(env(safe-area-inset-bottom,0px) + 1rem)",
+				paddingBottom: "calc(var(--safe-area-bottom) + 1rem)",
 				background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.5) 60%, transparent 100%)",
 			}}
 		>

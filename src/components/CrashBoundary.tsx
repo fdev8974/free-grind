@@ -42,7 +42,7 @@ export class CrashBoundary extends Component<CrashBoundaryProps, CrashBoundarySt
 						fontFamily: "monospace",
 						fontSize: "12px",
 						lineHeight: 1.4,
-						padding: "calc(env(safe-area-inset-top, 0px) + 16px) 12px 16px 12px",
+						padding: "calc(var(--safe-area-top) + 16px) 12px 16px 12px",
 						overflow: "auto",
 						whiteSpace: "pre-wrap",
 						wordBreak: "break-word",

@@ -673,10 +673,10 @@ export function VideoCallManager() {
 				: `calc(100% - ${PIP_WIDTH + PIP_MARGIN}px)`;
 		const top =
 			corner === "bottom-left" || corner === "bottom-right"
-				? `calc(100% - ${PIP_HEIGHT}px - env(safe-area-inset-bottom, 0px) - ${PIP_BOTTOM_CLEARANCE}px)`
+				? `calc(100% - ${PIP_HEIGHT}px - var(--safe-area-bottom) - ${PIP_BOTTOM_CLEARANCE}px)`
 				: corner === "top-left" && isMobilePlatform
-					? `calc(env(safe-area-inset-top, 0px) + ${PIP_TOP_LEFT_CLEARANCE}px)`
-					: `calc(env(safe-area-inset-top, 0px) + ${PIP_MARGIN}px)`;
+					? `calc(var(--safe-area-top) + ${PIP_TOP_LEFT_CLEARANCE}px)`
+					: `calc(var(--safe-area-top) + ${PIP_MARGIN}px)`;
 		return { left, top };
 	}
 
@@ -734,7 +734,7 @@ export function VideoCallManager() {
 					</div>
 					<div
 						className={`absolute left-1/2 z-10 -translate-x-1/2 tabular-nums ${pillClass}`}
-						style={{ top: "calc(env(safe-area-inset-top, 0px) + 1rem)" }}
+						style={{ top: "calc(var(--safe-area-top) + 1rem)" }}
 					>
 						{formatElapsed(elapsedSeconds)}
 					</div>
@@ -744,14 +744,14 @@ export function VideoCallManager() {
 							onClick={() => void handleSwitchCamera()}
 							aria-label={t("video_call.switch_camera")}
 							className={`absolute z-10 ${controlButtonClass}`}
-							style={{ top: "calc(env(safe-area-inset-top, 0px) + 1rem)", left: "1rem" }}
+							style={{ top: "calc(var(--safe-area-top) + 1rem)", left: "1rem" }}
 						>
 							<SwitchCamera className="h-6 w-6" />
 						</button>
 					)}
 					<div
 						className="relative z-10 mt-auto flex w-full items-center justify-center gap-6"
-						style={{ paddingBottom: "max(40px, calc(env(safe-area-inset-bottom) + 24px))" }}
+						style={{ paddingBottom: "max(40px, calc(var(--safe-area-bottom) + 24px))" }}
 					>
 						<button
 							type="button"
@@ -797,7 +797,7 @@ export function VideoCallManager() {
 					</div>
 					<div
 						className="mt-8 flex items-center gap-8"
-						style={{ paddingBottom: "max(0px, env(safe-area-inset-bottom))" }}
+						style={{ paddingBottom: "max(0px, var(--safe-area-bottom))" }}
 					>
 						{phase === "incoming-ringing" ? (
 							<button

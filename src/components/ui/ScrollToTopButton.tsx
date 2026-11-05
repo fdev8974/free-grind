@@ -77,7 +77,7 @@ export function ScrollToTopButton({ target, className }: { target: HTMLElement |
 				// spot, but below sheets/drawers and their backdrops (z-[60]).
 				// Mobile: icon-only circle; desktop (rail): labelled pill.
 				"glass-pill absolute z-[55] inline-flex items-center gap-1.5 p-2.5 text-sm font-bold text-[var(--text)] shadow-lg transition-all duration-200 active:scale-95 rail:px-4 rail:py-2",
-				"bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.75rem)] left-1/2 -translate-x-1/2",
+				"bottom-[calc(var(--nav-height,var(--safe-area-bottom))+0.75rem)] left-1/2 -translate-x-1/2",
 				"rail:bottom-[var(--page-bottom)] rail:left-auto rail:right-6 rail:translate-x-0",
 				isVisible ? "opacity-100" : "pointer-events-none translate-y-2 opacity-0",
 				className,

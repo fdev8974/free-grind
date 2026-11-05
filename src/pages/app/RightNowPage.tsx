@@ -1382,8 +1382,8 @@ export function RightNowPage() {
 								"absolute inset-x-0 z-20 px-3 rail:pl-[calc(var(--nav-rail-width)+0.75rem)]",
 								// Clear of the nav bar, a bit more room above the floating one.
 								navFullWidth
-									? "bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.75rem)]"
-									: "bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+1rem)]",
+									? "bottom-[calc(var(--nav-height,var(--safe-area-bottom))+0.75rem)]"
+									: "bottom-[calc(var(--nav-height,var(--safe-area-bottom))+1rem)]",
 							)}
 						>
 							<RightNowMapCard
@@ -1400,13 +1400,13 @@ export function RightNowPage() {
 			) : (
 			<FeedScrollContainer ref={feedContainerRef}>
 				{isLoading && isDesktop ? (
-					<div className="grid grid-cols-[repeat(auto-fill,minmax(max(300px,calc((100%-4*0.75rem)/5)),1fr))] gap-3 px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
+					<div className="grid grid-cols-[repeat(auto-fill,minmax(max(300px,calc((100%-4*0.75rem)/5)),1fr))] gap-3 px-[var(--app-px)] pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
 						{Array.from({ length: 12 }).map((_, i) => (
 							<RightNowTileSkeleton key={i} />
 						))}
 					</div>
 				) : isLoading ? (
-					<div className="mx-auto max-w-4xl divide-y divide-[var(--surface-2)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
+					<div className="mx-auto max-w-4xl divide-y divide-[var(--surface-2)] pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
 						{Array.from({ length: 6 }).map((_, i) => (
 							<div key={i}>
 								<RightNowSkeleton />
@@ -1430,7 +1430,7 @@ export function RightNowPage() {
 						<p className="text-sm text-[var(--text-muted)]">{t("right_now.empty")}</p>
 					</div>
 				) : isDesktop ? (
-					<div className="grid grid-cols-[repeat(auto-fill,minmax(max(300px,calc((100%-4*0.75rem)/5)),1fr))] gap-3 px-[var(--app-px)] pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
+					<div className="grid grid-cols-[repeat(auto-fill,minmax(max(300px,calc((100%-4*0.75rem)/5)),1fr))] gap-3 px-[var(--app-px)] pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
 						{items.map((item) => (
 							<RightNowTile
 								key={`${item.id}-${item.profileId}`}
@@ -1442,7 +1442,7 @@ export function RightNowPage() {
 						))}
 					</div>
 				) : (
-					<div className="mx-auto max-w-4xl pb-[calc(env(safe-area-inset-bottom,0px)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
+					<div className="mx-auto max-w-4xl pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
 						{items.map((item) => (
 							<div key={`${item.id}-${item.profileId}`} className="px-0">
 								<RightNowRow
@@ -1467,7 +1467,7 @@ export function RightNowPage() {
 			className={cn("pointer-events-none fixed bottom-0 left-[var(--nav-rail-width,0px)] right-0 z-[55] hidden h-36", !isMapView && "rail:block")}
 			style={{ background: BOTTOM_SCRIM_GRADIENT }}
 		/>
-		<div className="fixed left-[var(--nav-rail-width,0px)] right-0 bottom-[calc(var(--nav-height,env(safe-area-inset-bottom,0px))+0.75rem)] rail:bottom-[var(--page-bottom)] z-[60] pointer-events-none">
+		<div className="fixed left-[var(--nav-rail-width,0px)] right-0 bottom-[calc(var(--nav-height,var(--safe-area-bottom))+0.75rem)] rail:bottom-[var(--page-bottom)] z-[60] pointer-events-none">
 			<div className="relative mx-auto h-full w-full max-w-4xl rail:max-w-none px-4 md:px-10">
 				{developerMode && showDebugInfo && (
 					<div

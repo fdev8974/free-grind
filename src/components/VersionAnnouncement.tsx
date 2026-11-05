@@ -33,7 +33,7 @@ function Dots({ total, current }: { total: number; current: number }) {
 	return (
 		<div
 			className="flex justify-center pb-3 pt-5"
-			style={{ paddingTop: "max(36px, env(safe-area-inset-top))" }}
+			style={{ paddingTop: "max(36px, var(--safe-area-top))" }}
 		>
 			<div className="flex items-center justify-center">
 				{Array.from({ length: total }).map((_, i) => {
@@ -155,8 +155,8 @@ export function VersionAnnouncement({
 						key="intro"
 						className={`flex flex-1 flex-col items-center justify-center px-8 text-center ${pageClass}`}
 						style={{
-							paddingTop: "max(48px, env(safe-area-inset-top))",
-							paddingBottom: "max(48px, calc(env(safe-area-inset-bottom) + 80px))",
+							paddingTop: "max(48px, var(--safe-area-top))",
+							paddingBottom: "max(48px, calc(var(--safe-area-bottom) + 80px))",
 						}}
 					>
 						<img src={logo} alt="" className="mb-6 h-16 w-16 rounded-2xl object-cover" />
@@ -213,7 +213,7 @@ export function VersionAnnouncement({
 
 				<div
 					className="flex h-44 shrink-0 flex-col justify-end gap-2 px-6"
-					style={{ paddingBottom: "max(28px, calc(env(safe-area-inset-bottom) + 12px))" }}
+					style={{ paddingBottom: "max(28px, calc(var(--safe-area-bottom) + 12px))" }}
 				>
 					<button
 						type="button"

@@ -51,7 +51,7 @@ export function QrScanOverlay({
 				onClick={() => onCancelRef.current()}
 				aria-label={cancelLabel}
 				className="absolute right-4 flex h-11 w-11 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur transition active:scale-95"
-				style={{ top: "calc(env(safe-area-inset-top, 0px) + 16px)" }}
+				style={{ top: "calc(var(--safe-area-top) + 16px)" }}
 			>
 				<X className="h-5 w-5" />
 			</button>

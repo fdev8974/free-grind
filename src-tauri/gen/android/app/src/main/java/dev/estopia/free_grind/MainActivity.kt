@@ -27,7 +27,9 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.json.JSONObject
 import java.lang.ref.WeakReference
@@ -132,6 +134,13 @@ class MainActivity : TauriActivity() {
   }
 
   private var webViewRef: WebView? = null
+  /**
+   * System-bar + display-cutout insets in CSS px as JSON, the fallback for
+   * env(safe-area-inset-*): older Android System WebViews report 0 for the
+   * system bars in an edge-to-edge window, which put content behind the
+   * navigation bar. index.css takes max(env(...), these).
+   */
+  @Volatile private var safeAreaJson: String? = null
   private var pendingFcmToken: String? = null
   private var latestFcmToken: String? = null
   private val mainHandler = Handler(Looper.getMainLooper())
@@ -289,6 +298,10 @@ class MainActivity : TauriActivity() {
     // apps show none, so neither does the app.
     webView.isVerticalScrollBarEnabled = false
     webView.isHorizontalScrollBarEnabled = false
+    // Layout changes cover rotation/resizes; onResume covers a nav-mode
+    // switch made while the app was in the background.
+    webView.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ -> publishSafeArea(v) }
+    webView.post { publishSafeArea(webView) }
     // Records renderer deaths (e.g. out of memory) for the next start. Again
     // once queued, in case wry assigns its client only after this callback.
     RenderProcessGuard.install(webView)
@@ -317,6 +330,7 @@ class MainActivity : TauriActivity() {
   override fun onResume() {
     super.onResume()
     inForeground = true
+    webViewRef?.let { wv -> wv.post { publishSafeArea(wv) } }
     val refreshed = pendingRefreshedFcmToken
     if (refreshed != null) {
       pendingRefreshedFcmToken = null
@@ -349,7 +363,31 @@ class MainActivity : TauriActivity() {
    * focus changes so that the FCM service can decide whether to suppress
    * a system notification.
    */
+  private fun publishSafeArea(view: View) {
+    val insets = ViewCompat.getRootWindowInsets(view) ?: return
+    val i = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+    val d = resources.displayMetrics.density
+    val json = JSONObject()
+      .put("top", i.top / d)
+      .put("right", i.right / d)
+      .put("bottom", i.bottom / d)
+      .put("left", i.left / d)
+      .toString()
+    if (json == safeAreaJson) return
+    safeAreaJson = json
+    // Pushed for live changes; the page also pulls getSafeAreaInsets() on
+    // boot, since a reload drops these inline properties.
+    // window.__fgApplySafeArea is installed by safeAreaBridge.ts; it also
+    // notifies listeners (useSystemNavInset) that the insets changed.
+    val script = "window.__fgApplySafeArea&&window.__fgApplySafeArea($json)"
+    view.post { (view as? WebView)?.evaluateJavascript(script, null) }
+  }
+
   inner class JsBridge {
+    /** Native safe-area insets (see safeAreaJson); null until first measured. */
+    @JavascriptInterface
+    fun getSafeAreaInsets(): String? = safeAreaJson
+
     @JavascriptInterface
     fun setActiveRoute(route: String?) {
       activeRoute = route

@@ -372,10 +372,17 @@
 		--explore: #3b82f6;
 		--content-max: 1200px;
 		--app-px: clamp(12px, 2.6vw, 28px);
+		/* Use these instead of env(safe-area-inset-*): older Android WebViews report
+		   0 for the system bars in the edge-to-edge window, so MainActivity also
+		   publishes the real insets as --native-safe-area-* (see safeAreaBridge.ts). */
+		--safe-area-top: max(env(safe-area-inset-top, 0px), var(--native-safe-area-top, 0px));
+		--safe-area-right: max(env(safe-area-inset-right, 0px), var(--native-safe-area-right, 0px));
+		--safe-area-bottom: max(env(safe-area-inset-bottom, 0px), var(--native-safe-area-bottom, 0px));
+		--safe-area-left: max(env(safe-area-inset-left, 0px), var(--native-safe-area-left, 0px));
 		/* Shared top-bar geometry, taken from the main tab headers (Inbox, Right Now,
 		   Interest: .app-screen top padding + one .app-title line). Every other top
 		   bar centres its icons on --header-icon-center so they all line up. */
-		--header-top: calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px));
+		--header-top: calc(var(--safe-area-top) + clamp(14px, 2.2vw, 28px));
 		--header-row-h: calc(clamp(1.6rem, 4.2vw, 2.05rem) * 1.1);
 		--header-icon-center: calc(var(--header-top) + var(--header-row-h) / 2);
 		--radius-sm: 12px;
@@ -1132,9 +1139,9 @@
 		width: min(100%, var(--content-max));
 		margin-inline: auto;
 		/* Uses --app-px for consistent horizontal alignment while allowing overrides (like edge-to-edge grids) */
-		padding: calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))
+		padding: calc(var(--safe-area-top) + clamp(14px, 2.2vw, 28px))
 			var(--app-px)
-			calc(env(safe-area-inset-bottom, 0px) + clamp(92px, 10vw, 114px));
+			calc(var(--safe-area-bottom) + clamp(92px, 10vw, 114px));
 	}
 
 	/* Sticky page header (PageHeader): pulls itself up over .app-screen's top
@@ -1147,7 +1154,7 @@
 
 	@media (min-width: 1024px) {
 		.app-screen {
-			padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px);
+			padding-bottom: calc(var(--safe-area-bottom) + 104px);
 		}
 	}
 
@@ -1160,7 +1167,7 @@
 		--page-bottom: clamp(14px, 2.2vw, 28px);
 	}
 	:root[data-nav="rail"] .app-screen {
-		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--page-bottom));
+		padding-bottom: calc(var(--safe-area-bottom) + var(--page-bottom));
 	}
 	/* Sub pages (PageHeader + content) drop the centered max-width too, so their
 	   header and cards start at the rail like the tab pages. */
@@ -2031,8 +2038,8 @@ dialog::backdrop {
  * sheet color, a light strip under the fade. The footer takes that padding
  * over, so its fade runs down to the screen edge (like the map sheets). */
 .sheet-footer {
-	margin-bottom: calc(-1 * (max(16px, env(safe-area-inset-bottom)) + 48px));
-	padding-bottom: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
+	margin-bottom: calc(-1 * (max(16px, var(--safe-area-bottom)) + 48px));
+	padding-bottom: calc(max(16px, var(--safe-area-bottom)) + 48px);
 }
 /* A scroll area at the bottom of a sheet (no footer after it) runs on behind
  * the system nav bar instead of being cut off at the panel's bottom padding:
@@ -2047,7 +2054,7 @@ dialog::backdrop {
 ):not(:has(~ :not(dialog:not([open]), .hidden, .sheet-nav-fade))) {
 	/* The spacer's height, for content that fills the area (min-h-full) to
 	   take off, or it would always scroll by this much: see .sheet-fill. */
-	--sheet-nav-spacer: calc(max(16px, env(safe-area-inset-bottom)) + 48px);
+	--sheet-nav-spacer: calc(max(16px, var(--safe-area-bottom)) + 48px);
 	margin-bottom: calc(-1 * var(--sheet-nav-spacer));
 	&::after {
 		content: "";
@@ -2069,12 +2076,12 @@ dialog::backdrop {
 	inset-inline: 0;
 	bottom: 0;
 	z-index: 5;
-	height: calc(env(safe-area-inset-bottom, 0px) + 1.5rem + 48px);
+	height: calc(var(--safe-area-bottom) + 1.5rem + 48px);
 	pointer-events: none;
 	background: linear-gradient(
 		to top,
 		color-mix(in srgb, var(--sheet-bg) 85%, black) 0%,
-		color-mix(in srgb, var(--sheet-bg) 85%, black) calc(48px + env(safe-area-inset-bottom, 0px) * 0.4),
+		color-mix(in srgb, var(--sheet-bg) 85%, black) calc(48px + var(--safe-area-bottom) * 0.4),
 		transparent
 	);
 }

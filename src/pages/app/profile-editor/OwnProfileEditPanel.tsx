@@ -60,7 +60,7 @@ export function OwnProfileEditPanel({
 			    message bar. Laid out like a bottom sheet's footer: a full-width
 			    primary button, reset as the small round button beside it. */}
 			<div
-				className="pointer-events-none sticky bottom-0 z-10 -mx-4 mt-6 flex gap-2.5 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] pt-20 sm:-mx-5 sm:px-5 [&>*]:pointer-events-auto"
+				className="pointer-events-none sticky bottom-0 z-10 -mx-4 mt-6 flex gap-2.5 px-4 pb-[calc(var(--safe-area-bottom)+0.75rem)] pt-20 sm:-mx-5 sm:px-5 [&>*]:pointer-events-auto"
 				style={{ background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.7) 45%, transparent 100%)" }}
 			>
 				{editor.hasChanges ? (

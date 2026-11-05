@@ -1094,7 +1094,7 @@ export function ChatInboxPanel({
 			contentClassName="flex flex-1 flex-col min-h-0"
 			style={
 				!isDesktop
-					? { paddingTop: "calc(env(safe-area-inset-top, 0px) + clamp(14px, 2.2vw, 28px))" }
+					? { paddingTop: "calc(var(--safe-area-top) + clamp(14px, 2.2vw, 28px))" }
 					: undefined
 			}
 			onRefresh={onRefreshInbox}
@@ -1151,7 +1151,7 @@ export function ChatInboxPanel({
 							WebkitMaskImage: `linear-gradient(to bottom, transparent, black ${FEED_MASK_GRADIENT_STOP})`,
 						} : undefined}
 					>
-						<div className={!isDesktop ? "pb-[calc(env(safe-area-inset-bottom,0px)+120px)]" : "py-1.5"}>
+						<div className={!isDesktop ? "pb-[calc(var(--safe-area-bottom)+120px)]" : "py-1.5"}>
 							{isLoadingInbox ? (
 								<div className="flex flex-col">
 									{Array.from({ length: 12 }).map((_, i) => (

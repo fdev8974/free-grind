@@ -2144,7 +2144,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 					className={`${!isDesktop ? `shrink-0 px-[var(--app-px)] py-3 ${mobileComposerBg}` : "mt-3 pt-3 -mx-3 sm:-mx-4 px-3 sm:px-4 border-t border-[var(--border)]"}`}
 							style={
 								!isDesktop
-									? { paddingBottom: mobileKeyboardInset > 0 ? "12px" : "max(12px, env(safe-area-inset-bottom))" }
+									? { paddingBottom: mobileKeyboardInset > 0 ? "12px" : "max(12px, var(--safe-area-bottom))" }
 									: undefined
 							}
 						>
@@ -2728,7 +2728,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							}
 							style={
 								!isDesktop
-									? { paddingBottom: mobileKeyboardInset > 0 ? "0.375rem" : systemNavInset > 0 ? "env(safe-area-inset-bottom, 0px)" : "calc(env(safe-area-inset-bottom, 0px) + 0.375rem)" }
+									? { paddingBottom: mobileKeyboardInset > 0 ? "0.375rem" : systemNavInset > 0 ? "var(--safe-area-bottom)" : "calc(var(--safe-area-bottom) + 0.375rem)" }
 									: undefined
 							}
 						>

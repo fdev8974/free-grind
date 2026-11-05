@@ -17,9 +17,11 @@ import { installGlobalCrashHandlers } from "./utils/crashOverlay";
 import { installTouchUiClass } from "./hooks/useDesktopBreakpoint";
 import { getRuntimeContext } from "./services/runtimeContext";
 import { startPushEventLog } from "./services/pushEventLog";
+import { installNativeSafeArea } from "./services/safeAreaBridge";
 import "./index.css";
 
 installGlobalCrashHandlers();
+installNativeSafeArea();
 installTouchUiClass();
 startPushEventLog();
 

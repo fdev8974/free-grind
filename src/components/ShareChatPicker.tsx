@@ -318,7 +318,7 @@ export function ShareChatPicker({
 				<div
 					className="min-h-0 flex-1 overflow-y-auto"
 					style={{
-						paddingBottom: hasSelection ? sendBarHeight : "env(safe-area-inset-bottom, 0px)",
+						paddingBottom: hasSelection ? sendBarHeight : "var(--safe-area-bottom)",
 					}}
 					data-lenis-prevent
 				>
@@ -376,7 +376,7 @@ export function ShareChatPicker({
 							background: "color-mix(in srgb, var(--surface) 90%, transparent)",
 							backdropFilter: "blur(16px)",
 							WebkitBackdropFilter: "blur(16px)",
-							paddingBottom: "max(12px, calc(env(safe-area-inset-bottom) + 8px))",
+							paddingBottom: "max(12px, calc(var(--safe-area-bottom) + 8px))",
 						}}
 					>
 						<div className="mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-2.5 pt-3">

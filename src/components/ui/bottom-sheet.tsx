@@ -15,7 +15,7 @@ const SHEET_BLEED = 48;
 /** The panel's bottom padding (safe area + bleed). Content that should run
  * edge to edge down to the sheet's bottom (e.g. a map) cancels it with a
  * negative margin and re-adds it inside. */
-export const SHEET_BOTTOM_PADDING = `calc(max(16px, env(safe-area-inset-bottom)) + ${SHEET_BLEED}px)`;
+export const SHEET_BOTTOM_PADDING = `calc(max(16px, var(--safe-area-bottom)) + ${SHEET_BLEED}px)`;
 
 /** True inside an `expandable` sheet on mobile: the panel has a fixed height,
  * so a scroll area should fill it (`min-h-0 flex-1`) rather than cap itself. */
