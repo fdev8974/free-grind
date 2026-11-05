@@ -1,5 +1,5 @@
 import { TapFlyBurst, TAP_FLY_BURST_MS, createTapFlyBurst, tapEmoji, tapGlow, type TapFlyBurstState } from "../../../../components/TapFlyBurst";
-import { Album, Ban, ChevronDown, ChevronLeft, ChevronUp, EllipsisVertical, Flag, Flame, Images, Loader2, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
+import { Album, Ban, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, EllipsisVertical, Flag, Flame, Images, Loader2, LockKeyhole, MessageCircle, Pencil, Phone, ShieldCheck, Star, Trash2, X } from "lucide-react";
 import { BananaFilled, EyeFilled, HomeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
@@ -1702,6 +1702,29 @@ export function ProfileDetailsModal({
 		];
 	}, [albumViewer, isSavingAllAlbumMedia, t, handleSaveAllAlbumMedia]);
 
+	// Left/right arrow keys step to the neighbouring profile, the keyboard
+	// counterpart of the page variant's swipe.
+	const isAlbumViewerOpen = albumViewer !== null;
+	useEffect(() => {
+		if (!isOpen || !hasProfileNeighbors || selectedPhotoIndex !== null || isAlbumViewerOpen || isEditingOwnProfile) {
+			return;
+		}
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+			if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+			// Arrow keys in a text field move the caret.
+			const target = e.target as HTMLElement | null;
+			if (target?.isContentEditable || target?.closest("input, textarea, select")) return;
+			if (pendingSwipeResetRef.current) return;
+			const go = e.key === "ArrowLeft" ? onPrevProfileRef.current : onNextProfileRef.current;
+			if (!go) return;
+			e.preventDefault();
+			go();
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [isOpen, hasProfileNeighbors, selectedPhotoIndex, isAlbumViewerOpen, isEditingOwnProfile]);
+
 	const sendAlbumContentReaction = useCallback(
 		async (albumId: number, albumContentId: number, targetProfileId: number) => {
 			try {
@@ -2990,6 +3013,36 @@ export function ProfileDetailsModal({
 					)}
 				</div>
 			</div>
+			{!isEditingOwnProfile && (onPrevProfile || onNextProfile) && (
+				<>
+					<button
+						type="button"
+						onClick={(event) => {
+							event.stopPropagation();
+							onPrevProfile?.();
+						}}
+						disabled={!onPrevProfile}
+						aria-label={t("profile_details.previous_profile")}
+						title={t("profile_details.previous_profile")}
+						className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60 disabled:opacity-0 disabled:pointer-events-none"
+					>
+						<ChevronLeft className="h-6 w-6" />
+					</button>
+					<button
+						type="button"
+						onClick={(event) => {
+							event.stopPropagation();
+							onNextProfile?.();
+						}}
+						disabled={!onNextProfile}
+						aria-label={t("profile_details.next_profile")}
+						title={t("profile_details.next_profile")}
+						className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60 disabled:opacity-0 disabled:pointer-events-none"
+					>
+						<ChevronRight className="h-6 w-6" />
+					</button>
+				</>
+			)}
 			{barTapFlyEmoji && <TapFlyBurst burst={barTapFlyEmoji} />}
 			{photoViewerOverlay}
 			{albumViewerOverlay}

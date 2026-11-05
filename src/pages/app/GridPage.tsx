@@ -1377,6 +1377,12 @@ export function GridPage() {
 		setActiveProfileId(profileId);
 	};
 
+	// Neighbours in grid order, so the open profile can step to the next one.
+	const activeCardIndex = activeProfileId ? sortedCards.findIndex((c) => c.profileId === activeProfileId) : -1;
+	const prevCardProfileId = activeCardIndex > 0 ? sortedCards[activeCardIndex - 1].profileId : null;
+	const nextCardProfileId =
+		activeCardIndex >= 0 && activeCardIndex < sortedCards.length - 1 ? sortedCards[activeCardIndex + 1].profileId : null;
+
 	// Same as Settings' profile row: the own profile, straight in edit mode.
 	const openOwnProfileEditor = () => {
 		if (userId == null) return;
@@ -2189,6 +2195,8 @@ export function GridPage() {
 			<ProfileDetailsModal
 				isOpen={Boolean(activeProfileId)}
 				onClose={() => setActiveProfileId(null)}
+				onPrevProfile={prevCardProfileId ? () => setActiveProfileId(prevCardProfileId) : undefined}
+				onNextProfile={nextCardProfileId ? () => setActiveProfileId(nextCardProfileId) : undefined}
 				onMessageProfile={handleMessageProfile}
 				onSendProfilePhotoReply={handleSendProfilePhotoReply}
 				onTagClick={handleTagClick}
