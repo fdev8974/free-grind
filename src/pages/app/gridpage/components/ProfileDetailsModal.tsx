@@ -1831,7 +1831,9 @@ export function ProfileDetailsModal({
 	// "We just hooked up" — same encounter logging as the chat header
 	// menu, gated by the same Sexual Health optional-feature toggle.
 	const [showSexualHealth] = useState(isSexualHealthEnabled);
-	const [showLocate] = useState(isLocateEnabled);
+	const [isLocateFeatureEnabled] = useState(isLocateEnabled);
+	// Locate trilaterates from distances, so it's pointless without one.
+	const showLocate = isLocateFeatureEnabled && profileDistance != null;
 	const [encounterPrefill, setEncounterPrefill] = useState<PickedPerson | null>(null);
 	const canLogEncounter = showSexualHealth && messageProfileId != null && !isOwnProfile;
 

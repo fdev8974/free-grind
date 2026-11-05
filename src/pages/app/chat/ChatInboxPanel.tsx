@@ -860,8 +860,10 @@ export function ChatInboxPanel({
 			requestDeleteConversation(conversation, isArchived);
 		},
 		...(() => {
-			const otherProfileId = getOtherParticipant(conversation, userId)?.profileId;
-			if (!showLocate || !otherProfileId) return {};
+			const otherParticipant = getOtherParticipant(conversation, userId);
+			const otherProfileId = otherParticipant?.profileId;
+			// Locate trilaterates from distances, so it's pointless without one.
+			if (!showLocate || !otherProfileId || otherParticipant.distanceMetres == null) return {};
 			return {
 				onLocate: () => {
 					close();

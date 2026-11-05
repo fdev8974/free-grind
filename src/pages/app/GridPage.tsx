@@ -2179,7 +2179,7 @@ export function GridPage() {
 					onEditNickname={() => setNicknamePromptCard(renderedTileMenu.card)}
 					onHide={() => handleHideProfile(renderedTileMenu.card.profileId)}
 					onBlock={() => void handleBlockProfile(renderedTileMenu.card.profileId)}
-					onLocate={showLocate ? () => handleTriangleProfile(String(renderedTileMenu.card.profileId)) : undefined}
+					onLocate={showLocate && renderedTileMenu.card.distanceMeters != null ? () => handleTriangleProfile(String(renderedTileMenu.card.profileId)) : undefined}
 					locateLabel={locateLabelFor(renderedTileMenu.card.profileId)}
 					// Your own tile: editing is the only thing to do with it.
 					onEditProfile={selfCard && renderedTileMenu.card.profileId === selfCard.profileId ? openOwnProfileEditor : undefined}
