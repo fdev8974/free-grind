@@ -3,7 +3,7 @@ import { Album, Ban, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Ellipsis
 import { BananaFilled, EyeFilled, HomeFilled, MapPinFilled, StickyNoteFilled, EyeOffFilled, LocateFixedFilled, PencilLineFilled, SendHorizontalFilled } from "../../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../../components/icons/RightNowIcon";
 import toast from "react-hot-toast";
-import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
@@ -2846,8 +2846,11 @@ export function ProfileDetailsModal({
 
 				{/* Right column (or full width on non-split): header + content + footer */}
 				<div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
-					{!isModalSplit ? renderInlineLayout() : (
-						<>
+					{/* Keyed so switching layouts remounts instead of reusing DOM nodes: the
+					    stacked header's background (opacity set imperatively by the scroll
+					    handler) would otherwise become the split header's row, invisible. */}
+					{!isModalSplit ? <Fragment key="stacked">{renderInlineLayout()}</Fragment> : (
+						<Fragment key="split">
 							{/* Solid split-mode header, set off from the content by its surface-2
 							    fill alone (a neutral divider clashed with the tinted card). */}
 							<div className="flex shrink-0 items-center gap-3 bg-[var(--surface-2)] p-3">
@@ -3009,7 +3012,7 @@ export function ProfileDetailsModal({
 							</div>
 							{/* Split-mode footer */}
 							{messageProfileId && !isOwnProfile && renderQuickMessageBar("0.75rem")}
-						</>
+						</Fragment>
 					)}
 				</div>
 			</div>
