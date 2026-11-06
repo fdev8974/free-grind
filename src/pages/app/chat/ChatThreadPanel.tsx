@@ -2905,7 +2905,9 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 							{/* Phrases list */}
 							<div
 								data-lenis-prevent
-								className="-mx-4 min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-1"
+								// Empty: no scroll area, so the sheet's trailing nav-bar spacer (see
+								// index.css) doesn't come on top of the empty state and make it scroll.
+								className={`-mx-4 min-h-0 flex-1 overflow-x-hidden px-4 pb-1 ${savedPhrases.length === 0 ? "overflow-y-hidden" : "overflow-y-auto"}`}
 								style={{ maxHeight: isDesktop ? "40dvh" : undefined }}
 							>
 								{savedPhrases.length === 0 ? (

@@ -652,7 +652,10 @@ export function ChatDrawerPanel({
 			expandable={!upload.step}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="px-4"
+			// Mobile's expandable sheet has a fixed medium height already; on
+			// desktop a min height keeps the panel from shrinking from the
+			// loading skeleton down to the empty state.
+			panelClassName={isDesktop ? "min-h-[55dvh] px-4" : "px-4"}
 		>
 			<DrawerHeader
 				title={upload.stepTitle ?? t("chat_drawer.title", { defaultValue: "Drawer" })}
@@ -706,15 +709,19 @@ export function ChatDrawerPanel({
 						})()}
 
 						{/* Content Grid */}
-						<DrawerBody isLoading={(isLoading && !upload.isUploading) || !hasSlidIn} isDesktop={isDesktop} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
+						{/* The slide-in gate is only for rendering many tiles: an empty
+						    drawer goes straight to its (cheap) empty state, without a
+						    tall skeleton shrinking down to it. */}
+						<DrawerBody isLoading={(isLoading && !upload.isUploading) || (!hasSlidIn && media.length > 0)} isDesktop={isDesktop} error={error} onRetry={onLoadMedia} gestureProps={tabSwipe}>
 								{/* sheet-fill: a tab's loading skeleton fills the expanded sheet,
 								    without a short tab scrolling by the sheet's bottom spacer. */}
-								<div className="sheet-fill flex flex-col gap-3">
+								<div className="sheet-fill flex flex-1 flex-col gap-3">
 								{!combined && activeTab === "albums" && albums.length === 0 && (
 									isLoadingAlbums ? (
 										<DrawerGridSkeleton isDesktop={isDesktop} />
 									) : (
 										<DrawerEmptyState
+											className="my-auto"
 											icon={<Album className="h-5 w-5" />}
 											title={t("chat_drawer.albums_empty", { defaultValue: "You don't have any albums yet." })}
 											hint={t("chat_drawer.albums_empty_hint", { defaultValue: "Albums let you share several photos at once, and stop sharing any time." })}
@@ -726,6 +733,7 @@ export function ChatDrawerPanel({
 								{!combined && activeTab === "collections" && collections.length === 0 && (
 									collectionsLoaded ? (
 										<DrawerEmptyState
+											className="my-auto"
 											icon={<Layers className="h-5 w-5" />}
 											title={t("chat_drawer.collections_empty", { defaultValue: "You don't have any collections yet." })}
 											hint={t("chat_drawer.collections_empty_hint", { defaultValue: "Collections group drawer photos so you can send them together in one tap." })}
@@ -856,6 +864,7 @@ export function ChatDrawerPanel({
 								{/* Empty drawer: the add actions on their own, as the way in. */}
 								{showSection("media") && media.length === 0 && restoredMedia.length === 0 && !hasCombinedGroups && !upload.isUploading && (
 									<DrawerEmptyState
+										className="my-auto"
 										icon={<ImagesFilled className="h-5 w-5" />}
 										title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
 										hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}

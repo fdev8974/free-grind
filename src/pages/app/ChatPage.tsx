@@ -168,6 +168,8 @@ import { getProfileImageUrl, getThumbImageUrl, validateMediaHash } from "../../u
 // no more history before the current cursor — see the "server exhausted"
 // handling in loadThread further down.
 const LOCAL_PAGE_KEY_PREFIX = "local:";
+// "1" when the last drawer load came back empty (see loadDrawerMedia).
+const DRAWER_KNOWN_EMPTY_KEY = "chat-drawer-known-empty";
 // Cap for the fully-offline inbox fallback below — chatDb's background sync
 // (inboxSync.ts) can hold the user's entire chat history locally, far more
 // than a single screen should ever render at once, and there's no server to
@@ -6915,7 +6917,12 @@ export function ChatPage() {
 		// chat. Before a conversation exists yet (new chat from a profile),
 		// use the conversation-less endpoint instead — its items just never
 		// come back marked as used.
-		setIsLoadingDrawer(true);
+		// Known to be empty last time: skip the tall loading skeleton and show
+		// the empty state right away, refreshing in the background. Otherwise
+		// the skeleton shrank back to "Your drawer is empty" on every open.
+		let knownEmpty = false;
+		try { knownEmpty = localStorage.getItem(DRAWER_KNOWN_EMPTY_KEY) === "1"; } catch { /* storage unavailable */ }
+		if (!knownEmpty) setIsLoadingDrawer(true);
 		setDrawerError(null);
 		try {
 			const [media, sendCounts] = await Promise.all([
@@ -6924,6 +6931,7 @@ export function ChatPage() {
 					: service.getGlobalDrawerMedia(),
 				chatDb.getDrawerMediaSendCounts(),
 			]);
+			try { localStorage.setItem(DRAWER_KNOWN_EMPTY_KEY, media.length === 0 ? "1" : "0"); } catch { /* storage unavailable */ }
 			const withCounts = media.map((item) => ({ ...item, sendCount: sendCounts.get(item.id) ?? 0 }));
 			setDrawerMedia(
 				sortDrawerMediaByFrequency ? sortDrawerMediaByUsage(withCounts) : withCounts,

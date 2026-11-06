@@ -100,17 +100,20 @@ export function DrawerEmptyState({
 	title,
 	hint,
 	fanned = true,
+	className = "",
 	children,
 }: {
 	icon: ReactNode;
 	title: string;
 	hint: string;
 	fanned?: boolean;
+	/** E.g. "my-auto" to centre it vertically in a flex column. */
+	className?: string;
 	children?: ReactNode;
 }) {
 	const tileClass = "absolute inset-0 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--surface-2)] shadow-sm";
 	return (
-		<div className="flex flex-col items-center gap-5 px-2 pb-8 pt-10 text-center">
+		<div className={`flex flex-col items-center gap-5 px-2 pb-8 pt-10 text-center ${className}`}>
 			<div className="relative h-24 w-32">
 				{/* Soft glow from the gradient alone (no blur filter), kept inside the
 				    empty state's padding so the scroll container doesn't clip it. */}
@@ -525,8 +528,9 @@ export function DrawerBody({
 		content = empty ?? children;
 	}
 	// min-h-0 + data-lenis-prevent: both are needed for the inner scroll to work in a sheet.
+	// A flex column, so content can fill the body (flex-1) and an empty state centre in it (my-auto).
 	return (
-		<div data-lenis-prevent {...gestureProps} className={`min-h-0 flex-1 overflow-y-auto ${isDetented ? "" : className}`}>
+		<div data-lenis-prevent {...gestureProps} className={`flex min-h-0 flex-1 flex-col overflow-y-auto ${isDetented ? "" : className}`}>
 			{content}
 		</div>
 	);

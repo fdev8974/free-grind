@@ -141,7 +141,9 @@ export function DrawerCollectionEditorSheet({
 			expandable={!upload.step}
 			isDesktop={isDesktop}
 			bg="bg-[color-mix(in_srgb,var(--surface)_92%,black_8%)]"
-			panelClassName="px-4"
+			// Like the chat drawer: a min height on desktop, so the panel doesn't
+			// shrink from the loading skeleton down to the empty state.
+			panelClassName={isDesktop ? "min-h-[55dvh] px-4" : "px-4"}
 		>
 			<DrawerHeader
 				title={upload.stepTitle ?? (collection ? t("settings_albums.collections_edit") : t("settings_albums.collections_new"))}
@@ -193,6 +195,7 @@ export function DrawerCollectionEditorSheet({
 				onRetry={() => void onReloadMedia()}
 				empty={media.length === 0 && !upload.isUploading ? (
 					<DrawerEmptyState
+						className="my-auto"
 						icon={<ImagesFilled className="h-5 w-5" />}
 						title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
 						hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}

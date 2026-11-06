@@ -820,7 +820,9 @@ export function AlbumEditorSheet({
 				expandable
 				isDesktop={isDesktop}
 				bg={NATIVE_SHEET_BG}
-				panelClassName="px-4"
+				// Like the chat drawer: a min height on desktop, so the panel doesn't
+				// shrink from the loading skeleton down to the empty state.
+				panelClassName={isDesktop ? "min-h-[55dvh] px-4" : "px-4"}
 			>
 				<DrawerHeader
 					className="mb-1"
@@ -901,11 +903,12 @@ export function AlbumEditorSheet({
 					className="hidden"
 				/>
 
-				<div className="-mx-4 min-h-0 flex-1 overflow-y-auto px-4" data-lenis-prevent>
+				<div className="-mx-4 flex min-h-0 flex-1 flex-col overflow-y-auto px-4" data-lenis-prevent>
 					{showDetailsSkeleton ? (
 						<DrawerGridSkeleton isDesktop={isDesktop} />
 					) : (!detail || detail.content.length === 0) && !isUploading ? (
 						<DrawerEmptyState
+							className="my-auto"
 							icon={<ImagesFilled className="h-5 w-5" />}
 							title={t("settings_albums.no_media")}
 							hint={t("settings_albums.no_media_hint", { defaultValue: "Take a photo or video, upload from your device, or add media from your chat drawer." })}
