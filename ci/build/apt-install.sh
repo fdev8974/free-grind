@@ -13,7 +13,13 @@
 # what ends up in the image.
 set -eu
 
-apt_opts="-o Acquire::Check-Valid-Until=false -o Acquire::Retries=3 -o Acquire::http::Timeout=60"
+# Retries::Delay=false: bookworm's apt busy-loops on a delayed retry after a
+# 503/504 ("Tried to start delayed item ... but failed", thousands of lines a
+# second, never finishing); the loop below does the backing off instead.
+# Pipeline-Depth=0: one stalled request on snapshot's CDN otherwise holds up
+# every file queued behind it on that connection.
+apt_opts="-o Acquire::Check-Valid-Until=false -o Acquire::Retries=3 -o Acquire::Retries::Delay=false \
+-o Acquire::http::Timeout=60 -o Acquire::http::Pipeline-Depth=0"
 attempts=6
 delay=15
 n=1
