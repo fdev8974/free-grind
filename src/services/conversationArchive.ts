@@ -493,12 +493,12 @@ export async function toggleArchiveOnConversationDelete(
  * A conversation showing up as new/changed in a fresh inbox-style response
  * (the foreground `/v4/inbox` poll, or inboxSync's background walk) usually
  * means the other party messaged again, or someone unblocked someone. Only
- * trust that signal for a block-related archive (`ws_delete`) with a
- * block_state still set — an archive for another reason (e.g. "not_found")
- * isn't block-related, and a block_state already cleared means something
- * else (most likely the matching WS event) already resolved this for real,
- * so there's nothing left to reconcile. Returns the system message to
- * broadcast, if any transition actually happened.
+ * handle a block-related archive (`ws_delete`) here — an archive for another
+ * reason (e.g. "not_found") isn't block-related and is left to the caller.
+ * With a block_state set, the transition goes through
+ * claimBlockStateTransition; without one there's no block to clear and the
+ * conversation is just unarchived (see below). Returns the system message to
+ * broadcast, if a block transition actually happened.
  */
 export async function reconcileReappearedConversation(
 	conversationId: string,
@@ -508,7 +508,21 @@ export async function reconcileReappearedConversation(
 		return null;
 	}
 	const stored = await chatDb.getConversation(conversationId).catch(() => null);
-	if (!stored?.blockState) {
+	if (!stored) {
+		return null;
+	}
+	// A block-related archive without a recorded block_state has no block left
+	// to clear: today every "ws_delete" archive sets block_state alongside it,
+	// so this is a row from before that column existed, or one restored from a
+	// backup (block_state isn't exported, and a backup restored into another
+	// profile carries the old profile's archive state). The conversation
+	// reappearing is then proof enough on its own, as for a non-block archive —
+	// otherwise nothing would ever bring it back, not even a fresh message.
+	// unarchiveConversation's CHAT_ARCHIVE_STATE_EVENT updates mounted UIs.
+	if (!stored.blockState) {
+		if (stored.archived) {
+			await unarchiveConversation(conversationId);
+		}
 		return null;
 	}
 	// A reappearance can't tell us *we* unblocked them — an inbox response

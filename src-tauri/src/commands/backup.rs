@@ -529,6 +529,20 @@ fn read_and_validate_manifest(archive: &mut Archive) -> Result<ManifestCheck, Ap
 /// in a conversation with oneself, so it's dropped instead.
 const SELF_CONVERSATION_SKIP_TABLES: &[&str] = &["conversations", "conversation_meta", "messages", "media_files"];
 
+/// Columns a restore never overwrites on a row the db already has. A
+/// conversation's archive state is the app's current view of whether the
+/// server still produces it (see src/services/conversationArchive.ts); the
+/// backup's copy is older at best, and from another profile's relationship at
+/// worst - writing it over a live conversation would archive it, with nothing
+/// to bring it back while the server keeps listing it as unchanged.
+const KEEP_ON_CONFLICT: &[(&str, &[&str])] = &[("conversations", &["archived", "archived_reason", "archived_at"])];
+
+/// `ArchivedReason` in src/types/chat-db.ts: archived on a block or a deleted
+/// conversation, cleared through `block_state` (not exported) when it reappears.
+const ARCHIVED_REASON_BLOCK: &str = "ws_delete";
+/// Archived because the server no longer produces it; cleared as soon as it reappears.
+const ARCHIVED_REASON_NOT_FOUND: &str = "not_found";
+
 /// `getDrawerMediaKey` in src/services/mediaStore.ts.
 const DRAWER_MEDIA_KEY_PREFIX: &str = "drawer:";
 /// `RESTORED_DRAWER_KEY_PREFIX` in src/services/restoredDrawerMedia.ts.
@@ -643,6 +657,16 @@ impl ProfileRemap {
                 }
             }
             self.remap_value(value);
+        }
+
+        // A block archived the conversation between the backup's profile and the
+        // other person; the profile restored into isn't part of it. Archived
+        // as "no longer available" instead, it comes back as soon as the server
+        // lists the conversation for this profile - e.g. once either side writes.
+        if table.name == "conversations"
+            && row_map.get("archived_reason").and_then(Value::as_str) == Some(ARCHIVED_REASON_BLOCK)
+        {
+            row_map.insert("archived_reason".into(), Value::String(ARCHIVED_REASON_NOT_FOUND.into()));
         }
 
         if self.is_self_conversation(row_map.get("conversation_id")) {
@@ -842,11 +866,12 @@ fn build_upsert_sql(table: &TableSpec, target: &str) -> String {
         .map(|i| format!("?{i}"))
         .collect::<Vec<_>>()
         .join(", ");
+    let keep = KEEP_ON_CONFLICT.iter().find(|(name, _)| *name == table.name).map_or(&[][..], |(_, cols)| *cols);
     let update_set = table
         .columns
         .iter()
         .copied()
-        .filter(|&c| c != table.primary_key)
+        .filter(|&c| c != table.primary_key && !keep.contains(&c))
         .map(|c| format!("{c} = excluded.{c}"))
         .collect::<Vec<_>>()
         .join(", ");
@@ -1741,6 +1766,56 @@ mod tests {
         assert_eq!(text("SELECT group_concat(profile_id) FROM restored_blocked_profiles").as_deref(), Some("400"));
         assert_eq!(text("SELECT group_concat(profile_id) FROM own_blocked_profiles").as_deref(), Some("999"));
         assert_eq!(text("SELECT group_concat(media_key) FROM media_files").as_deref(), Some("restored-drawer:77"));
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The old profile's block archive doesn't hold for the new one, and a
+    /// conversation the db already has keeps its own archive state.
+    #[test]
+    fn import_into_other_profile_resets_block_archive() {
+        let dir = std::env::temp_dir().join(format!("fg-backup-archive-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let src_db = dir.join("src.sqlite3");
+        let dst_db = dir.join("dst.sqlite3");
+        let archive = dir.join("backup.zip");
+        let src = Connection::open(&src_db).unwrap();
+        create_schema(&src);
+        src.execute_batch(
+            "INSERT INTO conversations (conversation_id, other_profile_id, name, archived, archived_reason, archived_at)
+                VALUES ('400:500', '400', 'old', 1, 'ws_delete', 1700000000000),
+                       ('500:600', '600', 'old', 1, 'ws_delete', 1700000000000),
+                       ('500:700', '700', 'old', 1, 'not_found', 1700000000000);",
+        )
+        .unwrap();
+        let categories = all_categories();
+        write_export_archive(&src_db, 500, &archive, &categories, &Map::new(), &mut ProgressEmitter::new(None, "")).unwrap();
+
+        let dst = Connection::open(&dst_db).unwrap();
+        create_schema(&dst);
+        dst.execute_batch(
+            "INSERT INTO conversations (conversation_id, other_profile_id, name, archived, archived_reason, archived_at)
+                VALUES ('300:600', '600', 'live', 0, NULL, NULL);",
+        )
+        .unwrap();
+        drop(dst);
+        let outcome =
+            import_archive(&dst_db, 300, archive.to_str().unwrap(), &categories, &mut ProgressEmitter::new(None, "")).unwrap();
+        assert!(outcome.ok);
+
+        let dst = Connection::open(&dst_db).unwrap();
+        let row = |id: &str| {
+            dst.query_row(
+                "SELECT name, archived, archived_reason FROM conversations WHERE conversation_id = ?1",
+                [id],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, Option<String>>(2)?)),
+            )
+            .unwrap()
+        };
+        assert_eq!(row("300:400"), ("old".into(), 1, Some("not_found".into())));
+        // Other columns still come from the backup; the archive state stays the db's.
+        assert_eq!(row("300:600"), ("old".into(), 0, None));
+        assert_eq!(row("300:700"), ("old".into(), 1, Some("not_found".into())));
 
         let _ = std::fs::remove_dir_all(&dir);
     }
