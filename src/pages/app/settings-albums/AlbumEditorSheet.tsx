@@ -1,9 +1,9 @@
 import {
 	AlertTriangle,
 	Film,
+	Folder,
 	GripVertical,
 	Images,
-	Inbox,
 	Loader2,
 	Trash2,
 	UserMinus,
@@ -30,7 +30,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
 import { usePreferences } from "../../../contexts/PreferencesContext";
-import { CameraFilled, CameraPlusFilled, ImagesFilled } from "../../../components/icons/FilledIcons";
+import { CameraFilled, ImagesFilled, InboxFilled } from "../../../components/icons/FilledIcons";
 import { ConfirmDialog } from "../../../components/ui/confirm-dialog";
 import { BottomSheet, SHEET_ICON_BUTTON_CLASS, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { NATIVE_SHEET_BG, afterSheetClose } from "../../../components/ui/action-sheet";
@@ -44,7 +44,7 @@ import { getThumbImageUrl, validateMediaHash } from "../../../utils/media";
 import {
 	DrawerAddTile,
 	type DrawerAddAction,
-	DrawerActionButton,
+	DrawerAddButton,
 	DrawerEmptyState,
 	DrawerGridSkeleton,
 	DrawerHeader,
@@ -794,7 +794,7 @@ export function AlbumEditorSheet({
 		},
 		{
 			key: "upload",
-			icon: <CameraPlusFilled className="h-4 w-4" />,
+			icon: <Folder className="h-4 w-4 fill-current" />,
 			iconClassName: "bg-violet-500/15 text-violet-400",
 			label: t("settings_albums.add_upload", { defaultValue: "Upload from device" }),
 			description: t("settings_albums.add_upload_desc", { defaultValue: "Photos and videos stored on this device" }),
@@ -802,7 +802,7 @@ export function AlbumEditorSheet({
 		},
 		{
 			key: "drawer",
-			icon: <Inbox className="h-4 w-4" />,
+			icon: <InboxFilled className="h-4 w-4" />,
 			iconClassName: "bg-emerald-500/15 text-emerald-400",
 			label: t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" }),
 			description: t("settings_albums.add_drawer_desc", { defaultValue: "Media saved in your chat drawer" }),
@@ -910,11 +910,12 @@ export function AlbumEditorSheet({
 							title={t("settings_albums.no_media")}
 							hint={t("settings_albums.no_media_hint", { defaultValue: "Take a photo or video, upload from your device, or add media from your chat drawer." })}
 						>
-							<div className="grid w-full max-w-md gap-2" style={{ gridTemplateColumns: `repeat(${addActions.length}, minmax(0, 1fr))` }}>
-								{addActions.map((action) => (
-									<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isAdding} />
-								))}
-							</div>
+							<DrawerAddButton
+								label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
+								actions={addActions}
+								isDesktop={isDesktop}
+								disabled={isAdding}
+							/>
 						</DrawerEmptyState>
 					) : (
 						<DndContext

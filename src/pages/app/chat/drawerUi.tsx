@@ -1,15 +1,15 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type CSSProperties, type HTMLAttributes, type MouseEvent, type PointerEvent, type ReactElement, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Check, ChevronDown, Eye, Film, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, Plus, RefreshCw, Repeat, Video, X } from "lucide-react";
+import { Check, ChevronDown, Eye, Film, Folder, Hourglass, Image as ImageIcon, Images, Infinity as InfinityIcon, Loader2, Play, Plus, RefreshCw, Repeat, Video, X } from "lucide-react";
 import type { AlbumMediaCount } from "../../../types/chat-page";
-import { CameraFilled, CameraPlusFilled } from "../../../components/icons/FilledIcons";
+import { CameraFilled } from "../../../components/icons/FilledIcons";
 import { holdSheetDrag, SHEET_FOOTER_CLASS, SHEET_ICON_BUTTON_CLASS, SheetCloseButton, SheetCloseIcon, sheetButtonClass, useIsBottomSheetDetented } from "../../../components/ui/bottom-sheet";
 import { haptic } from "../../../utils/haptics";
 import freegrindLogo from "../../../images/freegrind-logo.webp";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import { VideoFirstFrame } from "../../../components/VideoFirstFrame";
-import { SheetActionList } from "../../../components/ui/action-sheet";
+import { EmptyStateCreateButton, SheetActionList } from "../../../components/ui/action-sheet";
 import { MediaUploadOverlay } from "../../../components/ui/progress-ring";
 import type { DrawerUpload } from "./useUploadTiles";
 
@@ -1009,14 +1009,13 @@ export function DrawerAddTile({
 	isDesktop: boolean;
 	disabled?: boolean;
 }) {
-	const [isSheetOpen, setIsSheetOpen] = useState(false);
+	const addSheet = useDrawerAddSheet(actions, label, isDesktop);
 	if (actions.length === 0) return null;
-	const only = actions.length === 1 ? actions[0] : null;
 	return (
 		<>
 			<button
 				type="button"
-				onClick={() => (only ? only.onClick() : setIsSheetOpen(true))}
+				onClick={addSheet.open}
 				disabled={disabled}
 				className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg ink-tint-8 p-2 text-[var(--text)] transition hover:ink-tint-12 active:scale-[0.97] active:ink-tint-14 disabled:pointer-events-none disabled:opacity-40"
 			>
@@ -1025,6 +1024,44 @@ export function DrawerAddTile({
 				</span>
 				<span className="line-clamp-2 text-center text-xs font-semibold leading-tight">{label}</span>
 			</button>
+			{addSheet.sheet}
+		</>
+	);
+}
+
+/**
+ * The empty state's single add button (like the collections tab's "Create
+ * collection"): opens the same action sheet as DrawerAddTile.
+ */
+export function DrawerAddButton({
+	actions,
+	label,
+	isDesktop,
+	disabled,
+}: {
+	actions: DrawerAddAction[];
+	label: string;
+	isDesktop: boolean;
+	disabled?: boolean;
+}) {
+	const addSheet = useDrawerAddSheet(actions, label, isDesktop);
+	if (actions.length === 0) return null;
+	return (
+		<>
+			<EmptyStateCreateButton label={label} onClick={addSheet.open} disabled={disabled} />
+			{addSheet.sheet}
+		</>
+	);
+}
+
+/** One action runs straight away; several open an action sheet listing them. */
+function useDrawerAddSheet(actions: DrawerAddAction[], label: string, isDesktop: boolean) {
+	const [isSheetOpen, setIsSheetOpen] = useState(false);
+	const only = actions.length === 1 ? actions[0] : null;
+	return {
+		open: () => (only ? only.onClick() : setIsSheetOpen(true)),
+		sheet: (
+			<>
 			{/* Portalled out of the drawer: inside its (transformed) panel the
 			    sheet's fixed position would be the panel's, and it got cut off. */}
 			{isSheetOpen && createPortal(
@@ -1044,14 +1081,15 @@ export function DrawerAddTile({
 				/>,
 				document.body,
 			)}
-		</>
-	);
+			</>
+		),
+	};
 }
 
 /**
  * The drawer's add actions (take photo, record video, upload from device):
  * render `inputs` once in the sheet and `actions` in a DrawerAddTile (or the
- * empty state's DrawerActionButtons). `onFiles` gets whatever was picked.
+ * empty state's DrawerAddButton). `onFiles` gets whatever was picked.
  */
 export function useDrawerAddActions({
 	onFiles,
@@ -1101,7 +1139,7 @@ export function useDrawerAddActions({
 			description: allowVideo
 				? t("chat_drawer.add_media_desc", { defaultValue: "Photos and videos stored on this device" })
 				: t("chat_drawer.add_photo_desc", { defaultValue: "Photos stored on this device" }),
-			icon: <CameraPlusFilled className="h-4 w-4" />,
+			icon: <Folder className="h-4 w-4 fill-current" />,
 			iconClassName: "bg-violet-500/15 text-violet-400",
 			input: uploadInputRef,
 		},

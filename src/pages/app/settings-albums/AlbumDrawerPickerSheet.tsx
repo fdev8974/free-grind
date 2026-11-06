@@ -2,7 +2,7 @@ import { Loader2, Plus } from "lucide-react";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
-	DrawerActionButton,
+	DrawerAddButton,
 	DrawerAddTile,
 	DrawerBody,
 	DrawerEmptyState,
@@ -153,11 +153,12 @@ export function AlbumDrawerPickerSheet({
 						title={t("settings_albums.drawer_empty", { defaultValue: "No media in your drawer yet." })}
 						hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
 					>
-						<div className="grid w-full max-w-sm grid-cols-3 gap-2">
-							{upload.actions.map((action) => (
-								<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isBusy} />
-							))}
-						</div>
+						<DrawerAddButton
+							label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
+							actions={upload.actions}
+							isDesktop={isDesktop}
+							disabled={isBusy}
+						/>
 					</DrawerEmptyState>
 				) : undefined}
 			>

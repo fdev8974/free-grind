@@ -1,8 +1,8 @@
-import { ImageIcon, Inbox, Loader2, Plus } from "lucide-react";
-import { TriangleAlertFilled } from "../../../components/icons/FilledIcons";
+import { ImageIcon, Loader2, Plus } from "lucide-react";
+import { InboxFilled, TriangleAlertFilled } from "../../../components/icons/FilledIcons";
 import {
 	DRAWER_PRIMARY_BUTTON_CLASS,
-	DrawerActionButton,
+	DrawerAddButton,
 	DrawerAddTile,
 	type DrawerAddAction,
 	DrawerBody,
@@ -89,7 +89,7 @@ export function ProfilePictureDrawer({
 			...deviceActions,
 			{
 				key: "drawer",
-				icon: <Inbox className="h-4 w-4" />,
+				icon: <InboxFilled className="h-4 w-4" />,
 				iconClassName: "bg-emerald-500/15 text-emerald-400",
 				label: t("settings_albums.add_from_drawer", { defaultValue: "Add from Drawer" }),
 				description: t("profile_photo_drawer.add_drawer_desc", { defaultValue: "Photos saved in your chat drawer" }),
@@ -181,11 +181,12 @@ export function ProfilePictureDrawer({
 							title={t("profile_photo_drawer.empty")}
 							hint={t("profile_photo_drawer.empty_hint", { defaultValue: "Take a photo or upload one from your device to add it to your profile." })}
 						>
-							<div className="grid w-full max-w-sm gap-2" style={{ gridTemplateColumns: `repeat(${addActions.length}, minmax(0, 1fr))` }}>
-								{addActions.map((action) => (
-									<DrawerActionButton key={action.key} icon={action.icon} label={action.label} onClick={action.onClick} disabled={isSelecting} />
-								))}
-							</div>
+							<DrawerAddButton
+								label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
+								actions={addActions}
+								isDesktop={isDesktop}
+								disabled={isSelecting}
+							/>
 						</DrawerEmptyState>
 					) : undefined}
 				>

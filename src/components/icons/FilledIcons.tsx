@@ -605,6 +605,19 @@ export function ArchiveRestoreFilled(props: IconProps) {
 	);
 }
 
+/** Lucide's Inbox with its bottom tray filled; the open top stays an outline. */
+export function InboxFilled(props: IconProps) {
+	return (
+		<FilledSvg {...props}>
+			<path
+				d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+				fill="none"
+			/>
+			<path d="M2 12h6l2 3h4l2-3h6v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z" />
+		</FilledSvg>
+	);
+}
+
 export function CameraPlusFilled(props: IconProps) {
 	const id = useMaskId();
 	return (

@@ -22,7 +22,7 @@ import {
 	DRAWER_ICON_BUTTON_CLASS,
 	drawerGridClass,
 	DRAWER_PRIMARY_BUTTON_CLASS,
-	DrawerActionButton,
+	DrawerAddButton,
 	DrawerAddTile,
 	DrawerBody,
 	DrawerGridSkeleton,
@@ -860,34 +860,33 @@ export function ChatDrawerPanel({
 										title={t("chat_drawer.empty", { defaultValue: "Your drawer is empty." })}
 										hint={t("chat_drawer.empty_hint", { defaultValue: "Take a photo or video, or upload one from your device." })}
 									>
-										{/* Not split into categories: there are no albums or collections tabs with their own create tiles, so they join the actions. */}
-										<div className={`grid w-full gap-2 ${combined ? "max-w-lg grid-cols-5" : "max-w-sm grid-cols-3"}`}>
-											{drawerActions.map((action) => (
-												<DrawerActionButton
-													key={action.key}
-													icon={action.icon}
-													label={action.label}
-													onClick={action.onClick}
-													disabled={actionsDisabled}
-												/>
-											))}
-											{combined && (
-												<DrawerActionButton
-													icon={<ImagesFilled className="h-4 w-4" />}
-													label={t("chat_drawer.albums_create", { defaultValue: "Create album" })}
-													onClick={() => void handleCreateAlbum()}
-													disabled={!canCreateAlbum || isCreatingAlbum}
-												/>
-											)}
-											{combined && (
-												<DrawerActionButton
-													icon={<Layers className="h-4 w-4" />}
-													label={t("chat_drawer.collections_create", { defaultValue: "Create collection" })}
-													onClick={() => setEditingCollection(null)}
-													disabled={actionsDisabled}
-												/>
-											)}
-										</div>
+										{/* Not split into categories: there are no albums or collections tabs with their own create tiles, so they join the sheet's actions. */}
+										<DrawerAddButton
+											label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
+											actions={combined
+												? [
+													...drawerActions,
+													...(canCreateAlbum && !isCreatingAlbum
+														? [{
+															key: "create-album",
+															icon: <Album className="h-4 w-4" />,
+															iconClassName: "bg-violet-500/15 text-violet-400",
+															label: t("chat_drawer.albums_create", { defaultValue: "Create album" }),
+															onClick: () => void handleCreateAlbum(),
+														}]
+														: []),
+													{
+														key: "create-collection",
+														icon: <Layers className="h-4 w-4" />,
+														iconClassName: "bg-amber-500/15 text-amber-400",
+														label: t("chat_drawer.collections_create", { defaultValue: "Create collection" }),
+														onClick: () => setEditingCollection(null),
+													},
+												]
+												: drawerActions}
+											isDesktop={isDesktop}
+											disabled={actionsDisabled}
+										/>
 									</DrawerEmptyState>
 								)}
 								</div>
