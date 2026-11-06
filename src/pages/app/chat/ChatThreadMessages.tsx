@@ -76,6 +76,7 @@ import { haptic } from "../../../utils/haptics";
 import { menuTransitionStyle, usePresence } from "../../../hooks/usePresence";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import { getHeroRectFromElement, type HeroRect } from "../../../components/PhotoViewer";
+import { RightNowRequestBubble } from "./RightNowRequestBubble";
 
 type ChatThreadMessagesProps = {
 	isDesktop: boolean;
@@ -2372,7 +2373,9 @@ export function ChatThreadMessages({
                                     {!isMediaOnlyBubble && !isAudioOnlyBubble && !gaymojiUrl
                                     && !(imageUrl && (messageText === t("chat.thread.shared_image") || messageText === t("chat.thread.shared_gif")))
                                     && !((videoUrl || isExpiredVideo) && messageText === t("chat.thread.shared_video")) ? (
-                                        isUnsupportedMessage ? (
+                                        message.type === "RightNowRequest" ? (
+                                            <RightNowRequestBubble body={message.body} mine={mine} />
+                                        ) : isUnsupportedMessage ? (
                                             <div className={`relative mt-1 flex items-center gap-2.5 overflow-hidden rounded-[6px] p-[13px] text-xs ${mine ? "bg-black/20" : "bg-black/[0.08]"}`}>
                                                 <MessageCircleQuestion className="h-4 w-4 shrink-0 opacity-70" />
                                                 <div className="min-w-0 flex-1">

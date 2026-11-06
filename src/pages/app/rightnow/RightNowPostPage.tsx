@@ -1,4 +1,4 @@
-import { X, ImagePlus, Loader2, CheckCircle2, Lock, Hourglass } from "lucide-react";
+import { X, ImagePlus, Loader2, CheckCircle2, Lock, Hourglass, VenetianMask, MapPin, Navigation, EyeOff, ListChecks, ChevronRight, Crosshair } from "lucide-react";
 import { HomeFilled } from "../../../components/icons/FilledIcons";
 import { RightNowIcon } from "../../../components/icons/RightNowIcon";
 import { useEffect, useState, useRef, useMemo } from "react";
@@ -10,14 +10,37 @@ import { BottomSheet, useBottomSheetClose, SheetCloseButton, SHEET_FOOTER_CLASS,
 import { useDesktopBreakpoint } from "../../../hooks/useDesktopBreakpoint";
 import { ToggleRow } from "../../../components/ui/toggle-row";
 import { usePreferences } from "../../../contexts/PreferencesContext";
-import { prepare1024SquareImage } from "../../../utils/media";
+import { createPortal } from "react-dom";
+import { MediaEditSheet } from "../chat/MediaEditSheet";
+import type { MediaEdit } from "../chat/MediaEditStep";
 import { sanitizeUploadFile } from "../../../services/uploadSanitize";
 import { useApiFunctions } from "../../../hooks/useApiFunctions";
-import type { RightNowCreatePostRequest, RightNowUpdatePostRequest } from "../../../services/apiFunctions";
-import { getRightNowSessionDuration } from "./rightnow-constants";
+import {
+	NoFreeRightNowPostsError,
+	RightNowDiscreetSetupError,
+	RightNowPostAlreadyRunningError,
+	RightNowSessionEndedError,
+	type RightNowCreatePostRequest,
+	type RightNowUpdatePostRequest,
+} from "../../../services/apiFunctions";
+import { RIGHT_NOW_UNLIMITED_POSTS, getRightNowSessionDuration } from "./rightnow-constants";
+import { useQueryClient } from "@tanstack/react-query";
 import { DrawerEmptyState } from "../chat/drawerUi";
 import { triggerRightNowStarted } from "../../../components/RightNowStartedOverlay";
 import { SHEET_GROUP_CLASS, SheetSection } from "../../../components/ui/sheet-section";
+import { SelectRow } from "../../../components/ui/select-row";
+import { Slider } from "../../../components/ui/range-slider";
+import type { SelectSheetOption } from "../../../components/ui/select-sheet";
+import { ManagedOptionsPickerDialog } from "../profile-editor/ManagedOptionsPickerDialog";
+import { useFeatureFlag } from "../../../services/assignmentsStore";
+import { formatDistance } from "../gridpage/utils";
+import {
+	RIGHT_NOW_LOCATION_RADIUS_MAX,
+	RIGHT_NOW_SHARED_FIELDS,
+	approximateRightNowRadiusMeters,
+	type RightNowShareLocation,
+	type RightNowSharedField,
+} from "../../../types/right-now";
 import { simulateCreatePost, simulateEndSession, simulateFetchActivePost, simulateUpdatePost, simulateUploadMedia } from "./rightnow-simulation";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 
@@ -42,14 +65,10 @@ export function RightNowPostPage({ onClose, onPost }: RightNowPostPageProps) {
 	);
 }
 
-// Translucent "glass" fields (same recipe as the profile's quick-message bar),
-// so the breathing glow behind them stays visible.
-const GLASS_FIELD =
-	"border border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface-2)_50%,transparent)] backdrop-blur-md";
-
 function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPost">) {
 	const { t } = useTranslation();
 	const apiFunctions = useApiFunctions();
+	const isDesktop = useDesktopBreakpoint();
 	const { setPreferences, activeRightNowId, activeRightNowExpiresAt, developerMode, showDebugInfo, rightNowRemaining, rightNowTestMode, autoFocusRightNowText } = usePreferences();
 	// Closes through the sheet so it animates out and pops its history entry.
 	const handleClose = useBottomSheetClose();
@@ -57,7 +76,27 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 	const [text, setText] = useState("");
 	const [isHosting, setIsHosting] = useState(false);
 	const [isHidden, setIsHidden] = useState(false);
-	const [showOnMap, setShowOnMap] = useState(false);
+	// Hidden state as last loaded from the server; hiding goes through its own endpoint.
+	const loadedHiddenRef = useRef(false);
+	const [shareLocation, setShareLocation] = useState<RightNowShareLocation>("DISTANCE_ONLY");
+	// 0 = most precise, 100 = least; starts at the least precise like the official client.
+	const [locationRadius, setLocationRadius] = useState(RIGHT_NOW_LOCATION_RADIUS_MAX);
+	const [isDiscreet, setIsDiscreet] = useState(false);
+	const [sharedFields, setSharedFields] = useState<RightNowSharedField[]>(["AGE", "POSITION"]);
+	// The post as last loaded, so edits only send what changed (a new
+	// locationRadius moves the shown position; isDiscreet can't be undone).
+	const loadedPostRef = useRef<{
+		shareLocation: RightNowShareLocation;
+		locationRadius: number;
+		isDiscreet: boolean;
+		sharedFields: RightNowSharedField[];
+	} | null>(null);
+	const showOnMap = shareLocation === "DISTANCE_AND_MAP";
+
+	// Grindr rolls these out per account.
+	const isMapFlagOn = useFeatureFlag("right-now-map") || rightNowTestMode;
+	const isDiscreetFlagOn = useFeatureFlag("right-now-discreet") || rightNowTestMode;
+	const isDiscreetLocked = loadedPostRef.current?.isDiscreet === true;
 	const [mediaId, setMediaId] = useState<number | null>(null);
 	const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 	const [isUploading, setIsUploading] = useState(false);
@@ -84,6 +123,8 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 	}, [activeRightNowId, activeRightNowExpiresAt]);
 
 	const canPost = useMemo(() => isEditMode || rightNowRemaining > 0, [isEditMode, rightNowRemaining]);
+	const isUnlimited = rightNowRemaining >= RIGHT_NOW_UNLIMITED_POSTS;
+	const queryClient = useQueryClient();
 
 	useEffect(() => {
 		if (!isEditMode) return;
@@ -103,8 +144,27 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 				setText(post.activeText || "");
 				setIsHosting(post.hosting);
 				setIsHidden(post.postStatus === "HIDDEN");
+				loadedHiddenRef.current = post.postStatus === "HIDDEN";
 				void setPreferences({ activeRightNowHidden: post.postStatus === "HIDDEN" });
-				setShowOnMap(post.shareLocation === "DISTANCE_AND_MAP");
+				const loadedShareLocation: RightNowShareLocation =
+					post.shareLocation === "DISTANCE_AND_MAP" || post.shareLocation === "NONE" ? post.shareLocation : "DISTANCE_ONLY";
+				const loadedRadius =
+					typeof post.locationRadius === "number" ? post.locationRadius : RIGHT_NOW_LOCATION_RADIUS_MAX;
+				const loadedDiscreet = post.isDiscreet === "TRUE" || post.isDiscreet === true;
+				const loadedFields = (Array.isArray(post.sharedFields) ? post.sharedFields : []).filter(
+					(field: unknown): field is RightNowSharedField =>
+						typeof field === "string" && (RIGHT_NOW_SHARED_FIELDS as readonly string[]).includes(field),
+				);
+				setShareLocation(loadedShareLocation);
+				setLocationRadius(loadedRadius);
+				setIsDiscreet(loadedDiscreet);
+				if (loadedDiscreet) setSharedFields(loadedFields);
+				loadedPostRef.current = {
+					shareLocation: loadedShareLocation,
+					locationRadius: loadedRadius,
+					isDiscreet: loadedDiscreet,
+					sharedFields: loadedFields,
+				};
 
 				if (post.media && post.media.length > 0) {
 					const m = post.media[0];
@@ -175,51 +235,79 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 		return () => clearInterval(interval);
 	}, [isEditMode, activeRightNowExpiresAt]);
 
-	const uploadFile = async (file: File) => {
+	// A picked photo goes through the shared edit sheet first (crop, rotate,
+	// then the square thumbnail), like the chat drawer and profile photos.
+	const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+	const pendingEditRef = useRef<MediaEdit | null>(null);
+
+	const uploadEdit = async (edit: MediaEdit) => {
 		if (isUploading) return;
 		setIsUploading(true);
 
 		try {
 			if (rightNowTestMode) {
-				const result = await simulateUploadMedia(file);
+				const result = await simulateUploadMedia(edit.file);
 				setMediaId(result.mediaId);
 				setThumbnailUrl(result.thumbnailUrl);
 			} else {
-				// 1. Resize locally to 1024px to prevent 500 error and corner-crop
-				const resizedBlob = await prepare1024SquareImage(file);
-				const sanitized = await sanitizeUploadFile(new File([resizedBlob], "right-now.png", { type: "image/png" }));
-				const body = new Uint8Array(await sanitized.arrayBuffer());
-				const contentType = sanitized.type;
-				const coords = { top: 0, left: 0, right: 1024, bottom: 1024 };
-
+				// Metadata stripped, upright, at most 1024px (see uploadSanitize);
+				// the thumbnail square is in the normalized photo's pixels.
+				const upload = await sanitizeUploadFile(edit.file);
+				const bitmap = await createImageBitmap(upload);
+				const { width, height } = bitmap;
+				bitmap.close();
+				const thumbnail = edit.thumbnail
+					? {
+							left: edit.thumbnail.left * width,
+							top: edit.thumbnail.top * height,
+							right: edit.thumbnail.right * width,
+							bottom: edit.thumbnail.bottom * height,
+						}
+					: undefined;
 				const result = await apiFunctions.uploadRightNowMedia({
-					body,
-					contentType,
-					coords,
+					body: new Uint8Array(await upload.arrayBuffer()),
+					contentType: upload.type,
+					width,
+					height,
+					thumbnail,
 				});
 				setMediaId(result.mediaId);
-				// 2. Only show image AFTER successful upload from server response
+				// Only shown once the server has it.
 				setThumbnailUrl(result.thumbnailUrl);
 			}
 		} catch (error) {
 			appLog.error("Upload failed", error);
-			toast.error(t("right_now.error_upload"));
+			toast.error(error instanceof Error && error.message ? error.message : t("right_now.error_upload"));
 		} finally {
 			setIsUploading(false);
-			if (fileInputRef.current) fileInputRef.current.value = "";
 		}
+	};
+
+	const pickPhoto = (file: File) => {
+		if (isUploading) return;
+		pendingEditRef.current = null;
+		setPendingPhoto(file);
 	};
 
 	const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
-		if (file) void uploadFile(file);
+		if (file) pickPhoto(file);
+		// The same file can be picked again after cancelling.
+		e.target.value = "";
 	};
 
 	const handleFileDrop = (e: React.DragEvent) => {
 		e.preventDefault();
 		setIsDraggingPhoto(false);
 		const file = e.dataTransfer.files?.[0];
-		if (file && file.type.startsWith("image/")) void uploadFile(file);
+		if (file && file.type.startsWith("image/")) pickPhoto(file);
+	};
+
+	const finishPhotoEdit = (confirmed: boolean) => {
+		const edit = pendingEditRef.current;
+		pendingEditRef.current = null;
+		setPendingPhoto(null);
+		if (confirmed && edit) void uploadEdit(edit);
 	};
 
 	const handlePost = async () => {
@@ -232,7 +320,6 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 				const updatePayload: RightNowUpdatePostRequest = {
 					text: text.trim(),
 					hosting: isHosting,
-					hidden: isHidden,
 					media: mediaId
 						? [
 								{
@@ -241,23 +328,42 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 								},
 						  ]
 						: [],
-					shareLocation: showOnMap ? "DISTANCE_AND_MAP" : "DISTANCE_ONLY",
-					sharedFields: [], // Mandatory empty list by default
 				};
+				const loaded = loadedPostRef.current;
+				if (!loaded || shareLocation !== loaded.shareLocation) updatePayload.shareLocation = shareLocation;
+				if (showOnMap && (!loaded || loaded.shareLocation !== "DISTANCE_AND_MAP" || locationRadius !== loaded.locationRadius)) {
+					updatePayload.locationRadius = locationRadius;
+				}
+				// isDiscreet and sharedFields only take effect on v5.
+				const useV5 = isDiscreetFlagOn;
+				if (useV5) {
+					if (isDiscreet && !loaded?.isDiscreet) updatePayload.isDiscreet = true;
+					if (isDiscreet && (!loaded || sharedFields.join() !== loaded.sharedFields.join())) {
+						updatePayload.sharedFields = sharedFields;
+					}
+				}
 
 				if (rightNowTestMode) {
-					await simulateUpdatePost(activeRightNowId, updatePayload);
+					await simulateUpdatePost(activeRightNowId, { ...updatePayload, hidden: isHidden });
 				} else {
-					await apiFunctions.updateRightNowPost(activeRightNowId, updatePayload);
+					await apiFunctions.updateRightNowPost(activeRightNowId, updatePayload, useV5 ? "v5" : "v4");
+					if (isHidden !== loadedHiddenRef.current) {
+						await apiFunctions.setRightNowPostHidden(activeRightNowId, isHidden);
+						loadedHiddenRef.current = isHidden;
+					}
 				}
+				loadedPostRef.current = {
+					shareLocation,
+					locationRadius,
+					isDiscreet: isDiscreet || loaded?.isDiscreet === true,
+					sharedFields: isDiscreet ? sharedFields : loaded?.sharedFields ?? [],
+				};
 				await setPreferences({ activeRightNowHidden: isHidden });
 			} else {
 				const createPayload: RightNowCreatePostRequest = {
 					text: text.trim(),
-					shareLocation: showOnMap ? "DISTANCE_AND_MAP" : "DISTANCE_ONLY",
-					lat: null,
-					lon: null,
-					locationRadius: null,
+					shareLocation,
+					locationRadius: showOnMap ? locationRadius : null,
 					media: mediaId
 						? [
 								{
@@ -267,7 +373,6 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 						  ]
 						: [],
 					hosting: isHosting,
-					sharedFields: [], // Mandatory empty list
 				};
 
 				if (rightNowTestMode) {
@@ -276,18 +381,23 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 						activeRightNowId: id,
 						activeRightNowExpiresAt: expiresAt,
 						activeRightNowHidden: false,
-						rightNowRemaining: Math.max(0, rightNowRemaining - 1),
+						rightNowRemaining: isUnlimited ? rightNowRemaining : Math.max(0, rightNowRemaining - 1),
 					});
 				} else {
-					const response = await apiFunctions.createRightNowPost(createPayload);
+					const response = await apiFunctions.createRightNowPost(
+						createPayload,
+						isDiscreetFlagOn && isDiscreet ? { discreet: { sharedFields } } : undefined,
+					);
 					// Fallback to local duration if server doesn't provide expiration
 					const expiresAt = response.post.expiration || (Date.now() + sessionDuration);
 					await setPreferences({
 						activeRightNowId: response.post.id,
 						activeRightNowExpiresAt: expiresAt,
 						activeRightNowHidden: false,
-						rightNowRemaining: Math.max(0, rightNowRemaining - 1),
+						rightNowRemaining: isUnlimited ? rightNowRemaining : Math.max(0, rightNowRemaining - 1),
 					});
+					// The count depends on the area and refills over time: ask the server again.
+					void queryClient.invalidateQueries({ queryKey: ["entitlements"] });
 				}
 			}
 
@@ -303,7 +413,33 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 			if (!isEditMode) triggerRightNowStarted();
 		} catch (error) {
 			appLog.error("Failed to post:", error);
-			toast.error(isEditMode ? t("right_now.error_session_update_failed") : t("right_now.error_session_failed"));
+			if (error instanceof RightNowDiscreetSetupError) {
+				// The post exists, hidden: keep it as the running session so it can be fixed by editing.
+				const post = error.created.post;
+				await setPreferences({
+					activeRightNowId: post.id,
+					activeRightNowExpiresAt: post.expiration || Date.now() + sessionDuration,
+					activeRightNowHidden: true,
+					rightNowRemaining: isUnlimited ? rightNowRemaining : Math.max(0, rightNowRemaining - 1),
+				});
+				void queryClient.invalidateQueries({ queryKey: ["entitlements"] });
+				toast.error(t("right_now.error_discreet_setup", {
+					defaultValue: "Your post was created but kept hidden, because it couldn't be made discreet. Edit it to try again.",
+				}));
+				handleClose();
+			} else if (error instanceof NoFreeRightNowPostsError) {
+				await setPreferences({ rightNowRemaining: 0 });
+				toast.error(t("right_now.limit_reached_desc"));
+			} else if (error instanceof RightNowPostAlreadyRunningError) {
+				toast.error(t("right_now.error_already_running", { defaultValue: "You already have a Right Now session running." }));
+				void queryClient.invalidateQueries({ queryKey: ["rightnow", "feed"] });
+			} else if (error instanceof RightNowSessionEndedError) {
+				await setPreferences({ activeRightNowId: null, activeRightNowExpiresAt: null, activeRightNowHidden: false });
+				toast.error(t("right_now.session_expired"), { id: "right-now-expired" });
+				handleClose();
+			} else {
+				toast.error(isEditMode ? t("right_now.error_session_update_failed") : t("right_now.error_session_failed"));
+			}
 		} finally {
 			setIsPosting(false);
 		}
@@ -345,9 +481,35 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 
 
 	const weeklyMax = Math.max(2, rightNowRemaining);
+	const remainingLabel = isUnlimited ? "∞" : `${rightNowRemaining}/${weeklyMax}`;
 
 	return (
 		<>
+			{/* Stacked over this sheet, outside its (transformed) panel. */}
+			{pendingPhoto
+				? createPortal(
+						<MediaEditSheet
+							files={[pendingPhoto]}
+							photoLabel={t("right_now.edit_photo_title", { defaultValue: "Edit photo" })}
+							videoLabel={t("right_now.edit_photo_title", { defaultValue: "Edit photo" })}
+							confirmLabel={t("right_now.edit_photo_confirm", { defaultValue: "Use photo" })}
+							showTakenOnGrindr={false}
+							showLooping={false}
+							allowVideoSplit={false}
+							thumbnailStep={{
+								title: t("profile_editor.photo_upload.thumbnail_title", { defaultValue: "Select Thumbnail" }),
+								backLabel: t("profile_editor.photo_upload.back", { defaultValue: "Back" }),
+							}}
+							isDesktop={isDesktop}
+							zIndex="z-[70]"
+							onConfirmFile={(edit) => {
+								pendingEditRef.current = edit;
+							}}
+							onDone={finishPhotoEdit}
+						/>,
+						document.body,
+					)
+				: null}
 			{/* Right Now's signature glow, bleeding down from the top edge of the sheet and slowly breathing. */}
 			<div
 				aria-hidden="true"
@@ -377,7 +539,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 				<div className="flex shrink-0 items-center gap-1">
 					<div
 						title={t("right_now.weekly_limit")}
-						aria-label={`${t("right_now.weekly_limit")}: ${rightNowRemaining}/${weeklyMax}`}
+						aria-label={`${t("right_now.weekly_limit")}: ${remainingLabel}`}
 						className={cn(
 							"flex items-center gap-1.5 rounded-full py-1 pl-1 pr-2.5",
 							rightNowRemaining > 0
@@ -394,7 +556,7 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 							<RightNowIcon className="h-3 w-3" />
 						</span>
 						<span className="text-xs font-bold tabular-nums text-[var(--text)]">
-							{rightNowRemaining}/{weeklyMax}
+							{remainingLabel}
 						</span>
 					</div>
 					<SheetCloseButton />
@@ -429,87 +591,46 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 						</div>
 					) : (
 						<>
-							<SheetSection title={t("right_now.section_message", { defaultValue: "Message" })}>
+							{/* The post itself: text and photo as one card. */}
+							<div className={SHEET_GROUP_CLASS}>
 								<div className="relative">
 									<textarea
 										autoFocus={autoFocusRightNowText}
 										value={text}
 										onChange={(e) => setText(e.target.value.slice(0, maxChars))}
 										placeholder={t("right_now.session_placeholder")}
-										className={`min-h-[88px] w-full resize-none rounded-xl ${GLASS_FIELD} p-3 pb-6 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--right-now)]`}
+										aria-label={t("right_now.section_message", { defaultValue: "Message" })}
+										className="block min-h-[96px] w-full resize-none bg-transparent px-4 pb-7 pt-3.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
 									/>
-									<div className="pointer-events-none absolute bottom-2.5 right-3 text-[10px] font-medium text-[var(--text-muted)]">
+									<div className="pointer-events-none absolute bottom-2.5 right-4 text-[10px] font-medium tabular-nums text-[var(--text-muted)]">
 										{t("right_now.char_limit", { count: text.length })}
 									</div>
 								</div>
-							</SheetSection>
-
-							<SheetSection title={t("right_now.section_photo", { defaultValue: "Photo" })}>
-								<input
-									type="file"
-									ref={fileInputRef}
-									onChange={handleFileSelect}
-									accept="image/*"
-									className="hidden"
+								<PostPhotoRow
+									thumbnailUrl={thumbnailUrl}
+									isUploading={isUploading}
+									isDragging={isDraggingPhoto}
+									onPick={() => fileInputRef.current?.click()}
+									onRemove={() => {
+										setMediaId(null);
+										setThumbnailUrl(null);
+									}}
+									onDragOver={(e) => {
+										e.preventDefault();
+										if (!isUploading) setIsDraggingPhoto(true);
+									}}
+									onDragLeave={() => setIsDraggingPhoto(false)}
+									onDrop={handleFileDrop}
 								/>
-								{thumbnailUrl ? (
-									<div className="relative aspect-[16/9] w-full overflow-hidden rounded-2xl bg-[var(--surface-2)]">
-										<img
-											src={proxyMediaUrl(thumbnailUrl)}
-											className="h-full w-full object-cover"
-											alt={t("right_now.upload_preview_alt")}
-										/>
-										<button
-											type="button"
-											onClick={() => {
-												setMediaId(null);
-												setThumbnailUrl(null);
-											}}
-											className="absolute right-2 top-2 rounded-full bg-black/60 p-2 text-white backdrop-blur-md transition hover:bg-black/80"
-										>
-											<X className="h-4 w-4" />
-										</button>
-									</div>
-								) : (
-									/* Drop zone, same look as the backup restore offer. */
-									<button
-										type="button"
-										onClick={() => fileInputRef.current?.click()}
-										onDragOver={(e) => {
-											e.preventDefault();
-											if (!isUploading) setIsDraggingPhoto(true);
-										}}
-										onDragLeave={() => setIsDraggingPhoto(false)}
-										onDrop={handleFileDrop}
-										disabled={isUploading}
-										className={cn(
-											"group flex w-full flex-col items-center gap-3 rounded-3xl border-2 border-dashed px-6 py-6 text-center transition disabled:cursor-wait",
-											isDraggingPhoto
-												? "border-[var(--right-now)] bg-[color-mix(in_srgb,var(--right-now)_10%,var(--surface))]"
-												: "border-[color-mix(in_srgb,var(--border)_60%,transparent)] bg-[color-mix(in_srgb,var(--surface-2)_50%,transparent)] backdrop-blur-md hover:border-[var(--right-now)] hover:bg-[color-mix(in_srgb,var(--right-now)_8%,transparent)]",
-										)}
-									>
-										<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--right-now)] text-white shadow-lg shadow-[var(--right-now)]/20 transition group-hover:scale-105">
-											{isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <ImagePlus className="h-6 w-6" />}
-										</span>
-										<span className="space-y-1">
-											<span className="block text-sm font-semibold text-[var(--text)]">
-												{isUploading ? t("right_now.uploading") : t("right_now.add_photo")}
-											</span>
-											<span className="block text-xs text-[var(--text-muted)]">
-												{t("right_now.photo_hint", { defaultValue: "Tap to choose or drop an image here" })}
-											</span>
-										</span>
-									</button>
-								)}
-							</SheetSection>
+							</div>
+							<input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
 
 							<SheetSection title={t("right_now.section_options", { defaultValue: "Options" })}>
 								<div className={SHEET_GROUP_CLASS}>
 									{isEditMode && (
 										<ToggleRow
 											icon={<RightNowIcon className="h-5 w-5" />}
-											iconClass="bg-[color-mix(in_srgb,var(--right-now)_15%,transparent)] text-[var(--right-now)]"
+											iconClass={ROW_ICON_CLASS}
 											label={t("right_now.visibility")}
 											description={
 												isHidden
@@ -522,9 +643,29 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 											activeThumbColor="#fff"
 										/>
 									)}
+									<PostLocationRow
+										shareLocation={shareLocation}
+										onShareLocationChange={setShareLocation}
+										locationRadius={locationRadius}
+										onLocationRadiusChange={setLocationRadius}
+										allowMap={isMapFlagOn || showOnMap}
+									/>
+									{(isDiscreetFlagOn || isDiscreet) && (
+										<PostDiscreetRow
+											isDiscreet={isDiscreet}
+											onDiscreetChange={(next) => {
+												// A discreet post can't be made public again.
+												if (!next && isDiscreetLocked) return;
+												setIsDiscreet(next);
+											}}
+											isLocked={isDiscreetLocked}
+											sharedFields={sharedFields}
+											onSharedFieldsChange={setSharedFields}
+										/>
+									)}
 									<ToggleRow
 										icon={<HomeFilled className="h-5 w-5" />}
-										iconClass="bg-[color-mix(in_srgb,var(--right-now)_15%,transparent)] text-[var(--right-now)]"
+										iconClass={ROW_ICON_CLASS}
 										label={t("right_now.i_am_hosting")}
 										description={t("right_now.i_am_hosting_desc")}
 										checked={isHosting}
@@ -655,6 +796,281 @@ function RightNowPostSheetContent({ onPost }: Pick<RightNowPostPageProps, "onPos
 					)}
 				</div>
 			)}
+		</>
+	);
+}
+
+/** Icon tile of every option row, as ToggleRow draws it. */
+const ROW_ICON_CLASS = "bg-[color-mix(in_srgb,var(--right-now)_15%,transparent)] text-[var(--right-now)]";
+/** The post's photo as a row: pick or drop one, or the uploaded one with a remove button. */
+function PostPhotoRow({
+	thumbnailUrl,
+	isUploading,
+	isDragging,
+	onPick,
+	onRemove,
+	onDragOver,
+	onDragLeave,
+	onDrop,
+}: {
+	thumbnailUrl: string | null;
+	isUploading: boolean;
+	isDragging: boolean;
+	onPick: () => void;
+	onRemove: () => void;
+	onDragOver: (e: React.DragEvent) => void;
+	onDragLeave: () => void;
+	onDrop: (e: React.DragEvent) => void;
+}) {
+	const { t } = useTranslation();
+	return (
+		<div
+			onDragOver={onDragOver}
+			onDragLeave={onDragLeave}
+			onDrop={onDrop}
+			className={cn("flex items-center gap-3 px-4 py-3 transition", isDragging && "ring-2 ring-inset ring-[var(--right-now)]")}
+		>
+			<button
+				type="button"
+				onClick={onPick}
+				disabled={isUploading}
+				className="flex min-w-0 flex-1 items-center gap-3 text-left disabled:cursor-wait"
+			>
+				{thumbnailUrl ? (
+					<img
+						src={proxyMediaUrl(thumbnailUrl)}
+						alt={t("right_now.upload_preview_alt")}
+						className="h-14 w-14 shrink-0 rounded-xl object-cover"
+					/>
+				) : (
+					<span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${ROW_ICON_CLASS}`}>
+						{isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+					</span>
+				)}
+				<span className="min-w-0 flex-1">
+					<span className="block text-sm font-semibold leading-snug text-[var(--text)]">
+						{isUploading
+							? t("right_now.uploading")
+							: thumbnailUrl
+								? t("right_now.section_photo", { defaultValue: "Photo" })
+								: t("right_now.add_photo")}
+					</span>
+					<span className="mt-0.5 block text-xs leading-relaxed text-[var(--text-muted)]">
+						{thumbnailUrl
+							? t("right_now.photo_change_hint", { defaultValue: "Tap to change" })
+							: t("right_now.photo_hint", { defaultValue: "Tap to choose or drop an image here" })}
+					</span>
+				</span>
+			</button>
+			{thumbnailUrl && !isUploading ? (
+				<button
+					type="button"
+					onClick={onRemove}
+					aria-label={t("right_now.photo_remove", { defaultValue: "Remove photo" })}
+					title={t("right_now.photo_remove", { defaultValue: "Remove photo" })}
+					className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full ink-tint-8 text-[var(--text-muted)] transition hover:text-[var(--text)] active:scale-90"
+				>
+					<X className="h-4 w-4" />
+				</button>
+			) : null}
+		</div>
+	);
+}
+
+/** Where others see the post: on the map (with a precision), as a distance, or neither. */
+function PostLocationRow({
+	shareLocation,
+	onShareLocationChange,
+	locationRadius,
+	onLocationRadiusChange,
+	allowMap,
+}: {
+	shareLocation: RightNowShareLocation;
+	onShareLocationChange: (value: RightNowShareLocation) => void;
+	locationRadius: number;
+	onLocationRadiusChange: (value: number) => void;
+	allowMap: boolean;
+}) {
+	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
+	const options: SelectSheetOption<RightNowShareLocation>[] = [
+		...(allowMap
+			? [
+					{
+						value: "DISTANCE_AND_MAP" as const,
+						label: t("right_now.location_map", { defaultValue: "On the map" }),
+						description: t("right_now.location_map_desc", { defaultValue: "Your post shows on the map, slightly offset." }),
+						icon: MapPin,
+						iconClassName: ROW_ICON_CLASS,
+					},
+				]
+			: []),
+		{
+			value: "DISTANCE_ONLY",
+			label: t("right_now.location_distance", { defaultValue: "Distance only" }),
+			description: t("right_now.location_distance_desc", { defaultValue: "Others see how far away you are, but not where." }),
+			icon: Navigation,
+			iconClassName: ROW_ICON_CLASS,
+		},
+		{
+			value: "NONE",
+			label: t("right_now.location_none", { defaultValue: "Hidden" }),
+			description: t("right_now.location_none_desc", { defaultValue: "Nobody sees how far away you are." }),
+			icon: EyeOff,
+			iconClassName: ROW_ICON_CLASS,
+		},
+	];
+	const radiusLabel = t("right_now.location_within", {
+		defaultValue: "Within about {{distance}}",
+		distance: formatDistance(approximateRightNowRadiusMeters(locationRadius), t, unitsPreset),
+	});
+
+	return (
+		<>
+			<SelectRow<RightNowShareLocation>
+				icon={<MapPin className="h-5 w-5" />}
+				iconClass={ROW_ICON_CLASS}
+				label={t("right_now.section_location", { defaultValue: "Location" })}
+				value={shareLocation}
+				options={options}
+				onChange={(next) => {
+					onShareLocationChange(next);
+					if (next === "DISTANCE_AND_MAP") onLocationRadiusChange(RIGHT_NOW_LOCATION_RADIUS_MAX);
+				}}
+				accentColor="var(--right-now)"
+				accentContrast="#fff"
+			/>
+			{/* Its own tile, so it doesn't run into the row's hover fill. */}
+			{shareLocation === "DISTANCE_AND_MAP" ? (
+				<div className="flex items-start gap-3 px-4 py-3.5">
+					<div className={`shrink-0 rounded-2xl p-2.5 ${ROW_ICON_CLASS}`}>
+						<Crosshair className="h-5 w-5" />
+					</div>
+					<div className="min-w-0 flex-1">
+						<div className="flex items-baseline justify-between gap-2">
+							<p className="text-sm font-semibold leading-snug text-[var(--text)]">
+								{t("right_now.location_accuracy", { defaultValue: "Location accuracy" })}
+							</p>
+							<span className="shrink-0 text-xs tabular-nums text-[var(--text-muted)]">{radiusLabel}</span>
+						</div>
+						{/* The app's own slider (the native one is light on desktop dark mode).
+						    It shows accuracy, so it runs opposite to locationRadius. */}
+						<div className="-my-1">
+							<Slider
+								min={0}
+								max={RIGHT_NOW_LOCATION_RADIUS_MAX}
+								step={1}
+								defaultValue={RIGHT_NOW_LOCATION_RADIUS_MAX - locationRadius}
+								label={t("right_now.location_accuracy", { defaultValue: "Location accuracy" })}
+								displayValue={radiusLabel}
+								hideHeader
+								activeColor="var(--right-now)"
+								onChange={(value) => onLocationRadiusChange(RIGHT_NOW_LOCATION_RADIUS_MAX - value)}
+							/>
+						</div>
+						<div aria-hidden="true" className="flex justify-between text-[10px] text-[var(--text-muted)]">
+							<span>{t("right_now.location_less", { defaultValue: "Less" })}</span>
+							<span>{t("right_now.location_more", { defaultValue: "More" })}</span>
+						</div>
+					</div>
+				</div>
+			) : null}
+		</>
+	);
+}
+
+const SHARED_FIELD_LABELS: Record<RightNowSharedField, { key: string; defaultValue: string }> = {
+	AGE: { key: "right_now.shared_field_age", defaultValue: "Age" },
+	HEIGHT: { key: "right_now.shared_field_height", defaultValue: "Height" },
+	WEIGHT: { key: "right_now.shared_field_weight", defaultValue: "Weight" },
+	POSITION: { key: "right_now.shared_field_position", defaultValue: "Position" },
+};
+
+/**
+ * Discreet: the feed shows the post without the profile, only the chosen
+ * fields; people send a request instead of messaging. Can't be undone on a
+ * running post. Two tiles: the switch, and once on, the shared fields.
+ */
+function PostDiscreetRow({
+	isDiscreet,
+	onDiscreetChange,
+	isLocked,
+	sharedFields,
+	onSharedFieldsChange,
+}: {
+	isDiscreet: boolean;
+	onDiscreetChange: (value: boolean) => void;
+	isLocked: boolean;
+	sharedFields: RightNowSharedField[];
+	onSharedFieldsChange: (value: RightNowSharedField[]) => void;
+}) {
+	const { t } = useTranslation();
+	const [isPickerOpen, setIsPickerOpen] = useState(false);
+	// The picker works on numbers: a field's index in RIGHT_NOW_SHARED_FIELDS.
+	const fieldOptions = RIGHT_NOW_SHARED_FIELDS.map((field, index) => ({
+		value: index,
+		label: t(SHARED_FIELD_LABELS[field].key, { defaultValue: SHARED_FIELD_LABELS[field].defaultValue }),
+	}));
+	const summary =
+		sharedFields.length > 0
+			? fieldOptions.filter((option) => sharedFields.includes(RIGHT_NOW_SHARED_FIELDS[option.value])).map((o) => o.label).join(", ")
+			: t("right_now.shared_fields_none", { defaultValue: "Nothing" });
+	const toggleField = (index: number) => {
+		const field = RIGHT_NOW_SHARED_FIELDS[index];
+		const next = sharedFields.includes(field) ? sharedFields.filter((f) => f !== field) : [...sharedFields, field];
+		// Keep the API's order.
+		onSharedFieldsChange(RIGHT_NOW_SHARED_FIELDS.filter((f) => next.includes(f)));
+	};
+
+	return (
+		<>
+			<ToggleRow
+				icon={<VenetianMask className="h-5 w-5" />}
+				iconClass={ROW_ICON_CLASS}
+				label={t("right_now.discreet_toggle", { defaultValue: "Post discreetly" })}
+				description={
+					isLocked
+						? t("right_now.discreet_locked_desc", { defaultValue: "This post is discreet and stays that way until it ends." })
+						: t("right_now.discreet_desc", {
+								defaultValue: "Your profile stays hidden. People send a request, and a chat opens once you accept.",
+							})
+				}
+				checked={isDiscreet}
+				onChange={onDiscreetChange}
+				activeColor="var(--right-now)"
+				activeThumbColor="#fff"
+			/>
+			{isDiscreet ? (
+				<button
+					type="button"
+					onClick={() => setIsPickerOpen(true)}
+					className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover-fill"
+				>
+					<div className={`shrink-0 rounded-2xl p-2.5 ${ROW_ICON_CLASS}`}>
+						<ListChecks className="h-5 w-5" />
+					</div>
+					<div className="min-w-0 flex-1">
+						<p className="text-sm font-semibold leading-snug">
+							{t("right_now.shared_fields_title", { defaultValue: "Shown on your post" })}
+						</p>
+					</div>
+					<span className="max-w-[50%] shrink-0 truncate text-sm font-medium text-[var(--text-muted)]">{summary}</span>
+					<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+				</button>
+			) : null}
+			{isPickerOpen &&
+				createPortal(
+					<ManagedOptionsPickerDialog
+						title={t("right_now.shared_fields_title", { defaultValue: "Shown on your post" })}
+						options={fieldOptions}
+						selected={sharedFields.map((field) => RIGHT_NOW_SHARED_FIELDS.indexOf(field))}
+						confirmLabel={t("common.done", { defaultValue: "Done" })}
+						accentColor="var(--right-now)"
+						onToggle={toggleField}
+						onClose={() => setIsPickerOpen(false)}
+					/>,
+					document.body,
+				)}
 		</>
 	);
 }

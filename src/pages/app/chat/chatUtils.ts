@@ -395,6 +395,8 @@ export function getPreviewText(conversation: ConversationEntry, t: TranslateFn):
 			return t("chat.preview.sent_video");
 		case "Location":
 			return t("chat.preview.sent_location");
+		case "RightNowRequest":
+			return t("chat.preview.right_now_request", { defaultValue: "Right Now request" });
 		case "VideoCall":
 			return t("chat.preview.video_call");
 		default:
@@ -431,6 +433,8 @@ export function getMessagePreviewLabel(message: Message, t: TranslateFn): string
 			return t("chat.preview.sent_video");
 		case "Location":
 			return t("chat.preview.sent_location");
+		case "RightNowRequest":
+			return t("chat.preview.right_now_request", { defaultValue: "Right Now request" });
 		case "VideoCall":
 			return getVideoCallStatusLabel(message, t);
 		default:

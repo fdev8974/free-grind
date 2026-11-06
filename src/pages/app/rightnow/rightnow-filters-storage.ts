@@ -1,4 +1,6 @@
-export type RightNowSortOption = "DISTANCE" | "RECENCY";
+import type { RightNowFeedSort } from "../../../types/right-now";
+
+export type RightNowSortOption = RightNowFeedSort;
 
 export type RightNowViewMode = "list" | "map";
 
@@ -58,10 +60,13 @@ export function loadRightNowFiltersDraft(): RightNowFiltersPersisted {
 				: defaults.ageMax;
 
 		return {
+			// "RECENCY" was stored by older versions; the API only knows NEWEST.
 			sort:
-				parsed.sort === "DISTANCE" || parsed.sort === "RECENCY"
+				parsed.sort === "DISTANCE" || parsed.sort === "NEWEST"
 					? parsed.sort
-					: defaults.sort,
+					: (parsed.sort as string | undefined) === "RECENCY"
+						? "NEWEST"
+						: defaults.sort,
 			hostingOnly:
 				typeof parsed.hostingOnly === "boolean"
 					? parsed.hostingOnly

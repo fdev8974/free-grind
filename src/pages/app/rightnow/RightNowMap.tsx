@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useTranslation } from "react-i18next";
-import type { RightNowFeedItem } from "../../../services/apiFunctions";
+import type { RightNowFeedEntry, RightNowFeedItem } from "../../../services/apiFunctions";
 import { usePreferences } from "../../../contexts/PreferencesContext";
 import { useMediaBlur, useProfilePhotoPrivacy, type ProfilePhotoPrivacy } from "../../../hooks/useProfilePhotoPrivacy";
 import { decodeGeohash } from "../../../utils/geohash";
@@ -12,8 +12,9 @@ import { setCrashContext } from "../../../utils/crashContext";
 
 export type RightNowMapItem = RightNowFeedItem & { lat: number; lon: number };
 
-export function hasMapPosition(item: RightNowFeedItem): item is RightNowMapItem {
+export function hasMapPosition(item: RightNowFeedEntry): item is RightNowMapItem {
 	return (
+		item.kind === "post" &&
 		typeof item.lat === "number" && Number.isFinite(item.lat) &&
 		typeof item.lon === "number" && Number.isFinite(item.lon)
 	);

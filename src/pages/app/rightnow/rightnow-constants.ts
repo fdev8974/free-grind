@@ -9,3 +9,9 @@ export const RIGHT_NOW_TEST_SESSION_DURATION = 1 * 60 * 1000;
 export function getRightNowSessionDuration(isTestMode: boolean): number {
 	return isTestMode ? RIGHT_NOW_TEST_SESSION_DURATION : RIGHT_NOW_SESSION_DURATION;
 }
+
+/**
+ * Stored as rightNowRemaining for an UNLIMITED post entitlement, so the
+ * existing "posts left" number keeps working; shown as "∞".
+ */
+export const RIGHT_NOW_UNLIMITED_POSTS = 999;

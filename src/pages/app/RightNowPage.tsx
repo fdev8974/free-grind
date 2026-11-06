@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -11,16 +12,24 @@ import {
 	List,
 	Navigation,
 	Star,
+	Check,
+	Clock,
+	Hand,
+	Inbox,
 	UserRound,
+	VenetianMask,
 	X,
 } from "lucide-react";
 import { SlidersHorizontal as PhosphorSlidersHorizontal } from "@phosphor-icons/react";
 import { ClockFilled, HomeFilled, LayoutGridFilled, MapFilled } from "../../components/icons/FilledIcons";
-import { useRightNowFeed } from "../../hooks/queries/useRightNowQueries";
+import { getRightNowEntryKey, useReceivedRightNowRequests, useRightNowFeed, useSentRightNowRequests } from "../../hooks/queries/useRightNowQueries";
+import { RightNowRequestsSheet, pendingRightNowRequests } from "./rightnow/RightNowRequestsSheet";
+import { useApiFunctions } from "../../hooks/useApiFunctions";
 import { useFeatureFlag } from "../../services/assignmentsStore";
 import { decodeGeohash } from "../../utils/geohash";
 import { simulateRightNowMapFeed } from "./rightnow/rightnow-simulation";
-import type { RightNowFeedItem } from "../../services/apiFunctions";
+import type { RightNowDiscreetFeedItem, RightNowFeedEntry, RightNowFeedItem } from "../../services/apiFunctions";
+import type { RightNowSentRequest } from "../../types/right-now";
 import { formatDistance, isOnlineEndingSoon } from "./gridpage/utils";
 import { formatRelativeTime } from "../../utils/relativeTime";
 import { cn } from "../../utils/cn";
@@ -35,7 +44,8 @@ import {
 	loadRightNowFiltersDraft,
 	saveRightNowFiltersDraft,
 } from "./rightnow/rightnow-filters-storage";
-import { getSexualPositionFilterOptions } from "./profile-option-builders";
+import { getSexualPositionFilterOptions, getSexualPositionLabelMap } from "./profile-option-builders";
+import { formatHeightForUnits, formatWeightForUnits } from "../../utils/units";
 import { useForceDarkScheme, usePreferences } from "../../contexts/PreferencesContext";
 import { RightNowPostFAB, type RightNowFABPhase } from "./rightnow/RightNowPostFAB";
 import { RightNowPostPill } from "./rightnow/RightNowPostPill";
@@ -63,7 +73,7 @@ type SortOption = RightNowSortOption;
 // would rebuild `items` every render (test mode then fills it with synthetic
 // posts stamped with Date.now()), and the "mark as seen" effect below would
 // set state on each one — an infinite render loop.
-const EMPTY_FEED: RightNowFeedItem[] = [];
+const EMPTY_FEED: RightNowFeedEntry[] = [];
 
 function parseFiltersFromLocationState(
 	state: unknown,
@@ -259,7 +269,7 @@ function RightNowRow({
 	item: RightNowFeedItem;
 	onMessage: (profileId: string) => void;
 	onSelect: (profileId: string) => void;
-	onOpenPhoto: (photos: string[], index: number, profileId: string) => void;
+	onOpenPhoto: (photos: string[], index: number, profileId: string | null) => void;
 	className?: string;
 }) {
 	const { t } = useTranslation();
@@ -393,7 +403,7 @@ function RightNowTile({
 	item: RightNowFeedItem;
 	onMessage: (profileId: string) => void;
 	onSelect: (profileId: string) => void;
-	onOpenPhoto: (photos: string[], index: number, profileId: string) => void;
+	onOpenPhoto: (photos: string[], index: number, profileId: string | null) => void;
 }) {
 	const { t } = useTranslation();
 	const { unitsPreset } = usePreferences();
@@ -581,6 +591,297 @@ function RightNowTile({
 	);
 }
 
+/** Age · height · weight · position of a discreet post's author, whichever were shared. */
+function useDiscreetFieldsLine(item: RightNowDiscreetFeedItem): string {
+	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
+	const positionLabels = useMemo(() => getSexualPositionLabelMap(t), [t]);
+	const { age, height, weight, position } = item.profileFields;
+	return [
+		age != null ? String(age) : null,
+		height != null ? formatHeightForUnits(height, unitsPreset) : null,
+		weight != null ? formatWeightForUnits(weight, unitsPreset) : null,
+		position != null ? positionLabels[position] ?? null : null,
+	]
+		.filter((field): field is string => field != null)
+		.join(" · ");
+}
+
+function getEntryPhotos(item: RightNowFeedEntry): string[] {
+	return (item.media || []).map((m) => m.data?.fullImageUrl || m.data?.thumbnailUrl || "").filter(Boolean);
+}
+
+function DiscreetAvatar({ className }: { className?: string }) {
+	return (
+		<div className={cn("flex items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-muted)]", className)}>
+			<VenetianMask className="h-1/2 w-1/2" />
+		</div>
+	);
+}
+
+type DiscreetRequestProps = {
+	/** Our request to this post, if we sent one. */
+	request: RightNowSentRequest | undefined;
+	isSending: boolean;
+	onRequest: (postId: number) => void;
+	onMessage: (profileId: string) => void;
+};
+
+/**
+ * A discreet post can't be messaged directly: we send a Right Now request,
+ * and once its author accepts, the server opens a chat between us and the
+ * outbox tells us who they are.
+ */
+function DiscreetRequestButton({
+	postId,
+	request,
+	isSending,
+	onRequest,
+	onMessage,
+	className,
+}: DiscreetRequestProps & { postId: number; className: string }) {
+	const { t } = useTranslation();
+	const status = request?.status;
+	const acceptedProfileId = status === "ACCEPTED" ? request?.recipientProfileId ?? null : null;
+
+	if (acceptedProfileId) {
+		return (
+			<button
+				type="button"
+				onClick={(e) => {
+					e.stopPropagation();
+					onMessage(acceptedProfileId);
+				}}
+				className={className}
+				title={t("right_now.request_accepted", { defaultValue: "Request accepted, open chat" })}
+				aria-label={t("right_now.request_accepted", { defaultValue: "Request accepted, open chat" })}
+			>
+				<MessageSquare className="h-4 w-4" />
+			</button>
+		);
+	}
+
+	const label =
+		status === "PENDING"
+			? t("right_now.request_pending", { defaultValue: "Request sent" })
+			: status === "REJECTED"
+				? t("right_now.request_rejected", { defaultValue: "Request declined" })
+				: status === "ACCEPTED"
+					? t("right_now.request_accepted_waiting", { defaultValue: "Request accepted" })
+					: t("right_now.request_send", { defaultValue: "Send request" });
+	const canSend = !status && !isSending;
+
+	return (
+		<button
+			type="button"
+			disabled={!canSend}
+			onClick={(e) => {
+				e.stopPropagation();
+				if (canSend) onRequest(postId);
+			}}
+			className={cn(className, !canSend && "opacity-60")}
+			title={label}
+			aria-label={label}
+		>
+			{isSending ? (
+				<Clock className="h-4 w-4 animate-pulse" />
+			) : status === "PENDING" ? (
+				<Clock className="h-4 w-4" />
+			) : status === "REJECTED" ? (
+				<X className="h-4 w-4" />
+			) : status === "ACCEPTED" ? (
+				<Check className="h-4 w-4" />
+			) : (
+				<Hand className="h-4 w-4" />
+			)}
+		</button>
+	);
+}
+
+/**
+ * A discreet post: the server leaves out who posted it, so there's no
+ * profile to open — just the post, the profile fields its author chose to
+ * share, and a request button.
+ */
+function RightNowDiscreetRow({
+	item,
+	onOpenPhoto,
+	...requestProps
+}: DiscreetRequestProps & {
+	item: RightNowDiscreetFeedItem;
+	onOpenPhoto: (photos: string[], index: number, profileId: string | null) => void;
+}) {
+	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
+	const { ref, revealClass } = useRevealOnScroll();
+	const fieldsLine = useDiscreetFieldsLine(item);
+	const timeAgo = formatRelativeTime(item.postedAt);
+	const distance = item.distanceMeters != null ? formatDistance(item.distanceMeters, t, unitsPreset) : null;
+	const photos = useMemo(() => getEntryPhotos(item), [item]);
+
+	return (
+		<div
+			ref={ref}
+			className={cn("group/reveal flex items-center gap-4 pl-4 pr-4 py-3 border-b border-[var(--surface-2)]", revealClass)}
+		>
+			<DiscreetAvatar className="h-15 w-15 shrink-0" />
+
+			<div className="min-w-0 flex-1">
+				<p className={cn("line-clamp-3 text-sm font-bold mb-0.5", item.text ? "text-[var(--text)]" : "text-[var(--text-muted)]")}>
+					{item.text || t("right_now.discreet_post", { defaultValue: "Discreet post" })}
+				</p>
+
+				<div className="flex items-center gap-3">
+					{timeAgo ? (
+						<span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+							<ClockFilled className="h-3 w-3" />
+							{timeAgo}
+						</span>
+					) : null}
+					{distance && distance !== "hidden" ? (
+						<span className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+							<Navigation className="h-3 w-3 fill-current" />
+							{distance}
+						</span>
+					) : null}
+					{item.hosting && (
+						<span className="flex items-center gap-1 text-xs text-[var(--right-now)]">
+							<HomeFilled className="h-3.5 w-3.5" />
+						</span>
+					)}
+				</div>
+
+				<div className="mt-0.5 flex items-center justify-between gap-2">
+					<p className="flex min-w-0 items-center gap-1 text-xs text-[var(--text-muted)] font-medium">
+						<VenetianMask className="h-3 w-3 shrink-0" />
+						<span className="truncate">{fieldsLine || t("right_now.discreet", { defaultValue: "Discreet" })}</span>
+					</p>
+					{item.premiumType && item.premiumType !== "locked" && (
+						<span className="shrink-0 text-[10px] font-medium text-[var(--text-muted)] opacity-50 uppercase tracking-wider">
+							{item.premiumType.split("_")[0]}
+						</span>
+					)}
+				</div>
+
+				<PostMediaGrid media={item.media} onOpenPhoto={(index) => onOpenPhoto(photos, index, null)} />
+			</div>
+
+			<DiscreetRequestButton
+				postId={item.id}
+				{...requestProps}
+				className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--right-now)]/35 bg-[color-mix(in_srgb,var(--right-now),transparent_92%)] text-[var(--right-now)] transition-all active:scale-95 hover:border-[var(--right-now)]/45"
+			/>
+		</div>
+	);
+}
+
+/** Desktop grid tile for a discreet post, laid out like RightNowTile without the profile parts. */
+function RightNowDiscreetTile({
+	item,
+	onOpenPhoto,
+	...requestProps
+}: DiscreetRequestProps & {
+	item: RightNowDiscreetFeedItem;
+	onOpenPhoto: (photos: string[], index: number, profileId: string | null) => void;
+}) {
+	const { t } = useTranslation();
+	const { unitsPreset } = usePreferences();
+	const { ref, revealClass } = useRevealOnScroll();
+	const { rightNow: blurRightNowMedia } = useMediaBlur();
+	const heroReveal = useBlurReveal(blurRightNowMedia);
+	const fieldsLine = useDiscreetFieldsLine(item);
+	const distance = item.distanceMeters != null ? formatDistance(item.distanceMeters, t, unitsPreset) : null;
+	const photos = useMemo(() => getEntryPhotos(item), [item]);
+	const minutesLeft = item.expiresAt != null ? Math.max(0, Math.ceil((item.expiresAt - Date.now()) / 60_000)) : null;
+	const heroSrc = photos[0] ?? null;
+
+	return (
+		<div
+			ref={ref}
+			className={cn(
+				"group/reveal native-card relative flex h-full flex-col overflow-hidden !rounded-3xl",
+				revealClass,
+				"[animation-fill-mode:backwards]!",
+			)}
+		>
+			<div className="relative h-40 w-full shrink-0 overflow-hidden">
+				{heroSrc ? (
+					<button
+						type="button"
+						onClick={() => {
+							if (heroReveal.revealOnTap(heroSrc)) return;
+							onOpenPhoto(photos, 0, null);
+						}}
+						{...heroReveal.hoverProps(heroSrc)}
+						className="block h-full w-full"
+					>
+						<img
+							src={proxyMediaUrl(heroSrc)}
+							alt=""
+							className={cn("h-full w-full object-cover", PRIVACY_BLUR_TRANSITION_CLASS, heroReveal.isBlurred(heroSrc) && PRIVACY_BLUR_CLASS)}
+							draggable={false}
+						/>
+					</button>
+				) : (
+					<div
+						aria-hidden="true"
+						className="h-full w-full"
+						style={{ background: "radial-gradient(ellipse 80% 90% at 50% 0%, color-mix(in srgb, var(--right-now) 28%, transparent), transparent)" }}
+					/>
+				)}
+				{heroSrc ? (
+					<div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/60 to-transparent" />
+				) : null}
+				{item.hosting ? (
+					<span className="pointer-events-none absolute left-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--right-now)_85%,black)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+						<HomeFilled className="h-3 w-3" />
+						{t("right_now.hosting")}
+					</span>
+				) : null}
+				{photos.length > 1 ? (
+					<span className="pointer-events-none absolute bottom-12 right-3 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white backdrop-blur-md">
+						+{photos.length - 1}
+					</span>
+				) : null}
+			</div>
+
+			<div className="relative -mt-7 flex flex-1 flex-col px-4 pb-4">
+				<div className="flex items-center gap-3">
+					<DiscreetAvatar className="h-14 w-14 shrink-0 border border-[var(--bg)] shadow-lg" />
+					<div className="min-w-0 flex-1">
+						<p className={cn("truncate text-base font-bold", heroSrc ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" : "text-[var(--text)]")}>
+							{t("right_now.discreet", { defaultValue: "Discreet" })}
+						</p>
+						<div className="mt-1 flex h-5 items-center gap-3 overflow-hidden whitespace-nowrap text-xs text-[var(--text-muted)]">
+							{fieldsLine ? <span className="truncate">{fieldsLine}</span> : null}
+							{distance && distance !== "hidden" ? (
+								<span className="inline-flex items-center gap-1">
+									<Navigation className="h-3 w-3 fill-current" />
+									{distance}
+								</span>
+							) : null}
+							{minutesLeft != null ? (
+								<span className="inline-flex items-center gap-1 tabular-nums">
+									<Hourglass className="h-3 w-3" />
+									{minutesLeft}m
+								</span>
+							) : null}
+						</div>
+					</div>
+					<DiscreetRequestButton
+						postId={item.id}
+						{...requestProps}
+						className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full ink-tint-8 text-[var(--right-now)] transition active:scale-90 active:ink-tint-16 hover:ink-tint-12"
+					/>
+				</div>
+				<p className={cn("mt-3 line-clamp-2 h-11 text-sm leading-[22px]", item.text ? "text-[var(--text)]" : "text-[var(--text-muted)]")}>
+					{item.text || t("right_now.discreet_post", { defaultValue: "Discreet post" })}
+				</p>
+			</div>
+		</div>
+	);
+}
+
 // Fades into the page background, so it doesn't read as a dark smudge in light mode.
 const BOTTOM_SCRIM_GRADIENT =
 	"linear-gradient(to top, color-mix(in srgb, var(--bg) 92%, transparent) 0%, color-mix(in srgb, var(--bg) 55%, transparent) 45%, transparent 100%)";
@@ -599,7 +900,7 @@ function RightNowMapCard({
 	item: RightNowFeedItem;
 	onMessage: (profileId: string) => void;
 	onSelect: (profileId: string) => void;
-	onOpenPhoto: (photos: string[], index: number, profileId: string) => void;
+	onOpenPhoto: (photos: string[], index: number, profileId: string | null) => void;
 	onClose: () => void;
 }) {
 	const { t } = useTranslation();
@@ -827,7 +1128,8 @@ export function RightNowPage() {
 		sexualPositions: positionFilter || undefined,
 	}), [sort, hostingOnly, ageMin, ageMax, positionFilter]);
 
-	const { data: feedItems = EMPTY_FEED, isLoading, error, refetch } = useRightNowFeed(queryParams);
+	const { data: feed, isLoading, error, refetch } = useRightNowFeed(queryParams);
+	const feedItems = feed?.items ?? EMPTY_FEED;
 	const { activeRightNowId, activeRightNowExpiresAt, rightNowRemaining, setPreferences, developerMode, showDebugInfo, rightNowTestMode, geohash } = usePreferences();
 
 	// Test mode feeds the map simulated positions around the browse location
@@ -846,9 +1148,33 @@ export function RightNowPage() {
 	const items = useMemo(() => {
 		const source = rightNowTestMode ? simulateRightNowMapFeed(feedItems, testModeCenter, hostingOnly) : feedItems;
 		// Favorites is filtered here — the feed API has no parameter for it.
-		return favoritesOnly ? source.filter((item) => item.isFavorite) : source;
+		// Discreet posts have no known author to be a favorite.
+		return favoritesOnly ? source.filter((item) => item.kind === "post" && item.isFavorite) : source;
 	}, [rightNowTestMode, feedItems, testModeCenter, hostingOnly, favoritesOnly]);
 	const queryClient = useQueryClient();
+	const api = useApiFunctions();
+
+	// Requests others sent to our post: the header's inbox shows how many wait
+	// for an answer. Requests only reach discreet posts, so the inbox is only
+	// there when the account can post discreetly (same gate as the post sheet).
+	const canPostDiscreetly = useFeatureFlag("right-now-discreet") || rightNowTestMode;
+	const { data: receivedRequests } = useReceivedRightNowRequests(canPostDiscreetly && !rightNowTestMode);
+	const pendingRequests = useMemo(() => pendingRightNowRequests(receivedRequests), [receivedRequests]);
+	const [isRequestsOpen, setIsRequestsOpen] = useState(false);
+
+	// Requests to discreet posts: only polled while one is listed.
+	const hasDiscreetPosts = useMemo(() => items.some((item) => item.kind === "discreet"), [items]);
+	const { data: sentRequests } = useSentRightNowRequests(hasDiscreetPosts && !rightNowTestMode);
+	const sendRequest = useMutation({
+		mutationFn: (postId: number) => api.sendRightNowRequest(postId),
+		onSuccess: () => {
+			toast.success(t("right_now.request_sent_toast", { defaultValue: "Request sent" }));
+			void queryClient.invalidateQueries({ queryKey: ["rightnow", "requests", "outbox"] });
+		},
+		onError: (requestError) => {
+			toast.error(requestError instanceof Error ? requestError.message : t("right_now.request_error", { defaultValue: "Could not send the request" }));
+		},
+	});
 
 	const [viewerPhotos, setViewerPhotos] = useState<string[]>([]);
 	const [viewerIndex, setViewerIndex] = useState(0);
@@ -859,7 +1185,7 @@ export function RightNowPage() {
 	// of leaving the Right Now page.
 	const viewerHistoryPushedRef = useRef(false);
 
-	const openPhotoViewer = useCallback((photos: string[], index: number, profileId: string) => {
+	const openPhotoViewer = useCallback((photos: string[], index: number, profileId: string | null) => {
 		setViewerPhotos(photos);
 		setViewerIndex(index);
 		setViewerProfileId(profileId);
@@ -1168,7 +1494,7 @@ export function RightNowPage() {
 	);
 
 	const toggleSort = useCallback(() => {
-		setSort((prev) => (prev === "DISTANCE" ? "RECENCY" : "DISTANCE"));
+		setSort((prev) => (prev === "DISTANCE" ? "NEWEST" : "DISTANCE"));
 		sessionStorage.removeItem("rightnow-scroll");
 		setHasRestoredScroll(true);
 		feedContainerRef.current?.scrollTo(0, 0);
@@ -1243,7 +1569,32 @@ export function RightNowPage() {
 				{/* Only the controls take clicks: the map runs on behind the whole header,
 				    so its markers stay clickable around the title and pills. */}
 				<div className="grid gap-3 mx-auto w-full max-w-4xl rail:max-w-none px-[var(--app-px)]">
-					<h1 className="app-title">{t("right_now.title")}</h1>
+					<div className="flex items-center justify-between gap-3">
+						<h1 className="app-title min-w-0">{t("right_now.title")}</h1>
+						{/* Same as the inbox header's icon buttons: -my-2 keeps the row at the title's height. */}
+						{canPostDiscreetly && (
+						<div className="pointer-events-auto -my-2 flex shrink-0 items-center gap-0.5">
+							<button
+								type="button"
+								onClick={() => setIsRequestsOpen(true)}
+								title={t("right_now.requests_title", { defaultValue: "Requests" })}
+								aria-label={
+									pendingRequests.length > 0
+										? `${t("right_now.requests_title", { defaultValue: "Requests" })}: ${pendingRequests.length}`
+										: t("right_now.requests_title", { defaultValue: "Requests" })
+								}
+								className="header-icon-btn relative rounded-xl p-2 text-[var(--text-muted)] transition hover:text-[var(--text)]"
+							>
+								<Inbox className="h-5 w-5" />
+								{pendingRequests.length > 0 ? (
+									<span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--right-now)] px-1 text-[9px] font-bold leading-none tabular-nums text-white">
+										{pendingRequests.length > 99 ? "99+" : pendingRequests.length}
+									</span>
+								) : null}
+							</button>
+						</div>
+						)}
+					</div>
 
 					<div className="flex flex-wrap items-center gap-2 pb-4 [&>*]:pointer-events-auto">
 						{isMapAvailable && (
@@ -1431,26 +1782,49 @@ export function RightNowPage() {
 					</div>
 				) : isDesktop ? (
 					<div className="grid grid-cols-[repeat(auto-fill,minmax(max(300px,calc((100%-4*0.75rem)/5)),1fr))] gap-3 px-[var(--app-px)] pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
-						{items.map((item) => (
-							<RightNowTile
-								key={`${item.id}-${item.profileId}`}
-								item={item}
-								onMessage={handleMessage}
-								onSelect={handleSelect}
-								onOpenPhoto={openPhotoViewer}
-							/>
-						))}
-					</div>
-				) : (
-					<div className="mx-auto max-w-4xl pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
-						{items.map((item) => (
-							<div key={`${item.id}-${item.profileId}`} className="px-0">
-								<RightNowRow
+						{items.map((item) =>
+							item.kind === "discreet" ? (
+								<RightNowDiscreetTile
+									key={getRightNowEntryKey(item)}
+									item={item}
+									onOpenPhoto={openPhotoViewer}
+									request={sentRequests?.get(item.id)}
+									isSending={sendRequest.isPending && sendRequest.variables === item.id}
+									onRequest={(postId) => sendRequest.mutate(postId)}
+									onMessage={handleMessage}
+								/>
+							) : (
+								<RightNowTile
+									key={getRightNowEntryKey(item)}
 									item={item}
 									onMessage={handleMessage}
 									onSelect={handleSelect}
 									onOpenPhoto={openPhotoViewer}
 								/>
+							),
+						)}
+					</div>
+				) : (
+					<div className="mx-auto max-w-4xl pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
+						{items.map((item) => (
+							<div key={getRightNowEntryKey(item)} className="px-0">
+								{item.kind === "discreet" ? (
+									<RightNowDiscreetRow
+										item={item}
+										onOpenPhoto={openPhotoViewer}
+										request={sentRequests?.get(item.id)}
+										isSending={sendRequest.isPending && sendRequest.variables === item.id}
+										onRequest={(postId) => sendRequest.mutate(postId)}
+										onMessage={handleMessage}
+									/>
+								) : (
+									<RightNowRow
+										item={item}
+										onMessage={handleMessage}
+										onSelect={handleSelect}
+										onOpenPhoto={openPhotoViewer}
+									/>
+								)}
 							</div>
 						))}
 					</div>
@@ -1473,7 +1847,7 @@ export function RightNowPage() {
 					<div
 						className={cn(
 							"absolute bottom-0 left-4 transition-all duration-300 pointer-events-auto",
-							(isPosting || isFiltersOpen || isMapCardOpen) ? "pointer-events-none opacity-0 translate-y-4" : "opacity-100 translate-y-0",
+							(isPosting || isFiltersOpen || isMapCardOpen || isRequestsOpen) ? "pointer-events-none opacity-0 translate-y-4" : "opacity-100 translate-y-0",
 						)}
 					>
 						<button
@@ -1500,7 +1874,7 @@ export function RightNowPage() {
 						// Mobile: round button above the bottom nav, thumb-reachable; desktop: a
 						// labelled pill centered at the bottom.
 						"absolute bottom-0 right-[16%] translate-x-1/2 rail:right-1/2 transition-opacity duration-300 pointer-events-auto",
-						(isPosting || isFiltersOpen || isMapCardOpen) ? "pointer-events-none opacity-0" : "opacity-100",
+						(isPosting || isFiltersOpen || isMapCardOpen || isRequestsOpen) ? "pointer-events-none opacity-0" : "opacity-100",
 					)}
 				>
 					{isDesktop ? (
@@ -1532,6 +1906,9 @@ export function RightNowPage() {
 				onClose={handleCloseModal}
 				onPost={handlePostSuccess}
 			/>
+		)}
+		{isRequestsOpen && (
+			<RightNowRequestsSheet requests={pendingRequests} onClose={() => setIsRequestsOpen(false)} />
 		)}
 		{isFiltersMounted && (
 			<RightNowFiltersPage

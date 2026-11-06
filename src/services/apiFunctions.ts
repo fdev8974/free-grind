@@ -15,13 +15,14 @@ import { createLegalMethods } from "./api/legalMethods";
 import { createWarningsMethods } from "./api/warningsMethods";
 import { createSpotifyMethods } from "./api/spotifyMethods";
 import { createPushSettingsMethods } from "./api/pushSettingsMethods";
-import type { RightNowFeedItem, RightNowCreatePostRequest, RightNowCreatePostMedia, RightNowUpdatePostRequest } from "../types/right-now";
+import type { RightNowFeedItem, RightNowDiscreetFeedItem, RightNowFeedEntry, RightNowCreatePostRequest, RightNowCreatePostMedia, RightNowUpdatePostRequest } from "../types/right-now";
 
 export {
 	ApiFunctionError,
 };
 
-export type { RightNowFeedItem, RightNowCreatePostRequest, RightNowCreatePostMedia, RightNowUpdatePostRequest };
+export type { RightNowFeedItem, RightNowDiscreetFeedItem, RightNowFeedEntry, RightNowCreatePostRequest, RightNowCreatePostMedia, RightNowUpdatePostRequest };
+export { NoFreeRightNowPostsError, RightNowDiscreetSetupError, RightNowPostAlreadyRunningError, RightNowSessionEndedError } from "./api/feedMethods";
 
 export function createApiFunctions(fetchRest: RestFetcher, t: (key: string) => string) {
 	const chatService = createChatService(fetchRest, t);

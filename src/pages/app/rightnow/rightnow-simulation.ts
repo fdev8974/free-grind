@@ -1,4 +1,4 @@
-import type { RightNowCreatePostRequest, RightNowFeedItem, RightNowUpdatePostRequest } from "../../../services/apiFunctions";
+import type { RightNowCreatePostRequest, RightNowFeedEntry, RightNowFeedItem, RightNowUpdatePostRequest } from "../../../services/apiFunctions";
 import { appLog } from "../../../utils/logger";
 import { getRightNowSessionDuration } from "./rightnow-constants";
 
@@ -41,7 +41,7 @@ export async function simulateCreatePost(payload: RightNowCreatePostRequest) {
 	return response;
 }
 
-export async function simulateUpdatePost(id: number, payload: RightNowUpdatePostRequest) {
+export async function simulateUpdatePost(id: number, payload: RightNowUpdatePostRequest & { hidden?: boolean }) {
 	appLog.info("Simulating PATCH RightNow Post:", id, payload);
 	await new Promise((resolve) => setTimeout(resolve, 1500));
 	const response = { success: true };
@@ -112,12 +112,14 @@ const SIMULATED_NO_POSITION_RATIO = 0.25;
  * feed is too small. Synthetic profile IDs don't exist on the server.
  */
 export function simulateRightNowMapFeed(
-	items: RightNowFeedItem[],
+	items: RightNowFeedEntry[],
 	center: { lat: number; lon: number },
 	hostingOnly: boolean,
-): RightNowFeedItem[] {
+): RightNowFeedEntry[] {
 	const now = Date.now();
 	const withPositions = items.map((item) => {
+		// Discreet posts never carry a position.
+		if (item.kind === "discreet") return item;
 		if (item.lat != null && item.lon != null) return item;
 		if (seededRandom(`${item.profileId}:skip`) < SIMULATED_NO_POSITION_RATIO) return item;
 		const point = scatterAround(center, item.profileId, SIMULATED_RADIUS_METERS);
@@ -132,6 +134,7 @@ export function simulateRightNowMapFeed(
 		const hasPosition = i % 4 !== 3;
 		const point = scatterAround(center, profileId, SIMULATED_RADIUS_METERS);
 		synthetic.push({
+			kind: "post",
 			id: -(i + 1),
 			profileId,
 			displayName: `Test ${i + 1}`,
