@@ -1723,7 +1723,10 @@ export type SystemMessageType =
 	| "SystemBlocked"
 	| "SystemUnblocked"
 	| "SystemBlockedBySelf"
-	| "SystemUnblockedBySelf";
+	| "SystemUnblockedBySelf"
+	// Inserted by the backup restore (backup.rs insert_restored_markers), never
+	// here: ends a conversation restored from another profile's backup.
+	| "SystemRestored";
 
 /**
  * Inserts a synthetic, locally-generated message marking a block/unblock

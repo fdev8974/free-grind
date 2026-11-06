@@ -1643,7 +1643,8 @@
             "blocked_by_self": "Блокирали сте ову особу",
             "blocked": "Блокирани сте",
             "unblocked_by_self": "Одблокирали сте ову особу",
-            "unblocked": "Одблокирани сте"
+            "unblocked": "Одблокирани сте",
+            "restored": "Враћено из копије"
         },
         "block_toast": {
             "blocked_by_one": "{{name}} вас је блокирао",

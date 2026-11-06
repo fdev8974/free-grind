@@ -1639,7 +1639,8 @@
             "blocked_by_self": "Has bloqueado a esta persona",
             "blocked": "Te han bloqueado",
             "unblocked_by_self": "Has desbloqueado a esta persona",
-            "unblocked": "Te han desbloqueado"
+            "unblocked": "Te han desbloqueado",
+            "restored": "Restaurado de copia"
         },
         "block_toast": {
             "blocked_by_one": "{{name}} te ha bloqueado",

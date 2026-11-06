@@ -1157,6 +1157,18 @@ export function ChatThreadMessages({
                         );
                     }
 
+                    if (message.type === "SystemRestored") {
+                        return (
+                            <Fragment key={message.messageId}>
+                                {renderEventPill(
+                                    <History className="h-3.5 w-3.5 shrink-0" />,
+                                    t("chat.system.restored", { defaultValue: "Restored from backup" }),
+                                    message.timestamp,
+                                )}
+                            </Fragment>
+                        );
+                    }
+
                     if (message.type === "VideoCall") {
                         const body = message.body as Record<string, unknown> | null;
                         const isSuccessful =

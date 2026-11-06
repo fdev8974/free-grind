@@ -1855,7 +1855,8 @@
       "blocked_by_self": "You blocked this person",
       "blocked": "You were blocked",
       "unblocked_by_self": "You unblocked this person",
-      "unblocked": "You were unblocked"
+      "unblocked": "You were unblocked",
+      "restored": "Restored from backup"
     },
     "block_toast": {
       "blocked_by_one": "",

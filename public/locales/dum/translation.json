@@ -1665,7 +1665,8 @@
             "blocked_by_self": "لقد بلوكت هذا الشخص",
             "blocked": "تم بلوكك",
             "unblocked_by_self": "لقد قمت بإلغاء بلوك هذا الشخص",
-            "unblocked": "تم رفع البلوك عنك"
+            "unblocked": "تم رفع البلوك عنك",
+            "restored": "تمت الاستعادة من النسخة الاحتياطية"
         },
         "block_toast": {
             "blocked_by_one": "{{name}} عملك بلوك",

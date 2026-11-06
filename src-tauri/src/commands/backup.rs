@@ -41,7 +41,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine as _;
@@ -542,6 +542,10 @@ const KEEP_ON_CONFLICT: &[(&str, &[&str])] = &[("conversations", &["archived", "
 const ARCHIVED_REASON_BLOCK: &str = "ws_delete";
 /// Archived because the server no longer produces it; cleared as soon as it reappears.
 const ARCHIVED_REASON_NOT_FOUND: &str = "not_found";
+
+/// `SystemMessageType` in src/services/chatDb.ts: marks where a conversation
+/// restored from another profile's backup ends and this profile's chat goes on.
+const RESTORED_MARKER_TYPE: &str = "SystemRestored";
 
 /// `getDrawerMediaKey` in src/services/mediaStore.ts.
 const DRAWER_MEDIA_KEY_PREFIX: &str = "drawer:";
@@ -1348,6 +1352,9 @@ fn import_tables(
     let mut total_rows_imported: u64 = 0;
     let mut slice_started = Instant::now();
     let mut slice_bytes: usize = 0;
+    // Conversations a restore into another profile brought in that the db
+    // didn't have yet - see insert_restored_markers.
+    let mut new_conversations: Vec<String> = Vec::new();
 
     for (table_index, table) in tables.into_iter().enumerate() {
         let rows_total = row_counts.get(&table.entry_key()).copied();
@@ -1373,6 +1380,7 @@ fn import_tables(
         };
 
         let upsert_sql = build_upsert_sql(table, target);
+        let tracks_new_conversations = remap.is_some() && target == "conversations";
         let mut rows_done: u64 = 0;
 
         for line in BufReader::with_capacity(COPY_BUFFER_SIZE, entry).lines() {
@@ -1426,6 +1434,14 @@ fn import_tables(
                 .map(|c| json_to_rusqlite(row_map.get(c).unwrap_or(&Value::Null)))
                 .collect::<Result<Vec<_>, AppError>>()?;
 
+            if tracks_new_conversations {
+                if let Some(id) = row_map.get("conversation_id").and_then(Value::as_str) {
+                    if !conn.prepare_cached("SELECT 1 FROM conversations WHERE conversation_id = ?1")?.exists([id])? {
+                        new_conversations.push(id.to_string());
+                    }
+                }
+            }
+
             conn.prepare_cached(&upsert_sql)?
                 .execute(rusqlite::params_from_iter(params.iter()))?;
             slice_bytes += line.len();
@@ -1448,7 +1464,34 @@ fn import_tables(
         progress.emit(BackupProgress { table: &progress_key, table_index, table_count, rows_done, rows_total });
     }
 
+    insert_restored_markers(conn, &new_conversations)?;
     Ok(total_rows_imported)
+}
+
+/// Ends each conversation restored from another profile's backup with a local
+/// system message (see insertSystemMessage in src/services/chatDb.ts), so the
+/// thread shows where the old profile's history stops and this profile's
+/// chat with the same person picks up. Only for conversations the db didn't
+/// have: an existing one already interleaves both histories by time, so there's
+/// no single point to mark. Skipped for a conversation without messages.
+fn insert_restored_markers(conn: &Connection, conversation_ids: &[String]) -> Result<(), AppError> {
+    if conversation_ids.is_empty() || !table_exists(conn, "messages")? {
+        return Ok(());
+    }
+    let now = SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64);
+    let mut stmt = conn.prepare_cached(
+        "INSERT OR IGNORE INTO messages (
+            message_id, conversation_id, sender_id, timestamp, type, chat1_type, body_json, unsent,
+            local_history, reply_to_message_id, reply_preview_json, reactions_json, created_at, updated_at
+         )
+         SELECT ?1, ?2, 0, ?3, ?4, NULL, NULL, 0, 0, NULL, NULL, '[]', ?3, ?3
+         WHERE EXISTS (SELECT 1 FROM messages WHERE conversation_id = ?2)",
+    )?;
+    for conversation_id in conversation_ids {
+        let message_id = format!("local-system:{RESTORED_MARKER_TYPE}:{conversation_id}:{now}");
+        stmt.execute(rusqlite::params![message_id, conversation_id, now, RESTORED_MARKER_TYPE])?;
+    }
+    Ok(())
 }
 
 /// Payload of `backup-copy-progress`: bytes of a picked backup copied so far
@@ -1736,7 +1779,10 @@ mod tests {
             Some(r#"{"conversationId":{"value":"300:400"},"senderId":300}"#)
         );
         assert_eq!(
-            text("SELECT group_concat(message_id) FROM (SELECT message_id FROM messages ORDER BY message_id)").as_deref(),
+            text(
+                "SELECT group_concat(message_id) FROM (SELECT message_id FROM messages WHERE type IS NOT 'SystemRestored' ORDER BY message_id)"
+            )
+            .as_deref(),
             Some("local-system:SystemBlocked:300:400:1700000000000,m1")
         );
         assert_eq!(
@@ -1766,6 +1812,14 @@ mod tests {
         assert_eq!(text("SELECT group_concat(profile_id) FROM restored_blocked_profiles").as_deref(), Some("400"));
         assert_eq!(text("SELECT group_concat(profile_id) FROM own_blocked_profiles").as_deref(), Some("999"));
         assert_eq!(text("SELECT group_concat(media_key) FROM media_files").as_deref(), Some("restored-drawer:77"));
+        assert_eq!(
+            text(
+                "SELECT group_concat(conversation_id) FROM messages
+                 WHERE type = 'SystemRestored' AND sender_id = 0 AND message_id LIKE 'local-system:SystemRestored:300:400:%'"
+            )
+            .as_deref(),
+            Some("300:400")
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -1785,7 +1839,12 @@ mod tests {
             "INSERT INTO conversations (conversation_id, other_profile_id, name, archived, archived_reason, archived_at)
                 VALUES ('400:500', '400', 'old', 1, 'ws_delete', 1700000000000),
                        ('500:600', '600', 'old', 1, 'ws_delete', 1700000000000),
-                       ('500:700', '700', 'old', 1, 'not_found', 1700000000000);",
+                       ('500:700', '700', 'old', 1, 'not_found', 1700000000000),
+                       ('500:800', '800', 'old', 0, NULL, NULL);
+             INSERT INTO messages (message_id, conversation_id, sender_id, timestamp)
+                VALUES ('m1', '400:500', 400, 1700000000000),
+                       ('m2', '500:600', 600, 1700000000000),
+                       ('m3', '500:700', 700, 1700000000000);",
         )
         .unwrap();
         let categories = all_categories();
@@ -1816,6 +1875,19 @@ mod tests {
         // Other columns still come from the backup; the archive state stays the db's.
         assert_eq!(row("300:600"), ("old".into(), 0, None));
         assert_eq!(row("300:700"), ("old".into(), 1, Some("not_found".into())));
+        // A marker ends each conversation the db didn't have, after its history -
+        // not one it already had (300:600), nor one without messages (300:800).
+        let marked: String = dst
+            .query_row(
+                "SELECT group_concat(conversation_id) FROM (
+                    SELECT conversation_id FROM messages
+                    WHERE type = 'SystemRestored' AND timestamp > 1700000000000 ORDER BY conversation_id
+                 )",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(marked, "300:400,300:700");
 
         let _ = std::fs::remove_dir_all(&dir);
     }

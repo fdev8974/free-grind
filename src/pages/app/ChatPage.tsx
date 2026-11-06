@@ -207,7 +207,7 @@ function hasServerInboxFilters(filters: InboxFilters): boolean {
 		filters.distanceMeters != null
 	);
 }
-// Synthetic, locally-generated block/unblock markers (see
+// Synthetic, locally-generated block/unblock/restore markers (see
 // chatDb.insertSystemMessage) — never real chat activity, so excluded
 // wherever "the newest message" is used to drive a conversation's
 // lastActivityTimestamp/sort position.
@@ -216,6 +216,7 @@ const SYSTEM_MESSAGE_TYPES = new Set<string>([
 	"SystemUnblocked",
 	"SystemBlockedBySelf",
 	"SystemUnblockedBySelf",
+	"SystemRestored",
 ]);
 
 /**

@@ -1639,7 +1639,8 @@
             "blocked_by_self": "Blokirao si ovu osobu",
             "blocked": "Blokiran si",
             "unblocked_by_self": "Deblokirao si ovu osobu",
-            "unblocked": "Deblokiran si"
+            "unblocked": "Deblokiran si",
+            "restored": "Vraćeno iz kopije"
         },
         "block_toast": {
             "blocked_by_one": "{{name}} te blokirao",

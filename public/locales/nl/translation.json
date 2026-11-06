@@ -1626,7 +1626,8 @@
             "blocked_by_self": "Je hebt deze persoon geblokkeerd",
             "blocked": "Je bent geblokkeerd",
             "unblocked_by_self": "Je hebt deze persoon gedeblokkeerd",
-            "unblocked": "Je bent gedeblokkeerd"
+            "unblocked": "Je bent gedeblokkeerd",
+            "restored": "Hersteld uit back-up"
         },
         "block_toast": {
             "blocked_by_one": "{{name}} heeft je geblokkeerd",
