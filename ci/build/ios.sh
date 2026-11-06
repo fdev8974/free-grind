@@ -172,6 +172,13 @@ app="$(find "$derived/Build/Products" -maxdepth 2 -type d -name '*.app' | grep -
 # commit, no extra attributes (-X), and UTC because zip stores local time.
 mkdir -p "$tools/Payload"
 cp -R "$app" "$tools/Payload/"
+# Xcode records the runner's macOS build (e.g. 25G83 vs 25G332) in the app's
+# Info.plist, and GitHub's macOS runners don't all have the same one. Nothing
+# reads it at runtime, and the IPA is unsigned, so no signature covers the
+# plist. The DT* keys stay: they come from Xcode 26.6, which is checked above.
+app_plist="$tools/Payload/$(basename "$app")/Info.plist"
+/usr/libexec/PlistBuddy -c "Delete :BuildMachineOSBuild" "$app_plist" 2>/dev/null || true
+plutil -convert binary1 "$app_plist"
 find "$tools/Payload" -exec touch -h -t "$(date -r "$SOURCE_DATE_EPOCH" +%Y%m%d%H%M.%S)" {} +
 mkdir -p "$repo/out/ios"
 ipa="$repo/out/ios/free-grind-v$version-unsigned.ipa"
