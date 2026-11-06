@@ -298,6 +298,10 @@ class MainActivity : TauriActivity() {
     // apps show none, so neither does the app.
     webView.isVerticalScrollBarEnabled = false
     webView.isHorizontalScrollBarEnabled = false
+    // Android's stretch overscroll for the page's own scrolling is drawn by the
+    // WebView View itself, so it stretches everything on screen, fixed header
+    // and bottom nav included (CSS overscroll-behavior doesn't reach it).
+    webView.overScrollMode = View.OVER_SCROLL_NEVER
     // Layout changes cover rotation/resizes; onResume covers a nav-mode
     // switch made while the app was in the background.
     webView.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ -> publishSafeArea(v) }

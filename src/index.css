@@ -2023,11 +2023,12 @@ dialog::backdrop {
 }
 
 /* Floating sheet footers (SHEET_FOOTER_FADE_CLASS) overlap the content above
- * by their height (-mt-20). The element right before one gets that much
- * bottom padding back, so a list can still scroll its last entry above the
- * buttons and short content isn't covered. */
+ * by their height (-mt-20). The element right before one gets the buttons'
+ * height (48px) plus a small gap back as bottom padding, so a list can still
+ * scroll its last entry clear of the buttons and short content isn't covered.
+ * The fade above the buttons (pt-8) may overlap the content's end. */
 :where(*):has(+ .sheet-footer) {
-	padding-bottom: calc(5rem + 0.75rem) !important;
+	padding-bottom: calc(3rem + 0.75rem) !important;
 }
 /* Nothing before it to float over (e.g. wrapped in its own mt-auto div). */
 .sheet-footer:first-child {
@@ -2067,6 +2068,12 @@ dialog::backdrop {
    it scrollable when short: the trailing spacer above comes on top of it. */
 .sheet-fill {
 	min-height: calc(100% - var(--sheet-nav-spacer, 0px));
+	/* The explicit min-height replaces the flex item's min-height: auto, so as
+	   flex-1 (basis 0, shrinkable) it would be squeezed to the area's height
+	   while its content overflows past the trailing spacer — the last row
+	   then ends up behind the system nav bar. Grow from the content instead. */
+	flex-shrink: 0;
+	flex-basis: auto;
 }
 /* Darkens the sheet towards the bottom edge, behind the system nav bar, so
  * its buttons/handle stay readable over content scrolling on behind it. Same
