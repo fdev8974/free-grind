@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { CircleAlert, CircleCheck, CircleDashed, CirclePause, ChevronRight, History, Loader2, UserRoundCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetCloseButton } from "./ui/bottom-sheet";
@@ -218,7 +219,18 @@ export function RestoreStatusEntry({ variant, className = "" }: { variant: "bann
 					<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 				</button>
 			) : null}
-			{open ? <RestoreStatusSheet tasks={tasks} onClose={() => setOpen(false)} /> : null}
+			{/* Portaled: the "row" variant sits inside a .native-group, whose
+			    `> *` rule would give the sheet's full-screen overlay the card fill
+			    and hide the page behind it. The text color wrapper stands in for
+			    the .app-shell it no longer inherits from. */}
+			{open
+				? createPortal(
+						<div className="text-[var(--text)]">
+							<RestoreStatusSheet tasks={tasks} onClose={() => setOpen(false)} />
+						</div>,
+						document.body,
+					)
+				: null}
 		</>
 	);
 }
