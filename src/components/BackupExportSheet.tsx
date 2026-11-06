@@ -9,6 +9,7 @@ import { Chip } from "./ui/chip";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { usePreferences } from "../contexts/PreferencesContext";
 import {
+	addOwnProfileFallback,
 	backupErrorMessage,
 	exportBackup,
 	fetchRemoteBackupEntries,
@@ -75,7 +76,13 @@ export function BackupExportSheet({
 			// on a worker thread — nothing of the archive crosses the JS bridge.
 			// Server-side categories (favorites with their notes) are fetched here and written into the archive as is.
 			const chosen = Array.from(selected);
-			const remoteEntries = await fetchRemoteBackupEntries(apiFunctions, chosen, { geohash, offline });
+			// Profile data from before the own_profile_* tables existed comes from the profile's last snapshot.
+			const remoteEntries = await addOwnProfileFallback(
+				dbFileName,
+				profileId,
+				chosen,
+				await fetchRemoteBackupEntries(apiFunctions, chosen, { geohash, offline }),
+			);
 			const saved = await exportBackup(dbFileName, profileId, chosen, destination, remoteEntries);
 			if (!saved) return;
 			toast.success(

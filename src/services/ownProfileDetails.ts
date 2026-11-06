@@ -46,13 +46,18 @@ const RESTORABLE_PROFILE_FIELDS = [
 	"socialNetworks",
 ] as const;
 
-/** Records the restorable fields of the profile as just read from /v4/me/profile. */
-export async function recordOwnProfileDetails(profile: Record<string, unknown>): Promise<void> {
+/** The restorable fields of a profile (/v4/me/profile, or a /v7/profiles snapshot: same field names). */
+export function pickRestorableProfileFields(profile: Record<string, unknown>): Record<string, unknown> {
 	const details: Record<string, unknown> = {};
 	for (const field of RESTORABLE_PROFILE_FIELDS) {
 		if (field in profile) details[field] = profile[field];
 	}
-	await chatDb.setOwnProfileDetails(details);
+	return details;
+}
+
+/** Records the restorable fields of the profile as just read from /v4/me/profile. */
+export async function recordOwnProfileDetails(profile: Record<string, unknown>): Promise<void> {
+	await chatDb.setOwnProfileDetails(pickRestorableProfileFields(profile));
 }
 
 export async function hasRestoredProfileDetails(): Promise<boolean> {

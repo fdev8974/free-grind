@@ -666,10 +666,114 @@ async fn run_blocking<T: Send + 'static>(
 
 /// Profile dbs that haven't been opened since a table was added lack it until
 /// the app's migrations run again; skip it instead of failing the whole backup.
+/// Temp tables count too: the own-profile fallback (see apply_own_profile_fallback) lives there.
 fn table_exists(conn: &Connection, name: &str) -> Result<bool, AppError> {
     Ok(conn
-        .prepare_cached("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1")?
+        .prepare_cached(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1
+             UNION ALL SELECT 1 FROM sqlite_temp_master WHERE type = 'table' AND name = ?1",
+        )?
         .exists([name])?)
+}
+
+/// Whether `name` has no rows to back up: missing (a db from before the table
+/// existed, not opened since) or empty.
+fn table_is_empty(conn: &Connection, name: &str) -> Result<bool, AppError> {
+    if !table_exists(conn, name)? {
+        return Ok(true);
+    }
+    Ok(!conn.prepare(&format!("SELECT 1 FROM {name} LIMIT 1"))?.exists([])?)
+}
+
+/// What the own-profile fallback could fill in, see `read_own_profile_fallback_source`.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OwnProfileFallbackSource {
+    needs_details: bool,
+    needs_photos: bool,
+    /// The profile's last snapshot (profile_snapshots, a /v7/profiles response), if any.
+    snapshot: Option<String>,
+}
+
+/// Profile data recorded before the own_profile_* tables existed (or never
+/// recorded, e.g. banned before the first sync) can still come from the last
+/// snapshot of the own profile, taken whenever it was opened like any other.
+/// Only offered for what those tables lack; the frontend turns the snapshot
+/// into `remote_entries[OWN_PROFILE_FALLBACK_KEY]` (it can download the photos).
+#[tauri::command]
+pub async fn read_own_profile_fallback_source(
+    app: AppHandle,
+    db_file_name: String,
+    owner_user_id: i64,
+) -> Result<OwnProfileFallbackSource, AppError> {
+    run_blocking(move || {
+        let conn = Connection::open_with_flags(resolve_db_path(&app, &db_file_name)?, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+        conn.busy_timeout(Duration::from_secs(30))?;
+        let needs_details = table_is_empty(&conn, "own_profile_details")?;
+        let needs_photos = table_is_empty(&conn, "own_profile_photos")?;
+        let snapshot = if (needs_details || needs_photos) && table_exists(&conn, "profile_snapshots")? {
+            conn.query_row(
+                "SELECT data FROM profile_snapshots WHERE profile_id = ?1",
+                [owner_user_id.to_string()],
+                |row| row.get::<_, String>(0),
+            )
+            .ok()
+        } else {
+            None
+        };
+        Ok(OwnProfileFallbackSource { needs_details, needs_photos, snapshot })
+    })
+    .await
+}
+
+/// `remote_entries` key of the own-profile fallback: `{ details?: {...},
+/// photos?: [{ mediaHash, mimeType, dataBase64 }] }`. Not a category of its own,
+/// so it's never written to the archive as is.
+const OWN_PROFILE_FALLBACK_KEY: &str = "ownProfileFallback";
+
+/// Fills profile_details / profile_photos from the fallback where the db has
+/// nothing: temp tables of the same name shadow the (missing or empty) real
+/// ones for this read-only connection, so the export reads them like any
+/// other table and import needs no special case.
+fn apply_own_profile_fallback(conn: &Connection, categories: &[String], fallback: Option<&Value>) -> Result<(), AppError> {
+    let Some(fallback) = fallback else { return Ok(()) };
+    let wants = |category: &str| categories.iter().any(|c| c == category);
+
+    if let Some(details) = fallback.get("details").filter(|d| d.is_object()) {
+        if wants("profile_details") && table_is_empty(conn, "own_profile_details")? {
+            conn.execute_batch("CREATE TEMP TABLE own_profile_details (key TEXT PRIMARY KEY, data_json TEXT)")?;
+            conn.execute(
+                "INSERT INTO temp.own_profile_details (key, data_json) VALUES ('profile', ?1)",
+                [details.to_string()],
+            )?;
+        }
+    }
+
+    let photos = fallback.get("photos").and_then(Value::as_array).filter(|p| !p.is_empty());
+    if let Some(photos) = photos {
+        if wants("profile_photos") && table_is_empty(conn, "own_profile_photos")? {
+            conn.execute_batch(
+                "CREATE TEMP TABLE own_profile_photos (
+                    media_hash TEXT PRIMARY KEY, position INTEGER NOT NULL, mime_type TEXT, data_base64 TEXT
+                )",
+            )?;
+            let mut insert = conn.prepare(
+                "INSERT OR IGNORE INTO temp.own_profile_photos (media_hash, position, mime_type, data_base64)
+                 VALUES (?1, ?2, ?3, ?4)",
+            )?;
+            for (position, photo) in photos.iter().enumerate() {
+                let (Some(hash), Some(data)) = (
+                    photo.get("mediaHash").and_then(Value::as_str),
+                    photo.get("dataBase64").and_then(Value::as_str),
+                ) else {
+                    continue;
+                };
+                let mime_type = photo.get("mimeType").and_then(Value::as_str);
+                insert.execute(rusqlite::params![hash, position as i64, mime_type, data])?;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn selected_tables(categories: &[String]) -> Vec<&'static TableSpec> {
@@ -786,6 +890,7 @@ fn write_export_archive(
 ) -> Result<(), AppError> {
     let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
     conn.busy_timeout(Duration::from_secs(30))?;
+    apply_own_profile_fallback(&conn, categories, remote_entries.get(OWN_PROFILE_FALLBACK_KEY))?;
 
     let tables = selected_tables(categories);
     let table_count = tables.len();

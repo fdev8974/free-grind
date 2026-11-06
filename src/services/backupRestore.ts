@@ -7,6 +7,10 @@ import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-
 import { isAndroid, isIos } from "./saveMedia";
 import type { createApiFunctions } from "./apiFunctions";
 import { assertSuccess, parseJsonSafe } from "./apiHelpers";
+import { fetchAndEncode } from "./mediaStore";
+import { pickRestorableProfileFields } from "./ownProfileDetails";
+import { getProfileImageUrl, validateMediaHash } from "../utils/media";
+import { appLog } from "../utils/logger";
 import { inboxResponseSchema } from "../types/messages";
 
 /**
@@ -290,6 +294,66 @@ export async function fetchRemoteBackupEntries(
 		entries.favorites = Array.from(favorites.values());
 	}
 	return entries;
+}
+
+/** remoteEntries key of the own-profile fallback (OWN_PROFILE_FALLBACK_KEY in backup.rs). */
+const OWN_PROFILE_FALLBACK_KEY = "ownProfileFallback";
+
+/** Hashes of a /v7/profiles snapshot's photos, primary first. */
+function snapshotPhotoHashes(snapshot: Record<string, unknown>): string[] {
+	const medias = Array.isArray(snapshot.medias) ? (snapshot.medias as { mediaHash?: unknown }[]) : [];
+	const hashes = medias.map((media) => (typeof media?.mediaHash === "string" ? media.mediaHash : ""));
+	const primary = typeof snapshot.profileImageMediaHash === "string" ? snapshot.profileImageMediaHash : null;
+	if (primary && !hashes.includes(primary)) hashes.unshift(primary);
+	return Array.from(new Set(hashes.filter((hash) => validateMediaHash(hash))));
+}
+
+/**
+ * Profile details and photos for a profile whose own_profile_* tables are
+ * empty: data from before they existed, or a profile banned before its first
+ * sync. backup.rs then exports them from the profile's last snapshot (taken
+ * whenever the own profile was opened), photos downloaded full size from the
+ * public CDN, which needs no session. Added to `remoteEntries` as is;
+ * resolves to them unchanged when there's nothing to fill in.
+ */
+export async function addOwnProfileFallback(
+	dbFileName: string,
+	ownerUserId: number,
+	categories: BackupCategoryId[],
+	remoteEntries: Partial<Record<BackupCategoryId, unknown>>,
+): Promise<Record<string, unknown>> {
+	const wantsDetails = categories.includes("profile_details");
+	const wantsPhotos = categories.includes("profile_photos");
+	if (!wantsDetails && !wantsPhotos) return remoteEntries;
+	try {
+		const source = await invoke<{ needsDetails: boolean; needsPhotos: boolean; snapshot: string | null }>(
+			"read_own_profile_fallback_source",
+			{ dbFileName, ownerUserId },
+		);
+		if (!source.snapshot) return remoteEntries;
+		const parsed: unknown = JSON.parse(source.snapshot);
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return remoteEntries;
+		const snapshot = parsed as Record<string, unknown>;
+
+		const fallback: { details?: Record<string, unknown>; photos?: { mediaHash: string; mimeType: string | null; dataBase64: string }[] } = {};
+		if (wantsDetails && source.needsDetails) fallback.details = pickRestorableProfileFields(snapshot);
+		if (wantsPhotos && source.needsPhotos) {
+			fallback.photos = [];
+			for (const hash of snapshotPhotoHashes(snapshot)) {
+				const fetched = await fetchAndEncode(getProfileImageUrl(hash, "1024x1024"));
+				if (fetched) fallback.photos.push({ mediaHash: hash, mimeType: fetched.mimeType, dataBase64: fetched.base64 });
+			}
+		}
+		appLog.info("[backupRestore] own profile from its last snapshot", {
+			details: fallback.details != null,
+			photos: fallback.photos?.length ?? 0,
+		});
+		return { ...remoteEntries, [OWN_PROFILE_FALLBACK_KEY]: fallback };
+	} catch (error) {
+		// Only a fallback: the export goes on without it.
+		appLog.warn("[backupRestore] own profile fallback failed", error);
+		return remoteEntries;
+	}
 }
 
 /** Where `exportBackup` puts the archive. "picker" is the system save/export dialog, which also reaches cloud storage like Google Drive. */
