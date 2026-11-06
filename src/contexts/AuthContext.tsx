@@ -49,6 +49,39 @@ const AUTH_USER_ID_STORAGE_KEY = "fg-user-id";
 const PUSH_TOKEN_STORAGE_KEY = "fg-fcm-token";
 const PUSH_TOKEN_SYNCED_STORAGE_KEY = "fg-fcm-token-synced";
 
+// A hard ban clears the session (grindr.rs drops it on the ban response), so
+// without this a restart lands on the sign-in page as if the user had signed
+// out. Kept until the ban screen is left via sign-out or another sign-in.
+const BAN_STATUS_STORAGE_KEY = "fg-ban-status";
+
+type BanStatus = Extract<AccountStatus, { kind: "banned" }>;
+
+function readStoredBan(): BanStatus | null {
+	try {
+		const raw = window.localStorage.getItem(BAN_STATUS_STORAGE_KEY);
+		if (!raw) return null;
+		const stored = JSON.parse(raw) as { info?: unknown; profileId?: unknown };
+		const info = banInfoSchema.safeParse(stored.info);
+		if (!info.success) return null;
+		const profileId = typeof stored.profileId === "number" && Number.isSafeInteger(stored.profileId) ? stored.profileId : null;
+		return { kind: "banned", info: info.data, profileId };
+	} catch {
+		return null;
+	}
+}
+
+function writeStoredBan(status: AccountStatus) {
+	try {
+		if (status?.kind === "banned") {
+			window.localStorage.setItem(BAN_STATUS_STORAGE_KEY, JSON.stringify({ info: status.info, profileId: status.profileId }));
+		} else {
+			window.localStorage.removeItem(BAN_STATUS_STORAGE_KEY);
+		}
+	} catch {
+		// Storage unavailable: the ban screen just won't survive a restart.
+	}
+}
+
 /** The FCM token Android handed over, cached or still waiting on window. */
 function cachedPushToken(): string | null {
 	const fallback = (window as Window & { __FG_FCM_TOKEN?: unknown }).__FG_FCM_TOKEN;
@@ -185,6 +218,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		currentUserIdRef.current = state.userId;
 	}, [state.userId]);
 
+	// Read once before the persist effect below can clear it: checkAuth only
+	// resolves after that effect's first run.
+	const bootBanRef = useRef<BanStatus | null | undefined>(undefined);
+	if (bootBanRef.current === undefined) {
+		bootBanRef.current = readStoredBan();
+	}
+	const bootDoneRef = useRef(false);
+	useEffect(() => {
+		// Don't wipe the stored ban while the launch auth check is still running.
+		if (!bootDoneRef.current) return;
+		writeStoredBan(state.accountStatus);
+	}, [state.accountStatus]);
+
 	const refreshSavedAccounts = async () => {
 		try {
 			const accounts = await callMethod("list_saved_accounts");
@@ -231,8 +277,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			appLog.debug("[Auth] checkAuth: starting");
 			dispatch({ type: "SET_LOADING", payload: true });
 			const result = await callMethod("auth_state");
+			// From here on accountStatus changes are persisted again.
+			const bootBan = bootBanRef.current;
+			bootBanRef.current = null;
+			bootDoneRef.current = true;
 			if (result !== null) {
 				appLog.info("[Auth] checkAuth: active session found");
+				// A live session means no hard ban (anymore): drop a stored one.
+				writeStoredBan(null);
 				dispatch({ type: "SET_USER", payload: result });
 				void refreshSavedAccounts();
 				// Resumed from a persisted session (not a fresh login result), so
@@ -247,6 +299,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			} else {
 				appLog.info("[Auth] checkAuth: no active session");
 				dispatch({ type: "CLEAR_USER" });
+				// The session was dropped by a ban, not a sign-out: show the ban screen again.
+				if (bootBan) {
+					appLog.info("[Auth] checkAuth: restoring ban screen from last run");
+					dispatch({ type: "SET_ACCOUNT_STATUS", payload: bootBan });
+				}
 			}
 		} catch (error) {
 			const appError = asAppError(error);
@@ -261,6 +318,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				});
 			}
 		} finally {
+			bootDoneRef.current = true;
 			dispatch({ type: "SET_LOADING", payload: false });
 		}
 	};
