@@ -62,6 +62,9 @@ export function installGlobalCrashHandlers() {
 	if (typeof window === "undefined") return;
 
 	window.addEventListener("error", (event) => {
+		// Benign browser warning: a ResizeObserver callback changed layout and the
+		// follow-up notification is deferred to the next frame. Not a real crash.
+		if (event.error == null && /^ResizeObserver loop/.test(event.message ?? "")) return;
 		showCrashOverlay(
 			`Uncaught error: ${event.message}`,
 			event.error?.stack ?? `${event.filename}:${event.lineno}:${event.colno}`,
