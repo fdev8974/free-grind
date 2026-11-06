@@ -201,8 +201,8 @@ export function RestoreStatusEntry({ variant, className = "" }: { variant: "bann
 					onClick={() => setOpen(true)}
 					className={
 						variant === "banner"
-							? `flex w-full items-center gap-3 rounded-2xl border border-[var(--accent)]/30 accent-tint-15 px-4 py-3 text-left transition hover:brightness-110 ${className}`
-							: `flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill ${className}`
+							? `flex w-full min-w-0 items-center gap-3 rounded-2xl border border-[var(--accent)]/30 accent-tint-15 px-4 py-3 text-left transition hover:brightness-110 ${className}`
+							: `flex w-full min-w-0 items-center gap-3 px-4 py-3.5 text-left transition-colors hover-fill ${className}`
 					}
 				>
 					<div className={`shrink-0 rounded-2xl p-2.5 ${variant === "banner" ? "bg-[var(--accent)] text-[var(--accent-contrast)]" : "bg-sky-500/15 text-sky-400"}`}>
@@ -210,7 +210,7 @@ export function RestoreStatusEntry({ variant, className = "" }: { variant: "bann
 					</div>
 					<div className="min-w-0 flex-1">
 						<p className="text-sm font-semibold leading-snug text-[var(--text)]">{title}</p>
-						<p className="mt-0.5 truncate text-xs leading-snug tabular-nums text-[var(--text-muted)]">{summary}</p>
+						<p className="mt-0.5 break-words text-xs leading-snug tabular-nums text-[var(--text-muted)]">{summary}</p>
 					</div>
 					<ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] opacity-50" />
 				</button>
