@@ -2,12 +2,15 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getIncognitoMode } from "../../utils/privacy";
+import { Button } from "../../components/ui/button";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
 	ArrowUpDown,
 	Crosshair,
 	MessageSquare,
+	Ghost,
 	Hourglass,
 	List,
 	Navigation,
@@ -1128,7 +1131,11 @@ export function RightNowPage() {
 		sexualPositions: positionFilter || undefined,
 	}), [sort, hostingOnly, ageMin, ageMax, positionFilter]);
 
-	const { data: feed, isLoading, error, refetch } = useRightNowFeed(queryParams);
+	// Incognito: like the Grid, the feed doesn't load at all. Fetching it marks
+	// the account online (open-grind refreshes its online clock on every load).
+	const isIncognito = getIncognitoMode();
+	const { data: feed, isLoading: isFeedLoading, error, refetch } = useRightNowFeed(queryParams, !isIncognito);
+	const isLoading = isFeedLoading && !isIncognito;
 	const feedItems = feed?.items ?? EMPTY_FEED;
 	const { activeRightNowId, activeRightNowExpiresAt, rightNowRemaining, setPreferences, developerMode, showDebugInfo, rightNowTestMode, geohash } = usePreferences();
 
@@ -1158,13 +1165,13 @@ export function RightNowPage() {
 	// for an answer. Requests only reach discreet posts, so the inbox is only
 	// there when the account can post discreetly (same gate as the post sheet).
 	const canPostDiscreetly = useFeatureFlag("right-now-discreet") || rightNowTestMode;
-	const { data: receivedRequests } = useReceivedRightNowRequests(canPostDiscreetly && !rightNowTestMode);
+	const { data: receivedRequests } = useReceivedRightNowRequests(canPostDiscreetly && !rightNowTestMode && !isIncognito);
 	const pendingRequests = useMemo(() => pendingRightNowRequests(receivedRequests), [receivedRequests]);
 	const [isRequestsOpen, setIsRequestsOpen] = useState(false);
 
 	// Requests to discreet posts: only polled while one is listed.
 	const hasDiscreetPosts = useMemo(() => items.some((item) => item.kind === "discreet"), [items]);
-	const { data: sentRequests } = useSentRightNowRequests(hasDiscreetPosts && !rightNowTestMode);
+	const { data: sentRequests } = useSentRightNowRequests(hasDiscreetPosts && !rightNowTestMode && !isIncognito);
 	const sendRequest = useMutation({
 		mutationFn: (postId: number) => api.sendRightNowRequest(postId),
 		onSuccess: () => {
@@ -1415,14 +1422,25 @@ export function RightNowPage() {
 		const handleScroll = () => {
 			const scrollData = {
 				top: container.scrollTop,
-				timestamp: Date.now()
+				timestamp: Date.now(),
+				// A position only makes sense in the area it was scrolled in.
+				geohash,
 			};
 			sessionStorage.setItem("rightnow-scroll", JSON.stringify(scrollData));
 		};
 
 		container.addEventListener("scroll", handleScroll, { passive: true });
 		return () => container.removeEventListener("scroll", handleScroll);
-	}, [viewMode]);
+	}, [viewMode, geohash]);
+
+	// Like open-grind: a new location starts the feed over from the top.
+	const prevGeohashRef = useRef(geohash);
+	useEffect(() => {
+		if (prevGeohashRef.current === geohash) return;
+		prevGeohashRef.current = geohash;
+		sessionStorage.removeItem("rightnow-scroll");
+		feedContainerRef.current?.scrollTo(0, 0);
+	}, [geohash]);
 
 	useLayoutEffect(() => {
 		if (items.length > 0 && !isLoading && !hasRestoredScroll && feedContainerRef.current) {
@@ -1444,8 +1462,8 @@ export function RightNowPage() {
 					const parsed = JSON.parse(saved);
 					// Safety check: is it our new object format or just an old number?
 					if (parsed && typeof parsed === "object" && "top" in parsed) {
-						const { top, timestamp } = parsed as { top: number; timestamp: number };
-						if (Date.now() - timestamp < SCROLL_RESTORATION_TIMEOUT_MS) {
+						const { top, timestamp, geohash: savedGeohash } = parsed as { top: number; timestamp: number; geohash?: string | null };
+						if (Date.now() - timestamp < SCROLL_RESTORATION_TIMEOUT_MS && (savedGeohash ?? null) === (geohash ?? null)) {
 							feedContainerRef.current.scrollTop = top;
 						} else {
 							sessionStorage.removeItem(storageKey);
@@ -1466,7 +1484,7 @@ export function RightNowPage() {
 			}
 			setHasRestoredScroll(true);
 		}
-	}, [items.length, isLoading, hasRestoredScroll, lastSeenRightNow, items]);
+	}, [items.length, isLoading, hasRestoredScroll, lastSeenRightNow, items, geohash]);
 
 
 	const handleMessage = useCallback(
@@ -1558,7 +1576,7 @@ export function RightNowPage() {
 				// Awaited so the spinner stays until the feed is actually back.
 				await refetch();
 			}}
-			isDisabled={isLoading || isMapView}
+			isDisabled={isLoading || isMapView || isIncognito}
 			isAtTop={() => (feedContainerRef.current?.scrollTop ?? 0) <= 0}
 			refreshingLabel={t("right_now.refreshing")}
 			spinnerColor="var(--right-now)"
@@ -1572,7 +1590,7 @@ export function RightNowPage() {
 					<div className="flex items-center justify-between gap-3">
 						<h1 className="app-title min-w-0">{t("right_now.title")}</h1>
 						{/* Same as the inbox header's icon buttons: -my-2 keeps the row at the title's height. */}
-						{canPostDiscreetly && (
+						{canPostDiscreetly && !isIncognito && (
 						<div className="pointer-events-auto -my-2 flex shrink-0 items-center gap-0.5">
 							<button
 								type="button"
@@ -1683,7 +1701,7 @@ export function RightNowPage() {
 				</div>
 			</header>
 
-			{isMapView && !error ? (
+			{isMapView && !error && !isIncognito ? (
 				<div
 					// Full bleed, running up behind the header and, on desktop, on under
 					// the (unfilled) nav rail instead of being cut off at its edge.
@@ -1750,7 +1768,24 @@ export function RightNowPage() {
 				</div>
 			) : (
 			<FeedScrollContainer ref={feedContainerRef}>
-				{isLoading && isDesktop ? (
+				{isIncognito ? (
+					<div className="flex flex-col items-center justify-center gap-4 px-[var(--app-px)] text-center" style={{ minHeight: "60dvh" }}>
+						<div className="rounded-2xl bg-[var(--surface-2)] p-4">
+							<Ghost className="h-7 w-7 text-[var(--right-now)]" />
+						</div>
+						<div className="grid max-w-xs gap-1.5">
+							<p className="text-base font-semibold text-[var(--text)]">{t("browse_page.incognito_active_title")}</p>
+							<p className="text-sm text-[var(--text-muted)]">
+								{t("right_now.incognito_active_desc", {
+									defaultValue: "Right Now won't load while incognito mode is on, so you won't show up as online to others.",
+								})}
+							</p>
+						</div>
+						<Button variant="primary" onClick={() => navigate("/settings/privacy")} leftIcon={<Ghost className="h-4 w-4" />}>
+							{t("browse_page.incognito_active_button")}
+						</Button>
+					</div>
+				) : isLoading && isDesktop ? (
 					<div className="grid grid-cols-[repeat(auto-fill,minmax(max(300px,calc((100%-4*0.75rem)/5)),1fr))] gap-3 px-[var(--app-px)] pb-[calc(var(--safe-area-bottom)+120px)] rail:pb-[calc(var(--page-bottom)+4rem)]">
 						{Array.from({ length: 12 }).map((_, i) => (
 							<RightNowTileSkeleton key={i} />
@@ -1874,7 +1909,7 @@ export function RightNowPage() {
 						// Mobile: round button above the bottom nav, thumb-reachable; desktop: a
 						// labelled pill centered at the bottom.
 						"absolute bottom-0 right-[16%] translate-x-1/2 rail:right-1/2 transition-opacity duration-300 pointer-events-auto",
-						(isPosting || isFiltersOpen || isMapCardOpen || isRequestsOpen) ? "pointer-events-none opacity-0" : "opacity-100",
+						(isPosting || isFiltersOpen || isMapCardOpen || isRequestsOpen || isIncognito) ? "pointer-events-none opacity-0" : "opacity-100",
 					)}
 				>
 					{isDesktop ? (

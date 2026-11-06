@@ -1,6 +1,9 @@
 import type { RestFetcher } from "../../types/chat-service";
 import { appLog } from "../../utils/logger";
 import { assertSuccess, parseJsonSafe } from "../apiHelpers";
+import { awaitEntitlementGrant } from "../entitlementBypass";
+import { coarsenGeohash } from "../../utils/geohash";
+import { getIncognitoMode } from "../../utils/privacy";
 import {
 	type RightNowCreatePostRequest,
 	type RightNowCreatePostResponse,
@@ -221,8 +224,15 @@ export function createFeedMethods(fetchRest: RestFetcher, t: (key: string, defau
 			return rightNowUploadMediaResponseSchema.parse(payload);
 		},
 
+		/**
+		 * The feed takes no location: the server answers for the last stored
+		 * one. So the browse location is stored right before each request
+		 * (best-effort, like open-grind), or a location change would keep
+		 * showing the old area's posts.
+		 */
 		async getRightNowFeed(params: {
 			version: RightNowFeedVersion;
+			geohash?: string | null;
 			sort?: RightNowFeedSort;
 			hosting?: boolean;
 			ageMin?: number;
@@ -235,6 +245,22 @@ export function createFeedMethods(fetchRest: RestFetcher, t: (key: string, defau
 			if (typeof params.ageMin === "number") queryParams.set("ageMin", String(params.ageMin));
 			if (typeof params.ageMax === "number") queryParams.set("ageMax", String(params.ageMax));
 			if (params.sexualPositions) queryParams.set("sexualPositions", params.sexualPositions);
+
+			// Never report a location while the bypass has it parked in Honduras.
+			await awaitEntitlementGrant();
+			// Incognito never reports a location: storing one updates the account's
+			// server-side location and marks it online (see AssignmentsBridge).
+			if (params.geohash && !getIncognitoMode()) {
+				try {
+					const response = await fetchRest("/v4/location", {
+						method: "PUT",
+						body: { geohash: coarsenGeohash(params.geohash) },
+					});
+					if (response.status < 200 || response.status >= 300) appLog.warn(`PUT /v4/location failed with ${response.status}`);
+				} catch (error) {
+					appLog.warn("PUT /v4/location failed", error);
+				}
+			}
 
 			const url = `/${params.version}/rightnow/feed?${queryParams.toString()}`;
 			const response = await fetchRest(url);

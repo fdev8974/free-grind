@@ -398,6 +398,7 @@
     "cached_label": "cached"
   },
   "right_now": {
+    "incognito_active_desc": "Right Now won't load while incognito mode is on, so you won't show up as online to others.",
     "shared_fields_title": "Shown on your post",
     "shared_fields_none": "Nothing",
     "photo_change_hint": "Tap to change",

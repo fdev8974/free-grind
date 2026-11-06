@@ -15,7 +15,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import toast from "react-hot-toast";
 import { ApiFunctionError } from "./apiHelpers";
-import { decodeGeohash, encodeGeohash } from "../utils/geohash";
+import { coarsenGeohash, encodeGeohash } from "../utils/geohash";
 import { appLog } from "../utils/logger";
 import i18n from "../i18n";
 
@@ -52,16 +52,6 @@ function randomBoxByArea(): Box {
 		if (remaining <= 0) return box;
 	}
 	return HONDURAS_INLAND_BOXES[0];
-}
-
-// Rounded to a ~100 m grid before it's sent, like open-grind does for every
-// location it reports.
-const toCoarseGrid = (degrees: number) => Math.round(degrees * 1000) / 1000;
-
-function coarsenGeohash(hash: string): string {
-	const { lat, lon } = decodeGeohash(hash);
-	const mid = (range: [number, number]) => (range[0] + range[1]) / 2;
-	return encodeGeohash(toCoarseGrid(mid(lat)), toCoarseGrid(mid(lon)));
 }
 
 function randomHondurasGeohash(): string {

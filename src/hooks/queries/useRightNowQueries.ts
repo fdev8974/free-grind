@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useApiFunctions } from "../useApiFunctions";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { useFeatureFlag } from "../../services/assignmentsStore";
+import { getIncognitoMode } from "../../utils/privacy";
 import type { RightNowSortOption } from "../../pages/app/rightnow/rightnow-filters-storage";
 import type { RightNowFeedEntry, RightNowFeedVersion } from "../../types/right-now";
 
-import { DEFAULT_STALE_TIME_MS } from "../../config/ui-constants";
+const RIGHT_NOW_FEED_POLL_MS = 2 * 60_000;
 
 interface RightNowQueryParams {
 	sort: RightNowSortOption;
@@ -32,7 +33,7 @@ export function useRightNowFeedVersion(): RightNowFeedVersion {
 	return discreet ? "v5" : "v4";
 }
 
-export function useRightNowFeed(params: RightNowQueryParams) {
+export function useRightNowFeed(params: RightNowQueryParams, enabled = true) {
 	const api = useApiFunctions();
 	// The feed is located server-side, so the browse location must be part of
 	// the key — otherwise a location change keeps serving the old area's posts.
@@ -42,7 +43,7 @@ export function useRightNowFeed(params: RightNowQueryParams) {
 	return useQuery({
 		queryKey: ["rightnow", "feed", params, geohash, version],
 		queryFn: async () => {
-			const feed = await api.getRightNowFeed({ ...params, version });
+			const feed = await api.getRightNowFeed({ ...params, version, geohash });
 			// Deduplicate items by their ID to prevent React "duplicate key" errors
 			// if the API returns overlapping data during refreshes.
 			const seen = new Set<string>();
@@ -56,7 +57,12 @@ export function useRightNowFeed(params: RightNowQueryParams) {
 				}),
 			};
 		},
-		staleTime: DEFAULT_STALE_TIME_MS,
+		enabled,
+		staleTime: RIGHT_NOW_FEED_POLL_MS,
+		// Like open-grind: every 2 minutes while the page is open and visible
+		// (react-query pauses the interval while the window is hidden). Not in
+		// incognito, which keeps background requests to a minimum.
+		refetchInterval: () => (getIncognitoMode() ? false : RIGHT_NOW_FEED_POLL_MS),
 		refetchOnWindowFocus: true,
 	});
 }

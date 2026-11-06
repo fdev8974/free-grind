@@ -91,3 +91,14 @@ export function decodeGeohash(hash: string): {
 		lon: [lonLo, lonHi],
 	};
 }
+
+/**
+ * Snaps a geohash to a ~100 m grid. Every location reported to the server
+ * goes through this, like open-grind does.
+ */
+export function coarsenGeohash(hash: string): string {
+	const { lat, lon } = decodeGeohash(hash);
+	const toCoarseGrid = (degrees: number) => Math.round(degrees * 1000) / 1000;
+	const mid = (range: [number, number]) => (range[0] + range[1]) / 2;
+	return encodeGeohash(toCoarseGrid(mid(lat)), toCoarseGrid(mid(lon)));
+}

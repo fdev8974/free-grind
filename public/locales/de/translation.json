@@ -398,6 +398,7 @@
         "cached_label": "gespeichert"
     },
     "right_now": {
+        "incognito_active_desc": "Right Now lädt nicht, solange der Inkognito-Modus aktiv ist, damit du für andere nicht als online angezeigt wirst.",
         "shared_fields_title": "Auf deinem Post sichtbar",
         "shared_fields_none": "Nichts",
         "photo_change_hint": "Tippen zum Ändern",
