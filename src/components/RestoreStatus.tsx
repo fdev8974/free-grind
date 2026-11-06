@@ -8,6 +8,7 @@ import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
 import { runRestoredBlocklist } from "../services/ownBlocklist";
 import { runRestoredFavorites } from "../services/restoredFavorites";
 import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
+import { runRestoredOwnAlbums } from "../services/ownAlbums";
 import {
 	SHOW_RESTORED_PROFILE_PROMPT_EVENT,
 	useRestoreTasks,
@@ -23,6 +24,7 @@ function useTaskLabels(): Record<RestoreTaskId, string> {
 		blocked_profiles: t("restore_status.task_blocked_profiles", { defaultValue: "Blocked profiles" }),
 		favorites: t("restore_status.task_favorites", { defaultValue: "Favorites" }),
 		drawer_media: t("restore_status.task_drawer_media", { defaultValue: "Drawer media" }),
+		own_albums: t("restore_status.task_own_albums", { defaultValue: "My albums" }),
 	};
 }
 
@@ -103,6 +105,7 @@ function RestoreStatusSheet({ tasks, onClose }: { tasks: RestoreTask[]; onClose:
 		if (userId == null) return;
 		const isCurrent = () => userIdRef.current === userId;
 		if (id === "drawer_media") void runRestoredDrawerUpload(apiFunctions, isCurrent);
+		if (id === "own_albums") void runRestoredOwnAlbums(apiFunctions, isCurrent);
 		if (id === "blocked_profiles") void runRestoredBlocklist(apiFunctions, userId, isCurrent);
 		if (id === "favorites") void runRestoredFavorites(apiFunctions, userId, isCurrent);
 	};

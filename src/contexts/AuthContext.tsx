@@ -36,6 +36,7 @@ import { loadAutoTranslateCache } from "../utils/autoTranslate";
 import { loadSeenCache } from "../services/seenStore";
 import { runInboxSync } from "../services/inboxSync";
 import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
+import { runRestoredOwnAlbums, syncOwnAlbums } from "../services/ownAlbums";
 import { syncOwnProfile } from "../services/ownProfilePhotos";
 import { runRestoredBlocklist, syncOwnBlocklist } from "../services/ownBlocklist";
 import { runRestoredFavorites } from "../services/restoredFavorites";
@@ -733,7 +734,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 				// Fire-and-forget: slowly re-uploads drawer media restored from
 				// another profile's backup (see restoredDrawerMedia.ts) — guarded the
 				// same way, since the api uploads into whichever profile is active.
-				void runRestoredDrawerUpload(apiFunctions, () => currentUserIdRef.current === userId);
+				// Restored own albums follow (ownAlbums.ts), after the drawer so the
+				// two never upload at the same time.
+				void (async () => {
+					const isCurrent = () => currentUserIdRef.current === userId;
+					await runRestoredDrawerUpload(apiFunctions, isCurrent);
+					await runRestoredOwnAlbums(apiFunctions, isCurrent);
+				})();
+				// Fire-and-forget: records the own albums, content included, so a
+				// backup still has them once a ban locks the account out (ownAlbums.ts).
+				void syncOwnAlbums(apiFunctions, () => currentUserIdRef.current === userId);
 				// Fire-and-forget: records this profile's own details and photos
 				// locally so a backup still has them once the account can't read its
 				// profile anymore, e.g. after a ban (see ownProfilePhotos.ts).

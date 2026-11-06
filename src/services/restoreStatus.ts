@@ -3,7 +3,8 @@
  * backup import (server-side data the import can only queue locally): profile
  * details and photos (ownProfileDetails.ts / ownProfilePhotos.ts, applied once
  * the user agrees in RestoredProfilePrompt), the block list (ownBlocklist.ts),
- * favorites (restoredFavorites.ts) and drawer media (restoredDrawerMedia.ts).
+ * favorites (restoredFavorites.ts), drawer media (restoredDrawerMedia.ts) and
+ * own albums (ownAlbums.ts).
  *
  * What's still left comes from the restored_* tables, so it survives a
  * restart; the runners add live progress on top through `reportRestoreTask`.
@@ -12,7 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import * as chatDb from "./chatDb";
 
-export type RestoreTaskId = "profile_details" | "profile_photos" | "blocked_profiles" | "favorites" | "drawer_media";
+export type RestoreTaskId = "profile_details" | "profile_photos" | "blocked_profiles" | "favorites" | "drawer_media" | "own_albums";
 
 export const RESTORE_TASK_IDS: RestoreTaskId[] = [
 	"profile_details",
@@ -20,6 +21,7 @@ export const RESTORE_TASK_IDS: RestoreTaskId[] = [
 	"blocked_profiles",
 	"favorites",
 	"drawer_media",
+	"own_albums",
 ];
 
 /**
@@ -73,12 +75,13 @@ export function advanceRestoreTask(id: RestoreTaskId): void {
 }
 
 async function remainingCounts(): Promise<Record<RestoreTaskId, number>> {
-	const [details, photos, blocked, favorites, drawer] = await Promise.all([
+	const [details, photos, blocked, favorites, drawer, ownAlbums] = await Promise.all([
 		chatDb.getRestoredProfileDetails().then((d) => (d ? 1 : 0)),
 		chatDb.countRestoredProfilePhotos(),
 		chatDb.listRestoredBlockedProfiles().then((ids) => ids.length),
 		chatDb.listRestoredFavoriteProfiles().then((ids) => ids.length),
 		chatDb.listMediaFilesWithPrefix("restored-drawer:").then((files) => files.length),
+		chatDb.countRestoredOwnAlbumItems(),
 	]);
 	return {
 		profile_details: details,
@@ -86,6 +89,7 @@ async function remainingCounts(): Promise<Record<RestoreTaskId, number>> {
 		blocked_profiles: blocked,
 		favorites,
 		drawer_media: drawer,
+		own_albums: ownAlbums,
 	};
 }
 

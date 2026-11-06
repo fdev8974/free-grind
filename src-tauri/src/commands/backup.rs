@@ -24,7 +24,7 @@
 //! new one - see `ProfileRemap`.
 //!
 //! `categories` lets the caller include/exclude whole groups of tables
-//! (chat messages, media/albums, saved phrases, saved locations, settings,
+//! (chat messages, media/albums, own albums, saved phrases, saved locations, settings,
 //! sexual health, favorites - see `BACKUP_CATEGORY_IDS` in `src/services/backupRestore.ts`)
 //! instead of always doing a full all-or-nothing export/import.
 //!
@@ -365,12 +365,28 @@ const EXPORT_TABLES: &[TableSpec] = &[
         blob_columns: &[],
         filter: None,
     },
+    TableSpec {
+        name: "own_albums",
+        primary_key: "album_id",
+        category: "own_albums",
+        columns: &["album_id", "position", "album_name"],
+        blob_columns: &[],
+        filter: None,
+    },
+    TableSpec {
+        name: "own_album_media",
+        primary_key: "content_id",
+        category: "own_albums",
+        columns: &["content_id", "album_id", "position", "content_type", "data_base64"],
+        blob_columns: &["data_base64"],
+        filter: None,
+    },
 ];
 
 /// Data that only lives on the server (own profile details, photos, block
-/// list), recorded locally so a backup has it. Import always writes it to the
-/// second table, where the app picks it up to apply/upload/block again
-/// (src/services/ownProfileDetails.ts, ownProfilePhotos.ts, ownBlocklist.ts).
+/// list, albums), recorded locally so a backup has it. Import always writes it to the
+/// second table, where the app picks it up to apply/upload/block/recreate again
+/// (src/services/ownProfileDetails.ts, ownProfilePhotos.ts, ownBlocklist.ts, ownAlbums.ts).
 /// Also when restoring into the same profile: the own record is only a mirror
 /// of the server, rewritten on every start, so a restore landing there was
 /// silently lost.
@@ -378,6 +394,8 @@ const RESTORED_INTO: &[(&str, &str)] = &[
     ("own_profile_details", "restored_profile_details"),
     ("own_profile_photos", "restored_profile_photos"),
     ("own_blocked_profiles", "restored_blocked_profiles"),
+    ("own_albums", "restored_own_albums"),
+    ("own_album_media", "restored_own_album_media"),
 ];
 
 #[derive(Clone, Serialize)]

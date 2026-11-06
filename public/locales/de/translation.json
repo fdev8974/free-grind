@@ -3060,6 +3060,7 @@
         "category_chat_messages": "Chatnachrichten",
         "category_media_albums": "Medien & Alben",
         "category_drawer_media": "Drawer-Medien",
+        "category_own_albums": "Eigene Alben",
         "category_profile_details": "Profilangaben",
         "category_profile_photos": "Profilbilder",
         "category_blocked_profiles": "Blockierte Profile",
@@ -3090,7 +3091,9 @@
             "sexual_health_sti_tests": "STI-Tests",
             "own_profile_details": "Profildetails",
             "own_profile_photos": "Profilfotos",
-            "own_blocked_profiles": "Blockierte Profile"
+            "own_blocked_profiles": "Blockierte Profile",
+            "own_albums": "Eigene Alben",
+            "own_album_media": "Medien eigener Alben"
         },
         "read_copying": "Backup wird kopiert…",
         "read_copying_bytes": "Backup wird kopiert… {{done}} von {{total}}",
@@ -3188,6 +3191,7 @@
         "task_blocked_profiles": "Blockierte Profile",
         "task_favorites": "Favoriten",
         "task_drawer_media": "Drawer-Medien",
+        "task_own_albums": "Eigene Alben",
         "state_running": "Läuft…",
         "state_running_count": "{{done}} von {{total}}",
         "state_queued": "Noch {{left}} · startet automatisch",

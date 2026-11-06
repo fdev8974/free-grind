@@ -9,6 +9,7 @@ function useBackupCategoryLabels(): Record<BackupCategoryId, string> {
 		chat_messages: t("data_backup.category_chat_messages", { defaultValue: "Chat messages" }),
 		media_albums: t("data_backup.category_media_albums", { defaultValue: "Media & albums" }),
 		drawer_media: t("data_backup.category_drawer_media", { defaultValue: "Drawer media" }),
+		own_albums: t("data_backup.category_own_albums", { defaultValue: "My albums" }),
 		profile_details: t("data_backup.category_profile_details", { defaultValue: "Profile details" }),
 		profile_photos: t("data_backup.category_profile_photos", { defaultValue: "Profile photos" }),
 		blocked_profiles: t("data_backup.category_blocked_profiles", { defaultValue: "Blocked profiles" }),

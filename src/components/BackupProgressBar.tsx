@@ -29,6 +29,8 @@ const TABLE_LABELS: Record<string, string> = {
 	own_profile_details: "Profile details",
 	own_profile_photos: "Profile photos",
 	own_blocked_profiles: "Blocked profiles",
+	own_albums: "My albums",
+	own_album_media: "My album media",
 };
 
 /** Live progress of a running native export/import, fed by the progress events backup.rs emits. */

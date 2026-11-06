@@ -56,7 +56,7 @@ const LEGACY_CHAT_DB = `sqlite:${LEGACY_CHAT_DB_FILENAME}`;
 // on it. BUMP THIS whenever initChatDbSchema changes (new table, index,
 // column or data fix) — otherwise existing installs skip the setup and never
 // get the change; only fresh installs would.
-const CHAT_DB_SCHEMA_VERSION = 4;
+const CHAT_DB_SCHEMA_VERSION = 5;
 const SLOW_DB_OPEN_MS = 2_000;
 const SQLITE_LOCK_RETRY_DELAYS_MS = [30, 80, 180, 350] as const;
 
@@ -569,6 +569,40 @@ async function initChatDbSchema(db: Database): Promise<void> {
 		await db.execute("CREATE TABLE IF NOT EXISTS restored_profile_details (key TEXT PRIMARY KEY, data_json TEXT)");
 		await db.execute("CREATE TABLE IF NOT EXISTS own_blocked_profiles (profile_id TEXT PRIMARY KEY)");
 		await db.execute("CREATE TABLE IF NOT EXISTS restored_blocked_profiles (profile_id TEXT PRIMARY KEY)");
+		// The profile's own albums (content bytes included), recorded on every
+		// start like the photos above so a backup still has them after a ban.
+		// A restore lands in the restored_* pair, where ownAlbums.ts creates the
+		// albums again and uploads their content bit by bit; uploaded_album_id
+		// keeps an interrupted run from creating an album twice.
+		await db.execute(
+			"CREATE TABLE IF NOT EXISTS own_albums (album_id TEXT PRIMARY KEY, position INTEGER NOT NULL, album_name TEXT)",
+		);
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS own_album_media (
+				content_id TEXT PRIMARY KEY,
+				album_id TEXT NOT NULL,
+				position INTEGER NOT NULL,
+				content_type TEXT,
+				data_base64 TEXT
+			)
+		`);
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS restored_own_albums (
+				album_id TEXT PRIMARY KEY,
+				position INTEGER NOT NULL,
+				album_name TEXT,
+				uploaded_album_id TEXT
+			)
+		`);
+		await db.execute(`
+			CREATE TABLE IF NOT EXISTS restored_own_album_media (
+				content_id TEXT PRIMARY KEY,
+				album_id TEXT NOT NULL,
+				position INTEGER NOT NULL,
+				content_type TEXT,
+				data_base64 TEXT
+			)
+		`);
 		// Favorites from a backup with their note, set again bit by bit (restoredFavorites.ts); filled by backup.rs.
 		await db.execute(
 			"CREATE TABLE IF NOT EXISTS restored_favorite_profiles (profile_id TEXT PRIMARY KEY, notes TEXT, phone_number TEXT)",
@@ -2905,6 +2939,136 @@ export async function clearRestoredProfilePhotos(): Promise<void> {
 	const db = await getDb();
 	await executeWithLockRetry(db, "clear-restored-profile-photos", async () => {
 		await db.execute("DELETE FROM restored_profile_photos");
+	});
+}
+
+export type OwnAlbumRecord = { albumId: string; albumName: string | null; content: { contentId: string; contentType: string | null }[] };
+
+/**
+ * Records the profile's own albums in order. Content still on them keeps its
+ * bytes; albums and content no longer there are dropped.
+ */
+export async function replaceOwnAlbums(albums: OwnAlbumRecord[]): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "replace-own-albums", async () => {
+		const albumIds = albums.map((album) => album.albumId);
+		const contentIds = albums.flatMap((album) => album.content.map((item) => item.contentId));
+		const placeholders = (ids: string[]) => ids.map((_, i) => `$${i + 1}`).join(", ");
+		await db.execute(
+			albumIds.length > 0 ? `DELETE FROM own_albums WHERE album_id NOT IN (${placeholders(albumIds)})` : "DELETE FROM own_albums",
+			albumIds,
+		);
+		await db.execute(
+			contentIds.length > 0
+				? `DELETE FROM own_album_media WHERE content_id NOT IN (${placeholders(contentIds)})`
+				: "DELETE FROM own_album_media",
+			contentIds,
+		);
+		for (const [position, album] of albums.entries()) {
+			await db.execute(
+				`INSERT INTO own_albums (album_id, position, album_name) VALUES ($1, $2, $3)
+				ON CONFLICT(album_id) DO UPDATE SET position = excluded.position, album_name = excluded.album_name`,
+				[album.albumId, position, album.albumName],
+			);
+			for (const [itemPosition, item] of album.content.entries()) {
+				await db.execute(
+					`INSERT INTO own_album_media (content_id, album_id, position, content_type) VALUES ($1, $2, $3, $4)
+					ON CONFLICT(content_id) DO UPDATE SET
+						album_id = excluded.album_id,
+						position = excluded.position,
+						content_type = COALESCE(excluded.content_type, own_album_media.content_type)`,
+					[item.contentId, album.albumId, itemPosition, item.contentType],
+				);
+			}
+		}
+	});
+}
+
+/** Content whose bytes aren't recorded yet, in album order. */
+export async function listOwnAlbumMediaWithoutData(): Promise<string[]> {
+	const db = await getDb();
+	const rows = await db.select<{ content_id: string }[]>(
+		`SELECT m.content_id FROM own_album_media m JOIN own_albums a ON a.album_id = m.album_id
+		WHERE m.data_base64 IS NULL ORDER BY a.position, m.position`,
+	);
+	return rows.map((row) => String(row.content_id));
+}
+
+export async function setOwnAlbumMediaData(contentId: string, contentType: string | null, dataBase64: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "set-own-album-media-data", async () => {
+		await db.execute(
+			"UPDATE own_album_media SET content_type = COALESCE(content_type, $2), data_base64 = $3 WHERE content_id = $1",
+			[contentId, contentType, dataBase64],
+		);
+	});
+}
+
+export type RestoredOwnAlbum = { albumId: string; albumName: string | null; uploadedAlbumId: string | null };
+export type RestoredOwnAlbumMedia = { contentId: string; contentType: string | null };
+
+export async function listRestoredOwnAlbums(): Promise<RestoredOwnAlbum[]> {
+	const db = await getDb();
+	const rows = await db.select<{ album_id: string; album_name: string | null; uploaded_album_id: string | null }[]>(
+		"SELECT album_id, album_name, uploaded_album_id FROM restored_own_albums ORDER BY position",
+	);
+	return rows.map((row) => ({
+		albumId: String(row.album_id),
+		albumName: row.album_name,
+		uploadedAlbumId: row.uploaded_album_id == null ? null : String(row.uploaded_album_id),
+	}));
+}
+
+/** Without the bytes: those are read one at a time with getRestoredOwnAlbumMediaData. */
+export async function listRestoredOwnAlbumMedia(albumId: string): Promise<RestoredOwnAlbumMedia[]> {
+	const db = await getDb();
+	const rows = await db.select<{ content_id: string; content_type: string | null }[]>(
+		"SELECT content_id, content_type FROM restored_own_album_media WHERE album_id = $1 ORDER BY position",
+		[albumId],
+	);
+	return rows.map((row) => ({ contentId: String(row.content_id), contentType: row.content_type }));
+}
+
+export async function getRestoredOwnAlbumMediaData(contentId: string): Promise<string | null> {
+	const db = await getDb();
+	const rows = await db.select<{ data_base64: string | null }[]>(
+		"SELECT data_base64 FROM restored_own_album_media WHERE content_id = $1",
+		[contentId],
+	);
+	return rows[0]?.data_base64 ?? null;
+}
+
+/** What's left to restore: albums still to create plus content still to upload. */
+export async function countRestoredOwnAlbumItems(): Promise<number> {
+	const db = await getDb();
+	const rows = await db.select<{ count: number }[]>(
+		`SELECT (SELECT COUNT(*) FROM restored_own_albums WHERE uploaded_album_id IS NULL)
+			+ (SELECT COUNT(*) FROM restored_own_album_media m
+				WHERE EXISTS (SELECT 1 FROM restored_own_albums a WHERE a.album_id = m.album_id)) AS count`,
+	);
+	return rows[0]?.count ?? 0;
+}
+
+export async function markRestoredOwnAlbumCreated(albumId: string, uploadedAlbumId: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "mark-restored-own-album-created", async () => {
+		await db.execute("UPDATE restored_own_albums SET uploaded_album_id = $2 WHERE album_id = $1", [albumId, uploadedAlbumId]);
+	});
+}
+
+export async function deleteRestoredOwnAlbumMedia(contentId: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "delete-restored-own-album-media", async () => {
+		await db.execute("DELETE FROM restored_own_album_media WHERE content_id = $1", [contentId]);
+	});
+}
+
+/** Drops a restored album along with whatever of its content is still left. */
+export async function deleteRestoredOwnAlbum(albumId: string): Promise<void> {
+	const db = await getDb();
+	await executeWithLockRetry(db, "delete-restored-own-album", async () => {
+		await db.execute("DELETE FROM restored_own_album_media WHERE album_id = $1", [albumId]);
+		await db.execute("DELETE FROM restored_own_albums WHERE album_id = $1", [albumId]);
 	});
 }
 
