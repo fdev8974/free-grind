@@ -80,11 +80,27 @@ import type { Options } from './index'
     }
   })
 
-  void isPermissionGranted().then(function (response) {
-    if (response === null) {
-      setNotificationPermission('default')
-    } else {
-      setNotificationPermission(response ? 'granted' : 'denied')
-    }
-  })
+  // On Android the IPC origin is the URL wry saw in onPageStarted, which can
+  // still be "about:blank" when this document-start script runs. The call is
+  // then treated as remote and rejected by the ACL, so retry a few times.
+  // Webviews that never get the capability (e.g. external OAuth windows) end
+  // up silently keeping the permission at 'default'.
+  function syncPermission(attempt: number): void {
+    isPermissionGranted()
+      .then(function (response) {
+        if (response === null) {
+          setNotificationPermission('default')
+        } else {
+          setNotificationPermission(response ? 'granted' : 'denied')
+        }
+      })
+      .catch(function () {
+        if (attempt < 5) {
+          setTimeout(function () {
+            syncPermission(attempt + 1)
+          }, 300 * (attempt + 1))
+        }
+      })
+  }
+  syncPermission(0)
 })()
