@@ -1274,7 +1274,9 @@ export function ChatThreadMessages({
                         getMessageAlbumCoverUrl(message);
                     const albumMediaCount =
                         albumId != null
-                            ? (ownAlbumMediaCountMap?.get(albumId) ?? getCachedAlbumMediaCount(albumId))
+                            // Your own album counts only what it holds now (live);
+                            // the local cache also counts items deleted since.
+                            ? (ownAlbumMediaCountMap?.get(albumId) ?? (mine ? null : getCachedAlbumMediaCount(albumId)))
                             : null;
                     const albumName =
                         albumId != null

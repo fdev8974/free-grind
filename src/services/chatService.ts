@@ -23,6 +23,7 @@ import {
 	type ShareAlbumPayload,
 } from "../types/chat";
 import { albumsResponseSchema, type Album } from "../types/albums";
+import { notifyOwnAlbumsChanged, rememberOwnAlbumList } from "./ownAlbumsChanged";
 import { createProfileMethods } from "./api/profileMethods";
 import type {
 	AlbumDetailsResponse,
@@ -542,6 +543,7 @@ export function createChatService(
 			const response = await fetchRest("/v1/albums");
 			await assertSuccess(response, t("chat.errors.load_albums"));
 			const parsed = albumsResponseSchema.parse(await parseJsonSafe(response));
+			rememberOwnAlbumList(parsed.albums);
 			return parsed.albums;
 		},
 
@@ -551,11 +553,13 @@ export function createChatService(
 				body: { albumName },
 			});
 			await assertSuccess(response, t("chat.errors.create_album_failed"));
-			return z
+			const created = z
 				.object({
 					albumId: z.coerce.number().int(),
 				})
 				.parse(await parseJsonSafe(response));
+			notifyOwnAlbumsChanged();
+			return created;
 		},
 
 		async getAlbum(albumId: number | string): Promise<AlbumDetailsResponse> {

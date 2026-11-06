@@ -4002,6 +4002,38 @@ export function ChatPage() {
 		};
 	}, [selectedConversationId, service]);
 
+	// The image/video count on your own album's bubble comes from the live
+	// album, not the local cache (which also counts items you've since
+	// deleted from it). Fetched once per album per session; opening the
+	// album or the drawer's album list refreshes it.
+	const ownAlbumCountsRequestedRef = useRef(new Set<number>());
+	useEffect(() => {
+		if (userId == null) return;
+		const missing = new Set<number>();
+		for (const m of threadMessages) {
+			if (m.type !== "Album" && m.type !== "ExpiringAlbum" && m.type !== "ExpiringAlbumV2") continue;
+			if (Number(m.senderId) !== Number(userId)) continue;
+			const albumId = getMessageAlbumId(m);
+			if (albumId == null || ownAlbumCountsRequestedRef.current.has(albumId)) continue;
+			missing.add(albumId);
+		}
+		for (const albumId of missing) {
+			ownAlbumCountsRequestedRef.current.add(albumId);
+			void service
+				.getAlbum(albumId)
+				.then((details) => {
+					const content = details.content ?? [];
+					const videos = content.filter((c) => c.contentType?.startsWith("video/")).length;
+					setAlbumMediaCountMap((prev) =>
+						new Map(prev).set(albumId, { images: content.length - videos, videos }),
+					);
+				})
+				.catch(() => {
+					ownAlbumCountsRequestedRef.current.delete(albumId);
+				});
+		}
+	}, [threadMessages, userId, service]);
+
 	useEffect(() => {
 		if (!selectedConversationId) {
 			setThreadConversationId(null);
@@ -6526,6 +6558,52 @@ export function ChatPage() {
 				const index = content.findIndex((item) => item.contentId === targetContentId);
 				return index >= 0 ? index : 0;
 			};
+
+			// Your own album shows exactly what it holds right now — never the
+			// local cache, which keeps every item ever captured (deleted ones
+			// included). Nor is it captured into that cache: that store is for
+			// albums received from others.
+			if (isOwnAlbum) {
+				setAlbumViewer({ albumId, albumName: null, content: [], isOwn: true });
+				if (!useSheet) setAlbumViewerMediaIndex(0);
+				setIsAlbumViewerLoading(true);
+				try {
+					const details = await service.getAlbum(albumId);
+					if (albumViewerCancelledRef.current) return;
+					const content = details.content ?? [];
+					const videos = content.filter((item) => item.contentType?.startsWith("video/")).length;
+					setAlbumMediaCountMap((prev) =>
+						new Map(prev).set(albumId, { images: content.length - videos, videos }),
+					);
+					if (content.length === 0) {
+						if (albumHistoryModeRef.current === "direct") {
+							albumHistoryModeRef.current = null;
+							window.history.back();
+						}
+						setAlbumViewer(null);
+						setAlbumViewerMediaIndex(null);
+						setIsAlbumMediaSheetOpen(false);
+						toast(t("shared_albums.empty_album_title"));
+						return;
+					}
+					setAlbumViewer({
+						albumId: details.albumId,
+						albumName: details.albumName ?? null,
+						content,
+						isOwn: true,
+					});
+					if (!useSheet) setAlbumViewerMediaIndex(resolveIndex(content));
+				} catch (error) {
+					if (albumViewerCancelledRef.current) return;
+					setAlbumViewer(null);
+					setAlbumViewerMediaIndex(null);
+					setIsAlbumMediaSheetOpen(false);
+					toast.error(error instanceof Error ? error.message : t("chat.errors.album_open_failed"));
+				} finally {
+					if (!albumViewerCancelledRef.current) setIsAlbumViewerLoading(false);
+				}
+				return;
+			}
 
 			// Show the local cache immediately if we have one — covers both the
 			// offline case and the case where the share has already

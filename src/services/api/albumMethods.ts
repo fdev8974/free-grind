@@ -42,6 +42,7 @@ import type {
 } from "../../types/api-functions";
 import type { RestFetcher } from "../../types/chat-service";
 import { ApiFunctionError, assertSuccess, parseJsonSafe } from "../apiHelpers";
+import { notifyOwnAlbumsChanged, rememberOwnAlbumDetail, rememberOwnAlbumList } from "../ownAlbumsChanged";
 import { MAX_CHAT_MEDIA_BYTES, uploadStagedVideo } from "../stagedVideoUpload";
 import { assertUploadFits, stagedEdit, uploadProgressReporter } from "../videoReencode";
 
@@ -51,13 +52,16 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 			const response = await fetchRest("/v1/albums");
 			await assertSuccess(response, t("api.errors.load_albums"));
 			const parsed = albumsResponseSchema.parse(await parseJsonSafe(response));
+			rememberOwnAlbumList(parsed.albums);
 			return parsed.albums;
 		},
 
 		async getOwnAlbumDetails(albumId: string | number): Promise<AlbumDetail> {
 			const response = await fetchRest(`/v2/albums/${albumId}`);
 			await assertSuccess(response, t("api.errors.load_album_details"));
-			return albumDetailSchema.parse(await parseJsonSafe(response));
+			const detail = albumDetailSchema.parse(await parseJsonSafe(response));
+			rememberOwnAlbumDetail(albumId, detail);
+			return detail;
 		},
 
 		async getOwnAlbumStorage(): Promise<AlbumLimits> {
@@ -85,6 +89,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 				throw new ApiFunctionError(t("api.errors.invalid_album_response"), response.status, payload);
 			}
 
+			notifyOwnAlbumsChanged();
 			return { albumId };
 		},
 
@@ -94,6 +99,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 				body: { albumName: input.albumName },
 			});
 			await assertSuccess(response, t("api.errors.rename_album"));
+			notifyOwnAlbumsChanged();
 			return { ok: true };
 		},
 
@@ -102,6 +108,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 				method: "DELETE",
 			});
 			await assertSuccess(response, t("api.errors.delete_album"));
+			notifyOwnAlbumsChanged();
 			return { ok: true };
 		},
 
@@ -136,6 +143,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 				);
 			}
 
+			notifyOwnAlbumsChanged();
 			return { contentId };
 		},
 
@@ -177,6 +185,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 			if (!parsed.success) {
 				throw new ApiFunctionError(t("api.errors.invalid_upload_response"), 0, payload);
 			}
+			notifyOwnAlbumsChanged();
 			return { contentId: parsed.data.contentId };
 		},
 
@@ -191,6 +200,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 				},
 			);
 			await assertSuccess(response, t("api.errors.reorder_content"));
+			notifyOwnAlbumsChanged();
 			return { ok: true };
 		},
 
@@ -210,6 +220,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 					defaultValue: "Failed to add media to album.",
 				}),
 			);
+			notifyOwnAlbumsChanged();
 			return { ok: true };
 		},
 
@@ -223,6 +234,7 @@ export function createAlbumMethods(fetchRest: RestFetcher, t: (key: string, opti
 				},
 			);
 			await assertSuccess(response, t("api.errors.delete_content"));
+			notifyOwnAlbumsChanged();
 			return { ok: true };
 		},
 

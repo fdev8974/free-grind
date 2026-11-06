@@ -11,12 +11,17 @@
  * runRestoredOwnAlbums creates the albums again and uploads their content in
  * the background. Deliberately slow and sequential like
  * restoredDrawerMedia.ts: one upload at a time with a pause in between.
+ *
+ * Recording runs at most every START_SYNC_INTERVAL_MS on start, plus a short
+ * while after each change to the albums (ownAlbumsChanged.ts), so the backup
+ * stays current without reading every album on every start.
  */
 
 import type { createApiFunctions } from "./apiFunctions";
 import { ApiFunctionError } from "./apiHelpers";
 import * as chatDb from "./chatDb";
 import { fetchAndEncode } from "./mediaStore";
+import { forgetSeenOwnAlbums, freshOwnAlbumDetail, freshOwnAlbumList, onOwnAlbumsChanged } from "./ownAlbumsChanged";
 import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
 import { MAX_CHAT_MEDIA_BYTES } from "./stagedVideoUpload";
 import { buildMultipartBody } from "../pages/app/settings-albums/settingsAlbumsUtils";
@@ -31,9 +36,86 @@ const UPLOAD_DELAY_JITTER_MS = 4_000;
 const SYNC_DETAIL_DELAY_MS = 500;
 /** Likely rate limiting or no connection: stop and pick up again on the next app start. */
 const MAX_CONSECUTIVE_FAILURES = 3;
+/** Least time between two start-up recordings, once one has recorded everything. */
+const START_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
+/** Quiet time after an album change before recording, so a batch of uploads records once. */
+const CHANGE_SYNC_DELAY_MS = 30_000;
 
 let syncing = false;
 let restoring = false;
+/** A change arrived while a recording ran: record again once it's done. */
+let resyncPending = false;
+let changeTimer: ReturnType<typeof setTimeout> | null = null;
+/** The active profile's recording run, and how to stop listening for its changes. */
+let currentRun: (() => Promise<void>) | null = null;
+let stopListening: (() => void) | null = null;
+
+function lastSyncKey(userId: number): string {
+	return `ownAlbums.lastCompleteSync.${userId}`;
+}
+
+function readLastSync(userId: number): number {
+	try {
+		const value = Number(localStorage.getItem(lastSyncKey(userId)));
+		return Number.isFinite(value) ? value : 0;
+	} catch {
+		return 0;
+	}
+}
+
+function writeLastSync(userId: number, value: number | null): void {
+	try {
+		if (value == null) localStorage.removeItem(lastSyncKey(userId));
+		else localStorage.setItem(lastSyncKey(userId), String(value));
+	} catch {
+		// Without storage every start records again, as before.
+	}
+}
+
+/**
+ * Starts recording the active profile's own albums: right away unless a
+ * complete recording ran within START_SYNC_INTERVAL_MS, and again a short
+ * while after every change to them. Replaces what an earlier profile set up.
+ */
+export function startOwnAlbumsSync(api: ApiFunctions, userId: number, isCurrent: () => boolean): void {
+	stopListening?.();
+	forgetSeenOwnAlbums();
+
+	const run = async (): Promise<void> => {
+		if (!isCurrent()) return;
+		if (syncing) {
+			resyncPending = true;
+			return;
+		}
+		const complete = await syncOwnAlbums(api, isCurrent);
+		// Only a recording with every item's bytes counts: content still
+		// processing, or a failed read, has the next start try again.
+		if (isCurrent()) writeLastSync(userId, complete ? Date.now() : null);
+		if (resyncPending) {
+			resyncPending = false;
+			void currentRun?.();
+		}
+	};
+	currentRun = run;
+
+	const unsubscribe = onOwnAlbumsChanged(() => {
+		if (!isCurrent()) return;
+		if (changeTimer) clearTimeout(changeTimer);
+		changeTimer = setTimeout(() => {
+			changeTimer = null;
+			void run();
+		}, CHANGE_SYNC_DELAY_MS);
+	});
+	stopListening = () => {
+		unsubscribe();
+		if (changeTimer) clearTimeout(changeTimer);
+		changeTimer = null;
+		resyncPending = false;
+		currentRun = null;
+	};
+
+	if (Date.now() - readLastSync(userId) >= START_SYNC_INTERVAL_MS) void run();
+}
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,20 +128,30 @@ function isRecordable(item: AlbumMedia): boolean {
 
 /**
  * Records the profile's albums and downloads the content not stored yet.
- * Content still processing has no url yet and is picked up on a later start.
+ * Content still processing has no url yet and is picked up on a later run.
  * Never throws; a failed read leaves what was recorded before untouched.
+ * Resolves true once everything is recorded, bytes included.
  */
-export async function syncOwnAlbums(api: ApiFunctions, isCurrent: () => boolean): Promise<void> {
-	if (syncing) return;
+async function syncOwnAlbums(api: ApiFunctions, isCurrent: () => boolean): Promise<boolean> {
+	if (syncing) return false;
 	syncing = true;
+	let complete = false;
 	try {
-		const albums = await api.getOwnAlbums();
+		// What the app read just now anyway (album editor, drawer) is reused
+		// rather than read again; see ownAlbumsChanged.ts.
+		const albums = freshOwnAlbumList() ?? (await api.getOwnAlbums());
 		const records: chatDb.OwnAlbumRecord[] = [];
 		const urls = new Map<string, string>();
-		for (const [index, album] of albums.entries()) {
-			if (index > 0) await sleep(SYNC_DETAIL_DELAY_MS);
-			if (!isCurrent()) return;
-			const detail = await api.getOwnAlbumDetails(album.albumId);
+		let readBefore = false;
+		for (const album of albums) {
+			let detail = freshOwnAlbumDetail(album.albumId);
+			if (!detail) {
+				if (readBefore) await sleep(SYNC_DETAIL_DELAY_MS);
+				if (!isCurrent()) return false;
+				detail = await api.getOwnAlbumDetails(album.albumId);
+				readBefore = true;
+			}
+			if (!isCurrent()) return false;
 			const content = detail.content.filter(isRecordable);
 			for (const item of content) {
 				const url = item.url || item.coverUrl;
@@ -71,21 +163,28 @@ export async function syncOwnAlbums(api: ApiFunctions, isCurrent: () => boolean)
 				content: content.map((item) => ({ contentId: item.contentId, contentType: item.contentType ?? null })),
 			});
 		}
-		if (!isCurrent()) return;
+		if (!isCurrent()) return false;
 		await chatDb.replaceOwnAlbums(records);
 
+		let missing = 0;
 		for (const contentId of await chatDb.listOwnAlbumMediaWithoutData()) {
 			const url = urls.get(contentId);
-			if (!url) continue;
+			if (!url) {
+				missing++;
+				continue;
+			}
 			const fetched = await fetchAndEncode(url);
-			if (!isCurrent()) return;
+			if (!isCurrent()) return false;
 			if (fetched) await chatDb.setOwnAlbumMediaData(contentId, fetched.mimeType, fetched.base64);
+			else missing++;
 		}
+		complete = missing === 0;
 	} catch (error) {
 		appLog.warn("[ownAlbums] recording own albums failed", error);
 	} finally {
 		syncing = false;
 	}
+	return complete;
 }
 
 function toFile(dataBase64: string, mimeType: string, name: string): File {

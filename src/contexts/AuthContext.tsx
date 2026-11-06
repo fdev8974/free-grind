@@ -36,7 +36,7 @@ import { loadAutoTranslateCache } from "../utils/autoTranslate";
 import { loadSeenCache } from "../services/seenStore";
 import { runInboxSync } from "../services/inboxSync";
 import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
-import { runRestoredOwnAlbums, syncOwnAlbums } from "../services/ownAlbums";
+import { runRestoredOwnAlbums, startOwnAlbumsSync } from "../services/ownAlbums";
 import { syncOwnProfile } from "../services/ownProfilePhotos";
 import { runRestoredBlocklist, syncOwnBlocklist } from "../services/ownBlocklist";
 import { runRestoredFavorites } from "../services/restoredFavorites";
@@ -742,8 +742,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					await runRestoredOwnAlbums(apiFunctions, isCurrent);
 				})();
 				// Fire-and-forget: records the own albums, content included, so a
-				// backup still has them once a ban locks the account out (ownAlbums.ts).
-				void syncOwnAlbums(apiFunctions, () => currentUserIdRef.current === userId);
+				// backup still has them once a ban locks the account out — every few
+				// hours on start and shortly after each change to them (ownAlbums.ts).
+				startOwnAlbumsSync(apiFunctions, userId, () => currentUserIdRef.current === userId);
 				// Fire-and-forget: records this profile's own details and photos
 				// locally so a backup still has them once the account can't read its
 				// profile anymore, e.g. after a ban (see ownProfilePhotos.ts).
