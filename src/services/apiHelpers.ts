@@ -12,6 +12,15 @@ export class ApiFunctionError extends Error {
 	}
 }
 
+/**
+ * The server refusing a request about another profile for good: 400 / 404 /
+ * 410 is what comes back for a profile that no longer exists. Retrying that
+ * won't help, unlike rate limiting or a dropped connection.
+ */
+export function isGoneProfileError(error: unknown): boolean {
+	return error instanceof ApiFunctionError && (error.status === 400 || error.status === 404 || error.status === 410);
+}
+
 /** Banned terms per moderated field, as reported by a rejected profile update. */
 export interface BannedTermsByField {
 	displayName?: string[];

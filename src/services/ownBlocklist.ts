@@ -12,6 +12,7 @@
  */
 
 import type { createApiFunctions } from "./apiFunctions";
+import { isGoneProfileError } from "./apiHelpers";
 import * as chatDb from "./chatDb";
 import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
 import { appLog } from "../utils/logger";
@@ -74,13 +75,22 @@ export async function runRestoredBlocklist(api: ApiFunctions, ownProfileId: numb
 				consecutiveFailures = 0;
 			} catch (error) {
 				if (!isCurrent()) return reportRestoreTask("blocked_profiles", null);
+				// A deleted profile can't be blocked ever again: drop it instead of
+				// retrying until the whole restore pauses over it.
+				if (isGoneProfileError(error)) {
+					appLog.info("[ownBlocklist] profile gone, skipping", { profileId });
+					await chatDb.deleteRestoredBlockedProfile(profileId);
+					done++;
+					advanceRestoreTask("blocked_profiles");
+					continue;
+				}
 				appLog.warn("[ownBlocklist] blocking failed", { profileId, error });
 				if (++consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
 					appLog.warn("[ownBlocklist] stopping after repeated failures, resuming on next start");
 					reportRestoreTask("blocked_profiles", { state: "paused", done, total });
 					return;
 				}
-				// A profile that can't be blocked (e.g. deleted) goes to the back, not in the way.
+				// Possibly just a hiccup: to the back, not in the way.
 				remaining.push(profileId);
 				continue;
 			}
