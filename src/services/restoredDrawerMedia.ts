@@ -70,7 +70,11 @@ async function uploadOne(api: ApiFunctions, mediaKey: string, isCurrent: () => b
 	}
 	const isVideo = stored.kind === "video";
 	const mimeType = stored.mimeType ?? (isVideo ? "video/mp4" : "image/jpeg");
-	const blob = await (await fetch(`data:${mimeType};base64,${stored.dataBase64}`)).blob();
+	// Decoded directly: the CSP's connect-src has no data:, so fetch() on a data URL fails.
+	const binary = atob(stored.dataBase64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	const blob = new Blob([bytes], { type: mimeType });
 	const oldId = oldMediaId(mediaKey);
 	const file = new File([blob], `drawer-${oldId}.${mimeType.split("/")[1] ?? "bin"}`, { type: mimeType });
 	// Videos are checked Rust-side, after the cut that may shrink them.

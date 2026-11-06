@@ -104,7 +104,11 @@ export async function dismissRestoredProfilePhotos(): Promise<void> {
 async function toFile(photo: chatDb.RestoredProfilePhoto): Promise<File | null> {
 	if (!photo.dataBase64) return null;
 	const mimeType = photo.mimeType ?? "image/jpeg";
-	const blob = await (await fetch(`data:${mimeType};base64,${photo.dataBase64}`)).blob();
+	// Decoded directly: the CSP's connect-src has no data:, so fetch() on a data URL fails.
+	const binary = atob(photo.dataBase64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	const blob = new Blob([bytes], { type: mimeType });
 	return new File([blob], `${photo.mediaHash}.${mimeType.split("/")[1] ?? "jpg"}`, { type: mimeType });
 }
 
