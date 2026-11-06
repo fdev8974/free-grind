@@ -803,7 +803,9 @@ fn write_export_archive(
             .query_row(&format!("SELECT COUNT(*) FROM {}{where_clause}", table.name), [], |r| r.get::<_, i64>(0))
             .map_err(|e| AppError::Backup(format!("failed to count {}: {e}", table.name)))?
             as u64;
-        progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done: 0, rows_total: Some(rows_total) });
+        // The entry key, not the table name: media_files is two parts (chat / drawer).
+        let progress_key = table.entry_key();
+        progress.emit(BackupProgress { table: &progress_key, table_index, table_count, rows_done: 0, rows_total: Some(rows_total) });
 
         let entry_name = table.entry_name();
         // A zip writer only has one open entry at a time: starting a media/<n>.bin
@@ -885,7 +887,7 @@ fn write_export_archive(
             }
 
             rows_done += 1;
-            progress.maybe_emit(BackupProgress { table: table.name, table_index, table_count, rows_done, rows_total: Some(rows_total) });
+            progress.maybe_emit(BackupProgress { table: &progress_key, table_index, table_count, rows_done, rows_total: Some(rows_total) });
         }
 
         if has_blobs {
@@ -894,7 +896,7 @@ fn write_export_archive(
         }
 
         row_counts.insert(table.entry_key(), json!(rows_done));
-        progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done, rows_total: Some(rows_total) });
+        progress.emit(BackupProgress { table: &progress_key, table_index, table_count, rows_done, rows_total: Some(rows_total) });
     }
 
     // A banned profile has no session left to ask the server, so its favorites
@@ -1193,7 +1195,9 @@ fn import_tables(
 
     for (table_index, table) in tables.into_iter().enumerate() {
         let rows_total = row_counts.get(&table.entry_key()).copied();
-        progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done: 0, rows_total });
+        // The entry key, not the table name: media_files is two parts (chat / drawer).
+        let progress_key = table.entry_key();
+        progress.emit(BackupProgress { table: &progress_key, table_index, table_count, rows_done: 0, rows_total });
 
         let target = RESTORED_INTO
             .iter()
@@ -1272,7 +1276,7 @@ fn import_tables(
 
             rows_done += 1;
             total_rows_imported += 1;
-            progress.maybe_emit(BackupProgress { table: table.name, table_index, table_count, rows_done, rows_total });
+            progress.maybe_emit(BackupProgress { table: &progress_key, table_index, table_count, rows_done, rows_total });
 
             if slice_started.elapsed() >= IMPORT_SLICE_MAX_DURATION || slice_bytes >= IMPORT_SLICE_MAX_BYTES {
                 conn.execute_batch("COMMIT")?;
@@ -1285,7 +1289,7 @@ fn import_tables(
             }
         }
 
-        progress.emit(BackupProgress { table: table.name, table_index, table_count, rows_done, rows_total });
+        progress.emit(BackupProgress { table: &progress_key, table_index, table_count, rows_done, rows_total });
     }
 
     Ok(total_rows_imported)

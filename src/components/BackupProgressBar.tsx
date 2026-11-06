@@ -4,6 +4,33 @@ import { useTranslation } from "react-i18next";
 import { backupProgressFraction, listenBackupProgress, type BackupProgress, type BackupReadProgress } from "../services/backupRestore";
 import { formatBytes } from "../utils/formatBytes";
 
+/**
+ * What each step of an export/import is, by the archive part backup.rs reports
+ * (`table`, e.g. "messages" or "media_files.drawer"). An unknown part (a newer
+ * table this list doesn't know yet) shows its raw name.
+ */
+const TABLE_LABELS: Record<string, string> = {
+	conversations: "Conversations",
+	conversation_meta: "Conversation details",
+	messages: "Chat messages",
+	"media_files.chat": "Chat media",
+	"media_files.drawer": "Drawer media",
+	albums: "Albums",
+	album_media: "Album media",
+	avatars: "Profile pictures in chats",
+	drawer_collections: "Drawer collections",
+	settings: "Settings",
+	saved_phrases: "Saved phrases",
+	saved_locations: "Saved locations",
+	sexual_health_prep_doses: "PrEP doses",
+	sexual_health_encounters: "Encounters",
+	sexual_health_appointments: "Appointments",
+	sexual_health_sti_tests: "STI tests",
+	own_profile_details: "Profile details",
+	own_profile_photos: "Profile photos",
+	own_blocked_profiles: "Blocked profiles",
+};
+
 /** Live progress of a running native export/import, fed by the progress events backup.rs emits. */
 export function BackupProgressBar({ kind, active }: { kind: "export" | "import"; active: boolean }) {
 	const { t, i18n } = useTranslation();
@@ -31,6 +58,11 @@ export function BackupProgressBar({ kind, active }: { kind: "export" | "import";
 	if (!active) return null;
 
 	const fraction = progress ? backupProgressFraction(progress) : null;
+	const tableLabel = (table: string) => {
+		const fallback = TABLE_LABELS[table];
+		// i18next keys can't hold the dot of "media_files.drawer".
+		return fallback ? t(`data_backup.table_labels.${table.replace(".", "_")}`, { defaultValue: fallback }) : table;
+	};
 	const numberFormat = new Intl.NumberFormat(i18n.language);
 
 	return (
@@ -41,10 +73,11 @@ export function BackupProgressBar({ kind, active }: { kind: "export" | "import";
 					style={fraction == null ? undefined : { width: `${Math.round(fraction * 100)}%` }}
 				/>
 			</div>
-			<p className="mt-1.5 text-xs tabular-nums text-[var(--text-muted)]">
+			<p className="mt-1.5 break-words text-xs tabular-nums text-[var(--text-muted)]">
 				{progress
-					? t("data_backup.progress_step", {
-							defaultValue: "Step {{step}} of {{steps}} · {{rows}} entries",
+					? t("data_backup.progress_table", {
+							defaultValue: "{{label}} · step {{step}} of {{steps}} · {{rows}} entries",
+							label: tableLabel(progress.table),
 							step: progress.tableIndex + 1,
 							steps: progress.tableCount,
 							rows:
