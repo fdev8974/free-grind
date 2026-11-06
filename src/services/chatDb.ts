@@ -3012,7 +3012,8 @@ export async function resetAllSettings(): Promise<void> {
 export async function getAllSavedPhrases(): Promise<string[]> {
 	const db = await getDb();
 	const rows = await db.select<{ phrase: string }[]>(
-		"SELECT phrase FROM saved_phrases ORDER BY created_at ASC",
+		// rowid breaks ties: lists saved before created_at was made distinct share one value.
+		"SELECT phrase FROM saved_phrases ORDER BY created_at ASC, rowid ASC",
 	);
 	return rows.map((row) => row.phrase);
 }
@@ -3024,10 +3025,11 @@ export async function setSavedPhrases(phrases: string[]): Promise<string[]> {
 
 	await executeWithLockRetry(db, "set-saved-phrases", async () => {
 		await db.execute("DELETE FROM saved_phrases");
-		for (const phrase of phrases) {
+		// One created_at per position, so the list's order survives a backup.
+		for (const [index, phrase] of phrases.entries()) {
 			await db.execute(
 				"INSERT INTO saved_phrases (phrase, created_at) VALUES ($1, $2) ON CONFLICT(phrase) DO NOTHING",
-				[phrase, now],
+				[phrase, now + index],
 			);
 		}
 	});

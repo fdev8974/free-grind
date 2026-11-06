@@ -6,7 +6,7 @@
 //! instead of crossing the JS<->WebView IPC bridge as multi-hundred-MB text.
 //!
 //! Archive layout (version 2):
-//!   tables/<name>.jsonl   - one JSON object per row, ORDER BY the table's primary key
+//!   tables/<name>.jsonl   - one JSON object per row, ORDER BY the table's primary key (saved phrases: their list order)
 //!                           (only present for tables whose category was selected)
 //!   media/<n>.bin         - raw bytes for each blob column, referenced from its
 //!                           row as { "$mediaRef": "media/<n>.bin" } instead of
@@ -106,6 +106,14 @@ impl TableSpec {
 
     fn entry_name(&self) -> String {
         format!("tables/{}.jsonl", self.entry_key())
+    }
+
+    /// Row order in the archive, which import keeps. Saved phrases are a list
+    /// the user ordered (by created_at, older entries all sharing one value,
+    /// so their insertion order breaks the tie): by primary key they'd come
+    /// back alphabetical.
+    fn export_order(&self) -> &'static str {
+        if self.name == "saved_phrases" { "created_at, rowid" } else { self.primary_key }
     }
 }
 
@@ -822,7 +830,7 @@ fn write_export_archive(
             "SELECT {} FROM {}{where_clause} ORDER BY {}",
             table.columns.join(", "),
             table.name,
-            table.primary_key
+            table.export_order()
         );
         let mut stmt = conn
             .prepare(&select_sql)
