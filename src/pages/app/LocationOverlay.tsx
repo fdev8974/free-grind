@@ -35,6 +35,7 @@ import {
 	useVisitingMode,
 } from "../../hooks/queries/useProfileQueries";
 import { VISITING_MODES, getVisitingModeTranslationKey, type VisitingMode } from "../../types/visiting";
+import { confirmAgeVerificationRegion } from "../../services/ageVerificationGuard";
 
 export type ExploreLocation = { geohash: string; label: string } | null;
 
@@ -206,6 +207,7 @@ function LocationSheetContent({
 	const saveAndClose = async (lat: number, lon: number, label: string, isAuto = false) => {
 		setIsSaving(true);
 		try {
+			if (!(await confirmAgeVerificationRegion(lat, lon, geohash))) return;
 			await setPreferences({ geohash: encodeGeohash(lat, lon), locationName: label, useAutoLocation: isAuto });
 			// Setting your real location while still "exploring" elsewhere would
 			// leave the grid showing a place you just moved away from — end

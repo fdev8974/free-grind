@@ -2231,6 +2231,7 @@
     "location_finder_error_estimate": "Round {{round}} complete. Estimated error: ~{{error}}m",
     "location_finder_final_location": "The user is at approximately lat:{{lat}}, lon:{{lon}}. Estimated error: ~{{error}} meters from the final estimated location.",
     "location_finder_error_general": "An error occurred during triangulation",
+    "location_finder_error_age_verification_region": "Stopped: this profile is in or near a region where Grindr requires age verification. Moving your location there would lock your account.",
     "location_finder_location_copied": "Location copied to clipboard",
     "location_finder_result_title": "Location found",
     "location_finder_result_error": "Estimated error: ~{{error}} m",
@@ -3191,6 +3192,16 @@
     "reading_file": "Reading backup…",
     "file_hint": "Free Grind data export (.zip)",
     "local_hint": "Your backup stays on this device."
+  },
+  "age_verification_region": {
+    "title": "Age verification region",
+    "message": "This location is in {{region}}, where Grindr requires a legal age verification with an ID document or face scan. Free Grind can't do that verification.",
+    "warning": "Grindr will lock your account as soon as your location is set here, and you won't be able to change it back until you verify your age in the official Grindr app.",
+    "confirm": "Set location anyway",
+    "cancel": "Cancel",
+    "region_uk": "the United Kingdom",
+    "region_br": "Brazil",
+    "region_au": "Australia"
   },
   "entitlement_bypass": {
     "prompt_title": "Paid feature",

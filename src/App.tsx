@@ -48,6 +48,7 @@ import { TokenExpiredGate } from "./components/TokenExpiredPrompt";
 import { AccountStatusGate } from "./components/AccountStatusPrompt";
 import { UnsupportedVersionGate } from "./components/UnsupportedVersionPrompt";
 import { EntitlementBypassPrompt } from "./components/EntitlementBypassPrompt";
+import { AgeVerificationRegionPrompt } from "./components/AgeVerificationRegionPrompt";
 import { LocateProfileHost } from "./pages/app/gridpage/hooks/useLocateProfile";
 import { PushNotificationBridge } from "./components/PushNotificationBridge";
 import { ShareTargetBridge } from "./components/ShareTargetBridge";
@@ -219,6 +220,7 @@ export default function App() {
 				<HalloweenOverlay />
 				<RightNowStartedOverlay />
 				<EntitlementBypassPrompt />
+				<AgeVerificationRegionPrompt />
 				<LocateProfileHost />
 				<SmoothScroll>
 					<OtaUpdateGate>

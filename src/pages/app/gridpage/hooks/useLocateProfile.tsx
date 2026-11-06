@@ -5,6 +5,7 @@ import { useApiFunctions } from "../../../../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../../../../hooks/useDesktopBreakpoint";
 import { usePreferences } from "../../../../contexts/PreferencesContext";
 import { decodeGeohash, encodeGeohash } from "../../../../utils/geohash";
+import { getAgeVerificationRegion } from "../../../../utils/ageVerificationRegions";
 import { appLog } from "../../../../utils/logger";
 import { ConfirmDialog } from "../../../../components/ui/confirm-dialog";
 import { afterSheetClose } from "../../../../components/ui/action-sheet";
@@ -176,7 +177,19 @@ export function LocateProfileHost() {
             if (locateCancelled) throw new LocateCancelledError();
         };
 
+        // Probe points are offsets around the target profile, so locating
+        // someone in e.g. the UK would park the account there — which locks
+        // it behind Grindr's age verification (see utils/ageVerificationRegions.ts).
+        // Only the region the account is already in is safe to probe.
+        const originRegion = getAgeVerificationRegion(originalLat, originalLon);
+
         const putServerLocation = async (lat: number, lon: number, targetGeohash: string) => {
+            const region = getAgeVerificationRegion(lat, lon);
+            if (region && region !== originRegion) {
+                throw new Error(t("profile_details.location_finder_error_age_verification_region", {
+                    defaultValue: "Stopped: this profile is in or near a region where Grindr requires age verification. Moving your location there would lock your account.",
+                }));
+            }
             const payloads = [
                 { lat, lon },
                 { latitude: lat, longitude: lon },

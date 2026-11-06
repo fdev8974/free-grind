@@ -7,6 +7,7 @@ import { appLog } from "../../utils/logger";
 import { getCurrentLocation, getLocationErrorMessageKey } from "../../services/currentLocation";
 import { usePreferences } from "../../contexts/PreferencesContext";
 import { encodeGeohash, decodeGeohash } from "../../utils/geohash";
+import { confirmAgeVerificationRegion } from "../../services/ageVerificationGuard";
 import {
 	geocodeResultSchema,
 	type GeocodeResult,
@@ -68,6 +69,7 @@ export function BrowseLocationPage() {
 		label?: string,
 		isAuto?: boolean,
 	) => {
+		if (!(await confirmAgeVerificationRegion(lat, lon, geohash))) return;
 		const nextGeohash = encodeGeohash(lat, lon);
 		const finalLabel = label ?? t("browse_location.lat_lon_label", { lat: lat.toFixed(4), lon: lon.toFixed(4) });
 		await setPreferences({

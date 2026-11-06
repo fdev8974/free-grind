@@ -2231,6 +2231,7 @@
         "location_finder_error_estimate": "Runde {{round}} abgeschlossen. Geschätzter Fehler: ~{{error}}m",
         "location_finder_final_location": "Der Benutzer befindet sich etwa bei Lat:{{lat}}, Lon:{{lon}}. Geschätzter Fehler: ~{{error}} Meter vom endgültigen geschätzten Standort entfernt.",
         "location_finder_error_general": "Während der Triangulation ist ein Fehler aufgetreten",
+        "location_finder_error_age_verification_region": "Abgebrochen: Dieses Profil befindet sich in oder nahe einer Region, in der Grindr eine Altersverifikation verlangt. Dein Standort dorthin zu verschieben würde deinen Account sperren.",
         "location_finder_location_copied": "Standort in die Zwischenablage kopiert",
         "location_finder_result_title": "Standort gefunden",
         "location_finder_result_error": "Geschätzte Abweichung: ~{{error}} m",
@@ -3193,6 +3194,16 @@
         "reading_file": "Sicherung wird gelesen…",
         "file_hint": "Free-Grind-Datenexport (.zip)",
         "local_hint": "Deine Sicherung bleibt auf diesem Gerät."
+    },
+    "age_verification_region": {
+        "title": "Region mit Altersverifikation",
+        "message": "Dieser Standort liegt in {{region}}. Dort verlangt Grindr eine gesetzliche Altersverifikation per Ausweis oder Gesichtsscan. Free Grind kann diese Verifikation nicht durchführen.",
+        "warning": "Grindr sperrt deinen Account, sobald dein Standort hier gesetzt wird, und du kannst ihn erst wieder ändern, wenn du dein Alter in der offiziellen Grindr-App verifiziert hast.",
+        "confirm": "Trotzdem festlegen",
+        "cancel": "Abbrechen",
+        "region_uk": "Großbritannien",
+        "region_br": "Brasilien",
+        "region_au": "Australien"
     },
     "entitlement_bypass": {
         "prompt_title": "Kostenpflichtige Funktion",
