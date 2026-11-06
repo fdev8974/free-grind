@@ -311,6 +311,14 @@ export function getMessageFallbackMediaKey(messageId: string): string {
  * its signed CDN url, which expires on a timer and gets re-issued on every
  * fetch).
  */
+/** Carries a cached copy over to a renamed media key (see chatDb.renameMediaFile). */
+export function moveCachedMediaUri(fromKey: string, toKey: string): void {
+	const uri = memoryCache.get(fromKey);
+	if (uri == null) return;
+	memoryCache.delete(fromKey);
+	setCachedMediaUri(toKey, uri);
+}
+
 export function getDrawerMediaKey(mediaId: number): string {
 	return `drawer:${mediaId}`;
 }

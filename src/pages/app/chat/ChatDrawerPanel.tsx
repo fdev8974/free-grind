@@ -13,7 +13,7 @@ import {
 	Share2,
 	X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDrawerMediaDelete } from "./useDrawerMediaDelete";
 import { useDrawerUploadQueue } from "./useDrawerUploadQueue";
 import { ImagesFilled } from "../../../components/icons/FilledIcons";
@@ -52,6 +52,7 @@ import { useLocalMediaCache } from "../../../hooks/useLocalMediaCache";
 import { getCachedMediaUri, getDrawerMediaKey, getDrawerMediaSrc, hydrateStoredMedia } from "../../../services/mediaStore";
 import {
 	listRestoredDrawerMedia,
+	oldMediaId,
 	subscribeToRestoredDrawerMedia,
 	type RestoredDrawerMedia,
 } from "../../../services/restoredDrawerMedia";
@@ -84,31 +85,56 @@ export interface DrawerMedia {
 	sendCount: number;
 }
 
+/** A restored item: still waiting for its upload, or uploaded (`uploaded` set). */
+type RestoredDrawerEntry = RestoredDrawerMedia & { uploaded?: DrawerMedia };
+
 /**
- * Drawer media restored from another profile's backup that's still waiting
- * for its background upload (see restoredDrawerMedia.ts). Each finished upload
- * reloads the drawer through `onUploaded`, where it then shows up for real.
+ * Drawer media restored from another profile's backup (see
+ * restoredDrawerMedia.ts), in the backup's order: newest on top, like the
+ * drawer itself. A finished upload swaps its tile in place for the real item
+ * instead of reloading the grid, so nothing jumps around while the restore
+ * runs; the drawer list is refreshed quietly through `onUploaded` so the new
+ * item can be sent.
  */
-function useRestoredDrawerMedia(onUploaded: () => void | Promise<void>): RestoredDrawerMedia[] {
-	const [items, setItems] = useState<RestoredDrawerMedia[]>([]);
+function useRestoredDrawerMedia(onUploaded: () => void | Promise<void>) {
+	const [entries, setEntries] = useState<RestoredDrawerEntry[]>([]);
 	const onUploadedRef = useRef(onUploaded);
 	onUploadedRef.current = onUploaded;
 
 	useEffect(() => {
 		let cancelled = false;
-		const load = () => {
-			listRestoredDrawerMedia()
-				.then((next) => {
-					if (cancelled) return;
-					setItems(next);
-					for (const item of next) hydrateStoredMedia(item.mediaKey);
-				})
-				.catch((error: unknown) => appLog.warn("[ChatDrawerPanel] loading restored drawer media failed", error));
-		};
-		load();
-		const unsubscribe = subscribeToRestoredDrawerMedia(() => {
-			load();
-			void onUploadedRef.current();
+		listRestoredDrawerMedia()
+			.then((next) => {
+				if (cancelled) return;
+				setEntries([...next].sort((a, b) => oldMediaId(b.mediaKey) - oldMediaId(a.mediaKey)));
+				for (const item of next) hydrateStoredMedia(item.mediaKey);
+			})
+			.catch((error: unknown) => appLog.warn("[ChatDrawerPanel] loading restored drawer media failed", error));
+		const unsubscribe = subscribeToRestoredDrawerMedia(({ mediaKey, uploaded }) => {
+			setEntries((previous) =>
+				uploaded
+					? previous.map((entry) =>
+							entry.mediaKey === mediaKey
+								? {
+										...entry,
+										uploaded: {
+											id: uploaded.mediaId,
+											url: "",
+											contentType: uploaded.contentType,
+											createdTs: Date.now(),
+											used: false,
+											takenOnGrindr: false,
+											sendCount: 0,
+										},
+									}
+								: entry,
+						)
+					: previous.filter((entry) => entry.mediaKey !== mediaKey),
+			);
+			if (uploaded) {
+				hydrateStoredMedia(getDrawerMediaKey(uploaded.mediaId));
+				void onUploadedRef.current();
+			}
 		});
 		return () => {
 			cancelled = true;
@@ -116,7 +142,12 @@ function useRestoredDrawerMedia(onUploaded: () => void | Promise<void>): Restore
 		};
 	}, []);
 
-	return items;
+	/** Drops an uploaded item that was deleted from the drawer since. */
+	const removeUploaded = useCallback((mediaId: number) => {
+		setEntries((previous) => previous.filter((entry) => entry.uploaded?.id !== mediaId));
+	}, []);
+
+	return { entries, removeUploaded };
 }
 
 type DrawerTab = "media" | "albums" | "collections";
@@ -127,7 +158,7 @@ interface ChatDrawerPanelProps {
 	error: string | null;
 	media: DrawerMedia[];
 	onBack: () => void;
-	onLoadMedia: () => void | Promise<void>;
+	onLoadMedia: (options?: { silent?: boolean }) => void | Promise<void>;
 	onSendMedia: (mediaIds: number[], maxViews?: number) => void | Promise<void>;
 	isSending: boolean;
 	/** Called after media was deleted from the drawer here, to drop it from the list. */
@@ -177,7 +208,22 @@ export function ChatDrawerPanel({
 	// Re-renders once a background fetch lands a drawer item in the local
 	// media cache, so it can swap in the cached copy without waiting for a DB read.
 	useLocalMediaCache();
-	const restoredMedia = useRestoredDrawerMedia(onLoadMedia);
+	const { entries: restoredEntries, removeUploaded: removeRestoredUploaded } = useRestoredDrawerMedia(() => onLoadMedia({ silent: true }));
+	// Uploaded restored items keep their spot in the restored block: the
+	// refreshed drawer list (where they'd sort to the top as just added) only
+	// supplies their real data, e.g. the url to send them by.
+	const restoredUploadedIds = useMemo(
+		() => new Set(restoredEntries.flatMap((entry) => (entry.uploaded ? [entry.uploaded.id] : []))),
+		[restoredEntries],
+	);
+	const drawerOnlyMedia = useMemo(
+		() => (restoredUploadedIds.size === 0 ? media : media.filter((item) => !restoredUploadedIds.has(item.id))),
+		[media, restoredUploadedIds],
+	);
+	const restoredMedia = useMemo(() => {
+		const byId = new Map(media.map((item) => [item.id, item]));
+		return restoredEntries.map((entry) => (entry.uploaded ? { ...entry, uploaded: byId.get(entry.uploaded.id) ?? entry.uploaded } : entry));
+	}, [restoredEntries, media]);
 	const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 	const { preview: drawerPreview, bind: bindPreview, consumeClick: consumePreviewClick } = useDrawerMediaPreview();
 	const [selectedAlbumIds, setSelectedAlbumIds] = useState<Set<number>>(new Set());
@@ -268,8 +314,9 @@ export function ChatDrawerPanel({
 			next.delete(mediaId);
 			return next;
 		});
+		removeRestoredUploaded(mediaId);
 		onMediaDeleted(mediaId);
-	}, [onMediaDeleted]);
+	}, [onMediaDeleted, removeRestoredUploaded]);
 	const deletion = useDrawerMediaDelete({ onDeleted: removeDeleted });
 
 	// Deleting albums and collections right from their tiles, after a confirm.
@@ -635,6 +682,52 @@ export function ChatDrawerPanel({
 		onClick: () => setEditingCollection(null),
 	}];
 
+
+	/** `key`: a restored item keeps its tile's key once uploaded, so it isn't remounted. */
+	const renderMediaTile = (item: DrawerMedia, key: string | number = item.id) => {
+		const isSelected = selectedIds.has(item.id);
+		const isItemVideo = item.contentType.startsWith("video/");
+		const mediaSrc = getDrawerMediaSrc(item);
+		// 1-based send position, previewing a selected collection's contents.
+		const collectionPosition = selectedCollection ? sendIds.indexOf(item.id) + 1 : 0;
+		const isBlocked = hasAlbumSelection || noConversation || (hasCollectionSelection && collectionPosition === 0);
+		const isClickable = !isBlocked && !hasCollectionSelection;
+
+		return (
+			<DrawerMediaTile
+				key={key}
+				src={mediaSrc ?? item.url}
+				isVideo={isItemVideo}
+				posterKey={getDrawerMediaKey(item.id)}
+				placeholder={mediaSrc == null ? DRAWER_TILE_LOADING : undefined}
+				alt={t("chat_drawer.media_alt")}
+				selected={isSelected}
+				muted={isBlocked}
+				onSelect={isClickable ? () => toggleSelection(item.id, isItemVideo) : undefined}
+				previewProps={bindPreview({ src: mediaSrc ?? item.url, isVideo: isItemVideo })}
+				consumePreviewClick={consumePreviewClick}
+				takenOnGrindr={item.takenOnGrindr}
+				busy={deletion.deletingId === item.id}
+				onDelete={hasCollectionSelection ? undefined : () => deletion.requestDelete(item.id)}
+				isDeleting={deletion.deletingId === item.id}
+				deleteLabel={t("chat_drawer.delete_media")}
+			>
+				{item.used && !isSelected ? (
+					<div className="absolute inset-0 flex items-center justify-center bg-black/40">
+						<span className="text-[11px] font-semibold uppercase tracking-widest text-white/90">
+							{t("chat_drawer.sent", { defaultValue: "Sent" })}
+						</span>
+					</div>
+				) : null}
+				{!isSelected && collectionPosition > 0 ? (
+					<span className="pointer-events-none absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[11px] font-bold text-[var(--accent-contrast)]">
+						{collectionPosition}
+					</span>
+				) : null}
+			</DrawerMediaTile>
+		);
+	};
+
 	return (
 		<>
 		<BottomSheet
@@ -764,7 +857,7 @@ export function ChatDrawerPanel({
 										{activeTab === "albums" ? albumTiles : collectionTiles}
 									</div>
 								)}
-								{showSection("media") && (media.length > 0 || restoredMedia.length > 0 || hasCombinedGroups || upload.isUploading) && (
+								{showSection("media") && (media.length > 0 || restoredEntries.length > 0 || hasCombinedGroups || upload.isUploading) && (
 								<DrawerGrid isDesktop={isDesktop}>
 									<DrawerAddTile
 										label={t("chat_drawer.add_media", { defaultValue: "Add media" })}
@@ -794,51 +887,11 @@ export function ChatDrawerPanel({
 									{/* Not split into categories: albums and collections share the media grid. */}
 									{combined && albumTiles}
 									{combined && collectionTiles}
-									{media.map((item) => {
-										const isSelected = selectedIds.has(item.id);
-										const isItemVideo = item.contentType.startsWith("video/");
-										const mediaSrc = getDrawerMediaSrc(item);
-										// 1-based send position, previewing a selected collection's contents.
-										const collectionPosition = selectedCollection ? sendIds.indexOf(item.id) + 1 : 0;
-										const isBlocked = hasAlbumSelection || noConversation || (hasCollectionSelection && collectionPosition === 0);
-										const isClickable = !isBlocked && !hasCollectionSelection;
-
-										return (
-											<DrawerMediaTile
-												key={item.id}
-												src={mediaSrc ?? item.url}
-												isVideo={isItemVideo}
-												posterKey={getDrawerMediaKey(item.id)}
-												placeholder={mediaSrc == null ? DRAWER_TILE_LOADING : undefined}
-												alt={t("chat_drawer.media_alt")}
-												selected={isSelected}
-												muted={isBlocked}
-												onSelect={isClickable ? () => toggleSelection(item.id, isItemVideo) : undefined}
-												previewProps={bindPreview({ src: mediaSrc ?? item.url, isVideo: isItemVideo })}
-												consumePreviewClick={consumePreviewClick}
-												takenOnGrindr={item.takenOnGrindr}
-												busy={deletion.deletingId === item.id}
-												onDelete={hasCollectionSelection ? undefined : () => deletion.requestDelete(item.id)}
-												isDeleting={deletion.deletingId === item.id}
-												deleteLabel={t("chat_drawer.delete_media")}
-											>
-												{item.used && !isSelected ? (
-													<div className="absolute inset-0 flex items-center justify-center bg-black/40">
-														<span className="text-[11px] font-semibold uppercase tracking-widest text-white/90">
-															{t("chat_drawer.sent", { defaultValue: "Sent" })}
-														</span>
-													</div>
-												) : null}
-												{!isSelected && collectionPosition > 0 ? (
-													<span className="pointer-events-none absolute right-1 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--accent)] px-1 text-[11px] font-bold text-[var(--accent-contrast)]">
-														{collectionPosition}
-													</span>
-												) : null}
-											</DrawerMediaTile>
-										);
-									})}
-									{/* Restored from another profile's backup, uploaded bit by bit in the background. */}
-									{restoredMedia.map(({ mediaKey, isVideo }) => {
+									{/* Restored from another profile's backup, newest on top like the
+									    rest of the drawer: uploaded bit by bit in the background, each
+									    tile turning into a regular one in place once it's up. */}
+									{restoredMedia.map(({ mediaKey, isVideo, uploaded }) => {
+										if (uploaded) return renderMediaTile(uploaded, mediaKey);
 										const src = getCachedMediaUri(mediaKey);
 										return (
 											<DrawerMediaTile
@@ -859,10 +912,11 @@ export function ChatDrawerPanel({
 											</DrawerMediaTile>
 										);
 									})}
+									{drawerOnlyMedia.map((item) => renderMediaTile(item))}
 								</DrawerGrid>
 								)}
 								{/* Empty drawer: the add actions on their own, as the way in. */}
-								{showSection("media") && media.length === 0 && restoredMedia.length === 0 && !hasCombinedGroups && !upload.isUploading && (
+								{showSection("media") && media.length === 0 && restoredEntries.length === 0 && !hasCombinedGroups && !upload.isUploading && (
 									<DrawerEmptyState
 										className="my-auto"
 										icon={<ImagesFilled className="h-5 w-5" />}

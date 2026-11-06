@@ -6909,7 +6909,10 @@ export function ChatPage() {
 		shareableAlbums,
 	]);
 
-	const loadDrawerMedia = useCallback(async () => {
+	// `silent`: refresh in place without the loading skeleton (e.g. after a
+	// restored item finished uploading in the background).
+	const loadDrawerMedia = useCallback(async (options?: { silent?: boolean }) => {
+		const silent = options?.silent === true;
 		// The per-conversation endpoint's "used" flag is scoped to that one
 		// conversation (so you don't accidentally resend the same pic twice to
 		// the same person) — falling back to some other conversationId here
@@ -6922,8 +6925,8 @@ export function ChatPage() {
 		// the skeleton shrank back to "Your drawer is empty" on every open.
 		let knownEmpty = false;
 		try { knownEmpty = localStorage.getItem(DRAWER_KNOWN_EMPTY_KEY) === "1"; } catch { /* storage unavailable */ }
-		if (!knownEmpty) setIsLoadingDrawer(true);
-		setDrawerError(null);
+		if (!knownEmpty && !silent) setIsLoadingDrawer(true);
+		if (!silent) setDrawerError(null);
 		try {
 			const [media, sendCounts] = await Promise.all([
 				selectedConversationId
@@ -6946,10 +6949,15 @@ export function ChatPage() {
 			void chatDb.deleteStaleDrawerMediaFiles(media.map((item) => getDrawerMediaKey(item.id)));
 		} catch (error) {
 			const message = error instanceof Error ? error.message : t("chat.errors.load_drawer_media");
+			// A failed background refresh keeps the list that's showing.
+			if (silent) {
+				appLog.warn("[ChatPage] silent drawer refresh failed", error);
+				return;
+			}
 			setDrawerError(message);
 			toast.error(message);
 		} finally {
-			setIsLoadingDrawer(false);
+			if (!silent) setIsLoadingDrawer(false);
 		}
 	}, [selectedConversationId, service, sortDrawerMediaByFrequency, t]);
 

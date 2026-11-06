@@ -265,7 +265,7 @@ type ChatThreadPanelProps = {
 	drawerSendProgress?: { done: number; total: number } | null;
 	/** Several picked files being sent one after another. */
 	attachmentSendProgress?: { done: number; total: number } | null;
-	onLoadDrawerMedia: () => void | Promise<void>;
+	onLoadDrawerMedia: (options?: { silent?: boolean }) => void | Promise<void>;
 	onSendDrawerMedia: (mediaIds: number[], maxViews?: number) => Promise<void>;
 	onDrawerMediaDeleted: (mediaId: number) => void;
 	onDrawerAlbumDeleted: (albumId: number) => void;

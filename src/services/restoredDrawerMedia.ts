@@ -14,7 +14,7 @@
 import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
 import { uploadChatVideo } from "./chatMediaSend";
-import { getDrawerMediaKey } from "./mediaStore";
+import { getDrawerMediaKey, moveCachedMediaUri } from "./mediaStore";
 import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
 import { MAX_CHAT_MEDIA_BYTES } from "./stagedVideoUpload";
 import { buildBinaryUpload } from "../pages/app/chat/chatUtils";
@@ -30,26 +30,32 @@ const MAX_CONSECUTIVE_FAILURES = 3;
 
 export type RestoredDrawerMedia = { mediaKey: string; isVideo: boolean };
 
-const listeners = new Set<() => void>();
+/** One restored item done: uploaded under its new drawer id, or dropped (`uploaded` null). */
+export type RestoredDrawerMediaUpdate = {
+	mediaKey: string;
+	uploaded: { mediaId: number; contentType: string } | null;
+};
+
+const listeners = new Set<(update: RestoredDrawerMediaUpdate) => void>();
 let running = false;
 
-/** Fires whenever a restored item got uploaded (or dropped), so the drawer can refresh. */
-export function subscribeToRestoredDrawerMedia(listener: () => void): () => void {
+/** Fires whenever a restored item got uploaded (or dropped), so the drawer can swap its tile in place. */
+export function subscribeToRestoredDrawerMedia(listener: (update: RestoredDrawerMediaUpdate) => void): () => void {
 	listeners.add(listener);
 	return () => {
 		listeners.delete(listener);
 	};
 }
 
-function notify(): void {
-	for (const listener of listeners) listener();
+function notify(update: RestoredDrawerMediaUpdate): void {
+	for (const listener of listeners) listener(update);
 }
 
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function oldMediaId(mediaKey: string): number {
+export function oldMediaId(mediaKey: string): number {
 	return Number(mediaKey.slice(RESTORED_DRAWER_KEY_PREFIX.length));
 }
 
@@ -61,12 +67,12 @@ export async function listRestoredDrawerMedia(): Promise<RestoredDrawerMedia[]> 
 		.sort((a, b) => oldMediaId(a.mediaKey) - oldMediaId(b.mediaKey));
 }
 
-/** A file with nothing usable to upload is dropped instead. */
-async function uploadOne(api: ApiFunctions, mediaKey: string, isCurrent: () => boolean): Promise<void> {
+/** A file with nothing usable to upload is dropped instead (resolves to null). */
+async function uploadOne(api: ApiFunctions, mediaKey: string, isCurrent: () => boolean): Promise<RestoredDrawerMediaUpdate["uploaded"]> {
 	const stored = await chatDb.getMediaFile(mediaKey);
 	if (!stored?.dataBase64 || stored.fetchStatus !== "ok") {
 		await chatDb.deleteMediaFile(mediaKey);
-		return;
+		return null;
 	}
 	const isVideo = stored.kind === "video";
 	const mimeType = stored.mimeType ?? (isVideo ? "video/mp4" : "image/jpeg");
@@ -80,7 +86,7 @@ async function uploadOne(api: ApiFunctions, mediaKey: string, isCurrent: () => b
 	// Videos are checked Rust-side, after the cut that may shrink them.
 	if (!isVideo && file.size > MAX_CHAT_MEDIA_BYTES) {
 		await chatDb.deleteMediaFile(mediaKey);
-		return;
+		return null;
 	}
 	// The api always talks to the active profile: never upload into another one.
 	if (!isCurrent()) throw new Error("profile changed");
@@ -95,6 +101,9 @@ async function uploadOne(api: ApiFunctions, mediaKey: string, isCurrent: () => b
 	// Both per file, so an interrupted run leaves nothing pointing at a stale id.
 	await chatDb.renameMediaFile(mediaKey, getDrawerMediaKey(uploaded.mediaId));
 	await chatDb.remapDrawerCollectionMediaIds(new Map([[oldId, uploaded.mediaId]]));
+	// The tile keeps showing the local copy under its new key, no reload needed.
+	moveCachedMediaUri(mediaKey, getDrawerMediaKey(uploaded.mediaId));
+	return { mediaId: uploaded.mediaId, contentType: mimeType };
 }
 
 /**
@@ -117,8 +126,9 @@ export async function runRestoredDrawerUpload(api: ApiFunctions, isCurrent: () =
 		for (const { mediaKey } of pending) {
 			await sleep(UPLOAD_DELAY_MS + Math.random() * UPLOAD_DELAY_JITTER_MS);
 			if (!isCurrent()) return reportRestoreTask("drawer_media", null);
+			let uploaded: RestoredDrawerMediaUpdate["uploaded"];
 			try {
-				await uploadOne(api, mediaKey, isCurrent);
+				uploaded = await uploadOne(api, mediaKey, isCurrent);
 				consecutiveFailures = 0;
 			} catch (error) {
 				if (!isCurrent()) return reportRestoreTask("drawer_media", null);
@@ -132,7 +142,7 @@ export async function runRestoredDrawerUpload(api: ApiFunctions, isCurrent: () =
 			}
 			done++;
 			advanceRestoreTask("drawer_media");
-			notify();
+			notify({ mediaKey, uploaded });
 		}
 		// A file that failed once (without three failures in a row) waits for the next start.
 		const left = (await listRestoredDrawerMedia()).length;
