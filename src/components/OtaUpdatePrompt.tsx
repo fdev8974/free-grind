@@ -20,7 +20,7 @@ import { appLog } from "../utils/logger";
 import { FullscreenPrompt, fullscreenPrimaryButtonClass, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { ToggleRow } from "./ui/toggle-row";
 import { VersionCompare, VersionCompareLink, type VersionCompareSide } from "./ui/version-compare";
-import { hourCycleOptions } from "../utils/timeFormat";
+import { buildDate, formatBuildTime, releaseOf } from "../utils/otaVersion";
 import { formatRelativeTime } from "../utils/relativeTime";
 import { GITHUB_OTA_SIGNING_URL, githubCompareUrl } from "../utils/githubIssues";
 import { VersionChangesLink } from "./VersionChangesSheet";
@@ -30,42 +30,6 @@ function noteCommit(notes: string | null): string | null {
 	return notes?.match(/\b[0-9a-f]{40}\b/)?.[0] ?? null;
 }
 
-/**
- * OTA bundle versions look like `1.2.0-ota.development.1729500000` (see
- * scripts/publish-ota.mjs) — only the release part is meaningful to users.
- */
-function displayVersion(version: string | null): string | null {
-	return version?.replace(/-ota\..*$/, "") || null;
-}
-
-/** The trailing Unix-seconds sequence of an OTA version is its publish time. */
-function buildDate(version: string | null): Date | null {
-	const seconds = Number(version?.match(/-ota\..*\.(\d{9,})$/)?.[1]);
-	return Number.isFinite(seconds) && seconds > 0 ? new Date(seconds * 1000) : null;
-}
-
-/** Release part of a bundle version; the embedded frontend has the app's own. */
-function releaseOf(version: string | null): string | null {
-	return displayVersion(version) ?? import.meta.env.VITE_APP_VERSION ?? null;
-}
-
-/**
- * "Today, 09:12" / "Yesterday, 14:03" / "Monday, 14:03" within the last week,
- * else a medium date — the build time is the only thing telling OTA bundles apart.
- */
-function formatBuildTime(date: Date, lang: string): string {
-	const time = date.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", ...hourCycleOptions() });
-	const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-	const daysAgo = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000);
-	if (daysAgo === 0 || daysAgo === 1) {
-		const day = new Intl.RelativeTimeFormat(lang, { numeric: "auto" }).format(-daysAgo, "day");
-		return `${day.charAt(0).toLocaleUpperCase(lang)}${day.slice(1)}, ${time}`;
-	}
-	if (daysAgo > 1 && daysAgo < 7) {
-		return `${date.toLocaleDateString(lang, { weekday: "long" })}, ${time}`;
-	}
-	return date.toLocaleString(lang, { dateStyle: "medium", timeStyle: "short", ...hourCycleOptions() });
-}
 
 /** How much newer the new build is, in its largest whole unit ("3 days newer"). */
 function newerBy(t: TFunction, newer: Date, older: Date): string | null {

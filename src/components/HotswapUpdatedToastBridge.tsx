@@ -8,8 +8,11 @@ import { useEffect } from "react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { getVersion } from "@tauri-apps/api/app";
+import { invoke } from "@tauri-apps/api/core";
 import semver from "semver";
 import { consumeHotswapJustUpdatedVersion, isHotswapAvailable } from "../services/hotswap";
+import { buildDate, displayVersion, formatBuildTime } from "../utils/otaVersion";
+import { formatRelativeTime } from "../utils/relativeTime";
 
 const LAST_NATIVE_VERSION_STORAGE_KEY = "fg-last-native-version";
 
@@ -35,25 +38,48 @@ async function consumeNativeUpdatedVersion(): Promise<string | null> {
 }
 
 export function HotswapUpdatedToastBridge() {
-	const { t } = useTranslation();
+	const { t, i18n } = useTranslation();
 
 	useEffect(() => {
-		const showUpdated = (version: string) =>
-			toast.success(t("settings.updated_to_version", { version }), {
-				// Shared id: an APK update and an OTA bundle in the same launch show one toast.
-				id: "hotswap-updated",
-				duration: 5000,
-			});
+		/**
+		 * Same details as the update prompt: release version as the title, then
+		 * the commit and — for OTA bundles — when the build was published.
+		 */
+		const showUpdated = (version: string, commit: string | null) => {
+			const release = displayVersion(version) ?? version;
+			const builtAt = buildDate(version);
+			const details = [
+				commit ? t("settings.updated_commit", { defaultValue: "Commit {{commit}}", commit }) : null,
+				builtAt ? `${formatBuildTime(builtAt, i18n.language)} (${formatRelativeTime(builtAt.getTime())})` : null,
+			].filter(Boolean);
 
+			toast.success(
+				<div className="min-w-0">
+					<p className="font-medium">{t("settings.updated_to_version", { version: release })}</p>
+					{details.length > 0 && (
+						<p className="mt-0.5 break-words text-xs opacity-70">{details.join(" · ")}</p>
+					)}
+				</div>,
+				{
+					// Shared id: an APK update and an OTA bundle in the same launch show one toast.
+					id: "hotswap-updated",
+					duration: 6000,
+				},
+			);
+		};
+
+		// After the reload the running frontend is the new bundle, so its commit is the one just installed.
 		const otaVersion = consumeHotswapJustUpdatedVersion();
-		if (otaVersion) showUpdated(otaVersion);
+		if (otaVersion) showUpdated(otaVersion, import.meta.env.VITE_COMMIT_HASH || null);
 
 		void consumeNativeUpdatedVersion()
-			.then((nativeVersion) => {
-				if (nativeVersion && !otaVersion) showUpdated(nativeVersion);
+			.then(async (nativeVersion) => {
+				if (!nativeVersion || otaVersion) return;
+				const nativeCommit = await invoke<string | null>("app_commit_hash").catch(() => null);
+				showUpdated(nativeVersion, nativeCommit);
 			})
 			.catch(() => {});
-	}, [t]);
+	}, [t, i18n.language]);
 
 	return null;
 }

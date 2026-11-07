@@ -59,6 +59,7 @@
         "latest_version": "Du hast bereits die neueste Version.",
         "update_installed": "Update installiert. Wird neu geladen…",
         "updated_to_version": "Auf Version {{version}} aktualisiert",
+        "updated_commit": "Commit {{commit}}",
         "failed_update_check": "Fehler beim Prüfen oder Anwenden des Updates.",
         "switched_and_updated": "Zu {{channel}} gewechselt und Update angewendet. Lade neu…",
         "switched_channel": "Zu {{channel}} gewechselt. Lade neu…",

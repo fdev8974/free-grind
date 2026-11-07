@@ -59,6 +59,7 @@
     "latest_version": "You already have the latest version.",
     "update_installed": "Update installed. Reloading now…",
     "updated_to_version": "Updated to version {{version}}",
+    "updated_commit": "Commit {{commit}}",
     "failed_update_check": "Failed to check or apply update.",
     "switched_and_updated": "Switched to {{channel}} and applied update. Reloading…",
     "switched_channel": "Switched to {{channel}}. Reloading…",
