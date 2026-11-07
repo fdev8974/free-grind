@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { useTranslation } from "react-i18next";
 import ReactCrop, { centerCrop, makeAspectCrop, type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { sheetButtonClass } from "../../../components/ui/bottom-sheet";
+import { sheetButtonClass, useIsTopmostBottomSheet } from "../../../components/ui/bottom-sheet";
 import { DrawerFooter, MediaToolButton, MediaToolDivider, TakenOnGrindrToolIcon } from "./drawerUi";
 import { exportEditedImage } from "./editedImage";
 import { TakenOnGrindrBadge } from "./TakenOnGrindrBadge";
@@ -109,7 +109,9 @@ export function MediaEditStep({
 	// sheet shrinking and growing back.
 	const contentHeightRef = useRef(0);
 	const contentObserverRef = useRef<ResizeObserver | null>(null);
+	const contentNodeRef = useRef<HTMLDivElement | null>(null);
 	const contentRef = useCallback((node: HTMLDivElement | null) => {
+		contentNodeRef.current = node;
 		contentObserverRef.current?.disconnect();
 		contentObserverRef.current = null;
 		if (!node) return;
@@ -237,6 +239,35 @@ export function MediaEditStep({
 		}
 		await onConfirm({ file: edited, takenOnGrindr, looping: false });
 	}, [file, thumbnailFile, thumbnailStep, completedCrop, transformed, onConfirm, isVideo, takenOnGrindr, looping, segments]);
+
+	// Enter confirms (desktop keyboards), like the confirm button — unless a
+	// field or button in this sheet has focus and takes the key itself, or
+	// another sheet is stacked on this one. Captured, so a field behind the
+	// sheet that kept focus (the chat composer) doesn't act on it too.
+	const isTopmostSheet = useIsTopmostBottomSheet();
+	const confirmRef = useRef(confirm);
+	confirmRef.current = confirm;
+	const isConfirmingRef = useRef(false);
+	useEffect(() => {
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key !== "Enter" || e.repeat || e.defaultPrevented || e.isComposing) return;
+			if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+			if (!isTopmostSheet() || isConfirmingRef.current) return;
+			const target = e.target instanceof HTMLElement ? e.target : null;
+			const panel = contentNodeRef.current?.closest("[data-sheet-panel]");
+			const inSheet = !!target && !!panel?.contains(target);
+			if (inSheet && target.closest("input, textarea, select, button, a, [contenteditable=''], [contenteditable='true']")) return;
+			e.preventDefault();
+			e.stopPropagation();
+			if (!inSheet && target && target !== document.body) target.blur();
+			isConfirmingRef.current = true;
+			void Promise.resolve(confirmRef.current()).finally(() => {
+				isConfirmingRef.current = false;
+			});
+		};
+		window.addEventListener("keydown", onKeyDown, { capture: true });
+		return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
+	}, [isTopmostSheet]);
 
 	// Confirming only moves on: to the next picked file, or to the thumbnail.
 	const goesOn = hasNext || (!!thumbnailStep && !isVideo && !isThumbnailPhase);

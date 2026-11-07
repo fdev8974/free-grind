@@ -7,6 +7,8 @@ import { useTranslation } from "react-i18next";
 const BottomSheetContext = createContext<() => void>(() => {});
 // Whether the enclosing sheet has detents (a fixed height its content fills).
 const BottomSheetDetentedContext = createContext(false);
+// The enclosing sheet's entry in openSheets.
+const BottomSheetIdContext = createContext<object | null>(null);
 
 /** How far the panel extends below the screen edge, hidden, so the bouncy
  * open/settle overshoot never reveals a gap underneath it. */
@@ -46,6 +48,14 @@ export const isSheetDragHeld = () => sheetDragHolds > 0;
 
 /** Lets other back-button handlers (useAndroidBackToGrid) stand aside while a sheet handles it. */
 export const isAnyBottomSheetOpen = () => openSheets.length > 0;
+
+/** Whether the enclosing sheet is currently the topmost one (no other sheet
+ * stacked on it) — for its own keyboard shortcuts. A stable function, to call
+ * when the key is pressed. */
+export function useIsTopmostBottomSheet(): () => boolean {
+	const id = useContext(BottomSheetIdContext);
+	return useCallback(() => id != null && openSheets[openSheets.length - 1] === id, [id]);
+}
 
 function isAndroid(): boolean {
 	try {
@@ -589,6 +599,7 @@ export function BottomSheet({
 
 	return (
 		<BottomSheetContext.Provider value={animateClose}>
+		<BottomSheetIdContext.Provider value={sheetIdRef.current}>
 		<BottomSheetDetentedContext.Provider value={isDetented}>
 			<div
 				ref={rootRef}
@@ -637,6 +648,7 @@ export function BottomSheet({
 				</div>
 			</div>
 		</BottomSheetDetentedContext.Provider>
+		</BottomSheetIdContext.Provider>
 		</BottomSheetContext.Provider>
 	);
 }
