@@ -1765,28 +1765,28 @@ export function ChatThreadMessages({
                                             }}
                                             className={`relative flex overflow-hidden text-xs ${replyToMsgId || ownAlbumContentTarget ? "cursor-pointer active:opacity-70" : ""} ${
                                             isMediaOnlyBubble && hasReply
-                                                ? `rounded-[6px] ${mine ? "bg-black/20" : "bg-black/[0.08]"}`
+                                                ? `rounded-[6px] ${mine ? "bg-black/15" : "bg-black/[0.06]"}`
                                                 : isMediaOnlyBubble
-                                                ? `mx-3 mt-3 mb-3 rounded-[6px] ${mine ? "bg-black/20" : "bg-black/[0.08]"}`
-                                                : `mt-1 mb-2.5 rounded-[6px] ${mine ? "bg-black/20" : "bg-black/[0.08]"}`
+                                                ? `mx-3 mt-3 mb-3 rounded-[6px] ${mine ? "bg-black/15" : "bg-black/[0.06]"}`
+                                                : `mt-1 mb-2 rounded-[6px] ${mine ? "bg-black/15" : "bg-black/[0.06]"}`
                                         }`}>
                                             <div className={`absolute left-0 top-0 h-full w-[3px] shrink-0 ${
-                                                mine ? "bg-white/60" : "bg-[var(--accent)]/50"
+                                                mine ? "bg-white/75" : "bg-[var(--accent)]"
                                             }`} />
-                                            <div className="min-w-0 flex-1 py-[13px] pl-[13px] pr-2.5">
-                                                <p className="mb-0.5 font-semibold opacity-60 truncate">{replyLabel}</p>
-                                                <p className="line-clamp-2 break-words opacity-80">{replyText ?? replyDescription}</p>
+                                            <div className="min-w-0 flex-1 self-center py-2 pl-3 pr-2.5">
+                                                <p className={`mb-0.5 truncate font-semibold ${mine ? "opacity-90" : "text-[var(--accent)]"}`}>{replyLabel}</p>
+                                                <p className="line-clamp-2 break-words text-[13px] leading-snug opacity-75">{replyText ?? replyDescription}</p>
                                             </div>
                                             {replyThumbUrl ? (
-                                                <div className="relative w-14 shrink-0 self-stretch overflow-hidden">
+                                                <div className={`relative my-1.5 mr-1.5 h-10 w-10 shrink-0 self-center overflow-hidden rounded-[6px] ${replyIsGaymoji ? "" : "bg-black/20"}`}>
                                                     <img
                                                         src={proxyMediaUrl(replyThumbUrl)}
                                                         alt=""
-                                                        className={`absolute inset-0 h-full w-full object-cover [clip-path:inset(0)]${blurIncomingMedia && (replyToMsg?.type ?? replyToMsgRef?.type) !== "Giphy" ? " blur-md transition" : ""}`}
+                                                        className={`absolute inset-0 h-full w-full ${replyIsGaymoji ? "object-contain" : "object-cover"} [clip-path:inset(0)]${blurIncomingMedia && (replyToMsg?.type ?? replyToMsgRef?.type) !== "Giphy" ? " blur-md transition" : ""}`}
                                                     />
                                                 </div>
                                             ) : replyVideoUrl ? (
-                                                <div className="relative w-14 shrink-0 self-stretch overflow-hidden bg-black">
+                                                <div className="relative my-1.5 mr-1.5 h-10 w-10 shrink-0 self-center overflow-hidden rounded-[6px] bg-black">
                                                     <div className="js-video-spinner pointer-events-none absolute inset-0 flex animate-delayed-appear items-center justify-center">
                                                         <Loader2 className="h-3.5 w-3.5 animate-spin text-white/60" />
                                                     </div>
@@ -1819,7 +1819,7 @@ export function ChatThreadMessages({
                                                     </div>
                                                 </div>
                                             ) : replyLocation ? (
-                                                <div className="relative w-14 shrink-0 self-stretch overflow-hidden bg-[var(--surface-2)]">
+                                                <div className="relative my-1.5 mr-1.5 h-10 w-10 shrink-0 self-center overflow-hidden rounded-[6px] bg-[var(--surface-2)]">
                                                     <MapLocationPreview lat={replyLocation.lat} lon={replyLocation.lon} zoom={14} marker={false} className="pointer-events-none absolute inset-0" />
                                                     {/* A small pin with its tip on the centered spot (the map's own is too big here). */}
                                                     <MapPinFilled className="pointer-events-none absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-[85%] text-[var(--accent)] drop-shadow" />

@@ -2384,9 +2384,10 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 											</div>
 										</div>
 									) : rtmLocation ? (
-										// No pin: the map's own is too tall for 36px.
+										// The map's own pin is too tall for 36px: a small one, tip on the spot.
 										<div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-[15px] bg-[var(--surface-2)]">
 											<MapLocationPreview lat={rtmLocation.lat} lon={rtmLocation.lon} zoom={14} marker={false} className="pointer-events-none absolute inset-0" />
+											<MapPinFilled className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-[85%] text-[var(--accent)] drop-shadow" />
 										</div>
 									) : (
 										<div className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--accent)_16%,transparent)] text-[var(--accent)]">
