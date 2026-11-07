@@ -1323,6 +1323,7 @@
         "disappearing_media": "Selbstlöschende Medien",
         "default_expiring_photos": "Fotos mit 10-Sekunden-Timer senden",
         "default_expiring_photos_desc": "Neue Fotos, die du im Chat sendest, nutzen automatisch den 10-Sekunden-Timer, ohne dass du ihn jedes Mal aktivieren musst.",
+        "default_expiring_photos_free_warning": "Im Free-Tarif kannst du nur eine begrenzte Anzahl ablaufender Fotos pro Tag senden. Danach wird der Standort-Bypass (Honduras) benötigt, der gegen Grindrs Nutzungsbedingungen verstößt und zur Sperrung deines Accounts führen kann.",
         "default_album_expiration": "Ablaufzeit für geteilte Alben",
         "default_album_expiration_desc": "Alben, die du im Chat teilst, nutzen automatisch diese Ablaufzeit, ohne dass du sie jedes Mal wählen musst.",
         "album_viewing": "Alben ansehen",

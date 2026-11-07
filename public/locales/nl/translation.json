@@ -1119,6 +1119,7 @@
         "disappearing_media": "Verdwijnende media",
         "default_expiring_photos": "Foto's versturen met 10-secondentimer",
         "default_expiring_photos_desc": "Nieuwe foto's die je in de chat verstuurt gebruiken automatisch de verdwijntimer van 10 seconden, zonder dat je die elke keer hoeft in te schakelen.",
+        "default_expiring_photos_free_warning": "Met het gratis abonnement kun je maar een beperkt aantal verdwijnende foto's per dag sturen. Daarna is de locatie-bypass (Honduras) nodig, die de servicevoorwaarden van Grindr schendt en tot een ban van je account kan leiden.",
         "default_album_expiration": "Verlooptijd van gedeelde albums",
         "default_album_expiration_desc": "Albums die je in de chat deelt gebruiken automatisch deze verlooptijd, zonder dat je die elke keer hoeft te kiezen.",
         "album_viewing": "Albums bekijken",

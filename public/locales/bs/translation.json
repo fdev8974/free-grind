@@ -1128,6 +1128,7 @@
         "disappearing_media": "Nestajući mediji",
         "default_expiring_photos": "Šalji fotografije s tajmerom od 10 sekundi",
         "default_expiring_photos_desc": "Nove fotografije koje šalješ u razgovoru automatski koriste tajmer nestajanja od 10 sekundi, bez potrebe da ga svaki put uključiš.",
+        "default_expiring_photos_free_warning": "Na besplatnom planu možeš poslati samo ograničen broj fotografija koje nestaju dnevno. Nakon toga je potreban zaobilazak lokacije (Honduras), što krši Grindrove uslove korištenja i može dovesti do zabrane tvog računa.",
         "default_album_expiration": "Trajanje dijeljenih albuma",
         "default_album_expiration_desc": "Albumi koje dijeliš u razgovoru automatski koriste ovo trajanje, bez potrebe da ga svaki put biraš.",
         "album_viewing": "Pregled albuma",

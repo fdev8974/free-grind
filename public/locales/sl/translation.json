@@ -1137,6 +1137,7 @@
         "disappearing_media": "Izginjajoči mediji",
         "default_expiring_photos": "Pošiljaj fotografije s 10-sekundnim časovnikom",
         "default_expiring_photos_desc": "Nove fotografije, ki jih pošlješ v klepetu, samodejno uporabijo 10-sekundni časovnik izginjanja, ne da bi ga moral vsakič vklopiti.",
+        "default_expiring_photos_free_warning": "Na brezplačnem paketu lahko dnevno pošlješ le omejeno število izginjajočih fotografij. Nato je potreben obvod lokacije (Honduras), ki krši Grindrove pogoje uporabe in lahko privede do prepovedi tvojega računa.",
         "default_album_expiration": "Potek deljenih albumov",
         "default_album_expiration_desc": "Albumi, ki jih deliš v klepetu, samodejno uporabijo ta potek, ne da bi ga moral vsakič izbrati.",
         "album_viewing": "Ogled albumov",

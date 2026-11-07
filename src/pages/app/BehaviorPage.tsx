@@ -8,7 +8,7 @@ import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { SelectRow } from "../../components/ui/select-row";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../contexts/PreferencesContext";
-import { useCanSendExpiringAlbums } from "../../services/assignmentsStore";
+import { useIsFreeTier } from "../../services/assignmentsStore";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import { getTapEmoji, tapLabel } from "./interest/interestUtils";
 import { isAndroid, isIos } from "../../services/saveMedia";
@@ -38,7 +38,8 @@ export function BehaviorPage() {
 	const { t } = useTranslation();
 	const highlightId = useSettingsHighlight();
 	const isDesktop = useDesktopBreakpoint();
-	const canSendExpiringAlbums = useCanSendExpiringAlbums();
+	const isFreeTier = useIsFreeTier();
+	const canSendExpiringAlbums = !isFreeTier;
 	const {
 		defaultExpiringPhotos,
 		defaultAlbumExpirationType,
@@ -200,7 +201,17 @@ export function BehaviorPage() {
 							icon={<TimerFilled className="h-5 w-5" />}
 							iconClass="bg-violet-500/15 text-violet-400"
 							label={t("behavior.default_expiring_photos")}
-							description={t("behavior.default_expiring_photos_desc")}
+							iconBadge={isFreeTier ? (
+								<span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[10px] font-extrabold leading-none text-black ring-2 ring-[var(--card-bg,var(--surface))]">
+									!
+								</span>
+							) : undefined}
+							description={isFreeTier ? (
+								<>
+									{t("behavior.default_expiring_photos_desc")}
+									<span className="mt-1 block text-amber-500">{t("behavior.default_expiring_photos_free_warning")}</span>
+								</>
+							) : t("behavior.default_expiring_photos_desc")}
 							checked={defaultExpiringPhotos}
 							onChange={(checked) => void setPreferences({ defaultExpiringPhotos: checked })}
 						/>

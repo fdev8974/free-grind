@@ -1323,6 +1323,7 @@
     "disappearing_media": "Disappearing Media",
     "default_expiring_photos": "Send Photos with 10-Second Timer",
     "default_expiring_photos_desc": "New photos you send in chat automatically use the 10-second disappearing timer, without needing to enable it each time.",
+    "default_expiring_photos_free_warning": "On the Free plan you can only send a limited number of expiring photos per day. After that, the location bypass (Honduras) is needed, which breaks Grindr's terms of service and can get your account banned.",
     "default_album_expiration": "Expiration for Shared Albums",
     "default_album_expiration_desc": "Albums you share in chat automatically use this expiration, without needing to choose it each time.",
     "album_viewing": "Album Viewing",

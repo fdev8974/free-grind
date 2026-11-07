@@ -1128,6 +1128,7 @@
         "disappearing_media": "Conteúdo temporário",
         "default_expiring_photos": "Enviar fotos com temporizador de 10 segundos",
         "default_expiring_photos_desc": "Novas fotos enviadas no chat usam automaticamente o temporizador de 10 segundos para mensagens temporárias, sem a necessidade de ativá-lo a cada vez.",
+        "default_expiring_photos_free_warning": "No plano gratuito você só pode enviar um número limitado de fotos temporárias por dia. Depois disso é necessário o bypass de localização (Honduras), que viola os termos de serviço do Grindr e pode fazer sua conta ser banida.",
         "default_album_expiration": "Expiração dos álbuns compartilhados",
         "default_album_expiration_desc": "Álbuns compartilhados no chat usam automaticamente essa expiração, sem a necessidade de escolhê-la a cada vez.",
         "album_viewing": "Visualização do álbum",

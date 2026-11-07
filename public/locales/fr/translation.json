@@ -1128,6 +1128,7 @@
         "disappearing_media": "Médias éphémères",
         "default_expiring_photos": "Envoyer les photos avec un minuteur de 10 secondes",
         "default_expiring_photos_desc": "Les nouvelles photos que vous envoyez dans le chat utilisent automatiquement le minuteur de disparition de 10 secondes, sans qu'il soit nécessaire de l'activer à chaque fois.",
+        "default_expiring_photos_free_warning": "Avec l'offre gratuite, tu ne peux envoyer qu'un nombre limité de photos éphémères par jour. Au-delà, le contournement de localisation (Honduras) est nécessaire, ce qui enfreint les conditions d'utilisation de Grindr et peut entraîner le bannissement de ton compte.",
         "default_album_expiration": "Expiration des albums partagés",
         "default_album_expiration_desc": "Les albums que vous partagez dans le chat utilisent automatiquement cette durée d'expiration, sans qu'il soit nécessaire de la choisir à chaque fois.",
         "album_viewing": "Consultation de l'album",

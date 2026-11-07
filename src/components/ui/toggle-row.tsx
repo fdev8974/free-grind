@@ -5,6 +5,7 @@ export function ToggleRow({
 	description,
 	icon,
 	iconClass,
+	iconBadge,
 	activeColor,
 	activeThumbColor,
 	dense,
@@ -16,9 +17,11 @@ export function ToggleRow({
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 	label: string;
-	description?: string;
+	description?: React.ReactNode;
 	icon?: React.ReactNode;
 	iconClass?: string;
+	/** Small marker pinned to the icon's bottom-right corner, e.g. a warning. */
+	iconBadge?: React.ReactNode;
 	activeColor?: string;
 	activeThumbColor?: string;
 	dense?: boolean;
@@ -45,7 +48,10 @@ export function ToggleRow({
 			}
 		>
 			{hasIcon && (
-				<div className={`shrink-0 rounded-2xl p-2.5 ${iconClass ?? ""}`}>{icon}</div>
+				<div className={`relative shrink-0 rounded-2xl p-2.5 ${iconClass ?? ""}`}>
+					{icon}
+					{iconBadge && <span className="absolute -bottom-0.5 -right-0.5 flex">{iconBadge}</span>}
+				</div>
 			)}
 			<span className={hasIcon ? "min-w-0 flex-1" : ""}>
 				<span className={labelClassName ?? `block text-sm ${hasIcon ? "font-semibold leading-snug" : "font-medium"}`}>

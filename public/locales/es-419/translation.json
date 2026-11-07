@@ -1128,6 +1128,7 @@
         "disappearing_media": "Medios de comunicación que desaparecen",
         "default_expiring_photos": "Enviar fotos con temporizador de 10 segundos",
         "default_expiring_photos_desc": "Las nuevas fotos que envíes por chat usarán automáticamente el temporizador de desaparición de 10 segundos, sin necesidad de activarlo cada vez.",
+        "default_expiring_photos_free_warning": "Con el plan gratuito solo puedes enviar una cantidad limitada de fotos temporales por día. Después se necesita el bypass de ubicación (Honduras), que viola los términos de servicio de Grindr y puede hacer que suspendan tu cuenta.",
         "default_album_expiration": "Caducidad de los álbumes compartidos",
         "default_album_expiration_desc": "Los álbumes que compartas en el chat usarán automáticamente esta fecha de caducidad, sin necesidad de seleccionarla cada vez.",
         "album_viewing": "Album visto",

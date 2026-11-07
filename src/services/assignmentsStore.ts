@@ -186,22 +186,30 @@ export function useAssignment(key: string): Assignment | null {
 // the `subscriptionTier` list in docs/content/grindr-api/security-headers.md).
 const PAID_ROLES = new Set(["plus", "xtra", "unlimited", "premium"]);
 
-function getCanSendExpiringAlbums(): boolean {
+function getIsFreeTier(): boolean {
 	const jwt = snapshot.sources?.jwt;
-	// Token not read yet (and nothing cached from an earlier read): don't hide anything.
-	if (!jwt || (jwt.error && jwt.assignments.length === 0)) return true;
+	// Token not read yet (and nothing cached from an earlier read): unknown.
+	if (!jwt || (jwt.error && jwt.assignments.length === 0)) return false;
 	// A Free account's `roles` is empty, so no paid tier means Free.
-	return jwt.assignments.some((a) => a.type === "ROLE" && PAID_ROLES.has(a.key.toLowerCase()));
+	return !jwt.assignments.some((a) => a.type === "ROLE" && PAID_ROLES.has(a.key.toLowerCase()));
 }
 
 /**
- * Whether the account's subscription (session JWT `roles`) can share expiring
- * albums. A Free account can't, and there's no entitlement bypass for it (see
- * chatService's shareAlbum), so the expiry UI is hidden for it. True while the
- * token hasn't been read yet.
+ * Whether the account is on the Free tier, read from the session JWT `roles`.
+ * False while the token hasn't been read yet, so tier-gated UI isn't hidden
+ * (or warned about) on a guess.
+ */
+export function useIsFreeTier(): boolean {
+	return useSyncExternalStore(subscribe, getIsFreeTier, getIsFreeTier);
+}
+
+/**
+ * Whether the account can share expiring albums. A Free account can't, and
+ * there's no entitlement bypass for it (see chatService's shareAlbum), so the
+ * expiry UI is hidden for it.
  */
 export function useCanSendExpiringAlbums(): boolean {
-	return useSyncExternalStore(subscribe, getCanSendExpiringAlbums, getCanSendExpiringAlbums);
+	return !useIsFreeTier();
 }
 
 /** Reactive feature check: false while unknown, so gated UI stays hidden by default. */
