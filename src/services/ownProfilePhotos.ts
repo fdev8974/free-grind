@@ -50,7 +50,12 @@ export async function syncOwnProfile(api: ApiFunctions, profileId: number, isCur
 		const raw = unwrapOwnProfile(await api.getMyOwnProfile());
 		const parsed = profileSchema.safeParse(raw);
 		if (!raw || !parsed.success || !isCurrent()) return;
-		await recordOwnProfileDetails(raw);
+		const spotifySongIds = await api.getSpotifyFavoriteSongIds(String(profileId)).catch((error: unknown) => {
+			appLog.warn("[ownProfilePhotos] loading own Spotify songs failed", error);
+			return null;
+		});
+		if (!isCurrent()) return;
+		await recordOwnProfileDetails(raw, spotifySongIds);
 		setSavedAccountDisplayName(String(profileId), parsed.data.displayName ?? null);
 		setSavedAccountPhotoHash(String(profileId), getProfilePhotoHash(parsed.data));
 		const hashes = (parsed.data.medias ?? [])

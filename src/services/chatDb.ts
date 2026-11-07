@@ -2843,10 +2843,18 @@ export async function setOwnProfileDetails(details: Record<string, unknown>): Pr
 	});
 }
 
+export async function getOwnProfileDetails(): Promise<Record<string, unknown> | null> {
+	return readProfileDetails("own_profile_details");
+}
+
 export async function getRestoredProfileDetails(): Promise<Record<string, unknown> | null> {
+	return readProfileDetails("restored_profile_details");
+}
+
+async function readProfileDetails(table: "own_profile_details" | "restored_profile_details"): Promise<Record<string, unknown> | null> {
 	const db = await getDb();
 	const rows = await db.select<{ data_json: string | null }[]>(
-		"SELECT data_json FROM restored_profile_details WHERE key = $1",
+		`SELECT data_json FROM ${table} WHERE key = $1`,
 		[PROFILE_DETAILS_KEY],
 	);
 	try {

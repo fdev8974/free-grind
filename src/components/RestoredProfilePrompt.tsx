@@ -72,7 +72,10 @@ export function RestoredProfilePrompt({ userId }: { userId: number }) {
 					return null;
 				});
 			if (current && userIdRef.current === userId) {
-				if (details) details = await keepRestoredProfileDetailsIfChanged(current);
+				if (details) {
+					const currentSongIds = await apiFunctions.getSpotifyFavoriteSongIds(String(userId)).catch(() => null);
+					details = await keepRestoredProfileDetailsIfChanged(current, currentSongIds);
+				}
 				if (photos > 0) photos = await keepRestoredProfilePhotosIfChanged(profilePhotoHashes(current));
 			}
 			return details || photos > 0 ? { details, photos } : null;
@@ -158,7 +161,7 @@ export function RestoredProfilePrompt({ userId }: { userId: number }) {
 							padding="px-4 py-3"
 							label={t("restored_profile.details", { defaultValue: "Profile details" })}
 							description={t("restored_profile.details_desc", {
-								defaultValue: "Name, about me, tags, looking for, stats and the rest of your profile info.",
+								defaultValue: "Name, about me, tags, looking for, stats, Spotify songs and the rest of your profile info.",
 							})}
 							checked={applyDetails}
 							onChange={setApplyDetails}
