@@ -1607,6 +1607,7 @@
             "album_video_count_other": "{{count}} vídeos",
             "profile_photo": "Foto de perfil",
             "replied_to_myself": "Me respondí a mí mismo",
+            "replied_to_themselves": "Se respondió a sí mismo",
             "replied_to_name": "Respondió a «{{name}}»",
             "replying_to_myself": "Respondiéndome a mí mismo",
             "replying_to_name": "Respondiendo a \"{{name}}\"",

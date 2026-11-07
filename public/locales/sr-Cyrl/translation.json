@@ -1611,6 +1611,7 @@
             "album_video_count_other": "{{count}} видеа",
             "profile_photo": "Профилна фотографија",
             "replied_to_myself": "Одговор самом себи",
+            "replied_to_themselves": "Одговорио себи",
             "replied_to_name": "Одговор за „{{name}}“",
             "replying_to_myself": "Одговарам самом себи",
             "replying_to_name": "Одговарате: „{{name}}“",

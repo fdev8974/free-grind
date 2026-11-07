@@ -1596,6 +1596,7 @@
             "album_video_count_other": "{{count}} video's",
             "profile_photo": "Profielfoto",
             "replied_to_myself": "Mezelf beantwoord",
+            "replied_to_themselves": "Zichzelf beantwoord",
             "replied_to_name": "Antwoordde op \"{{name}}\"",
             "replying_to_myself": "Antwoord aan mezelf",
             "replying_to_name": "Antwoord aan \"{{name}}\"",

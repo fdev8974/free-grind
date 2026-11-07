@@ -1551,7 +1551,7 @@ export function ChatThreadMessages({
                                 ? t("chat.thread.replied_to_myself")
                                 : t("chat.thread.replied_to_you", { defaultValue: "Replied to you" })
                             : replySenderId != null && Number(replySenderId) === Number(message.senderId)
-                                ? t("chat.thread.replied_to_myself")
+                                ? t("chat.thread.replied_to_themselves", { defaultValue: "Replied to themselves" })
                                 : t("chat.thread.replied_to_name", {
                                         name: localNickname || selectedConversation?.data.name || t("common.unknown_display_name"),
                                     })

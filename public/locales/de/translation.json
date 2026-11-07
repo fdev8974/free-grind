@@ -1824,6 +1824,7 @@
             "album_video_count_other": "{{count}} Videos",
             "profile_photo": "Profilbild",
             "replied_to_myself": "Antwort an mich selbst",
+            "replied_to_themselves": "Antwort an sich selbst",
             "replied_to_name": "Antwort an „{{name}}“",
             "replying_to_myself": "Antwort an mich selbst",
             "replying_to_name": "Antwort an \"{{name}}\"",
