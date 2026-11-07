@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { appLog } from "../../../utils/logger";
 import { isIos, saveMediaToDevice } from "../../../services/saveMedia";
+import { usePreferences } from "../../../contexts/PreferencesContext";
 import { loadSavedPhrases, saveSavedPhrases } from "../../../services/savedPhrases";
 import type { ConversationEntry, Message } from "../../../types/messages";
 import type { AlbumMediaCount, LocalUploadProgress, UiMessage } from "../../../types/chat-page";
@@ -611,12 +612,28 @@ export function ChatThreadMessages({
 		startX: number;
 		startY: number;
 		armed: boolean;
+		/** +1: this message is swiped right to reply, -1: left. */
+		sign: 1 | -1;
 	} | null>(null);
 	const SWIPE_REPLY_THRESHOLD = 55;
 	const SWIPE_REPLY_MAX_DRAG = 80;
 	// iOS's back gesture starts at the screen's left edge and drags right —
-	// the same direction as swipe-to-reply. Leave that strip to the system.
+	// the same direction as a rightward swipe-to-reply. Leave that strip to the system.
 	const IOS_BACK_EDGE_WIDTH = 30;
+	const { swipeToReplyDirection } = usePreferences();
+	// +1: swipe right to reply, -1: swipe left. "outward" swipes each bubble
+	// toward its own side: the partner's left, ours right.
+	const swipeSignFor = useCallback(
+		(message: UiMessage): 1 | -1 => {
+			if (swipeToReplyDirection === "left") return -1;
+			if (swipeToReplyDirection === "outward") {
+				const mine = userId != null && Number(message.senderId) === Number(userId);
+				return mine ? 1 : -1;
+			}
+			return 1;
+		},
+		[swipeToReplyDirection, userId],
+	);
 	const onIos = useMemo(() => isIos(), []);
 	const swipeElRef = useRef(new Map<string, HTMLDivElement>());
 	const swipeIconRef = useRef(new Map<string, HTMLDivElement>());
@@ -642,11 +659,12 @@ export function ChatThreadMessages({
 	const handleMobileTouchStart = useCallback(
 		(event: React.TouchEvent<HTMLDivElement>, message: UiMessage) => {
 			startMessageLongPress(message.messageId);
+			const sign = swipeSignFor(message);
 			if (
 				isDesktop ||
 				isArchived ||
 				event.touches.length !== 1 ||
-				(onIos && event.touches[0].clientX < IOS_BACK_EDGE_WIDTH) ||
+				(onIos && sign > 0 && event.touches[0].clientX < IOS_BACK_EDGE_WIDTH) ||
 				isLocalClientMessageId(message.messageId) ||
 				isLocalHistoryMessage(message)
 			) {
@@ -660,9 +678,10 @@ export function ChatThreadMessages({
 				startX: touch.clientX,
 				startY: touch.clientY,
 				armed: false,
+				sign,
 			};
 		},
-		[isArchived, isDesktop, onIos, startMessageLongPress],
+		[isArchived, isDesktop, onIos, startMessageLongPress, swipeSignFor],
 	);
 
 	const handleMobileTouchMove = useCallback(
@@ -676,14 +695,15 @@ export function ChatThreadMessages({
 				return;
 			}
 			const touch = event.touches[0];
-			const dx = Math.min(touch.clientX - state.startX, SWIPE_REPLY_MAX_DRAG);
+			// Distance travelled in the reply direction (negative = the other way).
+			const dx = Math.min((touch.clientX - state.startX) * state.sign, SWIPE_REPLY_MAX_DRAG);
 			const dy = Math.abs(touch.clientY - state.startY);
 			if (dy >= 40 && !state.armed) return;
 			const el = swipeElRef.current.get(state.messageId);
 			const icon = swipeIconRef.current.get(state.messageId);
 			if (el) {
 				el.style.transition = "none";
-				el.style.transform = `translateX(${Math.max(dx, 0)}px)`;
+				el.style.transform = `translateX(${Math.max(dx, 0) * state.sign}px)`;
 			}
 			const isArmed = dx > SWIPE_REPLY_THRESHOLD;
 			if (icon) {
@@ -1702,7 +1722,7 @@ export function ChatThreadMessages({
                         >
                             <div
                                 ref={(el) => { if (el) swipeIconRef.current.set(message.messageId, el); else swipeIconRef.current.delete(message.messageId); }}
-                                className="pointer-events-none absolute left-2 top-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-3)]"
+                                className={`pointer-events-none absolute ${swipeSignFor(message) > 0 ? "left-2" : "right-2"} top-1/2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--surface-3)]`}
                                 style={{ opacity: 0, transform: "translateY(-50%) scale(0.5)" }}
                             >
                                 <Reply className="h-4 w-4 text-[var(--text-muted)]" />

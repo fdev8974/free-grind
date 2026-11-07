@@ -46,6 +46,7 @@ import {
 	Vibrate,
 	MoveHorizontal,
 	CornerDownLeft,
+	Reply,
 	Video,
 	SwitchCamera,
 	Puzzle,
@@ -410,6 +411,18 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			}),
 			section: t("settings.search_sections.behavior"),
 			icon: MessageSquareQuote,
+			iconClass: "bg-sky-500/15 text-sky-400",
+		},
+		{
+			id: "behavior-swipe-to-reply-direction",
+			route: "/settings/behavior",
+			anchor: "behavior-swipe-to-reply-direction",
+			label: t("behavior.swipe_to_reply_direction", { defaultValue: "Swipe to Reply" }),
+			description: t("behavior.swipe_to_reply_direction_desc", {
+				defaultValue: "Choose which direction you swipe a message to reply to it.",
+			}),
+			section: t("settings.search_sections.behavior"),
+			icon: Reply,
 			iconClass: "bg-sky-500/15 text-sky-400",
 		},
 		{
@@ -900,7 +913,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			(showSexualHealth || entry.id !== "nav-sexual-health") &&
 			// Bottom-nav style, grid layout and haptics options only exist in the mobile app.
 			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics", "behavior-default-call-camera"].includes(entry.id)) &&
-			// Enter always sends on desktop, so the toggle is mobile-only (matches the chat composer's isDesktop).
-			(!isDesktop || entry.id !== "behavior-mobile-enter-to-send"),
+			// Enter always sends on desktop and swipe-to-reply is touch-only, so these are mobile-only (matches the chat thread's isDesktop).
+			(!isDesktop || !["behavior-mobile-enter-to-send", "behavior-swipe-to-reply-direction"].includes(entry.id)),
 	), [t, showSexualHealth, isMobilePlatform, isDesktop]);
 }

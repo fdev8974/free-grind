@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, Ban, CornerDownLeft, ExternalLink, MoveHorizontal, SwitchCamera, Video } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowLeft, ArrowLeftRight, ArrowRight, Ban, CornerDownLeft, ExternalLink, MoveHorizontal, Reply, SwitchCamera, Video } from "lucide-react";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, MessageSquareQuoteFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
@@ -50,6 +50,7 @@ export function BehaviorPage() {
 		chatRowSwipeActions,
 		mobileEnterToSend,
 		savedPhraseSendGesture,
+		swipeToReplyDirection,
 		startCallsWithCameraOn,
 		defaultCallCamera,
 		setPreferences,
@@ -168,6 +169,24 @@ export function BehaviorPage() {
 								{ value: "longPress", label: t("behavior.saved_phrase_send_long_press", { defaultValue: "Long Press" }) },
 							]}
 						/>
+						{/* Swipe-to-reply is a touch gesture, so it only exists on mobile. */}
+						{!isDesktop && <SelectRow
+							id="behavior-swipe-to-reply-direction"
+							highlighted={highlightId === "behavior-swipe-to-reply-direction"}
+							icon={<Reply className="h-5 w-5" />}
+							iconClass="bg-sky-500/15 text-sky-400"
+							label={t("behavior.swipe_to_reply_direction", { defaultValue: "Swipe to Reply" })}
+							description={t("behavior.swipe_to_reply_direction_desc", {
+								defaultValue: "Choose which direction you swipe a message to reply to it.",
+							})}
+							value={swipeToReplyDirection}
+							onChange={(option) => void setPreferences({ swipeToReplyDirection: option })}
+							options={[
+								{ value: "right", icon: ArrowRight, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_right", { defaultValue: "Right" }) },
+								{ value: "left", icon: ArrowLeft, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_left", { defaultValue: "Left" }) },
+								{ value: "outward", icon: ArrowLeftRight, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_outward", { defaultValue: "Theirs Left, Mine Right" }) },
+							]}
+						/>}
 					</div>
 				</div>
 
