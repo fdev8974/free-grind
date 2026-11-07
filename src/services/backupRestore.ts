@@ -7,6 +7,7 @@ import { AndroidFs, AndroidPublicGeneralPurposeDir } from "tauri-plugin-android-
 import { isAndroid, isIos } from "./saveMedia";
 import type { createApiFunctions } from "./apiFunctions";
 import { assertSuccess, parseJsonSafe } from "./apiHelpers";
+import * as chatDb from "./chatDb";
 import { fetchAndEncode } from "./mediaStore";
 import { pickRestorableProfileFields } from "./ownProfileDetails";
 import { getProfileImageUrl, validateMediaHash } from "../utils/media";
@@ -62,16 +63,38 @@ const MAX_FAVORITE_PAGES = 200;
 async function fetchFavoriteProfiles(api: ApiFunctions, geohash: string | null | undefined): Promise<FavoriteProfile[]> {
 	const favorites = new Map<string, FavoriteProfile>();
 
-	for (let page = 1, count = 0; count < MAX_FAVORITE_PAGES; count++) {
-		const response = await api.request(`/v4/inbox?page=${page}`, { method: "POST", body: { favoritesOnly: true } });
-		await assertSuccess(response, "Loading favorites from the inbox failed");
-		const parsed = inboxResponseSchema.parse(await parseJsonSafe(response));
-		for (const entry of parsed.entries) {
-			const profileId = entry.data.participants[0]?.profileId;
-			if (profileId != null) favorites.set(String(profileId), { profileId: String(profileId), displayName: entry.data.name || null });
+	try {
+		for (let page = 1, count = 0; count < MAX_FAVORITE_PAGES; count++) {
+			// The full filter set, as ChatPage sends it: a body with only favoritesOnly failed.
+			const response = await api.request(`/v4/inbox?page=${page}`, {
+				method: "POST",
+				body: {
+					unreadOnly: false,
+					chemistryOnly: false,
+					favoritesOnly: true,
+					rightNowOnly: false,
+					onlineNowOnly: false,
+					positions: [],
+				},
+			});
+			await assertSuccess(response, "Loading favorites from the inbox failed");
+			const parsed = inboxResponseSchema.parse(await parseJsonSafe(response));
+			for (const entry of parsed.entries) {
+				const profileId = entry.data.participants[0]?.profileId;
+				if (profileId != null) favorites.set(String(profileId), { profileId: String(profileId), displayName: entry.data.name || null });
+			}
+			if (parsed.nextPage == null || parsed.nextPage === page) break;
+			page = parsed.nextPage;
 		}
-		if (parsed.nextPage == null || parsed.nextPage === page) break;
-		page = parsed.nextPage;
+	} catch (error) {
+		// Not worth failing the whole backup over: the favorite flag the inbox
+		// sync stored on the local conversations stands in for the inbox.
+		appLog.warn("[backupRestore] loading favorites from the inbox failed, using the local conversations", error);
+		for (const conversation of await chatDb.listConversations({ includeArchived: true })) {
+			const profileId = conversation.otherProfileId;
+			if (!conversation.entry.data.favorite || !profileId || favorites.has(profileId)) continue;
+			favorites.set(profileId, { profileId, displayName: conversation.entry.data.name || null });
+		}
 	}
 
 	// Cascade needs a location; without one only the inbox's favorites are saved.
