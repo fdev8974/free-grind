@@ -30,8 +30,9 @@ import { platform } from "@tauri-apps/plugin-os";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { MessageCircle } from "lucide-react";
 import { BANNER_TOAST_CLASS } from "./AppToaster";
+import { NotificationBanner } from "./NotificationBanner";
+import { haptic } from "../utils/haptics";
 import { useAuth } from "../contexts/useAuth";
 import { ChatRealtimeManager, setActiveRealtimeManager } from "../services/chatRealtime";
 import { isTauriRuntime } from "../services/tauriWebSocket";
@@ -619,31 +620,26 @@ export function ChatRealtimeBridge() {
 				const chatPath = `/chat/${encodeURIComponent(m.conversationId)}`;
 				toast(
 					(tst) => (
-						<button
-							type="button"
-							className="flex w-full min-w-0 flex-col text-left"
-							onClick={() => {
+						<NotificationBanner
+							title={senderName}
+							body={bodyText}
+							meta={tRef.current("chat.time.now")}
+							avatarUrl={avatarUrl}
+							onOpen={() => {
 								toast.dismiss(tst.id);
 								navigateRef.current(chatPath);
 							}}
-						>
-							<span className="truncate font-semibold">{senderName}</span>
-							<span className="line-clamp-2 text-[var(--text-muted)]">{bodyText}</span>
-						</button>
+						/>
 					),
 					{
 						// One toast per conversation — a burst of messages updates
 						// it in place instead of stacking.
 						id: `chat:${m.conversationId}`,
 						className: BANNER_TOAST_CLASS,
-						icon: avatarUrl ? (
-							<img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
-						) : (
-							<MessageCircle className="h-5 w-5 text-[var(--accent)]" />
-						),
 						duration: 4000,
 					},
 				);
+				haptic(15);
 				return;
 			}
 
@@ -674,27 +670,30 @@ export function ChatRealtimeBridge() {
 			// won't post the later FCM push either: NotificationPoster drops
 			// pushes while the app is visible ("realtime bridge covers it").
 			const profilePath = `/profile/${encodeURIComponent(tap.profileId)}`;
+			const tapEmoji = getTapEmoji(tap.tapType);
+			const avatarUrl = getParticipantAvatarUrl(tap.imageHash);
 			toast(
 				(tst) => (
-					<button
-						type="button"
-						className="w-full min-w-0 text-left"
-						onClick={() => {
+					<NotificationBanner
+						title={senderName}
+						body={bodyText}
+						meta={tRef.current("chat.time.now")}
+						avatarUrl={avatarUrl}
+						fallbackIcon={<span className="text-xl leading-none">{tapEmoji}</span>}
+						badge={avatarUrl ? tapEmoji : undefined}
+						onOpen={() => {
 							toast.dismiss(tst.id);
 							navigateRef.current(profilePath);
 						}}
-					>
-						<span className="font-semibold">{senderName}</span>
-						<span className="text-[var(--text-muted)]"> · {bodyText}</span>
-					</button>
+					/>
 				),
 				{
 					id: `tap:${tap.profileId}`,
 					className: BANNER_TOAST_CLASS,
-					icon: <span className="text-lg leading-none">{getTapEmoji(tap.tapType)}</span>,
 					duration: 3500,
 				},
 			);
+			haptic(15);
 		};
 
 		let lastResyncAt = 0;

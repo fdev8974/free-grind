@@ -62,6 +62,9 @@ function ToastPill({ toast }: { toast: Toast }) {
 	const [dragY, setDragY] = useState(0);
 	const [isDragging, setIsDragging] = useState(false);
 	const dragRef = useRef<{ pointerId: number; startY: number } | null>(null);
+	// Set once a touch drag moved far enough to count as a swipe, so the
+	// click that follows lifting the finger doesn't also open the banner.
+	const swipedRef = useRef(false);
 
 	useEffect(() => {
 		let r2 = 0;
@@ -94,12 +97,14 @@ function ToastPill({ toast }: { toast: Toast }) {
 			onPointerDown={(e) => {
 				if (e.pointerType !== "touch") return;
 				dragRef.current = { pointerId: e.pointerId, startY: e.clientY };
+				swipedRef.current = false;
 				setIsDragging(true);
 			}}
 			onPointerMove={(e) => {
 				const drag = dragRef.current;
 				if (!drag || drag.pointerId !== e.pointerId) return;
 				const dy = e.clientY - drag.startY;
+				if (Math.abs(dy) > 6) swipedRef.current = true;
 				// Follows the finger upwards, rubber-bands downwards.
 				setDragY(dy < 0 ? dy : Math.sqrt(dy) * 2);
 			}}
@@ -111,12 +116,18 @@ function ToastPill({ toast }: { toast: Toast }) {
 				if (e.clientY - drag.startY < -SWIPE_DISMISS_PX) toastApi.dismiss(toast.id);
 				setDragY(0);
 			}}
+			onClickCapture={(e) => {
+				if (!swipedRef.current) return;
+				swipedRef.current = false;
+				e.preventDefault();
+				e.stopPropagation();
+			}}
 			onPointerCancel={() => {
 				dragRef.current = null;
 				setIsDragging(false);
 				setDragY(0);
 			}}
-			className={`flex ${isBanner ? "w-full py-3 md:w-auto md:max-w-[420px] md:py-2.5" : "max-w-[min(420px,100%)] py-2.5"} touch-pan-x items-center gap-2.5 rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] pl-3 pr-4 text-sm font-medium text-[var(--text)] shadow-[0_-1px_4px_rgba(0,0,0,0.12),0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-[var(--border)]/40 backdrop-blur-xl`}
+			className={`flex ${isBanner ? "w-full rounded-[24px] p-3 md:w-[420px]" : "max-w-[min(420px,100%)] rounded-[22px] py-2.5 pl-3 pr-4"} touch-pan-x items-center gap-2.5 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] text-sm font-medium text-[var(--text)] shadow-[0_-1px_4px_rgba(0,0,0,0.12),0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-[var(--border)]/40 backdrop-blur-xl`}
 			style={{
 				opacity: shown ? 1 : 0,
 				transform: prefersReducedMotion ? undefined : transform,
@@ -125,8 +136,15 @@ function ToastPill({ toast }: { toast: Toast }) {
 				...toast.style,
 			}}
 		>
-			{toast.icon ? <span className="flex shrink-0 items-center">{toast.icon}</span> : null}
-			<span className={`min-w-0 break-words leading-snug ${isBanner ? "flex-1" : ""}`}>{resolveValue(toast.message, toast)}</span>
+			{isBanner ? (
+				// Banners (NotificationBanner) bring their own avatar/layout.
+				<div className="min-w-0 flex-1">{resolveValue(toast.message, toast)}</div>
+			) : (
+				<>
+					{toast.icon ? <span className="flex shrink-0 items-center">{toast.icon}</span> : null}
+					<span className="min-w-0 break-words leading-snug">{resolveValue(toast.message, toast)}</span>
+				</>
+			)}
 		</div>
 	);
 }
