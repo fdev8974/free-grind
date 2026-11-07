@@ -46,7 +46,7 @@ export function NotificationBanner({ title, body, avatarUrl, fallbackIcon, badge
 			</span>
 			<span className="flex min-w-0 flex-1 flex-col">
 				<span className="truncate text-[15px] font-semibold leading-snug text-[var(--text)]">{title}</span>
-				<span className="line-clamp-2 text-sm font-normal leading-snug text-[var(--text-muted)]">{body}</span>
+				<span className="line-clamp-2 break-words [overflow-wrap:anywhere] text-sm font-normal leading-snug text-[var(--text-muted)]">{body}</span>
 			</span>
 		</button>
 	);

@@ -722,7 +722,7 @@ function ChatConversationRow({
 								{isTyping ? (
 									<span className="italic text-[var(--accent)]">{t("chat.typing")}</span>
 								) : (
-									getPreviewText(conversation, t)
+									getPreviewText(conversation, t, userId)
 								)}
 							</p>
 							{conversation.data.unreadCount > 0 ? (

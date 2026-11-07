@@ -358,7 +358,7 @@ export function ShareChatPicker({
 											</span>
 										</div>
 										<p className="mt-0.5 truncate text-sm text-[var(--text-muted)]">
-											{getPreviewText(chat.entry, t)}
+											{getPreviewText(chat.entry, t, userId)}
 										</p>
 									</div>
 								</button>

@@ -660,9 +660,11 @@ export function ChatRealtimeBridge() {
 			if (onTapsRoute) return;
 
 			const senderName = tap.displayName || tRef.current("common.unknown_display_name");
+			// Plain taps use the native Android notification's text; a tap back
+			// keeps its own (the push has no mutual variant, but it's worth knowing).
 			const bodyText = tap.isMutual
 				? tRef.current("chat.notifications.tapped_you_back")
-				: tRef.current("chat.notifications.tapped_you");
+				: tRef.current("push_notifications.tap_notification_body");
 
 			// This only ever runs in the foreground, so an in-app toast replaces
 			// the OS notification here rather than stacking on top of it. Android
