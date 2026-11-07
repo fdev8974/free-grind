@@ -590,9 +590,15 @@
 	   indicator with a permanent bar, so there we hide it entirely like
 	   native mobile apps do. */
 	@media (hover: hover) and (pointer: fine) {
-		* {
-			scrollbar-width: thin;
-			scrollbar-color: var(--border) transparent;
+		/* Standard properties only where the pseudo-elements don't exist:
+		   since Chromium 121, setting `scrollbar-width`/`scrollbar-color`
+		   makes the engine ignore every `::-webkit-scrollbar-*` rule and draw
+		   its own plain bar (square track, arrow buttons on Windows). */
+		@supports not selector(::-webkit-scrollbar) {
+			* {
+				scrollbar-width: thin;
+				scrollbar-color: var(--border) transparent;
+			}
 		}
 
 		*::-webkit-scrollbar {
@@ -600,13 +606,26 @@
 			height: 10px;
 		}
 
+		*::-webkit-scrollbar-button {
+			display: none;
+		}
+
+		/* Keep the thumb clear of the containers' rounded corners. */
 		*::-webkit-scrollbar-track {
 			background: transparent;
 		}
 
+		*::-webkit-scrollbar-track:vertical {
+			margin-block: 10px;
+		}
+
+		*::-webkit-scrollbar-track:horizontal {
+			margin-inline: 10px;
+		}
+
 		*::-webkit-scrollbar-thumb {
 			background-color: var(--border);
-			border: 2px solid transparent;
+			border: 3px solid transparent;
 			border-radius: 999px;
 			background-clip: padding-box;
 		}
