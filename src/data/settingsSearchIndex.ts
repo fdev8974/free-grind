@@ -390,12 +390,12 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			iconClass: "bg-sky-500/15 text-sky-400",
 		},
 		{
-			id: "behavior-mobile-enter-to-send",
+			id: "behavior-enter-to-send",
 			route: "/settings/behavior",
-			anchor: "behavior-mobile-enter-to-send",
-			label: t("behavior.mobile_enter_to_send", { defaultValue: "Enter to Send on Mobile" }),
-			description: t("behavior.mobile_enter_to_send_desc", {
-				defaultValue: "The Enter key on your phone's keyboard sends the message instead of starting a new line.",
+			anchor: "behavior-enter-to-send",
+			label: t("behavior.enter_to_send", { defaultValue: "Enter to Send" }),
+			description: t("behavior.enter_to_send_desc", {
+				defaultValue: "The Enter key sends the message instead of starting a new line. Shift+Enter always starts a new line.",
 			}),
 			section: t("settings.search_sections.behavior"),
 			icon: CornerDownLeft,
@@ -913,7 +913,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			(showSexualHealth || entry.id !== "nav-sexual-health") &&
 			// Bottom-nav style, grid layout and haptics options only exist in the mobile app.
 			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics", "behavior-default-call-camera"].includes(entry.id)) &&
-			// Enter always sends on desktop and swipe-to-reply is touch-only, so these are mobile-only (matches the chat thread's isDesktop).
-			(!isDesktop || !["behavior-mobile-enter-to-send", "behavior-swipe-to-reply-direction"].includes(entry.id)),
+			// Swipe-to-reply is touch-only, so it's mobile-only (matches the chat thread's isDesktop).
+			(!isDesktop || entry.id !== "behavior-swipe-to-reply-direction"),
 	), [t, showSexualHealth, isMobilePlatform, isDesktop]);
 }

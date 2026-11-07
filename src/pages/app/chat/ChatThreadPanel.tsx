@@ -450,8 +450,7 @@ export function ChatThreadPanel(props: ChatThreadPanelProps) {
 	const { chat: blurChatMedia } = useMediaBlur();
 	useAvatarCache();
     const apiFunctions = useApiFunctions();
-	const { unitsPreset, geohash, amoledMode, mobileEnterToSend, compactComposer, savedPhraseSendGesture } = usePreferences();
-	const enterSends = props.isDesktop || mobileEnterToSend;
+	const { unitsPreset, geohash, amoledMode, enterToSend: enterSends, compactComposer, savedPhraseSendGesture } = usePreferences();
 	const effectiveColorScheme = useEffectiveColorScheme();
 	// Android 3-button navigation: the composer actions sit right on the system buttons.
 	const systemNavInset = useSystemNavInset();

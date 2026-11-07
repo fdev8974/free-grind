@@ -192,8 +192,8 @@ const preferencesSchema = z.object({
 	autoFocusRightNowText: z.boolean().default(true),
 	// Swipe a chat row right to pin, left to delete (mobile).
 	chatRowSwipeActions: z.boolean().default(true),
-	// Enter sends a chat message on mobile too (desktop always does; Shift+Enter is a newline there).
-	mobileEnterToSend: z.boolean().default(false),
+	// Enter sends a chat message (Shift+Enter is a newline). Device default: on for desktop, off on mobile.
+	enterToSend: z.boolean().default(false),
 	// Gesture that sends a saved phrase right away; the other one puts it into the composer ("off": tap only fills the composer).
 	savedPhraseSendGesture: z.enum(["off", "tap", "longPress"]).default("off"),
 	// Direction a chat message is swiped to reply to it (mobile). "outward": partner's messages left, ours right.
@@ -263,7 +263,7 @@ type PreferencesAction =
 	| { type: "SET_AUTO_FOCUS_LOCATION_SEARCH"; payload: boolean }
 	| { type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT"; payload: boolean }
 	| { type: "SET_CHAT_ROW_SWIPE_ACTIONS"; payload: boolean }
-	| { type: "SET_MOBILE_ENTER_TO_SEND"; payload: boolean }
+	| { type: "SET_ENTER_TO_SEND"; payload: boolean }
 	| { type: "SET_SAVED_PHRASE_SEND_GESTURE"; payload: Preferences["savedPhraseSendGesture"] }
 	| { type: "SET_SWIPE_TO_REPLY_DIRECTION"; payload: Preferences["swipeToReplyDirection"] }
 	| { type: "SET_START_CALLS_WITH_CAMERA_ON"; payload: boolean }
@@ -343,8 +343,8 @@ function preferencesReducer(
 			return { ...state, autoFocusRightNowText: action.payload };
 		case "SET_CHAT_ROW_SWIPE_ACTIONS":
 			return { ...state, chatRowSwipeActions: action.payload };
-		case "SET_MOBILE_ENTER_TO_SEND":
-			return { ...state, mobileEnterToSend: action.payload };
+		case "SET_ENTER_TO_SEND":
+			return { ...state, enterToSend: action.payload };
 		case "SET_SAVED_PHRASE_SEND_GESTURE":
 			return { ...state, savedPhraseSendGesture: action.payload };
 		case "SET_SWIPE_TO_REPLY_DIRECTION":
@@ -531,7 +531,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusLocationSearch: false,
 		autoFocusRightNowText: true,
 		chatRowSwipeActions: true,
-		mobileEnterToSend: false,
+		enterToSend: false,
 		savedPhraseSendGesture: "off",
 		swipeToReplyDirection: "right",
 		startCallsWithCameraOn: true,
@@ -553,6 +553,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				const deviceDefaultStrength = isDesktopDevice() ? "pronounced" : "subtle";
 				// Compact message bar on desktop, the full action row on mobile.
 				const deviceDefaultCompactComposer = isDesktopDevice();
+				// Enter sends on desktop; on a phone keyboard it starts a new line.
+				const deviceDefaultEnterToSend = isDesktopDevice();
 
 				if (stored) {
 					const decoded = JSON.parse(stored) as Record<string, unknown>;
@@ -564,6 +566,11 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					if (decoded.compactComposer === undefined) {
 						decoded.compactComposer = deviceDefaultCompactComposer;
 					}
+					// Formerly mobileEnterToSend (desktop always sent): keep a mobile opt-in.
+					if (decoded.enterToSend === undefined) {
+						decoded.enterToSend = deviceDefaultEnterToSend || decoded.mobileEnterToSend === true;
+					}
+					delete decoded.mobileEnterToSend;
 
 					const parsed = preferencesSchema.parse(decoded);
 					// geohash/locationName/useAutoLocation are intentionally not
@@ -596,7 +603,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					dispatch({ type: "SET_AUTO_FOCUS_LOCATION_SEARCH", payload: parsed.autoFocusLocationSearch });
 					dispatch({ type: "SET_AUTO_FOCUS_RIGHT_NOW_TEXT", payload: parsed.autoFocusRightNowText });
 					dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: parsed.chatRowSwipeActions });
-					dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: parsed.mobileEnterToSend });
+					dispatch({ type: "SET_ENTER_TO_SEND", payload: parsed.enterToSend });
 					dispatch({ type: "SET_SAVED_PHRASE_SEND_GESTURE", payload: parsed.savedPhraseSendGesture });
 					dispatch({ type: "SET_SWIPE_TO_REPLY_DIRECTION", payload: parsed.swipeToReplyDirection });
 					dispatch({ type: "SET_START_CALLS_WITH_CAMERA_ON", payload: parsed.startCallsWithCameraOn });
@@ -616,6 +623,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					// No stored preferences at all, apply device defaults immediately
 					dispatch({ type: "SET_REVEAL_EFFECT_STRENGTH", payload: deviceDefaultStrength });
 					dispatch({ type: "SET_COMPACT_COMPOSER", payload: deviceDefaultCompactComposer });
+					dispatch({ type: "SET_ENTER_TO_SEND", payload: deviceDefaultEnterToSend });
 					// We also need to apply the theme with these defaults
 					applyTheme("dark", false, "#7c3aed", "#ffffff", deviceDefaultStrength);
 				}
@@ -733,7 +741,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 				autoFocusLocationSearch: currentState.autoFocusLocationSearch,
 				autoFocusRightNowText: currentState.autoFocusRightNowText,
 				chatRowSwipeActions: currentState.chatRowSwipeActions,
-				mobileEnterToSend: currentState.mobileEnterToSend,
+				enterToSend: currentState.enterToSend,
 				savedPhraseSendGesture: currentState.savedPhraseSendGesture,
 				swipeToReplyDirection: currentState.swipeToReplyDirection,
 				startCallsWithCameraOn: currentState.startCallsWithCameraOn,
@@ -852,8 +860,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 			if (newValues.chatRowSwipeActions !== undefined) {
 				dispatch({ type: "SET_CHAT_ROW_SWIPE_ACTIONS", payload: newValues.chatRowSwipeActions });
 			}
-			if (newValues.mobileEnterToSend !== undefined) {
-				dispatch({ type: "SET_MOBILE_ENTER_TO_SEND", payload: newValues.mobileEnterToSend });
+			if (newValues.enterToSend !== undefined) {
+				dispatch({ type: "SET_ENTER_TO_SEND", payload: newValues.enterToSend });
 			}
 			if (newValues.savedPhraseSendGesture !== undefined) {
 				dispatch({ type: "SET_SAVED_PHRASE_SEND_GESTURE", payload: newValues.savedPhraseSendGesture });
@@ -982,7 +990,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 					autoFocusLocationSearch: preferences.autoFocusLocationSearch,
 					autoFocusRightNowText: preferences.autoFocusRightNowText,
 					chatRowSwipeActions: preferences.chatRowSwipeActions,
-					mobileEnterToSend: preferences.mobileEnterToSend,
+					enterToSend: preferences.enterToSend,
 					savedPhraseSendGesture: preferences.savedPhraseSendGesture,
 					swipeToReplyDirection: preferences.swipeToReplyDirection,
 					startCallsWithCameraOn: preferences.startCallsWithCameraOn,
@@ -1035,7 +1043,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 		autoFocusLocationSearch: state.autoFocusLocationSearch,
 		autoFocusRightNowText: state.autoFocusRightNowText,
 		chatRowSwipeActions: state.chatRowSwipeActions,
-		mobileEnterToSend: state.mobileEnterToSend,
+		enterToSend: state.enterToSend,
 		savedPhraseSendGesture: state.savedPhraseSendGesture,
 		swipeToReplyDirection: state.swipeToReplyDirection,
 		startCallsWithCameraOn: state.startCallsWithCameraOn,

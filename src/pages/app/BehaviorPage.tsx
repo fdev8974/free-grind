@@ -48,7 +48,7 @@ export function BehaviorPage() {
 		doubleTapTapType,
 		doubleTapAction,
 		chatRowSwipeActions,
-		mobileEnterToSend,
+		enterToSend,
 		savedPhraseSendGesture,
 		swipeToReplyDirection,
 		startCallsWithCameraOn,
@@ -139,19 +139,18 @@ export function BehaviorPage() {
 							checked={chatRowSwipeActions}
 							onChange={(checked) => void setPreferences({ chatRowSwipeActions: checked })}
 						/>
-						{/* Enter always sends on desktop, so this only matters on mobile. */}
-						{!isDesktop && <ToggleRow
-							id="behavior-mobile-enter-to-send"
-							highlighted={highlightId === "behavior-mobile-enter-to-send"}
+						<ToggleRow
+							id="behavior-enter-to-send"
+							highlighted={highlightId === "behavior-enter-to-send"}
 							icon={<CornerDownLeft className="h-5 w-5" />}
 							iconClass="bg-sky-500/15 text-sky-400"
-							label={t("behavior.mobile_enter_to_send", { defaultValue: "Enter to Send on Mobile" })}
-							description={t("behavior.mobile_enter_to_send_desc", {
-								defaultValue: "The Enter key on your phone's keyboard sends the message instead of starting a new line.",
+							label={t("behavior.enter_to_send", { defaultValue: "Enter to Send" })}
+							description={t("behavior.enter_to_send_desc", {
+								defaultValue: "The Enter key sends the message instead of starting a new line. Shift+Enter always starts a new line.",
 							})}
-							checked={mobileEnterToSend}
-							onChange={(checked) => void setPreferences({ mobileEnterToSend: checked })}
-						/>}
+							checked={enterToSend}
+							onChange={(checked) => void setPreferences({ enterToSend: checked })}
+						/>
 						<SelectRow
 							id="behavior-saved-phrase-send-gesture"
 							highlighted={highlightId === "behavior-saved-phrase-send-gesture"}
