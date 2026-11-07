@@ -3222,6 +3222,16 @@ export async function setRecentGifs<T>(gifs: T[]): Promise<T[]> {
 	return gifs;
 }
 
+export async function getRecentGaymoji<T>(): Promise<T[]> {
+	const stored = await getSetting<T[]>("recentGaymoji");
+	return Array.isArray(stored) ? stored : [];
+}
+
+export async function setRecentGaymoji<T>(items: T[]): Promise<T[]> {
+	await setSetting("recentGaymoji", items);
+	return items;
+}
+
 // ---------------------------------------------------------------------------
 // Saved locations
 // ---------------------------------------------------------------------------

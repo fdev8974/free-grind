@@ -1712,8 +1712,9 @@
             "retry": "Erneut versuchen",
             "no_results": "Keine GIFs gefunden.",
             "no_results_hint": "Versuch es mit einem anderen Suchbegriff.",
-            "recent_empty": "Keine zuletzt gesendeten GIFs.",
-            "recent_empty_hint": "Gesendete GIFs erscheinen hier.",
+            "recent_empty": "Noch nichts gesendet.",
+            "recent_empty_hint": "Gesendete GIFs und Gaymojis erscheinen hier.",
+            "section_gifs": "GIFs",
             "send_confirm": "GIF senden?"
         },
         "drawer_unavailable": "Sende eine Nachricht um die Galerie zu öffnen.",

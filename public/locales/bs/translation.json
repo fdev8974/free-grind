@@ -1503,8 +1503,9 @@
             "retry": "Pokušaj ponovo",
             "no_results": "Nema GIF-ova.",
             "no_results_hint": "Pokušaj s drugim pojmom za pretragu.",
-            "recent_empty": "Nema nedavno poslanih GIF-ova.",
-            "recent_empty_hint": "GIF-ovi koje pošalješ će se prikazati ovdje.",
+            "recent_empty": "Ništa nije nedavno poslano.",
+            "recent_empty_hint": "GIF-ovi i Gaymoji koje pošalješ će se prikazati ovdje.",
+            "section_gifs": "GIFs",
             "send_confirm": "Pošalji GIF?"
         },
         "drawer_unavailable": "Prvo pošalji poruku da koristiš galeriju",

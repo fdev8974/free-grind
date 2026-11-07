@@ -1492,8 +1492,9 @@
             "retry": "Opnieuw proberen",
             "no_results": "Geen GIFs gevonden.",
             "no_results_hint": "Probeer een andere zoekterm.",
-            "recent_empty": "Geen recent verzonden GIFs.",
-            "recent_empty_hint": "GIFs die je verstuurt verschijnen hier.",
+            "recent_empty": "Niets recent verzonden.",
+            "recent_empty_hint": "GIFs en Gaymoji die je verstuurt verschijnen hier.",
+            "section_gifs": "GIFs",
             "send_confirm": "GIF sturen?"
         },
         "drawer_unavailable": "Stuur eerst een bericht om de galerij te gebruiken",

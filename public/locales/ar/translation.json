@@ -1536,8 +1536,9 @@
             "retry": "إعادة المحاولة",
             "no_results": "مفيش صور متحركه",
             "no_results_hint": "جرّب كلمة بحث تانية.",
-            "recent_empty": "مفيش صور GIF مرسلة مؤخراً.",
-            "recent_empty_hint": "ستظهر صور GIF التي ترسلها هنا.",
+            "recent_empty": "لا يوجد شيء مُرسل مؤخرًا.",
+            "recent_empty_hint": "ستظهر صور GIF وGaymoji التي ترسلها هنا.",
+            "section_gifs": "GIFs",
             "send_confirm": "ارسل صوره متحركه"
         },
         "drawer_unavailable": "أرسل رسالة أولاً لاستخدام الدرج",

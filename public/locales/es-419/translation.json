@@ -1503,8 +1503,9 @@
             "retry": "Reintentar",
             "no_results": "No se encontraron GIFs.",
             "no_results_hint": "Prueba con otro término de búsqueda.",
-            "recent_empty": "No hay GIFs enviados recientemente.",
-            "recent_empty_hint": "Los GIFs que envíes aparecerán aquí.",
+            "recent_empty": "Nada enviado recientemente.",
+            "recent_empty_hint": "Los GIFs y Gaymoji que envíes aparecerán aquí.",
+            "section_gifs": "GIFs",
             "send_confirm": "¿Enviar GIF?"
         },
         "drawer_unavailable": "Envía un mensaje primero para poder usar la galería",

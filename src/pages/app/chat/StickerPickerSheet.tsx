@@ -1,5 +1,5 @@
 import { Check, Clock, Loader2, SearchX, Send, Smile, Sticker, TrendingUp } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetClose, SheetCloseButton, SHEET_FOOTER_CLASS, sheetButtonClass } from "../../../components/ui/bottom-sheet";
 import { SheetChip, SheetSearchInput } from "../../../components/ui/sheet-section";
@@ -8,7 +8,7 @@ import { SlidingTabs, useSwipeTabs } from "../../../components/ui/sliding-tabs";
 import { DrawerEmptyState } from "./drawerUi";
 import { GIPHY_API_KEY, GIPHY_BASE, GIPHY_RECENT_GIFS_MAX as RECENT_GIFS_MAX } from "../../../config/giphy-config";
 import { fetchExternal, okHttpQueryComponent } from "../../../services/externalFetch";
-import { getRecentGifs, setRecentGifs } from "../../../services/chatDb";
+import { getRecentGaymoji, getRecentGifs, setRecentGaymoji, setRecentGifs } from "../../../services/chatDb";
 import { proxyMediaUrl } from "../../../utils/mediaProxy";
 import { getGaymojiSections, type GaymojiItem, type GaymojiSection } from "../../../services/gaymoji";
 
@@ -35,6 +35,22 @@ async function saveRecentGif(gif: GiphyItem): Promise<GiphyItem[]> {
 	const existing = (await loadRecentGifs()).filter((g) => g.id !== gif.id);
 	const next = [gif, ...existing].slice(0, RECENT_GIFS_MAX);
 	return setRecentGifs(next);
+}
+
+const RECENT_GAYMOJI_MAX = 24;
+
+async function loadRecentGaymoji(): Promise<GaymojiItem[]> {
+	try {
+		return await getRecentGaymoji<GaymojiItem>();
+	} catch {
+		return [];
+	}
+}
+
+async function saveRecentGaymoji(item: GaymojiItem): Promise<GaymojiItem[]> {
+	const existing = (await loadRecentGaymoji()).filter((g) => g.id !== item.id);
+	const next = [item, ...existing].slice(0, RECENT_GAYMOJI_MAX);
+	return setRecentGaymoji(next);
 }
 
 interface StickerPickerSheetProps {
@@ -374,8 +390,14 @@ function GaymojiPanel({
 	));
 }
 
-type Tab = "trending" | "recent" | "gaymoji";
-const GIPHY_TABS: readonly Tab[] = ["trending", "recent", "gaymoji"];
+function RecentSectionTitle({ first, children }: { first: boolean; children: ReactNode }) {
+	return (
+		<h4 className={`px-1 pb-2 text-sm font-medium text-[var(--text-muted)] ${first ? "" : "pt-4"}`}>{children}</h4>
+	);
+}
+
+type Tab = "trending" | "gaymoji" | "recent";
+const GIPHY_TABS: readonly Tab[] = ["trending", "gaymoji", "recent"];
 
 type Selection = { kind: "gif"; gif: GiphyItem } | { kind: "gaymoji"; item: GaymojiItem };
 
@@ -395,9 +417,11 @@ export function StickerPickerSheet({ onClose, onSelect, onSelectGaymoji, isDeskt
 	const [gaymojiCategory, setGaymojiCategory] = useState<string | null>(null);
 	const gaymoji = useGaymojiSections(tab === "gaymoji");
 	const [recentGifs, setRecentGifsState] = useState<GiphyItem[]>([]);
+	const [recentGaymoji, setRecentGaymojiState] = useState<GaymojiItem[]>([]);
 
 	useEffect(() => {
 		void loadRecentGifs().then(setRecentGifsState);
+		void loadRecentGaymoji().then(setRecentGaymojiState);
 	}, []);
 	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
@@ -474,6 +498,7 @@ export function StickerPickerSheet({ onClose, onSelect, onSelectGaymoji, isDeskt
 			void saveRecentGif(selection.gif).then(setRecentGifsState);
 			onSelect(selection.gif);
 		} else if (selection?.kind === "gaymoji") {
+			void saveRecentGaymoji(selection.item).then(setRecentGaymojiState);
 			onSelectGaymoji(selection.item.imageHash);
 		}
 	};
@@ -497,8 +522,8 @@ export function StickerPickerSheet({ onClose, onSelect, onSelectGaymoji, isDeskt
 				onChange={handleTabChange}
 				tabs={[
 					{ value: "trending", label: t("chat.stickers.tab_trending"), icon: <TrendingUp className="h-3.5 w-3.5" /> },
-					{ value: "recent", label: t("chat.stickers.tab_recent"), icon: <Clock className="h-3.5 w-3.5" /> },
 					{ value: "gaymoji", label: t("chat.stickers.tab_gaymoji"), icon: <Smile className="h-3.5 w-3.5" /> },
+					{ value: "recent", label: t("chat.stickers.tab_recent"), icon: <Clock className="h-3.5 w-3.5" /> },
 				]}
 			/>
 
@@ -556,14 +581,29 @@ export function StickerPickerSheet({ onClose, onSelect, onSelectGaymoji, isDeskt
 					) : (
 						<GifGrid gifs={gifs} selectedId={selectionId(selection, "gif")} onToggle={handleToggle} />
 					)
-				) : recentGifs.length === 0 ? (
+				) : recentGifs.length === 0 && recentGaymoji.length === 0 ? (
 					<DrawerEmptyState
 						icon={<Sticker className="h-5 w-5" />}
 						title={t("chat.stickers.recent_empty")}
 						hint={t("chat.stickers.recent_empty_hint")}
 					/>
 				) : (
-					<GifGrid gifs={recentGifs} selectedId={selectionId(selection, "gif")} onToggle={handleToggle} />
+					<>
+						{recentGaymoji.length > 0 && (
+							<section aria-label={t("chat.stickers.tab_gaymoji")}>
+								<RecentSectionTitle first>{t("chat.stickers.tab_gaymoji")}</RecentSectionTitle>
+								<GaymojiGrid items={recentGaymoji} selectedId={selectionId(selection, "gaymoji")} onToggle={handleToggleGaymoji} />
+							</section>
+						)}
+						{recentGifs.length > 0 && (
+							<section aria-label={t("chat.stickers.section_gifs")}>
+								{recentGaymoji.length > 0 && (
+									<RecentSectionTitle first={false}>{t("chat.stickers.section_gifs")}</RecentSectionTitle>
+								)}
+								<GifGrid gifs={recentGifs} selectedId={selectionId(selection, "gif")} onToggle={handleToggle} />
+							</section>
+						)}
+					</>
 				)}
 			</div>
 

@@ -1712,8 +1712,9 @@
       "retry": "Retry",
       "no_results": "No GIFs found.",
       "no_results_hint": "Try a different search term.",
-      "recent_empty": "No recently sent GIFs.",
-      "recent_empty_hint": "GIFs you send will appear here.",
+      "recent_empty": "Nothing sent recently.",
+      "recent_empty_hint": "GIFs and Gaymoji you send will appear here.",
+      "section_gifs": "GIFs",
       "send_confirm": "Send GIF?"
     },
     "drawer_unavailable": "Send a message first to use the drawer",

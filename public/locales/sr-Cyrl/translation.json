@@ -1507,8 +1507,9 @@
             "retry": "Покушај поново",
             "no_results": "Нема пронађених GIF-ова.",
             "no_results_hint": "Покушајте са другим појмом за претрагу.",
-            "recent_empty": "Нема недавно послатих GIF-ова.",
-            "recent_empty_hint": "GIF-ови које пошаљете појавиће се овде.",
+            "recent_empty": "Ништа недавно послато.",
+            "recent_empty_hint": "GIF-ови и Gaymoji које пошаљете појавиће се овде.",
+            "section_gifs": "GIFs",
             "send_confirm": "Послати GIF?"
         },
         "drawer_unavailable": "Прво пошаљите поруку да бисте користили фиоку",

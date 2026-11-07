@@ -1503,8 +1503,9 @@
             "retry": "Réessayer",
             "no_results": "Aucun GIF trouvé.",
             "no_results_hint": "Essayez un autre terme de recherche.",
-            "recent_empty": "Aucun GIF envoyé récemment.",
-            "recent_empty_hint": "Les GIFs que vous envoyez apparaîtront ici.",
+            "recent_empty": "Rien envoyé récemment.",
+            "recent_empty_hint": "Les GIFs et Gaymoji que vous envoyez apparaîtront ici.",
+            "section_gifs": "GIFs",
             "send_confirm": "Envoyer le GIF ?"
         },
         "drawer_unavailable": "Envoyez d'abord un message pour utiliser le volet multimédia",
