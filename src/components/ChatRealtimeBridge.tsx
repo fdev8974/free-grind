@@ -18,10 +18,12 @@
  *   `notifyLocal()`; Android goes through the native `FreeGrindBridge`, whose
  *   `NotificationPoster` dedupes against the later FCM push for the same
  *   message/tap so it never shows twice.
+ * - Incoming taps show an in-app toast instead (they're only surfaced in the
+ *   foreground anyway); tapping the toast opens the sender's profile.
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { platform } from "@tauri-apps/plugin-os";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -61,6 +63,7 @@ import { captureReplyPreviewsForMessages } from "../services/replyMediaStore";
 import { getConversation, getDisplayName } from "../services/conversationDirectory";
 import { hasMessage, saveProfileSnapshot } from "../services/chatDb";
 import { runAutomationRulesForSender } from "../utils/automationRules";
+import { getTapEmoji } from "../pages/app/interest/interestUtils";
 import { looksLikeMessageUpdate } from "../utils/messageUpdates";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useBlockedProfileIds } from "../hooks/queries/useProfileQueries";
@@ -327,6 +330,12 @@ export function ChatRealtimeBridge() {
 	useEffect(() => {
 		tRef.current = t;
 	}, [t]);
+
+	const navigate = useNavigate();
+	const navigateRef = useRef(navigate);
+	useEffect(() => {
+		navigateRef.current = navigate;
+	}, [navigate]);
 
 	const pathRef = useRef(location.pathname);
 	useEffect(() => {
@@ -656,40 +665,41 @@ export function ChatRealtimeBridge() {
 			)
 				return;
 
+			// The taps list already shows it live there — no need to announce it.
+			const onTapsRoute =
+				pathRef.current === "/interest" || pathRef.current.startsWith("/interest/");
+			if (onTapsRoute) return;
+
 			const senderName = tap.displayName || tRef.current("common.unknown_display_name");
 			const bodyText = tap.isMutual
 				? tRef.current("chat.notifications.tapped_you_back")
 				: tRef.current("chat.notifications.tapped_you");
 
-			if (isAndroidRuntime()) {
-				const payload = {
-					event: "received",
-					source: "realtime",
-					receivedAt: Date.now(),
-					senderName,
-					bodyText,
-					isTap: true,
-					action: "taps",
-					conversationId: null,
-					senderId: tap.profileId,
-					messageType: null,
-					rawData: {
-						senderProfileId: tap.profileId,
-						senderProfileImageMediaHash: tap.imageHash ?? null,
-					},
-				};
-				try {
-					window.FreeGrindBridge?.postLocalNotification?.(JSON.stringify(payload));
-				} catch (error) {
-					appLog.warn("[chat-ws:bridge] postLocalNotification failed (tap)", error);
-				}
-				return;
-			}
-
-			const onTapsRoute =
-				pathRef.current === "/interest" || pathRef.current.startsWith("/interest/");
-			if (onTapsRoute) return;
-			void notifyLocal({ title: senderName, body: bodyText, group: "taps" });
+			// This only ever runs in the foreground, so an in-app toast replaces
+			// the OS notification here rather than stacking on top of it. Android
+			// won't post the later FCM push either: NotificationPoster drops
+			// pushes while the app is visible ("realtime bridge covers it").
+			const profilePath = `/profile/${encodeURIComponent(tap.profileId)}`;
+			toast(
+				(tst) => (
+					<button
+						type="button"
+						className="min-w-0 text-left"
+						onClick={() => {
+							toast.dismiss(tst.id);
+							navigateRef.current(profilePath);
+						}}
+					>
+						<span className="font-semibold">{senderName}</span>
+						<span className="text-[var(--text-muted)]"> · {bodyText}</span>
+					</button>
+				),
+				{
+					id: `tap:${tap.profileId}`,
+					icon: <span className="text-lg leading-none">{getTapEmoji(tap.tapType)}</span>,
+					duration: 3500,
+				},
+			);
 		};
 
 		let lastResyncAt = 0;
