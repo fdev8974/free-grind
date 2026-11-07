@@ -127,7 +127,12 @@ function ToastPill({ toast }: { toast: Toast }) {
 				setIsDragging(false);
 				setDragY(0);
 			}}
-			className={`flex ${isBanner ? "w-full rounded-[24px] p-3 md:w-[420px]" : "max-w-[min(420px,100%)] rounded-[22px] py-2.5 pl-3 pr-4"} touch-pan-x items-center gap-2.5 bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] text-sm font-medium text-[var(--text)] shadow-[0_-1px_4px_rgba(0,0,0,0.12),0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-[var(--border)]/40 backdrop-blur-xl`}
+			className={`flex touch-pan-x items-center gap-2.5 text-sm font-medium text-[var(--text)] ${
+				isBanner
+					? // Same surface as the app's menus and popovers, not the glass pill.
+						"w-full rounded-[var(--radius-lg)] menu-surface px-3 py-2.5 md:w-[420px]"
+					: "max-w-[min(420px,100%)] rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] py-2.5 pl-3 pr-4 shadow-[0_-1px_4px_rgba(0,0,0,0.12),0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-[var(--border)]/40 backdrop-blur-xl"
+			}`}
 			style={{
 				opacity: shown ? 1 : 0,
 				transform: prefersReducedMotion ? undefined : transform,

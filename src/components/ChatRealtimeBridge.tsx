@@ -623,7 +623,6 @@ export function ChatRealtimeBridge() {
 						<NotificationBanner
 							title={senderName}
 							body={bodyText}
-							meta={tRef.current("chat.time.now")}
 							avatarUrl={avatarUrl}
 							onOpen={() => {
 								toast.dismiss(tst.id);
@@ -677,7 +676,6 @@ export function ChatRealtimeBridge() {
 					<NotificationBanner
 						title={senderName}
 						body={bodyText}
-						meta={tRef.current("chat.time.now")}
 						avatarUrl={avatarUrl}
 						fallbackIcon={<span className="text-xl leading-none">{tapEmoji}</span>}
 						badge={avatarUrl ? tapEmoji : undefined}
