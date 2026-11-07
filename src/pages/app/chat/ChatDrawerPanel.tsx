@@ -57,6 +57,7 @@ import {
 	type RestoredDrawerMedia,
 } from "../../../services/restoredDrawerMedia";
 import { usePreferences } from "../../../contexts/PreferencesContext";
+import { useCanSendExpiringAlbums } from "../../../services/assignmentsStore";
 import * as chatDb from "../../../services/chatDb";
 import type { StoredDrawerCollection } from "../../../services/chatDb";
 import { appLog } from "../../../utils/logger";
@@ -258,6 +259,9 @@ export function ChatDrawerPanel({
 	const tabSwipe = useSwipeTabs<DrawerTab>(DRAWER_TABS, activeTab, changeTab, !combined);
 	const EXPIRY_OPTIONS = ["INDEFINITE", "ONCE", "TEN_MINUTES", "ONE_HOUR", "ONE_DAY"];
 	const [albumExpirationType, setAlbumExpirationType] = useState<string>(defaultAlbumExpirationType);
+	// Free accounts can't share expiring albums: no expiry picker, always INDEFINITE.
+	const canSendExpiringAlbums = useCanSendExpiringAlbums();
+	const effectiveAlbumExpirationType = canSendExpiringAlbums ? albumExpirationType : "INDEFINITE";
 	const EXPIRY_LABELS: Record<string, string> = {
 		INDEFINITE: t("chat_drawer.expiry.unlimited", { defaultValue: "Unlimited" }),
 		ONCE: t("chat_drawer.expiry.once", { defaultValue: "Once" }),
@@ -977,23 +981,25 @@ export function ChatDrawerPanel({
 										</>
 									) : (
 										<>
-											<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-0 flex-1`}>
-												<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
-												<select
-													value={albumExpirationType}
-													onChange={(e) => setAlbumExpirationType(e.target.value)}
-													className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
-												>
-													{EXPIRY_OPTIONS.map((opt) => (
-														<option key={opt} value={opt}>{EXPIRY_LABELS[opt]}</option>
-													))}
-												</select>
-											</div>
+											{canSendExpiringAlbums && (
+												<div className={`${SHEET_FOOTER_FIELD_CLASS} min-w-0 flex-1`}>
+													<Hourglass className="pointer-events-none absolute left-3 h-4 w-4 shrink-0" />
+													<select
+														value={albumExpirationType}
+														onChange={(e) => setAlbumExpirationType(e.target.value)}
+														className="h-full w-full appearance-none rounded-full bg-transparent pl-9 pr-3 text-sm font-semibold text-[var(--text)] focus:outline-none cursor-pointer text-center"
+													>
+														{EXPIRY_OPTIONS.map((opt) => (
+															<option key={opt} value={opt}>{EXPIRY_LABELS[opt]}</option>
+														))}
+													</select>
+												</div>
+											)}
 											<button
 												type="button"
 												onClick={() => {
 													if (selectedAlbumIds.size === 0 || !onShareAlbum) return;
-													void Promise.all([...selectedAlbumIds].map(id => onShareAlbum!(id, albumExpirationType))).then(() => { setSelectedAlbumIds(new Set()); closeSheet(); });
+													void Promise.all([...selectedAlbumIds].map(id => onShareAlbum!(id, effectiveAlbumExpirationType))).then(() => { setSelectedAlbumIds(new Set()); closeSheet(); });
 												}}
 												disabled={isSharingAlbum}
 												className={DRAWER_PRIMARY_BUTTON_CLASS}

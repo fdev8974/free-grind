@@ -61,6 +61,7 @@ import { useMemo } from "react";
 import { RightNowIcon } from "../components/icons/RightNowIcon";
 import { isSexualHealthEnabled } from "../utils/optionalFeatures";
 import { isAndroid, isIos } from "../services/saveMedia";
+import { useCanSendExpiringAlbums } from "../services/assignmentsStore";
 import { useTranslation } from "react-i18next";
 
 export type SettingsSearchEntry = {
@@ -90,6 +91,7 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 	const showSexualHealth = isSexualHealthEnabled();
 	const isMobilePlatform = isAndroid() || isIos();
 	const isDesktop = useDesktopBreakpoint();
+	const canSendExpiringAlbums = useCanSendExpiringAlbums();
 
 	return useMemo<SettingsSearchEntry[]>(() => [
 		// Profile
@@ -914,6 +916,8 @@ export function useSettingsSearchIndex(): SettingsSearchEntry[] {
 			// Bottom-nav style, grid layout and haptics options only exist in the mobile app.
 			(isMobilePlatform || !["cust-nav-floating", "cust-nav-show-labels", "cust-browse-grid", "cust-views-grid", "cust-haptics", "behavior-default-call-camera"].includes(entry.id)) &&
 			// Swipe-to-reply is touch-only, so it's mobile-only (matches the chat thread's isDesktop).
-			(!isDesktop || entry.id !== "behavior-swipe-to-reply-direction"),
-	), [t, showSexualHealth, isMobilePlatform, isDesktop]);
+			(!isDesktop || entry.id !== "behavior-swipe-to-reply-direction") &&
+			// Free accounts can't share expiring albums, so the default has no effect.
+			(canSendExpiringAlbums || entry.id !== "behavior-default-album-expiration"),
+	), [t, showSexualHealth, isMobilePlatform, isDesktop, canSendExpiringAlbums]);
 }

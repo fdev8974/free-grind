@@ -8,6 +8,7 @@ import { RightNowIcon } from "../../components/icons/RightNowIcon";
 import { SelectRow } from "../../components/ui/select-row";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "../../contexts/PreferencesContext";
+import { useCanSendExpiringAlbums } from "../../services/assignmentsStore";
 import { useSettingsHighlight } from "../../hooks/useSettingsHighlight";
 import { getTapEmoji, tapLabel } from "./interest/interestUtils";
 import { isAndroid, isIos } from "../../services/saveMedia";
@@ -37,6 +38,7 @@ export function BehaviorPage() {
 	const { t } = useTranslation();
 	const highlightId = useSettingsHighlight();
 	const isDesktop = useDesktopBreakpoint();
+	const canSendExpiringAlbums = useCanSendExpiringAlbums();
 	const {
 		defaultExpiringPhotos,
 		defaultAlbumExpirationType,
@@ -202,7 +204,7 @@ export function BehaviorPage() {
 							checked={defaultExpiringPhotos}
 							onChange={(checked) => void setPreferences({ defaultExpiringPhotos: checked })}
 						/>
-						<SelectRow
+						{canSendExpiringAlbums && <SelectRow
 							id="behavior-default-album-expiration"
 							highlighted={highlightId === "behavior-default-album-expiration"}
 							icon={<ImagesFilled className="h-5 w-5" />}
@@ -212,7 +214,7 @@ export function BehaviorPage() {
 							value={defaultAlbumExpirationType}
 							onChange={(option) => void setPreferences({ defaultAlbumExpirationType: option })}
 							options={ALBUM_EXPIRATION_OPTIONS.map((option) => ({ value: option, label: albumExpirationLabels[option] }))}
-						/>
+						/>}
 						<ToggleRow
 							id="behavior-open-album-as-bottom-sheet"
 							highlighted={highlightId === "behavior-open-album-as-bottom-sheet"}

@@ -28,13 +28,16 @@ const SOURCES: { id: SourceId; label: string; description: string }[] = [
 	{ id: "anonymous", label: "Anonymous", description: "GET /public/v1/assignments, used at sign-in" },
 ];
 
-type TypeFilter = "all" | "FEATURE_FLAG" | "EXPERIMENT" | "FEATURE" | "other";
+type TypeFilter = "all" | "FEATURE_FLAG" | "EXPERIMENT" | "FEATURE" | "ROLE" | "other";
+
+const NAMED_TYPES = new Set(["FEATURE_FLAG", "EXPERIMENT", "FEATURE", "ROLE"]);
 
 const TYPE_FILTERS: { id: TypeFilter; label: string }[] = [
 	{ id: "all", label: "All" },
 	{ id: "FEATURE_FLAG", label: "Flags" },
 	{ id: "EXPERIMENT", label: "Experiments" },
 	{ id: "FEATURE", label: "Features" },
+	{ id: "ROLE", label: "Roles" },
 	{ id: "other", label: "Other" },
 ];
 
@@ -43,7 +46,7 @@ const HEADER_ICON_BUTTON_CLASS =
 
 function matchesType(assignment: Assignment, filter: TypeFilter): boolean {
 	if (filter === "all") return true;
-	if (filter === "other") return assignment.type !== "FEATURE_FLAG" && assignment.type !== "EXPERIMENT" && assignment.type !== "FEATURE";
+	if (filter === "other") return assignment.type === null || !NAMED_TYPES.has(assignment.type);
 	return assignment.type === filter;
 }
 
