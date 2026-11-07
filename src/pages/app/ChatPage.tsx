@@ -159,6 +159,7 @@ import { TakenOnGrindrBadge } from "./chat/TakenOnGrindrBadge";
 import { removeProfileFromBrowseCache, getCachedProfileDetail, setCachedProfileDetail } from "./gridpage/cache";
 import type { ProfileDetail } from "../../types/grid";
 import { getProfileImageUrl, getThumbImageUrl, validateMediaHash } from "../../utils/media";
+import { setOpenChat } from "../../services/openChatState";
 
 // Local pagination for archived threads (chatDb has no server to ask, so we
 // page through it ourselves) — a "pageKey" here is this prefix + a cursor
@@ -1185,6 +1186,14 @@ export function ChatPage() {
 		};
 	}, [conversations, userId, targetProfileId]);
 
+
+	// Lets ChatRealtimeBridge skip the in-app toast / unread bump for the
+	// thread on screen — the URL doesn't say which one that is on desktop or
+	// while a chat opened from a profile is still resolving.
+	useEffect(() => {
+		setOpenChat({ conversationId: selectedConversationId, profileId: selectedConversationOtherProfileId });
+		return () => setOpenChat(null);
+	}, [selectedConversationId, selectedConversationOtherProfileId]);
 
 	useEffect(() => {
 		selectedConversationIdRef.current = selectedConversationId;

@@ -50,6 +50,11 @@ function offsetStyle(position: ToastPosition, offset: number): React.CSSProperti
 const ENTER_EASING = "cubic-bezier(0.34, 1.3, 0.64, 1)";
 const SWIPE_DISMISS_PX = 24;
 
+// Toasts carrying this className (chat messages, taps) are notification
+// banners rather than status pills: full app width on phones, a regular
+// pill again from tablet width up.
+export const BANNER_TOAST_CLASS = "fg-banner-toast";
+
 function ToastPill({ toast }: { toast: Toast }) {
 	// Starts hidden and flips to shown after the first paint, so the enter
 	// transition actually runs.
@@ -69,6 +74,7 @@ function ToastPill({ toast }: { toast: Toast }) {
 		};
 	}, []);
 
+	const isBanner = toast.className === BANNER_TOAST_CLASS;
 	const shown = entered && toast.visible;
 	const transform = shown
 		? `translateY(${dragY}px) scale(1)`
@@ -110,7 +116,7 @@ function ToastPill({ toast }: { toast: Toast }) {
 				setIsDragging(false);
 				setDragY(0);
 			}}
-			className="flex max-w-[min(420px,100%)] touch-pan-x items-center gap-2.5 rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] py-2.5 pl-3 pr-4 text-sm font-medium text-[var(--text)] shadow-[0_-1px_4px_rgba(0,0,0,0.12),0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-[var(--border)]/40 backdrop-blur-xl"
+			className={`flex ${isBanner ? "w-full py-3 md:w-auto md:max-w-[420px] md:py-2.5" : "max-w-[min(420px,100%)] py-2.5"} touch-pan-x items-center gap-2.5 rounded-[22px] bg-[color-mix(in_srgb,var(--surface)_88%,transparent)] pl-3 pr-4 text-sm font-medium text-[var(--text)] shadow-[0_-1px_4px_rgba(0,0,0,0.12),0_8px_32px_rgba(0,0,0,0.3)] ring-1 ring-[var(--border)]/40 backdrop-blur-xl`}
 			style={{
 				opacity: shown ? 1 : 0,
 				transform: prefersReducedMotion ? undefined : transform,
@@ -120,7 +126,7 @@ function ToastPill({ toast }: { toast: Toast }) {
 			}}
 		>
 			{toast.icon ? <span className="flex shrink-0 items-center">{toast.icon}</span> : null}
-			<span className="min-w-0 break-words leading-snug">{resolveValue(toast.message, toast)}</span>
+			<span className={`min-w-0 break-words leading-snug ${isBanner ? "flex-1" : ""}`}>{resolveValue(toast.message, toast)}</span>
 		</div>
 	);
 }

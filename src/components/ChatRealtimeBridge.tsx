@@ -31,6 +31,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { MessageCircle } from "lucide-react";
+import { BANNER_TOAST_CLASS } from "./AppToaster";
 import { useAuth } from "../contexts/useAuth";
 import { ChatRealtimeManager, setActiveRealtimeManager } from "../services/chatRealtime";
 import { isTauriRuntime } from "../services/tauriWebSocket";
@@ -66,6 +67,7 @@ import { hasMessage, saveProfileSnapshot } from "../services/chatDb";
 import { runAutomationRulesForSender } from "../utils/automationRules";
 import { getTapEmoji } from "../pages/app/interest/interestUtils";
 import { looksLikeMessageUpdate } from "../utils/messageUpdates";
+import { isChatOpen } from "../services/openChatState";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useBlockedProfileIds } from "../hooks/queries/useProfileQueries";
 import { isReadReceiptsHidden } from "../utils/privacy";
@@ -619,7 +621,7 @@ export function ChatRealtimeBridge() {
 					(tst) => (
 						<button
 							type="button"
-							className="flex min-w-0 flex-col text-left"
+							className="flex w-full min-w-0 flex-col text-left"
 							onClick={() => {
 								toast.dismiss(tst.id);
 								navigateRef.current(chatPath);
@@ -633,6 +635,7 @@ export function ChatRealtimeBridge() {
 						// One toast per conversation — a burst of messages updates
 						// it in place instead of stacking.
 						id: `chat:${m.conversationId}`,
+						className: BANNER_TOAST_CLASS,
 						icon: avatarUrl ? (
 							<img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
 						) : (
@@ -675,7 +678,7 @@ export function ChatRealtimeBridge() {
 				(tst) => (
 					<button
 						type="button"
-						className="min-w-0 text-left"
+						className="w-full min-w-0 text-left"
 						onClick={() => {
 							toast.dismiss(tst.id);
 							navigateRef.current(profilePath);
@@ -687,6 +690,7 @@ export function ChatRealtimeBridge() {
 				),
 				{
 					id: `tap:${tap.profileId}`,
+					className: BANNER_TOAST_CLASS,
 					icon: <span className="text-lg leading-none">{getTapEmoji(tap.tapType)}</span>,
 					duration: 3500,
 				},
@@ -923,16 +927,13 @@ export function ChatRealtimeBridge() {
 
 						// Update local contact index for unread badge persistence
 						if (isIncoming) {
-							const path = pathRef.current;
-							// The route alone isn't enough — it stays on this
-							// chat's path even while the window is minimized,
-							// which would otherwise suppress the unread bump
-							// and notification for a message the user can't
-							// actually see.
+							// What ChatPage reports as on screen, not the route:
+							// the desktop split view and chats opened from a
+							// profile don't carry the conversation in the URL.
+							// Foreground too — a minimized window still "shows"
+							// the chat, but the user can't actually see it.
 							const isViewingThisChat =
-								isAppForeground() &&
-								(path === `/chat/${m.conversationId}` ||
-									path.startsWith(`/chat/${m.conversationId}/`));
+								isAppForeground() && isChatOpen(m.conversationId, m.senderId);
 							if (!isViewingThisChat) {
 								await incrementUnreadCountForProfile(
 									String(m.senderId),
