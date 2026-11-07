@@ -9,7 +9,7 @@ Free Grind can notify you about:
 - **New messages**: every message shows up in the notification, grouped per chat, with buttons to jump straight into the chat or the profile.
 - **Received taps**
 
-Choose which ones you get in **Settings → Notifications**. There you can also turn off **Notifications While App Is Open** if you only want to be notified while Free Grind is in the background or closed.
+Choose which ones you get in **Settings → Notifications**. There you can also turn off **In-App Notifications** (the banner that shows up inside the app when a message or tap arrives while you are using it) if you only want to be notified while Free Grind is in the background or closed.
 
 ## Android
 
