@@ -54,8 +54,12 @@ export async function syncOwnProfile(api: ApiFunctions, profileId: number, isCur
 			appLog.warn("[ownProfilePhotos] loading own Spotify songs failed", error);
 			return null;
 		});
+		const travelPlans = await api.getTravelPlans(profileId).catch((error: unknown) => {
+			appLog.warn("[ownProfilePhotos] loading own trips failed", error);
+			return null;
+		});
 		if (!isCurrent()) return;
-		await recordOwnProfileDetails(raw, spotifySongIds);
+		await recordOwnProfileDetails(raw, spotifySongIds, travelPlans);
 		setSavedAccountDisplayName(String(profileId), parsed.data.displayName ?? null);
 		setSavedAccountPhotoHash(String(profileId), getProfilePhotoHash(parsed.data));
 		const hashes = (parsed.data.medias ?? [])

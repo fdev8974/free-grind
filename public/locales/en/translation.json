@@ -2646,7 +2646,7 @@
     "title": "Take over your previous profile?",
     "message": "Your backup contains your previous profile. Choose what to use for this profile.",
     "details": "Profile details",
-    "details_desc": "Name, about me, tags, looking for, stats, Spotify songs and the rest of your profile info.",
+    "details_desc": "Name, about me, tags, looking for, stats, Spotify songs, upcoming trips and the rest of your profile info.",
     "photos": "Profile photos",
     "photos_desc": "{{count}} photos, uploaded again and set in the same order.",
     "warning": "Grindr may recognize a banned account's photos and profile text, which can get this profile banned too.",

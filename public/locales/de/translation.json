@@ -2646,7 +2646,7 @@
         "title": "Vorheriges Profil übernehmen?",
         "message": "Dein Backup enthält dein vorheriges Profil. Wähle aus, was du für dieses Profil übernehmen möchtest.",
         "details": "Profilangaben",
-        "details_desc": "Name, Über mich, Tags, Suche nach, Statistiken, Spotify-Songs und die übrigen Profilinfos.",
+        "details_desc": "Name, Über mich, Tags, Suche nach, Statistiken, Spotify-Songs, anstehende Trips und die übrigen Profilinfos.",
         "photos": "Profilbilder",
         "photos_desc": "{{count}} Fotos, erneut hochgeladen und in derselben Reihenfolge gesetzt.",
         "warning": "Grindr erkennt Fotos und Profiltexte eines gesperrten Kontos möglicherweise wieder – dadurch kann auch dieses Profil gesperrt werden.",

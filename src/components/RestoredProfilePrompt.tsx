@@ -73,8 +73,11 @@ export function RestoredProfilePrompt({ userId }: { userId: number }) {
 				});
 			if (current && userIdRef.current === userId) {
 				if (details) {
-					const currentSongIds = await apiFunctions.getSpotifyFavoriteSongIds(String(userId)).catch(() => null);
-					details = await keepRestoredProfileDetailsIfChanged(current, currentSongIds);
+					const [currentSongIds, currentTravelPlans] = await Promise.all([
+						apiFunctions.getSpotifyFavoriteSongIds(String(userId)).catch(() => null),
+						apiFunctions.getTravelPlans(userId).catch(() => null),
+					]);
+					details = await keepRestoredProfileDetailsIfChanged(current, currentSongIds, currentTravelPlans);
 				}
 				if (photos > 0) photos = await keepRestoredProfilePhotosIfChanged(profilePhotoHashes(current));
 			}
@@ -111,7 +114,7 @@ export function RestoredProfilePrompt({ userId }: { userId: number }) {
 			let failed = false;
 			if (pending.details) {
 				try {
-					if (withDetails) await applyRestoredProfileDetails(apiFunctions, isCurrent);
+					if (withDetails) await applyRestoredProfileDetails(apiFunctions, userId, isCurrent);
 					else await dismissRestoredProfileDetails();
 				} catch (error) {
 					appLog.error("[RestoredProfilePrompt] restoring profile details failed", error);
