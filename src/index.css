@@ -537,7 +537,7 @@
 		-webkit-font-smoothing: antialiased;
 		text-rendering: optimizeLegibility;
 		/* App-wide default: text isn't selectable. Specific content (inputs,
-		   profile bio, right-now text, plain chat message text) opts back in
+		   profile bio, right-now text, plain chat message text on desktop) opts back in
 		   via select-text. */
 		user-select: none;
 		-webkit-user-select: none;

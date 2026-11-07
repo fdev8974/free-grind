@@ -2543,13 +2543,14 @@ export function ChatThreadMessages({
                                             </div>
                                         ) : (
                                             <>
-                                                <p className="whitespace-pre-wrap break-words select-text">
+                                                {/* Selectable on desktop only: on touch, selection would fight the long-press menu. */}
+                                                <p className={`whitespace-pre-wrap break-words ${isDesktop ? "select-text" : ""}`}>
                                                     {renderTextWithLinks(displayText, mine, (url) => requestOpenLink(url))}
                                                 </p>
                                                 {translatedText ? (
                                                     <div className="mt-1.5 flex items-start gap-1.5 text-[0.9em] opacity-70">
                                                         <Languages className="mt-[0.2em] h-[1em] w-[1em] shrink-0" aria-hidden="true" />
-                                                        <p className="min-w-0 whitespace-pre-wrap break-words select-text">
+                                                        <p className={`min-w-0 whitespace-pre-wrap break-words ${isDesktop ? "select-text" : ""}`}>
                                                             {renderTextWithLinks(translatedText, mine, (url) => requestOpenLink(url))}
                                                         </p>
                                                     </div>
