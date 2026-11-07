@@ -1043,13 +1043,68 @@ export function ChatThreadMessages({
 	// grow the browser may already have clamped scrollTop. Content that lands
 	// without a scroll (incoming message while reading history, media finishing
 	// loading) also refreshes it, otherwise the next keyboard toggle would jump.
+	//
+	// Backgrounding the app or locking the device (Android especially) resizes
+	// or collapses the WebView while the page is hidden and then restores it in
+	// several steps after it comes back. Treating those as keyboard toggles —
+	// or letting the clamped scroll positions they produce trigger an older
+	// page load — throws the reader somewhere up the history. So the position
+	// is frozen while hidden and restored for a short settle window after the
+	// page is visible again, until the reader touches the list themselves.
+	const suspendedRef = useRef(false);
 	useEffect(() => {
 		const container = threadScrollContainerRef.current;
 		if (!container || typeof ResizeObserver === "undefined") return;
 		const readDistance = () => Math.max(0, container.scrollHeight - container.scrollTop - container.clientHeight);
 		let distanceFromEnd = readDistance();
 		let previousHeight = container.clientHeight;
+		let saved: { atEnd: boolean; scrollTop: number } | null = null;
+		let settleTimer: number | undefined;
+		let settleFrame: number | undefined;
+		const restore = () => {
+			if (!saved) return;
+			container.scrollTop = saved.atEnd ? container.scrollHeight : saved.scrollTop;
+			previousHeight = container.clientHeight;
+			distanceFromEnd = readDistance();
+		};
+		const endSettle = () => {
+			window.clearTimeout(settleTimer);
+			if (settleFrame !== undefined) window.cancelAnimationFrame(settleFrame);
+			settleTimer = undefined;
+			settleFrame = undefined;
+			saved = null;
+			suspendedRef.current = false;
+			previousHeight = container.clientHeight;
+			distanceFromEnd = readDistance();
+		};
+		const onVisibilityChange = () => {
+			if (document.visibilityState === "hidden") {
+				window.clearTimeout(settleTimer);
+				if (settleFrame !== undefined) window.cancelAnimationFrame(settleFrame);
+				// Keep the snapshot from the first hide if a settle window was
+				// still running — the position at that point may already be off.
+				if (!saved) {
+					saved = { atEnd: distanceFromEnd < 80, scrollTop: container.scrollTop };
+				}
+				suspendedRef.current = true;
+				return;
+			}
+			if (!saved) return;
+			restore();
+			// Re-apply every frame for a moment: the WebView regains its full
+			// size (and the content re-lays out) only after it's visible again.
+			const tick = () => {
+				restore();
+				settleFrame = window.requestAnimationFrame(tick);
+			};
+			settleFrame = window.requestAnimationFrame(tick);
+			settleTimer = window.setTimeout(endSettle, 700);
+		};
+		const onUserInteraction = () => {
+			if (saved && document.visibilityState === "visible") endSettle();
+		};
 		const onScroll = () => {
+			if (suspendedRef.current) return;
 			distanceFromEnd = readDistance();
 		};
 		const contentObserver = new MutationObserver(onScroll);
@@ -1059,14 +1114,29 @@ export function ChatThreadMessages({
 		const observer = new ResizeObserver(() => {
 			const height = container.clientHeight;
 			if (height === previousHeight) return;
+			if (suspendedRef.current) {
+				if (document.visibilityState === "visible") restore();
+				return;
+			}
 			previousHeight = height;
 			container.scrollTop = container.scrollHeight - height - distanceFromEnd;
 			distanceFromEnd = readDistance();
 		});
 		container.addEventListener("scroll", onScroll, { passive: true });
+		container.addEventListener("touchstart", onUserInteraction, { passive: true });
+		container.addEventListener("wheel", onUserInteraction, { passive: true });
+		container.addEventListener("pointerdown", onUserInteraction);
+		document.addEventListener("visibilitychange", onVisibilityChange);
 		observer.observe(container);
 		return () => {
+			window.clearTimeout(settleTimer);
+			if (settleFrame !== undefined) window.cancelAnimationFrame(settleFrame);
+			suspendedRef.current = false;
+			document.removeEventListener("visibilitychange", onVisibilityChange);
 			container.removeEventListener("scroll", onScroll);
+			container.removeEventListener("touchstart", onUserInteraction);
+			container.removeEventListener("wheel", onUserInteraction);
+			container.removeEventListener("pointerdown", onUserInteraction);
 			container.removeEventListener("load", onScroll, true);
 			container.removeEventListener("loadedmetadata", onScroll, true);
 			contentObserver.disconnect();
@@ -1074,10 +1144,20 @@ export function ChatThreadMessages({
 		};
 	}, [threadScrollContainerRef]);
 
+	// Scroll events produced by the hide/resume resize must not count as the
+	// reader reaching the top (which would load and prepend an older page).
+	const onThreadScroll = useCallback(
+		(event: React.UIEvent<HTMLDivElement>) => {
+			if (suspendedRef.current || document.hidden) return;
+			handleThreadScroll(event);
+		},
+		[handleThreadScroll],
+	);
+
 	return (
 		<div
 			ref={threadScrollContainerRef}
-			onScroll={handleThreadScroll}
+			onScroll={onThreadScroll}
 			data-lenis-prevent
 			className="flex flex-1 flex-col overflow-x-hidden overflow-y-auto"
 			style={bottomInset > 0 || topInset > 0 ? { paddingBottom: bottomInset, paddingTop: topInset } : undefined}
