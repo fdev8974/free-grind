@@ -629,13 +629,14 @@ export function ChatThreadMessages({
 	const IOS_BACK_EDGE_WIDTH = 30;
 	const { swipeToReplyDirection } = usePreferences();
 	// +1: swipe right to reply, -1: swipe left. "outward" swipes each bubble
-	// toward its own side: the partner's left, ours right.
+	// toward its own side (the partner's left, ours right), "inward" toward
+	// the middle (the partner's right, ours left).
 	const swipeSignFor = useCallback(
 		(message: UiMessage): 1 | -1 => {
 			if (swipeToReplyDirection === "left") return -1;
-			if (swipeToReplyDirection === "outward") {
+			if (swipeToReplyDirection === "outward" || swipeToReplyDirection === "inward") {
 				const mine = userId != null && Number(message.senderId) === Number(userId);
-				return mine ? 1 : -1;
+				return mine === (swipeToReplyDirection === "outward") ? 1 : -1;
 			}
 			return 1;
 		},

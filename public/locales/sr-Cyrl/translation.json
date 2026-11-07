@@ -1172,6 +1172,7 @@
         "swipe_to_reply_right": "Десно",
         "swipe_to_reply_left": "Лево",
         "swipe_to_reply_outward": "Његове лево, моје десно",
+        "swipe_to_reply_inward": "Моје лево, његове десно",
         "video_calls": "Видео позиви",
         "start_calls_with_camera_on": "Започни позиве са укљученом камером",
         "start_calls_with_camera_on_desc": "Ваша камера се укључује чим се видео позив повеже. Када је искључено, позиви почињу са искљученом камером и сами је укључујете.",

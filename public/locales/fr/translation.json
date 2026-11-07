@@ -1170,6 +1170,7 @@
         "swipe_to_reply_right": "Droite",
         "swipe_to_reply_left": "Gauche",
         "swipe_to_reply_outward": "Les siens à gauche, les miens à droite",
+        "swipe_to_reply_inward": "Les miens à gauche, les siens à droite",
         "video_calls": "Appels vidéo",
         "start_calls_with_camera_on": "Démarrer les appels caméra activée",
         "start_calls_with_camera_on_desc": "Votre caméra s'allume dès qu'un appel vidéo est connecté. Si désactivé, les appels démarrent caméra éteinte et vous l'allumez vous-même.",

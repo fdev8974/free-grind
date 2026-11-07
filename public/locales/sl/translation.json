@@ -1179,6 +1179,7 @@
         "swipe_to_reply_right": "Desno",
         "swipe_to_reply_left": "Levo",
         "swipe_to_reply_outward": "Njegova levo, moja desno",
+        "swipe_to_reply_inward": "Moja levo, njegova desno",
         "video_calls": "Videoklici",
         "start_calls_with_camera_on": "Začni klice z vklopljeno kamero",
         "start_calls_with_camera_on_desc": "Kamera se vklopi takoj, ko se videoklic poveže. Ko je izklopljeno, se klici začnejo z izklopljeno kamero in jo vklopiš sam.",

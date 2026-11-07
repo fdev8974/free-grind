@@ -1170,6 +1170,7 @@
         "swipe_to_reply_right": "Derecha",
         "swipe_to_reply_left": "Izquierda",
         "swipe_to_reply_outward": "Suyos a la izquierda, míos a la derecha",
+        "swipe_to_reply_inward": "Míos a la izquierda, suyos a la derecha",
         "video_calls": "Videollamadas",
         "start_calls_with_camera_on": "Iniciar llamadas con la cámara encendida",
         "start_calls_with_camera_on_desc": "Tu cámara se enciende en cuanto se conecta una videollamada. Si está desactivado, las llamadas empiezan con la cámara apagada y la enciendes tú.",

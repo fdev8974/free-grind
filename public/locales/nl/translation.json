@@ -1161,6 +1161,7 @@
         "swipe_to_reply_right": "Rechts",
         "swipe_to_reply_left": "Links",
         "swipe_to_reply_outward": "Hun links, mijn rechts",
+        "swipe_to_reply_inward": "Mijn links, hun rechts",
         "video_calls": "Videogesprekken",
         "start_calls_with_camera_on": "Gesprekken starten met camera aan",
         "start_calls_with_camera_on_desc": "Je camera gaat aan zodra een videogesprek verbonden is. Als dit uit staat, starten gesprekken met je camera uit en zet je hem zelf aan.",

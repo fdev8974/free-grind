@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowDownWideNarrow, ArrowLeft, ArrowLeftRight, ArrowRight, Ban, CornerDownLeft, ExternalLink, MoveHorizontal, Reply, SwitchCamera, Video } from "lucide-react";
+import { ArrowDownWideNarrow, ArrowLeft, ArrowRight, Ban, CornerDownLeft, ExternalLink, FoldHorizontal, MoveHorizontal, Reply, SwitchCamera, UnfoldHorizontal, Video } from "lucide-react";
 import { useDesktopBreakpoint } from "../../hooks/useDesktopBreakpoint";
 import { FlameFilled, ImagesFilled, LayoutGridFilled, MapPinFilled, MessageSquareQuoteFilled, SunFilled, TimerFilled, Trash2Filled } from "../../components/icons/FilledIcons";
 import { PageHeader } from "../../components/PageHeader";
@@ -186,7 +186,8 @@ export function BehaviorPage() {
 							options={[
 								{ value: "right", icon: ArrowRight, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_right", { defaultValue: "Right" }) },
 								{ value: "left", icon: ArrowLeft, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_left", { defaultValue: "Left" }) },
-								{ value: "outward", icon: ArrowLeftRight, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_outward", { defaultValue: "Theirs Left, Mine Right" }) },
+								{ value: "outward", icon: UnfoldHorizontal, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_outward", { defaultValue: "Theirs Left, Mine Right" }) },
+								{ value: "inward", icon: FoldHorizontal, iconClassName: "bg-sky-500/15 text-sky-400", label: t("behavior.swipe_to_reply_inward", { defaultValue: "Mine Left, Theirs Right" }) },
 							]}
 						/>}
 					</div>

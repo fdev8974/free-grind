@@ -196,8 +196,8 @@ const preferencesSchema = z.object({
 	enterToSend: z.boolean().default(false),
 	// Gesture that sends a saved phrase right away; the other one puts it into the composer ("off": tap only fills the composer).
 	savedPhraseSendGesture: z.enum(["off", "tap", "longPress"]).default("off"),
-	// Direction a chat message is swiped to reply to it (mobile). "outward": partner's messages left, ours right.
-	swipeToReplyDirection: z.enum(["right", "left", "outward"]).default("right"),
+	// Direction a chat message is swiped to reply to it (mobile). "outward": partner's messages left, ours right; "inward": the reverse.
+	swipeToReplyDirection: z.enum(["right", "left", "outward", "inward"]).default("right"),
 	// Video calls start with the camera on; when off, it has to be turned on in the call.
 	startCallsWithCameraOn: z.boolean().default(true),
 	// Camera a video call opens first on phones (front "user" / back "environment").

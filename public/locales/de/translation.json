@@ -1365,6 +1365,7 @@
         "swipe_to_reply_right": "Rechts",
         "swipe_to_reply_left": "Links",
         "swipe_to_reply_outward": "Partner links, meine rechts",
+        "swipe_to_reply_inward": "Meine links, Partner rechts",
         "video_calls": "Videoanrufe",
         "start_calls_with_camera_on": "Anrufe mit Kamera starten",
         "start_calls_with_camera_on_desc": "Deine Kamera ist an, sobald ein Videoanruf verbunden ist. Wenn aus, starten Anrufe mit ausgeschalteter Kamera und du schaltest sie selbst ein.",

@@ -1184,6 +1184,7 @@
         "swipe_to_reply_right": "يمين",
         "swipe_to_reply_left": "شمال",
         "swipe_to_reply_outward": "بتاعته شمال، بتاعتي يمين",
+        "swipe_to_reply_inward": "بتاعتي شمال، بتاعته يمين",
         "video_calls": "مكالمات الفيديو",
         "start_calls_with_camera_on": "ابدأ المكالمات والكاميرا شغالة",
         "start_calls_with_camera_on_desc": "الكاميرا بتاعتك بتشتغل أول ما مكالمة الفيديو تتوصل. لو مقفول، المكالمات بتبدأ والكاميرا مقفولة وانت اللي بتشغلها.",
