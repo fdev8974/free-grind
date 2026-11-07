@@ -614,8 +614,15 @@ export function ChatThreadMessages({
 		armed: boolean;
 		/** +1: this message is swiped right to reply, -1: left. */
 		sign: 1 | -1;
+		/** Set once the finger has moved far enough to tell a swipe from a scroll. */
+		locked: boolean;
 	} | null>(null);
 	const SWIPE_REPLY_THRESHOLD = 55;
+	// Movement before the gesture is classified as swipe or scroll.
+	const SWIPE_LOCK_DISTANCE = 10;
+	// A swipe has to be clearly more horizontal than vertical (~34° off the
+	// horizontal at most), so a diagonal scroll doesn't drag the bubble along.
+	const SWIPE_LOCK_RATIO = 1.5;
 	const SWIPE_REPLY_MAX_DRAG = 80;
 	// iOS's back gesture starts at the screen's left edge and drags right —
 	// the same direction as a rightward swipe-to-reply. Leave that strip to the system.
@@ -679,6 +686,7 @@ export function ChatThreadMessages({
 				startY: touch.clientY,
 				armed: false,
 				sign,
+				locked: false,
 			};
 		},
 		[isArchived, isDesktop, onIos, startMessageLongPress, swipeSignFor],
@@ -696,9 +704,19 @@ export function ChatThreadMessages({
 			}
 			const touch = event.touches[0];
 			// Distance travelled in the reply direction (negative = the other way).
-			const dx = Math.min((touch.clientX - state.startX) * state.sign, SWIPE_REPLY_MAX_DRAG);
+			const rawDx = (touch.clientX - state.startX) * state.sign;
 			const dy = Math.abs(touch.clientY - state.startY);
-			if (dy >= 40 && !state.armed) return;
+			if (!state.locked) {
+				if (Math.hypot(rawDx, dy) < SWIPE_LOCK_DISTANCE) return;
+				// Decide once per gesture: a scroll (or a swipe the other way)
+				// never turns into a reply swipe, however the finger drifts later.
+				if (rawDx <= 0 || rawDx < dy * SWIPE_LOCK_RATIO) {
+					swipeStateRef.current = null;
+					return;
+				}
+				state.locked = true;
+			}
+			const dx = Math.min(rawDx, SWIPE_REPLY_MAX_DRAG);
 			const el = swipeElRef.current.get(state.messageId);
 			const icon = swipeIconRef.current.get(state.messageId);
 			if (el) {
