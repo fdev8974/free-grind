@@ -1481,7 +1481,15 @@ export function ChatThreadMessages({
                         && photoReplyBody.photoContentReply.trim().length > 0
                         ? photoReplyBody.photoContentReply.trim()
                         : null;
-                    const replyThumbUrl = repliesToPhotoReply ? null : replyAlbumCoverUrl
+                    const replyIsGaymoji = (replyToMsg?.type ?? replyToMsgRef?.type ?? replyPreviewRaw?.type) === "Gaymoji"
+                        || replyPreviewRaw?.chat1Type === "gaymoji";
+                    // A Gaymoji's hash lives on the chat CDN, not the thumb endpoint.
+                    const replyGaymojiUrl = replyIsGaymoji
+                        ? (replyToMsg ? getGaymojiUrl(replyToMsg) : null)
+                            ?? (message.replyToMessage ? getGaymojiUrl(message.replyToMessage as unknown as UiMessage) : null)
+                            ?? (replyImageHash ? getGaymojiUrl({ type: "Gaymoji", body: { imageHash: replyImageHash } } as unknown as UiMessage) : null)
+                        : null;
+                    const replyThumbUrl = repliesToPhotoReply ? null : replyIsGaymoji ? replyGaymojiUrl : replyAlbumCoverUrl
                         ?? replyImageUrl
                         ?? cachedReplyHashUri
                         ?? (replyImageHash ? getThumbImageUrl(replyImageHash, "320x320") : null)
@@ -1532,6 +1540,8 @@ export function ChatThreadMessages({
                                             ? t("chat.thread.shared_video")
                                             : replyTargetType === "Giphy"
                                                 ? t("chat.thread.shared_gif")
+                                            : replyIsGaymoji
+                                                ? t("chat.preview.sent_gaymoji")
                                                 : isReplyTargetUnsupported
                                                     ? t("chat.thread.unsupported_message", { defaultValue: "Unsupported message" })
                                                     : t("chat.thread.shared_image");
@@ -2344,7 +2354,7 @@ export function ChatThreadMessages({
                                             className={`block overflow-hidden ${isLocationOnlyBubble && hasReply ? "" : `rounded-2xl ${tailCorner}`} text-left transition hover:brightness-110`}
                                         >
                                             <div className="relative">
-                                                <MapLocationPreview lat={location.lat} lon={location.lon} className="h-48 w-48 pointer-events-none" />
+                                                <MapLocationPreview lat={location.lat} lon={location.lon} className={`h-48 pointer-events-none ${isLocationOnlyBubble && hasReply ? "w-64 sm:w-72" : "w-48"}`} />
                                                 {isLocationOnlyBubble ? (
                                                     <div className="absolute inset-x-0 bottom-0 flex flex-col bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 py-2 text-white">
                                                         <div className="flex items-center justify-between gap-2 text-[10px]">
