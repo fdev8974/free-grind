@@ -60,7 +60,7 @@ const MAX_FAVORITE_PAGES = 200;
  * with cascade's favorites filter for the rest. The inbox is fetched raw:
  * `listConversations` runs the automation rules on what it loads.
  */
-async function fetchFavoriteProfiles(api: ApiFunctions, geohash: string | null | undefined): Promise<FavoriteProfile[]> {
+export async function fetchFavoriteProfiles(api: ApiFunctions, geohash: string | null | undefined): Promise<FavoriteProfile[]> {
 	const favorites = new Map<string, FavoriteProfile>();
 
 	try {

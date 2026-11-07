@@ -17,7 +17,7 @@ import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
 import { fetchAndEncode } from "./mediaStore";
 import { recordOwnProfileDetails } from "./ownProfileDetails";
-import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
+import { advanceRestoreTask, reportRestoreTask, stoppableRestoreTask } from "./restoreStatus";
 import { setSavedAccountDisplayName, setSavedAccountPhotoHash } from "./savedAccountProfiles";
 import { sanitizeUploadFile } from "./uploadSanitize";
 import {
@@ -122,7 +122,8 @@ async function toFile(photo: chatDb.RestoredProfilePhoto): Promise<File | null> 
  * first. Resolves to the number now on the profile; throws if an upload
  * failed (the photos uploaded so far are kept for the next attempt).
  */
-export async function uploadRestoredProfilePhotos(api: ApiFunctions, isCurrent: () => boolean): Promise<number> {
+export async function uploadRestoredProfilePhotos(api: ApiFunctions, isCurrentProfile: () => boolean): Promise<number> {
+	const isCurrent = stoppableRestoreTask("profile_photos", isCurrentProfile);
 	const photos = (await chatDb.listRestoredProfilePhotos()).slice(0, MAX_PROFILE_PHOTOS);
 	// +1 for pointing the profile at them once all are up.
 	const total = photos.length + 1;

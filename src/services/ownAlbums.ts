@@ -22,7 +22,7 @@ import { ApiFunctionError } from "./apiHelpers";
 import * as chatDb from "./chatDb";
 import { fetchAndEncode } from "./mediaStore";
 import { forgetSeenOwnAlbums, freshOwnAlbumDetail, freshOwnAlbumList, onOwnAlbumsChanged } from "./ownAlbumsChanged";
-import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
+import { advanceRestoreTask, reportRestoreTask, stoppableRestoreTask } from "./restoreStatus";
 import { MAX_CHAT_MEDIA_BYTES } from "./stagedVideoUpload";
 import { buildMultipartBody } from "../pages/app/settings-albums/settingsAlbumsUtils";
 import type { AlbumMedia } from "../types/albums";
@@ -229,9 +229,10 @@ async function uploadOne(
  * the next start. Albums still on this profile (a backup of this same
  * profile) are left as they are.
  */
-export async function runRestoredOwnAlbums(api: ApiFunctions, isCurrent: () => boolean): Promise<void> {
+export async function runRestoredOwnAlbums(api: ApiFunctions, isCurrentProfile: () => boolean): Promise<void> {
 	if (restoring) return;
 	restoring = true;
+	const isCurrent = stoppableRestoreTask("own_albums", isCurrentProfile);
 	try {
 		let albums = await chatDb.listRestoredOwnAlbums();
 		if (albums.length === 0) return;

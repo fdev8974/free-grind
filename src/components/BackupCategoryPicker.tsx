@@ -31,20 +31,33 @@ export function BackupCategoryPicker({
 	selected: Set<BackupCategoryId>;
 	onToggle: (id: BackupCategoryId) => void;
 }) {
+	const { t } = useTranslation();
 	const labels = useBackupCategoryLabels();
 
 	return (
 		// Sits in a sheet's unpadded scroll area, hence its own side margin.
 		<div className={`mx-4 ${SHEET_GROUP_CLASS}`}>
-			{categories.map((id) => (
-				<ToggleRow
-					key={id}
-					padding="px-4 py-3"
-					label={labels[id]}
-					checked={selected.has(id)}
-					onChange={() => onToggle(id)}
-				/>
-			))}
+			{categories.map((id) =>
+				id in labels ? (
+					<ToggleRow
+						key={id}
+						padding="px-4 py-3"
+						label={labels[id]}
+						checked={selected.has(id)}
+						onChange={() => onToggle(id)}
+					/>
+				) : (
+					// A category from an older or newer app version: nothing restores it.
+					<div key={id} className="flex min-h-14 items-center justify-between gap-4 px-4 py-3">
+						<span className="min-w-0 break-words text-sm font-medium text-[var(--text-muted)]">
+							{t("data_backup.category_legacy", { defaultValue: "Legacy: {{id}}", id })}
+						</span>
+						<span className="shrink-0 text-xs font-semibold text-[var(--text-muted)]">
+							{t("data_backup.category_unsupported", { defaultValue: "Unsupported" })}
+						</span>
+					</div>
+				),
+			)}
 		</div>
 	);
 }

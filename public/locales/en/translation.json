@@ -3069,8 +3069,15 @@
     "category_settings": "Settings",
     "category_sexual_health": "Sexual health",
     "category_favorites": "Favorites & notes",
+    "category_legacy": "Legacy: {{id}}",
+    "category_unsupported": "Unsupported",
     "progress_step": "Step {{step}} of {{steps}} · {{rows}} entries",
     "progress_preparing": "Preparing…",
+    "progress_title_export": "Exporting your data…",
+    "progress_title_import": "Restoring your data…",
+    "progress_keep_open": "Keep the app open until this is done.",
+    "progress_done_title": "Done",
+    "progress_entries": "{{rows}} entries",
     "progress_table": "{{label}} · step {{step}} of {{steps}} · {{rows}} entries",
     "table_labels": {
       "conversations": "Conversations",
@@ -3203,6 +3210,11 @@
     "summary_more_other": "{{head}} · {{count}} more steps",
     "all_done": "Everything restored.",
     "review": "Review",
+    "stop": "Stop",
+    "stop_title": "Stop restoring {{label}}?",
+    "stop_message": "What isn't restored yet is dropped and won't resume. What's already restored stays. To get the rest back, import the backup again.",
+    "stop_confirm": "Stop",
+    "stop_failed": "Couldn't stop this step.",
     "start_now": "Start now"
   },
   "restore_offer": {

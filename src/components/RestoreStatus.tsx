@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CircleAlert, CircleCheck, CircleDashed, CirclePause, ChevronRight, History, Loader2, UserRoundCheck } from "lucide-react";
+import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, SheetCloseButton } from "./ui/bottom-sheet";
+import { ConfirmDialog } from "./ui/confirm-dialog";
 import { useAuth } from "../contexts/useAuth";
 import { useApiFunctions } from "../hooks/useApiFunctions";
 import { useDesktopBreakpoint } from "../hooks/useDesktopBreakpoint";
@@ -10,6 +12,7 @@ import { runRestoredBlocklist } from "../services/ownBlocklist";
 import { runRestoredFavorites } from "../services/restoredFavorites";
 import { runRestoredDrawerUpload } from "../services/restoredDrawerMedia";
 import { runRestoredOwnAlbums } from "../services/ownAlbums";
+import { stopRestoreTask } from "../services/stopRestoreTask";
 import {
 	SHOW_RESTORED_PROFILE_PROMPT_EVENT,
 	useRestoreTasks,
@@ -116,6 +119,21 @@ function RestoreStatusSheet({ tasks, onClose }: { tasks: RestoreTask[]; onClose:
 		window.dispatchEvent(new Event(SHOW_RESTORED_PROFILE_PROMPT_EVENT));
 	};
 
+	const [stopping, setStopping] = useState<RestoreTaskId | null>(null);
+	const [isStopping, setIsStopping] = useState(false);
+	const confirmStop = async () => {
+		if (!stopping) return;
+		setIsStopping(true);
+		try {
+			await stopRestoreTask(stopping);
+			setStopping(null);
+		} catch {
+			toast.error(t("restore_status.stop_failed", { defaultValue: "Couldn't stop this step." }));
+		} finally {
+			setIsStopping(false);
+		}
+	};
+
 	return (
 		<BottomSheet onClose={onClose} isDesktop={isDesktop} panelClassName="max-h-[82dvh]">
 			<div className="flex items-center justify-between gap-3 px-4 pb-3">
@@ -170,11 +188,33 @@ function RestoreStatusSheet({ tasks, onClose }: { tasks: RestoreTask[]; onClose:
 										{t("restore_status.start_now", { defaultValue: "Start now" })}
 									</button>
 								) : null}
+								{task.state !== "done" ? (
+									<button
+										type="button"
+										onClick={() => setStopping(task.id)}
+										className="shrink-0 rounded-full bg-red-500/15 px-3 py-1.5 text-xs font-semibold text-red-500"
+									>
+										{t("restore_status.stop", { defaultValue: "Stop" })}
+									</button>
+								) : null}
 							</li>
 						);
 					})}
 				</ol>
 			</div>
+			<ConfirmDialog
+				isOpen={stopping != null}
+				title={t("restore_status.stop_title", { defaultValue: "Stop restoring {{label}}?", label: stopping ? labels[stopping] : "" })}
+				message={t("restore_status.stop_message", {
+					defaultValue: "What isn't restored yet is dropped and won't resume. What's already restored stays. To get the rest back, import the backup again.",
+				})}
+				confirmLabel={t("restore_status.stop_confirm", { defaultValue: "Stop" })}
+				cancelLabel={t("common.cancel", { defaultValue: "Cancel" })}
+				confirmTone="danger"
+				isProcessing={isStopping}
+				onConfirm={confirmStop}
+				onCancel={() => setStopping(null)}
+			/>
 		</BottomSheet>
 	);
 }

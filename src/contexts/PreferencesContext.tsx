@@ -444,7 +444,8 @@ export const PREFERENCES_STORAGE_KEY = "app_preferences";
 // Per-profile location settings — backed by the active account's chatDb
 // (see chatDb.ts's generic settings key/value store), not this shared
 // localStorage blob, so switching accounts switches location too.
-const LOCATION_SETTINGS_KEY = "locationPreferences";
+/** Per-profile db setting holding the location (geohash, name, auto); also read by restoredFavorites.ts. */
+export const LOCATION_SETTINGS_KEY = "locationPreferences";
 
 interface StoredLocationPrefs {
 	geohash: string | null;

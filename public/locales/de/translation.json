@@ -3071,8 +3071,15 @@
         "category_settings": "Einstellungen",
         "category_sexual_health": "Sexuelle Gesundheit",
         "category_favorites": "Favoriten & Notizen",
+        "category_legacy": "Veraltet: {{id}}",
+        "category_unsupported": "Nicht unterstützt",
         "progress_step": "Schritt {{step}} von {{steps}} · {{rows}} Einträge",
         "progress_preparing": "Wird vorbereitet…",
+        "progress_title_export": "Daten werden exportiert…",
+        "progress_title_import": "Daten werden wiederhergestellt…",
+        "progress_keep_open": "Lass die App geöffnet, bis der Vorgang abgeschlossen ist.",
+        "progress_done_title": "Fertig",
+        "progress_entries": "{{rows}} Einträge",
         "progress_table": "{{label}} · Schritt {{step}} von {{steps}} · {{rows}} Einträge",
         "table_labels": {
             "conversations": "Unterhaltungen",
@@ -3205,6 +3212,11 @@
         "summary_more_other": "{{head}} · {{count}} weitere Schritte",
         "all_done": "Alles wiederhergestellt.",
         "review": "Ansehen",
+        "stop": "Stoppen",
+        "stop_title": "{{label}} nicht weiter wiederherstellen?",
+        "stop_message": "Was noch nicht wiederhergestellt ist, wird verworfen und nicht fortgesetzt. Bereits Wiederhergestelltes bleibt. Um den Rest zurückzuholen, importiere das Backup erneut.",
+        "stop_confirm": "Stoppen",
+        "stop_failed": "Dieser Schritt konnte nicht gestoppt werden.",
         "start_now": "Jetzt starten"
     },
     "restore_offer": {

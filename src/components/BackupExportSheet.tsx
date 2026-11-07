@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
-import { BackupProgressBar } from "./BackupProgressBar";
+import { BackupProgressView } from "./BackupProgressBar";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./ui/bottom-sheet";
 import { Chip } from "./ui/chip";
 import { useApiFunctions } from "../hooks/useApiFunctions";
@@ -112,61 +112,66 @@ export function BackupExportSheet({
 			zIndex={zIndex}
 			panelClassName="max-h-[82dvh]"
 		>
-			<div className="flex items-center justify-between px-4 pb-3 text-left">
-				<p className="text-sm font-semibold text-[var(--text)]">
-					{t("data_backup.export_categories_title", { defaultValue: "What do you want to export?" })}
-				</p>
-				<SheetCloseButton disabled={isExporting} />
-			</div>
-			{/* text-left: on the account-status prompt the sheet would inherit its centered text. */}
-			<div className="min-h-0 flex-1 overflow-y-auto pb-4 text-left" data-lenis-prevent>
-				<BackupCategoryPicker categories={categories} selected={selected} onToggle={toggle} />
-				<div className="px-4 pt-4">
-					<p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-						{t("data_backup.export_destination_title", { defaultValue: "Save to" })}
-					</p>
-					<div className="flex flex-wrap gap-2">
-						<Chip selected={destination === "downloads"} disabled={isExporting} onClick={() => setDestination("downloads")}>
-							{isIos()
-								? t("data_backup.export_destination_device", { defaultValue: "This device" })
-								: t("data_backup.export_destination_downloads", { defaultValue: "Downloads" })}
-						</Chip>
-						<Chip selected={destination === "picker"} disabled={isExporting} onClick={() => setDestination("picker")}>
-							{t("data_backup.export_destination_picker", { defaultValue: "Choose location…" })}
-						</Chip>
+			{isExporting ? (
+				<BackupProgressView kind="export" />
+			) : (
+				<>
+					<div className="flex items-center justify-between px-4 pb-3 text-left">
+						<p className="text-sm font-semibold text-[var(--text)]">
+							{t("data_backup.export_categories_title", { defaultValue: "What do you want to export?" })}
+						</p>
+						<SheetCloseButton disabled={isExporting} />
 					</div>
-					<p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
-						{destination === "downloads"
-							? isIos()
-								? t("data_backup.export_destination_device_hint_ios", {
-										defaultValue: "Saved in the Files app under On My iPhone/iPad → Free Grind.",
-									})
-								: t("data_backup.export_destination_downloads_hint", { defaultValue: "Saved to Downloads/FreeGrind on this device." })
-							: isAndroid() || isIos()
-								? t("data_backup.export_destination_picker_hint", {
-										defaultValue: "Pick any folder or cloud storage, e.g. Google Drive (requires the Drive app).",
-									})
-								: t("data_backup.export_destination_picker_hint_desktop", {
-										defaultValue: "Pick any folder, e.g. one synced by Google Drive for desktop.",
-									})}
-					</p>
-				</div>
-			</div>
-			<BackupProgressBar kind="export" active={isExporting} />
-			<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
-				<SheetClose disabled={isExporting} className={sheetButtonClass("secondary")}>
-					{t("common.cancel", { defaultValue: "Cancel" })}
-				</SheetClose>
-				<button
-					type="button"
-					onClick={() => void handleExport()}
-					disabled={isExporting || selected.size === 0}
-					className={sheetButtonClass()}
-				>
-					{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-					<span>{t("data_backup.export_confirm", { defaultValue: "Export" })}</span>
-				</button>
-			</div>
+					{/* text-left: on the account-status prompt the sheet would inherit its centered text. */}
+					<div className="min-h-0 flex-1 overflow-y-auto pb-4 text-left" data-lenis-prevent>
+						<BackupCategoryPicker categories={categories} selected={selected} onToggle={toggle} />
+						<div className="px-4 pt-4">
+							<p className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+								{t("data_backup.export_destination_title", { defaultValue: "Save to" })}
+							</p>
+							<div className="flex flex-wrap gap-2">
+								<Chip selected={destination === "downloads"} disabled={isExporting} onClick={() => setDestination("downloads")}>
+									{isIos()
+										? t("data_backup.export_destination_device", { defaultValue: "This device" })
+										: t("data_backup.export_destination_downloads", { defaultValue: "Downloads" })}
+								</Chip>
+								<Chip selected={destination === "picker"} disabled={isExporting} onClick={() => setDestination("picker")}>
+									{t("data_backup.export_destination_picker", { defaultValue: "Choose location…" })}
+								</Chip>
+							</div>
+							<p className="mt-2 text-xs leading-relaxed text-[var(--text-muted)]">
+								{destination === "downloads"
+									? isIos()
+										? t("data_backup.export_destination_device_hint_ios", {
+												defaultValue: "Saved in the Files app under On My iPhone/iPad → Free Grind.",
+											})
+										: t("data_backup.export_destination_downloads_hint", { defaultValue: "Saved to Downloads/FreeGrind on this device." })
+									: isAndroid() || isIos()
+										? t("data_backup.export_destination_picker_hint", {
+												defaultValue: "Pick any folder or cloud storage, e.g. Google Drive (requires the Drive app).",
+											})
+										: t("data_backup.export_destination_picker_hint_desktop", {
+												defaultValue: "Pick any folder, e.g. one synced by Google Drive for desktop.",
+											})}
+							</p>
+						</div>
+					</div>
+					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
+						<SheetClose disabled={isExporting} className={sheetButtonClass("secondary")}>
+							{t("common.cancel", { defaultValue: "Cancel" })}
+						</SheetClose>
+						<button
+							type="button"
+							onClick={() => void handleExport()}
+							disabled={isExporting || selected.size === 0}
+							className={sheetButtonClass()}
+						>
+							{isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+							<span>{t("data_backup.export_confirm", { defaultValue: "Export" })}</span>
+						</button>
+					</div>
+				</>
+			)}
 		</BottomSheet>
 	);
 }

@@ -14,7 +14,7 @@
 import type { createApiFunctions } from "./apiFunctions";
 import { isGoneProfileError } from "./apiHelpers";
 import * as chatDb from "./chatDb";
-import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
+import { advanceRestoreTask, reportRestoreTask, stoppableRestoreTask } from "./restoreStatus";
 import { appLog } from "../utils/logger";
 
 type ApiFunctions = ReturnType<typeof createApiFunctions>;
@@ -42,9 +42,10 @@ export async function syncOwnBlocklist(api: ApiFunctions, isCurrent: () => boole
 }
 
 /** Blocks the profiles a backup of another profile had blocked, skipping ones already blocked here. */
-export async function runRestoredBlocklist(api: ApiFunctions, ownProfileId: number, isCurrent: () => boolean): Promise<void> {
+export async function runRestoredBlocklist(api: ApiFunctions, ownProfileId: number, isCurrentProfile: () => boolean): Promise<void> {
 	if (running) return;
 	running = true;
+	const isCurrent = stoppableRestoreTask("blocked_profiles", isCurrentProfile);
 	try {
 		const restored = await chatDb.listRestoredBlockedProfiles();
 		if (restored.length === 0) return;

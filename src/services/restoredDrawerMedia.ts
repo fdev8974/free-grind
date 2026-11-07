@@ -15,7 +15,7 @@ import type { createApiFunctions } from "./apiFunctions";
 import * as chatDb from "./chatDb";
 import { uploadChatVideo } from "./chatMediaSend";
 import { getDrawerMediaKey, moveCachedMediaUri } from "./mediaStore";
-import { advanceRestoreTask, reportRestoreTask } from "./restoreStatus";
+import { advanceRestoreTask, reportRestoreTask, stoppableRestoreTask } from "./restoreStatus";
 import { MAX_CHAT_MEDIA_BYTES } from "./stagedVideoUpload";
 import { buildBinaryUpload } from "../pages/app/chat/chatUtils";
 import { appLog } from "../utils/logger";
@@ -67,6 +67,14 @@ export async function listRestoredDrawerMedia(): Promise<RestoredDrawerMedia[]> 
 		.sort((a, b) => oldMediaId(a.mediaKey) - oldMediaId(b.mediaKey));
 }
 
+/** Drops every restored drawer file still waiting for upload; the drawer removes their tiles. */
+export async function discardRestoredDrawerMedia(): Promise<void> {
+	for (const { mediaKey } of await listRestoredDrawerMedia()) {
+		await chatDb.deleteMediaFile(mediaKey);
+		notify({ mediaKey, uploaded: null });
+	}
+}
+
 /** A file with nothing usable to upload is dropped instead (resolves to null). */
 async function uploadOne(api: ApiFunctions, mediaKey: string, isCurrent: () => boolean): Promise<RestoredDrawerMediaUpdate["uploaded"]> {
 	const stored = await chatDb.getMediaFile(mediaKey);
@@ -112,9 +120,10 @@ async function uploadOne(api: ApiFunctions, mediaKey: string, isCurrent: () => b
  * and collections are pointed at its new id, so a run that's interrupted (app
  * closed, profile switched, too many failures) resumes on the next start.
  */
-export async function runRestoredDrawerUpload(api: ApiFunctions, isCurrent: () => boolean): Promise<void> {
+export async function runRestoredDrawerUpload(api: ApiFunctions, isCurrentProfile: () => boolean): Promise<void> {
 	if (running) return;
 	running = true;
+	const isCurrent = stoppableRestoreTask("drawer_media", isCurrentProfile);
 	try {
 		const pending = await listRestoredDrawerMedia();
 		if (pending.length === 0) return;

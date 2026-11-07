@@ -66,6 +66,23 @@ export function reportRestoreTask(id: RestoreTaskId, entry: Omit<LiveEntry, "db"
 	notify();
 }
 
+/** Tasks the user stopped (stopRestoreTask.ts): their runner quits at its next check. */
+const stopped = new Set<RestoreTaskId>();
+
+export function requestRestoreTaskStop(id: RestoreTaskId): void {
+	stopped.add(id);
+}
+
+/**
+ * Wraps a runner's `isCurrent` so it also turns false once the user stopped
+ * the task: the runners already quit cleanly when the profile changes. Clears
+ * an earlier stop, since a new run means a new restore was queued.
+ */
+export function stoppableRestoreTask(id: RestoreTaskId, isCurrent: () => boolean): () => boolean {
+	stopped.delete(id);
+	return () => isCurrent() && !stopped.has(id);
+}
+
 /** Bumps a running task's progress by one handled item. */
 export function advanceRestoreTask(id: RestoreTaskId): void {
 	const entry = live.get(id);

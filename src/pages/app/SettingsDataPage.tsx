@@ -17,8 +17,8 @@ import { PageHeader } from "../../components/PageHeader";
 import { RowActionPill } from "../../components/ui/row-action-pill";
 import { BackupCategoryPicker } from "../../components/BackupCategoryPicker";
 import { BackupExportSheet } from "../../components/BackupExportSheet";
-import { BackupProgressBar, BackupReadStatus } from "../../components/BackupProgressBar";
-import { LocalBackupList, useLocalBackups } from "../../components/LocalBackupList";
+import { BackupProgressView, BackupReadStatus } from "../../components/BackupProgressBar";
+import { LocalBackupList, useLocalBackupsLoader } from "../../components/LocalBackupList";
 import { RestoreStatusEntry } from "../../components/RestoreStatus";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "../../components/ui/bottom-sheet";
 import { ConfirmDialog } from "../../components/ui/confirm-dialog";
@@ -61,7 +61,7 @@ export function SettingsDataPage() {
 	const isDesktop = useDesktopBreakpoint();
 
 	const [showExportSheet, setShowExportSheet] = useState(false);
-	const localBackups = useLocalBackups();
+	const { backups: localBackups, load: loadLocalBackups } = useLocalBackupsLoader();
 	const [showLocalBackups, setShowLocalBackups] = useState(false);
 	const [selectedLocalPath, setSelectedLocalPath] = useState<string | null>(null);
 	const [pickingOtherFile, setPickingOtherFile] = useState(false);
@@ -333,9 +333,16 @@ export function SettingsDataPage() {
 							onClick={() => {
 								if (localBackups && localBackups.length > 0) {
 									setShowLocalBackups(true);
-								} else {
-									openBackupPicker();
+									// Picks up backups exported since the page opened.
+									void loadLocalBackups();
+									return;
 								}
+								// Not scanned yet (or nothing found before): only open the file
+								// picker once a fresh scan confirms there's nothing local.
+								void loadLocalBackups().then((found) => {
+									if (found.length > 0) setShowLocalBackups(true);
+									else void openBackupPicker();
+								});
 							}}
 							disabled={isImporting}
 							className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors ${isImporting ? "opacity-50" : "hover-fill"} ${highlightId === "data-import" ? "animate-settings-highlight" : ""}`}
@@ -604,38 +611,43 @@ export function SettingsDataPage() {
 
 			{pendingImport && (
 				<BottomSheet onClose={handleCancelImport} isDesktop={isDesktop} isProcessing={isImporting} panelClassName="max-h-[82dvh]">
-					<div className="flex items-center justify-between gap-3 px-4 pb-3">
-						<div className="min-w-0">
-							<p className="text-sm font-semibold text-[var(--text)]">
-								{t("data_backup.import_categories_title", { defaultValue: "What do you want to restore?" })}
-							</p>
-							<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-								{t("data_backup.import_categories_desc", { defaultValue: "Only categories present in this file can be restored." })}
-							</p>
-						</div>
-						<SheetCloseButton disabled={isImporting} />
-					</div>
-					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
-						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleImportCategory} />
-					</div>
-					<BackupProgressBar kind="import" active={isImporting} />
-					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
-						<SheetClose
-							disabled={isImporting}
-							className={sheetButtonClass("secondary")}
-						>
-							{t("common.cancel", { defaultValue: "Cancel" })}
-						</SheetClose>
-						<button
-							type="button"
-							onClick={() => void handleConfirmImport()}
-							disabled={isImporting || pendingImport.selected.size === 0}
-							className={sheetButtonClass()}
-						>
-							{isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-							<span>{t("data_backup.import_confirm", { defaultValue: "Restore" })}</span>
-						</button>
-					</div>
+					{isImporting ? (
+						<BackupProgressView kind="import" />
+					) : (
+						<>
+							<div className="flex items-center justify-between gap-3 px-4 pb-3">
+								<div className="min-w-0">
+									<p className="text-sm font-semibold text-[var(--text)]">
+										{t("data_backup.import_categories_title", { defaultValue: "What do you want to restore?" })}
+									</p>
+									<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+										{t("data_backup.import_categories_desc", { defaultValue: "Only categories present in this file can be restored." })}
+									</p>
+								</div>
+								<SheetCloseButton disabled={isImporting} />
+							</div>
+							<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
+								<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleImportCategory} />
+							</div>
+							<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
+								<SheetClose
+									disabled={isImporting}
+									className={sheetButtonClass("secondary")}
+								>
+									{t("common.cancel", { defaultValue: "Cancel" })}
+								</SheetClose>
+								<button
+									type="button"
+									onClick={() => void handleConfirmImport()}
+									disabled={isImporting || pendingImport.selected.size === 0}
+									className={sheetButtonClass()}
+								>
+									{isImporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+									<span>{t("data_backup.import_confirm", { defaultValue: "Restore" })}</span>
+								</button>
+							</div>
+						</>
+					)}
 				</BottomSheet>
 			)}
 		</section>

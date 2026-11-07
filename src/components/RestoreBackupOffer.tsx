@@ -3,7 +3,7 @@ import { FileArchive, FileUp, Loader2, Lock, UploadCloud } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { BackupCategoryPicker } from "./BackupCategoryPicker";
-import { BackupProgressBar, BackupReadStatus } from "./BackupProgressBar";
+import { BackupProgressView, BackupReadStatus } from "./BackupProgressBar";
 import { LocalBackupList, useLocalBackups } from "./LocalBackupList";
 import { FullscreenPrompt, fullscreenSecondaryButtonClass } from "./FullscreenPrompt";
 import { BottomSheet, SheetClose, SheetCloseButton, sheetButtonClass, SHEET_FOOTER_FADE_CLASS } from "./ui/bottom-sheet";
@@ -244,38 +244,43 @@ export function RestoreBackupOffer({ userId, onDone }: { userId: number; onDone:
 					panelClassName="max-h-[82dvh]"
 					zIndex="z-[150]"
 				>
-					<div className="flex items-center justify-between gap-3 px-4 pb-3">
-						<div className="min-w-0">
-							<p className="text-sm font-semibold text-[var(--text)]">
-								{t("restore_offer.categories_title", { defaultValue: "What do you want to restore?" })}
-							</p>
-							<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
-								{t("restore_offer.categories_desc", { defaultValue: "Only categories present in this file can be restored." })}
-							</p>
-						</div>
-						<SheetCloseButton disabled={isBusy} />
-					</div>
-					<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
-						<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleCategory} />
-					</div>
-					<BackupProgressBar kind="import" active={isBusy} />
-					<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
-						<SheetClose
-							disabled={isBusy}
-							className={sheetButtonClass("secondary")}
-						>
-							{t("common.cancel", { defaultValue: "Cancel" })}
-						</SheetClose>
-						<button
-							type="button"
-							onClick={() => void handleConfirmImport()}
-							disabled={isBusy || pendingImport.selected.size === 0}
-							className={sheetButtonClass()}
-						>
-							{isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-							<span>{t("restore_offer.confirm", { defaultValue: "Restore" })}</span>
-						</button>
-					</div>
+					{isBusy ? (
+						<BackupProgressView kind="import" />
+					) : (
+						<>
+							<div className="flex items-center justify-between gap-3 px-4 pb-3">
+								<div className="min-w-0">
+									<p className="text-sm font-semibold text-[var(--text)]">
+										{t("restore_offer.categories_title", { defaultValue: "What do you want to restore?" })}
+									</p>
+									<p className="mt-0.5 text-xs leading-snug text-[var(--text-muted)]">
+										{t("restore_offer.categories_desc", { defaultValue: "Only categories present in this file can be restored." })}
+									</p>
+								</div>
+								<SheetCloseButton disabled={isBusy} />
+							</div>
+							<div className="min-h-0 flex-1 overflow-y-auto pb-4" data-lenis-prevent>
+								<BackupCategoryPicker categories={pendingImport.categories} selected={pendingImport.selected} onToggle={toggleCategory} />
+							</div>
+							<div className={`flex shrink-0 gap-2.5 px-4 pb-4 ${SHEET_FOOTER_FADE_CLASS}`}>
+								<SheetClose
+									disabled={isBusy}
+									className={sheetButtonClass("secondary")}
+								>
+									{t("common.cancel", { defaultValue: "Cancel" })}
+								</SheetClose>
+								<button
+									type="button"
+									onClick={() => void handleConfirmImport()}
+									disabled={isBusy || pendingImport.selected.size === 0}
+									className={sheetButtonClass()}
+								>
+									{isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+									<span>{t("restore_offer.confirm", { defaultValue: "Restore" })}</span>
+								</button>
+							</div>
+						</>
+					)}
 				</BottomSheet>
 			)}
 		</>
